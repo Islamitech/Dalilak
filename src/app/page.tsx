@@ -7,15 +7,17 @@ import * as z from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import JSZip from 'jszip';
+import { useRouter } from 'next/navigation';
 import {
   MapPin, Store, Phone, Mail, Clock, Calendar, CheckCircle,
   ChevronLeft, ChevronRight, Navigation, Trash2, AlertCircle,
   Building2, Map, Upload, RefreshCw, Copy, ExternalLink, Clipboard,
   Search, Filter, Eye, X, ShieldCheck, Layers, Check,
   User, MessageSquare, Share2, Download, FileSpreadsheet, HardDrive, Archive, Tag,
-  Receipt, Send, DollarSign, Edit3, Printer, FileText
+  Receipt, Send, DollarSign, Edit3, Printer, FileText, LogIn, LogOut, Shield
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { supabase } from '@/lib/supabase';
 
 const InteractiveMap = dynamic(() => import('./components/InteractiveMap'), {
   ssr: false,
@@ -42,7 +44,6 @@ export interface PlaceItem {
   landmark?: string;
   phone: string;
   whatsapp?: string;
-  facebookUrl?: string;
   googleEmail: string;
   workFrom: string;
   workTo: string;
@@ -794,9 +795,12 @@ function exportToJSON(places: PlaceItem[]) {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [lastSavedPlace, setLastSavedPlace] = useState<PlaceItem | null>(null);
+
+  const [loggedInUser, setLoggedInUser] = useState<{ full_name: string; role: string; email: string } | null>(null);
 
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
@@ -891,19 +895,72 @@ export default function Home() {
     : '';
 
   useEffect(() => {
+    // Check Logged in User
     try {
-      const d = localStorage.getItem('field_notified_places');
-      if (d) setSavedPlaces(JSON.parse(d));
-
-      const draft = localStorage.getItem('field_form_draft');
-      if (draft) {
-        const parsedDraft = JSON.parse(draft);
-        Object.entries(parsedDraft).forEach(([k, v]) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if (v) setValue(k as keyof FormValues, v as any);
-        });
+      const u = localStorage.getItem('daleelak_current_user');
+      if (u) {
+        const parsed = JSON.parse(u);
+        setLoggedInUser(parsed);
+        setValue('documenterName', parsed.full_name || 'مكتب دليلك');
       }
     } catch { /* ignore */ }
+
+    // Fetch places from Supabase & LocalStorage
+    const fetchPlaces = async () => {
+      try {
+        const { data: sbPlaces } = await supabase.from('places').select('*');
+        let list: PlaceItem[] = [];
+        if (sbPlaces && sbPlaces.length > 0) {
+          list = sbPlaces.map((p) => ({
+            id: p.id,
+            businessName: p.business_name,
+            nameEn: p.name_en,
+            status: p.status,
+            category: p.category,
+            subCategory: p.sub_category,
+            customCategory: p.custom_category,
+            latitude: p.latitude,
+            longitude: p.longitude,
+            city: p.city,
+            neighborhood: p.neighborhood,
+            street: p.street,
+            landmark: p.landmark,
+            phone: p.phone,
+            whatsapp: p.whatsapp,
+            googleEmail: p.google_email,
+            workFrom: p.work_from,
+            workTo: p.work_to,
+            holidays: p.holidays || [],
+            facadeImage: p.facade_image,
+            internalImage: p.internal_image,
+            documenterName: p.documenter_name,
+            notes: p.notes,
+            date: p.date,
+            time: p.time,
+            dms: p.dms,
+            totalAmount: p.total_amount || 300,
+            paidAmount: p.paid_amount || 0,
+            remainingAmount: p.remaining_amount || 0,
+            paymentStatus: p.payment_status || 'مدفوعة بالكامل',
+          }));
+        }
+
+        const d = localStorage.getItem('field_notified_places');
+        if (d) {
+          const localList = JSON.parse(d);
+          localList.forEach((lp: PlaceItem) => {
+            if (!list.some((x) => x.id === lp.id)) list.push(lp);
+          });
+        }
+
+        setSavedPlaces(list);
+      } catch {
+        const d = localStorage.getItem('field_notified_places');
+        if (d) setSavedPlaces(JSON.parse(d));
+      }
+    };
+
+    fetchPlaces();
   }, [setValue]);
 
   const watchedFields = watch();
@@ -914,6 +971,12 @@ export default function Home() {
       }
     } catch { /* ignore */ }
   }, [watchedFields]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('daleelak_current_user');
+    setLoggedInUser(null);
+    showToast('تم تسجيل الخروج بنجاح.');
+  };
 
   const handleJSONImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -937,7 +1000,7 @@ export default function Home() {
     reader.readAsText(file);
   };
 
-  const handleUpdatePaymentStatus = (id: string, newStatus: string, newPaidAmount: number) => {
+  const handleUpdatePaymentStatus = async (id: string, newStatus: string, newPaidAmount: number) => {
     const updated = savedPlaces.map((p) => {
       if (p.id === id) {
         const tot = p.totalAmount || 300;
@@ -952,6 +1015,15 @@ export default function Home() {
       return p;
     });
     setSavedPlaces(updated);
+
+    try {
+      await supabase.from('places').update({
+        payment_status: newStatus,
+        paid_amount: newPaidAmount,
+        remaining_amount: Math.max(0, 300 - newPaidAmount),
+      }).eq('id', id);
+    } catch { /* ignore */ }
+
     try {
       localStorage.setItem('field_notified_places', JSON.stringify(updated));
     } catch { /* ignore */ }
@@ -1114,7 +1186,7 @@ export default function Home() {
     setValue('workFrom', '10:00', { shouldValidate: true });
     setValue('workTo', '01:00', { shouldValidate: true });
     setValue('holidays', [], { shouldValidate: true });
-    setValue('documenterName', 'مكتب دليلك للخدمات الرقمية', { shouldValidate: true });
+    setValue('documenterName', loggedInUser?.full_name || 'مكتب دليلك للخدمات الرقمية', { shouldValidate: true });
     setValue('notes', 'مطعم بحري شهير وموثق ميدانياً مع إمكانية التوصيل.', { shouldValidate: true });
     setValue('totalAmount', 300, { shouldValidate: true });
     setValue('paidAmount', 0, { shouldValidate: true });
@@ -1143,14 +1215,16 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     const total = data.totalAmount || 300;
     const paid = data.paidAmount ?? (data.paymentStatus === 'مدفوعة بالكامل' ? total : 0);
     const rem = Math.max(0, total - paid);
+    const docName = loggedInUser?.full_name || data.documenterName || 'مكتب دليلك للخدمات الرقمية';
 
     const place: PlaceItem = {
       id: Date.now().toString(),
       ...data,
+      documenterName: docName,
       totalAmount: total,
       paidAmount: paid,
       remainingAmount: rem,
@@ -1158,6 +1232,44 @@ export default function Home() {
       time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
       dms: toDMS(data.latitude, data.longitude),
     };
+
+    // Save to Supabase Cloud Database
+    try {
+      await supabase.from('places').insert([
+        {
+          id: place.id,
+          business_name: place.businessName,
+          name_en: place.nameEn,
+          status: place.status,
+          category: place.category,
+          sub_category: place.subCategory,
+          custom_category: place.customCategory,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          dms: place.dms,
+          city: place.city,
+          neighborhood: place.neighborhood,
+          street: place.street,
+          landmark: place.landmark,
+          phone: place.phone,
+          whatsapp: place.whatsapp,
+          google_email: place.googleEmail,
+          work_from: place.workFrom,
+          work_to: place.workTo,
+          holidays: place.holidays,
+          facade_image: place.facadeImage,
+          internal_image: place.internalImage,
+          documenter_name: place.documenterName,
+          notes: place.notes,
+          date: place.date,
+          time: place.time,
+          total_amount: place.totalAmount,
+          paid_amount: place.paidAmount,
+          remaining_amount: place.remainingAmount,
+          payment_status: place.paymentStatus,
+        },
+      ]);
+    } catch { /* ignore */ }
 
     const updated = [place, ...savedPlaces];
     setSavedPlaces(updated);
@@ -1176,21 +1288,26 @@ export default function Home() {
       });
     } catch { /* ignore */ }
 
-    showToast('تم حفظ التوثيق وإصدار الفاتورة الرسمية بنجاح!');
+    showToast('تم حفظ التوثيق سحابياً وإصدار الفاتورة الرسمية بنجاح!');
 
     setIsSuccess(true);
     reset();
     setStep(1);
   };
 
-  const deletePlace = (id: string) => {
+  const deletePlace = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا المكان من سجل التوثيق المحفوظ؟')) return;
     const updated = savedPlaces.filter((p) => p.id !== id);
     setSavedPlaces(updated);
+
+    try {
+      await supabase.from('places').delete().eq('id', id);
+    } catch { /* ignore */ }
+
     try {
       localStorage.setItem('field_notified_places', JSON.stringify(updated));
     } catch { /* ignore */ }
-    showToast('تم حذف المكان من السجل المحلي.');
+    showToast('تم حذف المكان من السجل السحابي والمحلي.');
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -1288,6 +1405,45 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {loggedInUser ? (
+              <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 p-2 pl-3 rounded-2xl">
+                <div className="w-8 h-8 bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center text-xs">
+                  {loggedInUser.full_name.charAt(0)}
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-white block">{loggedInUser.full_name}</span>
+                  <span className="text-[10px] text-emerald-400 font-semibold block">
+                    {loggedInUser.role === 'admin' ? 'مدير مسؤول' : 'موثق ميداني'}
+                  </span>
+                </div>
+
+                {loggedInUser.role === 'admin' && (
+                  <button
+                    onClick={() => router.push('/admin')}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all mr-1 cursor-pointer flex items-center gap-1"
+                  >
+                    <Shield className="w-3.5 h-3.5" /> اللوحة
+                  </button>
+                )}
+
+                <button
+                  onClick={handleLogout}
+                  className="text-slate-400 hover:text-red-400 p-1 mr-1 cursor-pointer"
+                  title="تسجيل الخروج"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-600/30"
+              >
+                <LogIn className="w-4 h-4" /> دخول الحساب / المسؤول
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setShowStorageExplainModal(true)}
@@ -1496,7 +1652,7 @@ export default function Home() {
                               <>
                                 <Upload className="w-8 h-8 text-indigo-600 mb-2" />
                                 <span className="text-xs font-bold text-indigo-600">اضغط لرفع أو التقاط صورة واجهة المحل</span>
-                                <span className="text-[10px] text-slate-400 mt-1">تُحفظ الصور محلّياً وآمناً داخل جهازك</span>
+                                <span className="text-[10px] text-slate-400 mt-1">تُحفظ الصور سحابياً ومحلياً داخل جهازك</span>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -1561,7 +1717,7 @@ export default function Home() {
                               <>
                                 <Upload className="w-8 h-8 text-slate-400 mb-2" />
                                 <span className="text-xs font-bold text-indigo-600">اضغط لرفع صورة من داخل المحل</span>
-                                <span className="text-[10px] text-slate-400 mt-1">تُحفظ الصور محلّياً وآمناً داخل جهازك</span>
+                                <span className="text-[10px] text-slate-400 mt-1">تُحفظ الصور سحابياً ومحلياً داخل جهازك</span>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -2209,7 +2365,7 @@ export default function Home() {
                     <div>
                       <h4 className="text-xs font-bold text-indigo-900 mb-1">تأكيد وإقرار الموثق الميداني</h4>
                       <p className="text-xs text-indigo-800 leading-relaxed">
-                        أقر بصحة البيانات المسجلة ومطابقتها للمنشأة على أرض الواقع، وبإصدار الفاتورة وتوثيق الصور محلياً على الجهاز.
+                        أقر بصحة البيانات المسجلة ومطابقتها للمنشأة على أرض الواقع، وبإصدار الفاتورة وتوثيق الصور سحابياً ومحلياً.
                       </p>
                     </div>
                   </div>
@@ -2255,7 +2411,7 @@ export default function Home() {
           <div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800">تم توثيق المكان وإصدار الفاتورة بنجاح!</h2>
             <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
-              تم تسجيل البيانات والصور في السجل الداخلي، ويمكنك الآن إرسال الفاتورة الرسمية إلى الواتساب
+              تم تسجيل البيانات والصور سحابياً ومحلياً، ويمكنك الآن إرسال الفاتورة الرسمية إلى الواتساب
             </p>
           </div>
 
@@ -2584,7 +2740,7 @@ export default function Home() {
                     </div>
 
                     <div className="flex justify-between items-center text-[11px] text-slate-400 font-medium px-1">
-                      <span>التاريخ: {place.date} - {place.time}</span>
+                      <span>الموثق: {place.documenterName || 'مكتب دليلك'}</span>
                       <button
                         onClick={() => setActiveModalPlace(place)}
                         className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
@@ -3088,7 +3244,7 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
                 <span className="text-xs font-semibold text-slate-500">
-                  معاينة الصورة المرفوعة قبل إتمام التوثيق والحفظ على جهازك
+                  معاينة الصورة المرفوعة قبل إتمام التوثيق والحفظ سحابياً وعلى جهازك
                 </span>
                 <button
                   type="button"
