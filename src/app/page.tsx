@@ -14,7 +14,8 @@ import {
   Building2, Map, Upload, RefreshCw, Copy, ExternalLink, Clipboard,
   Search, Filter, Eye, X, ShieldCheck, Layers, Check,
   User, MessageSquare, Share2, Download, FileSpreadsheet, HardDrive, Archive, Tag,
-  Receipt, Send, DollarSign, Edit3, Printer, FileText, LogIn, LogOut, Shield
+  Receipt, Send, DollarSign, Edit3, Printer, FileText, LogIn, LogOut, Shield,
+  Sparkles, Camera, QrCode, Globe, Bot, TrendingUp, Megaphone, Star, Scale, FileCode, CheckSquare, ArrowRight
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
@@ -55,7 +56,6 @@ export interface PlaceItem {
   date: string;
   time: string;
   dms: string;
-  // Billing fields
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
@@ -197,7 +197,6 @@ const formSchema = z.object({
   internalImage: z.string().optional(),
   documenterName: z.string().optional(),
   notes: z.string().optional(),
-  // Billing fields
   totalAmount: z.number().default(300),
   paidAmount: z.number().default(0),
   paymentStatus: z.string().min(1, 'يرجى تحديد طريقة وحالة الدفع (الآن أم لاحقاً)'),
@@ -337,7 +336,6 @@ function getCleanFileName(placeName: string, city: string, type: 'واجهة' | 
   return `${cleanPlace}_${cleanCity ? cleanCity + '_' : ''}صورة_${type}.jpg`;
 }
 
-// OFFICIAL PRINTED CORPORATE INVOICE GRAPHIC GENERATOR (CANVAS PNG WITH OFFICIAL STAMP)
 function generateInvoiceImageDataUrl(place: PlaceItem): string {
   const canvas = document.createElement('canvas');
   canvas.width = 800;
@@ -345,24 +343,19 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
 
-  // Background
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, 800, 1120);
 
-  // Outer Border
   ctx.strokeStyle = '#cbd5e1';
   ctx.lineWidth = 4;
   ctx.strokeRect(15, 15, 770, 1090);
 
-  // Corporate Banner Header
-  ctx.fillStyle = '#0f172a'; // slate-900
+  ctx.fillStyle = '#0f172a';
   ctx.fillRect(17, 17, 766, 140);
 
-  // Emerald/Gold Accent Strip
-  ctx.fillStyle = '#10b981'; // emerald-500
+  ctx.fillStyle = '#10b981';
   ctx.fillRect(17, 152, 766, 5);
 
-  // Header Texts
   ctx.direction = 'rtl';
   ctx.textAlign = 'right';
 
@@ -375,7 +368,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillText('المنظومة الميدانية المعتمدة لتوثيق وإدارة المنشآت على خرائط جوجل', 750, 95);
   ctx.fillText('سجل تجاري وترخيص ميداني معتمد - القاهرة، مصر', 750, 122);
 
-  // Invoice Number & Date Box
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 20px Tahoma, Arial, sans-serif';
   ctx.fillText(`فاتورة توثيق ميداني رسمية رقم: INV-${place.id.slice(-6)}`, 750, 195);
@@ -384,7 +376,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = '#64748b';
   ctx.fillText(`تاريخ الإصدار: ${place.date}   |   وقت الإصدار: ${place.time}`, 750, 222);
 
-  // Divider Line
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -392,7 +383,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.lineTo(760, 240);
   ctx.stroke();
 
-  // Section 1: Customer & Business Info Box
   ctx.fillStyle = '#f8fafc';
   ctx.fillRect(40, 260, 720, 185);
   ctx.strokeStyle = '#cbd5e1';
@@ -410,7 +400,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillText(`• الإحداثيات الجغرافية (DMS):  ${place.dms}`, 740, 412);
   ctx.fillText(`• رقم هاتف التواصل والواتساب:  ${place.phone}   |   البريد: ${place.googleEmail}`, 740, 432);
 
-  // Section 2: Table Header
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(40, 465, 720, 40);
 
@@ -420,7 +409,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.textAlign = 'left';
   ctx.fillText('القيمة (جنيه مصري)', 60, 490);
 
-  // Table Row
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(40, 505, 720, 75);
   ctx.strokeStyle = '#e2e8f0';
@@ -441,7 +429,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = '#0f172a';
   ctx.fillText(`${place.totalAmount || 300} ج.م`, 60, 545);
 
-  // Section 3: Financial Summary Box
   const tot = place.totalAmount || 300;
   const paid = place.paidAmount ?? tot;
   const rem = place.remainingAmount ?? Math.max(0, tot - paid);
@@ -460,7 +447,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = '#334155';
   ctx.fillText(`• إجمالي قيمة الخدمة المستحقة:   ${tot} جنيه مصري`, 740, 662);
 
-  ctx.fillStyle = '#047857'; // emerald
+  ctx.fillStyle = '#047857';
   ctx.fillText(`• المبلغ المدفوع حالياً:   ${paid} جنيه مصري`, 740, 692);
 
   ctx.fillStyle = rem > 0 ? '#b45309' : '#047857';
@@ -470,7 +457,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = '#0f172a';
   ctx.fillText(`• حالة الفاتورة:  [ ${place.paymentStatus} ]`, 740, 747);
 
-  // Section 4: Notes
   ctx.font = '12px Tahoma, Arial, sans-serif';
   ctx.fillStyle = '#475569';
   let noteLine = '';
@@ -483,7 +469,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   }
   ctx.fillText(noteLine, 740, 792);
 
-  // Official Stamp Graphics (Royal Blue Stamp)
   const stampX = 180;
   const stampY = 940;
 
@@ -491,7 +476,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.translate(stampX, stampY);
   ctx.rotate(-0.12);
 
-  ctx.strokeStyle = '#1d4ed8'; // royal blue
+  ctx.strokeStyle = '#1d4ed8';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.arc(0, 0, 72, 0, Math.PI * 2);
@@ -513,7 +498,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillText('VERIFIED & APPROVED', 0, 48);
   ctx.restore();
 
-  // Signature Details
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'right';
@@ -526,7 +510,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = '#94a3b8';
   ctx.fillText('التوقيع الإلكتروني والختم الميداني معتمد رسمياً', 740, 970);
 
-  // Footer Ribbon
   ctx.fillStyle = '#f8fafc';
   ctx.fillRect(17, 1040, 766, 62);
   ctx.strokeStyle = '#cbd5e1';
@@ -541,7 +524,6 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   return canvas.toDataURL('image/png');
 }
 
-// FORMAL TEXT GENERATOR
 function generateWhatsAppInvoiceText(place: PlaceItem): string {
   const invNum = `INV-${place.id.slice(-6)}`;
   const tot = place.totalAmount || 300;
@@ -594,13 +576,11 @@ function sendWhatsAppInvoiceUrl(phone: string, text: string) {
   window.open(url, '_blank');
 }
 
-// DIRECT SEND TO REGISTERED WHATSAPP NUMBER (CLEAN STATIC BUTTON TEXT)
 async function sendWhatsAppInvoiceWithImage(place: PlaceItem, showToast: (msg: string) => void) {
   const txt = generateWhatsAppInvoiceText(place);
   const dataUrl = generateInvoiceImageDataUrl(place);
   const targetPhone = place.whatsapp || place.phone;
 
-  // 1. Copy image to Clipboard & Auto-Download PNG
   try {
     if (dataUrl && typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
       const res = await fetch(dataUrl);
@@ -618,13 +598,11 @@ async function sendWhatsAppInvoiceWithImage(place: PlaceItem, showToast: (msg: s
     showToast('جاري فتح محادثة الواتساب لإرسال الفاتورة الرسمية...');
   }
 
-  // 2. Download the official invoice image PNG for convenience
   if (dataUrl) {
     const fn = `${place.businessName}_فاتورة_رسمية_مطبوعة.png`;
     downloadImageFile(dataUrl, fn);
   }
 
-  // 3. Open WhatsApp directly to the registered phone number
   sendWhatsAppInvoiceUrl(targetPhone, txt);
 }
 
@@ -895,7 +873,6 @@ export default function Home() {
     : '';
 
   useEffect(() => {
-    // Check Logged in User
     try {
       const u = localStorage.getItem('daleelak_current_user');
       if (u) {
@@ -905,7 +882,6 @@ export default function Home() {
       }
     } catch { /* ignore */ }
 
-    // Fetch places from Supabase & LocalStorage
     const fetchPlaces = async () => {
       try {
         const { data: sbPlaces } = await supabase.from('places').select('*');
@@ -1233,7 +1209,6 @@ export default function Home() {
       dms: toDMS(data.latitude, data.longitude),
     };
 
-    // Save to Supabase Cloud Database
     try {
       await supabase.from('places').insert([
         {
@@ -1341,15 +1316,12 @@ export default function Home() {
 
   const todayDateStr = new Date().toLocaleDateString('ar-EG');
   const todayCount = savedPlaces.filter((p) => p.date === todayDateStr).length;
-
   const totalCollected = savedPlaces.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-
   const categoryCounts = savedPlaces.reduce((acc, p) => {
     const c = p.subCategory && p.subCategory !== 'أخرى (إدخال مخصص)' ? p.subCategory : p.category;
     acc[c] = (acc[c] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-
   const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'لا يوجد';
 
   const FieldError = ({ msg }: { msg?: string }) =>
@@ -1366,6 +1338,273 @@ export default function Home() {
         : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'
     }`;
 
+  // =========================================================================
+  // IF USER IS NOT LOGGED IN: SHOW PUBLIC PROMOTIONAL LANDING PAGE
+  // =========================================================================
+  if (!loggedInUser) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 dir-rtl font-sans selection:bg-emerald-500 selection:text-slate-950">
+
+        {/* Global Navigation Header */}
+        <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-md border-b border-slate-800 px-4 py-4">
+          <div className="max-w-6xl mx-auto flex justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-base sm:text-lg font-black text-white tracking-tight">
+                  دليلك للخدمات الرقمية
+                </h1>
+                <span className="text-[10px] text-emerald-400 font-bold block">
+                  منظومة توثيق الخرائط والحلول الرقمية للأعمال
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/login')}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <LogIn className="w-4 h-4" /> دخول الموثقين / الحسابات
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Hero Section: Google Maps Focus */}
+        <section className="relative px-4 py-16 sm:py-24 max-w-6xl mx-auto text-center space-y-8 overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-10 right-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="inline-flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold px-4 py-1.5 rounded-full shadow-inner relative z-10">
+            <Sparkles className="w-4 h-4" /> الخدمة الرئيسية المتاحة حالياً: توثيق الخرائط والمعاينة الميدانية
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight max-w-3xl mx-auto relative z-10">
+            وثّق منشأتك على <span className="text-emerald-400">خرائط جوجل (Google Maps)</span> واضمن وصول عملائك بدقة
+          </h1>
+
+          <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed relative z-10">
+            منظومة رقمية معتمدة لإصدار الفواتير الرقمية وتأكيد ملكية الأنشطة التجارية وتوثيق الإحداثيات الجغرافية والصور الميدانية للمحلات والمشاريع.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 relative z-10">
+            <button
+              onClick={() => router.push('/login')}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm px-8 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <LogIn className="w-5 h-5" /> تسجيل الدخول لبدء التوثيق الميداني
+            </button>
+            <a
+              href="#services"
+              className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-sm px-8 py-3.5 rounded-2xl transition-all cursor-pointer"
+            >
+              استكشف خدمات دليلك الشاملة ⬇
+            </a>
+          </div>
+        </section>
+
+        {/* FEATURE HIGHLIGHT: GOOGLE MAPS DOCUMENTATION (CURRENT ACTIVE SERVICE) */}
+        <section className="px-4 py-12 max-w-6xl mx-auto">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/80 border border-indigo-500/30 rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-800 pb-6">
+              <div className="space-y-2">
+                <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-bold px-3 py-1 rounded-full">
+                  الخدمة الميدانية النشطة
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
+                  <MapPin className="w-8 h-8 text-emerald-400" /> توثيق الخرائط والتواجد الرقمي الميداني
+                </h2>
+              </div>
+              <button
+                onClick={() => router.push('/login')}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 shadow-lg shadow-indigo-600/30"
+              >
+                <LogIn className="w-4 h-4" /> دخول الموثق الميداني
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-right">
+              <div className="bg-slate-950/70 p-6 rounded-2xl border border-slate-800 space-y-3">
+                <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center font-bold">
+                  1
+                </div>
+                <h3 className="font-extrabold text-white text-base">تسجيل وضبط الإحداثيات الجغرافية</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  تحديد الإحداثيات الدقيقة (DMS) وتأكيد اسم الشارع والحي ونقل ملكية بريد Gmail للعميل مباشرة.
+                </p>
+              </div>
+
+              <div className="bg-slate-950/70 p-6 rounded-2xl border border-slate-800 space-y-3">
+                <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center font-bold">
+                  2
+                </div>
+                <h3 className="font-extrabold text-white text-base">إصدار الفاتورة الرسمية المطبوعة</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  إصدار فاتورة ورقية ورقمية موثقة بأختام المؤسسة وإرسالها فوراً لعميلك عبر الواتساب.
+                </p>
+              </div>
+
+              <div className="bg-slate-950/70 p-6 rounded-2xl border border-slate-800 space-y-3">
+                <div className="w-10 h-10 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center font-bold">
+                  3
+                </div>
+                <h3 className="font-extrabold text-white text-base">نظام السداد والحفظ السحابي</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  خيارات متعددة لسداد الرسوم (مدفوعة، عربون، مؤجلة لحين الظهور) مع التخزين الآمن في Supabase.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ALL CORPORATE SERVICES SECTION (ROADMAP & COMPREHENSIVE SERVICES) */}
+        <section id="services" className="px-4 py-16 max-w-6xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl sm:text-4xl font-black text-white">منظومة خدمات دليلك الرقمية المتكاملة</h2>
+            <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
+              حلول ميدانية وتقنية وقانونية شاملة للانتقال بجمهور نشاطك التجاري للريادة الرقمية
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* Category 1 */}
+            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-emerald-500/50 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/30">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-400 block">الخدمات الميدانية (On-Site & Field)</span>
+                  <h3 className="text-lg font-black text-white">1. التواجد الميداني والتفاعل المباشر</h3>
+                </div>
+              </div>
+              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong>التوثيق والتواجد على الخرائط:</strong> تسجيل الأنشطة على Google Maps وضبط بيانات التواصل والوصول المباشر.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Camera className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong>التصوير الميداني والجولات الافتراضية:</strong> التقاط صور احترافية للواجهة والتفاصيل وإعداد جولات 360° تفاعلية.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <QrCode className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong>حلول التفاعل المباشر (NFC & QR Code):</strong> تجهيز حوامل (Stands) وكروت ذكية لفتح المنيو أو ترك تقييم بنقرة واحدة.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Category 2 */}
+            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-indigo-500/50 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center border border-indigo-500/30">
+                  <Globe className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-400 block">المنصات والحوسبة (Platforms & Cloud)</span>
+                  <h3 className="text-lg font-black text-white">2. الخدمات الرقمية وتطوير المنصات</h3>
+                </div>
+              </div>
+              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <FileCode className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                  <span><strong>تطوير المنصات والمواقع:</strong> إنشاء مواقع عرض الخدمات (Landing Pages) والكتالوجات والمنيو الرقمي السحابي.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                  <span><strong>إدارة وتوثيق الهوية الرقمية:</strong> إنشاء الحسابات الرسمية على شبكات التواصل الاجتماعي وتوثيقها وإدارتها.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Bot className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                  <span><strong>أنظمة التفاعل الذكي (AI Chatbots):</strong> بناء وتطوير آليات الرد التلقائي للرد الفوري عبر الواتساب والمنصات.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Category 3 */}
+            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-amber-500/50 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center border border-amber-500/30">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-amber-400 block">التسويق وتكثيف المبيعات (Digital Marketing)</span>
+                  <h3 className="text-lg font-black text-white">3. التسويق الرقمي وإدارة السمعة</h3>
+                </div>
+              </div>
+              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <Search className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span><strong>تحسين الظهور المحلي (Local SEO):</strong> رفع ترتيب المكان في نتائج البحث المحلية وتنسيق منشورات البروفايل.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Megaphone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span><strong>الحملات الإعلانية الموجهة:</strong> إعلانات خرائط جوجل الممولة ومنصات التواصل لاستهداف الجمهور المناسب.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Star className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span><strong>إدارة السمعة والتحليلات:</strong> متابعة تقييمات العملاء والرد عليها وتقديم تقارير حركة الزوار الأسبوعية.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Category 4 */}
+            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-purple-500/50 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                  <Scale className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-purple-400 block">الحماية والاستشارات (Digital Legal)</span>
+                  <h3 className="text-lg font-black text-white">4. الاستشارات والحماية القانونية الرقمية</h3>
+                </div>
+              </div>
+              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <Shield className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                  <span><strong>توثيق الملكية الفكرية:</strong> تسجيل العلامة التجارية والاسم والشعار لحماية المنشأة من الانتحال أو السرقة.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                  <span><strong>صياغة وتدقيق السياسات:</strong> إعداد شروط الاستخدام (Terms) وسياسات الخصوصية وفق اللوائح القضائية.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                  <span><strong>التدقيق العقدي وإدارة الملكيات:</strong> التأشير القانوني عند نقل ملكية الحسابات والأنشطة الرقمية بين الشركاء.</span>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-slate-800 bg-slate-950 py-10 px-4 text-center space-y-3">
+          <p className="text-xs font-bold text-slate-400">
+            دليلك للخدمات الرقمية (توثيق الخرائط والمنظومة الميدانية) - جميع الحقوق محفوظة © 2026
+          </p>
+          <div className="flex justify-center gap-4 text-xs font-semibold text-slate-500">
+            <button onClick={() => router.push('/login')} className="hover:text-emerald-400 cursor-pointer">
+              تسجيل دخول الموثقين
+            </button>
+            <span>•</span>
+            <button onClick={() => router.push('/login')} className="hover:text-emerald-400 cursor-pointer">
+              لوحة تحكم المسؤول
+            </button>
+          </div>
+        </footer>
+
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // IF USER IS LOGGED IN: SHOW FIELD DOCUMENTATION FORM AND APP
+  // =========================================================================
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 sm:py-10">
 
@@ -1405,44 +1644,34 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {loggedInUser ? (
-              <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 p-2 pl-3 rounded-2xl">
-                <div className="w-8 h-8 bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center text-xs">
-                  {loggedInUser.full_name.charAt(0)}
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-white block">{loggedInUser.full_name}</span>
-                  <span className="text-[10px] text-emerald-400 font-semibold block">
-                    {loggedInUser.role === 'admin' ? 'مدير مسؤول' : 'موثق ميداني'}
-                  </span>
-                </div>
-
-                {loggedInUser.role === 'admin' && (
-                  <button
-                    onClick={() => router.push('/admin')}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all mr-1 cursor-pointer flex items-center gap-1"
-                  >
-                    <Shield className="w-3.5 h-3.5" /> اللوحة
-                  </button>
-                )}
-
-                <button
-                  onClick={handleLogout}
-                  className="text-slate-400 hover:text-red-400 p-1 mr-1 cursor-pointer"
-                  title="تسجيل الخروج"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 p-2 pl-3 rounded-2xl">
+              <div className="w-8 h-8 bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center text-xs">
+                {loggedInUser.full_name.charAt(0)}
               </div>
-            ) : (
+              <div className="text-right">
+                <span className="text-xs font-bold text-white block">{loggedInUser.full_name}</span>
+                <span className="text-[10px] text-emerald-400 font-semibold block">
+                  {loggedInUser.role === 'admin' ? 'مدير مسؤول' : 'موثق ميداني'}
+                </span>
+              </div>
+
+              {loggedInUser.role === 'admin' && (
+                <button
+                  onClick={() => router.push('/admin')}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all mr-1 cursor-pointer flex items-center gap-1"
+                >
+                  <Shield className="w-3.5 h-3.5" /> اللوحة
+                </button>
+              )}
+
               <button
-                type="button"
-                onClick={() => router.push('/login')}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-600/30"
+                onClick={handleLogout}
+                className="text-slate-400 hover:text-red-400 p-1 mr-1 cursor-pointer"
+                title="تسجيل الخروج"
               >
-                <LogIn className="w-4 h-4" /> دخول الحساب / المسؤول
+                <LogOut className="w-4 h-4" />
               </button>
-            )}
+            </div>
 
             <button
               type="button"
@@ -2029,7 +2258,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* FORMAL PAYMENT CHOICE IN STEP 3 */}
                   <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 space-y-5">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                       <div className="flex items-center gap-2.5">
@@ -2050,7 +2278,6 @@ export default function Home() {
                       </label>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {/* 1. Pay Now (Full) */}
                         <div
                           onClick={() => {
                             setValue('paymentStatus', 'مدفوعة بالكامل', { shouldValidate: true });
@@ -2080,7 +2307,6 @@ export default function Home() {
                           </span>
                         </div>
 
-                        {/* 2. Pay Later (Unpaid / Deferred) */}
                         <div
                           onClick={() => {
                             setValue('paymentStatus', 'غير مدفوعة (مؤجلة)', { shouldValidate: true });
@@ -2110,7 +2336,6 @@ export default function Home() {
                           </span>
                         </div>
 
-                        {/* 3. Deposit / Partial */}
                         <div
                           onClick={() => {
                             setValue('paymentStatus', 'دفع جزء من المبلغ (عربون)', { shouldValidate: true });
@@ -2144,7 +2369,6 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Deposit Input Field */}
                     {watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
@@ -2279,7 +2503,6 @@ export default function Home() {
                     <p className="text-xs text-slate-500 mt-0.5">معاينة الفاتورة الصادرة بناءً على اختيارك المالي في الخطوة السابقة قبل التوثيق</p>
                   </div>
 
-                  {/* PREVIEW SUMMARY OF THE CHOSEN INVOICE STATUS */}
                   <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 space-y-5">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                       <div className="flex items-center gap-2.5">
@@ -2796,7 +3019,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* GENERATED PRINTED INVOICE IMAGE PREVIEW */}
               <div className="rounded-2xl overflow-hidden bg-slate-100 border border-slate-300 p-2 shadow-inner flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
