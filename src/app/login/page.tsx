@@ -94,7 +94,7 @@ export default function LoginPage() {
         className="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-10 max-w-md w-full shadow-2xl space-y-6 relative z-10"
       >
         <div className="text-center space-y-2">
-          <div className="w-32 h-32 mx-auto flex items-center justify-center mb-3">
+          <div className="w-36 h-36 mx-auto flex items-center justify-center mb-3">
      {/* eslint-disable-next-line @next/next/no-img-element */}
      <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(16,185,129,0.4)]" />
    </div>
