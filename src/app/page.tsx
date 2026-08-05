@@ -1838,7 +1838,16 @@ export default function Home() {
     setTimeout(() => setCopiedPlaceId(null), 2000);
   };
 
-  const filteredPlaces = savedPlaces.filter((place) => {
+  const userSavedPlaces = savedPlaces.filter((place) => {
+    if (loggedInUser && loggedInUser.role !== 'admin') {
+      const docName = (place.documenterName || '').trim().toLowerCase();
+      const userFullName = (loggedInUser.full_name || '').trim().toLowerCase();
+      return docName === userFullName;
+    }
+    return true;
+  });
+
+  const filteredPlaces = userSavedPlaces.filter((place) => {
     const matchesCategory =
       selectedFilterCategory === 'الكل' ||
       place.category === selectedFilterCategory ||
@@ -1861,9 +1870,9 @@ export default function Home() {
   });
 
   const todayDateStr = new Date().toLocaleDateString('ar-EG');
-  const todayCount = savedPlaces.filter((p) => p.date === todayDateStr).length;
-  const totalCollected = savedPlaces.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-  const categoryCounts = savedPlaces.reduce((acc, p) => {
+  const todayCount = userSavedPlaces.filter((p) => p.date === todayDateStr).length;
+  const totalCollected = userSavedPlaces.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+  const categoryCounts = userSavedPlaces.reduce((acc, p) => {
     const c = p.subCategory && p.subCategory !== 'أخرى (إدخال مخصص)' ? p.subCategory : p.category;
     acc[c] = (acc[c] || 0) + 1;
     return acc;
@@ -3239,7 +3248,7 @@ export default function Home() {
             </div>
             <div>
               <span className="text-[11px] font-bold text-slate-400 block">إجمالي الأماكن</span>
-              <span className="text-2xl font-black text-white">{savedPlaces.length}</span>
+              <span className="text-2xl font-black text-white">{userSavedPlaces.length}</span>
             </div>
           </div>
 
