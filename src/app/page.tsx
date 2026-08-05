@@ -478,27 +478,24 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = COL.headerAccent;
   ctx.fillRect(20, 138, W - 40, 4);
 
-  // Company Logo in Header (Top Left Corner)
+  // Company Logo in Header (Top Left Corner - Squircle Emerald Card)
   const logoImg = new Image();
   logoImg.src = LOGO_BASE64_DATA_URL;
 
-  // Crisp Circular Container for Logo in top-left
-  ctx.fillStyle = '#FFFFFF';
-  ctx.beginPath();
-  ctx.arc(76, 80, 42, 0, Math.PI * 2);
+  // Squircle Container for Logo in top-left
+  ctx.fillStyle = '#0f172a';
+  roundRect(35, 30, 85, 85, 18);
   ctx.fill();
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(76, 80, 42, 0, Math.PI * 2);
+  ctx.strokeStyle = COL.headerAccent;
+  ctx.lineWidth = 2.5;
+  roundRect(35, 30, 85, 85, 18);
   ctx.stroke();
 
   if (logoImg.complete && logoImg.width > 0) {
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(76, 80, 38, 0, Math.PI * 2);
+    roundRect(40, 35, 75, 75, 14);
     ctx.clip();
-    ctx.drawImage(logoImg, 38, 42, 76, 76);
+    ctx.drawImage(logoImg, 40, 35, 75, 75);
     ctx.restore();
   }
 
@@ -900,7 +897,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.direction = 'rtl';
   ctx.fillStyle = COL.muted;
   ctx.font = 'bold 8px Tahoma, Arial, sans-serif';
-  ctx.fillText('امسح الكود للوصول للموقع على الخريطة', qrX + qrSize / 2, qrY + qrSize + 14);
+  ctx.fillText('امسح الكود للتحقق من صحة الفاتورة', qrX + qrSize / 2, qrY + qrSize + 14);
 
   // ============================================================
   // 9. FOOTER BAR
