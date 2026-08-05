@@ -57,6 +57,7 @@ export interface PlaceItem {
   additionalImages?: string[];
   documenterName?: string;
   notes?: string;
+  adminRequest?: string;
   date: string;
   time: string;
   dms: string;
@@ -1277,6 +1278,7 @@ export default function Home() {
             additionalImages: p.additional_images || [],
             documenterName: p.documenter_name,
             notes: p.notes,
+            adminRequest: p.admin_request || p.notes || '',
             date: p.date,
             time: p.time,
             dms: p.dms,
@@ -3280,6 +3282,12 @@ export default function Home() {
                             <div>
                               <h4 className="font-bold text-base text-white truncate">{place.businessName}</h4>
                               {place.nameEn && <span className="text-[11px] text-slate-400 font-mono block dir-ltr text-right truncate">{place.nameEn}</span>}
+                              {place.adminRequest && (
+                                <div className="mt-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span className="truncate">طلب مسؤول: {place.adminRequest}</span>
+                                </div>
+                              )}
                             </div>
                             <button
                               onClick={() => deletePlace(place.id)}

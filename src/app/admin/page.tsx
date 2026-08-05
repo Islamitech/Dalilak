@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, Users, UserPlus, Layers, DollarSign,
-  Search, Filter, RefreshCw, LogOut, ShieldCheck, CheckCircle, Clock, X, Store
+  Search, Filter, RefreshCw, LogOut, ShieldCheck, CheckCircle, Clock, X, Store,
+  Eye, Camera, Image as ImageIcon, MessageSquare, AlertTriangle, Send, ExternalLink, ZoomIn, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PlaceItem } from '../page';
@@ -33,6 +34,13 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDocumenterFilter, setSelectedDocumenterFilter] = useState('الكل');
   const [selectedPayFilter, setSelectedPayFilter] = useState('الكل');
+
+  // Place inspection & Admin modification request modal
+  const [selectedPlaceModal, setSelectedPlaceModal] = useState<PlaceItem | null>(null);
+  const [selectedImageToView, setSelectedImageToView] = useState<string | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [adminNoteInput, setAdminNoteInput] = useState('');
+  const [saveRequestLoading, setSaveRequestLoading] = useState(false);
 
   // New documenter modal
   const [showAddDocModal, setShowAddDocModal] = useState(false);
@@ -100,8 +108,10 @@ export default function AdminDashboard() {
           holidays: p.holidays || [],
           facadeImage: p.facade_image,
           internalImage: p.internal_image,
+          additionalImages: p.additional_images || [],
           documenterName: p.documenter_name,
           notes: p.notes,
+          adminRequest: p.admin_request || p.notes || '',
           date: p.date,
           time: p.time,
           dms: p.dms,
@@ -127,6 +137,43 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }, []);
+
+  const handleSaveAdminRequest = async (placeId: string, customNote?: string) => {
+    const noteToSave = (customNote !== undefined ? customNote : adminNoteInput).trim();
+    setSaveRequestLoading(true);
+
+    try {
+      await supabase
+        .from('places')
+        .update({
+          admin_request: noteToSave,
+          notes: noteToSave,
+        })
+        .eq('id', placeId);
+    } catch {
+      /* ignore */
+    }
+
+    const localPlaces = JSON.parse(localStorage.getItem('field_notified_places') || '[]');
+    const updatedLocal = localPlaces.map((p: PlaceItem) => {
+      if (p.id === placeId) {
+        return { ...p, adminRequest: noteToSave, notes: noteToSave };
+      }
+      return p;
+    });
+    localStorage.setItem('field_notified_places', JSON.stringify(updatedLocal));
+
+    setAllPlaces((prev) =>
+      prev.map((p) => (p.id === placeId ? { ...p, adminRequest: noteToSave, notes: noteToSave } : p))
+    );
+
+    if (selectedPlaceModal && selectedPlaceModal.id === placeId) {
+      setSelectedPlaceModal((prev) => (prev ? { ...prev, adminRequest: noteToSave, notes: noteToSave } : null));
+    }
+
+    setSaveRequestLoading(false);
+    showToast(noteToSave ? 'تم إرسال طلب التوثيق/التعديل للموثق الميداني بنجاح!' : 'تم إلغاء/مسح طلب التعديل بنجاح.');
+  };
 
   useEffect(() => {
     // Check Session
@@ -472,12 +519,14 @@ export default function AdminDashboard() {
                 <thead>
                   <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
                     <th className="p-3.5 rounded-r-xl">المكان التجاري</th>
+                    <th className="p-3.5">الصور والتوثيق</th>
                     <th className="p-3.5">القطاع والنشاط</th>
                     <th className="p-3.5">العنوان الميداني</th>
                     <th className="p-3.5">الموثق المسؤول</th>
                     <th className="p-3.5">حالة السداد</th>
                     <th className="p-3.5">المدفوع / الإجمالي</th>
-                    <th className="p-3.5 rounded-l-xl">التاريخ والوقت</th>
+                    <th className="p-3.5">التاريخ والوقت</th>
+                    <th className="p-3.5 rounded-l-xl text-center">إجراءات المسؤول</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -489,14 +538,54 @@ export default function AdminDashboard() {
                         ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                         : 'bg-amber-500/20 text-amber-300 border-amber-500/30';
 
+                    const totalPhotosCount = (p.facadeImage ? 1 : 0) + (p.internalImage ? 1 : 0) + (p.additionalImages?.length || 0);
+
                     return (
                       <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                         <td className="p-3.5 font-bold text-white">
-                          <div className="flex flex-col">
-                            <span>{p.businessName}</span>
+                          <div className="flex flex-col space-y-1">
+                            <span className="text-sm font-black">{p.businessName}</span>
                             <span className="text-[10px] text-slate-500 font-mono dir-ltr text-right">{p.phone}</span>
+                            {p.adminRequest && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-950/70 border border-amber-800 px-2 py-0.5 rounded-md mt-1 max-w-xs truncate">
+                                <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                                <span className="truncate">طلب مسؤول: {p.adminRequest}</span>
+                              </span>
+                            )}
                           </div>
                         </td>
+
+                        {/* Photos thumbnail & count */}
+                        <td className="p-3.5">
+                          <div
+                            onClick={() => {
+                              setSelectedPlaceModal(p);
+                              setSelectedImageToView(p.facadeImage);
+                              setAdminNoteInput(p.adminRequest || '');
+                            }}
+                            className="flex items-center gap-2 cursor-pointer group"
+                          >
+                            <div className="relative w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden shrink-0 group-hover:border-indigo-500 transition-all">
+                              {p.facadeImage ? (
+                                <>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={p.facadeImage} alt={p.businessName} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                                </>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-600">
+                                  <ImageIcon className="w-5 h-5" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-bold text-indigo-300 group-hover:text-indigo-200 flex items-center gap-1">
+                                <Eye className="w-3.5 h-3.5" /> معاينة
+                              </span>
+                              <span className="text-[9px] text-slate-500 font-bold">{totalPhotosCount} صور مرفقة</span>
+                            </div>
+                          </div>
+                        </td>
+
                         <td className="p-3.5 text-slate-300">{p.subCategory || p.category}</td>
                         <td className="p-3.5 text-slate-300">{p.city} - {p.neighborhood}</td>
                         <td className="p-3.5 font-bold text-indigo-400">{p.documenterName || 'مكتب دليلك'}</td>
@@ -510,6 +599,19 @@ export default function AdminDashboard() {
                           <span className="text-slate-500"> / {p.totalAmount || 300} ج.م</span>
                         </td>
                         <td className="p-3.5 text-slate-400 text-[11px]">{p.date} - {p.time}</td>
+                        <td className="p-3.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPlaceModal(p);
+                              setSelectedImageToView(p.facadeImage);
+                              setAdminNoteInput(p.adminRequest || '');
+                            }}
+                            className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-md"
+                          >
+                            <Camera className="w-3.5 h-3.5" /> الاطلاع وطلب تعديل
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -612,6 +714,321 @@ export default function AdminDashboard() {
                 </button>
               </form>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: View Place Photos, Full Details & Request Modification */}
+      <AnimatePresence>
+        {selectedPlaceModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+            onClick={() => setSelectedPlaceModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-7 max-w-4xl w-full shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto my-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex justify-between items-start border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-600/20 text-indigo-400 p-3 rounded-2xl border border-indigo-500/30">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-black text-white">{selectedPlaceModal.businessName}</h3>
+                      <span className="bg-slate-800 text-indigo-300 border border-slate-700 text-[10px] font-mono px-2 py-0.5 rounded-md dir-ltr">
+                        #INV-{selectedPlaceModal.id.slice(-6).toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {selectedPlaceModal.city} - {selectedPlaceModal.neighborhood} | الموثق الميداني: <span className="text-indigo-300 font-bold">{selectedPlaceModal.documenterName || 'مكتب دليلك'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlaceModal(null)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-2 rounded-xl cursor-pointer transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Existing Admin Request Alert (If any) */}
+              {selectedPlaceModal.adminRequest && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start justify-between gap-3 text-amber-200 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-amber-300 block">طلب تعديل/توثيق قائم من المسؤول:</span>
+                      <p className="mt-0.5 text-amber-200/90 font-medium">{selectedPlaceModal.adminRequest}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveAdminRequest(selectedPlaceModal.id, '')}
+                    className="text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-950/60 hover:bg-amber-900/60 px-3 py-1.5 rounded-lg border border-amber-800 transition-all shrink-0 cursor-pointer"
+                  >
+                    مسح الطلب
+                  </button>
+                </div>
+              )}
+
+              {/* Main Grid: Left Photos Gallery, Right Place Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                {/* Left Column: Photo Gallery */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-indigo-400" /> صور التوثيق الميداني المرفقة:
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-bold">
+                      {(selectedPlaceModal.facadeImage ? 1 : 0) + (selectedPlaceModal.internalImage ? 1 : 0) + (selectedPlaceModal.additionalImages?.length || 0)} صور
+                    </span>
+                  </div>
+
+                  {/* Main Photo Preview Screen */}
+                  <div className="relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden group h-64 flex items-center justify-center">
+                    {selectedImageToView || selectedPlaceModal.facadeImage ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={selectedImageToView || selectedPlaceModal.facadeImage}
+                          alt="صورة المكان"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setZoomedImage(selectedImageToView || selectedPlaceModal.facadeImage)}
+                          className="absolute bottom-3 left-3 bg-slate-950/80 hover:bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 backdrop-blur-md flex items-center gap-1.5 cursor-pointer shadow-lg transition-all opacity-90 hover:opacity-100"
+                        >
+                          <ZoomIn className="w-3.5 h-3.5 text-indigo-400" /> تكبير الصورة
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-slate-500 text-xs text-center p-4">
+                        لا توجد صور مرفقة للمكان
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Photo Thumbnails Selector */}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {selectedPlaceModal.facadeImage && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImageToView(selectedPlaceModal.facadeImage)}
+                        className={`relative rounded-xl overflow-hidden border-2 w-16 h-16 cursor-pointer transition-all ${
+                          (selectedImageToView || selectedPlaceModal.facadeImage) === selectedPlaceModal.facadeImage
+                            ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                            : 'border-slate-800 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={selectedPlaceModal.facadeImage} alt="الواجهة" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[8px] font-bold text-center text-indigo-300 py-0.5">الواجهة</span>
+                      </button>
+                    )}
+
+                    {selectedPlaceModal.internalImage && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImageToView(selectedPlaceModal.internalImage!)}
+                        className={`relative rounded-xl overflow-hidden border-2 w-16 h-16 cursor-pointer transition-all ${
+                          selectedImageToView === selectedPlaceModal.internalImage
+                            ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                            : 'border-slate-800 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={selectedPlaceModal.internalImage} alt="الداخل" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[8px] font-bold text-center text-emerald-300 py-0.5">الداخل</span>
+                      </button>
+                    )}
+
+                    {selectedPlaceModal.additionalImages && selectedPlaceModal.additionalImages.map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedImageToView(img)}
+                        className={`relative rounded-xl overflow-hidden border-2 w-16 h-16 cursor-pointer transition-all ${
+                          selectedImageToView === img
+                            ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                            : 'border-slate-800 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img} alt={`إضافية ${idx + 1}`} className="w-full h-full object-cover" />
+                        <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[8px] font-bold text-center text-amber-300 py-0.5">صورة {idx + 1}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right Column: Place Information Summary */}
+                <div className="space-y-4">
+                  <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl space-y-3">
+                    <span className="text-xs font-bold text-indigo-400 block border-b border-slate-800 pb-2">
+                      تفاصيل وبيانات التوثيق الميداني:
+                    </span>
+
+                    <div className="grid grid-cols-2 gap-2.5 text-xs">
+                      <div>
+                        <span className="text-slate-500 block text-[10px] font-bold">التصنيف الرئيسي:</span>
+                        <span className="text-slate-200 font-bold">{selectedPlaceModal.category}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] font-bold">الفرعي:</span>
+                        <span className="text-slate-200 font-bold">{selectedPlaceModal.subCategory || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] font-bold">رقم الهاتف:</span>
+                        <span className="text-slate-200 font-bold font-mono dir-ltr text-right block">{selectedPlaceModal.phone}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] font-bold">حالة المكان:</span>
+                        <span className="text-emerald-400 font-bold">{selectedPlaceModal.status}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-slate-500 block text-[10px] font-bold">العنوان التفصيلي:</span>
+                        <span className="text-slate-200">{selectedPlaceModal.city} - {selectedPlaceModal.neighborhood} - {selectedPlaceModal.street}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-slate-500 block text-[10px] font-bold">الإحداثيات الجغرافية DMS:</span>
+                        <span className="text-indigo-300 font-mono text-[11px] dir-ltr text-right block">{selectedPlaceModal.dms || '—'}</span>
+                      </div>
+                    </div>
+
+                    {/* Google Maps External Link Button */}
+                    {selectedPlaceModal.dms && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedPlaceModal.dms)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-700 text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> فتح الموقع مباشرة على خرائط جوجل
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Financial accounting box */}
+                  <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl space-y-2">
+                    <span className="text-xs font-bold text-slate-400 block border-b border-slate-800 pb-1.5">
+                      الحساب المالي للخدمة:
+                    </span>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400">الإجمالي: <strong className="text-white">{selectedPlaceModal.totalAmount || 300} ج.م</strong></span>
+                      <span className="text-emerald-400">المدفوع: <strong className="text-emerald-300">{selectedPlaceModal.paidAmount ?? 300} ج.م</strong></span>
+                      <span className="text-amber-400">المتبقي: <strong className="text-amber-300">{selectedPlaceModal.remainingAmount ?? 0} ج.م</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Admin Action Section: Request Documentation / Modification Note */}
+              <div className="bg-slate-950 border border-slate-800 p-5 rounded-2xl space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-emerald-400" /> إرسال طلب توثيق أو تعديل للموثق الميداني:
+                  </span>
+                  <span className="text-[10px] text-slate-400">سيظهر هذا الطلب للموثق فور دخوله حسابه</span>
+                </div>
+
+                {/* Preset Quick Request Buttons (كبسولات سريعة) */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    '📸 طلب إعادة تصوير واجهة المنشأة بنور النهار',
+                    '📍 طلب تدقيق وتحديث الإحداثيات الجغرافية',
+                    '📑 طلب استكمال بيانات ساعات العمل والنشاط',
+                    '💳 طلب متابعة وسداد باقي المستحقات المالية',
+                  ].map((presetText, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setAdminNoteInput(presetText)}
+                      className="bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[11px] font-bold px-3 py-1.5 rounded-xl cursor-pointer transition-all"
+                    >
+                      {presetText}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <textarea
+                    rows={2}
+                    value={adminNoteInput}
+                    onChange={(e) => setAdminNoteInput(e.target.value)}
+                    placeholder="اكتب هنا تفاصيل طلب التعديل أو الملاحظة الخاصة للموثق الميداني..."
+                    className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+
+                  <div className="flex justify-end gap-2">
+                    {selectedPlaceModal.adminRequest && (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveAdminRequest(selectedPlaceModal.id, '')}
+                        disabled={saveRequestLoading}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer"
+                      >
+                        مسح الطلب الحالي
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleSaveAdminRequest(selectedPlaceModal.id)}
+                      disabled={saveRequestLoading || !adminNoteInput.trim()}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-600/30 cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {saveRequestLoading ? 'جاري الإرسال...' : 'حفظ وإرسال الطلب للموثق'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fullscreen Zoom Image View Modal */}
+      <AnimatePresence>
+        {zoomedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center p-4"
+            onClick={() => setZoomedImage(null)}
+          >
+            <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setZoomedImage(null)}
+                className="absolute -top-12 right-0 bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-full cursor-pointer shadow-xl"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={zoomedImage}
+                alt="معاينة الصورة المكبرة"
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-slate-700 shadow-2xl"
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
