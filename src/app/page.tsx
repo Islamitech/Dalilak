@@ -1475,9 +1475,9 @@ export default function Home() {
           {/* Global Header matching Admin navigation styling */}
           <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 flex items-center justify-center shrink-0">
+              <div className="w-16 h-16 flex items-center justify-center shrink-0">
      {/* eslint-disable-next-line @next/next/no-img-element */}
-     <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+     <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.35)]" />
    </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-black text-white">دليلك للخدمات الرقمية</h1>
@@ -1749,9 +1749,9 @@ export default function Home() {
         {/* Global Navigation Header - Official Production Version */}
         <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 flex items-center justify-center shrink-0">
+            <div className="w-16 h-16 flex items-center justify-center shrink-0">
      {/* eslint-disable-next-line @next/next/no-img-element */}
-     <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+     <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.35)]" />
    </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
