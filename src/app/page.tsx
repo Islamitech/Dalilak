@@ -45,7 +45,7 @@ export interface PlaceItem {
   landmark?: string;
   phone: string;
   whatsapp?: string;
-  googleEmail: string;
+  googleEmail?: string;
   workFrom: string;
   workTo: string;
   holidays: string[];
@@ -190,7 +190,10 @@ const formSchema = z.object({
   facebookUrl: z.string().optional(),
   googleEmail: z
     .string()
-    .email('يرجى إدخال بريد Gmail إلكتروني صحيح لنقل الملكية'),
+    .optional()
+    .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+      message: 'يرجى إدخال بريد إلكتروني صحيح',
+    }),
   workFrom: z.string().min(1, 'يرجى تحديد وقت بدء العمل'),
   workTo: z.string().min(1, 'يرجى تحديد وقت انتهاء العمل'),
   holidays: z.array(z.string()),
@@ -1263,7 +1266,7 @@ export default function Home() {
     const fieldsMap: Record<number, (keyof FormValues)[]> = {
       1: ['businessName', 'category', 'subCategory', 'customCategory', 'facadeImage'],
       2: ['latitude', 'longitude', 'city', 'neighborhood', 'street'],
-      3: ['phone', 'googleEmail', 'paymentStatus', 'paidAmount', 'workFrom', 'workTo'],
+      3: ['phone', 'paymentStatus', 'paidAmount', 'workFrom', 'workTo'],
     };
     const valid = await trigger(fieldsMap[step]);
     if (valid) {
@@ -1286,6 +1289,7 @@ export default function Home() {
     const place: PlaceItem = {
       id: Date.now().toString(),
       ...data,
+      googleEmail: data.googleEmail || '',
       additionalImages: data.additionalImages || [],
       documenterName: docName,
       totalAmount: total,
@@ -2345,7 +2349,7 @@ export default function Home() {
 
                       <div className="space-y-1.5">
                         <label htmlFor="googleEmail" className="block text-sm font-semibold text-slate-300">
-                          بريد Gmail الخاص بصاحب المحل <span className="text-red-400">*</span>
+                          بريد Gmail الخاص بصاحب المحل (اختياري)
                         </label>
                         <div className="relative">
                           <Mail className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
@@ -2357,6 +2361,9 @@ export default function Home() {
                             {...register('googleEmail')}
                           />
                         </div>
+                        <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                          💡 <span className="text-amber-400 font-semibold">ملاحظة:</span> يلزم إدخال الإيميل فقط في حال رغبة صاحب المحل بنقل ملكية الحساب المباشرة إليه.
+                        </p>
                         <FieldError msg={errors.googleEmail?.message} />
                       </div>
                     </div>
