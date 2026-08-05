@@ -13,9 +13,9 @@ import {
   ChevronLeft, ChevronRight, Navigation, Trash2, AlertCircle,
   Building2, Map, Upload, RefreshCw, Copy, ExternalLink, Clipboard,
   Search, Filter, Eye, X, ShieldCheck, Layers, Check,
-  User, MessageSquare, Share2, Download, FileSpreadsheet, HardDrive, Archive, Tag,
+  User, MessageSquare, Share2, Download, FileSpreadsheet, HardDrive, Tag,
   Receipt, Send, DollarSign, Edit3, Printer, FileText, LogIn, LogOut, Shield,
-  Sparkles, Camera, QrCode, Globe, Bot, TrendingUp, Megaphone, Star, Scale, FileCode, CheckSquare, ArrowRight
+  Sparkles, Camera, QrCode, Globe, Bot, TrendingUp, Megaphone, Star, Scale, FileCode, CheckSquare
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
@@ -23,7 +23,7 @@ import { supabase } from '@/lib/supabase';
 const InteractiveMap = dynamic(() => import('./components/InteractiveMap'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-72 rounded-2xl bg-slate-100 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+    <div className="w-full h-72 rounded-2xl bg-slate-900 border border-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
       جاري تحميل الخريطة التفاعلية...
     </div>
   ),
@@ -422,7 +422,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
 
   ctx.font = '12px Tahoma, Arial, sans-serif';
   ctx.fillStyle = '#64748b';
-  ctx.fillText('تشمل المعاينة الميدانية، التقاط الصور، تسجيل الإحداثيات، وإصدار التقرير الرقمي', 740, 562);
+  ctx.fillText('تشمل المعاينة الميدانية، التقاط الصور، تسجيل الإحداثيات، وإصدار التتقرير الرقمي', 740, 562);
 
   ctx.textAlign = 'left';
   ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
@@ -1326,16 +1326,16 @@ export default function Home() {
 
   const FieldError = ({ msg }: { msg?: string }) =>
     msg ? (
-      <p className="flex items-center gap-1 text-xs text-red-500 mt-1">
+      <p className="flex items-center gap-1 text-xs text-red-400 mt-1">
         <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {msg}
       </p>
     ) : null;
 
-  const inputCls = (hasErr: boolean) =>
-    `w-full px-3.5 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+  const darkInputCls = (hasErr: boolean) =>
+    `w-full px-3.5 py-3 bg-slate-950 border rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
       hasErr
-        ? 'border-red-400 focus:ring-red-100 focus:border-red-500'
-        : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'
+        ? 'border-red-500 focus:ring-red-900/50'
+        : 'border-slate-800 focus:ring-indigo-500 focus:border-indigo-500'
     }`;
 
   // =========================================================================
@@ -1343,21 +1343,19 @@ export default function Home() {
   // =========================================================================
   if (!loggedInUser) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 dir-rtl font-sans selection:bg-emerald-500 selection:text-slate-950">
+      <div className="min-h-screen bg-slate-950 text-slate-100 dir-rtl font-sans selection:bg-emerald-500 selection:text-slate-950 p-4 sm:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
 
-        {/* Global Navigation Header */}
-        <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-md border-b border-slate-800 px-4 py-4">
-          <div className="max-w-6xl mx-auto flex justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20">
-                <Building2 className="w-6 h-6" />
+          {/* Global Header matching Admin navigation styling */}
+          <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
+                <Building2 className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-base sm:text-lg font-black text-white tracking-tight">
-                  دليلك للخدمات الرقمية
-                </h1>
-                <span className="text-[10px] text-emerald-400 font-bold block">
-                  منظومة توثيق الخرائط والحلول الرقمية للأعمال
+                <h1 className="text-xl sm:text-2xl font-black text-white">دليلك للخدمات الرقمية</h1>
+                <span className="text-xs text-emerald-400 font-bold block mt-0.5">
+                  منظومة توثيق الخرائط والحلول الميدانية والحلول الرقمية للأعمال
                 </span>
               </div>
             </div>
@@ -1365,57 +1363,55 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/login')}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-5 py-3 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-1.5"
               >
-                <LogIn className="w-4 h-4" /> دخول الموثقين / الحسابات
+                <LogIn className="w-4 h-4" /> دخول الحسابات / الموثقين
               </button>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Hero Section: Google Maps Focus */}
-        <section className="relative px-4 py-16 sm:py-24 max-w-6xl mx-auto text-center space-y-8 overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute top-10 right-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          {/* Hero Section: Google Maps Focus */}
+          <section className="relative bg-slate-900 border border-slate-800 rounded-3xl px-6 py-16 sm:py-20 text-center space-y-8 overflow-hidden shadow-2xl">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-10 right-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="inline-flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold px-4 py-1.5 rounded-full shadow-inner relative z-10">
-            <Sparkles className="w-4 h-4" /> الخدمة الرئيسية المتاحة حالياً: توثيق الخرائط والمعاينة الميدانية
-          </div>
+            <div className="inline-flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold px-4 py-1.5 rounded-full shadow-inner relative z-10">
+              <Sparkles className="w-4 h-4" /> الخدمة الرئيسية المتاحة حالياً: توثيق الخرائط والمعاينة الميدانية
+            </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight max-w-3xl mx-auto relative z-10">
-            وثّق منشأتك على <span className="text-emerald-400">خرائط جوجل (Google Maps)</span> واضمن وصول عملائك بدقة
-          </h1>
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto relative z-10">
+              وثّق منشأتك على <span className="text-emerald-400">خرائط جوجل (Google Maps)</span> واضمن وصول عملائك بدقة
+            </h1>
 
-          <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed relative z-10">
-            منظومة رقمية معتمدة لإصدار الفواتير الرقمية وتأكيد ملكية الأنشطة التجارية وتوثيق الإحداثيات الجغرافية والصور الميدانية للمحلات والمشاريع.
-          </p>
+            <p className="text-slate-400 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed relative z-10">
+              منظومة رقمية معتمدة لإصدار الفواتير الرقمية وتأكيد ملكية الأنشطة التجارية وتوثيق الإحداثيات الجغرافية والصور الميدانية للمحلات والمشاريع.
+            </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 relative z-10">
-            <button
-              onClick={() => router.push('/login')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm px-8 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
-            >
-              <LogIn className="w-5 h-5" /> تسجيل الدخول لبدء التوثيق الميداني
-            </button>
-            <a
-              href="#services"
-              className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-sm px-8 py-3.5 rounded-2xl transition-all cursor-pointer"
-            >
-              استكشف خدمات دليلك الشاملة ⬇
-            </a>
-          </div>
-        </section>
+            <div className="flex flex-wrap items-center justify-center gap-4 relative z-10">
+              <button
+                onClick={() => router.push('/login')}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-8 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <LogIn className="w-5 h-5" /> تسجيل الدخول لبدء التوثيق الميداني
+              </button>
+              <a
+                href="#services"
+                className="bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-xs px-8 py-3.5 rounded-2xl transition-all cursor-pointer"
+              >
+                استكشف خدمات دليلك الشاملة ⬇
+              </a>
+            </div>
+          </section>
 
-        {/* FEATURE HIGHLIGHT: GOOGLE MAPS DOCUMENTATION (CURRENT ACTIVE SERVICE) */}
-        <section className="px-4 py-12 max-w-6xl mx-auto">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/80 border border-indigo-500/30 rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden space-y-8">
+          {/* FEATURE HIGHLIGHT: GOOGLE MAPS DOCUMENTATION (CURRENT ACTIVE SERVICE) */}
+          <section className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-800 pb-6">
               <div className="space-y-2">
-                <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-bold px-3 py-1 rounded-full">
+                <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-[10px] font-bold px-3 py-1 rounded-full">
                   الخدمة الميدانية النشطة
                 </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
-                  <MapPin className="w-8 h-8 text-emerald-400" /> توثيق الخرائط والتواجد الرقمي الميداني
+                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-3">
+                  <MapPin className="w-7 h-7 text-emerald-400" /> توثيق الخرائط والتواجد الرقمي الميداني
                 </h2>
               </div>
               <button
@@ -1427,1340 +1423,1261 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-right">
-              <div className="bg-slate-950/70 p-6 rounded-2xl border border-slate-800 space-y-3">
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
                 <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center font-bold">
                   1
                 </div>
-                <h3 className="font-extrabold text-white text-base">تسجيل وضبط الإحداثيات الجغرافية</h3>
+                <h3 className="font-extrabold text-white text-sm">تسجيل وضبط الإحداثيات الجغرافية</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   تحديد الإحداثيات الدقيقة (DMS) وتأكيد اسم الشارع والحي ونقل ملكية بريد Gmail للعميل مباشرة.
                 </p>
               </div>
 
-              <div className="bg-slate-950/70 p-6 rounded-2xl border border-slate-800 space-y-3">
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
                 <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center font-bold">
                   2
                 </div>
-                <h3 className="font-extrabold text-white text-base">إصدار الفاتورة الرسمية المطبوعة</h3>
+                <h3 className="font-extrabold text-white text-sm">إصدار الفاتورة الرسمية المطبوعة</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   إصدار فاتورة ورقية ورقمية موثقة بأختام المؤسسة وإرسالها فوراً لعميلك عبر الواتساب.
                 </p>
               </div>
 
-              <div className="bg-slate-950/70 p-6 rounded-2xl border border-slate-800 space-y-3">
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
                 <div className="w-10 h-10 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center font-bold">
                   3
                 </div>
-                <h3 className="font-extrabold text-white text-base">نظام السداد والحفظ السحابي</h3>
+                <h3 className="font-extrabold text-white text-sm">نظام السداد والحفظ السحابي</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   خيارات متعددة لسداد الرسوم (مدفوعة، عربون، مؤجلة لحين الظهور) مع التخزين الآمن في Supabase.
                 </p>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* ALL CORPORATE SERVICES SECTION (ROADMAP & COMPREHENSIVE SERVICES) */}
-        <section id="services" className="px-4 py-16 max-w-6xl mx-auto space-y-12">
-          <div className="text-center space-y-3">
-            <h2 className="text-2xl sm:text-4xl font-black text-white">منظومة خدمات دليلك الرقمية المتكاملة</h2>
-            <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
-              حلول ميدانية وتقنية وقانونية شاملة للانتقال بجمهور نشاطك التجاري للريادة الرقمية
+          {/* ALL CORPORATE SERVICES SECTION */}
+          <section id="services" className="space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-black text-white">منظومة خدمات دليلك الرقمية المتكاملة</h2>
+              <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
+                حلول ميدانية وتقنية وقانونية شاملة للانتقال بجمهور نشاطك التجاري للريادة الرقمية
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Category 1 */}
+              <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-emerald-500/50 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/30">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-400 block">الخدمات الميدانية (On-Site & Field)</span>
+                    <h3 className="text-base font-black text-white">1. التواجد الميداني والتفاعل المباشر</h3>
+                  </div>
+                </div>
+                <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>التوثيق والتواجد على الخرائط:</strong> تسجيل الأنشطة على Google Maps وضبط بيانات التواصل والوصول المباشر.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Camera className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>التصوير الميداني والجولات الافتراضية:</strong> التقاط صور احترافية للواجهة والتفاصيل وإعداد جولات 360° تفاعلية.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <QrCode className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>حلول التفاعل المباشر (NFC & QR Code):</strong> تجهيز حوامل (Stands) وكروت ذكية لفتح المنيو أو ترك تقييم بنقرة واحدة.</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Category 2 */}
+              <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-indigo-500/50 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center border border-indigo-500/30">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-indigo-400 block">المنصات والحوسبة (Platforms & Cloud)</span>
+                    <h3 className="text-base font-black text-white">2. الخدمات الرقمية وتطوير المنصات</h3>
+                  </div>
+                </div>
+                <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <FileCode className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <span><strong>تطوير المنصات والمواقع:</strong> إنشاء مواقع عرض الخدمات (Landing Pages) والكتالوجات والمنيو الرقمي السحابي.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <span><strong>إدارة وتوثيق الهوية الرقمية:</strong> إنشاء الحسابات الرسمية على شبكات التواصل الاجتماعي وتوثيقها وإدارتها.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Bot className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <span><strong>أنظمة التفاعل الذكي (AI Chatbots):</strong> بناء وتطوير آليات الرد التلقائي للرد الفوري عبر الواتساب والمنصات.</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Category 3 */}
+              <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-amber-500/50 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center border border-amber-500/30">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-400 block">التسويق وتكثيف المبيعات (Digital Marketing)</span>
+                    <h3 className="text-base font-black text-white">3. التسويق الرقمي وإدارة السمعة</h3>
+                  </div>
+                </div>
+                <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <Search className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>تحسين الظهور المحلي (Local SEO):</strong> رفع ترتيب المكان في نتائج البحث المحلية وتنسيق منشورات البروفايل.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Megaphone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>الحملات الإعلانية الموجهة:</strong> إعلانات خرائط جوجل الممولة ومنصات التواصل لاستهداف الجمهور المناسب.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Star className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>إدارة السمعة والتحليلات:</strong> متابعة تقييمات العملاء والرد عليها وتقديم تقارير حركة الزوار الأسبوعية.</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Category 4 */}
+              <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-purple-500/50 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                    <Scale className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-purple-400 block">الحماية والاستشارات (Digital Legal)</span>
+                    <h3 className="text-base font-black text-white">4. الاستشارات والحماية القانونية الرقمية</h3>
+                  </div>
+                </div>
+                <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <Shield className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                    <span><strong>توثيق الملكية الفكرية:</strong> تسجيل العلامة التجارية والاسم والشعار لحماية المنشأة من الانتحال أو السرقة.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <FileText className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                    <span><strong>صياغة وتدقيق السياسات:</strong> إعداد شروط الاستخدام (Terms) وسياسات الخصوصية وفق اللوائح القضائية.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                    <span><strong>التدقيق العقدي وإدارة الملكيات:</strong> التأشير القانوني عند نقل ملكية الحسابات والأنشطة الرقمية بين الشركاء.</span>
+                  </li>
+                </ul>
+              </div>
+
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="border-t border-slate-800 bg-slate-900 rounded-3xl p-8 text-center space-y-3">
+            <p className="text-xs font-bold text-slate-400">
+              دليلك للخدمات الرقمية (توثيق الخرائط والمنظومة الميدانية) - جميع الحقوق محفوظة © 2026
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Category 1 */}
-            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-emerald-500/50 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/30">
-                  <MapPin className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-400 block">الخدمات الميدانية (On-Site & Field)</span>
-                  <h3 className="text-lg font-black text-white">1. التواجد الميداني والتفاعل المباشر</h3>
-                </div>
-              </div>
-              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <li className="flex items-start gap-2">
-                  <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><strong>التوثيق والتواجد على الخرائط:</strong> تسجيل الأنشطة على Google Maps وضبط بيانات التواصل والوصول المباشر.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Camera className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><strong>التصوير الميداني والجولات الافتراضية:</strong> التقاط صور احترافية للواجهة والتفاصيل وإعداد جولات 360° تفاعلية.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <QrCode className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><strong>حلول التفاعل المباشر (NFC & QR Code):</strong> تجهيز حوامل (Stands) وكروت ذكية لفتح المنيو أو ترك تقييم بنقرة واحدة.</span>
-                </li>
-              </ul>
+            <div className="flex justify-center gap-4 text-xs font-semibold text-slate-500">
+              <button onClick={() => router.push('/login')} className="hover:text-emerald-400 cursor-pointer">
+                تسجيل دخول الموثقين
+              </button>
+              <span>•</span>
+              <button onClick={() => router.push('/login')} className="hover:text-emerald-400 cursor-pointer">
+                لوحة تحكم المسؤول
+              </button>
             </div>
+          </footer>
 
-            {/* Category 2 */}
-            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-indigo-500/50 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center border border-indigo-500/30">
-                  <Globe className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-indigo-400 block">المنصات والحوسبة (Platforms & Cloud)</span>
-                  <h3 className="text-lg font-black text-white">2. الخدمات الرقمية وتطوير المنصات</h3>
-                </div>
-              </div>
-              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <li className="flex items-start gap-2">
-                  <FileCode className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                  <span><strong>تطوير المنصات والمواقع:</strong> إنشاء مواقع عرض الخدمات (Landing Pages) والكتالوجات والمنيو الرقمي السحابي.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                  <span><strong>إدارة وتوثيق الهوية الرقمية:</strong> إنشاء الحسابات الرسمية على شبكات التواصل الاجتماعي وتوثيقها وإدارتها.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Bot className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                  <span><strong>أنظمة التفاعل الذكي (AI Chatbots):</strong> بناء وتطوير آليات الرد التلقائي للرد الفوري عبر الواتساب والمنصات.</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Category 3 */}
-            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-amber-500/50 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center border border-amber-500/30">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-amber-400 block">التسويق وتكثيف المبيعات (Digital Marketing)</span>
-                  <h3 className="text-lg font-black text-white">3. التسويق الرقمي وإدارة السمعة</h3>
-                </div>
-              </div>
-              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <li className="flex items-start gap-2">
-                  <Search className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <span><strong>تحسين الظهور المحلي (Local SEO):</strong> رفع ترتيب المكان في نتائج البحث المحلية وتنسيق منشورات البروفايل.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Megaphone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <span><strong>الحملات الإعلانية الموجهة:</strong> إعلانات خرائط جوجل الممولة ومنصات التواصل لاستهداف الجمهور المناسب.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Star className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <span><strong>إدارة السمعة والتحليلات:</strong> متابعة تقييمات العملاء والرد عليها وتقديم تقارير حركة الزوار الأسبوعية.</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Category 4 */}
-            <div className="bg-slate-900 border border-slate-800 p-7 rounded-3xl space-y-5 hover:border-purple-500/50 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/30">
-                  <Scale className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-purple-400 block">الحماية والاستشارات (Digital Legal)</span>
-                  <h3 className="text-lg font-black text-white">4. الاستشارات والحماية القانونية الرقمية</h3>
-                </div>
-              </div>
-              <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <li className="flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                  <span><strong>توثيق الملكية الفكرية:</strong> تسجيل العلامة التجارية والاسم والشعار لحماية المنشأة من الانتحال أو السرقة.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FileText className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                  <span><strong>صياغة وتدقيق السياسات:</strong> إعداد شروط الاستخدام (Terms) وسياسات الخصوصية وفق اللوائح القضائية.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                  <span><strong>التدقيق العقدي وإدارة الملكيات:</strong> التأشير القانوني عند نقل ملكية الحسابات والأنشطة الرقمية بين الشركاء.</span>
-                </li>
-              </ul>
-            </div>
-
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="border-t border-slate-800 bg-slate-950 py-10 px-4 text-center space-y-3">
-          <p className="text-xs font-bold text-slate-400">
-            دليلك للخدمات الرقمية (توثيق الخرائط والمنظومة الميدانية) - جميع الحقوق محفوظة © 2026
-          </p>
-          <div className="flex justify-center gap-4 text-xs font-semibold text-slate-500">
-            <button onClick={() => router.push('/login')} className="hover:text-emerald-400 cursor-pointer">
-              تسجيل دخول الموثقين
-            </button>
-            <span>•</span>
-            <button onClick={() => router.push('/login')} className="hover:text-emerald-400 cursor-pointer">
-              لوحة تحكم المسؤول
-            </button>
-          </div>
-        </footer>
-
+        </div>
       </div>
     );
   }
 
   // =========================================================================
-  // IF USER IS LOGGED IN: SHOW FIELD DOCUMENTATION FORM AND APP
+  // IF USER IS LOGGED IN: SHOW FIELD DOCUMENTATION FORM AND APP (DARK SLATE HARMONIZED)
   // =========================================================================
   return (
-    <div className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 dir-rtl font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
 
-      <AnimatePresence>
-        {toastMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-semibold px-5 py-3 rounded-full shadow-2xl border border-slate-700 flex items-center gap-2 max-w-md text-center"
-          >
-            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{toastMsg}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {toastMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-950 border border-emerald-600 text-emerald-200 text-xs font-bold px-6 py-3 rounded-full shadow-2xl flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{toastMsg}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <header className="mb-8 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -right-10 -top-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+        {/* Global Navigation Header - Identical to Admin Header */}
+        <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-3.5 rounded-2xl text-slate-950 shadow-lg shadow-emerald-500/20">
-              <Building2 className="w-8 h-8" />
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
+              <Building2 className="w-7 h-7" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                  دليلك للخدمات الرقمية (توثيق الخرائط)
-                </h1>
+                <h1 className="text-xl sm:text-2xl font-black text-white">دليلك للخدمات الرقمية (توثيق الخرائط)</h1>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                  {loggedInUser.full_name} ({loggedInUser.role === 'admin' ? 'مدير مسؤول' : 'موثق ميداني'})
+                </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-0.5">
                 المنظومة الرسمية للتوثيق الميداني وإصدار الفواتير الرقمية الموثقة للأعمال والمنشآت
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 p-2 pl-3 rounded-2xl">
-              <div className="w-8 h-8 bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center text-xs">
-                {loggedInUser.full_name.charAt(0)}
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-bold text-white block">{loggedInUser.full_name}</span>
-                <span className="text-[10px] text-emerald-400 font-semibold block">
-                  {loggedInUser.role === 'admin' ? 'مدير مسؤول' : 'موثق ميداني'}
-                </span>
-              </div>
-
-              {loggedInUser.role === 'admin' && (
-                <button
-                  onClick={() => router.push('/admin')}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all mr-1 cursor-pointer flex items-center gap-1"
-                >
-                  <Shield className="w-3.5 h-3.5" /> اللوحة
-                </button>
-              )}
-
+          <div className="flex flex-wrap items-center gap-2.5">
+            {loggedInUser.role === 'admin' && (
               <button
-                onClick={handleLogout}
-                className="text-slate-400 hover:text-red-400 p-1 mr-1 cursor-pointer"
-                title="تسجيل الخروج"
+                onClick={() => router.push('/admin')}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
               >
-                <LogOut className="w-4 h-4" />
+                <Shield className="w-4 h-4" /> لوحة تحكم المسؤول
               </button>
-            </div>
+            )}
 
             <button
               type="button"
               onClick={() => setShowStorageExplainModal(true)}
-              className="bg-indigo-900/60 hover:bg-indigo-900 text-indigo-200 border border-indigo-700/60 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
             >
               <HardDrive className="w-4 h-4 text-indigo-400" /> تنظيم حزمة ZIP
             </button>
+
             <button
               type="button"
               onClick={handleDemoFill}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer"
             >
               تعبئة تجريبية
             </button>
+
+            <button
+              onClick={handleLogout}
+              className="bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <LogOut className="w-4 h-4" /> خروج
+            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {!isSuccess ? (
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-10">
+        {!isSuccess ? (
+          <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden mb-10 text-slate-100">
 
-          <div className="bg-slate-50/80 border-b border-slate-100 p-5 sm:p-7">
-            <div className="relative flex justify-between items-center max-w-lg mx-auto">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex flex-col items-center z-10">
-                  <button
-                    type="button"
-                    disabled={step < i}
-                    onClick={() => step > i && setStep(i)}
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 ${
-                      step === i
-                        ? 'bg-indigo-600 text-white ring-4 ring-indigo-100 shadow-md shadow-indigo-600/30 scale-105'
-                        : step > i
-                          ? 'bg-emerald-500 text-white cursor-pointer hover:bg-emerald-600 shadow-sm'
-                          : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {step > i ? <CheckCircle className="w-5 h-5" /> : i}
-                  </button>
-                  <span className={`text-[11px] sm:text-xs font-bold mt-2 ${step === i ? 'text-indigo-600' : 'text-slate-500'}`}>
-                    {['بيانات وتصنيف المكان', 'الموقع والخريطة', 'التواصل وحالة الدفع', 'الفاتورة والحفظ'][i - 1]}
-                  </span>
+            <div className="bg-slate-950/80 border-b border-slate-800 p-5 sm:p-7">
+              <div className="relative flex justify-between items-center max-w-lg mx-auto">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex flex-col items-center z-10">
+                    <button
+                      type="button"
+                      disabled={step < i}
+                      onClick={() => step > i && setStep(i)}
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                        step === i
+                          ? 'bg-indigo-600 text-white ring-4 ring-indigo-500/30 shadow-md shadow-indigo-600/30 scale-105'
+                          : step > i
+                            ? 'bg-emerald-600 text-white cursor-pointer hover:bg-emerald-500 shadow-sm'
+                            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {step > i ? <CheckCircle className="w-5 h-5" /> : i}
+                    </button>
+                    <span className={`text-[11px] sm:text-xs font-bold mt-2 ${step === i ? 'text-indigo-400' : 'text-slate-400'}`}>
+                      {['بيانات وتصنيف المكان', 'الموقع والخريطة', 'التواصل وحالة الدفع', 'الفاتورة والحفظ'][i - 1]}
+                    </span>
+                  </div>
+                ))}
+                <div className="absolute top-5 left-6 right-6 h-1 bg-slate-800 -z-0 rounded-full">
+                  <div
+                    className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
+                    style={{ width: `${((step - 1) / 3) * 100}%` }}
+                  />
                 </div>
-              ))}
-              <div className="absolute top-5 left-6 right-6 h-1 bg-slate-200 -z-0 rounded-full">
-                <div
-                  className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
-                  style={{ width: `${((step - 1) / 3) * 100}%` }}
-                />
               </div>
             </div>
-          </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-10">
-            <AnimatePresence mode="wait">
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-10">
+              <AnimatePresence mode="wait">
 
-              {step === 1 && (
-                <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
-                  <div className="border-r-4 border-indigo-500 pr-3.5">
-                    <h2 className="text-xl font-extrabold text-slate-800">البيانات الأساسية والتصنيف الدقيق</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">حدد التصنيف الرئيسي والنوع الفرعي الدقيق للنشاط مع ارفاق صور المنشأة</p>
-                  </div>
+                {step === 1 && (
+                  <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
+                    <div className="border-r-4 border-indigo-500 pr-3.5">
+                      <h2 className="text-xl font-extrabold text-white">البيانات الأساسية والتصنيف الدقيق</h2>
+                      <p className="text-xs text-slate-400 mt-0.5">حدد التصنيف الرئيسي والنوع الفرعي الدقيق للنشاط مع ارفاق صور المنشأة</p>
+                    </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label htmlFor="businessName" className="block text-sm font-semibold text-slate-700">
-                        اسم المكان التجاري بالعربي <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <Store className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                        <input
-                          id="businessName"
-                          type="text"
-                          placeholder="مثال: بقالة النور، مطعم الشرق..."
-                          className={`${inputCls(!!errors.businessName)} pr-11`}
-                          {...register('businessName')}
-                        />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label htmlFor="businessName" className="block text-sm font-semibold text-slate-300">
+                          اسم المكان التجاري بالعربي <span className="text-red-400">*</span>
+                        </label>
+                        <div className="relative">
+                          <Store className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
+                          <input
+                            id="businessName"
+                            type="text"
+                            placeholder="مثال: بقالة النور، مطعم الشرق..."
+                            className={`${darkInputCls(!!errors.businessName)} pr-11`}
+                            {...register('businessName')}
+                          />
+                        </div>
+                        <FieldError msg={errors.businessName?.message} />
                       </div>
-                      <FieldError msg={errors.businessName?.message} />
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="nameEn" className="block text-sm font-semibold text-slate-300">
+                          الاسم باللغة الإنجليزية (اختياري)
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="nameEn"
+                            type="text"
+                            placeholder="Example: Al Nour Store"
+                            className={`${darkInputCls(false)} [direction:ltr] text-right`}
+                            {...register('nameEn')}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label htmlFor="nameEn" className="block text-sm font-semibold text-slate-700">
-                        الاسم باللغة الإنجليزية (اختياري)
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="nameEn"
-                          type="text"
-                          placeholder="Example: Al Nour Store"
-                          className={`${inputCls(false)} [direction:ltr] text-right`}
-                          {...register('nameEn')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor="status" className="block text-sm font-semibold text-slate-700">
-                      حالة النشاط التجاري الحالية <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      id="status"
-                      className={`${inputCls(false)} bg-white cursor-pointer`}
-                      {...register('status')}
-                    >
-                      {PLACE_STATUSES.map((st) => (
-                        <option key={st} value={st}>{st}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label htmlFor="category" className="block text-sm font-semibold text-slate-700">
-                        1. القطاع / التصنيف الرئيسي <span className="text-red-500">*</span>
+                      <label htmlFor="status" className="block text-sm font-semibold text-slate-300">
+                        حالة النشاط التجاري الحالية <span className="text-red-400">*</span>
                       </label>
                       <select
-                        id="category"
-                        className={`${inputCls(!!errors.category)} appearance-none cursor-pointer bg-white`}
-                        {...register('category')}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setValue('category', val, { shouldValidate: true });
-                          setValue('subCategory', '', { shouldValidate: true });
-                          setValue('customCategory', '');
-                        }}
+                        id="status"
+                        className={`${darkInputCls(false)} cursor-pointer`}
+                        {...register('status')}
                       >
-                        <option value="">-- اختر المجال الرئيسي --</option>
-                        {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <FieldError msg={errors.category?.message} />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label htmlFor="subCategory" className="block text-sm font-semibold text-slate-700">
-                        2. التصنيف الفرعي الدقيق للنشاط <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        id="subCategory"
-                        disabled={!selectedCategory}
-                        className={`${inputCls(!!errors.subCategory)} appearance-none cursor-pointer bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`}
-                        {...register('subCategory')}
-                      >
-                        <option value="">
-                          {selectedCategory ? '-- اختر التخصص الفرعي الدقيق --' : 'اختر القطاع الرئيسي أولاً'}
-                        </option>
-                        {availableSubCategories.map((sub) => (
-                          <option key={sub} value={sub}>{sub}</option>
+                        {PLACE_STATUSES.map((st) => (
+                          <option key={st} value={st} className="bg-slate-950 text-white">{st}</option>
                         ))}
                       </select>
-                      <FieldError msg={errors.subCategory?.message} />
                     </div>
-                  </div>
 
-                  {(selectedCategory === 'أخرى' || selectedSubCategory === 'أخرى (إدخال مخصص)') && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-1.5 bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100">
-                      <label htmlFor="customCategory" className="block text-sm font-bold text-indigo-900 flex items-center gap-1.5">
-                        <Tag className="w-4 h-4 text-indigo-600" />
-                        أدخل اسم التصنيف المخصص بوضوح <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        id="customCategory"
-                        type="text"
-                        placeholder="مثال: مطعم مأكولات بحرية إسكندراني، كهربائي سيارات ألماني..."
-                        className={`${inputCls(!!errors.customCategory)} bg-white`}
-                        {...register('customCategory')}
-                      />
-                      <FieldError msg={errors.customCategory?.message} />
-                    </motion.div>
-                  )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label htmlFor="category" className="block text-sm font-semibold text-slate-300">
+                          1. القطاع / التصنيف الرئيسي <span className="text-red-400">*</span>
+                        </label>
+                        <select
+                          id="category"
+                          className={`${darkInputCls(!!errors.category)} appearance-none cursor-pointer`}
+                          {...register('category')}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setValue('category', val, { shouldValidate: true });
+                            setValue('subCategory', '', { shouldValidate: true });
+                            setValue('customCategory', '');
+                          }}
+                        >
+                          <option value="" className="bg-slate-950 text-white">-- اختر المجال الرئيسي --</option>
+                          {CATEGORIES.map((c) => <option key={c} value={c} className="bg-slate-950 text-white">{c}</option>)}
+                        </select>
+                        <FieldError msg={errors.category?.message} />
+                      </div>
 
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                          <Upload className="w-4 h-4 text-indigo-600" />
-                          صور المنشأة واليافطة الميدانية
-                        </h3>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          ارفع أو التقط صورة واجهة المحل مع اليافطة المعلقة لمعاينتها وتأكيد الهوية البصرية للمكان
-                        </p>
+                      <div className="space-y-1.5">
+                        <label htmlFor="subCategory" className="block text-sm font-semibold text-slate-300">
+                          2. التصنيف الفرعي الدقيق للنشاط <span className="text-red-400">*</span>
+                        </label>
+                        <select
+                          id="subCategory"
+                          disabled={!selectedCategory}
+                          className={`${darkInputCls(!!errors.subCategory)} appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed`}
+                          {...register('subCategory')}
+                        >
+                          <option value="" className="bg-slate-950 text-white">
+                            {selectedCategory ? '-- اختر التخصص الفرعي الدقيق --' : 'اختر القطاع الرئيسي أولاً'}
+                          </option>
+                          {availableSubCategories.map((sub) => (
+                            <option key={sub} value={sub} className="bg-slate-950 text-white">{sub}</option>
+                          ))}
+                        </select>
+                        <FieldError msg={errors.subCategory?.message} />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <label className="block text-sm font-semibold text-slate-700">
-                            صورة واجهة المحل مع اليافطة <span className="text-red-500">*</span>
-                          </label>
-                          {facadePreview && (
-                            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Check className="w-3 h-3" /> تم الرفع
-                            </span>
-                          )}
-                        </div>
-                        {!facadePreview ? (
-                          <div className={`relative min-h-[160px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-100 transition-all ${errors.facadeImage ? 'border-red-400 bg-red-50/20' : 'border-slate-300 bg-white'}`}>
-                            {compressingFacade ? (
-                              <div className="flex flex-col items-center gap-2">
-                                <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
-                                <span className="text-xs font-bold text-indigo-600">جاري ضغط ومعالجة الصورة...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <Upload className="w-8 h-8 text-indigo-600 mb-2" />
-                                <span className="text-xs font-bold text-indigo-600">اضغط لرفع أو التقاط صورة واجهة المحل</span>
-                                <span className="text-[10px] text-slate-400 mt-1">تُحفظ الصور سحابياً ومحلياً داخل جهازك</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  id="facade-upload-step1"
-                                  onChange={(e) => handleImageUpload(e, 'facadeImage')}
-                                />
-                                <label htmlFor="facade-upload-step1" className="absolute inset-0 cursor-pointer" />
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video shadow-sm group">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={facadePreview} alt="Facade" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setFormImagePreview({ url: facadePreview, title: 'معاينة صورة واجهة المنشأة' })}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
-                              >
-                                <Eye className="w-4 h-4" /> معاينة مكبرة
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setValue('facadeImage', '', { shouldValidate: true })}
-                                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-xl cursor-pointer shadow-md"
-                                title="حذف الصورة"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setFormImagePreview({ url: facadePreview, title: 'معاينة صورة واجهة المنشأة' })}
-                              className="absolute bottom-2 left-2 bg-slate-900/80 hover:bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 backdrop-blur-sm cursor-pointer"
-                            >
-                              <Eye className="w-3 h-3 text-emerald-400" /> اضغط للمعاينة
-                            </button>
-                          </div>
-                        )}
-                        <FieldError msg={errors.facadeImage?.message} />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <label className="block text-sm font-semibold text-slate-700">صورة داخلية للمكان (اختياري)</label>
-                          {internalPreview && (
-                            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Check className="w-3 h-3" /> تم الرفع
-                            </span>
-                          )}
-                        </div>
-                        {!internalPreview ? (
-                          <div className="relative min-h-[160px] border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-100 transition-all bg-white">
-                            {compressingInternal ? (
-                              <div className="flex flex-col items-center gap-2">
-                                <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
-                                <span className="text-xs font-bold text-indigo-600">جاري ضغط ومعالجة الصورة...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                <span className="text-xs font-bold text-indigo-600">اضغط لرفع صورة من داخل المحل</span>
-                                <span className="text-[10px] text-slate-400 mt-1">تُحفظ الصور سحابياً ومحلياً داخل جهازك</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  id="internal-upload-step1"
-                                  onChange={(e) => handleImageUpload(e, 'internalImage')}
-                                />
-                                <label htmlFor="internal-upload-step1" className="absolute inset-0 cursor-pointer" />
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video shadow-sm group">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={internalPreview} alt="Internal" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setFormImagePreview({ url: internalPreview, title: 'معاينة الصورة الداخلية للمشروع' })}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
-                              >
-                                <Eye className="w-4 h-4" /> معاينة مكبرة
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setValue('internalImage', '')}
-                                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-xl cursor-pointer shadow-md"
-                                title="حذف الصورة"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setFormImagePreview({ url: internalPreview, title: 'معاينة الصورة الداخلية للمشروع' })}
-                              className="absolute bottom-2 left-2 bg-slate-900/80 hover:bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 backdrop-blur-sm cursor-pointer"
-                            >
-                              <Eye className="w-3 h-3 text-emerald-400" /> اضغط للمعاينة
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 2 && (
-                <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
-                  <div className="border-r-4 border-indigo-500 pr-3.5">
-                    <h2 className="text-xl font-extrabold text-slate-800">الموقع الجغرافي والكشف التلقائي للعنوان</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">اسحب الدبوس على الخريطة أو حدد موقعك عبر GPS لكشف الشارع والحي تلقائياً</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <Map className="w-4 h-4 text-emerald-600" /> الخريطة الحيّة المباشرة:
-                    </label>
-                    <InteractiveMap
-                      lat={parseFloat(currentLat) || 30.0444}
-                      lng={parseFloat(currentLng) || 31.2357}
-                      onChangeLocation={(newLat, newLng) => {
-                        const latS = newLat.toString();
-                        const lngS = newLng.toString();
-                        setValue('latitude', latS, { shouldValidate: true });
-                        setValue('longitude', lngS, { shouldValidate: true });
-                        fetchAddressFromCoords(latS, lngS);
-                      }}
-                      popupTitle={currentBusinessName || 'موقع المحل التجاري'}
-                    />
-                  </div>
-
-                  <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 sm:p-5 space-y-3">
-                    <h4 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
-                      <Clipboard className="w-4 h-4 text-indigo-600" />
-                      لصق الإحداثيات أو رابط المكان من جوجل ماب
-                    </h4>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      انسخ الإحداثيات من خرائط جوجل مثل{' '}
-                      <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-indigo-200">30°2&apos;39.8&quot;N 31°14&apos;5.7&quot;E</span>{' '}
-                      أو{' '}
-                      <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-indigo-200">30.0444, 31.2357</span>{' '}
-                      أو رابط الشير.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={pasteInput}
-                        onChange={(e) => { setPasteInput(e.target.value); setPasteError(null); }}
-                        onKeyDown={(e) => e.key === 'Enter' && applyPasted()}
-                        placeholder="الصق الإحداثيات أو الرابط هنا..."
-                        className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={applyPasted}
-                        className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-all shadow-sm"
-                      >
-                        تحليل وتطبيق
-                      </button>
-                    </div>
-                    {pasteError && (
-                      <p className="text-[11px] text-red-600 flex items-start gap-1.5 bg-red-50 border border-red-100 rounded-xl p-2.5">
-                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                        <span className="whitespace-pre-line leading-relaxed">{pasteError}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                          <Navigation className="w-4 h-4 text-indigo-600 animate-pulse" />
-                          تحديد الموقع عبر GPS تلقائياً
-                        </h4>
-                        <p className="text-[11px] text-slate-500 mt-0.5">قف بجوار باب المحل ثم اضغط الزر لجلب الإحداثيات</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={fetchGPS}
-                        disabled={gpsLoading}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-                      >
-                        {gpsLoading ? (
-                          <><RefreshCw className="w-4 h-4 animate-spin" /> جاري التحديد...</>
-                        ) : (
-                          <><MapPin className="w-4 h-4" /> تحديد موقعي الآن</>
-                        )}
-                      </button>
-                    </div>
-
-                    {gpsError && (
-                      <div className="bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                        <span className="text-xs text-red-700">{gpsError}</span>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-500 mb-1">خط العرض (Latitude)</label>
+                    {(selectedCategory === 'أخرى' || selectedSubCategory === 'أخرى (إدخال مخصص)') && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-1.5 bg-indigo-950/60 p-4 rounded-2xl border border-indigo-800">
+                        <label htmlFor="customCategory" className="block text-sm font-bold text-indigo-300 flex items-center gap-1.5">
+                          <Tag className="w-4 h-4 text-indigo-400" />
+                          أدخل اسم التصنيف المخصص بوضوح <span className="text-red-400">*</span>
+                        </label>
                         <input
-                          readOnly
-                          placeholder="GPS أو الخريطة..."
-                          className={`w-full px-3.5 py-2.5 bg-slate-100 border rounded-xl text-xs font-mono focus:outline-none ${errors.latitude ? 'border-red-400' : 'border-slate-200'}`}
-                          {...register('latitude')}
+                          id="customCategory"
+                          type="text"
+                          placeholder="مثال: مطعم مأكولات بحرية إسكندراني، كهربائي سيارات ألماني..."
+                          className={darkInputCls(!!errors.customCategory)}
+                          {...register('customCategory')}
                         />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-500 mb-1">خط الطول (Longitude)</label>
-                        <input
-                          readOnly
-                          placeholder="GPS أو الخريطة..."
-                          className={`w-full px-3.5 py-2.5 bg-slate-100 border rounded-xl text-xs font-mono focus:outline-none ${errors.longitude ? 'border-red-400' : 'border-slate-200'}`}
-                          {...register('longitude')}
-                        />
-                      </div>
-                    </div>
-
-                    {(errors.latitude || errors.longitude) && (
-                      <p className="text-[11px] text-red-500 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        يرجى تحديد الموقع عبر GPS أو سحب الدبوس على الخريطة أعلاه.
-                      </p>
-                    )}
-
-                    {currentLat && currentLng && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-slate-900 text-white rounded-2xl p-5 space-y-4 border border-slate-800 shadow-lg"
-                      >
-                        <div>
-                          <span className="text-[11px] text-slate-400 font-bold block mb-1">
-                            صيغة البحث الرسمية لجوجل ماب (DMS):
-                          </span>
-                          <span className="text-sm sm:text-base font-mono font-bold text-emerald-400 tracking-wide select-all dir-ltr text-right block">
-                            {currentDMS}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-2.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(currentDMS);
-                              setCopiedDMS(true);
-                              showToast('تم نسخ الإحداثيات!');
-                              setTimeout(() => setCopiedDMS(false), 2500);
-                            }}
-                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                              copiedDMS
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700'
-                            }`}
-                          >
-                            {copiedDMS ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                            {copiedDMS ? 'تم النسخ!' : 'نسخ الإحداثيات'}
-                          </button>
-
-                          <a
-                            href={googleMapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            فتح في تطبيق خرائط جوجل
-                          </a>
-                        </div>
+                        <FieldError msg={errors.customCategory?.message} />
                       </motion.div>
                     )}
-                  </div>
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-700">بيانات العنوان الميدانية:</span>
-                      <button
-                        type="button"
-                        onClick={() => fetchAddressFromCoords(currentLat, currentLng)}
-                        disabled={reverseGeocodingLoading || !currentLat || !currentLng}
-                        className="bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        {reverseGeocodingLoading ? (
-                          <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> جاري كشف العنوان...</>
-                        ) : (
-                          <><MapPin className="w-3.5 h-3.5 text-indigo-600" /> كشف وتعبئة العنوان تلقائياً من الخريطة 📍</>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {[
-                        { id: 'city', label: 'المدينة / المحافظة', placeholder: 'مثال: القاهرة، الجيزة...', err: errors.city },
-                        { id: 'neighborhood', label: 'الحي / المنطقة', placeholder: 'مثال: المعادي، الدقي...', err: errors.neighborhood },
-                        { id: 'street', label: 'الشارع الرئيسي', placeholder: 'مثال: شارع النصر، شارع 9...', err: errors.street },
-                      ].map(({ id, label, placeholder, err }) => (
-                        <div key={id} className="space-y-1.5">
-                          <label htmlFor={id} className="block text-sm font-semibold text-slate-700">
-                            {label} <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            id={id}
-                            type="text"
-                            placeholder={placeholder}
-                            className={inputCls(!!err)}
-                            {...register(id as keyof FormValues)}
-                          />
-                          <FieldError msg={err?.message} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor="landmark" className="block text-sm font-semibold text-slate-700">علامة مميزة (اختياري)</label>
-                    <input
-                      id="landmark"
-                      type="text"
-                      placeholder="مثال: بجوار البنك الأهلي، أمام محطة الوقود..."
-                      className="w-full px-3.5 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all"
-                      {...register('landmark')}
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 3 && (
-                <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
-                  <div className="border-r-4 border-indigo-500 pr-3.5">
-                    <h2 className="text-xl font-extrabold text-slate-800">بيانات التواصل والتأكيد المالي للفاتورة</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">حدد رقم الهاتف والإيميل مع اختيار حالة الدفع الآن أم مؤجلة لحين ظهور المحل</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <label htmlFor="phone" className="block text-sm font-semibold text-slate-700">
-                        رقم هاتف المنشأة (ورقم الواتساب للفاتورة) <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <Phone className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          id="phone"
-                          type="tel"
-                          placeholder="01012345678"
-                          className={`${inputCls(!!errors.phone)} pr-10 text-right`}
-                          {...register('phone')}
-                        />
-                      </div>
-                      <FieldError msg={errors.phone?.message} />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label htmlFor="googleEmail" className="block text-sm font-semibold text-slate-700">
-                        بريد Gmail الخاص بصاحب المحل <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          id="googleEmail"
-                          type="email"
-                          placeholder="example@gmail.com"
-                          className={`${inputCls(!!errors.googleEmail)} pr-10 text-right`}
-                          {...register('googleEmail')}
-                        />
-                      </div>
-                      <FieldError msg={errors.googleEmail?.message} />
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 space-y-5">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <Receipt className="w-6 h-6 text-emerald-400" />
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                         <div>
-                          <h3 className="text-base font-extrabold text-white">حالة دفع الفاتورة الميدانية <span className="text-red-400">*</span></h3>
-                          <p className="text-[11px] text-slate-400">حدد طريقة ودفع العميل الآن أم لاحقاً بعد ظهور المكان</p>
+                          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <Upload className="w-4 h-4 text-indigo-400" />
+                            صور المنشأة واليافطة الميدانية
+                          </h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            ارفع أو التقط صورة واجهة المحل مع اليافطة المعلقة لمعاينتها وتأكيد الهوية البصرية للمكان
+                          </p>
                         </div>
                       </div>
-                      <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold px-3 py-1 rounded-full">
-                        تكلفة الخدمة: {watchedTotalAmount} ج.م
-                      </span>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <label className="block text-sm font-semibold text-slate-300">
+                              صورة واجهة المحل مع اليافطة <span className="text-red-400">*</span>
+                            </label>
+                            {facadePreview && (
+                              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-md flex items-center gap-1 border border-emerald-800">
+                                <Check className="w-3 h-3" /> تم الرفع
+                              </span>
+                            )}
+                          </div>
+                          {!facadePreview ? (
+                            <div className={`relative min-h-[160px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-900 transition-all ${errors.facadeImage ? 'border-red-500 bg-red-950/20' : 'border-slate-800 bg-slate-950'}`}>
+                              {compressingFacade ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
+                                  <span className="text-xs font-bold text-indigo-400">جاري ضغط ومعالجة الصورة...</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload className="w-8 h-8 text-indigo-400 mb-2" />
+                                  <span className="text-xs font-bold text-indigo-400">اضغط لرفع أو التقاط صورة واجهة المحل</span>
+                                  <span className="text-[10px] text-slate-500 mt-1">تُحفظ الصور سحابياً ومحلياً داخل جهازك</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    id="facade-upload-step1"
+                                    onChange={(e) => handleImageUpload(e, 'facadeImage')}
+                                  />
+                                  <label htmlFor="facade-upload-step1" className="absolute inset-0 cursor-pointer" />
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="relative rounded-2xl overflow-hidden border border-slate-800 aspect-video shadow-sm group">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={facadePreview} alt="Facade" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setFormImagePreview({ url: facadePreview, title: 'معاينة صورة واجهة المنشأة' })}
+                                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+                                >
+                                  <Eye className="w-4 h-4" /> معاينة مكبرة
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setValue('facadeImage', '', { shouldValidate: true })}
+                                  className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-xl cursor-pointer shadow-md"
+                                  title="حذف الصورة"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          <FieldError msg={errors.facadeImage?.message} />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <label className="block text-sm font-semibold text-slate-300">صورة داخلية للمكان (اختياري)</label>
+                            {internalPreview && (
+                              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-md flex items-center gap-1 border border-emerald-800">
+                                <Check className="w-3 h-3" /> تم الرفع
+                              </span>
+                            )}
+                          </div>
+                          {!internalPreview ? (
+                            <div className="relative min-h-[160px] border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-900 transition-all bg-slate-950">
+                              {compressingInternal ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
+                                  <span className="text-xs font-bold text-indigo-400">جاري ضغط ومعالجة الصورة...</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload className="w-8 h-8 text-slate-500 mb-2" />
+                                  <span className="text-xs font-bold text-indigo-400">اضغط لرفع صورة من داخل المحل</span>
+                                  <span className="text-[10px] text-slate-500 mt-1">تُحفظ الصور سحابياً ومحلياً داخل جهازك</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    id="internal-upload-step1"
+                                    onChange={(e) => handleImageUpload(e, 'internalImage')}
+                                  />
+                                  <label htmlFor="internal-upload-step1" className="absolute inset-0 cursor-pointer" />
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="relative rounded-2xl overflow-hidden border border-slate-800 aspect-video shadow-sm group">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={internalPreview} alt="Internal" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setFormImagePreview({ url: internalPreview, title: 'معاينة الصورة الداخلية للمشروع' })}
+                                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+                                >
+                                  <Eye className="w-4 h-4" /> معاينة مكبرة
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setValue('internalImage', '')}
+                                  className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-xl cursor-pointer shadow-md"
+                                  title="حذف الصورة"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 2 && (
+                  <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
+                    <div className="border-r-4 border-indigo-500 pr-3.5">
+                      <h2 className="text-xl font-extrabold text-white">الموقع الجغرافي والكشف التلقائي للعنوان</h2>
+                      <p className="text-xs text-slate-400 mt-0.5">اسحب الدبوس على الخريطة أو حدد موقعك عبر GPS لكشف الشارع والحي تلقائياً</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <Map className="w-4 h-4 text-emerald-400" /> الخريطة الحيّة المباشرة:
+                      </label>
+                      <InteractiveMap
+                        lat={parseFloat(currentLat) || 30.0444}
+                        lng={parseFloat(currentLng) || 31.2357}
+                        onChangeLocation={(newLat, newLng) => {
+                          const latS = newLat.toString();
+                          const lngS = newLng.toString();
+                          setValue('latitude', latS, { shouldValidate: true });
+                          setValue('longitude', lngS, { shouldValidate: true });
+                          fetchAddressFromCoords(latS, lngS);
+                        }}
+                        popupTitle={currentBusinessName || 'موقع المحل التجاري'}
+                      />
+                    </div>
+
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Clipboard className="w-4 h-4 text-indigo-400" />
+                        لصق الإحداثيات أو رابط المكان من جوجل ماب
+                      </h4>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        انسخ الإحداثيات من خرائط جوجل مثل{' '}
+                        <span className="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-emerald-400">30°2&apos;39.8&quot;N 31°14&apos;5.7&quot;E</span>{' '}
+                        أو{' '}
+                        <span className="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-emerald-400">30.0444, 31.2357</span>.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="text"
+                          value={pasteInput}
+                          onChange={(e) => { setPasteInput(e.target.value); setPasteError(null); }}
+                          onKeyDown={(e) => e.key === 'Enter' && applyPasted()}
+                          placeholder="الصق الإحداثيات أو الرابط هنا..."
+                          className="flex-1 px-3.5 py-2.5 border border-slate-800 bg-slate-900 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={applyPasted}
+                          className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-all shadow-sm"
+                        >
+                          تحليل وتطبيق
+                        </button>
+                      </div>
+                      {pasteError && (
+                        <p className="text-[11px] text-red-400 flex items-start gap-1.5 bg-red-950/60 border border-red-800 rounded-xl p-2.5">
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span className="whitespace-pre-line leading-relaxed">{pasteError}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                          <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                            <Navigation className="w-4 h-4 text-indigo-400 animate-pulse" />
+                            تحديد الموقع عبر GPS تلقائياً
+                          </h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">قف بجوار باب المحل ثم اضغط الزر لجلب الإحداثيات</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={fetchGPS}
+                          disabled={gpsLoading}
+                          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                        >
+                          {gpsLoading ? (
+                            <><RefreshCw className="w-4 h-4 animate-spin" /> جاري التحديد...</>
+                          ) : (
+                            <><MapPin className="w-4 h-4" /> تحديد موقعي الآن</>
+                          )}
+                        </button>
+                      </div>
+
+                      {gpsError && (
+                        <div className="bg-red-950/60 border border-red-800 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                          <span className="text-xs text-red-300">{gpsError}</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">خط العرض (Latitude)</label>
+                          <input
+                            readOnly
+                            placeholder="GPS أو الخريطة..."
+                            className={`w-full px-3.5 py-2.5 bg-slate-900 border rounded-xl text-xs font-mono text-white focus:outline-none ${errors.latitude ? 'border-red-500' : 'border-slate-800'}`}
+                            {...register('latitude')}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">خط الطول (Longitude)</label>
+                          <input
+                            readOnly
+                            placeholder="GPS أو الخريطة..."
+                            className={`w-full px-3.5 py-2.5 bg-slate-900 border rounded-xl text-xs font-mono text-white focus:outline-none ${errors.longitude ? 'border-red-500' : 'border-slate-800'}`}
+                            {...register('longitude')}
+                          />
+                        </div>
+                      </div>
+
+                      {currentLat && currentLng && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-slate-900 text-white rounded-2xl p-5 space-y-4 border border-slate-800 shadow-lg"
+                        >
+                          <div>
+                            <span className="text-[11px] text-slate-400 font-bold block mb-1">
+                              صيغة البحث الرسمية لجوجل ماب (DMS):
+                            </span>
+                            <span className="text-sm sm:text-base font-mono font-bold text-emerald-400 tracking-wide select-all dir-ltr text-right block">
+                              {currentDMS}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(currentDMS);
+                                setCopiedDMS(true);
+                                showToast('تم نسخ الإحداثيات!');
+                                setTimeout(() => setCopiedDMS(false), 2500);
+                              }}
+                              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                copiedDMS
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800'
+                              }`}
+                            >
+                              {copiedDMS ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                              {copiedDMS ? 'تم النسخ!' : 'نسخ الإحداثيات'}
+                            </button>
+
+                            <a
+                              href={googleMapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all shadow-sm"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              فتح في تطبيق خرائط جوجل
+                            </a>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
 
                     <div className="space-y-3">
-                      <label className="block text-xs font-bold text-slate-200">
-                        متى/كيف سيدفع العميل تكلفة خدمة التوثيق؟ <span className="text-red-400">*</span>
-                      </label>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div
-                          onClick={() => {
-                            setValue('paymentStatus', 'مدفوعة بالكامل', { shouldValidate: true });
-                            setValue('paidAmount', watchedTotalAmount, { shouldValidate: true });
-                          }}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2.5 ${
-                            watchedPaymentStatus === 'مدفوعة بالكامل'
-                              ? 'bg-emerald-950/90 border-emerald-500 ring-2 ring-emerald-500/40'
-                              : 'bg-slate-800/80 border-slate-700 hover:border-slate-600'
-                          }`}
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-300">بيانات العنوان الميدانية:</span>
+                        <button
+                          type="button"
+                          onClick={() => fetchAddressFromCoords(currentLat, currentLng)}
+                          disabled={reverseGeocodingLoading || !currentLat || !currentLng}
+                          className="bg-indigo-950/80 hover:bg-indigo-900 disabled:opacity-50 text-indigo-300 border border-indigo-800 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                         >
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
-                              <CheckCircle className="w-4 h-4" /> سيدفع الآن بالكامل
-                            </span>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              watchedPaymentStatus === 'مدفوعة بالكامل' ? 'border-emerald-400 bg-emerald-500' : 'border-slate-600'
-                            }`}>
-                              {watchedPaymentStatus === 'مدفوعة بالكامل' && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
-                            </div>
-                          </div>
-                          <p className="text-[11px] text-slate-300 leading-relaxed">
-                            قام العميل بدفع المبلغ بالكامل ({watchedTotalAmount} ج.م) الآن قبل التوثيق.
-                          </p>
-                          <span className="text-[10px] font-extrabold text-emerald-400 dir-ltr text-right block pt-1 border-t border-slate-800">
-                            المدفوع الآن: {watchedTotalAmount} ج.م | المتبقي: 0 ج.م
-                          </span>
-                        </div>
-
-                        <div
-                          onClick={() => {
-                            setValue('paymentStatus', 'غير مدفوعة (مؤجلة)', { shouldValidate: true });
-                            setValue('paidAmount', 0, { shouldValidate: true });
-                          }}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2.5 ${
-                            watchedPaymentStatus === 'غير مدفوعة (مؤجلة)'
-                              ? 'bg-amber-950/90 border-amber-500 ring-2 ring-amber-500/40'
-                              : 'bg-slate-800/80 border-slate-700 hover:border-slate-600'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
-                              <Clock className="w-4 h-4" /> سيدفع لاحقاً بعد الظهور
-                            </span>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              watchedPaymentStatus === 'غير مدفوعة (مؤجلة)' ? 'border-amber-400 bg-amber-500' : 'border-slate-600'
-                            }`}>
-                              {watchedPaymentStatus === 'غير مدفوعة (مؤجلة)' && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
-                            </div>
-                          </div>
-                          <p className="text-[11px] text-slate-300 leading-relaxed">
-                            لم يدفع بعد. الفاتورة مؤجلة لحين تفعيل وتأكيد ظهور المحل على جوجل ماب.
-                          </p>
-                          <span className="text-[10px] font-extrabold text-amber-400 dir-ltr text-right block pt-1 border-t border-slate-800">
-                            المدفوع الآن: 0 ج.م | المتبقي: {watchedTotalAmount} ج.م
-                          </span>
-                        </div>
-
-                        <div
-                          onClick={() => {
-                            setValue('paymentStatus', 'دفع جزء من المبلغ (عربون)', { shouldValidate: true });
-                            if (!watchedPaidAmount || watchedPaidAmount === 0 || watchedPaidAmount === watchedTotalAmount) {
-                              setValue('paidAmount', 100, { shouldValidate: true });
-                            }
-                          }}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2.5 ${
-                            watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)'
-                              ? 'bg-indigo-950/90 border-indigo-500 ring-2 ring-indigo-500/40'
-                              : 'bg-slate-800/80 border-slate-700 hover:border-slate-600'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-black text-indigo-300 flex items-center gap-1.5">
-                              <DollarSign className="w-4 h-4" /> دفع عربون مقدماً
-                            </span>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' ? 'border-indigo-400 bg-indigo-500' : 'border-slate-600'
-                            }`}>
-                              {watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
-                            </div>
-                          </div>
-                          <p className="text-[11px] text-slate-300 leading-relaxed">
-                            دفع جزء كعربون الآن، والباقي يُسدّد بعد ظهور المنشأة على الخريطة.
-                          </p>
-                          <span className="text-[10px] font-extrabold text-indigo-300 dir-ltr text-right block pt-1 border-t border-slate-800">
-                            المدفوع الآن: {watchedPaidAmount || 100} ج.م | المتبقي: {calculatedRemaining} ج.م
-                          </span>
-                        </div>
+                          {reverseGeocodingLoading ? (
+                            <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> جاري كشف العنوان...</>
+                          ) : (
+                            <><MapPin className="w-3.5 h-3.5 text-indigo-400" /> كشف وتعبئة العنوان تلقائياً من الخريطة 📍</>
+                          )}
+                        </button>
                       </div>
-                    </div>
 
-                    {watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="bg-indigo-900/70 p-4 rounded-2xl border border-indigo-600/80 space-y-2"
-                      >
-                        <label className="block text-xs font-extrabold text-emerald-300 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-emerald-400" />
-                          قيمة المبلغ المقدم (العربون) المدفوع حالياً (ج.م): <span className="text-red-400">*</span>
-                        </label>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                          <div className="relative flex-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {[
+                          { id: 'city', label: 'المدينة / المحافظة', placeholder: 'مثال: القاهرة، الجيزة...', err: errors.city },
+                          { id: 'neighborhood', label: 'الحي / المنطقة', placeholder: 'مثال: المعادي، الدقي...', err: errors.neighborhood },
+                          { id: 'street', label: 'الشارع الرئيسي', placeholder: 'مثال: شارع النصر، شارع 9...', err: errors.street },
+                        ].map(({ id, label, placeholder, err }) => (
+                          <div key={id} className="space-y-1.5">
+                            <label htmlFor={id} className="block text-sm font-semibold text-slate-300">
+                              {label} <span className="text-red-400">*</span>
+                            </label>
                             <input
-                              type="number"
-                              min="1"
-                              max={watchedTotalAmount}
-                              placeholder="أدخل المبلغ المقدم مثل 100 أو 150"
-                              className="w-full px-4 py-2.5 bg-slate-950 border border-indigo-400 rounded-xl text-base font-extrabold text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 text-right dir-ltr"
-                              {...register('paidAmount', { valueAsNumber: true })}
+                              id={id}
+                              type="text"
+                              placeholder={placeholder}
+                              className={darkInputCls(!!err)}
+                              {...register(id as keyof FormValues)}
                             />
-                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">ج.م</span>
+                            <FieldError msg={err?.message} />
                           </div>
-
-                          <div className="bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800 text-xs font-bold shrink-0 flex items-center justify-between sm:justify-start gap-2">
-                            <span className="text-slate-400">المتبقي المؤجل بعد الظهور:</span>
-                            <span className="text-amber-400 text-sm font-black">{calculatedRemaining} ج.م</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                    <FieldError msg={errors.paymentStatus?.message} />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label htmlFor="whatsapp" className="block text-xs font-semibold text-slate-600">رقم واتساب مخصص آخر (اختياري)</label>
-                      <div className="relative">
-                        <MessageSquare className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          id="whatsapp"
-                          type="tel"
-                          placeholder="01012345678"
-                          className={`${inputCls(false)} pr-10 text-right`}
-                          {...register('whatsapp')}
-                        />
+                        ))}
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label htmlFor="facebookUrl" className="block text-xs font-semibold text-slate-600">رابط صفحة فيسبوك / موقع (اختياري)</label>
-                      <div className="relative">
-                        <Share2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          id="facebookUrl"
-                          type="url"
-                          placeholder="https://facebook.com/page"
-                          className={`${inputCls(false)} pr-10 text-right`}
-                          {...register('facebookUrl')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4">
-                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-indigo-600" />
-                      ساعات العمل اليومية
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {[
-                        { id: 'workFrom', label: 'وقت البدء', err: errors.workFrom },
-                        { id: 'workTo', label: 'وقت الانتهاء', err: errors.workTo },
-                      ].map(({ id, label, err }) => (
-                        <div key={id}>
-                          <label htmlFor={id} className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
-                          <input
-                            id={id}
-                            type="time"
-                            className={`w-full px-3.5 py-2.5 border rounded-xl text-sm bg-white focus:outline-none focus:ring-2 transition-all ${err ? 'border-red-400 focus:ring-red-100' : 'border-slate-200 focus:ring-indigo-100'}`}
-                            {...register(id as 'workFrom' | 'workTo')}
-                          />
-                          <FieldError msg={err?.message} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-indigo-600" />
-                      أيام العطلة الأسبوعية
-                    </h4>
-                    <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
-                      {DAYS.map((day) => (
-                        <Controller
-                          key={day.value}
-                          name="holidays"
-                          control={control}
-                          render={({ field }) => {
-                            const checked = field.value?.includes(day.value) ?? false;
-                            return (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  field.onChange(
-                                    checked
-                                      ? field.value.filter((v: string) => v !== day.value)
-                                      : [...(field.value || []), day.value],
-                                  )
-                                }
-                                className={`py-2.5 px-2 border text-xs font-bold rounded-xl text-center cursor-pointer transition-all ${
-                                  checked
-                                    ? 'bg-red-50 border-red-200 text-red-700 shadow-sm'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                                }`}
-                              >
-                                {day.label}
-                              </button>
-                            );
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 4 && (
-                <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
-                  <div className="border-r-4 border-indigo-500 pr-3.5">
-                    <h2 className="text-xl font-extrabold text-slate-800">مراجعة الفاتورة النهائية وحفظ التوثيق</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">معاينة الفاتورة الصادرة بناءً على اختيارك المالي في الخطوة السابقة قبل التوثيق</p>
-                  </div>
-
-                  <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 space-y-5">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <Receipt className="w-6 h-6 text-emerald-400" />
-                        <div>
-                          <h3 className="text-base font-extrabold text-white">معاينة الفاتورة المالية الصادرة للعميل</h3>
-                          <p className="text-[11px] text-slate-400">ستصُدر الفاتورة بحالتها المحددة وتُرسل مباشرة عبر الواتساب شاملة الصورة المطبوعة</p>
-                        </div>
-                      </div>
-                      <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold px-3 py-1 rounded-full">
-                        حالة الفاتورة: {watchedPaymentStatus}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div className="bg-slate-800/90 p-3.5 rounded-2xl border border-slate-700">
-                        <span className="text-[11px] text-slate-400 font-bold block mb-1">إجمالي الفاتورة</span>
-                        <span className="text-lg font-black text-white">{watchedTotalAmount} ج.م</span>
-                      </div>
-
-                      <div className="bg-slate-800/90 p-3.5 rounded-2xl border border-slate-700">
-                        <span className="text-[11px] text-emerald-400 font-bold block mb-1">المبلغ المدفوع الآن</span>
-                        <span className="text-lg font-black text-emerald-400">{watchedPaidAmount || 0} ج.م</span>
-                      </div>
-
-                      <div className="bg-slate-800/90 p-3.5 rounded-2xl border border-slate-700">
-                        <span className="text-[11px] text-amber-400 font-bold block mb-1">المتبقي المؤجل</span>
-                        <span className="text-lg font-black text-amber-400">{calculatedRemaining} ج.م</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-800/60 p-3.5 rounded-2xl border border-slate-700 text-xs text-slate-300 leading-relaxed">
-                      {watchedPaymentStatus === 'مدفوعة بالكامل' && (
-                        <p className="flex items-center gap-2 text-emerald-400 font-semibold">
-                          <CheckCircle className="w-4 h-4 shrink-0" />
-                          ستصُدر الفاتورة كـ (مدفوعة بالكامل): تم سداد كامل مبلغ 300 ج.م مقدماً قبل التوثيق.
-                        </p>
-                      )}
-                      {watchedPaymentStatus === 'غير مدفوعة (مؤجلة)' && (
-                        <p className="flex items-center gap-2 text-amber-400 font-semibold">
-                          <Clock className="w-4 h-4 shrink-0" />
-                          ستصُدر الفاتورة كـ (مؤجلة بالكامل): الفاتورة غير مدفوعة حالياً وتُسدد (300 ج.م) فور ظهور المحل على جوجل ماب.
-                        </p>
-                      )}
-                      {watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' && (
-                        <p className="flex items-center gap-2 text-indigo-300 font-semibold">
-                          <DollarSign className="w-4 h-4 shrink-0" />
-                          ستصُدر الفاتورة كـ (دفع عربون): تم استلام عربون بقيمة {watchedPaidAmount} ج.م والمتبقي ({calculatedRemaining} ج.م) يُسدد بعد تفعيل المكان.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label htmlFor="documenterName" className="block text-xs font-semibold text-slate-700">اسم الموثق الميداني / المكتب</label>
-                      <div className="relative">
-                        <User className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          id="documenterName"
-                          type="text"
-                          placeholder="مكتب دليلك للخدمات الرقمية"
-                          className={`${inputCls(false)} pr-10`}
-                          {...register('documenterName')}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label htmlFor="notes" className="block text-xs font-semibold text-slate-700">ملاحظات التوثيق الميداني</label>
+                      <label htmlFor="landmark" className="block text-sm font-semibold text-slate-300">علامة مميزة (اختياري)</label>
                       <input
-                        id="notes"
+                        id="landmark"
                         type="text"
-                        placeholder="أي ملاحظات خاصة بالتوثيق..."
-                        className={inputCls(false)}
-                        {...register('notes')}
+                        placeholder="مثال: بجوار البنك الأهلي، أمام محطة الوقود..."
+                        className={darkInputCls(false)}
+                        {...register('landmark')}
                       />
                     </div>
-                  </div>
+                  </motion.div>
+                )}
 
-                  <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
-                    <ShieldCheck className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-xs font-bold text-indigo-900 mb-1">تأكيد وإقرار الموثق الميداني</h4>
-                      <p className="text-xs text-indigo-800 leading-relaxed">
-                        أقر بصحة البيانات المسجلة ومطابقتها للمنشأة على أرض الواقع، وبإصدار الفاتورة وتوثيق الصور سحابياً ومحلياً.
-                      </p>
+                {step === 3 && (
+                  <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
+                    <div className="border-r-4 border-indigo-500 pr-3.5">
+                      <h2 className="text-xl font-extrabold text-white">بيانات التواصل والتأكيد المالي للفاتورة</h2>
+                      <p className="text-xs text-slate-400 mt-0.5">حدد رقم الهاتف والإيميل مع اختيار حالة الدفع الآن أم مؤجلة لحين ظهور المحل</p>
                     </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="space-y-1.5">
+                        <label htmlFor="phone" className="block text-sm font-semibold text-slate-300">
+                          رقم هاتف المنشأة (ورقم الواتساب للفاتورة) <span className="text-red-400">*</span>
+                        </label>
+                        <div className="relative">
+                          <Phone className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                          <input
+                            id="phone"
+                            type="tel"
+                            placeholder="01012345678"
+                            className={`${darkInputCls(!!errors.phone)} pr-10 text-right`}
+                            {...register('phone')}
+                          />
+                        </div>
+                        <FieldError msg={errors.phone?.message} />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="googleEmail" className="block text-sm font-semibold text-slate-300">
+                          بريد Gmail الخاص بصاحب المحل <span className="text-red-400">*</span>
+                        </label>
+                        <div className="relative">
+                          <Mail className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                          <input
+                            id="googleEmail"
+                            type="email"
+                            placeholder="example@gmail.com"
+                            className={`${darkInputCls(!!errors.googleEmail)} pr-10 text-right`}
+                            {...register('googleEmail')}
+                          />
+                        </div>
+                        <FieldError msg={errors.googleEmail?.message} />
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 space-y-5">
+                      <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <Receipt className="w-6 h-6 text-emerald-400" />
+                          <div>
+                            <h3 className="text-base font-extrabold text-white">حالة دفع الفاتورة الميدانية <span className="text-red-400">*</span></h3>
+                            <p className="text-[11px] text-slate-400">حدد طريقة ودفع العميل الآن أم لاحقاً بعد ظهور المكان</p>
+                          </div>
+                        </div>
+                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold px-3 py-1 rounded-full">
+                          تكلفة الخدمة: {watchedTotalAmount} ج.م
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-slate-200">
+                          متى/كيف سيدفع العميل تكلفة خدمة التوثيق؟ <span className="text-red-400">*</span>
+                        </label>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div
+                            onClick={() => {
+                              setValue('paymentStatus', 'مدفوعة بالكامل', { shouldValidate: true });
+                              setValue('paidAmount', watchedTotalAmount, { shouldValidate: true });
+                            }}
+                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2.5 ${
+                              watchedPaymentStatus === 'مدفوعة بالكامل'
+                                ? 'bg-emerald-950/90 border-emerald-500 ring-2 ring-emerald-500/40'
+                                : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                                <CheckCircle className="w-4 h-4" /> سيدفع الآن بالكامل
+                              </span>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                watchedPaymentStatus === 'مدفوعة بالكامل' ? 'border-emerald-400 bg-emerald-500' : 'border-slate-700'
+                              }`}>
+                                {watchedPaymentStatus === 'مدفوعة بالكامل' && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              قام العميل بدفع المبلغ بالكامل ({watchedTotalAmount} ج.م) الآن قبل التوثيق.
+                            </p>
+                          </div>
+
+                          <div
+                            onClick={() => {
+                              setValue('paymentStatus', 'غير مدفوعة (مؤجلة)', { shouldValidate: true });
+                              setValue('paidAmount', 0, { shouldValidate: true });
+                            }}
+                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2.5 ${
+                              watchedPaymentStatus === 'غير مدفوعة (مؤجلة)'
+                                ? 'bg-amber-950/90 border-amber-500 ring-2 ring-amber-500/40'
+                                : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                                <Clock className="w-4 h-4" /> سيدفع لاحقاً بعد الظهور
+                              </span>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                watchedPaymentStatus === 'غير مدفوعة (مؤجلة)' ? 'border-amber-400 bg-amber-500' : 'border-slate-700'
+                              }`}>
+                                {watchedPaymentStatus === 'غير مدفوعة (مؤجلة)' && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              لم يدفع بعد. الفاتورة مؤجلة لحين تفعيل وتأكيد ظهور المحل على جوجل ماب.
+                            </p>
+                          </div>
+
+                          <div
+                            onClick={() => {
+                              setValue('paymentStatus', 'دفع جزء من المبلغ (عربون)', { shouldValidate: true });
+                              if (!watchedPaidAmount || watchedPaidAmount === 0 || watchedPaidAmount === watchedTotalAmount) {
+                                setValue('paidAmount', 100, { shouldValidate: true });
+                              }
+                            }}
+                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2.5 ${
+                              watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)'
+                                ? 'bg-indigo-950/90 border-indigo-500 ring-2 ring-indigo-500/40'
+                                : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-black text-indigo-300 flex items-center gap-1.5">
+                                <DollarSign className="w-4 h-4" /> دفع عربون مقدماً
+                              </span>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' ? 'border-indigo-400 bg-indigo-500' : 'border-slate-700'
+                              }`}>
+                                {watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              دفع جزء كعربون الآن، والباقي يُسدّد بعد ظهور المنشأة على الخريطة.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {watchedPaymentStatus === 'دفع جزء من المبلغ (عربون)' && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="bg-indigo-950/80 p-4 rounded-2xl border border-indigo-800 space-y-2"
+                        >
+                          <label className="block text-xs font-extrabold text-emerald-300 flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-emerald-400" />
+                            قيمة المبلغ المقدم (العربون) المدفوع حالياً (ج.م): <span className="text-red-400">*</span>
+                          </label>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <div className="relative flex-1">
+                              <input
+                                type="number"
+                                min="1"
+                                max={watchedTotalAmount}
+                                placeholder="أدخل المبلغ المقدم مثل 100 أو 150"
+                                className="w-full px-4 py-2.5 bg-slate-900 border border-indigo-500 rounded-xl text-base font-extrabold text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 text-right dir-ltr"
+                                {...register('paidAmount', { valueAsNumber: true })}
+                              />
+                              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">ج.م</span>
+                            </div>
+
+                            <div className="bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-800 text-xs font-bold shrink-0 flex items-center justify-between sm:justify-start gap-2">
+                              <span className="text-slate-400">المتبقي المؤجل بعد الظهور:</span>
+                              <span className="text-amber-400 text-sm font-black">{calculatedRemaining} ج.م</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label htmlFor="whatsapp" className="block text-xs font-semibold text-slate-400">رقم واتساب مخصص آخر (اختياري)</label>
+                        <div className="relative">
+                          <MessageSquare className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                          <input
+                            id="whatsapp"
+                            type="tel"
+                            placeholder="01012345678"
+                            className={`${darkInputCls(false)} pr-10 text-right`}
+                            {...register('whatsapp')}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="facebookUrl" className="block text-xs font-semibold text-slate-400">رابط صفحة فيسبوك / موقع (اختياري)</label>
+                        <div className="relative">
+                          <Share2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                          <input
+                            id="facebookUrl"
+                            type="url"
+                            placeholder="https://facebook.com/page"
+                            className={`${darkInputCls(false)} pr-10 text-right`}
+                            {...register('facebookUrl')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-4">
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-indigo-400" />
+                        ساعات العمل اليومية
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {[
+                          { id: 'workFrom', label: 'وقت البدء', err: errors.workFrom },
+                          { id: 'workTo', label: 'وقت الانتهاء', err: errors.workTo },
+                        ].map(({ id, label }) => (
+                          <div key={id}>
+                            <label htmlFor={id} className="block text-xs font-semibold text-slate-400 mb-1">{label}</label>
+                            <input
+                              id={id}
+                              type="time"
+                              className={darkInputCls(false)}
+                              {...register(id as 'workFrom' | 'workTo')}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-indigo-400" />
+                        أيام العطلة الأسبوعية
+                      </h4>
+                      <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
+                        {DAYS.map((day) => (
+                          <Controller
+                            key={day.value}
+                            name="holidays"
+                            control={control}
+                            render={({ field }) => {
+                              const checked = field.value?.includes(day.value) ?? false;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    field.onChange(
+                                      checked
+                                        ? field.value.filter((v: string) => v !== day.value)
+                                        : [...(field.value || []), day.value],
+                                    )
+                                  }
+                                  className={`py-2.5 px-2 border text-xs font-bold rounded-xl text-center cursor-pointer transition-all ${
+                                    checked
+                                      ? 'bg-red-950 border-red-800 text-red-300 shadow-sm'
+                                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                                  }`}
+                                >
+                                  {day.label}
+                                </button>
+                              );
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 4 && (
+                  <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-6">
+                    <div className="border-r-4 border-indigo-500 pr-3.5">
+                      <h2 className="text-xl font-extrabold text-white">مراجعة الفاتورة النهائية وحفظ التوثيق</h2>
+                      <p className="text-xs text-slate-400 mt-0.5">معاينة الفاتورة الصادرة بناءً على اختيارك المالي في الخطوة السابقة قبل التوثيق</p>
+                    </div>
+
+                    <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 space-y-5">
+                      <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <Receipt className="w-6 h-6 text-emerald-400" />
+                          <div>
+                            <h3 className="text-base font-extrabold text-white">معاينة الفاتورة المالية الصادرة للعميل</h3>
+                            <p className="text-[11px] text-slate-400">ستصُدر الفاتورة بحالتها المحددة وتُرسل مباشرة عبر الواتساب شاملة الصورة المطبوعة</p>
+                          </div>
+                        </div>
+                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold px-3 py-1 rounded-full">
+                          حالة الفاتورة: {watchedPaymentStatus}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800">
+                          <span className="text-[11px] text-slate-400 font-bold block mb-1">إجمالي الفاتورة</span>
+                          <span className="text-lg font-black text-white">{watchedTotalAmount} ج.م</span>
+                        </div>
+
+                        <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800">
+                          <span className="text-[11px] text-emerald-400 font-bold block mb-1">المبلغ المدفوع الآن</span>
+                          <span className="text-lg font-black text-emerald-400">{watchedPaidAmount || 0} ج.م</span>
+                        </div>
+
+                        <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800">
+                          <span className="text-[11px] text-amber-400 font-bold block mb-1">المتبقي المؤجل</span>
+                          <span className="text-lg font-black text-amber-400">{calculatedRemaining} ج.م</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label htmlFor="documenterName" className="block text-xs font-semibold text-slate-300">اسم الموثق الميداني / المكتب</label>
+                        <div className="relative">
+                          <User className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                          <input
+                            id="documenterName"
+                            type="text"
+                            placeholder="مكتب دليلك للخدمات الرقمية"
+                            className={`${darkInputCls(false)} pr-10`}
+                            {...register('documenterName')}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="notes" className="block text-xs font-semibold text-slate-300">ملاحظات التوثيق الميداني</label>
+                        <input
+                          id="notes"
+                          type="text"
+                          placeholder="أي ملاحظات خاصة بالتوثيق..."
+                          className={darkInputCls(false)}
+                          {...register('notes')}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="mt-10 pt-6 border-t border-slate-800 flex justify-between items-center gap-4">
+                {step > 1 ? (
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    className="bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 font-semibold text-xs px-6 py-3.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <ChevronRight className="w-4 h-4" /> السابق
+                  </button>
+                ) : <div />}
+
+                {step < 4 ? (
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-7 py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    التالي <ChevronLeft className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-8 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-5 h-5" /> حفظ التوثيق وإصدار الفاتورة الرسمية
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        ) : (
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 p-8 sm:p-12 text-center space-y-6 mb-10 text-slate-100">
+            <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle className="w-12 h-12" />
+            </div>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white">تم توثيق المكان وإصدار الفاتورة بنجاح!</h2>
+              <p className="text-xs text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+                تم تسجيل البيانات والصور سحابياً ومحلياً، ويمكنك الآن إرسال الفاتورة الرسمية إلى الواتساب
+              </p>
+            </div>
+
+            {lastSavedPlace && (
+              <div className="bg-slate-950 text-white p-6 rounded-3xl max-w-xl mx-auto text-right space-y-4 shadow-xl border border-slate-800">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-5 h-5 text-emerald-400" />
+                    <span className="text-xs font-extrabold">الفاتورة الميدانية الرقمية الصادرة</span>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="mt-10 pt-6 border-t border-slate-100 flex justify-between items-center gap-4">
-              {step > 1 ? (
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm px-6 py-3.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <ChevronRight className="w-4 h-4" /> السابق
-                </button>
-              ) : <div />}
-
-              {step < 4 ? (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  التالي <ChevronLeft className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-8 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
-                >
-                  <CheckCircle className="w-5 h-5" /> حفظ التوثيق وإصدار الفاتورة الرسمية
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-      ) : (
-        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 sm:p-12 text-center space-y-6 mb-10">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-            <CheckCircle className="w-12 h-12" />
-          </div>
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800">تم توثيق المكان وإصدار الفاتورة بنجاح!</h2>
-            <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
-              تم تسجيل البيانات والصور سحابياً ومحلياً، ويمكنك الآن إرسال الفاتورة الرسمية إلى الواتساب
-            </p>
-          </div>
-
-          {lastSavedPlace && (
-            <div className="bg-slate-900 text-white p-6 rounded-3xl max-w-xl mx-auto text-right space-y-4 shadow-xl border border-slate-800">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-emerald-400" />
-                  <span className="text-sm font-extrabold">الفاتورة الميدانية الرقمية الصادرة</span>
+                  <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                    {lastSavedPlace.paymentStatus}
+                  </span>
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30">
-                  {lastSavedPlace.paymentStatus}
-                </span>
-              </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div>
-                  <span className="text-slate-400 block">اسم المنشأة:</span>
-                  <span className="font-bold text-white text-xs truncate block">{lastSavedPlace.businessName}</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">اسم المنشأة:</span>
+                    <span className="font-bold text-white text-xs truncate block">{lastSavedPlace.businessName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">رقم الهاتف:</span>
+                    <span className="font-bold text-white dir-ltr text-right block">{lastSavedPlace.phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">المبلغ المدفوع:</span>
+                    <span className="font-extrabold text-emerald-400">{lastSavedPlace.paidAmount} ج.م</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">المتبقي المؤجل:</span>
+                    <span className="font-extrabold text-amber-400">{lastSavedPlace.remainingAmount} ج.م</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block">رقم الهاتف:</span>
-                  <span className="font-bold text-white dir-ltr text-right block">{lastSavedPlace.phone}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">المبلغ المدفوع:</span>
-                  <span className="font-extrabold text-emerald-400">{lastSavedPlace.paidAmount} ج.م</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">المتبقي المؤجل:</span>
-                  <span className="font-extrabold text-amber-400">{lastSavedPlace.remainingAmount} ج.م</span>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => sendWhatsAppInvoiceWithImage(lastSavedPlace, showToast)}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-600/30"
+                    title="إرسال الفاتورة عبر واتساب مباشرة"
+                  >
+                    <Send className="w-4 h-4" /> إرسال الفاتورة واتس اب
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintedInvoiceModalPlace(lastSavedPlace)}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                    title="معاينة ورقة الفاتورة المطبوعة"
+                  >
+                    <FileText className="w-4 h-4" /> معاينة 📄
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadZipForPlace(lastSavedPlace)}
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-800"
+                    title="تنزيل حزمة ZIP للمكان"
+                  >
+                    <HardDrive className="w-4 h-4" /> ZIP
+                  </button>
                 </div>
               </div>
+            )}
 
-              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => sendWhatsAppInvoiceWithImage(lastSavedPlace, showToast)}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-600/30"
-                  title="إرسال الفاتورة عبر واتساب مباشرة"
-                >
-                  <Send className="w-4 h-4" /> إرسال الفاتورة واتس اب
-                </button>
+            <button
+              onClick={() => setIsSuccess(false)}
+              className="bg-slate-950 hover:bg-slate-800 text-slate-200 font-bold text-xs py-3.5 px-8 rounded-xl transition-all cursor-pointer border border-slate-800"
+            >
+              توثيق مكان تجاري جديد
+            </button>
+          </motion.div>
+        )}
 
-                <button
-                  type="button"
-                  onClick={() => setShowPrintedInvoiceModalPlace(lastSavedPlace)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
-                  title="معاينة ورقة الفاتورة المطبوعة"
-                >
-                  <FileText className="w-4 h-4" /> معاينة 📄
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDownloadZipForPlace(lastSavedPlace)}
-                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-700"
-                  title="تنزيل حزمة ZIP للمكان"
-                >
-                  <Archive className="w-4 h-4" /> ZIP
-                </button>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => setIsSuccess(false)}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm py-3.5 px-8 rounded-xl transition-all cursor-pointer border border-slate-200"
-          >
-            توثيق مكان تجاري جديد
-          </button>
-        </motion.div>
-      )}
-
-      <section className="space-y-6">
-
+        {/* Global Statistics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
+            <div className="bg-indigo-500/20 text-indigo-400 p-3.5 rounded-2xl border border-indigo-500/30">
               <Layers className="w-6 h-6" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-slate-400 block">إجمالي الأماكن</span>
-              <span className="text-2xl font-black text-slate-800">{savedPlaces.length}</span>
+              <span className="text-2xl font-black text-white">{savedPlaces.length}</span>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="bg-emerald-50 p-3 rounded-xl text-emerald-600">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
+            <div className="bg-emerald-500/20 text-emerald-400 p-3.5 rounded-2xl border border-emerald-500/30">
               <Receipt className="w-6 h-6" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-slate-400 block">المحصل المالي</span>
-              <span className="text-xl font-black text-emerald-600">{totalCollected} <span className="text-xs">ج.م</span></span>
+              <span className="text-xl font-black text-emerald-400">{totalCollected} <span className="text-xs">ج.م</span></span>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="bg-amber-50 p-3 rounded-xl text-amber-600">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
+            <div className="bg-amber-500/20 text-amber-400 p-3.5 rounded-2xl border border-amber-500/30">
               <Calendar className="w-6 h-6" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-slate-400 block">توثيقات اليوم</span>
-              <span className="text-2xl font-black text-slate-800">{todayCount}</span>
+              <span className="text-2xl font-black text-white">{todayCount}</span>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="bg-purple-50 p-3 rounded-xl text-purple-600">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
+            <div className="bg-purple-500/20 text-purple-400 p-3.5 rounded-2xl border border-purple-500/30">
               <Store className="w-6 h-6" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-slate-400 block">التصنيف الأكثر تكراراً</span>
-              <span className="text-xs font-extrabold text-slate-800 truncate block max-w-[120px]">{topCategory}</span>
+              <span className="text-xs font-extrabold text-white truncate block max-w-[120px]">{topCategory}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Map className="w-5 h-5 text-indigo-600" />
-              <h3 className="text-lg font-bold text-slate-800">سجل التوثيق الميداني والفواتير المحفوظة</h3>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                {filteredPlaces.length} مكان
-              </span>
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-2.5">
+              <Map className="w-6 h-6 text-indigo-400" />
+              <div>
+                <h3 className="text-lg font-black text-white">سجل التوثيق الميداني والفواتير المحفوظة</h3>
+                <p className="text-xs text-slate-400">تصفح ومراجعة كل الأماكن الموثقة محلياً وسحابياً في قاعدة البيانات</p>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -2768,37 +2685,33 @@ export default function Home() {
                 type="button"
                 onClick={handleDownloadMasterZip}
                 disabled={!savedPlaces.length}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                title="تنزيل أرشيف شامل يحتوي على مجلد مستقل لكل مكان ببياناته وصوره"
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <Archive className="w-4 h-4" /> أرشيف جميع الأماكن (ZIP)
+                <HardDrive className="w-4 h-4" /> أرشيف (ZIP)
               </button>
 
               <button
                 type="button"
                 onClick={() => exportToCSV(savedPlaces)}
                 disabled={!savedPlaces.length}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                title="تنزيل جدول إكسيل يحتوي على كافة الأماكن المسجلة"
+                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <FileSpreadsheet className="w-4 h-4" /> تنزيل إكسيل (CSV)
+                <FileSpreadsheet className="w-4 h-4" /> إكسيل (CSV)
               </button>
 
               <button
                 type="button"
                 onClick={() => exportToJSON(savedPlaces)}
                 disabled={!savedPlaces.length}
-                className="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                title="تنزيل نسخة احتياطية تتضمن الصور والبيانات الكاملة"
+                className="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-700"
               >
-                <Download className="w-4 h-4" /> نسخة احتياطية (JSON)
+                <Download className="w-4 h-4" /> نسخة احتياطية
               </button>
 
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-200"
-                title="استيراد سجل محفوظ سابقاً من ملف JSON"
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-700"
               >
                 <Upload className="w-4 h-4" /> استيراد
               </button>
@@ -2813,33 +2726,24 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2 relative">
-              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث باسم المحل، الفاتورة، حالة السداد، المدينة، الحي، الهاتف..."
-                className="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 bg-slate-50/50"
+                placeholder="ابحث باسم المحل، الفاتورة، المدينة، الحي، الهاتف..."
+                className="w-full pr-10 pl-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-                >
-                  مسح
-                </button>
-              )}
             </div>
 
             <div className="relative">
-              <Filter className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Filter className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <select
                 value={selectedFilterCategory}
                 onChange={(e) => setSelectedFilterCategory(e.target.value)}
-                className="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 bg-slate-50/50 appearance-none cursor-pointer"
+                className="w-full pr-10 pl-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
               >
                 <option value="الكل">جميع التصنيفات</option>
                 {CATEGORIES.map((c) => (
@@ -2848,639 +2752,573 @@ export default function Home() {
               </select>
             </div>
           </div>
-        </div>
 
-        {filteredPlaces.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredPlaces.map((place) => {
-              const categoryBadge = place.subCategory === 'أخرى (إدخال مخصص)' && place.customCategory
-                ? place.customCategory
-                : place.subCategory || place.category;
+          {filteredPlaces.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredPlaces.map((place) => {
+                const categoryBadge = place.subCategory === 'أخرى (إدخال مخصص)' && place.customCategory
+                  ? place.customCategory
+                  : place.subCategory || place.category;
 
-              const payStatusColor =
-                place.paymentStatus === 'مدفوعة بالكامل'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : place.paymentStatus === 'دفع جزء من المبلغ (عربون)'
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200';
+                const payStatusColor =
+                  place.paymentStatus === 'مدفوعة بالكامل'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : place.paymentStatus === 'دفع جزء من المبلغ (عربون)'
+                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30';
 
-              return (
-                <div key={place.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-                  <div>
-                    <div className="flex gap-4 items-start">
-                      <div
-                        onClick={() => setActiveModalPlace(place)}
-                        className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 bg-slate-100 border border-slate-100 flex items-center justify-center cursor-pointer group relative"
-                      >
-                        {place.facadeImage ? (
-                          <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={place.facadeImage} alt={place.businessName} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                              <Eye className="w-5 h-5 text-white" />
+                return (
+                  <div key={place.id} className="bg-slate-950 p-5 rounded-3xl border border-slate-800 shadow-lg hover:border-slate-700 transition-all flex flex-col justify-between">
+                    <div>
+                      <div className="flex gap-4 items-start">
+                        <div
+                          onClick={() => setActiveModalPlace(place)}
+                          className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 bg-slate-900 border border-slate-800 flex items-center justify-center cursor-pointer group relative"
+                        >
+                          {place.facadeImage ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={place.facadeImage} alt={place.businessName} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <Eye className="w-5 h-5 text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <Store className="w-8 h-8 text-slate-600" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <h4 className="font-bold text-base text-white truncate">{place.businessName}</h4>
+                              {place.nameEn && <span className="text-[11px] text-slate-400 font-mono block dir-ltr text-right truncate">{place.nameEn}</span>}
                             </div>
-                          </>
-                        ) : (
-                          <Store className="w-8 h-8 text-slate-400" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <h4 className="font-bold text-base text-slate-800 truncate">{place.businessName}</h4>
-                            {place.nameEn && <span className="text-[11px] text-slate-400 font-mono block dir-ltr text-right truncate">{place.nameEn}</span>}
+                            <button
+                              onClick={() => deletePlace(place.id)}
+                              className="text-slate-500 hover:text-red-400 p-1 cursor-pointer transition-all shrink-0"
+                              title="حذف المكان"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
+
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-lg">
+                              {categoryBadge}
+                            </span>
+
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${payStatusColor}`}>
+                              {place.paymentStatus || 'مدفوعة بالكامل'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-2 text-[11px]">
+                            <span className="text-slate-400 truncate">{place.city}، {place.neighborhood}</span>
+                            <span className="font-extrabold text-white dir-ltr">
+                              {place.paidAmount ?? 300} / {place.totalAmount || 300} ج.م
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5">
+                        <span className="text-xs font-mono text-emerald-400 font-bold truncate flex-1 dir-ltr text-right">
+                          {place.dms}
+                        </span>
+                        <div className="flex gap-1.5 shrink-0">
                           <button
-                            onClick={() => deletePlace(place.id)}
-                            className="text-slate-400 hover:text-red-600 p-1 cursor-pointer transition-all shrink-0"
-                            title="حذف المكان"
+                            type="button"
+                            onClick={() => sendWhatsAppInvoiceWithImage(place, showToast)}
+                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-sm"
+                            title="إرسال الفاتورة عبر واتساب"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Send className="w-3.5 h-3.5" /> إرسال الفاتورة واتس اب
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowPrintedInvoiceModalPlace(place)}
+                            className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-all shadow-sm"
+                            title="معاينة الفاتورة المطبوعة"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadZipForPlace(place)}
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-all border border-slate-700"
+                            title="تنزيل حزمة ZIP للمكان"
+                          >
+                            <HardDrive className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => copyToClipboard(place.dms, place.id)}
+                            className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all ${
+                              copiedPlaceId === place.id ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+                            }`}
+                            title="نسخ الإحداثيات"
+                          >
+                            {copiedPlaceId === place.id ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </button>
                         </div>
+                      </div>
 
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                          <span className="bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-0.5 rounded-lg border border-indigo-100">
-                            {categoryBadge}
-                          </span>
-
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${payStatusColor}`}>
-                            {place.paymentStatus || 'مدفوعة بالكامل'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-2 text-[11px]">
-                          <span className="text-slate-500 truncate">{place.city}، {place.neighborhood}</span>
-                          <span className="font-extrabold text-slate-800 dir-ltr">
-                            {place.paidAmount ?? 300} / {place.totalAmount || 300} ج.م
-                          </span>
-                        </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-400 font-medium px-1">
+                        <span>الموثق: {place.documenterName || 'مكتب دليلك'}</span>
+                        <button
+                          onClick={() => setActiveModalPlace(place)}
+                          className="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> التفاصيل الكاملة
+                        </button>
                       </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-slate-950 border border-dashed border-slate-800 rounded-3xl p-12 text-center">
+              <Store className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+              <p className="text-base font-bold text-slate-300">لا توجد مواضع موثقة مطابقة للبحث</p>
+              <p className="text-xs text-slate-500 mt-1">أكمل النموذج أعلاه لتوثيق أماكن جديدة في الميدان وإصدار الفواتير</p>
+            </div>
+          )}
+        </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between gap-2 bg-slate-900 rounded-xl px-3.5 py-2.5">
-                      <span className="text-xs font-mono text-emerald-400 font-bold truncate flex-1 dir-ltr text-right">
-                        {place.dms}
-                      </span>
-                      <div className="flex gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => sendWhatsAppInvoiceWithImage(place, showToast)}
-                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-sm"
-                          title="إرسال الفاتورة عبر واتساب"
-                        >
-                          <Send className="w-3.5 h-3.5" /> إرسال الفاتورة واتس اب
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowPrintedInvoiceModalPlace(place)}
-                          className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all shadow-sm"
-                          title="معاينة الفاتورة المطبوعة"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadZipForPlace(place)}
-                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-all border border-slate-700"
-                          title="تنزيل حزمة ZIP للمكان"
-                        >
-                          <Archive className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => copyToClipboard(place.dms, place.id)}
-                          className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all ${
-                            copiedPlaceId === place.id ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
-                          }`}
-                          title="نسخ الإحداثيات"
-                        >
-                          {copiedPlaceId === place.id ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center text-[11px] text-slate-400 font-medium px-1">
-                      <span>الموثق: {place.documenterName || 'مكتب دليلك'}</span>
-                      <button
-                        onClick={() => setActiveModalPlace(place)}
-                        className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> التفاصيل الكاملة
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white border border-dashed border-slate-200 rounded-3xl p-12 text-center">
-            <Store className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-            <p className="text-base font-bold text-slate-600">لا توجد مواضع موثقة مطابقة للبحث</p>
-            <p className="text-xs text-slate-400 mt-1">أكمل النموذج أعلاه لتوثيق أماكن جديدة في الميدان وإصدار الفواتير</p>
-          </div>
-        )}
-      </section>
-
-      {/* OFFICIAL PRINTED INVOICE VIEW MODAL */}
-      <AnimatePresence>
-        {showPrintedInvoiceModalPlace && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
-            onClick={() => setShowPrintedInvoiceModalPlace(null)}
-          >
+        {/* OFFICIAL PRINTED INVOICE VIEW MODAL */}
+        <AnimatePresence>
+          {showPrintedInvoiceModalPlace && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-3xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+              onClick={() => setShowPrintedInvoiceModalPlace(null)}
             >
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2 text-slate-900">
-                  <FileText className="w-6 h-6 text-indigo-600" />
-                  <div>
-                    <h3 className="text-lg font-black">معاينة الفاتورة المطبوعة من المؤسسة 📄</h3>
-                    <p className="text-xs text-slate-500">فاتورة رسمية مصممة بأختام المؤسسة لإظهار أقصى درجات الجدية للعميل</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowPrintedInvoiceModalPlace(null)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-xl cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="rounded-2xl overflow-hidden bg-slate-100 border border-slate-300 p-2 shadow-inner flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={generateInvoiceImageDataUrl(showPrintedInvoiceModalPlace)}
-                  alt="Official Invoice Paper"
-                  className="max-h-[65vh] w-auto object-contain rounded-lg shadow-xl border border-slate-200"
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => sendWhatsAppInvoiceWithImage(showPrintedInvoiceModalPlace, showToast)}
-                    className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30 transition-all"
-                  >
-                    <Send className="w-4 h-4" /> إرسال الفاتورة عبر واتساب
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const imgUrl = generateInvoiceImageDataUrl(showPrintedInvoiceModalPlace);
-                      const fn = `${showPrintedInvoiceModalPlace.businessName}_فاتورة_مطبوعة_رسمية.png`;
-                      downloadImageFile(imgUrl, fn);
-                      showToast('تم تنزيل صورة الفاتورة المطبوعة بنجاح!');
-                    }}
-                    className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
-                  >
-                    <Download className="w-4 h-4" /> تنزيل الفاتورة كصورة (PNG)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const imgUrl = generateInvoiceImageDataUrl(showPrintedInvoiceModalPlace);
-                      const win = window.open('');
-                      if (win) {
-                        win.document.write(`<html dir="rtl"><head><title>فاتورة رسمية - ${showPrintedInvoiceModalPlace.businessName}</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;"><img src="${imgUrl}" style="max-width:100%;height:auto;" onload="window.print();window.close();"/></body></html>`);
-                        win.document.close();
-                      }
-                    }}
-                    className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
-                  >
-                    <Printer className="w-4 h-4" /> طباعة (PDF)
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPrintedInvoiceModalPlace(null)}
-                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-6 py-3 rounded-xl cursor-pointer border border-slate-200"
-                >
-                  إغلاق
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {activeModalPlace && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
-            onClick={() => setActiveModalPlace(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-2xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-start gap-4 border-b border-slate-100 pb-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-indigo-100">
-                      {activeModalPlace.category}
-                    </span>
-                    <span className="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-emerald-100">
-                      {activeModalPlace.subCategory === 'أخرى (إدخال مخصص)' && activeModalPlace.customCategory
-                        ? activeModalPlace.customCategory
-                        : activeModalPlace.subCategory || activeModalPlace.category}
-                    </span>
-                    <span className="bg-slate-900 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-lg">
-                      {activeModalPlace.paymentStatus || 'مدفوعة بالكامل'}
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-extrabold text-slate-800 mt-2">{activeModalPlace.businessName}</h3>
-                  {activeModalPlace.nameEn && <p className="text-xs text-slate-400 font-mono dir-ltr text-right">{activeModalPlace.nameEn}</p>}
-                </div>
-                <button
-                  onClick={() => setActiveModalPlace(null)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-xl cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
-                    <Receipt className="w-4 h-4 text-emerald-400" /> الفاتورة والحساب المالي للخدمة
-                  </span>
-                  <span className="text-xs font-bold text-emerald-400">رقم: INV-{activeModalPlace.id.slice(-6)}</span>
+                  <div className="flex items-center gap-2 text-white">
+                    <FileText className="w-6 h-6 text-indigo-400" />
+                    <div>
+                      <h3 className="text-lg font-black">معاينة الفاتورة المطبوعة من المؤسسة 📄</h3>
+                      <p className="text-xs text-slate-400">فاتورة رسمية مصممة بأختام المؤسسة لإظهار أقصى درجات الجدية للعميل</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintedInvoiceModalPlace(null)}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-2 rounded-xl cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                  <div className="bg-slate-800 p-2.5 rounded-xl">
-                    <span className="text-slate-400 block text-[10px]">إجمالي التكلفة</span>
-                    <span className="font-bold text-white text-sm">{activeModalPlace.totalAmount || 300} ج.م</span>
-                  </div>
-                  <div className="bg-slate-800 p-2.5 rounded-xl">
-                    <span className="text-emerald-400 block text-[10px]">المدفوع</span>
-                    <span className="font-bold text-emerald-400 text-sm">{activeModalPlace.paidAmount ?? 300} ج.م</span>
-                  </div>
-                  <div className="bg-slate-800 p-2.5 rounded-xl">
-                    <span className="text-amber-400 block text-[10px]">المتبقي</span>
-                    <span className="font-bold text-amber-400 text-sm">{activeModalPlace.remainingAmount ?? 0} ج.م</span>
-                  </div>
+                <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 p-2 shadow-inner flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={generateInvoiceImageDataUrl(showPrintedInvoiceModalPlace)}
+                    alt="Official Invoice Paper"
+                    className="max-h-[65vh] w-auto object-contain rounded-lg shadow-xl border border-slate-800"
+                  />
                 </div>
 
-                <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 space-y-2">
-                  <span className="text-xs font-bold text-indigo-300 block flex items-center gap-1">
-                    <Edit3 className="w-4 h-4 text-indigo-400" /> تغيير وتحديث حالة سداد الفاتورة:
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     <button
                       type="button"
-                      onClick={() => handleUpdatePaymentStatus(activeModalPlace.id, 'مدفوعة بالكامل', activeModalPlace.totalAmount || 300)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
-                        activeModalPlace.paymentStatus === 'مدفوعة بالكامل'
-                          ? 'bg-emerald-600 text-white border-emerald-400'
-                          : 'bg-slate-900 hover:bg-slate-800 text-emerald-400 border-slate-700'
-                      }`}
+                      onClick={() => sendWhatsAppInvoiceWithImage(showPrintedInvoiceModalPlace, showToast)}
+                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30 transition-all"
                     >
-                      تم الدفع بالكامل
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleUpdatePaymentStatus(activeModalPlace.id, 'غير مدفوعة (مؤجلة)', 0)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
-                        activeModalPlace.paymentStatus === 'غير مدفوعة (مؤجلة)'
-                          ? 'bg-amber-600 text-white border-amber-400'
-                          : 'bg-slate-900 hover:bg-slate-800 text-amber-400 border-slate-700'
-                      }`}
-                    >
-                      غير مدفوعة (مؤجلة)
+                      <Send className="w-4 h-4" /> إرسال الفاتورة عبر واتساب
                     </button>
 
                     <button
                       type="button"
                       onClick={() => {
-                        const val = prompt('أدخل المبلغ المقدم/العربون الذي دفعه العميل (ج.م):', activeModalPlace.paidAmount.toString());
-                        if (val !== null) {
-                          const num = parseFloat(val) || 100;
-                          handleUpdatePaymentStatus(activeModalPlace.id, 'دفع جزء من المبلغ (عربون)', num);
+                        const imgUrl = generateInvoiceImageDataUrl(showPrintedInvoiceModalPlace);
+                        const fn = `${showPrintedInvoiceModalPlace.businessName}_فاتورة_مطبوعة_رسمية.png`;
+                        downloadImageFile(imgUrl, fn);
+                        showToast('تم تنزيل صورة الفاتورة المطبوعة بنجاح!');
+                      }}
+                      className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+                    >
+                      <Download className="w-4 h-4" /> تنزيل الفاتورة كصورة (PNG)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const imgUrl = generateInvoiceImageDataUrl(showPrintedInvoiceModalPlace);
+                        const win = window.open('');
+                        if (win) {
+                          win.document.write(`<html dir="rtl"><head><title>فاتورة رسمية - ${showPrintedInvoiceModalPlace.businessName}</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;"><img src="${imgUrl}" style="max-width:100%;height:auto;" onload="window.print();window.close();"/></body></html>`);
+                          win.document.close();
                         }
                       }}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
-                        activeModalPlace.paymentStatus === 'دفع جزء من المبلغ (عربون)'
-                          ? 'bg-indigo-600 text-white border-indigo-400'
-                          : 'bg-slate-900 hover:bg-slate-800 text-indigo-300 border-slate-700'
-                      }`}
+                      className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
                     >
-                      دفع جزء (عربون)
+                      <Printer className="w-4 h-4" /> طباعة (PDF)
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintedInvoiceModalPlace(null)}
+                    className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-6 py-3 rounded-xl cursor-pointer border border-slate-700"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {activeModalPlace && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+              onClick={() => setActiveModalPlace(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start gap-4 border-b border-slate-800 pb-4">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold px-2.5 py-1 rounded-lg">
+                        {activeModalPlace.category}
+                      </span>
+                      <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold px-2.5 py-1 rounded-lg">
+                        {activeModalPlace.subCategory === 'أخرى (إدخال مخصص)' && activeModalPlace.customCategory
+                          ? activeModalPlace.customCategory
+                          : activeModalPlace.subCategory || activeModalPlace.category}
+                      </span>
+                    </div>
+                    <h3 className="text-2xl font-extrabold text-white mt-2">{activeModalPlace.businessName}</h3>
+                    {activeModalPlace.nameEn && <p className="text-xs text-slate-400 font-mono dir-ltr text-right">{activeModalPlace.nameEn}</p>}
+                  </div>
+                  <button
+                    onClick={() => setActiveModalPlace(null)}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-2 rounded-xl cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="bg-slate-950 text-white p-5 rounded-2xl space-y-4 shadow-md border border-slate-800">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                      <Receipt className="w-4 h-4 text-emerald-400" /> الفاتورة والحساب المالي للخدمة
+                    </span>
+                    <span className="text-xs font-bold text-emerald-400">رقم: INV-{activeModalPlace.id.slice(-6)}</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                    <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                      <span className="text-slate-400 block text-[10px]">إجمالي التكلفة</span>
+                      <span className="font-bold text-white text-sm">{activeModalPlace.totalAmount || 300} ج.م</span>
+                    </div>
+                    <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                      <span className="text-emerald-400 block text-[10px]">المدفوع</span>
+                      <span className="font-bold text-emerald-400 text-sm">{activeModalPlace.paidAmount ?? 300} ج.م</span>
+                    </div>
+                    <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                      <span className="text-amber-400 block text-[10px]">المتبقي</span>
+                      <span className="font-bold text-amber-400 text-sm">{activeModalPlace.remainingAmount ?? 0} ج.م</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <span className="text-xs font-bold text-indigo-300 block flex items-center gap-1">
+                      <Edit3 className="w-4 h-4 text-indigo-400" /> تغيير وتحديث حالة سداد الفاتورة:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdatePaymentStatus(activeModalPlace.id, 'مدفوعة بالكامل', activeModalPlace.totalAmount || 300)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
+                          activeModalPlace.paymentStatus === 'مدفوعة بالكامل'
+                            ? 'bg-emerald-600 text-white border-emerald-400'
+                            : 'bg-slate-950 hover:bg-slate-800 text-emerald-400 border-slate-800'
+                        }`}
+                      >
+                        تم الدفع بالكامل
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleUpdatePaymentStatus(activeModalPlace.id, 'غير مدفوعة (مؤجلة)', 0)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
+                          activeModalPlace.paymentStatus === 'غير مدفوعة (مؤجلة)'
+                            ? 'bg-amber-600 text-white border-amber-400'
+                            : 'bg-slate-950 hover:bg-slate-800 text-amber-400 border-slate-800'
+                        }`}
+                      >
+                        غير مدفوعة (مؤجلة)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = prompt('أدخل المبلغ المقدم/العربون الذي دفعه العميل (ج.م):', activeModalPlace.paidAmount.toString());
+                          if (val !== null) {
+                            const num = parseFloat(val) || 100;
+                            handleUpdatePaymentStatus(activeModalPlace.id, 'دفع جزء من المبلغ (عربون)', num);
+                          }
+                        }}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
+                          activeModalPlace.paymentStatus === 'دفع جزء من المبلغ (عربون)'
+                            ? 'bg-indigo-600 text-white border-indigo-400'
+                            : 'bg-slate-950 hover:bg-slate-800 text-indigo-300 border-slate-800'
+                        }`}
+                      >
+                        دفع جزء (عربون)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => sendWhatsAppInvoiceWithImage(activeModalPlace, showToast)}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30 transition-all"
+                    >
+                      <Send className="w-4 h-4" /> إرسال الفاتورة عبر واتساب
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPrintedInvoiceModalPlace(activeModalPlace)}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+                    >
+                      <FileText className="w-4 h-4" /> معاينة 📄
                     </button>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-bold text-slate-300 block">الموقع على الخريطة التفاعلية:</span>
+                  <InteractiveMap
+                    lat={parseFloat(activeModalPlace.latitude) || 30.0444}
+                    lng={parseFloat(activeModalPlace.longitude) || 31.2357}
+                    interactive={false}
+                    heightClass="h-56"
+                    popupTitle={activeModalPlace.businessName}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-slate-400">صورة الواجهة</span>
+                      {activeModalPlace.facadeImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fn = getCleanFileName(activeModalPlace.businessName, activeModalPlace.city, 'واجهة');
+                            downloadImageFile(activeModalPlace.facadeImage, fn);
+                            showToast(`تم تنزيل صورة الواجهة باسم "${fn}"!`);
+                          }}
+                          className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" /> تنزيل الصورة
+                        </button>
+                      )}
+                    </div>
+                    <div className="rounded-2xl overflow-hidden border border-slate-800 aspect-video bg-slate-950">
+                      {activeModalPlace.facadeImage ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={activeModalPlace.facadeImage} alt="Facade" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">لا تتوفر صورة</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-slate-400">صورة من الداخل</span>
+                      {activeModalPlace.internalImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fn = getCleanFileName(activeModalPlace.businessName, activeModalPlace.city, 'داخلية');
+                            downloadImageFile(activeModalPlace.internalImage!, fn);
+                            showToast(`تم تنزيل الصورة الداخلية باسم "${fn}"!`);
+                          }}
+                          className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" /> تنزيل الصورة
+                        </button>
+                      )}
+                    </div>
+                    <div className="rounded-2xl overflow-hidden border border-slate-800 aspect-video bg-slate-950">
+                      {activeModalPlace.internalImage ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={activeModalPlace.internalImage} alt="Internal" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">لا تتوفر صورة داخلية</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-indigo-950 border border-indigo-800 text-white p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-lg">
+                  <div>
+                    <span className="text-xs text-indigo-300 font-bold block">تنزيل حزمة هذا المكان بالكامل (ملف ZIP مضغوط):</span>
+                    <p className="text-[11px] text-slate-400 mt-0.5">يحتوي الملف على الفاتورة المطبوعة، ملحق JSON، وصور المكان</p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => sendWhatsAppInvoiceWithImage(activeModalPlace, showToast)}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30 transition-all"
+                    onClick={() => handleDownloadZipForPlace(activeModalPlace)}
+                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all shrink-0"
                   >
-                    <Send className="w-4 h-4" /> إرسال الفاتورة عبر واتساب
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPrintedInvoiceModalPlace(activeModalPlace)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
-                  >
-                    <FileText className="w-4 h-4" /> معاينة 📄
+                    <HardDrive className="w-4 h-4" /> تنزيل حزمة ZIP
                   </button>
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="text-xs font-bold text-slate-600 block">الموقع على الخريطة التفاعلية:</span>
-                <InteractiveMap
-                  lat={parseFloat(activeModalPlace.latitude) || 30.0444}
-                  lng={parseFloat(activeModalPlace.longitude) || 31.2357}
-                  interactive={false}
-                  heightClass="h-56"
-                  popupTitle={activeModalPlace.businessName}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-500">صورة الواجهة</span>
-                    {activeModalPlace.facadeImage && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const fn = getCleanFileName(activeModalPlace.businessName, activeModalPlace.city, 'واجهة');
-                          downloadImageFile(activeModalPlace.facadeImage, fn);
-                          showToast(`تم تنزيل صورة الواجهة باسم "${fn}"!`);
-                        }}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
-                      >
-                        <Download className="w-3.5 h-3.5" /> تنزيل الصورة منفردة
-                      </button>
-                    )}
-                  </div>
-                  <div className="rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-100">
-                    {activeModalPlace.facadeImage ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={activeModalPlace.facadeImage} alt="Facade" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">لا تتوفر صورة</div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-500">صورة من الداخل</span>
-                    {activeModalPlace.internalImage && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const fn = getCleanFileName(activeModalPlace.businessName, activeModalPlace.city, 'داخلية');
-                          downloadImageFile(activeModalPlace.internalImage!, fn);
-                          showToast(`تم تنزيل الصورة الداخلية باسم "${fn}"!`);
-                        }}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
-                      >
-                        <Download className="w-3.5 h-3.5" /> تنزيل الصورة منفردة
-                      </button>
-                    )}
-                  </div>
-                  <div className="rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-100">
-                    {activeModalPlace.internalImage ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={activeModalPlace.internalImage} alt="Internal" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">لا تتوفر صورة داخلية</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-indigo-900 text-white p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-lg">
-                <div>
-                  <span className="text-xs text-indigo-200 font-bold block">تنزيل حزمة هذا المكان بالكامل (ملف ZIP مضغوط):</span>
-                  <p className="text-[11px] text-slate-300 mt-0.5">يحتوي الملف على الفاتورة المطبوعة، ملف المعلومات، ملحق JSON، وصور المكان</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDownloadZipForPlace(activeModalPlace)}
-                  className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all shrink-0"
-                >
-                  <Archive className="w-4 h-4" /> تنزيل حزمة ZIP للمكان
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                  <span className="text-slate-400 font-bold block">العنوان والتفاصيل:</span>
-                  <p className="font-bold text-slate-800">{activeModalPlace.city} - {activeModalPlace.neighborhood}</p>
-                  <p className="text-slate-600">{activeModalPlace.street}</p>
-                  {activeModalPlace.landmark && <p className="text-indigo-600 font-medium">علامة: {activeModalPlace.landmark}</p>}
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                  <span className="text-slate-400 font-bold block">التواصل والمالك:</span>
-                  <p className="font-bold text-slate-800 flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5 text-indigo-600" /> {activeModalPlace.phone}
-                  </p>
-                  {activeModalPlace.whatsapp && (
-                    <p className="text-emerald-700 font-semibold flex items-center gap-1">
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> واتساب: {activeModalPlace.whatsapp}
-                    </p>
-                  )}
-                  <p className="text-slate-600 flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5 text-indigo-600" /> {activeModalPlace.googleEmail}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-indigo-50/50 p-4 rounded-xl flex justify-between items-center text-xs">
-                <div>
-                  <span className="text-slate-500 font-bold block">ساعات العمل:</span>
-                  <span className="font-extrabold text-slate-800">{activeModalPlace.workFrom} إلى {activeModalPlace.workTo}</span>
-                </div>
-                <div className="text-left">
-                  <span className="text-slate-500 font-bold block">الموثق الميداني:</span>
-                  <span className="font-extrabold text-indigo-700">{activeModalPlace.documenterName || 'مكتب دليلك للخدمات الرقمية'}</span>
-                </div>
-              </div>
-
-              {activeModalPlace.notes && (
-                <div className="bg-amber-50 border border-amber-100 p-3.5 rounded-xl text-xs text-amber-900">
-                  <strong className="block mb-0.5">ملاحظات التوثيق:</strong>
-                  {activeModalPlace.notes}
-                </div>
-              )}
-
-              <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-3">
-                <span className="text-xs text-slate-400 font-bold block">الإحداثيات الدقيقة (DMS):</span>
-                <p className="text-sm font-mono text-emerald-400 font-bold dir-ltr text-right">{activeModalPlace.dms}</p>
-                <div className="flex gap-2 pt-2">
-                  <button
-                    onClick={() => copyToClipboard(activeModalPlace.dms, activeModalPlace.id)}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5"
-                  >
-                    <Copy className="w-4 h-4" /> نسخ الإحداثيات
-                  </button>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeModalPlace.dms)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5"
-                  >
-                    <ExternalLink className="w-4 h-4" /> فتح في خرائط جوجل
-                  </a>
-                </div>
-              </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {showStorageExplainModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
-            onClick={() => setShowStorageExplainModal(false)}
-          >
+        <AnimatePresence>
+          {showStorageExplainModal && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-xl w-full p-6 sm:p-8 space-y-5"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+              onClick={() => setShowStorageExplainModal(false)}
             >
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2 text-indigo-900">
-                  <Receipt className="w-6 h-6 text-indigo-600" />
-                  <h3 className="text-lg font-extrabold">نظام الفواتير الميدانية وحزم ZIP</h3>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl max-w-xl w-full p-6 sm:p-8 space-y-5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2 text-white">
+                    <Receipt className="w-6 h-6 text-indigo-400" />
+                    <h3 className="text-lg font-extrabold">نظام الفواتير الميدانية وحزم ZIP</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowStorageExplainModal(false)}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-2 rounded-xl cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
+
+                <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+                  <div className="bg-emerald-950/80 border border-emerald-800 p-4 rounded-2xl space-y-1.5">
+                    <h4 className="font-bold text-emerald-300 flex items-center gap-1.5">
+                      <Send className="w-4 h-4 text-emerald-400" /> 1. إرسال الفاتورة الموثقة عبر الواتساب
+                    </h4>
+                    <p className="text-slate-300">
+                      تفتح محادثة الواتساب فوراً للرقم المسجل للعميل مع تنزيل ونسخ صورة الفاتورة المطبوعة ولصق النص بضغطة زر.
+                    </p>
+                  </div>
+
+                  <div className="bg-indigo-950/80 border border-indigo-800 p-4 rounded-2xl space-y-1.5">
+                    <h4 className="font-bold text-indigo-300 flex items-center gap-1.5">
+                      <Receipt className="w-4 h-4 text-indigo-400" /> 2. اختيار حالة السداد أثناء الإدخال
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-slate-300 mt-2 font-medium">
+                      <li><strong>سيدفع الآن بالكامل:</strong> (300 ج.م) تم الدفع مقدماً.</li>
+                      <li><strong>سيدفع لاحقاً بعد الظهور:</strong> (0 مدفوع / 300 متبقي) مؤجلة لحين تفعيل الظهور على الخريطة.</li>
+                      <li><strong>دفع عربون مقدماً:</strong> تسجيل المبلغ المقدم وحساب المتبقي تلقائياً.</li>
+                    </ul>
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setShowStorageExplainModal(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-xl cursor-pointer"
+                  className="w-full bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer border border-slate-800 shadow-md"
                 >
-                  <X className="w-5 h-5" />
+                  فهمت ذلك، إغلاق
                 </button>
-              </div>
-
-              <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl space-y-1.5">
-                  <h4 className="font-bold text-emerald-900 flex items-center gap-1.5">
-                    <Send className="w-4 h-4 text-emerald-600" /> 1. إرسال الفاتورة الموثقة عبر الواتساب
-                  </h4>
-                  <p className="text-emerald-800">
-                    تفتح محادثة الواتساب فوراً للرقم المسجل للعميل مع تنزيل ونسخ صورة الفاتورة المطبوعة ولصق النص بضغطة زر.
-                  </p>
-                </div>
-
-                <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl space-y-1.5">
-                  <h4 className="font-bold text-indigo-900 flex items-center gap-1.5">
-                    <Receipt className="w-4 h-4 text-indigo-600" /> 2. اختيار حالة السداد أثناء الإدخال
-                  </h4>
-                  <ul className="list-disc list-inside space-y-1 text-slate-700 mt-2 font-medium">
-                    <li><strong>سيدفع الآن بالكامل:</strong> (300 ج.م) تم الدفع مقدماً.</li>
-                    <li><strong>سيدفع لاحقاً بعد الظهور:</strong> (0 مدفوع / 300 متبقي) مؤجلة لحين تفعيل الظهور على الخريطة.</li>
-                    <li><strong>دفع عربون مقدماً:</strong> تسجيل المبلغ المقدم وحساب المتبقي تلقائياً.</li>
-                  </ul>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowStorageExplainModal(false)}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer shadow-md"
-              >
-                فهمت ذلك، إغلاق
-              </button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {formImagePreview && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
-            onClick={() => setFormImagePreview(null)}
-          >
+        <AnimatePresence>
+          {formImagePreview && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-3xl w-full p-6 space-y-4"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+              onClick={() => setFormImagePreview(null)}
             >
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-indigo-600" />
-                  <h3 className="text-lg font-bold text-slate-800">{formImagePreview.title}</h3>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl max-w-3xl w-full p-6 space-y-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-indigo-400" />
+                    <h3 className="text-lg font-bold text-white">{formImagePreview.title}</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormImagePreview(null)}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-2 rounded-xl cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setFormImagePreview(null)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-xl cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 max-h-[70vh] flex items-center justify-center p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={formImagePreview.url}
-                  alt={formImagePreview.title}
-                  className="max-h-[65vh] w-auto object-contain rounded-lg shadow-md"
-                />
-              </div>
+                <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-[70vh] flex items-center justify-center p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={formImagePreview.url}
+                    alt={formImagePreview.title}
+                    className="max-h-[65vh] w-auto object-contain rounded-lg shadow-md"
+                  />
+                </div>
 
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
-                <span className="text-xs font-semibold text-slate-500">
-                  معاينة الصورة المرفوعة قبل إتمام التوثيق والحفظ سحابياً وعلى جهازك
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFormImagePreview(null)}
-                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition-all cursor-pointer"
-                >
-                  إغلاق المعاينة
-                </button>
-              </div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
+                  <span className="text-xs font-semibold text-slate-400">
+                    معاينة الصورة المرفوعة قبل إتمام التوثيق والحفظ سحابياً وعلى جهازك
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFormImagePreview(null)}
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition-all cursor-pointer"
+                  >
+                    إغلاق المعاينة
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
+      </div>
     </div>
   );
 }
