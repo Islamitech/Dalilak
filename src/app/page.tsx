@@ -398,17 +398,17 @@ if (typeof window !== 'undefined') {
   CACHED_STAMP_TEXT_SVG = new Image();
   const svgTextMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
     <defs>
-      <path id="topArc" d="M 40 150 A 110 110 0 0 1 260 150" fill="none"/>
-      <path id="bottomArc" d="M 260 150 A 110 110 0 0 1 40 150" fill="none"/>
+      <path id="topArc" d="M 30 150 A 120 120 0 0 1 270 150" fill="none"/>
+      <path id="bottomArc" d="M 270 160 A 120 120 0 0 1 30 160" fill="none"/>
     </defs>
-    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="22" fill="%230d47a1">
       <textPath href="%23topArc" startOffset="50%" text-anchor="middle">دليلك للخدمات الرقمية</textPath>
     </text>
-    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
-      <textPath href="%23bottomArc" startOffset="50%" text-anchor="middle">توثيق إلكتروني</textPath>
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="22" fill="%230d47a1">
+      <textPath href="%23bottomArc" startOffset="50%" text-anchor="middle">توثيق الكتروني</textPath>
     </text>
-    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="32" y="156" text-anchor="middle">✴</text>
-    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="268" y="156" text-anchor="middle">✴</text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="20" fill="%230d47a1" x="25" y="158" text-anchor="middle">✴</text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="20" fill="%230d47a1" x="275" y="158" text-anchor="middle">✴</text>
   </svg>`;
   CACHED_STAMP_TEXT_SVG.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTextMarkup);
 }
@@ -504,25 +504,12 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = COL.headerAccent;
   ctx.fillRect(20, 138, W - 40, 4);
 
-  // Company Logo in Header (Top Left Corner - Squircle Emerald Card)
+  // Company Logo in Header (Top Left Corner - Direct, no background)
   const logoImg = CACHED_LOGO_IMG || new Image();
   if (!logoImg.src) logoImg.src = LOGO_BASE64_DATA_URL;
 
-  // Squircle Container for Logo in top-left
-  ctx.fillStyle = '#0f172a';
-  roundRect(35, 30, 85, 85, 18);
-  ctx.fill();
-  ctx.strokeStyle = COL.headerAccent;
-  ctx.lineWidth = 2.5;
-  roundRect(35, 30, 85, 85, 18);
-  ctx.stroke();
-
   if (logoImg.complete && logoImg.width > 0) {
-    ctx.save();
-    roundRect(40, 35, 75, 75, 14);
-    ctx.clip();
-    ctx.drawImage(logoImg, 40, 35, 75, 75);
-    ctx.restore();
+    ctx.drawImage(logoImg, 28, 25, 105, 105);
   }
 
   // Company Name & Info (RTL - Right Side)
@@ -542,13 +529,13 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.direction = 'ltr';
   ctx.fillStyle = COL.headerAccent;
   ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
-  ctx.fillText('INVOICE', 135, 60);
+  ctx.fillText('INVOICE', 145, 55);
   ctx.fillStyle = COL.white;
   ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
-  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 135, 82);
+  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 145, 77);
   ctx.font = '10px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.lightMuted;
-  ctx.fillText(place.date + '  |  ' + place.time, 135, 100);
+  ctx.fillText(place.date + '  |  ' + place.time, 145, 97);
 
   // ============================================================
   // 3. INVOICE TITLE BAR
@@ -861,7 +848,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
     ctx.direction = 'rtl';
     ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
     ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -52);
-    ctx.fillText('★ توثيق إلكتروني معتمد ★', 0, 56);
+    ctx.fillText('★ توثيق الكتروني ★', 0, 56);
     ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
     ctx.fillText('✴', -55, 2);
     ctx.fillText('✴', 55, 2);
