@@ -771,7 +771,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = COL.lightMuted;
   ctx.fillText('التوقيع', W - 50, stampAreaY + 92);
 
-  // --- CENTER: OFFICIAL FILLED BLUE RUBBER STAMP (EXACT MATCH TO REFERENCE PHOTO) ---
+  // --- CENTER: OFFICIAL CIRCULAR STAMP (EXACT MATCH TO REFERENCE PHOTO) ---
   const stX = W / 2 - 30;
   const stY = stampAreaY + 55;
 
@@ -783,7 +783,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
 
   // Outer double circular rings
   ctx.strokeStyle = stampBlue;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 3.5;
   ctx.beginPath();
   ctx.arc(0, 0, 72, 0, Math.PI * 2);
   ctx.stroke();
@@ -827,21 +827,39 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
     ctx.fillText('دليلك', 0, 5);
   }
 
-  // --- Top Text in Circular Ring Band (Clean Connected Arabic) ---
-  ctx.fillStyle = stampBlue;
-  ctx.textAlign = 'center';
-  ctx.direction = 'rtl';
-  ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
-  ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -52);
+  // Draw SVG Curved Text Overlay (Native SVG textPath for 100% smooth curved Arabic text)
+  const stampTextSvg = new Image();
+  const svgTextMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+    <defs>
+      <path id="topArc" d="M 40 150 A 110 110 0 0 1 260 150" fill="none"/>
+      <path id="bottomArc" d="M 260 150 A 110 110 0 0 1 40 150" fill="none"/>
+    </defs>
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
+      <textPath href="%23topArc" startOffset="50%" text-anchor="middle">دليلك للخدمات الرقمية</textPath>
+    </text>
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
+      <textPath href="%23bottomArc" startOffset="50%" text-anchor="middle">توثيق إلكتروني</textPath>
+    </text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="32" y="156" text-anchor="middle">✴</text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="268" y="156" text-anchor="middle">✴</text>
+  </svg>`;
+  stampTextSvg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTextMarkup);
 
-  // --- Bottom Text in Circular Ring Band (Clean Connected Arabic) ---
-  ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
-  ctx.fillText('★ توثيق إلكتروني معتمد ★', 0, 56);
+  if (stampTextSvg.complete && stampTextSvg.width > 0) {
+    ctx.drawImage(stampTextSvg, -75, -75, 150, 150);
+  } else {
+    // Fallback: Clean connected Arabic text
+    ctx.fillStyle = stampBlue;
+    ctx.textAlign = 'center';
+    ctx.direction = 'rtl';
+    ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
+    ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -52);
+    ctx.fillText('★ توثيق إلكتروني معتمد ★', 0, 56);
+    ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
+    ctx.fillText('✴', -55, 2);
+    ctx.fillText('✴', 55, 2);
+  }
 
-  // --- Left and Right Decorative Side Stars ---
-  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
-  ctx.fillText('✴', -55, 2);
-  ctx.fillText('✴', 55, 2);
   ctx.restore();
 
   ctx.restore();
