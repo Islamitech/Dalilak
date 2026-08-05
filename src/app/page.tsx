@@ -15,7 +15,7 @@ import {
   Search, Filter, Eye, X, ShieldCheck, Layers, Check,
   User, MessageSquare, Share2, Download, FileSpreadsheet, HardDrive, Tag,
   Receipt, Send, DollarSign, Edit3, Printer, FileText, LogIn, LogOut, Shield,
-  Sparkles, Camera, QrCode, Globe, Bot, TrendingUp, Megaphone, Star, Scale, FileCode, CheckSquare
+  Sparkles, Camera, QrCode, Globe, Bot, TrendingUp, Megaphone, Star, Scale, FileCode, CheckSquare, Plus, Images
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
@@ -51,6 +51,7 @@ export interface PlaceItem {
   holidays: string[];
   facadeImage: string;
   internalImage?: string;
+  additionalImages?: string[];
   documenterName?: string;
   notes?: string;
   date: string;
@@ -195,6 +196,7 @@ const formSchema = z.object({
   holidays: z.array(z.string()),
   facadeImage: z.string().min(1, 'صورة واجهة المحل مع اليافطة إلزامية'),
   internalImage: z.string().optional(),
+  additionalImages: z.array(z.string()).optional(),
   documenterName: z.string().optional(),
   notes: z.string().optional(),
   totalAmount: z.number().default(300),
@@ -330,7 +332,7 @@ function downloadImageFile(dataUrl: string, filename: string) {
   document.body.removeChild(link);
 }
 
-function getCleanFileName(placeName: string, city: string, type: 'واجهة' | 'داخلية'): string {
+function getCleanFileName(placeName: string, city: string, type: string): string {
   const cleanPlace = (placeName || 'مكان').replace(/[^a-zA-Z0-9\u0600-\u06FF _-]/g, '_');
   const cleanCity = (city || '').replace(/[^a-zA-Z0-9\u0600-\u06FF _-]/g, '_');
   return `${cleanPlace}_${cleanCity ? cleanCity + '_' : ''}صورة_${type}.jpg`;
@@ -422,7 +424,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
 
   ctx.font = '12px Tahoma, Arial, sans-serif';
   ctx.fillStyle = '#64748b';
-  ctx.fillText('تشمل المعاينة الميدانية، التقاط الصور، تسجيل الإحداثيات، وإصدار التتقرير الرقمي', 740, 562);
+  ctx.fillText('تشمل المعاينة الميدانية، التقاط الصور، تسجيل الإحداثيات، وإصدار التقرير الرقمي', 740, 562);
 
   ctx.textAlign = 'left';
   ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
@@ -629,6 +631,12 @@ async function downloadSinglePlaceZip(place: PlaceItem) {
   if (place.facadeImage) addB64(place.facadeImage, 'صورة_الواجهة_واليافطة.jpg');
   if (place.internalImage) addB64(place.internalImage, 'صورة_داخلية_للمكان.jpg');
 
+  if (place.additionalImages && place.additionalImages.length > 0) {
+    place.additionalImages.forEach((img, idx) => {
+      addB64(img, `صورة_إضافية_${idx + 1}.jpg`);
+    });
+  }
+
   const content = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(content);
   const link = document.createElement('a');
@@ -666,6 +674,11 @@ async function downloadMasterZip(places: PlaceItem[]) {
     if (invoiceDataUrl) addB64(invoiceDataUrl, 'الفاتورة_الرسمية_المطبوعة.png');
     if (place.facadeImage) addB64(place.facadeImage, 'صورة_الواجهة.jpg');
     if (place.internalImage) addB64(place.internalImage, 'صورة_داخلية.jpg');
+    if (place.additionalImages && place.additionalImages.length > 0) {
+      place.additionalImages.forEach((img, idx) => {
+        addB64(img, `صورة_إضافية_${idx + 1}.jpg`);
+      });
+    }
   });
 
   const content = await masterZip.generateAsync({ type: 'blob' });
@@ -797,6 +810,8 @@ export default function Home() {
 
   const [compressingFacade, setCompressingFacade] = useState(false);
   const [compressingInternal, setCompressingInternal] = useState(false);
+  const [compressingAdditional, setCompressingAdditional] = useState(false);
+
   const [formImagePreview, setFormImagePreview] = useState<{ url: string; title: string } | null>(null);
 
   const [reverseGeocodingLoading, setReverseGeocodingLoading] = useState(false);
@@ -843,6 +858,7 @@ export default function Home() {
       holidays: [],
       facadeImage: '',
       internalImage: '',
+      additionalImages: [],
       documenterName: '',
       notes: '',
       totalAmount: 300,
@@ -855,6 +871,8 @@ export default function Home() {
   const selectedSubCategory = watch('subCategory');
   const facadePreview = watch('facadeImage');
   const internalPreview = watch('internalImage');
+  const additionalImagesPreview = watch('additionalImages') || [];
+
   const currentLat = watch('latitude');
   const currentLng = watch('longitude');
   const currentBusinessName = watch('businessName');
@@ -909,6 +927,7 @@ export default function Home() {
             holidays: p.holidays || [],
             facadeImage: p.facade_image,
             internalImage: p.internal_image,
+            additionalImages: p.additional_images || [],
             documenterName: p.documenter_name,
             notes: p.notes,
             date: p.date,
@@ -1144,33 +1163,32 @@ export default function Home() {
     }
   };
 
-  const handleDemoFill = () => {
-    setValue('businessName', 'أسماك العمدة المأكولات البحرية', { shouldValidate: true });
-    setValue('nameEn', 'El Omda Seafood Restaurant', { shouldValidate: true });
-    setValue('status', 'مفتوح (شغال)', { shouldValidate: true });
-    setValue('category', 'مطاعم ومأكولات', { shouldValidate: true });
-    setValue('subCategory', 'مطعم أسماك ومأكولات بحرية', { shouldValidate: true });
-    setValue('latitude', '30.044420', { shouldValidate: true });
-    setValue('longitude', '31.235712', { shouldValidate: true });
-    setValue('city', 'القاهرة', { shouldValidate: true });
-    setValue('neighborhood', 'وسط البلد', { shouldValidate: true });
-    setValue('street', 'شارع طلعت حرب', { shouldValidate: true });
-    setValue('landmark', 'بجوار سينما ميامي', { shouldValidate: true });
-    setValue('phone', '01012345678', { shouldValidate: true });
-    setValue('whatsapp', '01012345678', { shouldValidate: true });
-    setValue('googleEmail', 'elomda.seafood@gmail.com', { shouldValidate: true });
-    setValue('workFrom', '10:00', { shouldValidate: true });
-    setValue('workTo', '01:00', { shouldValidate: true });
-    setValue('holidays', [], { shouldValidate: true });
-    setValue('documenterName', loggedInUser?.full_name || 'مكتب دليلك للخدمات الرقمية', { shouldValidate: true });
-    setValue('notes', 'مطعم بحري شهير وموثق ميدانياً مع إمكانية التوصيل.', { shouldValidate: true });
-    setValue('totalAmount', 300, { shouldValidate: true });
-    setValue('paidAmount', 0, { shouldValidate: true });
-    setValue('paymentStatus', 'غير مدفوعة (مؤجلة)', { shouldValidate: true });
+  const handleAdditionalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const demoImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    setValue('facadeImage', demoImage, { shouldValidate: true });
-    showToast('تم تعبئة النموذج ببيانات تجريبية رسمية!');
+    setCompressingAdditional(true);
+    try {
+      const newImgs: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const compressed = await compressImage(files[i], 1000, 1000, 0.75);
+        newImgs.push(compressed);
+      }
+      const existing = watch('additionalImages') || [];
+      setValue('additionalImages', [...existing, ...newImgs]);
+      showToast(`تم إضافة ${newImgs.length} صورة إضافية بنجاح!`);
+    } catch {
+      showToast('حدث خطأ أثناء معالجة الصور الإضافية.');
+    } finally {
+      setCompressingAdditional(false);
+    }
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    const existing = watch('additionalImages') || [];
+    const updated = existing.filter((_, idx) => idx !== index);
+    setValue('additionalImages', updated);
+    showToast('تم إزالة الصورة الإضافية.');
   };
 
   const goNext = async () => {
@@ -1200,6 +1218,7 @@ export default function Home() {
     const place: PlaceItem = {
       id: Date.now().toString(),
       ...data,
+      additionalImages: data.additionalImages || [],
       documenterName: docName,
       totalAmount: total,
       paidAmount: paid,
@@ -1234,6 +1253,7 @@ export default function Home() {
           holidays: place.holidays,
           facade_image: place.facadeImage,
           internal_image: place.internalImage,
+          additional_images: place.additionalImages,
           documenter_name: place.documenterName,
           notes: place.notes,
           date: place.date,
@@ -1599,7 +1619,7 @@ export default function Home() {
   }
 
   // =========================================================================
-  // IF USER IS LOGGED IN: SHOW FIELD DOCUMENTATION FORM AND APP (DARK SLATE HARMONIZED)
+  // IF USER IS LOGGED IN: SHOW FIELD DOCUMENTATION FORM AND APP
   // =========================================================================
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 dir-rtl font-sans">
@@ -1619,7 +1639,7 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {/* Global Navigation Header - Identical to Admin Header */}
+        {/* Global Navigation Header - Official Production Version */}
         <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
@@ -1654,14 +1674,6 @@ export default function Home() {
               className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
             >
               <HardDrive className="w-4 h-4 text-indigo-400" /> تنظيم حزمة ZIP
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDemoFill}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer"
-            >
-              تعبئة تجريبية
             </button>
 
             <button
@@ -1827,19 +1839,21 @@ export default function Home() {
                       </motion.div>
                     )}
 
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    {/* SECTION: IMAGES UPLOAD (FACADE, INTERNAL & MULTIPLE ADDITIONAL) */}
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-5">
                       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                         <div>
                           <h3 className="text-sm font-bold text-white flex items-center gap-2">
                             <Upload className="w-4 h-4 text-indigo-400" />
-                            صور المنشأة واليافطة الميدانية
+                            صور المنشأة واليافطة الميدانية والصور الإضافية
                           </h3>
                           <p className="text-[11px] text-slate-400 mt-0.5">
-                            ارفع أو التقط صورة واجهة المحل مع اليافطة المعلقة لمعاينتها وتأكيد الهوية البصرية للمكان
+                            ارفع صورة واجهة المحل مع اليافطة المعلقة، والصورة الداخلية، ويمكنك رفع صور إضافية متعددة (قائمة أسعار، منتجات، شهادات)
                           </p>
                         </div>
                       </div>
 
+                      {/* Main 2 Images: Facade + Internal */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
@@ -1853,7 +1867,7 @@ export default function Home() {
                             )}
                           </div>
                           {!facadePreview ? (
-                            <div className={`relative min-h-[160px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-900 transition-all ${errors.facadeImage ? 'border-red-500 bg-red-950/20' : 'border-slate-800 bg-slate-950'}`}>
+                            <div className={`relative min-h-[150px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-900 transition-all ${errors.facadeImage ? 'border-red-500 bg-red-950/20' : 'border-slate-800 bg-slate-950'}`}>
                               {compressingFacade ? (
                                 <div className="flex flex-col items-center gap-2">
                                   <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
@@ -1911,7 +1925,7 @@ export default function Home() {
                             )}
                           </div>
                           {!internalPreview ? (
-                            <div className="relative min-h-[160px] border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-900 transition-all bg-slate-950">
+                            <div className="relative min-h-[150px] border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-slate-900 transition-all bg-slate-950">
                               {compressingInternal ? (
                                 <div className="flex flex-col items-center gap-2">
                                   <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
@@ -1958,6 +1972,65 @@ export default function Home() {
                           )}
                         </div>
                       </div>
+
+                      {/* Additional Images Section */}
+                      <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-xs font-bold text-indigo-400 flex items-center gap-1.5">
+                            <Images className="w-4 h-4 text-indigo-400" />
+                            إضافة المزيد من الصور للمكان (قائمة أسعار/منيو/شهادات/زوايا متعددة):
+                          </label>
+                          <span className="text-[11px] font-bold text-slate-400">
+                            عدد الصور الإضافية: {additionalImagesPreview.length}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {additionalImagesPreview.map((img, idx) => (
+                            <div key={idx} className="relative rounded-xl overflow-hidden border border-slate-800 aspect-video group bg-slate-900">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={img} alt={`Extra ${idx + 1}`} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setFormImagePreview({ url: img, title: `صورة إضافية رقم ${idx + 1}` })}
+                                  className="bg-indigo-600 hover:bg-indigo-500 text-white p-1.5 rounded-lg text-xs font-bold cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeAdditionalImage(idx)}
+                                  className="bg-red-600 hover:bg-red-500 text-white p-1.5 rounded-lg text-xs font-bold cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+
+                          <div className="relative min-h-[90px] border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-center p-3 cursor-pointer hover:bg-slate-900 transition-all bg-slate-950">
+                            {compressingAdditional ? (
+                              <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="w-6 h-6 text-indigo-400 mb-1" />
+                                <span className="text-[11px] font-bold text-indigo-400">إضافة صور أخرى</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  id="additional-images-upload"
+                                  onChange={handleAdditionalImageUpload}
+                                />
+                                <label htmlFor="additional-images-upload" className="absolute inset-0 cursor-pointer" />
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   </motion.div>
                 )}
@@ -2983,6 +3056,7 @@ export default function Home() {
           )}
         </AnimatePresence>
 
+        {/* PLACE DETAILS MODAL */}
         <AnimatePresence>
           {activeModalPlace && (
             <motion.div
@@ -3124,66 +3198,55 @@ export default function Home() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-slate-400">صورة الواجهة</span>
-                      {activeModalPlace.facadeImage && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const fn = getCleanFileName(activeModalPlace.businessName, activeModalPlace.city, 'واجهة');
-                            downloadImageFile(activeModalPlace.facadeImage, fn);
-                            showToast(`تم تنزيل صورة الواجهة باسم "${fn}"!`);
-                          }}
-                          className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                {/* Display Facade, Internal and Additional Images in Modal */}
+                <div className="space-y-3">
+                  <span className="text-xs font-bold text-slate-300 block">كافة الصور الموثقة للمكان:</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {activeModalPlace.facadeImage && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-slate-400 font-bold block">صورة الواجهة</span>
+                        <div
+                          onClick={() => setFormImagePreview({ url: activeModalPlace.facadeImage, title: 'صورة الواجهة' })}
+                          className="rounded-xl overflow-hidden border border-slate-800 aspect-video bg-slate-950 cursor-pointer hover:border-indigo-500 transition-all"
                         >
-                          <Download className="w-3.5 h-3.5" /> تنزيل الصورة
-                        </button>
-                      )}
-                    </div>
-                    <div className="rounded-2xl overflow-hidden border border-slate-800 aspect-video bg-slate-950">
-                      {activeModalPlace.facadeImage ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={activeModalPlace.facadeImage} alt="Facade" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">لا تتوفر صورة</div>
-                      )}
-                    </div>
-                  </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={activeModalPlace.facadeImage} alt="Facade" className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                    )}
 
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-slate-400">صورة من الداخل</span>
-                      {activeModalPlace.internalImage && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const fn = getCleanFileName(activeModalPlace.businessName, activeModalPlace.city, 'داخلية');
-                            downloadImageFile(activeModalPlace.internalImage!, fn);
-                            showToast(`تم تنزيل الصورة الداخلية باسم "${fn}"!`);
-                          }}
-                          className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                    {activeModalPlace.internalImage && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-slate-400 font-bold block">صورة من الداخل</span>
+                        <div
+                          onClick={() => setFormImagePreview({ url: activeModalPlace.internalImage!, title: 'صورة من الداخل' })}
+                          className="rounded-xl overflow-hidden border border-slate-800 aspect-video bg-slate-950 cursor-pointer hover:border-indigo-500 transition-all"
                         >
-                          <Download className="w-3.5 h-3.5" /> تنزيل الصورة
-                        </button>
-                      )}
-                    </div>
-                    <div className="rounded-2xl overflow-hidden border border-slate-800 aspect-video bg-slate-950">
-                      {activeModalPlace.internalImage ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={activeModalPlace.internalImage} alt="Internal" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">لا تتوفر صورة داخلية</div>
-                      )}
-                    </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={activeModalPlace.internalImage} alt="Internal" className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                    )}
+
+                    {activeModalPlace.additionalImages && activeModalPlace.additionalImages.map((img, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <span className="text-[10px] text-indigo-400 font-bold block">صورة إضافية ({idx + 1})</span>
+                        <div
+                          onClick={() => setFormImagePreview({ url: img, title: `صورة إضافية ${idx + 1}` })}
+                          className="rounded-xl overflow-hidden border border-slate-800 aspect-video bg-slate-950 cursor-pointer hover:border-indigo-500 transition-all"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img} alt={`Extra ${idx + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 <div className="bg-indigo-950 border border-indigo-800 text-white p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-lg">
                   <div>
                     <span className="text-xs text-indigo-300 font-bold block">تنزيل حزمة هذا المكان بالكامل (ملف ZIP مضغوط):</span>
-                    <p className="text-[11px] text-slate-400 mt-0.5">يحتوي الملف على الفاتورة المطبوعة، ملحق JSON، وصور المكان</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">يحتوي الملف على الفاتورة المطبوعة، ملحق JSON، وكافة صور المكان</p>
                   </div>
                   <button
                     type="button"

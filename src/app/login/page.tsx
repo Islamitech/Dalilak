@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Building2, User, Lock, ArrowLeft, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Building2, User, Lock, ArrowLeft, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
@@ -152,13 +152,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="bg-slate-950/80 border border-slate-800/80 p-4 rounded-2xl space-y-1.5 text-[11px] text-slate-400">
-          <div className="flex items-center gap-1.5 text-indigo-400 font-bold">
-            <ShieldCheck className="w-4 h-4" /> بيانات حساب المسؤول الرئيسي التجريبي:
-          </div>
-          <p className="font-mono text-slate-300">البريد: admin@daleelak.com</p>
-          <p className="font-mono text-slate-300">كلمة السر: admin123</p>
-        </div>
+
 
         <div className="text-center pt-2">
           <button

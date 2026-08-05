@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.places (
   holidays TEXT[] DEFAULT '{}',
   facade_image TEXT,
   internal_image TEXT,
+  additional_images TEXT[] DEFAULT '{}',
   documenter_id TEXT,
   documenter_name TEXT NOT NULL,
   notes TEXT,
