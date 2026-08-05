@@ -303,90 +303,119 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto space-y-8">
 
-        {/* Top Navigation Bar */}
-        <header className="bg-slate-900 border border-slate-800 py-2 px-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-[110px] h-[110px] flex items-center justify-center shrink-0">
-     {/* eslint-disable-next-line @next/next/no-img-element */}
-     <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(99,102,241,0.3)]" />
-   </div>
+        {/* Top Navigation Bar & Welcome Banner */}
+        <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 relative overflow-hidden">
+          <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center shrink-0 rounded-2xl bg-slate-950/60 p-1 border border-slate-800/80">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+            </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-white">لوحة تحكم المسؤول الرئيسي</h1>
-                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                  {currentUser ? currentUser.full_name : 'Admin System'}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base sm:text-xl font-bold text-white leading-tight">منظومة التوثيق - لوحة المسؤول</h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  {currentUser ? currentUser.full_name : 'الرئيسي'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                متابعة الموثقين الميدانيين وإصدار التقارير وإدارة قواعد البيانات الموحدة
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-1 leading-relaxed">
+                متابعة الموثقين الميدانيين وإدارة قواعد البيانات الموحدة
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-2.5">
             <button
               onClick={() => router.push('/')}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+              className="flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/60 font-semibold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
             >
-              <Store className="w-4 h-4 text-indigo-400" /> واجهة التوثيق الميداني
+              <Store className="w-4 h-4 text-emerald-400" />
+              <span>التوثيق الميداني</span>
             </button>
 
             <button
               onClick={loadData}
               disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
+              className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-3 rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> تحديث البيانات
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>تحديث البيانات</span>
             </button>
 
             <button
               onClick={handleLogout}
-              className="bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+              className="flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 font-semibold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" /> خروج
+              <LogOut className="w-4 h-4" />
+              <span>خروج</span>
             </button>
           </div>
         </header>
 
-        {/* Global Statistics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-indigo-500/20 text-indigo-400 p-3.5 rounded-2xl border border-indigo-500/30">
-              <Layers className="w-7 h-7" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 block">إجمالي التوثيقات الميدانية</span>
-              <span className="text-2xl font-black text-white">{allPlaces.length} <span className="text-xs text-slate-500">مكان</span></span>
-            </div>
+        {/* Global Statistics Grid (Mobile 2 Columns Layout -> Desktop 4 Columns) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">نظرة عامة على الإحصائيات</h3>
+            <span className="text-[10px] text-slate-500">مزامنة سحابية حية</span>
           </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-emerald-500/20 text-emerald-400 p-3.5 rounded-2xl border border-emerald-500/30">
-              <DollarSign className="w-7 h-7" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Card 1: Total Locations */}
+            <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-3.5 border border-slate-800 hover:border-slate-700 transition-all shadow-lg">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-slate-400 font-medium">إجمالي التوثيقات</span>
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <Layers className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-white">{allPlaces.length}</span>
+                <span className="text-xs text-slate-400">مكان</span>
+              </div>
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 block">المبالغ المحصلة المباشرة</span>
-              <span className="text-2xl font-black text-emerald-400">{totalMoneyCollected} <span className="text-xs">ج.م</span></span>
-            </div>
-          </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-amber-500/20 text-amber-400 p-3.5 rounded-2xl border border-amber-500/30">
-              <Clock className="w-7 h-7" />
+            {/* Card 2: Direct Collected */}
+            <div className="bg-emerald-950/20 backdrop-blur-md rounded-2xl p-3.5 border border-emerald-500/30 transition-all shadow-lg shadow-emerald-950/20">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-emerald-400/90 font-medium">المبالغ المحصلة</span>
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold text-emerald-400">{totalMoneyCollected}</span>
+                <span className="text-xs font-semibold text-emerald-500">ج.م</span>
+              </div>
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 block">المبالغ المؤجلة لحين الظهور</span>
-              <span className="text-2xl font-black text-amber-400">{totalMoneyRemaining} <span className="text-xs">ج.م</span></span>
-            </div>
-          </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-purple-500/20 text-purple-400 p-3.5 rounded-2xl border border-purple-500/30">
-              <Users className="w-7 h-7" />
+            {/* Card 3: Deferred Amounts */}
+            <div className="bg-amber-950/20 backdrop-blur-md rounded-2xl p-3.5 border border-amber-500/30 transition-all shadow-lg shadow-amber-950/20">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-amber-300/90 font-medium">المبالغ المؤجلة</span>
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-amber-400">{totalMoneyRemaining}</span>
+                <span className="text-xs font-semibold text-amber-500">ج.م</span>
+              </div>
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 block">الموثقين الميدانيين المسجلين</span>
-              <span className="text-2xl font-black text-white">{documenters.length} <span className="text-xs text-slate-500">موثق</span></span>
+
+            {/* Card 4: Registered Documenters */}
+            <div className="bg-purple-950/20 backdrop-blur-md rounded-2xl p-3.5 border border-purple-500/30 transition-all shadow-lg shadow-purple-950/20">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-purple-300/90 font-medium">الموثقين المسجلين</span>
+                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-purple-300">{documenters.length}</span>
+                <span className="text-xs font-semibold text-purple-400">موثق</span>
+              </div>
             </div>
           </div>
         </div>
