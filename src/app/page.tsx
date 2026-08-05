@@ -1287,61 +1287,73 @@ export default function Home() {
 
     const fetchPlaces = async () => {
       try {
-        const { data: sbPlaces } = await supabase.from('places').select('*');
+        const { data: sbPlaces, error } = await supabase
+          .from('places')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching places from Supabase Cloud:', error);
+          return;
+        }
+
         let list: PlaceItem[] = [];
         if (sbPlaces && sbPlaces.length > 0) {
           list = sbPlaces.map((p) => ({
             id: p.id,
-            businessName: p.business_name,
-            nameEn: p.name_en,
-            status: p.status,
-            category: p.category,
-            subCategory: p.sub_category,
-            customCategory: p.custom_category,
-            latitude: p.latitude,
-            longitude: p.longitude,
-            city: p.city,
-            neighborhood: p.neighborhood,
-            street: p.street,
-            landmark: p.landmark,
-            phone: p.phone,
-            whatsapp: p.whatsapp,
-            googleEmail: p.google_email,
-            workFrom: p.work_from,
-            workTo: p.work_to,
+            businessName: p.business_name || '',
+            nameEn: p.name_en || '',
+            status: p.status || 'موثق ومكتمل',
+            category: p.category || '',
+            subCategory: p.sub_category || '',
+            customCategory: p.custom_category || '',
+            latitude: p.latitude || '',
+            longitude: p.longitude || '',
+            city: p.city || '',
+            neighborhood: p.neighborhood || '',
+            street: p.street || '',
+            landmark: p.landmark || '',
+            phone: p.phone || '',
+            whatsapp: p.whatsapp || '',
+            googleEmail: p.google_email || '',
+            workFrom: p.work_from || '09:00 ص',
+            workTo: p.work_to || '10:00 م',
             holidays: p.holidays || [],
-            facadeImage: p.facade_image,
-            internalImage: p.internal_image,
-            additionalImages: p.additional_images || [],
-            documenterName: p.documenter_name,
-            notes: p.notes,
-            adminRequest: p.admin_request || p.notes || '',
-            date: p.date,
-            time: p.time,
-            dms: p.dms,
+            facadeImage: p.facade_image || '',
+            internalImage: p.internal_image || '',
+            additionalImages: [],
+            documenterName: p.documenter_name || 'أحمد عرالدين',
+            notes: p.notes || '',
+            adminRequest: p.notes || '',
+            date: p.date || '',
+            time: p.time || '',
+            dms: p.dms || '',
             totalAmount: p.total_amount || 300,
-            paidAmount: p.paid_amount || 0,
-            remainingAmount: p.remaining_amount || 0,
+            paidAmount: p.paid_amount ?? 300,
+            remainingAmount: p.remaining_amount ?? 0,
             paymentStatus: p.payment_status || 'مدفوعة بالكامل',
           }));
         }
 
-        const d = localStorage.getItem('field_notified_places');
-        if (d) {
-          const localList = JSON.parse(d);
-          localList.forEach((lp: PlaceItem) => {
-            if (!list.some((x) => x.id === lp.id)) list.push(lp);
-          });
-        }
-
         setSavedPlaces(list);
-      } catch {
-        const d = localStorage.getItem('field_notified_places');
-        if (d) setSavedPlaces(JSON.parse(d));
+      } catch (err) {
+        console.error('Supabase fetch exception:', err);
       }
     };
 
     fetchPlaces();
+
+    // Subscribe to realtime cloud updates across devices
+    const channel = supabase
+      .channel('places-realtime-page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'places' }, () => {
+        fetchPlaces();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [setValue]);
 
   // Auto-open place modal if placeId or id URL query parameter exists (e.g. from QR Code scan)
@@ -1420,18 +1432,55 @@ export default function Home() {
     showToast('تم تسجيل الخروج بنجاح.');
   };
 
-  const handleJSONImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleJSONImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const imported = JSON.parse(event.target?.result as string);
         if (Array.isArray(imported)) {
-          const merged = [...imported, ...savedPlaces];
-          setSavedPlaces(merged);
-          localStorage.setItem('field_notified_places', JSON.stringify(merged));
-          showToast(`تم استيراد ${imported.length} مكان بنجاح وإضافتهم للجهاز!`);
+          const insertArray = imported.map((p: any) => ({
+            id: p.id || Date.now().toString() + Math.random().toString().slice(2, 6),
+            business_name: p.businessName || p.business_name || '',
+            name_en: p.nameEn || p.name_en || '',
+            status: p.status || 'موثق ومكتمل',
+            category: p.category || '',
+            sub_category: p.subCategory || p.sub_category || '',
+            custom_category: p.customCategory || p.custom_category || '',
+            latitude: p.latitude || '',
+            longitude: p.longitude || '',
+            dms: p.dms || '',
+            city: p.city || '',
+            neighborhood: p.neighborhood || '',
+            street: p.street || '',
+            landmark: p.landmark || '',
+            phone: p.phone || '',
+            whatsapp: p.whatsapp || '',
+            google_email: p.googleEmail || p.google_email || 'غير مسجل',
+            work_from: p.workFrom || p.work_from || '09:00 ص',
+            work_to: p.workTo || p.work_to || '10:00 م',
+            holidays: p.holidays || [],
+            facade_image: p.facadeImage || p.facade_image || '',
+            internal_image: p.internalImage || p.internal_image || '',
+            documenter_name: p.documenterName || p.documenter_name || 'أحمد عرالدين',
+            notes: p.notes || '',
+            date: p.date || new Date().toLocaleDateString('ar-EG'),
+            time: p.time || new Date().toLocaleTimeString('ar-EG'),
+            total_amount: p.totalAmount || p.total_amount || 300,
+            paid_amount: p.paidAmount ?? p.paid_amount ?? 300,
+            remaining_amount: p.remainingAmount ?? p.remaining_amount ?? 0,
+            payment_status: p.paymentStatus || p.payment_status || 'مدفوعة بالكامل',
+          }));
+
+          const { error } = await supabase.from('places').upsert(insertArray);
+          if (error) {
+            console.error('Import error:', error);
+            showToast('خطأ أثناء استيراد البيانات سحابياً: ' + error.message);
+            return;
+          }
+
+          showToast(`تم استيراد وحفظ ${imported.length} مكان في قاعدة البيانات السحابية بنجاح!`);
         } else {
           alert('ملف JSON غير صالح.');
         }
@@ -1443,10 +1492,23 @@ export default function Home() {
   };
 
   const handleUpdatePaymentStatus = async (id: string, newStatus: string, newPaidAmount: number) => {
+    const tot = 300;
+    const rem = Math.max(0, tot - newPaidAmount);
+
+    const { error } = await supabase.from('places').update({
+      payment_status: newStatus,
+      paid_amount: newPaidAmount,
+      remaining_amount: rem,
+    }).eq('id', id);
+
+    if (error) {
+      console.error('Supabase Payment Update Error:', error);
+      showToast('حدث خطأ أثناء تحديث حالة الفاتورة سحابياً: ' + error.message);
+      return;
+    }
+
     const updated = savedPlaces.map((p) => {
       if (p.id === id) {
-        const tot = p.totalAmount || 300;
-        const rem = Math.max(0, tot - newPaidAmount);
         return {
           ...p,
           paymentStatus: newStatus,
@@ -1458,18 +1520,6 @@ export default function Home() {
     });
     setSavedPlaces(updated);
 
-    try {
-      await supabase.from('places').update({
-        payment_status: newStatus,
-        paid_amount: newPaidAmount,
-        remaining_amount: Math.max(0, 300 - newPaidAmount),
-      }).eq('id', id);
-    } catch { /* ignore */ }
-
-    try {
-      localStorage.setItem('field_notified_places', JSON.stringify(updated));
-    } catch { /* ignore */ }
-
     if (activeModalPlace && activeModalPlace.id === id) {
       const p = updated.find((x) => x.id === id);
       if (p) setActiveModalPlace(p);
@@ -1478,7 +1528,7 @@ export default function Home() {
       const p = updated.find((x) => x.id === id);
       if (p) setLastSavedPlace(p);
     }
-    showToast('تم تحديث حالة الفاتورة والمبلغ المدفوع بنجاح!');
+    showToast('تم تحديث حالة الفاتورة والمبلغ المدفوع سحابياً بنجاح!');
   };
 
   const handleDownloadZipForPlace = async (place: PlaceItem) => {
@@ -1676,50 +1726,50 @@ export default function Home() {
       dms: toDMS(data.latitude, data.longitude),
     };
 
-    try {
-      await supabase.from('places').insert([
-        {
-          id: place.id,
-          business_name: place.businessName,
-          name_en: place.nameEn,
-          status: place.status,
-          category: place.category,
-          sub_category: place.subCategory,
-          custom_category: place.customCategory,
-          latitude: place.latitude,
-          longitude: place.longitude,
-          dms: place.dms,
-          city: place.city,
-          neighborhood: place.neighborhood,
-          street: place.street,
-          landmark: place.landmark,
-          phone: place.phone,
-          whatsapp: place.whatsapp,
-          google_email: place.googleEmail,
-          work_from: place.workFrom,
-          work_to: place.workTo,
-          holidays: place.holidays,
-          facade_image: place.facadeImage,
-          internal_image: place.internalImage,
-          additional_images: place.additionalImages,
-          documenter_name: place.documenterName,
-          notes: place.notes,
-          date: place.date,
-          time: place.time,
-          total_amount: place.totalAmount,
-          paid_amount: place.paidAmount,
-          remaining_amount: place.remainingAmount,
-          payment_status: place.paymentStatus,
-        },
-      ]);
-    } catch { /* ignore */ }
+    const insertPayload = {
+      id: place.id,
+      business_name: place.businessName || '',
+      name_en: place.nameEn || '',
+      status: place.status || 'موثق ومكتمل',
+      category: place.category || '',
+      sub_category: place.subCategory || '',
+      custom_category: place.customCategory || '',
+      latitude: place.latitude || '',
+      longitude: place.longitude || '',
+      dms: place.dms || '',
+      city: place.city || '',
+      neighborhood: place.neighborhood || '',
+      street: place.street || '',
+      landmark: place.landmark || '',
+      phone: place.phone || '',
+      whatsapp: place.whatsapp || '',
+      google_email: place.googleEmail || 'غير مسجل',
+      work_from: place.workFrom || '09:00 ص',
+      work_to: place.workTo || '10:00 م',
+      holidays: place.holidays || [],
+      facade_image: place.facadeImage || '',
+      internal_image: place.internalImage || '',
+      documenter_name: place.documenterName || 'أحمد عرالدين',
+      notes: place.notes || '',
+      date: place.date,
+      time: place.time,
+      total_amount: place.totalAmount,
+      paid_amount: place.paidAmount,
+      remaining_amount: place.remainingAmount,
+      payment_status: place.paymentStatus,
+    };
 
-    const updated = [place, ...savedPlaces];
-    setSavedPlaces(updated);
+    const { error: insertError } = await supabase.from('places').insert([insertPayload]);
+    if (insertError) {
+      console.error('Supabase Cloud Insert Error:', insertError);
+      showToast('فشل حفظ البيانات على السحابة: ' + insertError.message);
+      return;
+    }
+
+    setSavedPlaces((prev) => [place, ...prev]);
     setLastSavedPlace(place);
 
     try {
-      localStorage.setItem('field_notified_places', JSON.stringify(updated));
       localStorage.removeItem('field_form_draft');
     } catch { /* ignore */ }
 
@@ -1739,18 +1789,17 @@ export default function Home() {
   };
 
   const deletePlace = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المكان من سجل التوثيق المحفوظ؟')) return;
-    const updated = savedPlaces.filter((p) => p.id !== id);
-    setSavedPlaces(updated);
+    if (!confirm('هل أنت متأكد من حذف هذا المكان نهائياً من قاعدة البيانات السحابية؟')) return;
 
-    try {
-      await supabase.from('places').delete().eq('id', id);
-    } catch { /* ignore */ }
+    const { error } = await supabase.from('places').delete().eq('id', id);
+    if (error) {
+      console.error('Supabase Cloud Delete Error:', error);
+      showToast('فشل حذف المكان من قاعدة البيانات السحابية: ' + error.message);
+      return;
+    }
 
-    try {
-      localStorage.setItem('field_notified_places', JSON.stringify(updated));
-    } catch { /* ignore */ }
-    showToast('تم حذف المكان من السجل السحابي والمحلي.');
+    setSavedPlaces((prev) => prev.filter((p) => p.id !== id));
+    showToast('تم حذف المكان بنجاح من قاعدة البيانات السحابية!');
   };
 
   const copyToClipboard = (text: string, id: string) => {

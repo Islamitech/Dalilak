@@ -81,58 +81,59 @@ export default function AdminDashboard() {
       /* ignore */
     }
 
-    // 2. Fetch All Places
+    // 2. Fetch All Places from Supabase Cloud Database
     try {
-      const { data: placesData } = await supabase.from('places').select('*');
+      const { data: placesData, error } = await supabase
+        .from('places')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading places in admin dashboard:', error);
+        return;
+      }
+
       let placesList: PlaceItem[] = [];
       if (placesData && placesData.length > 0) {
         placesList = placesData.map((p) => ({
           id: p.id,
-          businessName: p.business_name,
-          nameEn: p.name_en,
-          status: p.status,
-          category: p.category,
-          subCategory: p.sub_category,
-          customCategory: p.custom_category,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          city: p.city,
-          neighborhood: p.neighborhood,
-          street: p.street,
-          landmark: p.landmark,
-          phone: p.phone,
-          whatsapp: p.whatsapp,
-          googleEmail: p.google_email,
-          workFrom: p.work_from,
-          workTo: p.work_to,
+          businessName: p.business_name || '',
+          nameEn: p.name_en || '',
+          status: p.status || 'موثق ومكتمل',
+          category: p.category || '',
+          subCategory: p.sub_category || '',
+          customCategory: p.custom_category || '',
+          latitude: p.latitude || '',
+          longitude: p.longitude || '',
+          city: p.city || '',
+          neighborhood: p.neighborhood || '',
+          street: p.street || '',
+          landmark: p.landmark || '',
+          phone: p.phone || '',
+          whatsapp: p.whatsapp || '',
+          googleEmail: p.google_email || '',
+          workFrom: p.work_from || '09:00 ص',
+          workTo: p.work_to || '10:00 م',
           holidays: p.holidays || [],
-          facadeImage: p.facade_image,
-          internalImage: p.internal_image,
-          additionalImages: p.additional_images || [],
-          documenterName: p.documenter_name,
-          notes: p.notes,
-          adminRequest: p.admin_request || p.notes || '',
-          date: p.date,
-          time: p.time,
-          dms: p.dms,
+          facadeImage: p.facade_image || '',
+          internalImage: p.internal_image || '',
+          additionalImages: [],
+          documenterName: p.documenter_name || 'أحمد عرالدين',
+          notes: p.notes || '',
+          adminRequest: p.notes || '',
+          date: p.date || '',
+          time: p.time || '',
+          dms: p.dms || '',
           totalAmount: p.total_amount || 300,
-          paidAmount: p.paid_amount || 0,
-          remainingAmount: p.remaining_amount || 0,
+          paidAmount: p.paid_amount ?? 300,
+          remainingAmount: p.remaining_amount ?? 0,
           paymentStatus: p.payment_status || 'مدفوعة بالكامل',
         }));
       }
 
-      // Merge local places
-      const localPlaces = JSON.parse(localStorage.getItem('field_notified_places') || '[]');
-      localPlaces.forEach((lp: PlaceItem) => {
-        if (!placesList.some((p) => p.id === lp.id)) {
-          placesList.push(lp);
-        }
-      });
-
       setAllPlaces(placesList);
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error('Admin places loading exception:', err);
     } finally {
       setLoading(false);
     }
@@ -142,26 +143,19 @@ export default function AdminDashboard() {
     const noteToSave = (customNote !== undefined ? customNote : adminNoteInput).trim();
     setSaveRequestLoading(true);
 
-    try {
-      await supabase
-        .from('places')
-        .update({
-          admin_request: noteToSave,
-          notes: noteToSave,
-        })
-        .eq('id', placeId);
-    } catch {
-      /* ignore */
-    }
+    const { error } = await supabase
+      .from('places')
+      .update({
+        notes: noteToSave,
+      })
+      .eq('id', placeId);
 
-    const localPlaces = JSON.parse(localStorage.getItem('field_notified_places') || '[]');
-    const updatedLocal = localPlaces.map((p: PlaceItem) => {
-      if (p.id === placeId) {
-        return { ...p, adminRequest: noteToSave, notes: noteToSave };
-      }
-      return p;
-    });
-    localStorage.setItem('field_notified_places', JSON.stringify(updatedLocal));
+    if (error) {
+      console.error('Admin request cloud update error:', error);
+      showToast('حدث خطأ أثناء حفظ طلب التعديل سحابياً: ' + error.message);
+      setSaveRequestLoading(false);
+      return;
+    }
 
     setAllPlaces((prev) =>
       prev.map((p) => (p.id === placeId ? { ...p, adminRequest: noteToSave, notes: noteToSave } : p))
@@ -172,8 +166,22 @@ export default function AdminDashboard() {
     }
 
     setSaveRequestLoading(false);
-    showToast(noteToSave ? 'تم إرسال طلب التوثيق/التعديل للموثق الميداني بنجاح!' : 'تم إلغاء/مسح طلب التعديل بنجاح.');
+    showToast(noteToSave ? 'تم حفظ وإرسال طلب التعديل سحابياً للموثق الميداني بنجاح!' : 'تم مسح طلب التعديل سحابياً بنجاح.');
   };
+
+  useEffect(() => {
+    // Subscribe to realtime cloud updates across devices in Admin
+    const channel = supabase
+      .channel('places-realtime-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'places' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadData]);
 
   useEffect(() => {
     // Check Session
