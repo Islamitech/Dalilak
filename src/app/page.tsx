@@ -768,90 +768,119 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = COL.lightMuted;
   ctx.fillText('التوقيع', W - 50, stampAreaY + 92);
 
-  // --- CENTER: OFFICIAL FILLED BLUE RUBBER STAMP ---
+  // --- CENTER: OFFICIAL FILLED BLUE RUBBER STAMP (EXACT MATCH TO REFERENCE PHOTO) ---
   const stX = W / 2 - 30;
   const stY = stampAreaY + 55;
 
   ctx.save();
   ctx.translate(stX, stY);
-  ctx.rotate(-0.12); // Realistic hand-stamped angle
+  ctx.rotate(-0.06); // Realistic hand-stamped angle
 
-  const stampBlue = '#1d4ed8'; // Official stamp blue ink color
-  const stampBlueDark = '#1e3a8a';
-  const stampBlueTint = 'rgba(29, 78, 216, 0.12)';
+  const stampBlue = '#0d47a1'; // Official Royal Stamp Blue Ink (#0d47a1)
 
-  // Filled blue background for stamp body
-  ctx.fillStyle = stampBlueTint;
-  ctx.beginPath();
-  ctx.arc(0, 0, 70, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Thick double outer rings
+  // Outer double circular rings
   ctx.strokeStyle = stampBlue;
-  ctx.lineWidth = 3.5;
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.arc(0, 0, 68, 0, Math.PI * 2);
+  ctx.arc(0, 0, 72, 0, Math.PI * 2);
   ctx.stroke();
 
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(0, 0, 66, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Inner center ring
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.arc(0, 0, 62, 0, Math.PI * 2);
+  ctx.arc(0, 0, 44, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Inner ring
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(0, 0, 50, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Filled Solid Blue Center Badge for the Logo
-  ctx.fillStyle = stampBlue;
-  ctx.beginPath();
-  ctx.arc(0, 0, 32, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Logo in Stamp Center (Tinted/Filled inside stamp)
+  // --- Center Logo Emblem in Solid Stamp Blue Ink ---
   if (logoImg.complete && logoImg.width > 0) {
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, 0, 28, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(logoImg, -28, -28, 56, 56);
+    if (typeof document !== 'undefined') {
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = 72;
+      offCanvas.height = 72;
+      const offCtx = offCanvas.getContext('2d');
+      if (offCtx) {
+        offCtx.drawImage(logoImg, 0, 0, 72, 72);
+        offCtx.globalCompositeOperation = 'source-in';
+        offCtx.fillStyle = stampBlue;
+        offCtx.fillRect(0, 0, 72, 72);
+        ctx.drawImage(offCanvas, -36, -36, 72, 72);
+      } else {
+        ctx.drawImage(logoImg, -32, -32, 64, 64);
+      }
+    } else {
+      ctx.drawImage(logoImg, -32, -32, 64, 64);
+    }
     ctx.restore();
-
-    ctx.strokeStyle = COL.white;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 28, 0, Math.PI * 2);
-    ctx.stroke();
   } else {
-    ctx.fillStyle = COL.white;
-    ctx.font = 'bold 15px Tahoma, Arial, sans-serif';
+    ctx.fillStyle = stampBlue;
+    ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('دليلك', 0, 5);
   }
 
-  // Curved Text around Stamp (Official Blue Ink)
-  ctx.fillStyle = stampBlueDark;
+  // --- Top Curved Arc Text: "دليلك للخدمات الرقمية" ---
+  const topText = 'دليلك للخدمات الرقمية';
+  const topRadius = 55;
+  const topStartAngle = -Math.PI * 0.75;
+  const topEndAngle = -Math.PI * 0.25;
+  const topChars = topText.split('');
+  const topLen = topChars.length;
+  const topStep = (topEndAngle - topStartAngle) / (topLen > 1 ? topLen - 1 : 1);
+
+  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
+  ctx.fillStyle = stampBlue;
   ctx.textAlign = 'center';
-  ctx.direction = 'rtl';
+  ctx.textBaseline = 'middle';
 
-  // Top Text in Stamp
-  ctx.font = 'bold 8.5px Tahoma, Arial, sans-serif';
-  ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -52);
-  ctx.font = 'bold 7px Tahoma, Arial, sans-serif';
-  ctx.fillText('DALEELAK DIGITAL SERVICES', 0, -40);
+  for (let i = 0; i < topLen; i++) {
+    // Reverse order for RTL arc text flow on top
+    const char = topChars[topLen - 1 - i];
+    const angle = topStartAngle + i * topStep;
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.translate(0, -topRadius);
+    ctx.fillText(char, 0, 0);
+    ctx.restore();
+  }
 
-  // Bottom Text in Stamp
-  ctx.font = 'bold 8.5px Tahoma, Arial, sans-serif';
-  ctx.fillText('★ توثيق خرائط ميداني معتمد ★', 0, 43);
-  ctx.font = 'bold 7px Tahoma, Arial, sans-serif';
-  ctx.fillText('VERIFIED & APPROVED © 2026', 0, 53);
+  // --- Bottom Curved Arc Text: "توثيق إلكتروني" ---
+  const bottomText = 'توثيق إلكتروني';
+  const bottomRadius = 55;
+  const bottomStartAngle = Math.PI * 0.25;
+  const bottomEndAngle = Math.PI * 0.75;
+  const bottomChars = bottomText.split('');
+  const bottomLen = bottomChars.length;
+  const bottomStep = (bottomEndAngle - bottomStartAngle) / (bottomLen > 1 ? bottomLen - 1 : 1);
 
-  // Side Stars
-  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
-  ctx.fillText('★', -54, 3);
-  ctx.fillText('★', 54, 3);
+  for (let i = 0; i < bottomLen; i++) {
+    const char = bottomChars[i];
+    const angle = bottomStartAngle + i * bottomStep;
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.translate(0, bottomRadius);
+    ctx.fillText(char, 0, 0);
+    ctx.restore();
+  }
+
+  // --- Left and Right 8-Pointed Star Symbols ---
+  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
+  ctx.save();
+  ctx.rotate(-Math.PI * 0.95);
+  ctx.translate(0, -topRadius);
+  ctx.fillText('✴', 0, 0);
+  ctx.restore();
+
+  ctx.save();
+  ctx.rotate(-Math.PI * 0.05);
+  ctx.translate(0, -topRadius);
+  ctx.fillText('✴', 0, 0);
+  ctx.restore();
 
   ctx.restore();
 
