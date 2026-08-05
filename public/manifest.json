@@ -1,0 +1,23 @@
+{
+  "name": "دليلك للخدمات الرقمية - توثيق الخرائط",
+  "short_name": "دليلك",
+  "description": "منظومة توثيق الأماكن التجارية وإصدار الفواتير الرسمية الرقمية",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1120",
+  "theme_color": "#0f172a",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

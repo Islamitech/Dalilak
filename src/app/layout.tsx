@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
 
@@ -8,9 +8,31 @@ const cairo = Cairo({
   variable: "--font-cairo",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#0f172a",
+};
+
 export const metadata: Metadata = {
-  title: "نظام توثيق الأماكن التجارية الميداني",
-  description: "منصة الموثقين الميدانيين لتسجيل وإضافة الأماكن التجارية غير المدرجة على خرائط جوجل",
+  title: "دليلك للخدمات الرقمية — توثيق الخرائط",
+  description: "منظومة توثيق الأماكن التجارية وإصدار الفواتير الرسمية الرقمية",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "دليلك",
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -24,8 +46,24 @@ export default function RootLayout({
       dir="rtl"
       className={`${cairo.variable} h-full antialiased`}
     >
-      <body className={`${cairo.className} min-h-full flex flex-col bg-slate-50 text-slate-900`}>
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/icon.png" />
+      </head>
+      <body className={`${cairo.className} min-h-full flex flex-col bg-slate-50 text-slate-900 overflow-x-hidden`}>
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

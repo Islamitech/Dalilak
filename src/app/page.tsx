@@ -2132,7 +2132,7 @@ export default function Home() {
   // IF USER IS LOGGED IN: SHOW FIELD DOCUMENTATION FORM AND APP
   // =========================================================================
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 dir-rtl font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-2 sm:p-4 md:p-8 dir-rtl font-sans overflow-x-hidden">
       <div className="max-w-7xl mx-auto space-y-8">
 
         <AnimatePresence>
@@ -2150,21 +2150,21 @@ export default function Home() {
         </AnimatePresence>
 
         {/* Global Navigation Header - Official Production Version */}
-        <header className="bg-slate-900 border border-slate-800 py-2 px-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-[110px] h-[110px] flex items-center justify-center shrink-0">
+        <header className="bg-slate-900 border border-slate-800 py-2 px-3 sm:px-6 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 w-full md:w-auto">
+            <div className="w-[50px] h-[50px] sm:w-[80px] sm:h-[80px] md:w-[110px] md:h-[110px] flex items-center justify-center shrink-0">
      {/* eslint-disable-next-line @next/next/no-img-element */}
      <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.35)]" />
    </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-white">دليلك للخدمات الرقمية (توثيق الخرائط)</h1>
-                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                  {loggedInUser.full_name} ({loggedInUser.role === 'admin' ? 'مدير مسؤول' : 'موثق ميداني'})
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h1 className="text-sm sm:text-lg md:text-2xl font-black text-white truncate">دليلك للخدمات الرقمية</h1>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                  {loggedInUser.full_name} ({loggedInUser.role === 'admin' ? 'مدير' : 'موثق'})
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                المنظومة الرسمية للتوثيق الميداني وإصدار الفواتير الرقمية الموثقة للأعمال والمنشآت
+              <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">
+                المنظومة الرسمية للتوثيق الميداني وإصدار الفواتير الرقمية
               </p>
             </div>
           </div>
@@ -3215,92 +3215,92 @@ export default function Home() {
         )}
 
         {/* Global Statistics Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-indigo-500/20 text-indigo-400 p-3.5 rounded-2xl border border-indigo-500/30">
-              <Layers className="w-6 h-6" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+          <div className="bg-slate-900 border border-slate-800 p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl flex items-center gap-2 sm:gap-4">
+            <div className="bg-indigo-500/20 text-indigo-400 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-indigo-500/30">
+              <Layers className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-[11px] font-bold text-slate-400 block">إجمالي الأماكن</span>
-              <span className="text-2xl font-black text-white">{userSavedPlaces.length}</span>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-emerald-500/20 text-emerald-400 p-3.5 rounded-2xl border border-emerald-500/30">
-              <Receipt className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-slate-400 block">المحصل المالي</span>
-              <span className="text-xl font-black text-emerald-400">{totalCollected} <span className="text-xs">ج.م</span></span>
+            <div className="min-w-0">
+              <span className="text-[9px] sm:text-[11px] font-bold text-slate-400 block truncate">إجمالي الأماكن</span>
+              <span className="text-lg sm:text-2xl font-black text-white">{userSavedPlaces.length}</span>
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-amber-500/20 text-amber-400 p-3.5 rounded-2xl border border-amber-500/30">
-              <Calendar className="w-6 h-6" />
+          <div className="bg-slate-900 border border-slate-800 p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl flex items-center gap-2 sm:gap-4">
+            <div className="bg-emerald-500/20 text-emerald-400 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-emerald-500/30">
+              <Receipt className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-[11px] font-bold text-slate-400 block">توثيقات اليوم</span>
-              <span className="text-2xl font-black text-white">{todayCount}</span>
+            <div className="min-w-0">
+              <span className="text-[9px] sm:text-[11px] font-bold text-slate-400 block truncate">المحصل المالي</span>
+              <span className="text-sm sm:text-xl font-black text-emerald-400">{totalCollected} <span className="text-[9px] sm:text-xs">ج.م</span></span>
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4">
-            <div className="bg-purple-500/20 text-purple-400 p-3.5 rounded-2xl border border-purple-500/30">
-              <Store className="w-6 h-6" />
+          <div className="bg-slate-900 border border-slate-800 p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl flex items-center gap-2 sm:gap-4">
+            <div className="bg-amber-500/20 text-amber-400 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-amber-500/30">
+              <Calendar className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-[11px] font-bold text-slate-400 block">التصنيف الأكثر تكراراً</span>
-              <span className="text-xs font-extrabold text-white truncate block max-w-[120px]">{topCategory}</span>
+            <div className="min-w-0">
+              <span className="text-[9px] sm:text-[11px] font-bold text-slate-400 block truncate">توثيقات اليوم</span>
+              <span className="text-lg sm:text-2xl font-black text-white">{todayCount}</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl flex items-center gap-2 sm:gap-4">
+            <div className="bg-purple-500/20 text-purple-400 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-purple-500/30">
+              <Store className="w-4 h-4 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[9px] sm:text-[11px] font-bold text-slate-400 block truncate">التصنيف الأكثر</span>
+              <span className="text-[10px] sm:text-xs font-extrabold text-white truncate block max-w-[80px] sm:max-w-[120px]">{topCategory}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
-            <div className="flex items-center gap-2.5">
-              <Map className="w-6 h-6 text-indigo-400" />
-              <div>
-                <h3 className="text-lg font-black text-white">سجل التوثيق الميداني والفواتير المحفوظة</h3>
-                <p className="text-xs text-slate-400">تصفح ومراجعة كل الأماكن الموثقة محلياً وسحابياً في قاعدة البيانات</p>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-xl space-y-3 sm:space-y-5">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 sm:gap-4 border-b border-slate-800 pb-3 sm:pb-4">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <Map className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400 shrink-0" />
+              <div className="min-w-0">
+                <h3 className="text-sm sm:text-lg font-black text-white truncate">سجل التوثيق الميداني والفواتير المحفوظة</h3>
+                <p className="text-[10px] sm:text-xs text-slate-400 truncate">تصفح ومراجعة كل الأماكن الموثقة محلياً وسحابياً في قاعدة البيانات</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={handleDownloadMasterZip}
                 disabled={!savedPlaces.length}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm truncate"
               >
-                <HardDrive className="w-4 h-4" /> أرشيف (ZIP)
+                <HardDrive className="w-4 h-4 shrink-0" /> أرشيف (ZIP)
               </button>
 
               <button
                 type="button"
                 onClick={() => exportToCSV(savedPlaces)}
                 disabled={!savedPlaces.length}
-                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm truncate"
               >
-                <FileSpreadsheet className="w-4 h-4" /> إكسيل (CSV)
+                <FileSpreadsheet className="w-4 h-4 shrink-0" /> إكسيل (CSV)
               </button>
 
               <button
                 type="button"
                 onClick={() => exportToJSON(savedPlaces)}
                 disabled={!savedPlaces.length}
-                className="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-700"
+                className="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white text-xs font-bold px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-700 truncate"
               >
-                <Download className="w-4 h-4" /> نسخة احتياطية
+                <Download className="w-4 h-4 shrink-0" /> نسخة احتياطية
               </button>
 
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-700"
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-700 truncate"
               >
-                <Upload className="w-4 h-4" /> استيراد
+                <Upload className="w-4 h-4 shrink-0" /> استيراد
               </button>
 
               <input
@@ -3341,7 +3341,7 @@ export default function Home() {
           </div>
 
           {filteredPlaces.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               {filteredPlaces.map((place) => {
                 const categoryBadge = place.subCategory === 'أخرى (إدخال مخصص)' && place.customCategory
                   ? place.customCategory
@@ -3355,12 +3355,12 @@ export default function Home() {
                     : 'bg-amber-500/20 text-amber-300 border-amber-500/30';
 
                 return (
-                  <div key={place.id} className="bg-slate-950 p-5 rounded-3xl border border-slate-800 shadow-lg hover:border-slate-700 transition-all flex flex-col justify-between">
+                  <div key={place.id} className="bg-slate-950 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-lg hover:border-slate-700 transition-all flex flex-col justify-between overflow-hidden">
                     <div>
-                      <div className="flex gap-4 items-start">
+                      <div className="flex gap-3 sm:gap-4 items-start">
                         <div
                           onClick={() => setActiveModalPlace(place)}
-                          className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 bg-slate-900 border border-slate-800 flex items-center justify-center cursor-pointer group relative"
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden shrink-0 bg-slate-900 border border-slate-800 flex items-center justify-center cursor-pointer group relative"
                         >
                           {place.facadeImage ? (
                             <>
@@ -3371,18 +3371,18 @@ export default function Home() {
                               </div>
                             </>
                           ) : (
-                            <Store className="w-8 h-8 text-slate-600" />
+                            <Store className="w-6 h-6 sm:w-8 sm:h-8 text-slate-600" />
                           )}
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start gap-2">
-                            <div>
-                              <h4 className="font-bold text-base text-white truncate">{place.businessName}</h4>
-                              {place.nameEn && <span className="text-[11px] text-slate-400 font-mono block dir-ltr text-right truncate">{place.nameEn}</span>}
+                          <div className="flex justify-between items-start gap-1.5">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-bold text-sm sm:text-base text-white truncate">{place.businessName}</h4>
+                              {place.nameEn && <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono block dir-ltr text-right truncate">{place.nameEn}</span>}
                               {place.adminRequest && (
-                                <div className="mt-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                <div className="mt-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3 text-amber-400 shrink-0" />
                                   <span className="truncate">طلب مسؤول: {place.adminRequest}</span>
                                 </div>
                               )}
@@ -3396,19 +3396,19 @@ export default function Home() {
                             </button>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-lg">
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mt-1.5">
+                            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-lg truncate max-w-[120px]">
                               {categoryBadge}
                             </span>
 
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${payStatusColor}`}>
+                            <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md border ${payStatusColor} whitespace-nowrap`}>
                               {place.paymentStatus || 'مدفوعة بالكامل'}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between mt-2 text-[11px]">
-                            <span className="text-slate-400 truncate">{place.city}، {place.neighborhood}</span>
-                            <span className="font-extrabold text-white dir-ltr">
+                          <div className="flex items-center justify-between mt-1.5 text-[10px] sm:text-[11px]">
+                            <span className="text-slate-400 truncate max-w-[60%]">{place.city}، {place.neighborhood}</span>
+                            <span className="font-extrabold text-white dir-ltr shrink-0">
                               {place.paidAmount ?? 300} / {place.totalAmount || 300} ج.م
                             </span>
                           </div>
@@ -3416,24 +3416,24 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5">
-                        <span className="text-xs font-mono text-emerald-400 font-bold truncate flex-1 dir-ltr text-right">
+                    <div className="mt-3 pt-2.5 border-t border-slate-800 space-y-2">
+                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-2 sm:px-3.5 sm:py-2.5">
+                        <span className="text-[10px] sm:text-xs font-mono text-emerald-400 font-bold truncate flex-1 dir-ltr text-right">
                           {place.dms}
                         </span>
-                        <div className="flex gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 w-full sm:w-auto justify-end">
                           <button
                             type="button"
                             onClick={() => sendWhatsAppInvoiceWithImage(place, showToast)}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-sm"
+                            className="flex-1 sm:flex-initial px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all shadow-sm whitespace-nowrap"
                             title="إرسال الفاتورة عبر واتساب"
                           >
-                            <Send className="w-3.5 h-3.5" /> إرسال الفاتورة واتس اب
+                            <Send className="w-3.5 h-3.5 shrink-0" /> إرسال الفاتورة واتس اب
                           </button>
                           <button
                             type="button"
                             onClick={() => setShowPrintedInvoiceModalPlace(place)}
-                            className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-all shadow-sm"
+                            className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-all shadow-sm shrink-0"
                             title="معاينة الفاتورة المطبوعة"
                           >
                             <FileText className="w-4 h-4" />
@@ -3441,7 +3441,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => handleDownloadZipForPlace(place)}
-                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-all border border-slate-700"
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-all border border-slate-700 shrink-0"
                             title="تنزيل حزمة ZIP للمكان"
                           >
                             <HardDrive className="w-4 h-4" />
@@ -3495,43 +3495,43 @@ export default function Home() {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto"
+                className="bg-slate-900 border border-slate-800 text-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-3xl w-full p-3 sm:p-8 space-y-3 sm:space-y-5 max-h-[95vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2 text-white">
-                    <FileText className="w-6 h-6 text-indigo-400" />
-                    <div>
-                      <h3 className="text-lg font-black">معاينة الفاتورة المطبوعة من المؤسسة 📄</h3>
-                      <p className="text-xs text-slate-400">فاتورة رسمية مصممة بأختام المؤسسة لإظهار أقصى درجات الجدية للعميل</p>
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2 text-white min-w-0">
+                    <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400 shrink-0" />
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-lg font-black truncate">معاينة الفاتورة المطبوعة من المؤسسة 📄</h3>
+                      <p className="text-[10px] sm:text-xs text-slate-400 truncate">فاتورة رسمية مصممة بأختام المؤسسة لإظهار أقصى درجات الجدية للعميل</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowPrintedInvoiceModalPlace(null)}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-2 rounded-xl cursor-pointer"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-1.5 rounded-xl cursor-pointer shrink-0"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
 
-                <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 p-2 shadow-inner flex items-center justify-center">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 p-1.5 shadow-inner flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={generateInvoiceImageDataUrl(showPrintedInvoiceModalPlace)}
                     alt="Official Invoice Paper"
-                    className="max-h-[65vh] w-auto object-contain rounded-lg shadow-xl border border-slate-800"
+                    className="max-h-[55vh] sm:max-h-[65vh] w-auto object-contain rounded-lg shadow-xl border border-slate-800"
                   />
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 pt-1">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => sendWhatsAppInvoiceWithImage(showPrintedInvoiceModalPlace, showToast)}
-                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30 transition-all"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] sm:text-xs px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/30 transition-all truncate"
                     >
-                      <Send className="w-4 h-4" /> إرسال الفاتورة عبر واتساب
+                      <Send className="w-3.5 h-3.5 shrink-0" /> إرسال الفاتورة عبر واتساب
                     </button>
 
                     <button
@@ -3542,9 +3542,9 @@ export default function Home() {
                         downloadImageFile(imgUrl, fn);
                         showToast('تم تنزيل صورة الفاتورة المطبوعة بنجاح!');
                       }}
-                      className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] sm:text-xs px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all truncate"
                     >
-                      <Download className="w-4 h-4" /> تنزيل الفاتورة كصورة (PNG)
+                      <Download className="w-3.5 h-3.5 shrink-0" /> تنزيل الفاتورة كصورة (PNG)
                     </button>
 
                     <button
@@ -3557,19 +3557,19 @@ export default function Home() {
                           win.document.close();
                         }
                       }}
-                      className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
+                      className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-[11px] sm:text-xs px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-700 truncate"
                     >
-                      <Printer className="w-4 h-4" /> طباعة (PDF)
+                      <Printer className="w-3.5 h-3.5 shrink-0" /> طباعة (PDF)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPrintedInvoiceModalPlace(null)}
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] sm:text-xs px-4 py-2.5 rounded-xl cursor-pointer border border-slate-700 truncate"
+                    >
+                      إغلاق
                     </button>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPrintedInvoiceModalPlace(null)}
-                    className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-6 py-3 rounded-xl cursor-pointer border border-slate-700"
-                  >
-                    إغلاق
-                  </button>
                 </div>
               </motion.div>
             </motion.div>
