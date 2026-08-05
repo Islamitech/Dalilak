@@ -398,17 +398,17 @@ if (typeof window !== 'undefined') {
   CACHED_STAMP_TEXT_SVG = new Image();
   const svgTextMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
     <defs>
-      <path id="topArc" d="M 30 150 A 120 120 0 0 1 270 150" fill="none"/>
-      <path id="bottomArc" d="M 270 160 A 120 120 0 0 1 30 160" fill="none"/>
+      <path id="topArc" d="M 25 150 A 125 125 0 0 1 275 150" fill="none"/>
+      <path id="bottomArc" d="M 275 162 A 125 125 0 0 1 25 162" fill="none"/>
     </defs>
-    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="22" fill="%230d47a1">
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="24" fill="%230d47a1">
       <textPath href="%23topArc" startOffset="50%" text-anchor="middle">دليلك للخدمات الرقمية</textPath>
     </text>
-    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="22" fill="%230d47a1">
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="24" fill="%230d47a1">
       <textPath href="%23bottomArc" startOffset="50%" text-anchor="middle">توثيق الكتروني</textPath>
     </text>
-    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="20" fill="%230d47a1" x="25" y="158" text-anchor="middle">✴</text>
-    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="20" fill="%230d47a1" x="275" y="158" text-anchor="middle">✴</text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="22" fill="%230d47a1" x="20" y="158" text-anchor="middle">✴</text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="22" fill="%230d47a1" x="280" y="158" text-anchor="middle">✴</text>
   </svg>`;
   CACHED_STAMP_TEXT_SVG.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTextMarkup);
 }
@@ -419,7 +419,7 @@ if (typeof window !== 'undefined') {
 // ====================================================================
 function generateInvoiceImageDataUrl(place: PlaceItem): string {
   const W = 850;
-  const H = 1300;
+  const H = 1250;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -435,17 +435,15 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
     headerAccent: '#10b981',
     primary: '#0f172a',
     secondary: '#334155',
-    muted: '#64748b',
+    muted: '#475569',
     lightMuted: '#94a3b8',
-    border: '#e2e8f0',
+    border: '#cbd5e1',
     lightBg: '#f8fafc',
     tableBg: '#f1f5f9',
     emerald: '#10b981',
     emeraldDark: '#047857',
     amber: '#b45309',
-    stampBlue: '#1e3a8a',
-    stampBlueMid: '#2563eb',
-    gold: '#d97706',
+    stampBlue: '#0d47a1',
     white: '#FFFFFF',
   };
 
@@ -473,263 +471,263 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = COL.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Clear visible security paper watermark (Drawn on paper background)
+  // Clear visible security paper watermark
   ctx.save();
   ctx.translate(W / 2, H / 2);
   ctx.rotate(-Math.PI / 6);
-  ctx.font = 'bold 15px Tahoma, Arial, sans-serif';
-  ctx.fillStyle = 'rgba(30, 58, 138, 0.08)'; // Clear visible subtle stamp-blue security watermark
+  ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
+  ctx.fillStyle = 'rgba(13, 71, 161, 0.07)';
   ctx.textAlign = 'center';
   ctx.direction = 'rtl';
-  for (let y = -600; y <= 600; y += 100) {
+  for (let y = -600; y <= 600; y += 95) {
     ctx.fillText('DALEELAK DIGITAL SERVICES  ★  توثيق معتمد رسمياً  ★  دليلك للخدمات الرقمية', 0, y);
   }
   ctx.restore();
 
   // Double border frame
   ctx.strokeStyle = COL.border;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(12, 12, W - 24, H - 24);
-  ctx.strokeStyle = '#cbd5e1';
-  ctx.lineWidth = 0.5;
-  ctx.strokeRect(18, 18, W - 36, H - 36);
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(10, 10, W - 20, H - 20);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(16, 16, W - 32, H - 32);
 
   // ============================================================
   // 2. TOP HEADER (Dark Corporate Header)
   // ============================================================
   ctx.fillStyle = COL.headerBg;
-  ctx.fillRect(20, 20, W - 40, 120);
+  ctx.fillRect(18, 18, W - 36, 125);
 
   // Emerald accent line below header
   ctx.fillStyle = COL.headerAccent;
-  ctx.fillRect(20, 138, W - 40, 4);
+  ctx.fillRect(18, 143, W - 36, 4);
 
   // Company Logo in Header (Top Left Corner - Direct, no background)
   const logoImg = CACHED_LOGO_IMG || new Image();
   if (!logoImg.src) logoImg.src = LOGO_BASE64_DATA_URL;
 
   if (logoImg.complete && logoImg.width > 0) {
-    ctx.drawImage(logoImg, 28, 25, 105, 105);
+    ctx.drawImage(logoImg, 25, 23, 115, 115);
   }
 
   // Company Name & Info (RTL - Right Side)
   ctx.direction = 'rtl';
   ctx.textAlign = 'right';
   ctx.fillStyle = COL.white;
-  ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
-  ctx.fillText('دليلك للخدمات الرقمية (توثيق الخرائط)', W - 45, 62);
+  ctx.font = 'bold 24px Tahoma, Arial, sans-serif';
+  ctx.fillText('دليلك للخدمات الرقمية (توثيق الخرائط)', W - 40, 58);
 
-  ctx.font = '11px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.lightMuted;
-  ctx.fillText('المنظومة الرسمية المعتمدة لتوثيق وإدارة المنشآت على خرائط جوجل', W - 45, 86);
-  ctx.fillText('سجل تجاري وترخيص ميداني معتمد — القاهرة، مصر', W - 45, 106);
+  ctx.fillText('المنظومة الرقمية الشاملة لتوثيق وإدارة المنشآت على خرائط جوجل الرسمية', W - 40, 84);
+  ctx.fillText('سجل تجاري وترخيص ميداني معتمد — القاهرة، مصر', W - 40, 106);
 
   // Invoice Number Badge (Positioned next to Logo on Left Side of Header)
   ctx.textAlign = 'left';
   ctx.direction = 'ltr';
   ctx.fillStyle = COL.headerAccent;
-  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
-  ctx.fillText('INVOICE', 145, 55);
+  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
+  ctx.fillText('INVOICE', 152, 54);
   ctx.fillStyle = COL.white;
-  ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
-  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 145, 77);
-  ctx.font = '10px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 18px Tahoma, Arial, sans-serif';
+  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 152, 78);
+  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.lightMuted;
-  ctx.fillText(place.date + '  |  ' + place.time, 145, 97);
+  ctx.fillText(place.date + '  |  ' + place.time, 152, 100);
 
   // ============================================================
-  // 3. INVOICE TITLE BAR
+  // 3. INVOICE TITLE BAR (Compact Y)
   // ============================================================
-  const titleBarY = 155;
+  const titleBarY = 156;
   ctx.fillStyle = COL.tableBg;
-  ctx.fillRect(20, titleBarY, W - 40, 38);
+  ctx.fillRect(18, titleBarY, W - 36, 42);
   ctx.strokeStyle = COL.border;
   ctx.lineWidth = 1;
-  ctx.strokeRect(20, titleBarY, W - 40, 38);
+  ctx.strokeRect(18, titleBarY, W - 36, 42);
 
   ctx.direction = 'rtl';
   ctx.textAlign = 'center';
   ctx.fillStyle = COL.primary;
-  ctx.font = 'bold 15px Tahoma, Arial, sans-serif';
-  ctx.fillText('فاتورة توثيق ميداني رسمية — إلكترونية', W / 2, titleBarY + 25);
+  ctx.font = 'bold 18px Tahoma, Arial, sans-serif';
+  ctx.fillText('فاتورة توثيق ميداني رسمية — إلكترونية معتمدة', W / 2, titleBarY + 28);
 
   // ============================================================
-  // 4. BUSINESS INFO SECTION
+  // 4. BUSINESS INFO SECTION (Compact Y & Large Fonts)
   // ============================================================
-  const bizY = 210;
+  const bizY = 208;
   ctx.textAlign = 'right';
 
   // Section Header
   ctx.fillStyle = COL.headerBg;
-  ctx.fillRect(20, bizY, W - 40, 30);
+  ctx.fillRect(18, bizY, W - 36, 32);
   ctx.fillStyle = COL.white;
-  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
-  ctx.fillText('بيانات المنشأة التجارية والعنوان الميداني الموثق', W - 45, bizY + 20);
+  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
+  ctx.fillText('بيانات المنشأة التجارية والعنوان الميداني الموثق', W - 35, bizY + 22);
 
   // Business details table-like rows
-  const bizDataY = bizY + 35;
-  const rowH = 28;
+  const bizDataY = bizY + 32;
+  const rowH = 32;
   const rows = [
     ['اسم المنشأة التجارية', place.businessName || '—'],
     ['النشاط والتصنيف', (place.category || '') + (place.subCategory ? ' — ' + place.subCategory : '')],
     ['العنوان التفصيلي', (place.city || '') + ' — ' + (place.neighborhood || '') + ' — ' + (place.street || '')],
     ['الإحداثيات الجغرافية', place.dms || '—'],
-    ['رقم التواصل / الواتساب', (place.phone || '—') + '   |   البريد: ' + (place.googleEmail || 'غير مسجل')],
+    ['رقم التواصل / البريد', (place.phone || '—') + '   |   البريد: ' + (place.googleEmail || 'غير مسجل')],
   ];
 
   rows.forEach((row, i) => {
     const y = bizDataY + i * rowH;
     ctx.fillStyle = i % 2 === 0 ? COL.lightBg : COL.bg;
-    ctx.fillRect(20, y, W - 40, rowH);
+    ctx.fillRect(18, y, W - 36, rowH);
     ctx.strokeStyle = COL.border;
     ctx.lineWidth = 0.5;
-    ctx.strokeRect(20, y, W - 40, rowH);
+    ctx.strokeRect(18, y, W - 36, rowH);
 
-    // Vertical divider at 55% width for label/value split
-    const divX = W * 0.45;
+    // Vertical divider at 42% width for label/value split
+    const divX = W * 0.42;
     ctx.beginPath();
     ctx.moveTo(divX, y);
     ctx.lineTo(divX, y + rowH);
     ctx.strokeStyle = COL.border;
     ctx.stroke();
 
-    // Label (right side)
+    // Label (right side) - Large Bold
     ctx.fillStyle = COL.secondary;
-    ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(row[0], W - 35, y + 19);
+    ctx.fillText(row[0], W - 30, y + 21);
 
-    // Value (left of divider, right-aligned)
+    // Value (left of divider) - Large Bold
     ctx.fillStyle = COL.primary;
-    ctx.font = '11px Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(row[1], divX - 15, y + 19);
+    ctx.fillText(row[1], divX - 12, y + 21);
   });
 
   // ============================================================
-  // 5. SERVICE DETAILS TABLE
+  // 5. SERVICE DETAILS TABLE (Compact Y & Large Fonts)
   // ============================================================
-  const svcY = bizDataY + rows.length * rowH + 20;
+  const svcY = bizDataY + rows.length * rowH + 16;
 
   // Table header
   ctx.fillStyle = COL.headerBg;
-  ctx.fillRect(20, svcY, W - 40, 32);
+  ctx.fillRect(18, svcY, W - 36, 34);
   ctx.fillStyle = COL.white;
-  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('وصف الخدمة', W - 45, svcY + 22);
+  ctx.fillText('وصف الخدمة الميدانية', W - 35, svcY + 23);
   ctx.textAlign = 'left';
-  ctx.fillText('القيمة (ج.م)', 45, svcY + 22);
+  ctx.fillText('القيمة (ج.م)', 35, svcY + 23);
 
   // Service row
-  const svcRowY = svcY + 32;
+  const svcRowY = svcY + 34;
   ctx.fillStyle = COL.bg;
-  ctx.fillRect(20, svcRowY, W - 40, 50);
+  ctx.fillRect(18, svcRowY, W - 36, 56);
   ctx.strokeStyle = COL.border;
   ctx.lineWidth = 0.5;
-  ctx.strokeRect(20, svcRowY, W - 40, 50);
+  ctx.strokeRect(18, svcRowY, W - 36, 56);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = COL.primary;
-  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
-  ctx.fillText('خدمة إضافة وتوثيق المنشأة التجارية ونقل الملكية على خرائط جوجل الرسمية', W - 35, svcRowY + 22);
-  ctx.font = '10px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
+  ctx.fillText('خدمة إضافة وتوثيق المنشأة التجارية ونقل الملكية على خرائط جوجل الرسمية', W - 30, svcRowY + 24);
+  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.muted;
-  ctx.fillText('تشمل: المعاينة الميدانية، التقاط الصور، تسجيل الإحداثيات، وإصدار التقرير الرقمي', W - 35, svcRowY + 40);
+  ctx.fillText('تشمل: المعاينة الميدانية، التقاط الصور، تسجيل الإحداثيات، وإصدار التقرير الرقمي', W - 30, svcRowY + 44);
 
   ctx.textAlign = 'left';
-  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 18px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.primary;
-  ctx.fillText((place.totalAmount || 300) + ' ج.م', 45, svcRowY + 30);
+  ctx.fillText((place.totalAmount || 300) + ' ج.م', 35, svcRowY + 34);
 
   // ============================================================
-  // 6. PAYMENT SUMMARY BOX
+  // 6. PAYMENT SUMMARY BOX (Compact Y & Large Fonts)
   // ============================================================
   const tot = place.totalAmount || 300;
   const paid = place.paidAmount ?? tot;
   const rem = place.remainingAmount ?? Math.max(0, tot - paid);
 
-  const payY = svcRowY + 65;
+  const payY = svcRowY + 70;
 
   // Section Header
   ctx.fillStyle = COL.headerBg;
-  ctx.fillRect(20, payY, W - 40, 30);
+  ctx.fillRect(18, payY, W - 36, 32);
   ctx.fillStyle = COL.white;
-  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('الحساب المالي وحالة السداد', W - 45, payY + 20);
+  ctx.fillText('الحساب المالي وحالة السداد', W - 35, payY + 22);
 
   // Three summary boxes side by side
-  const boxW = (W - 40 - 30) / 3;
-  const boxY = payY + 38;
-  const boxH = 60;
+  const boxW = (W - 36 - 24) / 3;
+  const boxY = payY + 40;
+  const boxH = 68;
 
   // Total Amount Box
   ctx.fillStyle = COL.lightBg;
-  roundRect(20, boxY, boxW, boxH, 6);
+  roundRect(18, boxY, boxW, boxH, 8);
   ctx.fill();
   ctx.strokeStyle = COL.border;
   ctx.lineWidth = 1;
-  roundRect(20, boxY, boxW, boxH, 6);
+  roundRect(18, boxY, boxW, boxH, 8);
   ctx.stroke();
   ctx.textAlign = 'center';
   ctx.fillStyle = COL.muted;
-  ctx.font = 'bold 10px Tahoma, Arial, sans-serif';
-  ctx.fillText('إجمالي الفاتورة', 20 + boxW / 2, boxY + 22);
+  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
+  ctx.fillText('إجمالي الفاتورة', 18 + boxW / 2, boxY + 24);
   ctx.fillStyle = COL.primary;
-  ctx.font = 'bold 18px Tahoma, Arial, sans-serif';
-  ctx.fillText(tot + ' ج.م', 20 + boxW / 2, boxY + 48);
+  ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
+  ctx.fillText(tot + ' ج.م', 18 + boxW / 2, boxY + 54);
 
   // Paid Amount Box
   ctx.fillStyle = '#ecfdf5';
-  roundRect(20 + boxW + 15, boxY, boxW, boxH, 6);
+  roundRect(18 + boxW + 12, boxY, boxW, boxH, 8);
   ctx.fill();
   ctx.strokeStyle = '#a7f3d0';
   ctx.lineWidth = 1;
-  roundRect(20 + boxW + 15, boxY, boxW, boxH, 6);
+  roundRect(18 + boxW + 12, boxY, boxW, boxH, 8);
   ctx.stroke();
   ctx.fillStyle = COL.emeraldDark;
-  ctx.font = 'bold 10px Tahoma, Arial, sans-serif';
-  ctx.fillText('المبلغ المدفوع', 20 + boxW + 15 + boxW / 2, boxY + 22);
-  ctx.font = 'bold 18px Tahoma, Arial, sans-serif';
-  ctx.fillText(paid + ' ج.م', 20 + boxW + 15 + boxW / 2, boxY + 48);
+  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
+  ctx.fillText('المبلغ المدفوع', 18 + boxW + 12 + boxW / 2, boxY + 24);
+  ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
+  ctx.fillText(paid + ' ج.م', 18 + boxW + 12 + boxW / 2, boxY + 54);
 
   // Remaining Amount Box
   ctx.fillStyle = rem > 0 ? '#fffbeb' : '#ecfdf5';
-  roundRect(20 + (boxW + 15) * 2, boxY, boxW, boxH, 6);
+  roundRect(18 + (boxW + 12) * 2, boxY, boxW, boxH, 8);
   ctx.fill();
   ctx.strokeStyle = rem > 0 ? '#fcd34d' : '#a7f3d0';
   ctx.lineWidth = 1;
-  roundRect(20 + (boxW + 15) * 2, boxY, boxW, boxH, 6);
+  roundRect(18 + (boxW + 12) * 2, boxY, boxW, boxH, 8);
   ctx.stroke();
   ctx.fillStyle = rem > 0 ? COL.amber : COL.emeraldDark;
-  ctx.font = 'bold 10px Tahoma, Arial, sans-serif';
-  ctx.fillText('المتبقي المستحق', 20 + (boxW + 15) * 2 + boxW / 2, boxY + 22);
-  ctx.font = 'bold 18px Tahoma, Arial, sans-serif';
-  ctx.fillText(rem + ' ج.م', 20 + (boxW + 15) * 2 + boxW / 2, boxY + 48);
+  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
+  ctx.fillText('المتبقي المستحق', 18 + (boxW + 12) * 2 + boxW / 2, boxY + 24);
+  ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
+  ctx.fillText(rem + ' ج.م', 18 + (boxW + 12) * 2 + boxW / 2, boxY + 54);
 
   // Payment Status Row
   const statusY = boxY + boxH + 12;
   ctx.fillStyle = COL.tableBg;
-  ctx.fillRect(20, statusY, W - 40, 30);
+  ctx.fillRect(18, statusY, W - 36, 34);
   ctx.strokeStyle = COL.border;
   ctx.lineWidth = 0.5;
-  ctx.strokeRect(20, statusY, W - 40, 30);
+  ctx.strokeRect(18, statusY, W - 36, 34);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = COL.primary;
-  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
-  ctx.fillText('حالة الفاتورة:', W - 35, statusY + 20);
+  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
+  ctx.fillText('حالة الفاتورة:', W - 35, statusY + 23);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = place.paymentStatus === 'مدفوعة بالكامل' ? COL.emeraldDark : COL.amber;
-  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
-  ctx.fillText('[ ' + (place.paymentStatus || '—') + ' ]', 45, statusY + 20);
+  ctx.font = 'bold 15px Tahoma, Arial, sans-serif';
+  ctx.fillText('[ ' + (place.paymentStatus || '—') + ' ]', 35, statusY + 23);
 
   // Payment note
-  const noteY = statusY + 38;
+  const noteY = statusY + 44;
   ctx.textAlign = 'right';
-  ctx.font = '10px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.muted;
   let noteLine = '';
   if (place.paymentStatus === 'مدفوعة بالكامل') {
@@ -742,71 +740,71 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillText(noteLine, W - 35, noteY);
 
   // ============================================================
-  // 7. DOCUMENTER & STAMP SECTION
+  // 7. DOCUMENTER & STAMP & ENLARGED QR SECTION
   // ============================================================
-  const stampSectionY = noteY + 35;
+  const stampSectionY = noteY + 28;
 
   // Thin separator
   ctx.strokeStyle = COL.border;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(40, stampSectionY);
-  ctx.lineTo(W - 40, stampSectionY);
+  ctx.moveTo(30, stampSectionY);
+  ctx.lineTo(W - 30, stampSectionY);
   ctx.stroke();
 
-  const stampAreaY = stampSectionY + 15;
+  const stampAreaY = stampSectionY + 16;
 
   // --- RIGHT SIDE: Documenter Info ---
   ctx.textAlign = 'right';
   ctx.fillStyle = COL.primary;
-  ctx.font = 'bold 12px Tahoma, Arial, sans-serif';
-  ctx.fillText('الموثق الميداني المسؤول:', W - 45, stampAreaY + 20);
+  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
+  ctx.fillText('الموثق الميداني المسؤول:', W - 35, stampAreaY + 22);
 
   ctx.fillStyle = COL.secondary;
-  ctx.font = '12px Tahoma, Arial, sans-serif';
-  ctx.fillText(place.documenterName || 'مكتب دليلك للخدمات الرقمية', W - 45, stampAreaY + 42);
+  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
+  ctx.fillText(place.documenterName || 'مكتب دليلك للخدمات الرقمية', W - 35, stampAreaY + 46);
 
-  ctx.font = 'italic 10px Tahoma, Arial, sans-serif';
+  ctx.font = 'italic 11px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.lightMuted;
-  ctx.fillText('التوقيع الإلكتروني والختم الميداني معتمد رسمياً', W - 45, stampAreaY + 62);
+  ctx.fillText('التوقيع الإلكتروني والختم الميداني معتمد رسمياً', W - 35, stampAreaY + 68);
 
   // Signature line
   ctx.strokeStyle = COL.muted;
-  ctx.lineWidth = 0.8;
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(W - 250, stampAreaY + 78);
-  ctx.lineTo(W - 45, stampAreaY + 78);
+  ctx.moveTo(W - 250, stampAreaY + 86);
+  ctx.lineTo(W - 35, stampAreaY + 86);
   ctx.stroke();
-  ctx.font = '9px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.lightMuted;
-  ctx.fillText('التوقيع', W - 50, stampAreaY + 92);
+  ctx.fillText('التوقيع المعتمد', W - 45, stampAreaY + 102);
 
-  // --- CENTER: OFFICIAL CIRCULAR STAMP (EXACT MATCH TO REFERENCE PHOTO) ---
-  const stX = W / 2 - 30;
-  const stY = stampAreaY + 55;
+  // --- CENTER: ENLARGED OFFICIAL CIRCULAR STAMP ---
+  const stX = W / 2 - 20;
+  const stY = stampAreaY + 75;
 
   ctx.save();
   ctx.translate(stX, stY);
-  ctx.rotate(-0.06); // Realistic hand-stamped angle
+  ctx.rotate(-0.06);
 
-  const stampBlue = '#0d47a1'; // Official Royal Stamp Blue Ink (#0d47a1)
+  const stampBlue = '#0d47a1';
 
-  // Outer double circular rings
+  // Outer double circular rings (Enlarged)
   ctx.strokeStyle = stampBlue;
-  ctx.lineWidth = 3.5;
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(0, 0, 72, 0, Math.PI * 2);
+  ctx.arc(0, 0, 80, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.lineWidth = 1.4;
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.arc(0, 0, 66, 0, Math.PI * 2);
+  ctx.arc(0, 0, 73, 0, Math.PI * 2);
   ctx.stroke();
 
   // Inner center ring
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.arc(0, 0, 44, 0, Math.PI * 2);
+  ctx.arc(0, 0, 48, 0, Math.PI * 2);
   ctx.stroke();
 
   // --- Center Logo Emblem in Solid Stamp Blue Ink ---
@@ -814,51 +812,49 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
     ctx.save();
     if (typeof document !== 'undefined') {
       const offCanvas = document.createElement('canvas');
-      offCanvas.width = 72;
-      offCanvas.height = 72;
+      offCanvas.width = 80;
+      offCanvas.height = 80;
       const offCtx = offCanvas.getContext('2d');
       if (offCtx) {
-        offCtx.drawImage(logoImg, 0, 0, 72, 72);
+        offCtx.drawImage(logoImg, 0, 0, 80, 80);
         offCtx.globalCompositeOperation = 'source-in';
         offCtx.fillStyle = stampBlue;
-        offCtx.fillRect(0, 0, 72, 72);
-        ctx.drawImage(offCanvas, -36, -36, 72, 72);
+        offCtx.fillRect(0, 0, 80, 80);
+        ctx.drawImage(offCanvas, -40, -40, 80, 80);
       } else {
-        ctx.drawImage(logoImg, -32, -32, 64, 64);
+        ctx.drawImage(logoImg, -36, -36, 72, 72);
       }
     } else {
-      ctx.drawImage(logoImg, -32, -32, 64, 64);
+      ctx.drawImage(logoImg, -36, -36, 72, 72);
     }
     ctx.restore();
   } else {
     ctx.fillStyle = stampBlue;
-    ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 18px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('دليلك', 0, 5);
+    ctx.fillText('دليلك', 0, 6);
   }
 
   // Draw SVG Curved Text Overlay (Native SVG textPath for 100% smooth curved Arabic text)
   const stampTextSvg = CACHED_STAMP_TEXT_SVG || new Image();
   if (stampTextSvg.complete && stampTextSvg.width > 0) {
-    ctx.drawImage(stampTextSvg, -75, -75, 150, 150);
+    ctx.drawImage(stampTextSvg, -83, -83, 166, 166);
   } else {
     // Fallback: Clean connected Arabic text
     ctx.fillStyle = stampBlue;
     ctx.textAlign = 'center';
     ctx.direction = 'rtl';
-    ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
-    ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -52);
-    ctx.fillText('★ توثيق الكتروني ★', 0, 56);
     ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
-    ctx.fillText('✴', -55, 2);
-    ctx.fillText('✴', 55, 2);
+    ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -58);
+    ctx.fillText('★ توثيق الكتروني ★', 0, 62);
+    ctx.font = 'bold 15px Tahoma, Arial, sans-serif';
+    ctx.fillText('✴', -62, 2);
+    ctx.fillText('✴', 62, 2);
   }
 
   ctx.restore();
 
-  ctx.restore();
-
-  // --- LEFT SIDE: DYNAMIC SCANNABLE QR CODE ---
+  // --- LEFT SIDE: ENLARGED SCANNABLE QR CODE ---
   const siteOrigin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
   let qrData = '';
   if (place.dms) {
@@ -871,20 +867,20 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
     qrData = `https://www.google.com/maps`;
   }
 
-  const qrSize = 120;
-  // Generate high-resolution 360x360 QR canvas with High Error Correction (level H)
-  const qrCanvas = generateQRCodeCanvas(qrData, 360);
-  const qrX = 40;
-  const qrY = stampAreaY + 2;
+  // ENLARGED QR SIZE (150px)
+  const qrSize = 150;
+  const qrCanvas = generateQRCodeCanvas(qrData, 450);
+  const qrX = 35;
+  const qrY = stampAreaY + 5;
 
   // Background card for QR
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 8);
+  ctx.fillRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10);
 
   // QR border
   ctx.strokeStyle = COL.border;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 8);
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10);
 
   // Render high-res QR canvas onto invoice canvas cleanly
   ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
@@ -892,25 +888,27 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   // QR label
   ctx.textAlign = 'center';
   ctx.direction = 'rtl';
-  ctx.fillStyle = COL.muted;
-  ctx.font = 'bold 8px Tahoma, Arial, sans-serif';
-  ctx.fillText('امسح الكود للتحقق من صحة الفاتورة', qrX + qrSize / 2, qrY + qrSize + 14);
+  ctx.fillStyle = COL.primary;
+  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
+  ctx.fillText('امسح الكود للتحقق من صحة الفاتورة 📱', qrX + qrSize / 2, qrY + qrSize + 18);
 
   // ============================================================
   // 9. FOOTER BAR
   // ============================================================
-  const footerY = H - 70;
+  const footerY = H - 65;
   ctx.fillStyle = COL.headerBg;
-  ctx.fillRect(20, footerY, W - 40, 48);
+  ctx.fillRect(18, footerY, W - 36, 48);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = COL.lightMuted;
-  ctx.font = '9px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
   ctx.fillText('دليلك للخدمات الرقمية — إدارة توثيق خرائط جوجل الرسمية — جميع الحقوق محفوظة © 2026', W / 2, footerY + 18);
-  ctx.fillText('فاتورة إلكترونية رسمية محمية بختم المؤسسة وباركود التحقق ', W / 2, footerY + 34);
+  ctx.fillText('فاتورة إلكترونية رسمية محمية بختم المؤسسة وباركود التحقق التفاعلي', W / 2, footerY + 34);
 
   // Thin emerald line on top of footer
   ctx.fillStyle = COL.headerAccent;
+  ctx.fillRect(18, footerY, W - 36, 2);
+
   return canvas.toDataURL('image/png');
 }
 
