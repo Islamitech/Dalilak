@@ -14,7 +14,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0f172a",
+  themeColor: "#0B1120",
 };
 
 export const metadata: Metadata = {
@@ -32,6 +32,8 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
+    "theme-color": "#0B1120",
+    "background-color": "#0B1120",
   },
 };
 
@@ -47,6 +49,8 @@ export default function RootLayout({
       className={`${cairo.variable} h-full antialiased`}
     >
       <head>
+        <meta name="theme-color" content="#0B1120" />
+        <meta name="background-color" content="#0B1120" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon.png" />

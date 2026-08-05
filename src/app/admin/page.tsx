@@ -308,9 +308,9 @@ export default function AdminDashboard() {
           <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center shrink-0 rounded-2xl bg-slate-950/60 p-1 border border-slate-800/80">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+              <img src="/logo.png" alt="دليلك" className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.35)]" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">

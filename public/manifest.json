@@ -6,16 +6,22 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0B1120",
-  "theme_color": "#0f172a",
+  "theme_color": "#0B1120",
   "lang": "ar",
   "dir": "rtl",
   "categories": ["business", "productivity"],
   "icons": [
     {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "screenshots": [],
