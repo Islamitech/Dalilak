@@ -442,10 +442,23 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   }
 
   // ============================================================
-  // 1. WHITE BACKGROUND + OUTER BORDER
+  // 1. WHITE BACKGROUND + CLEAR SECURITY WATERMARK
   // ============================================================
   ctx.fillStyle = COL.bg;
   ctx.fillRect(0, 0, W, H);
+
+  // Clear visible security paper watermark (Drawn on paper background)
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(-Math.PI / 6);
+  ctx.font = 'bold 15px Tahoma, Arial, sans-serif';
+  ctx.fillStyle = 'rgba(30, 58, 138, 0.08)'; // Clear visible subtle stamp-blue security watermark
+  ctx.textAlign = 'center';
+  ctx.direction = 'rtl';
+  for (let y = -600; y <= 600; y += 100) {
+    ctx.fillText('DALEELAK DIGITAL SERVICES  ★  توثيق معتمد رسمياً  ★  دليلك للخدمات الرقمية', 0, y);
+  }
+  ctx.restore();
 
   // Double border frame
   ctx.strokeStyle = COL.border;
@@ -465,24 +478,28 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = COL.headerAccent;
   ctx.fillRect(20, 138, W - 40, 4);
 
-  // Company Logo in Header
+  // Company Logo in Header (Top Left Corner)
   const logoImg = new Image();
   logoImg.src = LOGO_BASE64_DATA_URL;
+
+  // White container card for Logo in top-left
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(35, 30, 95, 95, 16);
+  ctx.fill();
+  ctx.strokeStyle = COL.headerAccent;
+  ctx.lineWidth = 2;
+  roundRect(35, 30, 95, 95, 16);
+  ctx.stroke();
+
   if (logoImg.complete && logoImg.width > 0) {
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(72, 80, 38, 0, Math.PI * 2);
+    roundRect(40, 35, 85, 85, 12);
     ctx.clip();
-    ctx.drawImage(logoImg, 34, 42, 76, 76);
+    ctx.drawImage(logoImg, 40, 35, 85, 85);
     ctx.restore();
-    ctx.strokeStyle = COL.headerAccent;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(72, 80, 38, 0, Math.PI * 2);
-    ctx.stroke();
   }
 
-  // Company Name & Info (RTL)
+  // Company Name & Info (RTL - Right Side)
   ctx.direction = 'rtl';
   ctx.textAlign = 'right';
   ctx.fillStyle = COL.white;
@@ -494,18 +511,18 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillText('المنظومة الرسمية المعتمدة لتوثيق وإدارة المنشآت على خرائط جوجل', W - 45, 86);
   ctx.fillText('سجل تجاري وترخيص ميداني معتمد — القاهرة، مصر', W - 45, 106);
 
-  // Invoice Number Badge (top-left area of header)
+  // Invoice Number Badge (Positioned next to Logo on Left Side of Header)
   ctx.textAlign = 'left';
   ctx.direction = 'ltr';
   ctx.fillStyle = COL.headerAccent;
   ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
-  ctx.fillText('INVOICE', 125, 60);
+  ctx.fillText('INVOICE', 145, 60);
   ctx.fillStyle = COL.white;
   ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
-  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 125, 82);
+  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 145, 82);
   ctx.font = '10px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.lightMuted;
-  ctx.fillText(place.date + '  |  ' + place.time, 125, 100);
+  ctx.fillText(place.date + '  |  ' + place.time, 145, 100);
 
   // ============================================================
   // 3. INVOICE TITLE BAR
@@ -751,17 +768,27 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = COL.lightMuted;
   ctx.fillText('التوقيع', W - 50, stampAreaY + 92);
 
-  // --- CENTER: PROFESSIONAL CIRCULAR STAMP ---
+  // --- CENTER: OFFICIAL FILLED BLUE RUBBER STAMP ---
   const stX = W / 2 - 30;
   const stY = stampAreaY + 55;
 
   ctx.save();
   ctx.translate(stX, stY);
-  ctx.rotate(-0.1);
+  ctx.rotate(-0.12); // Realistic hand-stamped angle
 
-  // Outer double ring
-  ctx.strokeStyle = COL.stampBlue;
-  ctx.lineWidth = 3;
+  const stampBlue = '#1d4ed8'; // Official stamp blue ink color
+  const stampBlueDark = '#1e3a8a';
+  const stampBlueTint = 'rgba(29, 78, 216, 0.12)';
+
+  // Filled blue background for stamp body
+  ctx.fillStyle = stampBlueTint;
+  ctx.beginPath();
+  ctx.arc(0, 0, 70, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Thick double outer rings
+  ctx.strokeStyle = stampBlue;
+  ctx.lineWidth = 3.5;
   ctx.beginPath();
   ctx.arc(0, 0, 68, 0, Math.PI * 2);
   ctx.stroke();
@@ -771,14 +798,19 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.arc(0, 0, 62, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Inner decorative ring
-  ctx.strokeStyle = COL.stampBlueMid;
-  ctx.lineWidth = 0.8;
+  // Inner ring
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.arc(0, 0, 55, 0, Math.PI * 2);
+  ctx.arc(0, 0, 50, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Logo in center
+  // Filled Solid Blue Center Badge for the Logo
+  ctx.fillStyle = stampBlue;
+  ctx.beginPath();
+  ctx.arc(0, 0, 32, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Logo in Stamp Center (Tinted/Filled inside stamp)
   if (logoImg.complete && logoImg.width > 0) {
     ctx.save();
     ctx.beginPath();
@@ -787,34 +819,39 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
     ctx.drawImage(logoImg, -28, -28, 56, 56);
     ctx.restore();
 
-    ctx.strokeStyle = COL.headerAccent;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = COL.white;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, 28, 0, Math.PI * 2);
     ctx.stroke();
+  } else {
+    ctx.fillStyle = COL.white;
+    ctx.font = 'bold 15px Tahoma, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('دليلك', 0, 5);
   }
 
-  // Curved text around stamp - using straight text as canvas arc text is complex
-  ctx.fillStyle = COL.stampBlue;
+  // Curved Text around Stamp (Official Blue Ink)
+  ctx.fillStyle = stampBlueDark;
   ctx.textAlign = 'center';
   ctx.direction = 'rtl';
 
-  // Top text
-  ctx.font = 'bold 8px Tahoma, Arial, sans-serif';
-  ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -42);
-  ctx.font = '7px Tahoma, Arial, sans-serif';
-  ctx.fillText('DALEELAK DIGITAL SERVICES', 0, -33);
+  // Top Text in Stamp
+  ctx.font = 'bold 8.5px Tahoma, Arial, sans-serif';
+  ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -52);
+  ctx.font = 'bold 7px Tahoma, Arial, sans-serif';
+  ctx.fillText('DALEELAK DIGITAL SERVICES', 0, -40);
 
-  // Bottom text
-  ctx.font = 'bold 8px Tahoma, Arial, sans-serif';
-  ctx.fillText('توثيق خرائط ميداني معتمد', 0, 38);
-  ctx.font = '7px Tahoma, Arial, sans-serif';
-  ctx.fillText('VERIFIED & APPROVED © 2026', 0, 48);
+  // Bottom Text in Stamp
+  ctx.font = 'bold 8.5px Tahoma, Arial, sans-serif';
+  ctx.fillText('★ توثيق خرائط ميداني معتمد ★', 0, 43);
+  ctx.font = 'bold 7px Tahoma, Arial, sans-serif';
+  ctx.fillText('VERIFIED & APPROVED © 2026', 0, 53);
 
-  // Small decorative stars at sides
-  ctx.font = '10px Tahoma, Arial, sans-serif';
-  ctx.fillText('★', -52, 3);
-  ctx.fillText('★', 52, 3);
+  // Side Stars
+  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
+  ctx.fillText('★', -54, 3);
+  ctx.fillText('★', 54, 3);
 
   ctx.restore();
 
