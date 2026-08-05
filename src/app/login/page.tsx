@@ -94,8 +94,9 @@ export default function LoginPage() {
         className="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-10 max-w-md w-full shadow-2xl space-y-6 relative z-10"
       >
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 text-slate-950 mb-3">
-            <Building2 className="w-9 h-9" />
+          <div className="w-20 h-20 rounded-3xl overflow-hidden mx-auto shadow-xl shadow-emerald-500/20 border border-slate-700 bg-slate-950 flex items-center justify-center mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="دليلك" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-black text-white">دليلك للخدمات الرقمية</h1>
           <p className="text-xs text-slate-400">بوابة تسجيل الدخول للمسؤولين والموثقين الميدانيين</p>

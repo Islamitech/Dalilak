@@ -345,22 +345,39 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
 
+  // Background
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, 800, 1120);
 
+  // Outer Border
   ctx.strokeStyle = '#cbd5e1';
   ctx.lineWidth = 4;
   ctx.strokeRect(15, 15, 770, 1090);
 
+  // Diagonal Watermark Background (الجرأة والاعتمادية)
+  ctx.save();
+  ctx.translate(400, 560);
+  ctx.rotate(-Math.PI / 6);
+  ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
+  ctx.fillStyle = 'rgba(226, 232, 240, 0.45)';
+  ctx.textAlign = 'center';
+  for (let y = -400; y <= 400; y += 120) {
+    ctx.fillText('DALEELAK DIGITAL SERVICES  ★  توثيق معتمد رسمياً  ★  OFFICIALLY VERIFIED', 0, y);
+  }
+  ctx.restore();
+
+  // Top Header Bar (Dark Slate)
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(17, 17, 766, 140);
 
+  // Green Emerald Line
   ctx.fillStyle = '#10b981';
   ctx.fillRect(17, 152, 766, 5);
 
   ctx.direction = 'rtl';
   ctx.textAlign = 'right';
 
+  // Company Name & Subtitle
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 24px Tahoma, Arial, sans-serif';
   ctx.fillText('دليلك للخدمات الرقمية (توثيق الخرائط)', 750, 60);
@@ -370,6 +387,23 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillText('المنظومة الميدانية المعتمدة لتوثيق وإدارة المنشآت على خرائط جوجل', 750, 95);
   ctx.fillText('سجل تجاري وترخيص ميداني معتمد - القاهرة، مصر', 750, 122);
 
+  // Draw QR / Barcode Mockup Box on left header
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(40, 32, 110, 110);
+  ctx.strokeStyle = '#334155';
+  ctx.strokeRect(40, 32, 110, 110);
+
+  // Simple QR pattern representation inside
+  ctx.fillStyle = '#10b981';
+  ctx.fillRect(48, 40, 30, 30);
+  ctx.fillRect(112, 40, 30, 30);
+  ctx.fillRect(48, 104, 30, 30);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(55, 47, 16, 16);
+  ctx.fillRect(119, 47, 16, 16);
+  ctx.fillRect(55, 111, 16, 16);
+
+  // Title & Date
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 20px Tahoma, Arial, sans-serif';
   ctx.fillText(`فاتورة توثيق ميداني رسمية رقم: INV-${place.id.slice(-6)}`, 750, 195);
@@ -385,6 +419,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.lineTo(760, 240);
   ctx.stroke();
 
+  // Business Info Box
   ctx.fillStyle = '#f8fafc';
   ctx.fillRect(40, 260, 720, 185);
   ctx.strokeStyle = '#cbd5e1';
@@ -402,6 +437,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillText(`• الإحداثيات الجغرافية (DMS):  ${place.dms}`, 740, 412);
   ctx.fillText(`• رقم هاتف التواصل والواتساب:  ${place.phone}   |   البريد: ${place.googleEmail}`, 740, 432);
 
+  // Table Header
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(40, 465, 720, 40);
 
@@ -411,6 +447,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.textAlign = 'left';
   ctx.fillText('القيمة (جنيه مصري)', 60, 490);
 
+  // Table Row
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(40, 505, 720, 75);
   ctx.strokeStyle = '#e2e8f0';
@@ -435,6 +472,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   const paid = place.paidAmount ?? tot;
   const rem = place.remainingAmount ?? Math.max(0, tot - paid);
 
+  // Payment Status Summary Box
   ctx.fillStyle = '#f1f5f9';
   ctx.fillRect(40, 600, 720, 160);
   ctx.strokeRect(40, 600, 720, 160);
@@ -471,35 +509,64 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   }
   ctx.fillText(noteLine, 740, 792);
 
-  const stampX = 180;
-  const stampY = 940;
+  // OFFICIAL DISTINCTIVE STAMP WITH BRAND LOGO (الختم المميز المعتمد)
+  const stampX = 200;
+  const stampY = 945;
 
   ctx.save();
   ctx.translate(stampX, stampY);
-  ctx.rotate(-0.12);
+  ctx.rotate(-0.14);
 
-  ctx.strokeStyle = '#1d4ed8';
+  // Stamp Outer Double Rings
+  ctx.strokeStyle = '#1e40af';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(0, 0, 72, 0, Math.PI * 2);
+  ctx.arc(0, 0, 76, 0, Math.PI * 2);
   ctx.stroke();
 
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.arc(0, 0, 64, 0, Math.PI * 2);
+  ctx.arc(0, 0, 68, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.fillStyle = '#1d4ed8';
-  ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
+  // Inner Filled Badge Circle for Logo
+  ctx.fillStyle = '#020617';
+  ctx.beginPath();
+  ctx.arc(0, 0, 36, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Draw Logo Symbol inside stamp
+  ctx.fillStyle = '#10b981';
+  ctx.beginPath();
+  ctx.moveTo(0, -18);
+  ctx.bezierCurveTo(12, -18, 16, -6, 16, 2);
+  ctx.bezierCurveTo(16, 12, 0, 22, 0, 22);
+  ctx.bezierCurveTo(0, 22, -16, 12, -16, 2);
+  ctx.bezierCurveTo(-16, -6, -12, -18, 0, -18);
+  ctx.fill();
+
+  // Building & Check inside logo stamp
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(-6, -4, 12, 14);
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(-3, -1, 6, 4);
+
+  // Stamp Curved Text Upper and Lower
+  ctx.fillStyle = '#1e40af';
+  ctx.font = 'bold 10.5px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.direction = 'rtl';
-  ctx.fillText('دليلك للخدمات الرقمية', 0, -36);
-  ctx.fillText('★ توثيق الخرائط الميداني ★', 0, -16);
-  ctx.fillText('فحص وتأكيد رقمي معتمد', 0, 10);
-  ctx.fillText('سجل رقمي معتمد 2026', 0, 30);
-  ctx.fillText('VERIFIED & APPROVED', 0, 48);
+  ctx.fillText('دليلك للخدمات الرقمية', 0, -48);
+  ctx.fillText('★ توثيق الخرائط الميداني ★', 0, -38);
+  ctx.fillText('سجل رقمي معتمد 2026', 0, 46);
+  ctx.fillText('VERIFIED & APPROVED', 0, 58);
+
   ctx.restore();
 
+  // Documenter Signature
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'right';
@@ -512,6 +579,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = '#94a3b8';
   ctx.fillText('التوقيع الإلكتروني والختم الميداني معتمد رسمياً', 740, 970);
 
+  // Footer Certificate Bar
   ctx.fillStyle = '#f8fafc';
   ctx.fillRect(17, 1040, 766, 62);
   ctx.strokeStyle = '#cbd5e1';
@@ -521,7 +589,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillStyle = '#64748b';
   ctx.font = '11px Tahoma, Arial, sans-serif';
   ctx.fillText('دليلك للخدمات الرقمية - إدارة توثيق خرائط جوجل الرسمية - جميع الحقوق محفوظة © 2026', 400, 1068);
-  ctx.fillText('هذه الفاتورة مستند رسمي موثق صادرة ومطبوعة إلكترونياً من المنظومة الميدانية', 400, 1088);
+  ctx.fillText('هذه الفاتورة مستند رسمية موثق صادرة ومطبوعة إلكترونياً من المنظومة الميدانية الحاوية للعلامة المائية', 400, 1088);
 
   return canvas.toDataURL('image/png');
 }
@@ -1369,8 +1437,9 @@ export default function Home() {
           {/* Global Header matching Admin navigation styling */}
           <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
-                <Building2 className="w-7 h-7" />
+              <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-slate-700 bg-slate-950 flex items-center justify-center shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="دليلك" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-black text-white">دليلك للخدمات الرقمية</h1>
@@ -1642,9 +1711,10 @@ export default function Home() {
         {/* Global Navigation Header - Official Production Version */}
         <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
-              <Building2 className="w-7 h-7" />
-            </div>
+            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-slate-700 bg-slate-950 flex items-center justify-center shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="دليلك" className="w-full h-full object-cover" />
+              </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-black text-white">دليلك للخدمات الرقمية (توثيق الخرائط)</h1>

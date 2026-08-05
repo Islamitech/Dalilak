@@ -251,8 +251,9 @@ export default function AdminDashboard() {
         {/* Top Navigation Bar */}
         <header className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
-              <ShieldCheck className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-indigo-600/30 border border-slate-700 bg-slate-950 flex items-center justify-center shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="دليلك" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="flex items-center gap-2">
