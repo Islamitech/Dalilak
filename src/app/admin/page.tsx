@@ -440,16 +440,9 @@ export default function AdminDashboard() {
           </div>
 
           {documenters.length > 0 ? (
-            <div className="relative">
-              {/* Mobile swipe hint banner */}
-              <div className="sm:hidden text-[10px] text-emerald-400 font-bold bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl mb-2 flex items-center justify-between shadow-sm">
-                <span>← اسحب الجدول أفقيًا لرؤية بقية تفاصيل الموثقين</span>
-                <span className="animate-pulse">↔</span>
-              </div>
-
-              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 pb-2 touch-pan-x rounded-2xl border border-slate-800/80">
-                <table className="w-full text-right text-xs min-w-[680px] whitespace-nowrap">
-                  <thead>
+            <div className="table-scroll-container rounded-2xl border border-slate-800/80 bg-slate-950/40">
+              <table className="w-full text-right text-xs min-w-[700px] whitespace-nowrap">
+                <thead>
                     <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
                       <th className="p-3.5 rounded-r-xl">الاسم الكامل للموثق</th>
                       <th className="p-3.5">البريد الإلكتروني</th>
@@ -491,7 +484,6 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
           ) : (
             <p className="text-xs text-slate-500 text-center py-6">لا يوجد موثقين مسجلين حالياً. اضغط أعلاه لإضافة موثق جديد.</p>
           )}
@@ -559,16 +551,9 @@ export default function AdminDashboard() {
 
           {/* Master Table */}
           {filteredPlaces.length > 0 ? (
-            <div className="relative">
-              {/* Mobile swipe hint banner */}
-              <div className="sm:hidden text-[10px] text-emerald-400 font-bold bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl mb-2 flex items-center justify-between shadow-sm">
-                <span>← اسحب جدول الفواتير والتوثيقات أفقيًا لرؤية الإجراءات كاملة</span>
-                <span className="animate-pulse">↔</span>
-              </div>
-
-              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 pb-2 touch-pan-x rounded-2xl border border-slate-800/80">
-                <table className="w-full text-right text-xs min-w-[900px] whitespace-nowrap">
-                  <thead>
+            <div className="table-scroll-container rounded-2xl border border-slate-800/80 bg-slate-950/40">
+              <table className="w-full text-right text-xs min-w-[950px] whitespace-nowrap">
+                <thead>
                     <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
                       <th className="p-3.5 rounded-r-xl">المكان التجاري</th>
                       <th className="p-3.5">الصور والتوثيق</th>
@@ -670,7 +655,6 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
           ) : (
             <p className="text-xs text-slate-500 text-center py-8">لا توجد أماكن موثقة مطابقة لخيارات البحث الحالية.</p>
           )}
