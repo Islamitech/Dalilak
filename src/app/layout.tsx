@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "دليلك للخدمات الرقمية — توثيق الخرائط",
-  description: "منظومة توثيق الأماكن التجارية وإصدار الفواتير الرسمية الرقمية",
+  description: "المنظومة الرقمية الشاملة للتحول الرقمي، التوثيق الميداني الذكي، وإدارة المنشآت والحلول المتقدمة للأعمال",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

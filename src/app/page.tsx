@@ -1885,7 +1885,7 @@ export default function Home() {
               <div>
                 <h1 className="text-xl sm:text-2xl font-black text-white">دليلك للخدمات الرقمية</h1>
                 <span className="text-xs text-emerald-400 font-bold block mt-0.5">
-                  منظومة توثيق الخرائط والحلول الميدانية والحلول الرقمية للأعمال
+                  المنظومة الرقمية الشاملة للتحول الرقمي، التوثيق الميداني الذكي، وإدارة المنشآت والحلول المتقدمة للأعمال
                 </span>
               </div>
             </div>
@@ -2164,7 +2164,7 @@ export default function Home() {
                 </span>
               </div>
               <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">
-                المنظومة الرسمية للتوثيق الميداني وإصدار الفواتير الرقمية
+                المنظومة الرقمية الشاملة للتحول الرقمي، التوثيق الميداني الذكي، وإدارة المنشآت والحلول المتقدمة للأعمال
               </p>
             </div>
           </div>
