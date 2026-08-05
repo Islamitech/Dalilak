@@ -12,13 +12,13 @@
   "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/icon.png",
+      "src": "/apple-touch-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
