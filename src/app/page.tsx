@@ -387,6 +387,32 @@ function generateQRCodeCanvas(data: string, renderSize: number = 360): HTMLCanva
   return canvas;
 }
 
+// Pre-cached static images for instant, 100% consistent synchronous canvas rendering
+let CACHED_LOGO_IMG: HTMLImageElement | null = null;
+let CACHED_STAMP_TEXT_SVG: HTMLImageElement | null = null;
+
+if (typeof window !== 'undefined') {
+  CACHED_LOGO_IMG = new Image();
+  CACHED_LOGO_IMG.src = LOGO_BASE64_DATA_URL;
+
+  CACHED_STAMP_TEXT_SVG = new Image();
+  const svgTextMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+    <defs>
+      <path id="topArc" d="M 40 150 A 110 110 0 0 1 260 150" fill="none"/>
+      <path id="bottomArc" d="M 260 150 A 110 110 0 0 1 40 150" fill="none"/>
+    </defs>
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
+      <textPath href="%23topArc" startOffset="50%" text-anchor="middle">دليلك للخدمات الرقمية</textPath>
+    </text>
+    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
+      <textPath href="%23bottomArc" startOffset="50%" text-anchor="middle">توثيق إلكتروني</textPath>
+    </text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="32" y="156" text-anchor="middle">✴</text>
+    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="268" y="156" text-anchor="middle">✴</text>
+  </svg>`;
+  CACHED_STAMP_TEXT_SVG.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTextMarkup);
+}
+
 // ====================================================================
 // PROFESSIONAL E-INVOICE IMAGE GENERATOR
 // Designed to match real-world electronic invoicing standards
@@ -479,8 +505,8 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.fillRect(20, 138, W - 40, 4);
 
   // Company Logo in Header (Top Left Corner - Squircle Emerald Card)
-  const logoImg = new Image();
-  logoImg.src = LOGO_BASE64_DATA_URL;
+  const logoImg = CACHED_LOGO_IMG || new Image();
+  if (!logoImg.src) logoImg.src = LOGO_BASE64_DATA_URL;
 
   // Squircle Container for Logo in top-left
   ctx.fillStyle = '#0f172a';
@@ -825,23 +851,7 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   }
 
   // Draw SVG Curved Text Overlay (Native SVG textPath for 100% smooth curved Arabic text)
-  const stampTextSvg = new Image();
-  const svgTextMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
-    <defs>
-      <path id="topArc" d="M 40 150 A 110 110 0 0 1 260 150" fill="none"/>
-      <path id="bottomArc" d="M 260 150 A 110 110 0 0 1 40 150" fill="none"/>
-    </defs>
-    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
-      <textPath href="%23topArc" startOffset="50%" text-anchor="middle">دليلك للخدمات الرقمية</textPath>
-    </text>
-    <text font-family="'Cairo','Tajawal',Tahoma,Arial,sans-serif" font-weight="900" font-size="20" fill="%230d47a1">
-      <textPath href="%23bottomArc" startOffset="50%" text-anchor="middle">توثيق إلكتروني</textPath>
-    </text>
-    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="32" y="156" text-anchor="middle">✴</text>
-    <text font-family="Tahoma,Arial,sans-serif" font-weight="bold" font-size="18" fill="%230d47a1" x="268" y="156" text-anchor="middle">✴</text>
-  </svg>`;
-  stampTextSvg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTextMarkup);
-
+  const stampTextSvg = CACHED_STAMP_TEXT_SVG || new Image();
   if (stampTextSvg.complete && stampTextSvg.width > 0) {
     ctx.drawImage(stampTextSvg, -75, -75, 150, 150);
   } else {
