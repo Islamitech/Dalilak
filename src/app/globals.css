@@ -45,11 +45,24 @@ body {
 }
 
 /* ===== PREVENT TEXT OVERFLOW GLOBALLY ===== */
-h1, h2, h3, h4, h5, h6, p, span, label, a, button, td, th, li {
+h1, h2, h3, h4, h5, h6, p, span, label, a, button, li {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
   hyphens: auto;
+}
+
+/* ===== TABLE HORIZONTAL SCROLL & NO VERTICAL TEXT BREAKING ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  word-wrap: normal !important;
+  hyphens: manual !important;
 }
 
 /* ===== MOBILE TEXT & BUTTON SIZING ===== */

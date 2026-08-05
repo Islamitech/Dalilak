@@ -440,18 +440,25 @@ export default function AdminDashboard() {
           </div>
 
           {documenters.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead>
-                  <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
-                    <th className="p-3.5 rounded-r-xl">الاسم الكامل للموثق</th>
-                    <th className="p-3.5">البريد الإلكتروني</th>
-                    <th className="p-3.5">رقم الهاتف</th>
-                    <th className="p-3.5">الأماكن الموثقة</th>
-                    <th className="p-3.5">المبالغ المحصلة</th>
-                    <th className="p-3.5 rounded-l-xl">الحالة والأذونات</th>
-                  </tr>
-                </thead>
+            <div className="relative">
+              {/* Mobile swipe hint banner */}
+              <div className="sm:hidden text-[10px] text-emerald-400 font-bold bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl mb-2 flex items-center justify-between shadow-sm">
+                <span>← اسحب الجدول أفقيًا لرؤية بقية تفاصيل الموثقين</span>
+                <span className="animate-pulse">↔</span>
+              </div>
+
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 pb-2 touch-pan-x rounded-2xl border border-slate-800/80">
+                <table className="w-full text-right text-xs min-w-[680px] whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                      <th className="p-3.5 rounded-r-xl">الاسم الكامل للموثق</th>
+                      <th className="p-3.5">البريد الإلكتروني</th>
+                      <th className="p-3.5">رقم الهاتف</th>
+                      <th className="p-3.5">الأماكن الموثقة</th>
+                      <th className="p-3.5">المبالغ المحصلة</th>
+                      <th className="p-3.5 rounded-l-xl">الحالة والأذونات</th>
+                    </tr>
+                  </thead>
                 <tbody className="divide-y divide-slate-800/60">
                   {documenters.map((doc) => {
                     const docPlaces = allPlaces.filter((p) => p.documenterName === doc.full_name);
@@ -484,6 +491,7 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
           ) : (
             <p className="text-xs text-slate-500 text-center py-6">لا يوجد موثقين مسجلين حالياً. اضغط أعلاه لإضافة موثق جديد.</p>
           )}
@@ -551,21 +559,28 @@ export default function AdminDashboard() {
 
           {/* Master Table */}
           {filteredPlaces.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead>
-                  <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
-                    <th className="p-3.5 rounded-r-xl">المكان التجاري</th>
-                    <th className="p-3.5">الصور والتوثيق</th>
-                    <th className="p-3.5">القطاع والنشاط</th>
-                    <th className="p-3.5">العنوان الميداني</th>
-                    <th className="p-3.5">الموثق المسؤول</th>
-                    <th className="p-3.5">حالة السداد</th>
-                    <th className="p-3.5">المدفوع / الإجمالي</th>
-                    <th className="p-3.5">التاريخ والوقت</th>
-                    <th className="p-3.5 rounded-l-xl text-center">إجراءات المسؤول</th>
-                  </tr>
-                </thead>
+            <div className="relative">
+              {/* Mobile swipe hint banner */}
+              <div className="sm:hidden text-[10px] text-emerald-400 font-bold bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl mb-2 flex items-center justify-between shadow-sm">
+                <span>← اسحب جدول الفواتير والتوثيقات أفقيًا لرؤية الإجراءات كاملة</span>
+                <span className="animate-pulse">↔</span>
+              </div>
+
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 pb-2 touch-pan-x rounded-2xl border border-slate-800/80">
+                <table className="w-full text-right text-xs min-w-[900px] whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                      <th className="p-3.5 rounded-r-xl">المكان التجاري</th>
+                      <th className="p-3.5">الصور والتوثيق</th>
+                      <th className="p-3.5">القطاع والنشاط</th>
+                      <th className="p-3.5">العنوان الميداني</th>
+                      <th className="p-3.5">الموثق المسؤول</th>
+                      <th className="p-3.5">حالة السداد</th>
+                      <th className="p-3.5">المدفوع / الإجمالي</th>
+                      <th className="p-3.5">التاريخ والوقت</th>
+                      <th className="p-3.5 rounded-l-xl text-center">إجراءات المسؤول</th>
+                    </tr>
+                  </thead>
                 <tbody className="divide-y divide-slate-800/60">
                   {filteredPlaces.map((p) => {
                     const payStatusColor =
@@ -655,6 +670,7 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
           ) : (
             <p className="text-xs text-slate-500 text-center py-8">لا توجد أماكن موثقة مطابقة لخيارات البحث الحالية.</p>
           )}
