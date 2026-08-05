@@ -482,20 +482,23 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   const logoImg = new Image();
   logoImg.src = LOGO_BASE64_DATA_URL;
 
-  // White container card for Logo in top-left
+  // Crisp Circular Container for Logo in top-left
   ctx.fillStyle = '#FFFFFF';
-  roundRect(35, 30, 95, 95, 16);
+  ctx.beginPath();
+  ctx.arc(76, 80, 42, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = COL.headerAccent;
-  ctx.lineWidth = 2;
-  roundRect(35, 30, 95, 95, 16);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(76, 80, 42, 0, Math.PI * 2);
   ctx.stroke();
 
   if (logoImg.complete && logoImg.width > 0) {
     ctx.save();
-    roundRect(40, 35, 85, 85, 12);
+    ctx.beginPath();
+    ctx.arc(76, 80, 38, 0, Math.PI * 2);
     ctx.clip();
-    ctx.drawImage(logoImg, 40, 35, 85, 85);
+    ctx.drawImage(logoImg, 38, 42, 76, 76);
     ctx.restore();
   }
 
@@ -516,13 +519,13 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
   ctx.direction = 'ltr';
   ctx.fillStyle = COL.headerAccent;
   ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
-  ctx.fillText('INVOICE', 145, 60);
+  ctx.fillText('INVOICE', 135, 60);
   ctx.fillStyle = COL.white;
   ctx.font = 'bold 16px Tahoma, Arial, sans-serif';
-  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 145, 82);
+  ctx.fillText('#INV-' + place.id.slice(-6).toUpperCase(), 135, 82);
   ctx.font = '10px Tahoma, Arial, sans-serif';
   ctx.fillStyle = COL.lightMuted;
-  ctx.fillText(place.date + '  |  ' + place.time, 145, 100);
+  ctx.fillText(place.date + '  |  ' + place.time, 135, 100);
 
   // ============================================================
   // 3. INVOICE TITLE BAR
@@ -824,62 +827,21 @@ function generateInvoiceImageDataUrl(place: PlaceItem): string {
     ctx.fillText('دليلك', 0, 5);
   }
 
-  // --- Top Curved Arc Text: "دليلك للخدمات الرقمية" ---
-  const topText = 'دليلك للخدمات الرقمية';
-  const topRadius = 55;
-  const topStartAngle = -Math.PI * 0.75;
-  const topEndAngle = -Math.PI * 0.25;
-  const topChars = topText.split('');
-  const topLen = topChars.length;
-  const topStep = (topEndAngle - topStartAngle) / (topLen > 1 ? topLen - 1 : 1);
-
-  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
+  // --- Top Text in Circular Ring Band (Clean Connected Arabic) ---
   ctx.fillStyle = stampBlue;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.direction = 'rtl';
+  ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
+  ctx.fillText('★ دليلك للخدمات الرقمية ★', 0, -52);
 
-  for (let i = 0; i < topLen; i++) {
-    // Reverse order for RTL arc text flow on top
-    const char = topChars[topLen - 1 - i];
-    const angle = topStartAngle + i * topStep;
-    ctx.save();
-    ctx.rotate(angle);
-    ctx.translate(0, -topRadius);
-    ctx.fillText(char, 0, 0);
-    ctx.restore();
-  }
+  // --- Bottom Text in Circular Ring Band (Clean Connected Arabic) ---
+  ctx.font = 'bold 11.5px Tahoma, Arial, sans-serif';
+  ctx.fillText('★ توثيق إلكتروني معتمد ★', 0, 56);
 
-  // --- Bottom Curved Arc Text: "توثيق إلكتروني" ---
-  const bottomText = 'توثيق إلكتروني';
-  const bottomRadius = 55;
-  const bottomStartAngle = Math.PI * 0.25;
-  const bottomEndAngle = Math.PI * 0.75;
-  const bottomChars = bottomText.split('');
-  const bottomLen = bottomChars.length;
-  const bottomStep = (bottomEndAngle - bottomStartAngle) / (bottomLen > 1 ? bottomLen - 1 : 1);
-
-  for (let i = 0; i < bottomLen; i++) {
-    const char = bottomChars[i];
-    const angle = bottomStartAngle + i * bottomStep;
-    ctx.save();
-    ctx.rotate(angle);
-    ctx.translate(0, bottomRadius);
-    ctx.fillText(char, 0, 0);
-    ctx.restore();
-  }
-
-  // --- Left and Right 8-Pointed Star Symbols ---
-  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
-  ctx.save();
-  ctx.rotate(-Math.PI * 0.95);
-  ctx.translate(0, -topRadius);
-  ctx.fillText('✴', 0, 0);
-  ctx.restore();
-
-  ctx.save();
-  ctx.rotate(-Math.PI * 0.05);
-  ctx.translate(0, -topRadius);
-  ctx.fillText('✴', 0, 0);
+  // --- Left and Right Decorative Side Stars ---
+  ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
+  ctx.fillText('✴', -55, 2);
+  ctx.fillText('✴', 55, 2);
   ctx.restore();
 
   ctx.restore();
