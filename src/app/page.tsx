@@ -1058,122 +1058,149 @@ export default function FieldDocumentationApp() {
             </div>
 
             {/* B. Employee Management & Administrative Authorization Control Panel */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-300 shadow-md space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <div className="bg-white p-6 rounded-3xl border border-slate-300 shadow-md space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                 <div>
-                  <h3 className="text-xl font-bold text-[#1E4A3A] flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    <span>إدارة الموظفين الميدانيين وصلاحيات الوصول والجزاءات</span>
+                  <h3 className="text-xl font-black text-[#1E4A3A] flex items-center gap-2">
+                    <Users className="w-5 h-5 text-emerald-700" />
+                    <span>إدارة الموظفين الميدانيين والتحكم الإداري للحسابات</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5 font-bold">
-                    حالة النشاط تتفاعل تلقائياً مع دخول الموظف وزياراته، والتحكم الإداري يتيح إيقاف الحساب أو إصدار إنذارات
+                    متابعة حالة النشاط التلقائية للموظف، والتحكم الفوري بفك إيقاف أو حظر الحسابات والجزاءات
                   </p>
                 </div>
                 <button
                   onClick={() => setShowAddEmpModal(true)}
-                  className="btn-brand text-sm min-h-[42px] px-3.5 py-1.5"
+                  className="btn-brand text-sm min-h-[42px] px-4 py-2 self-start sm:self-auto"
                 >
                   <Plus className="w-4 h-4 ml-1" />
                   <span>إضافة موظف جديد</span>
                 </button>
               </div>
 
-              {/* Employee Control Table */}
+              {/* Enterprise Clean Employee Control Table */}
               <div className="table-scroll-container">
                 <table className="w-full text-right border-collapse">
                   <thead>
-                    <tr className="bg-[#1E4A3A] text-white text-sm font-bold">
-                      <th className="p-3.5 rounded-r-2xl">اسم الموظف</th>
-                      <th className="p-3.5">البريد الإلكتروني</th>
-                      <th className="p-3.5">التوثيقات اليوم</th>
-                      <th className="p-3.5">حالة النشاط الميداني (مؤشر)</th>
-                      <th className="p-3.5 rounded-l-2xl text-left">إدارة الحساب والتحكم الإداري</th>
+                    <tr className="bg-[#1E4A3A] text-white text-xs font-black uppercase tracking-wider">
+                      <th className="p-3.5 rounded-r-2xl">الموظف والبريد</th>
+                      <th className="p-3.5 text-center">التوثيقات اليوم</th>
+                      <th className="p-3.5 text-center">حالة النشاط الميداني</th>
+                      <th className="p-3.5 text-center">حالة ترخيص الحساب</th>
+                      <th className="p-3.5 rounded-l-2xl text-left">إجراءات التحكم الإداري</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {store.employees.map(emp => (
-                      <tr key={emp.id} className="hover:bg-slate-50 text-base font-bold">
-                        <td className="p-3.5">
-                          <div className="flex items-center gap-2 text-[#1E202A]">
-                            <div className="w-9 h-9 rounded-full bg-emerald-100 text-[#1E4A3A] font-black flex items-center justify-center text-sm border border-emerald-300">
-                              {emp.name.charAt(0)}
+                    {store.employees.map(emp => {
+                      const empPlaces = store.places.filter(p => p.documenterName === emp.name);
+                      const empCollected = empPlaces.reduce((acc, p) => acc + (p.paidAmount || 0), 0);
+
+                      return (
+                        <tr key={emp.id} className="hover:bg-slate-50 text-sm font-bold transition-all">
+                          {/* Column 1: Employee Name & Email */}
+                          <td className="p-3.5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[#1E4A3A]/10 text-[#1E4A3A] font-black flex items-center justify-center text-sm border border-[#1E4A3A]/20">
+                                {emp.name.charAt(0)}
+                              </div>
+                              <div>
+                                <span className="block font-black text-[#1E202A] text-base">{emp.name}</span>
+                                <span className="text-xs text-slate-500 font-semibold dir-ltr block">{emp.email}</span>
+                              </div>
                             </div>
-                            <span className="font-extrabold text-[#1E202A]">{emp.name}</span>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="p-3.5 text-slate-600 text-sm font-semibold">{emp.email}</td>
+                          {/* Column 2: Today's Visits & Revenue */}
+                          <td className="p-3.5 text-center">
+                            <span className="text-amber-800 font-black text-base block">{emp.todayCount} زيارات</span>
+                            <span className="text-[11px] text-slate-500 font-extrabold block">محصل: {empCollected} ج.م</span>
+                          </td>
 
-                        <td className="p-3.5 text-amber-700 font-black text-base">{emp.todayCount} زيارات</td>
+                          {/* Column 3: Read-Only Automatic Live Activity Status (Circular Color Dot) */}
+                          <td className="p-3.5 text-center">
+                            {emp.adminStatus === 'suspended' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-300 text-slate-700 text-xs font-black">
+                                <span className="w-2.5 h-2.5 rounded-full bg-slate-500 shrink-0" />
+                                <span>غير متصل (حظر)</span>
+                              </span>
+                            ) : emp.activityStatus === 'active' || emp.status === 'active' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-black shadow-sm">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                <span>نشط في الميدان</span>
+                              </span>
+                            ) : emp.activityStatus === 'break' || emp.status === 'break' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs font-black">
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                                <span>في استراحة</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-300 text-slate-700 text-xs font-black">
+                                <span className="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0" />
+                                <span>متوقف حالياً</span>
+                              </span>
+                            )}
+                          </td>
 
-                        {/* Read-Only Live Activity Status Indicator with Circular Colored Dots */}
-                        <td className="p-3.5">
-                          {emp.adminStatus === 'suspended' ? (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-black">
-                              <span className="w-3 h-3 rounded-full bg-rose-600 shrink-0" />
-                              <span>متوقف (حساب موقوف)</span>
+                          {/* Column 4: Admin Account Status Badge (Read-Only Badge) */}
+                          <td className="p-3.5 text-center">
+                            {emp.adminStatus === 'suspended' ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-100 border border-rose-300 text-rose-900 text-xs font-black">
+                                🛑 موقوف إدارياً
+                              </span>
+                            ) : emp.adminStatus === 'under_review' ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-black">
+                                ⚠️ تحت المراجعة
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-black">
+                                🟢 مفعل ومصرح له
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Column 5: Clean Horizontal Admin Action Buttons */}
+                          <td className="p-3.5 text-left">
+                            <div className="flex items-center gap-2 justify-end">
+                              {/* Quick Toggle Lock / Unlock Account Button */}
+                              <button
+                                onClick={() => handleToggleAdminStatus(emp.id)}
+                                className={`text-xs px-3 py-1.5 rounded-xl border font-black transition-all ${
+                                  emp.adminStatus === 'suspended'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                                    : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
+                                }`}
+                                title={emp.adminStatus === 'suspended' ? 'تفعيل فوري للحساب' : 'إيقاف إداري للحساب'}
+                              >
+                                {emp.adminStatus === 'suspended' ? 'فك الإيقاف' : 'إيقاف الحساب'}
+                              </button>
+
+                              {/* Issue Warning Button */}
+                              <button
+                                onClick={() => {
+                                  triggerHaptic();
+                                  setShowWarningModalUser(emp);
+                                }}
+                                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs px-3 py-1.5 rounded-xl font-black transition-all"
+                                title="إصدار إنذار إداري"
+                              >
+                                إنذار
+                              </button>
+
+                              {/* View Full Dossier Button */}
+                              <button
+                                onClick={() => {
+                                  triggerHaptic();
+                                  setSelectedEmployeeDetail(emp);
+                                }}
+                                className="bg-[#1E4A3A] hover:bg-[#143529] text-white text-xs px-3.5 py-1.5 rounded-xl font-black shadow-sm transition-all flex items-center gap-1"
+                              >
+                                <span>الملف الشامل</span>
+                              </button>
                             </div>
-                          ) : emp.activityStatus === 'active' || emp.status === 'active' ? (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-black shadow-sm">
-                              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                              <span>نشط في الميدان</span>
-                            </div>
-                          ) : emp.activityStatus === 'break' || emp.status === 'break' ? (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs font-black">
-                              <span className="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
-                              <span>في استراحة</span>
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-300 text-slate-700 text-xs font-black">
-                              <span className="w-3 h-3 rounded-full bg-slate-400 shrink-0" />
-                              <span>متوقف حالياً</span>
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Admin Account Control & Actions */}
-                        <td className="p-3.5 text-left">
-                          <div className="flex items-center gap-2 justify-end flex-wrap">
-                            <select
-                              value={emp.adminStatus || 'authorized'}
-                              onChange={e => handleToggleAdminStatus(emp.id, e.target.value as any)}
-                              className={`text-xs font-extrabold py-1.5 px-2.5 rounded-xl border ${
-                                emp.adminStatus === 'suspended'
-                                  ? 'bg-rose-100 text-rose-900 border-rose-400 font-black'
-                                  : emp.adminStatus === 'under_review'
-                                  ? 'bg-amber-100 text-amber-900 border-amber-400 font-black'
-                                  : 'bg-emerald-50 text-emerald-900 border-emerald-300 font-black'
-                              }`}
-                            >
-                              <option value="authorized">🟢 مفعل ومصرح له</option>
-                              <option value="under_review">⚠️ تحت المراجعة</option>
-                              <option value="suspended">🛑 موقوف إدارياً</option>
-                            </select>
-
-                            <button
-                              onClick={() => {
-                                triggerHaptic();
-                                setShowWarningModalUser(emp);
-                              }}
-                              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs px-2.5 py-1.5 rounded-xl font-bold"
-                              title="إصدار إنذار إداري"
-                            >
-                              إنذار
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                triggerHaptic();
-                                setSelectedEmployeeDetail(emp);
-                              }}
-                              className="bg-slate-100 hover:bg-slate-200 text-[#1E4A3A] text-xs px-3 py-1.5 rounded-xl border border-slate-300 font-bold"
-                            >
-                              عرض التقرير الشامل
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2387,60 +2414,134 @@ export default function FieldDocumentationApp() {
       )}
 
       {/* ============================================================ */}
-      {/* MODAL 5: EMPLOYEE DEEP DIVE MODAL                            */}
+      {/* MODAL 5: EMPLOYEE DEEP DIVE & ADMIN CONTROL DOSSIER          */}
       {/* ============================================================ */}
       {selectedEmployeeDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-right dir-rtl max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-right dir-rtl max-h-[88vh] overflow-y-auto border border-slate-300">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
                 <h3 className="text-xl font-black text-[#1E4A3A]">
-                  تقرير الموظف: {selectedEmployeeDetail.name}
+                  الملف الإداري للموظف: {selectedEmployeeDetail.name}
                 </h3>
-                <p className="text-xs text-slate-500 font-bold">{selectedEmployeeDetail.email}</p>
+                <p className="text-xs text-slate-500 font-extrabold">{selectedEmployeeDetail.email}</p>
               </div>
               <button onClick={() => setSelectedEmployeeDetail(null)} className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Performance Stats */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
                 <span className="text-xs text-slate-600 font-bold block">التوثيقات اليوم</span>
-                <span className="text-xl font-black text-[#1E4A3A]">{selectedEmployeeDetail.todayCount}</span>
+                <span className="text-2xl font-black text-[#1E4A3A]">{selectedEmployeeDetail.todayCount}</span>
               </div>
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
                 <span className="text-xs text-slate-600 font-bold block">إجمالي التحصيل</span>
-                <span className="text-xl font-black text-amber-800">
+                <span className="text-2xl font-black text-amber-800">
                   {store.places.filter(p => p.documenterName === selectedEmployeeDetail.name).reduce((acc, p) => acc + (p.paidAmount || 0), 0)} ج.م
                 </span>
               </div>
-              <div className="p-3 bg-slate-100 rounded-xl border border-slate-300">
-                <span className="text-xs text-slate-600 font-bold block">الحالة الحالية</span>
-                <span className="text-sm font-extrabold text-emerald-800">
-                  {selectedEmployeeDetail.status === 'active' ? 'نشط' : selectedEmployeeDetail.status === 'break' ? 'استراحة' : 'متوقف'}
+              <div className="p-3 bg-slate-100 rounded-2xl border border-slate-300">
+                <span className="text-xs text-slate-600 font-bold block">النشاط التلقائي</span>
+                <span className="text-sm font-black text-emerald-800">
+                  {selectedEmployeeDetail.activityStatus === 'active' ? '🟢 نشط' : selectedEmployeeDetail.activityStatus === 'break' ? '🟡 استراحة' : '⚪ غير متصل'}
                 </span>
               </div>
             </div>
 
-            <div className="space-y-2 pt-2">
-              <h4 className="font-extrabold text-sm text-[#1E4A3A]">سجل المنشآت المسجلة بواسطة الموظف:</h4>
+            {/* Administrative Account Control Card */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <h4 className="font-extrabold text-sm text-[#1E4A3A] flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                <span>التحكم الإداري وصلاحيات الوصول للمنظومة</span>
+              </h4>
+
+              <div className="flex items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-300">
+                <span className="text-xs font-black text-slate-700">حالة الترخيص والدخول:</span>
+                <select
+                  value={selectedEmployeeDetail.adminStatus || 'authorized'}
+                  onChange={e => {
+                    const nextSt = e.target.value as any;
+                    handleToggleAdminStatus(selectedEmployeeDetail.id, nextSt);
+                    setSelectedEmployeeDetail(prev => prev ? ({ ...prev, adminStatus: nextSt }) : null);
+                  }}
+                  className={`text-xs font-black py-1.5 px-3 rounded-xl border ${
+                    selectedEmployeeDetail.adminStatus === 'suspended'
+                      ? 'bg-rose-100 text-rose-900 border-rose-400'
+                      : selectedEmployeeDetail.adminStatus === 'under_review'
+                      ? 'bg-amber-100 text-amber-900 border-amber-400'
+                      : 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                  }`}
+                >
+                  <option value="authorized">🟢 مفعل ومصرح له بالتوثيق</option>
+                  <option value="under_review">⚠️ تحت المراجعة والإنذار</option>
+                  <option value="suspended">🛑 موقوف إدارياً (حظر الدخول)</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    triggerHaptic();
+                    setShowWarningModalUser(selectedEmployeeDetail);
+                  }}
+                  className="flex-1 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold py-2 px-3 rounded-xl text-xs border border-amber-300"
+                >
+                  ⚠️ إضافة إنذار إداري جديد
+                </button>
+                <button
+                  onClick={() => alert(`تم إرسال رابط إعادة ضبط كلمة المرور إلى البريد: ${selectedEmployeeDetail.email}`)}
+                  className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-3 rounded-xl text-xs border border-slate-400"
+                >
+                  🔑 إعادة ضبط كلمة المرور
+                </button>
+              </div>
+            </div>
+
+            {/* Warnings History if any */}
+            {(selectedEmployeeDetail.warnings || []).length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-extrabold text-xs text-amber-900">سجل الإنذارات والمخالفات الإدارية المسجلة:</h4>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {selectedEmployeeDetail.warnings?.map(w => (
+                    <div key={w.id} className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs">
+                      <div className="flex justify-between text-amber-950 font-bold">
+                        <span>{w.reason}</span>
+                        <span className="text-[10px] text-slate-500">{w.date}</span>
+                      </div>
+                      <span className="text-[10px] text-amber-700 block mt-0.5">صادر بواسطة: {w.issuedBy}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Places Documented by this Employee */}
+            <div className="space-y-2 pt-1">
+              <h4 className="font-extrabold text-sm text-[#1E4A3A]">سجل المنشآت المسجلة بواسطة الموظف اليوم:</h4>
               {store.places.filter(p => p.documenterName === selectedEmployeeDetail.name).length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-4">لم يتم تسجيل منشآت لهذا الموظف بعد اليوم.</p>
+                <p className="text-xs text-slate-500 text-center py-3 bg-slate-50 rounded-xl border border-slate-200">لم يتم تسجيل منشآت لهذا الموظف بعد اليوم.</p>
               ) : (
-                store.places.filter(p => p.documenterName === selectedEmployeeDetail.name).map(p => (
-                  <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-bold">
-                    <span>{p.businessName}</span>
-                    <span className={`px-2 py-0.5 rounded ${p.visitResult === 'accepted' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                      {p.visitResult === 'accepted' ? 'قبول' : 'رفض'}
-                    </span>
-                  </div>
-                ))
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {store.places.filter(p => p.documenterName === selectedEmployeeDetail.name).map(p => (
+                    <div key={p.id} className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-bold">
+                      <div>
+                        <span className="block text-[#1E202A]">{p.businessName}</span>
+                        <span className="text-[10px] text-slate-500">تحصيل: {p.paidAmount || 0} ج.م</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full ${p.visitResult === 'accepted' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                        {p.visitResult === 'accepted' ? 'قبول' : 'رفض'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
-            <button onClick={() => setSelectedEmployeeDetail(null)} className="w-full btn-reject py-3 text-lg mt-3">
-              إغلاق التقرير
+            <button onClick={() => setSelectedEmployeeDetail(null)} className="w-full btn-reject py-3 text-base mt-2">
+              إغلاق الملف الإداري
             </button>
           </div>
         </div>
