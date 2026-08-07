@@ -531,6 +531,13 @@ export default function FieldDocumentationApp() {
   const [reminderDateTimeInput, setReminderDateTimeInput] = useState('');
   const [empFilterStatus, setEmpFilterStatus] = useState('الكل');
 
+  // Strict Authorization Guard: Admin Dashboard is EXCLUSIVE to Admin role only
+  useEffect(() => {
+    if (activeTab === 'admin-dash' && store.currentUser?.role !== 'admin') {
+      setActiveTab('emp-dash');
+    }
+  }, [activeTab, store.currentUser]);
+
   const handleToggleReminderCompleted = (placeId: string) => {
     triggerHaptic();
     setStore(prev => ({
@@ -971,22 +978,6 @@ export default function FieldDocumentationApp() {
             triggerHaptic();
             setActiveTab('login');
           }}
-          onSwitchRole={role => {
-            triggerHaptic();
-            if (role === 'admin') {
-              setStore(prev => ({
-                ...prev,
-                currentUser: { id: 'admin-1', name: 'المدير العام', email: 'admin@daleelak.com', role: 'admin', status: 'active', adminStatus: 'authorized', todayCount: 15 }
-              }));
-              setActiveTab('admin-dash');
-            } else {
-              setStore(prev => ({
-                ...prev,
-                currentUser: store.employees[0]
-              }));
-              setActiveTab('emp-dash');
-            }
-          }}
         />
       )}
 
@@ -1064,37 +1055,8 @@ export default function FieldDocumentationApp() {
                   className="w-full bg-slate-100 hover:bg-slate-200 text-[#1E202A] font-bold py-3 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 mt-3 transition-all"
                 >
                   <Smartphone className="w-5 h-5 text-[#1E4A3A]" />
-                  <span>دخول سريع بالبصمة أو الوجه</span>
+                  <span>دخول آمن بالبصمة الحيوية أو الوجه (Biometric Passkey)</span>
                 </button>
-
-                {/* Demo Quick Preset Logins */}
-                <div className="pt-3 border-t border-slate-100">
-                  <span className="text-xs font-bold text-slate-500 block mb-2">تسجيل تجريبي بنقرة واحدة:</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic();
-                        setEmailInput('ahmed@daleelak.com');
-                        setPasswordInput('123456');
-                      }}
-                      className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 rounded-xl text-xs font-bold border border-emerald-300"
-                    >
-                      👨‍💼 موظف ميداني
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic();
-                        setEmailInput('admin@daleelak.com');
-                        setPasswordInput('123456');
-                      }}
-                      className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-950 rounded-xl text-xs font-bold border border-amber-300"
-                    >
-                      🛡️ مدير المنظومة
-                    </button>
-                  </div>
-                </div>
               </form>
 
               {/* Footer Note */}

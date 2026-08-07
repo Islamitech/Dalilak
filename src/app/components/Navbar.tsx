@@ -6,7 +6,6 @@ import { User } from './store';
 interface NavbarProps {
   currentUser: User | null;
   onLogout: () => void;
-  onSwitchRole?: (role: 'admin' | 'employee') => void;
   unreadNotificationsCount?: number;
   onToggleNotifications?: () => void;
 }
@@ -14,7 +13,6 @@ interface NavbarProps {
 export default function Navbar({
   currentUser,
   onLogout,
-  onSwitchRole,
   unreadNotificationsCount = 0,
   onToggleNotifications
 }: NavbarProps) {
@@ -50,7 +48,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Right / Actions & Bell & Role Switch & Logout */}
+        {/* Right / Actions & Bell & Logout */}
         <div className="flex items-center gap-2">
           {/* Notification Bell Button */}
           {onToggleNotifications && (
@@ -65,18 +63,6 @@ export default function Navbar({
                   {unreadNotificationsCount}
                 </span>
               )}
-            </button>
-          )}
-
-          {onSwitchRole && currentUser && (
-            <button
-              onClick={() => onSwitchRole(currentUser.role === 'admin' ? 'employee' : 'admin')}
-              className="text-xs bg-emerald-900/90 hover:bg-emerald-800 text-amber-300 border border-amber-400/40 px-3 py-2 rounded-xl flex items-center gap-1 transition-all"
-              title="تبديل الدور للتجربة"
-            >
-              <UserIcon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">تبديل إلى:</span>
-              <span className="font-bold">{currentUser.role === 'admin' ? 'موظف' : 'مدير'}</span>
             </button>
           )}
 
