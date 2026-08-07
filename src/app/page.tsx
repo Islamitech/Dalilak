@@ -1083,93 +1083,79 @@ export default function FieldDocumentationApp() {
                 <table className="w-full text-right border-collapse">
                   <thead>
                     <tr className="bg-[#1E4A3A] text-white text-sm font-bold">
-                      <th className="p-3 rounded-r-xl">اسم الموظف</th>
-                      <th className="p-3">التشغيل المباشر (Live)</th>
-                      <th className="p-3">التوثيقات اليوم</th>
-                      <th className="p-3">الصلاحية والحالة الإدارية</th>
-                      <th className="p-3 rounded-l-xl text-left">الإجراءات والتحكم الإداري</th>
+                      <th className="p-3.5 rounded-r-2xl">اسم الموظف</th>
+                      <th className="p-3.5">البريد الإلكتروني</th>
+                      <th className="p-3.5">التوثيقات اليوم</th>
+                      <th className="p-3.5">حالة النشاط الميداني (مؤشر)</th>
+                      <th className="p-3.5 rounded-l-2xl text-left">إدارة الحساب والتحكم الإداري</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {store.employees.map(emp => (
                       <tr key={emp.id} className="hover:bg-slate-50 text-base font-bold">
-                        <td className="p-3">
+                        <td className="p-3.5">
                           <div className="flex items-center gap-2 text-[#1E202A]">
-                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#1E4A3A] font-bold flex items-center justify-center text-xs">
+                            <div className="w-9 h-9 rounded-full bg-emerald-100 text-[#1E4A3A] font-black flex items-center justify-center text-sm border border-emerald-300">
                               {emp.name.charAt(0)}
                             </div>
-                            <div>
-                              <span className="block">{emp.name}</span>
-                              <span className="text-[11px] text-slate-500 block font-normal">{emp.email}</span>
-                            </div>
+                            <span className="font-extrabold text-[#1E202A]">{emp.name}</span>
                           </div>
                         </td>
 
-                        {/* Automatic Live Activity Status */}
-                        <td className="p-3">
+                        <td className="p-3.5 text-slate-600 text-sm font-semibold">{emp.email}</td>
+
+                        <td className="p-3.5 text-amber-700 font-black text-base">{emp.todayCount} زيارات</td>
+
+                        {/* Read-Only Live Activity Status Indicator with Circular Colored Dots */}
+                        <td className="p-3.5">
                           {emp.adminStatus === 'suspended' ? (
-                            <span className="px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 text-xs font-bold border border-slate-300">
-                              ⚪ غير متصل (موقوف)
-                            </span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-black">
+                              <span className="w-3 h-3 rounded-full bg-rose-600 shrink-0" />
+                              <span>متوقف (حساب موقوف)</span>
+                            </div>
                           ) : emp.activityStatus === 'active' || emp.status === 'active' ? (
-                            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold border border-emerald-300 flex items-center gap-1.5 w-max">
-                              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
-                              🟢 متصل ومتفاعل الآن
-                            </span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-black shadow-sm">
+                              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                              <span>نشط في الميدان</span>
+                            </div>
                           ) : emp.activityStatus === 'break' || emp.status === 'break' ? (
-                            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300">
-                              🟡 في استراحة
-                            </span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs font-black">
+                              <span className="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
+                              <span>في استراحة</span>
+                            </div>
                           ) : (
-                            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300">
-                              ⚪ غير متصل
-                            </span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-300 text-slate-700 text-xs font-black">
+                              <span className="w-3 h-3 rounded-full bg-slate-400 shrink-0" />
+                              <span>متوقف حالياً</span>
+                            </div>
                           )}
-                          <span className="text-[10px] text-slate-500 block mt-0.5 font-normal">{emp.lastActiveTime || 'الآن'}</span>
                         </td>
 
-                        <td className="p-3 text-amber-700 font-extrabold">{emp.todayCount} زيارات</td>
-
-                        {/* Admin Controlled Account Status */}
-                        <td className="p-3">
-                          <select
-                            value={emp.adminStatus || 'authorized'}
-                            onChange={e => handleToggleAdminStatus(emp.id, e.target.value as any)}
-                            className={`text-xs font-extrabold py-1 px-2.5 rounded-xl border ${
-                              emp.adminStatus === 'suspended'
-                                ? 'bg-rose-100 text-rose-900 border-rose-400'
-                                : emp.adminStatus === 'under_review'
-                                ? 'bg-amber-100 text-amber-900 border-amber-400'
-                                : 'bg-emerald-50 text-emerald-900 border-emerald-300'
-                            }`}
-                          >
-                            <option value="authorized">🟢 مفعل ومصرح له</option>
-                            <option value="under_review">⚠️ تحت المراجعة والإنذار</option>
-                            <option value="suspended">🛑 موقوف إدارياً (حظر الدخول)</option>
-                          </select>
-                        </td>
-
-                        {/* Admin Action Buttons */}
-                        <td className="p-3 text-left">
-                          <div className="flex items-center gap-1.5 justify-end">
-                            <button
-                              onClick={() => handleToggleAdminStatus(emp.id)}
-                              className={`text-xs px-2.5 py-1.5 rounded-lg border font-bold ${
+                        {/* Admin Account Control & Actions */}
+                        <td className="p-3.5 text-left">
+                          <div className="flex items-center gap-2 justify-end flex-wrap">
+                            <select
+                              value={emp.adminStatus || 'authorized'}
+                              onChange={e => handleToggleAdminStatus(emp.id, e.target.value as any)}
+                              className={`text-xs font-extrabold py-1.5 px-2.5 rounded-xl border ${
                                 emp.adminStatus === 'suspended'
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
-                                  : 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700'
+                                  ? 'bg-rose-100 text-rose-900 border-rose-400 font-black'
+                                  : emp.adminStatus === 'under_review'
+                                  ? 'bg-amber-100 text-amber-900 border-amber-400 font-black'
+                                  : 'bg-emerald-50 text-emerald-900 border-emerald-300 font-black'
                               }`}
-                              title={emp.adminStatus === 'suspended' ? 'فك إيقاف الحساب' : 'إيقاف الحساب إدارياً'}
                             >
-                              {emp.adminStatus === 'suspended' ? 'تفعيل' : 'إيقاف'}
-                            </button>
+                              <option value="authorized">🟢 مفعل ومصرح له</option>
+                              <option value="under_review">⚠️ تحت المراجعة</option>
+                              <option value="suspended">🛑 موقوف إدارياً</option>
+                            </select>
 
                             <button
                               onClick={() => {
                                 triggerHaptic();
                                 setShowWarningModalUser(emp);
                               }}
-                              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs px-2.5 py-1.5 rounded-lg font-bold"
+                              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs px-2.5 py-1.5 rounded-xl font-bold"
                               title="إصدار إنذار إداري"
                             >
                               إنذار
@@ -1180,9 +1166,9 @@ export default function FieldDocumentationApp() {
                                 triggerHaptic();
                                 setSelectedEmployeeDetail(emp);
                               }}
-                              className="bg-slate-100 hover:bg-slate-200 text-[#1E4A3A] text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold"
+                              className="bg-slate-100 hover:bg-slate-200 text-[#1E4A3A] text-xs px-3 py-1.5 rounded-xl border border-slate-300 font-bold"
                             >
-                              الملف الشامل
+                              عرض التقرير الشامل
                             </button>
                           </div>
                         </td>
