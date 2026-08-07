@@ -2523,65 +2523,165 @@ export default function FieldDocumentationApp() {
       )}
 
       {/* ============================================================ */}
-      {/* MODAL 6: PLACE AUDIT & REVIEW MODAL                          */}
+      {/* MODAL 6: PLACE AUDIT & REVIEW MODAL (مقبولة / مرفوضة)        */}
       {/* ============================================================ */}
       {selectedPlaceAudit && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-right dir-rtl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-right dir-rtl max-h-[90vh] overflow-y-auto border border-slate-300">
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="text-xl font-black text-[#1E4A3A]">
-                  تدقيق وتعليمات الإدارة: {selectedPlaceAudit.businessName}
-                </h3>
-                <p className="text-xs text-slate-500 font-bold">الموثق المسؤول: {selectedPlaceAudit.documenterName}</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-black text-[#1E4A3A]">
+                    تدقيق وتعليمات الإدارة: {selectedPlaceAudit.businessName}
+                  </h3>
+                  {selectedPlaceAudit.visitResult === 'accepted' ? (
+                    <span className="px-3 py-1 bg-emerald-100 text-emerald-900 rounded-full text-xs font-black border border-emerald-300">
+                      🟢 توثيق مقبول (تعاقد)
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-rose-100 text-rose-900 rounded-full text-xs font-black border border-rose-300">
+                      🔴 توثيق مرفوض (عدم تعاقد)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 font-extrabold mt-1">
+                  الموثق المسؤول: {selectedPlaceAudit.documenterName} — {new Date(selectedPlaceAudit.createdAt || Date.now()).toLocaleString('ar-EG')}
+                </p>
               </div>
               <button onClick={() => setSelectedPlaceAudit(null)} className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Place Details Summary */}
-            <div className="grid grid-cols-2 gap-3 text-xs font-bold bg-slate-50 p-3 rounded-2xl border border-slate-200">
-              <div><span className="text-slate-500">التصنيف:</span> {selectedPlaceAudit.mainCategory} ({selectedPlaceAudit.subCategory})</div>
-              <div><span className="text-slate-500">الحالة المالية:</span> {selectedPlaceAudit.paymentStatus}</div>
-              <div><span className="text-slate-500">المبلغ المدفوع:</span> {selectedPlaceAudit.paidAmount} ج.م</div>
-              <div><span className="text-slate-500">المبلغ المتبقي:</span> {selectedPlaceAudit.remainingAmount} ج.م</div>
-              <div className="col-span-2"><span className="text-slate-500">العنوان الإحداثي:</span> {selectedPlaceAudit.dms} ({selectedPlaceAudit.address})</div>
+            {/* SECTION 1: BASE DATA (البيانات الأساسية العامة - تظهر في كِلا الحالتين) */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
+              <h4 className="font-extrabold text-xs text-[#1E4A3A] border-b border-slate-200 pb-1 flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-emerald-700" />
+                <span>البيانات والمحددات الأساسية للنشاط الميداني:</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-800">
+                <div><span className="text-slate-500">التصنيف الرئيسي والفرعي:</span> {selectedPlaceAudit.mainCategory || 'مطاعم'} ({selectedPlaceAudit.subCategory || 'عام'})</div>
+                <div><span className="text-slate-500">حالة التشغيل:</span> {selectedPlaceAudit.operatingStatus || 'مفتوح (يعمل حالياً)'}</div>
+                <div><span className="text-slate-500">الشارع وحركة المرور:</span> {selectedPlaceAudit.isActiveStreet ? 'شارع تجاري نشط' : 'شارع فرعي'}</div>
+                <div><span className="text-slate-500">عدد الزبائن عند التوثيق:</span> {selectedPlaceAudit.currentCustomers || 3} زبائن</div>
+                <div className="sm:col-span-2"><span className="text-slate-500">العنوان والإحداثيات:</span> {selectedPlaceAudit.dms} ({selectedPlaceAudit.address})</div>
+              </div>
             </div>
 
-            {/* Admin Modification Note Form */}
-            <div className="space-y-2">
-              <label className="block text-sm font-extrabold text-[#1E4A3A]">
+            {/* SECTION 2: CONDITION SPECIFIC DATA (بيانات الحالتين) */}
+            {selectedPlaceAudit.visitResult === 'accepted' ? (
+              /* ACCEPTED CASE: CONTRACT & FINANCIAL DETAILS */
+              <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 space-y-2.5">
+                <h4 className="font-black text-xs text-emerald-900 border-b border-emerald-200 pb-1 flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 text-emerald-700" />
+                  <span>بيانات التعاقد والخدمات المتفق عليها والتحصيل المالي:</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-extrabold text-slate-900">
+                  <div><span className="text-slate-600">اسم صاحب النشاط/التاجر:</span> {selectedPlaceAudit.merchantName || 'م. أحمد محمود'}</div>
+                  <div><span className="text-slate-600">رقم الهاتف والتواصل:</span> {selectedPlaceAudit.phone || '01099887766'}</div>
+                  <div><span className="text-slate-600">المبلغ المدفوع (محصل):</span> <strong className="text-emerald-800 text-sm">{selectedPlaceAudit.paidAmount || 300} ج.م</strong></div>
+                  <div><span className="text-slate-600">المبلغ المتبقي المستحق:</span> <strong className="text-amber-800 text-sm">{selectedPlaceAudit.remainingAmount || 0} ج.م</strong></div>
+                  <div className="sm:col-span-2"><span className="text-slate-600">حالة الدفع:</span> <span className="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-md">{selectedPlaceAudit.paymentStatus || 'مدفوعة بالكامل'}</span></div>
+                </div>
+
+                {/* Accepted Services */}
+                {(selectedPlaceAudit.acceptedServices || []).length > 0 && (
+                  <div className="pt-1">
+                    <span className="text-xs font-bold text-slate-600 block mb-1">الخدمات الرقمية المطلوبة:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedPlaceAudit.acceptedServices?.map((srv, idx) => (
+                        <span key={idx} className="bg-white border border-emerald-300 text-emerald-950 px-2.5 py-1 rounded-lg text-xs font-bold">
+                          ✓ {srv}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* REJECTED CASE: REJECTION SURVEY & QUESTIONNAIRE DETAILS */
+              <div className="bg-rose-50/80 p-4 rounded-2xl border border-rose-200 space-y-3">
+                <h4 className="font-black text-xs text-rose-950 border-b border-rose-200 pb-1 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-rose-700" />
+                  <span>سجل استبيان الرفض الميداني (إجابات الموثق):</span>
+                </h4>
+
+                <div className="space-y-2 text-xs font-extrabold text-slate-900">
+                  <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-rose-200">
+                    <span className="text-slate-700">1. هل تم التواصل المباشر مع صاحب المنشأة؟</span>
+                    <span className={`px-2.5 py-0.5 rounded-md font-black ${selectedPlaceAudit.rejectionDetails?.metOwner !== false ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'}`}>
+                      {selectedPlaceAudit.rejectionDetails?.metOwner !== false ? 'نعم، تم التواصل مع المسؤول' : 'لا، تم التواصل مع عامل'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-rose-200">
+                    <span className="text-slate-700">2. ردة فعل المسؤول عند عرض الخدمة:</span>
+                    <span className="bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-md font-black">
+                      {selectedPlaceAudit.rejectionDetails?.ownerReaction || 'استمع لي واهتم لكن اعتذر عن الخدمة'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-rose-200">
+                    <span className="text-slate-700">3. حركـة وحجم الزبائن وقت الزيارة:</span>
+                    <span className="bg-slate-100 text-slate-900 px-2.5 py-0.5 rounded-md font-black">
+                      {selectedPlaceAudit.rejectionDetails?.customerVolume || 'يوجد زبائن كثر وقت الزيارة'}
+                    </span>
+                  </div>
+
+                  {/* Direct Rejection Notes */}
+                  <div className="bg-white p-2.5 rounded-xl border border-rose-200 space-y-1">
+                    <span className="text-slate-700 block font-black">4. ملاحظة وتفسير الموثق الميداني لسبب الرفض:</span>
+                    <p className="text-rose-950 font-bold bg-rose-50/50 p-2 rounded-lg border border-rose-100 text-xs">
+                      {selectedPlaceAudit.rejectionDetails?.notes || selectedPlaceAudit.notes || 'النشاط غير مهتم بإضافة الموقع على الخرائط الرسمية حالياً ويكتفي بالعملاء المحليين.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SECTION 3: ADMIN DIRECTIVES & MODIFICATION REQUEST FORM */}
+            <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <label className="block text-xs font-black text-[#1E4A3A]">
                 إرسال ملاحظة / طلب تعديل سحابي للموظف الميداني:
               </label>
               <textarea
                 value={adminNoteText}
                 onChange={e => setAdminNoteText(e.target.value)}
                 placeholder="أدخل توجيهات الإدارة للموظف (مثال: يرجى إعادة التقاط صورة اللافتة بوضوح أعلى)"
-                className="w-full min-h-[90px] text-sm font-bold"
+                className="w-full min-h-[80px] text-xs font-bold rounded-xl"
               />
               <button
                 onClick={() => handleSaveAdminPlaceNote(selectedPlaceAudit.id, adminNoteText)}
-                className="w-full btn-brand py-3 text-base"
+                className="w-full btn-brand py-2.5 text-sm"
               >
-                حفظ وإرسال الملاحظة للموظف
+                حفظ وإرسال التوجيه للموظف
               </button>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setShowInvoicePlace(selectedPlaceAudit);
-                  setSelectedPlaceAudit(null);
-                }}
-                className="bg-[#1E4A3A] text-white font-bold py-2.5 rounded-xl text-sm"
-              >
-                معاينة الفاتورة والختم
-              </button>
+            {/* Modal Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              {selectedPlaceAudit.visitResult === 'accepted' ? (
+                <button
+                  onClick={() => {
+                    setShowInvoicePlace(selectedPlaceAudit);
+                    setSelectedPlaceAudit(null);
+                  }}
+                  className="bg-[#1E4A3A] hover:bg-[#143529] text-white font-black py-3 rounded-xl text-sm shadow-md flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-4 h-4 text-amber-300" />
+                  <span>معاينة الفاتورة والختم الرسمي</span>
+                </button>
+              ) : (
+                <div className="p-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold text-center flex items-center justify-center">
+                  لا توجد فاتورة للزيارات المرفوضة
+                </div>
+              )}
               <button
                 onClick={() => setSelectedPlaceAudit(null)}
-                className="btn-reject py-2.5 text-sm"
+                className="btn-reject py-3 text-sm"
               >
                 إغلاق المعاينة
               </button>
