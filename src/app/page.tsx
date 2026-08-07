@@ -5,7 +5,7 @@ import {
   Building2, Camera, MapPin, CheckCircle, XCircle, ChevronRight, ChevronLeft,
   User as UserIcon, Plus, Minus, FileText, Send, DollarSign, PieChart, Users,
   Check, X, Eye, EyeOff, ShieldCheck, RefreshCw, Smartphone, Award, ArrowRight,
-  TrendingUp, Activity, Lock, AlertCircle, Share2, Printer, Download, Sparkles, Filter
+  TrendingUp, Activity, Lock, AlertCircle, Share2, Printer, Download, Sparkles, Filter, Search
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import {
@@ -513,6 +513,31 @@ export default function FieldDocumentationApp() {
   const [newEmpPass, setNewEmpPass] = useState('');
   const [showTodayReport, setShowTodayReport] = useState(false);
 
+  // Admin Dashboard Advanced Modals & Filters State
+  const [selectedEmployeeDetail, setSelectedEmployeeDetail] = useState<User | null>(null);
+  const [selectedPlaceAudit, setSelectedPlaceAudit] = useState<PlaceItem | null>(null);
+  const [adminNoteText, setAdminNoteText] = useState('');
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
+  const [adminFilterStatus, setAdminFilterStatus] = useState('الكل');
+
+  const handleUpdateEmployeeStatus = (empId: string, newStatus: 'active' | 'stopped' | 'break') => {
+    triggerHaptic();
+    setStore(prev => ({
+      ...prev,
+      employees: prev.employees.map(e => e.id === empId ? { ...e, status: newStatus } : e)
+    }));
+  };
+
+  const handleSaveAdminPlaceNote = (placeId: string, note: string) => {
+    triggerHaptic();
+    setStore(prev => ({
+      ...prev,
+      places: prev.places.map(p => p.id === placeId ? { ...p, adminRequest: note, notes: note } : p)
+    }));
+    setSelectedPlaceAudit(null);
+    setAdminNoteText('');
+  };
+
   // Workflow Documentation Draft State (Steps 1 to 5)
   const [draft, setDraft] = useState<Partial<PlaceItem>>({
     businessName: '',
@@ -905,7 +930,7 @@ export default function FieldDocumentationApp() {
         )}
 
         {/* ============================================================ */}
-        {/* PAGE 2: ADMIN DASHBOARD (لوحة تحكم المدير)                 */}
+        {/* PAGE 2: ADMIN DASHBOARD (لوحة تحكم المدير التفاعلية الشاملة)  */}
         {/* ============================================================ */}
         {activeTab === 'admin-dash' && (
           <div className="space-y-6 animate-fade-in">
@@ -914,71 +939,98 @@ export default function FieldDocumentationApp() {
               <div>
                 <h2 className="text-2xl font-black text-amber-300 flex items-center gap-2">
                   <ShieldCheck className="w-7 h-7" />
-                  <span>لوحة تحكم المدير (Admin Dashboard)</span>
+                  <span>لوحة تحكم المدير (Admin Command Center)</span>
                 </h2>
-                <p className="text-emerald-100 text-sm mt-1">متابعة أداء الموظفين وإدارة عمليات التوثيق الميداني اليومية</p>
+                <p className="text-emerald-100 text-sm mt-1">متابعة أداء الموظفين وإدارة عمليات التوثيق الميداني والتحصيل المالي بطلاقة ورؤية شاملة</p>
               </div>
-              <button
-                onClick={() => { triggerHaptic(); setActiveTab('invoices'); }}
-                className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-xl flex items-center gap-2 self-start sm:self-auto shadow-md"
-              >
-                <DollarSign className="w-5 h-5" />
-                <span>سجل الفواتير والتحصيل</span>
-              </button>
-            </div>
-
-            {/* A. Stats Cards (3 cards horizontal) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-5 rounded-2xl border-2 border-emerald-800/30 shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold text-slate-600">إجمالي الموظفين</span>
-                  <Users className="w-6 h-6 text-[#1E4A3A]" />
-                </div>
-                <div className="text-3xl font-black text-[#1E4A3A]">{store.employees.length} موظف</div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border-2 border-emerald-800/30 shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold text-slate-600">إجمالي الأماكن اليوم</span>
-                  <MapPin className="w-6 h-6 text-amber-600" />
-                </div>
-                <div className="text-3xl font-black text-amber-700">{todayVerifiedCount} مكان</div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border-2 border-emerald-800/30 shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold text-slate-600">نسبة القبول الكلية</span>
-                  <Award className="w-6 h-6 text-emerald-600" />
-                </div>
-                <div className="text-3xl font-black text-emerald-800">{acceptanceRate}%</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => { triggerHaptic(); setActiveTab('invoices'); }}
+                  className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md text-sm"
+                >
+                  <DollarSign className="w-5 h-5" />
+                  <span>سجل الفواتير والتحصيل ({unpaidInvoicesCount})</span>
+                </button>
+                <button
+                  onClick={() => alert(`تصدير تقرير شامل (CSV / PDF):\n• الأنشطة التوثيقية: ${store.places.length}\n• إجمالي التحصيل: ${totalCollectedToday} ج.م`)}
+                  className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2.5 rounded-xl border border-emerald-600 flex items-center gap-1.5 text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>تصدير البيانات</span>
+                </button>
               </div>
             </div>
 
-            {/* B. Employee Management & C. Add Employee */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-300 shadow-md space-y-4">
+            {/* A. Executive Key Financial & Operational Metric Cards (4 Cards Grid) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-2xl border-2 border-emerald-800/30 shadow-md">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-slate-600">إجمالي الموظفين</span>
+                  <Users className="w-5 h-5 text-[#1E4A3A]" />
+                </div>
+                <div className="text-2xl font-black text-[#1E4A3A]">{store.employees.length} موظف</div>
+                <p className="text-xs text-slate-500 mt-1 font-bold">
+                  {store.employees.filter(e => e.status === 'active').length} نشط حالياً | {store.employees.filter(e => e.status === 'break').length} استراحة
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border-2 border-emerald-800/30 shadow-md">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-slate-600">إجمالي التحصيل اليوم</span>
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div className="text-2xl font-black text-emerald-800">{totalCollectedToday} ج.م</div>
+                <p className="text-xs text-slate-500 mt-1 font-bold">متبقي غير محصل: {store.places.reduce((acc, p) => acc + (p.remainingAmount || 0), 0)} ج.م</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border-2 border-emerald-800/30 shadow-md">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-slate-600">التوثيقات المسجلة</span>
+                  <MapPin className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="text-2xl font-black text-amber-700">{todayVerifiedCount} منشأة</div>
+                <p className="text-xs text-slate-500 mt-1 font-bold">مقبولة: {acceptedCount} | مرفوضة: {todayVerifiedCount - acceptedCount}</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border-2 border-emerald-800/30 shadow-md">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-slate-600">نسبة القبول الكلية</span>
+                  <Award className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div className="text-2xl font-black text-emerald-800">{acceptanceRate}%</div>
+                <p className="text-xs text-slate-500 mt-1 font-bold">معدل تحويل الزيارات الميدانية</p>
+              </div>
+            </div>
+
+            {/* B. Employee Management & Direct Control Panel */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-300 shadow-md space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                <h3 className="text-xl font-bold text-[#1E4A3A] flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  <span>إدارة الموظفين الميدانيين</span>
-                </h3>
+                <div>
+                  <h3 className="text-xl font-bold text-[#1E4A3A] flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    <span>إدارة الموظفين الميدانيين والصلاحيات</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 font-bold">التحكم المباشر بحالة التواجد والتفاعل للموظف الميداني</p>
+                </div>
                 <button
                   onClick={() => setShowAddEmpModal(true)}
-                  className="btn-brand text-base min-h-[42px] px-3.5 py-1.5"
+                  className="btn-brand text-sm min-h-[42px] px-3.5 py-1.5"
                 >
                   <Plus className="w-4 h-4 ml-1" />
                   <span>إضافة موظف جديد</span>
                 </button>
               </div>
 
-              {/* Employee Table */}
+              {/* Employee Control Table */}
               <div className="table-scroll-container">
                 <table className="w-full text-right border-collapse">
                   <thead>
                     <tr className="bg-[#1E4A3A] text-white text-sm font-bold">
                       <th className="p-3 rounded-r-xl">اسم الموظف</th>
+                      <th className="p-3">البريد الإلكتروني</th>
                       <th className="p-3">التوثيقات اليوم</th>
-                      <th className="p-3">الحالة</th>
-                      <th className="p-3 rounded-l-xl text-left">الإجراء</th>
+                      <th className="p-3">حالة التواجد</th>
+                      <th className="p-3 rounded-l-xl text-left">التفاصيل والتأثير</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -990,18 +1042,28 @@ export default function FieldDocumentationApp() {
                           </div>
                           <span>{emp.name}</span>
                         </td>
-                        <td className="p-3 text-amber-700 font-extrabold">{emp.todayCount} زيارة</td>
+                        <td className="p-3 text-slate-600 text-sm font-semibold">{emp.email}</td>
+                        <td className="p-3 text-amber-700 font-extrabold">{emp.todayCount} زيارات</td>
                         <td className="p-3">
-                          {emp.status === 'active' && <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">نشط</span>}
-                          {emp.status === 'break' && <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300">في استراحة</span>}
-                          {emp.status === 'stopped' && <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300">متوقف</span>}
+                          <select
+                            value={emp.status}
+                            onChange={e => handleUpdateEmployeeStatus(emp.id, e.target.value as any)}
+                            className="text-xs font-extrabold py-1 px-2.5 rounded-xl border border-slate-300 bg-white"
+                          >
+                            <option value="active">🟢 نشط في الميدان</option>
+                            <option value="break">🟡 في استراحة</option>
+                            <option value="stopped">🔴 متوقف حالياً</option>
+                          </select>
                         </td>
                         <td className="p-3 text-left">
                           <button
-                            onClick={() => alert(`تقرير تفصيلي للموظف: ${emp.name}\nإجمالي زيارات اليوم: ${emp.todayCount}`)}
-                            className="bg-slate-100 hover:bg-slate-200 text-[#1E4A3A] text-sm px-3 py-1.5 rounded-lg border border-slate-300 font-bold"
+                            onClick={() => {
+                              triggerHaptic();
+                              setSelectedEmployeeDetail(emp);
+                            }}
+                            className="bg-slate-100 hover:bg-slate-200 text-[#1E4A3A] text-xs px-3 py-1.5 rounded-lg border border-slate-300 font-bold"
                           >
-                            عرض التفاصيل
+                            عرض التقرير الشامل
                           </button>
                         </td>
                       </tr>
@@ -1011,34 +1073,94 @@ export default function FieldDocumentationApp() {
               </div>
             </div>
 
-            {/* D. Recent Activities */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-300 shadow-md space-y-4">
-              <h3 className="text-xl font-bold text-[#1E4A3A] flex items-center gap-2 pb-2 border-b border-slate-200">
-                <Activity className="w-5 h-5" />
-                <span>آخر التوثيقات الميدانية المسجلة</span>
-              </h3>
-              <div className="space-y-2.5">
-                {store.places.slice(0, 10).map(p => (
-                  <div key={p.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
-                    <div>
-                      <h4 className="font-extrabold text-[#1E202A] text-base">{p.businessName}</h4>
-                      <p className="text-xs font-bold text-slate-500 mt-0.5">
-                        بواسطة: {p.documenterName} — {new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    <div>
-                      {p.visitResult === 'accepted' ? (
-                        <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-300">قبول</span>
-                      ) : (
-                        <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold border border-rose-300">رفض</span>
-                      )}
-                    </div>
+            {/* C. Live Filter & Detailed Places Audit Section */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-300 shadow-md space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                <div>
+                  <h3 className="text-xl font-bold text-[#1E4A3A] flex items-center gap-2">
+                    <Activity className="w-5 h-5" />
+                    <span>سجل ومعاينة التوثيقات الميدانية (Place Audit & Review)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 font-bold">معاينة تفاصيل المنشآت الموثقة وإرسال طلبات التعديل والاعتماد للموثق</p>
+                </div>
+
+                {/* Filter Toolbar */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={adminSearchQuery}
+                      onChange={e => setAdminSearchQuery(e.target.value)}
+                      placeholder="بحث باسم المكان أو الموثق..."
+                      className="text-xs min-h-[38px] pr-9 pl-3 rounded-xl border-slate-300 w-48"
+                    />
                   </div>
-                ))}
+
+                  <select
+                    value={adminFilterStatus}
+                    onChange={e => setAdminFilterStatus(e.target.value)}
+                    className="text-xs min-h-[38px] font-bold rounded-xl border-slate-300"
+                  >
+                    <option value="الكل">كل الحالات</option>
+                    <option value="accepted">المقبولة</option>
+                    <option value="rejected">المرفوضة</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Filtered Places Table */}
+              <div className="space-y-2.5">
+                {store.places
+                  .filter(p => {
+                    const q = adminSearchQuery.trim().toLowerCase();
+                    const matchesQ = !q || (p.businessName.toLowerCase().includes(q) || (p.documenterName && p.documenterName.toLowerCase().includes(q)));
+                    const matchesStatus = adminFilterStatus === 'الكل' || p.visitResult === adminFilterStatus;
+                    return matchesQ && matchesStatus;
+                  })
+                  .map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => {
+                        triggerHaptic();
+                        setSelectedPlaceAudit(p);
+                        setAdminNoteText(p.adminRequest || p.notes || '');
+                      }}
+                      className="p-3.5 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 cursor-pointer transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-300">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={p.exteriorPhoto || '/logo.png'} alt="مكان" className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-[#1E202A] text-base">{p.businessName}</h4>
+                          <p className="text-xs font-bold text-slate-500">
+                            الموثق: {p.documenterName} — {new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          {p.adminRequest && (
+                            <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full inline-block mt-1">
+                              ملاحظة الإدارة: {p.adminRequest}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-extrabold text-slate-800 hidden sm:inline">{p.totalAmount || 300} ج.م</span>
+                        {p.visitResult === 'accepted' ? (
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-300">قبول</span>
+                        ) : (
+                          <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold border border-rose-300">رفض</span>
+                        )}
+                        <Eye className="w-5 h-5 text-slate-400" />
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
 
-            {/* E. Heatmap Visual Representation */}
+            {/* D. Heatmap Visual Representation */}
             <div className="bg-white p-5 rounded-2xl border border-slate-300 shadow-md space-y-3">
               <h3 className="text-lg font-bold text-[#1E4A3A] flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
@@ -2154,6 +2276,134 @@ export default function FieldDocumentationApp() {
             <button onClick={() => setShowTodayReport(false)} className="w-full btn-reject py-3 text-lg mt-3">
               إغلاق التقرير
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 5: EMPLOYEE DEEP DIVE MODAL                            */}
+      {/* ============================================================ */}
+      {selectedEmployeeDetail && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-right dir-rtl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-xl font-black text-[#1E4A3A]">
+                  تقرير الموظف: {selectedEmployeeDetail.name}
+                </h3>
+                <p className="text-xs text-slate-500 font-bold">{selectedEmployeeDetail.email}</p>
+              </div>
+              <button onClick={() => setSelectedEmployeeDetail(null)} className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                <span className="text-xs text-slate-600 font-bold block">التوثيقات اليوم</span>
+                <span className="text-xl font-black text-[#1E4A3A]">{selectedEmployeeDetail.todayCount}</span>
+              </div>
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                <span className="text-xs text-slate-600 font-bold block">إجمالي التحصيل</span>
+                <span className="text-xl font-black text-amber-800">
+                  {store.places.filter(p => p.documenterName === selectedEmployeeDetail.name).reduce((acc, p) => acc + (p.paidAmount || 0), 0)} ج.م
+                </span>
+              </div>
+              <div className="p-3 bg-slate-100 rounded-xl border border-slate-300">
+                <span className="text-xs text-slate-600 font-bold block">الحالة الحالية</span>
+                <span className="text-sm font-extrabold text-emerald-800">
+                  {selectedEmployeeDetail.status === 'active' ? 'نشط' : selectedEmployeeDetail.status === 'break' ? 'استراحة' : 'متوقف'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <h4 className="font-extrabold text-sm text-[#1E4A3A]">سجل المنشآت المسجلة بواسطة الموظف:</h4>
+              {store.places.filter(p => p.documenterName === selectedEmployeeDetail.name).length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-4">لم يتم تسجيل منشآت لهذا الموظف بعد اليوم.</p>
+              ) : (
+                store.places.filter(p => p.documenterName === selectedEmployeeDetail.name).map(p => (
+                  <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-bold">
+                    <span>{p.businessName}</span>
+                    <span className={`px-2 py-0.5 rounded ${p.visitResult === 'accepted' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                      {p.visitResult === 'accepted' ? 'قبول' : 'رفض'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button onClick={() => setSelectedEmployeeDetail(null)} className="w-full btn-reject py-3 text-lg mt-3">
+              إغلاق التقرير
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 6: PLACE AUDIT & REVIEW MODAL                          */}
+      {/* ============================================================ */}
+      {selectedPlaceAudit && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-right dir-rtl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-xl font-black text-[#1E4A3A]">
+                  تدقيق وتعليمات الإدارة: {selectedPlaceAudit.businessName}
+                </h3>
+                <p className="text-xs text-slate-500 font-bold">الموثق المسؤول: {selectedPlaceAudit.documenterName}</p>
+              </div>
+              <button onClick={() => setSelectedPlaceAudit(null)} className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Place Details Summary */}
+            <div className="grid grid-cols-2 gap-3 text-xs font-bold bg-slate-50 p-3 rounded-2xl border border-slate-200">
+              <div><span className="text-slate-500">التصنيف:</span> {selectedPlaceAudit.mainCategory} ({selectedPlaceAudit.subCategory})</div>
+              <div><span className="text-slate-500">الحالة المالية:</span> {selectedPlaceAudit.paymentStatus}</div>
+              <div><span className="text-slate-500">المبلغ المدفوع:</span> {selectedPlaceAudit.paidAmount} ج.م</div>
+              <div><span className="text-slate-500">المبلغ المتبقي:</span> {selectedPlaceAudit.remainingAmount} ج.م</div>
+              <div className="col-span-2"><span className="text-slate-500">العنوان الإحداثي:</span> {selectedPlaceAudit.dms} ({selectedPlaceAudit.address})</div>
+            </div>
+
+            {/* Admin Modification Note Form */}
+            <div className="space-y-2">
+              <label className="block text-sm font-extrabold text-[#1E4A3A]">
+                إرسال ملاحظة / طلب تعديل سحابي للموظف الميداني:
+              </label>
+              <textarea
+                value={adminNoteText}
+                onChange={e => setAdminNoteText(e.target.value)}
+                placeholder="أدخل توجيهات الإدارة للموظف (مثال: يرجى إعادة التقاط صورة اللافتة بوضوح أعلى)"
+                className="w-full min-h-[90px] text-sm font-bold"
+              />
+              <button
+                onClick={() => handleSaveAdminPlaceNote(selectedPlaceAudit.id, adminNoteText)}
+                className="w-full btn-brand py-3 text-base"
+              >
+                حفظ وإرسال الملاحظة للموظف
+              </button>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setShowInvoicePlace(selectedPlaceAudit);
+                  setSelectedPlaceAudit(null);
+                }}
+                className="bg-[#1E4A3A] text-white font-bold py-2.5 rounded-xl text-sm"
+              >
+                معاينة الفاتورة والختم
+              </button>
+              <button
+                onClick={() => setSelectedPlaceAudit(null)}
+                className="btn-reject py-2.5 text-sm"
+              >
+                إغلاق المعاينة
+              </button>
+            </div>
           </div>
         </div>
       )}
