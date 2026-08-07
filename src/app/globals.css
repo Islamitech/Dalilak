@@ -2,8 +2,13 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #0B1120;
-  --foreground: #f1f5f9;
+  --background: #F5F2E6;
+  --foreground: #1E202A;
+  --primary-brand: #1E4A3A;
+  --secondary-brand: #F4A261;
+  --accept-btn: #4A6B3A;
+  --reject-btn: #6B6B6B;
+  --alert-btn: #8C3A3A;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -14,7 +19,7 @@
   --font-sans: var(--font-cairo), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ===== BASE RESET ===== */
+/* ===== BASE RESET FOR SUNLIGHT HIGH CONTRAST MOBILE-FIRST APP ===== */
 *, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -25,23 +30,20 @@ html {
   text-size-adjust: 100%;
   overflow-x: hidden;
   scroll-behavior: smooth;
+  background-color: #F5F2E6;
+  color: #1E202A;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #F5F2E6;
+  color: #1E202A;
+  font-size: 16px;
+  line-height: 1.5;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding-top: var(--safe-top);
   padding-bottom: var(--safe-bottom);
-}
-
-/* ===== PWA STANDALONE MODE ===== */
-@media all and (display-mode: standalone) {
-  body {
-    padding-top: var(--safe-top);
-    padding-bottom: var(--safe-bottom);
-  }
 }
 
 /* ===== PREVENT TEXT OVERFLOW GLOBALLY ===== */
@@ -49,154 +51,113 @@ h1, h2, h3, h4, h5, h6, p, span, label, a, button, li {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
-  hyphens: auto;
 }
 
-/* ===== TABLE HORIZONTAL SCROLLCONTAINER & VISIBLE SCROLLBAR ===== */
+/* ===== HIGH CONTRAST SUNLIGHT ACCESSIBLE BUTTONS (Min 48px height, Min 120px width) ===== */
+.btn-primary-action {
+  background-color: #F4A261;
+  color: #1E202A;
+  font-weight: 700;
+  font-size: 22px;
+  min-height: 54px;
+  min-width: 140px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  box-shadow: 0 4px 12px rgba(244, 162, 97, 0.35);
+  border: 1px solid #e78e47;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary-action:active {
+  transform: scale(0.97);
+}
+
+.btn-brand {
+  background-color: #1E4A3A;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 20px;
+  min-height: 50px;
+  min-width: 130px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  box-shadow: 0 4px 10px rgba(30, 74, 58, 0.25);
+  border: 1px solid #143529;
+}
+
+.btn-accept {
+  background-color: #4A6B3A;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 18px;
+  min-height: 48px;
+  min-width: 120px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+}
+
+.btn-reject {
+  background-color: #6B6B6B;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 18px;
+  min-height: 48px;
+  min-width: 120px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+}
+
+/* ===== FORM INPUTS FOR SUNLIGHT VISIBILITY ===== */
+input, select, textarea {
+  font-size: 18px !important;
+  min-height: 48px;
+  background-color: #FFFFFF;
+  color: #1E202A;
+  border: 2px solid #CBD5E1;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #1E4A3A;
+  box-shadow: 0 0 0 3px rgba(30, 74, 58, 0.2);
+}
+
+/* ===== TABLE SCROLL CONTAINER ===== */
 .table-scroll-container {
   width: 100%;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  touch-action: pan-x pan-y !important;
-  overscroll-behavior-x: contain;
-  padding-bottom: 8px;
 }
 
-/* Make horizontal scrollbars 100% visible, clear, and easy to drag on mobile & desktop */
 .table-scroll-container::-webkit-scrollbar {
-  height: 10px !important;
-  display: block !important;
-}
-
-.table-scroll-container::-webkit-scrollbar-track {
-  background: #090d16 !important;
-  border-radius: 8px !important;
-  border: 1px solid #1e293b !important;
+  height: 8px !important;
 }
 
 .table-scroll-container::-webkit-scrollbar-thumb {
-  background: #3b82f6 !important; /* Bright Indigo/Blue Scrollbar Handle */
-  border-radius: 8px !important;
-  border: 2px solid #090d16 !important;
+  background: #1E4A3A !important;
+  border-radius: 6px !important;
 }
 
-.table-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: #60a5fa !important;
+/* Custom Animation Utility */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== MOBILE TEXT & BUTTON SIZING ===== */
-@media (max-width: 640px) {
-  /* Smaller base font on mobile */
-  html {
-    font-size: 14px;
-  }
-
-  /* Reduce headings */
-  h1 { font-size: 1.15rem !important; line-height: 1.3 !important; }
-  h2 { font-size: 1.05rem !important; line-height: 1.3 !important; }
-  h3 { font-size: 0.95rem !important; line-height: 1.3 !important; }
-
-  /* Ensure containers do not clip overflow scrollbars */
-  .overflow-hidden {
-    overflow: hidden;
-  }
-
-  /* Fix buttons on mobile - smaller, more compact */
-  button, [role="button"], a[class*="bg-"] {
-    font-size: 0.7rem !important;
-    padding-top: 0.45rem !important;
-    padding-bottom: 0.45rem !important;
-    padding-left: 0.7rem !important;
-    padding-right: 0.7rem !important;
-    white-space: nowrap;
-  }
-
-  /* Fix input fields on mobile */
-  input, select, textarea {
-    font-size: 14px !important; /* Prevent iOS zoom on focus */
-  }
-
-  /* Logo container on mobile */
-  .w-logo-box {
-    width: 50px !important;
-    height: 50px !important;
-  }
-
-  /* Stats cards compactness */
-  .text-2xl { font-size: 1.1rem !important; }
-  .text-3xl { font-size: 1.2rem !important; }
-  .text-4xl { font-size: 1.3rem !important; }
-
-  /* Card padding reduction */
-  .p-6 { padding: 0.85rem !important; }
-  .p-7 { padding: 0.85rem !important; }
-  .p-8 { padding: 1rem !important; }
-  .px-6 { padding-left: 0.85rem !important; padding-right: 0.85rem !important; }
-
-  /* Gap reduction */
-  .gap-4 { gap: 0.6rem !important; }
-  .gap-6 { gap: 0.75rem !important; }
-  .gap-8 { gap: 0.85rem !important; }
-  .space-y-6 > * + * { margin-top: 0.75rem !important; }
-  .space-y-8 > * + * { margin-top: 0.85rem !important; }
-
-  /* Header responsiveness */
-  header {
-    padding: 0.5rem 0.75rem !important;
-    border-radius: 1rem !important;
-  }
-
-  /* Make grid single column on very small screens */
-  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-
-  /* Modal fullscreen on mobile */
-  .fixed.inset-0 .max-w-4xl,
-  .fixed.inset-0 .max-w-3xl,
-  .fixed.inset-0 .max-w-2xl,
-  .fixed.inset-0 .max-w-xl,
-  .fixed.inset-0 .max-w-lg {
-    max-width: 100% !important;
-    margin: 0.5rem !important;
-    max-height: 95vh !important;
-  }
-}
-
-/* ===== MEDIUM SCREENS (tablets) ===== */
-@media (min-width: 641px) and (max-width: 1024px) {
-  html { font-size: 15px; }
-}
-
-/* ===== SCROLLBAR STYLING ===== */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.5);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.8);
-}
-
-/* ===== SMOOTH TRANSITIONS ===== */
-button, a, input, select, textarea {
-  transition: all 0.15s ease;
-}
-
-/* ===== PREVENT HORIZONTAL SCROLL ON ALL CONTAINERS ===== */
-main, section, div, article, aside, nav, footer, header {
-  max-width: 100vw;
-}
-
-/* ===== INVOICE MODAL MOBILE FIX ===== */
-@media (max-width: 640px) {
-  .fixed.inset-0 img[alt*="فاتورة"],
-  .fixed.inset-0 img[alt*="invoice"] {
-    max-width: 100% !important;
-    height: auto !important;
-  }
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
 }

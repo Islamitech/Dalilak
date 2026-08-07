@@ -162,7 +162,7 @@ export default function AdminDashboard() {
     );
 
     if (selectedPlaceModal && selectedPlaceModal.id === placeId) {
-      setSelectedPlaceModal((prev) => (prev ? { ...prev, adminRequest: noteToSave, notes: noteToSave } : null));
+      setSelectedPlaceModal((prev: PlaceItem | null) => (prev ? { ...prev, adminRequest: noteToSave, notes: noteToSave } : null));
     }
 
     setSaveRequestLoading(false);
@@ -271,10 +271,10 @@ export default function AdminDashboard() {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
-      place.businessName.toLowerCase().includes(q) ||
-      place.phone.includes(q) ||
-      place.city.toLowerCase().includes(q) ||
-      place.neighborhood.toLowerCase().includes(q) ||
+      (place.businessName && place.businessName.toLowerCase().includes(q)) ||
+      (place.phone && place.phone.includes(q)) ||
+      (place.city && place.city.toLowerCase().includes(q)) ||
+      (place.neighborhood && place.neighborhood.toLowerCase().includes(q)) ||
       (place.documenterName && place.documenterName.toLowerCase().includes(q));
 
     return matchesDoc && matchesPay && matchesSearch;
@@ -597,7 +597,7 @@ export default function AdminDashboard() {
                           <div
                             onClick={() => {
                               setSelectedPlaceModal(p);
-                              setSelectedImageToView(p.facadeImage);
+                              setSelectedImageToView(p.facadeImage || p.exteriorPhoto || null);
                               setAdminNoteInput(p.adminRequest || '');
                             }}
                             className="flex items-center gap-2 cursor-pointer group"
@@ -641,7 +641,7 @@ export default function AdminDashboard() {
                             type="button"
                             onClick={() => {
                               setSelectedPlaceModal(p);
-                              setSelectedImageToView(p.facadeImage);
+                              setSelectedImageToView(p.facadeImage || p.exteriorPhoto || null);
                               setAdminNoteInput(p.adminRequest || '');
                             }}
                             className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-md"
@@ -846,7 +846,7 @@ export default function AdminDashboard() {
                         />
                         <button
                           type="button"
-                          onClick={() => setZoomedImage(selectedImageToView || selectedPlaceModal.facadeImage)}
+                          onClick={() => setZoomedImage(selectedImageToView || selectedPlaceModal.facadeImage || null)}
                           className="absolute bottom-3 left-3 bg-slate-950/80 hover:bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 backdrop-blur-md flex items-center gap-1.5 cursor-pointer shadow-lg transition-all opacity-90 hover:opacity-100"
                         >
                           <ZoomIn className="w-3.5 h-3.5 text-indigo-400" /> تكبير الصورة
@@ -864,7 +864,7 @@ export default function AdminDashboard() {
                     {selectedPlaceModal.facadeImage && (
                       <button
                         type="button"
-                        onClick={() => setSelectedImageToView(selectedPlaceModal.facadeImage)}
+                        onClick={() => setSelectedImageToView(selectedPlaceModal.facadeImage || selectedPlaceModal.exteriorPhoto || null)}
                         className={`relative rounded-xl overflow-hidden border-2 w-16 h-16 cursor-pointer transition-all ${
                           (selectedImageToView || selectedPlaceModal.facadeImage) === selectedPlaceModal.facadeImage
                             ? 'border-indigo-500 ring-2 ring-indigo-500/30'
@@ -893,7 +893,7 @@ export default function AdminDashboard() {
                       </button>
                     )}
 
-                    {selectedPlaceModal.additionalImages && selectedPlaceModal.additionalImages.map((img, idx) => (
+                    {selectedPlaceModal.additionalImages && selectedPlaceModal.additionalImages.map((img: string, idx: number) => (
                       <button
                         key={idx}
                         type="button"
