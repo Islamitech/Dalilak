@@ -1066,6 +1066,35 @@ export default function FieldDocumentationApp() {
                   <Smartphone className="w-5 h-5 text-[#1E4A3A]" />
                   <span>دخول سريع بالبصمة أو الوجه</span>
                 </button>
+
+                {/* Demo Quick Preset Logins */}
+                <div className="pt-3 border-t border-slate-100">
+                  <span className="text-xs font-bold text-slate-500 block mb-2">تسجيل تجريبي بنقرة واحدة:</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic();
+                        setEmailInput('ahmed@daleelak.com');
+                        setPasswordInput('123456');
+                      }}
+                      className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 rounded-xl text-xs font-bold border border-emerald-300"
+                    >
+                      👨‍💼 موظف ميداني
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic();
+                        setEmailInput('admin@daleelak.com');
+                        setPasswordInput('123456');
+                      }}
+                      className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-950 rounded-xl text-xs font-bold border border-amber-300"
+                    >
+                      🛡️ مدير المنظومة
+                    </button>
+                  </div>
+                </div>
               </form>
 
               {/* Footer Note */}
