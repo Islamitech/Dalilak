@@ -1,10 +1,22 @@
+export interface WarningItem {
+  id: string;
+  date: string;
+  reason: string;
+  issuedBy: string;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'admin' | 'employee';
-  status: 'active' | 'stopped' | 'break';
+  status?: 'active' | 'stopped' | 'break';
+  activityStatus?: 'active' | 'break' | 'offline'; // Live auto status: متصل متفاعل / في استراحة / أوفلاين
+  adminStatus: 'authorized' | 'suspended' | 'under_review'; // Admin control status: مصرح له / موقوف إدارياً / تحت المراجعة والإنذار
   todayCount: number;
+  warnings?: WarningItem[];
+  phone?: string;
+  lastActiveTime?: string;
 }
 
 export interface ServiceOffer {
@@ -79,10 +91,10 @@ export interface AppStoreData {
 }
 
 const INITIAL_EMPLOYEES: User[] = [
-  { id: 'emp-1', name: 'أحمد عزالدين', email: 'ahmed@daleelak.com', role: 'employee', status: 'active', todayCount: 6 },
-  { id: 'emp-2', name: 'محمد مصطفى', email: 'mohamed@daleelak.com', role: 'employee', status: 'active', todayCount: 4 },
-  { id: 'emp-3', name: 'محمود حسن', email: 'mahmoud@daleelak.com', role: 'employee', status: 'break', todayCount: 3 },
-  { id: 'emp-4', name: 'سارة طارق', email: 'sara@daleelak.com', role: 'employee', status: 'stopped', todayCount: 0 },
+  { id: 'emp-1', name: 'أحمد عزالدين', email: 'ahmed@daleelak.com', role: 'employee', status: 'active', activityStatus: 'active', adminStatus: 'authorized', todayCount: 6, lastActiveTime: 'منذ 3 دقائق' },
+  { id: 'emp-2', name: 'محمد مصطفى', email: 'mohamed@daleelak.com', role: 'employee', status: 'active', activityStatus: 'active', adminStatus: 'authorized', todayCount: 4, lastActiveTime: 'منذ 15 دقيقة' },
+  { id: 'emp-3', name: 'محمود حسن', email: 'mahmoud@daleelak.com', role: 'employee', status: 'break', activityStatus: 'break', adminStatus: 'authorized', todayCount: 3, lastActiveTime: 'منذ ساعة' },
+  { id: 'emp-4', name: 'سارة طارق', email: 'sara@daleelak.com', role: 'employee', status: 'stopped', activityStatus: 'offline', adminStatus: 'suspended', todayCount: 0, lastActiveTime: 'غير متصل' },
 ];
 
 const INITIAL_PLACES: PlaceItem[] = [

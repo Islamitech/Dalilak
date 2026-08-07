@@ -519,13 +519,51 @@ export default function FieldDocumentationApp() {
   const [adminNoteText, setAdminNoteText] = useState('');
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
   const [adminFilterStatus, setAdminFilterStatus] = useState('الكل');
+  const [showWarningModalUser, setShowWarningModalUser] = useState<User | null>(null);
+  const [warningReasonInput, setWarningReasonInput] = useState('');
 
-  const handleUpdateEmployeeStatus = (empId: string, newStatus: 'active' | 'stopped' | 'break') => {
+  const handleToggleAdminStatus = (empId: string, targetStatus?: 'authorized' | 'suspended' | 'under_review') => {
     triggerHaptic();
     setStore(prev => ({
       ...prev,
-      employees: prev.employees.map(e => e.id === empId ? { ...e, status: newStatus } : e)
+      employees: prev.employees.map(e => {
+        if (e.id === empId) {
+          const nextStatus = targetStatus || (e.adminStatus === 'suspended' ? 'authorized' : 'suspended');
+          return {
+            ...e,
+            adminStatus: nextStatus,
+            activityStatus: nextStatus === 'suspended' ? 'offline' : (e.activityStatus || 'active')
+          };
+        }
+        return e;
+      })
     }));
+  };
+
+  const handleIssueWarning = (empId: string, reason: string) => {
+    if (!reason.trim()) return;
+    triggerHaptic();
+    const newWarn = {
+      id: `warn-${Date.now()}`,
+      date: new Date().toLocaleDateString('ar-EG'),
+      reason: reason.trim(),
+      issuedBy: store.currentUser?.name || 'إشراف المنظومة'
+    };
+    setStore(prev => ({
+      ...prev,
+      employees: prev.employees.map(e => {
+        if (e.id === empId) {
+          return {
+            ...e,
+            adminStatus: 'under_review',
+            warnings: [...(e.warnings || []), newWarn]
+          };
+        }
+        return e;
+      })
+    }));
+    setShowWarningModalUser(null);
+    setWarningReasonInput('');
   };
 
   const handleSaveAdminPlaceNote = (placeId: string, note: string) => {
@@ -593,6 +631,7 @@ export default function FieldDocumentationApp() {
         email: 'admin@daleelak.com',
         role: 'admin',
         status: 'active',
+        adminStatus: 'authorized',
         todayCount: 15
       };
       setStore(prev => ({ ...prev, currentUser: adminUser }));
@@ -601,16 +640,30 @@ export default function FieldDocumentationApp() {
     }
 
     if (matched) {
-      setStore(prev => ({ ...prev, currentUser: matched }));
+      if (matched.adminStatus === 'suspended') {
+        setLoginError('عفواً، تم إيقاف هذا الحساب إدارياً بواسطة إشراف المنظومة. يرجى التواصل مع المدير المسؤول.');
+        return;
+      }
+      const updatedUser: User = {
+        ...matched,
+        activityStatus: 'active',
+        lastActiveTime: 'الآن (متصل ومباشر)'
+      };
+      setStore(prev => ({
+        ...prev,
+        currentUser: updatedUser,
+        employees: prev.employees.map(e => e.id === matched.id ? updatedUser : e)
+      }));
       setActiveTab('emp-dash');
     } else {
       // Default to employeeAhmed if any credential
-      const empAhmed = store.employees[0] || {
+      const empAhmed: User = store.employees[0] || {
         id: 'emp-1',
         name: 'أحمد عزالدين',
         email: emailInput,
         role: 'employee',
         status: 'active',
+        adminStatus: 'authorized',
         todayCount: 6
       };
       setStore(prev => ({ ...prev, currentUser: empAhmed }));
@@ -751,6 +804,8 @@ export default function FieldDocumentationApp() {
       email: newEmpEmail || `${newEmpName.split(' ')[0]}@daleelak.com`,
       role: 'employee',
       status: 'active',
+      adminStatus: 'authorized',
+      activityStatus: 'offline',
       todayCount: 0
     };
 
@@ -827,7 +882,7 @@ export default function FieldDocumentationApp() {
             if (role === 'admin') {
               setStore(prev => ({
                 ...prev,
-                currentUser: { id: 'admin-1', name: 'المدير العام', email: 'admin@daleelak.com', role: 'admin', status: 'active', todayCount: 15 }
+                currentUser: { id: 'admin-1', name: 'المدير العام', email: 'admin@daleelak.com', role: 'admin', status: 'active', adminStatus: 'authorized', todayCount: 15 }
               }));
               setActiveTab('admin-dash');
             } else {
@@ -1002,15 +1057,17 @@ export default function FieldDocumentationApp() {
               </div>
             </div>
 
-            {/* B. Employee Management & Direct Control Panel */}
+            {/* B. Employee Management & Administrative Authorization Control Panel */}
             <div className="bg-white p-5 rounded-3xl border border-slate-300 shadow-md space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h3 className="text-xl font-bold text-[#1E4A3A] flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    <span>إدارة الموظفين الميدانيين والصلاحيات</span>
+                    <span>إدارة الموظفين الميدانيين وصلاحيات الوصول والجزاءات</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5 font-bold">التحكم المباشر بحالة التواجد والتفاعل للموظف الميداني</p>
+                  <p className="text-xs text-slate-500 mt-0.5 font-bold">
+                    حالة النشاط تتفاعل تلقائياً مع دخول الموظف وزياراته، والتحكم الإداري يتيح إيقاف الحساب أو إصدار إنذارات
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowAddEmpModal(true)}
@@ -1027,44 +1084,107 @@ export default function FieldDocumentationApp() {
                   <thead>
                     <tr className="bg-[#1E4A3A] text-white text-sm font-bold">
                       <th className="p-3 rounded-r-xl">اسم الموظف</th>
-                      <th className="p-3">البريد الإلكتروني</th>
+                      <th className="p-3">التشغيل المباشر (Live)</th>
                       <th className="p-3">التوثيقات اليوم</th>
-                      <th className="p-3">حالة التواجد</th>
-                      <th className="p-3 rounded-l-xl text-left">التفاصيل والتأثير</th>
+                      <th className="p-3">الصلاحية والحالة الإدارية</th>
+                      <th className="p-3 rounded-l-xl text-left">الإجراءات والتحكم الإداري</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {store.employees.map(emp => (
                       <tr key={emp.id} className="hover:bg-slate-50 text-base font-bold">
-                        <td className="p-3 flex items-center gap-2 text-[#1E202A]">
-                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#1E4A3A] font-bold flex items-center justify-center text-xs">
-                            {emp.name.charAt(0)}
+                        <td className="p-3">
+                          <div className="flex items-center gap-2 text-[#1E202A]">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#1E4A3A] font-bold flex items-center justify-center text-xs">
+                              {emp.name.charAt(0)}
+                            </div>
+                            <div>
+                              <span className="block">{emp.name}</span>
+                              <span className="text-[11px] text-slate-500 block font-normal">{emp.email}</span>
+                            </div>
                           </div>
-                          <span>{emp.name}</span>
                         </td>
-                        <td className="p-3 text-slate-600 text-sm font-semibold">{emp.email}</td>
+
+                        {/* Automatic Live Activity Status */}
+                        <td className="p-3">
+                          {emp.adminStatus === 'suspended' ? (
+                            <span className="px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 text-xs font-bold border border-slate-300">
+                              ⚪ غير متصل (موقوف)
+                            </span>
+                          ) : emp.activityStatus === 'active' || emp.status === 'active' ? (
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold border border-emerald-300 flex items-center gap-1.5 w-max">
+                              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
+                              🟢 متصل ومتفاعل الآن
+                            </span>
+                          ) : emp.activityStatus === 'break' || emp.status === 'break' ? (
+                            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300">
+                              🟡 في استراحة
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300">
+                              ⚪ غير متصل
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-500 block mt-0.5 font-normal">{emp.lastActiveTime || 'الآن'}</span>
+                        </td>
+
                         <td className="p-3 text-amber-700 font-extrabold">{emp.todayCount} زيارات</td>
+
+                        {/* Admin Controlled Account Status */}
                         <td className="p-3">
                           <select
-                            value={emp.status}
-                            onChange={e => handleUpdateEmployeeStatus(emp.id, e.target.value as any)}
-                            className="text-xs font-extrabold py-1 px-2.5 rounded-xl border border-slate-300 bg-white"
+                            value={emp.adminStatus || 'authorized'}
+                            onChange={e => handleToggleAdminStatus(emp.id, e.target.value as any)}
+                            className={`text-xs font-extrabold py-1 px-2.5 rounded-xl border ${
+                              emp.adminStatus === 'suspended'
+                                ? 'bg-rose-100 text-rose-900 border-rose-400'
+                                : emp.adminStatus === 'under_review'
+                                ? 'bg-amber-100 text-amber-900 border-amber-400'
+                                : 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                            }`}
                           >
-                            <option value="active">🟢 نشط في الميدان</option>
-                            <option value="break">🟡 في استراحة</option>
-                            <option value="stopped">🔴 متوقف حالياً</option>
+                            <option value="authorized">🟢 مفعل ومصرح له</option>
+                            <option value="under_review">⚠️ تحت المراجعة والإنذار</option>
+                            <option value="suspended">🛑 موقوف إدارياً (حظر الدخول)</option>
                           </select>
                         </td>
+
+                        {/* Admin Action Buttons */}
                         <td className="p-3 text-left">
-                          <button
-                            onClick={() => {
-                              triggerHaptic();
-                              setSelectedEmployeeDetail(emp);
-                            }}
-                            className="bg-slate-100 hover:bg-slate-200 text-[#1E4A3A] text-xs px-3 py-1.5 rounded-lg border border-slate-300 font-bold"
-                          >
-                            عرض التقرير الشامل
-                          </button>
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <button
+                              onClick={() => handleToggleAdminStatus(emp.id)}
+                              className={`text-xs px-2.5 py-1.5 rounded-lg border font-bold ${
+                                emp.adminStatus === 'suspended'
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+                                  : 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700'
+                              }`}
+                              title={emp.adminStatus === 'suspended' ? 'فك إيقاف الحساب' : 'إيقاف الحساب إدارياً'}
+                            >
+                              {emp.adminStatus === 'suspended' ? 'تفعيل' : 'إيقاف'}
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                triggerHaptic();
+                                setShowWarningModalUser(emp);
+                              }}
+                              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs px-2.5 py-1.5 rounded-lg font-bold"
+                              title="إصدار إنذار إداري"
+                            >
+                              إنذار
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                triggerHaptic();
+                                setSelectedEmployeeDetail(emp);
+                              }}
+                              className="bg-slate-100 hover:bg-slate-200 text-[#1E4A3A] text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold"
+                            >
+                              الملف الشامل
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -2402,6 +2522,54 @@ export default function FieldDocumentationApp() {
                 className="btn-reject py-2.5 text-sm"
               >
                 إغلاق المعاينة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 7: ISSUE ADMINISTRATIVE WARNING MODAL                  */}
+      {/* ============================================================ */}
+      {showWarningModalUser && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 dir-rtl">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-right">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-xl font-extrabold text-amber-900 flex items-center gap-2">
+                <AlertCircle className="w-6 h-6 text-amber-600" />
+                <span>إصدار إنذار إداري — {showWarningModalUser.name}</span>
+              </h3>
+              <button onClick={() => setShowWarningModalUser(null)} className="p-1 rounded-xl bg-slate-100 text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs font-bold text-slate-600">
+              سيتم تسجيل الإنذار الإداري رسمياً في الملف الوظيفي وتحويل حالة الحساب إلى "تحت المراجعة والإنذار".
+            </p>
+
+            <div>
+              <label className="block text-sm font-bold text-[#1E202A] mb-1">سبب الإنذار / المخالفة الميدانية</label>
+              <textarea
+                value={warningReasonInput}
+                onChange={e => setWarningReasonInput(e.target.value)}
+                placeholder="أدخل سبب الإنذار الإداري والتنبيه المطلوب"
+                className="w-full min-h-[90px] text-sm font-bold"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => handleIssueWarning(showWarningModalUser.id, warningReasonInput)}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-base"
+              >
+                تأكيد الإنذار
+              </button>
+              <button
+                onClick={() => setShowWarningModalUser(null)}
+                className="btn-reject py-3 text-base"
+              >
+                إلغاء
               </button>
             </div>
           </div>
