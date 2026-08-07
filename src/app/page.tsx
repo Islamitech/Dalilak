@@ -5,7 +5,7 @@ import {
   Building2, Camera, MapPin, CheckCircle, XCircle, ChevronRight, ChevronLeft,
   User as UserIcon, Plus, Minus, FileText, Send, DollarSign, PieChart, Users,
   Check, X, Eye, EyeOff, ShieldCheck, RefreshCw, Smartphone, Award, ArrowRight,
-  TrendingUp, Activity, Lock, AlertCircle, Share2, Printer, Download, Sparkles, Filter, Search
+  TrendingUp, Activity, Lock, AlertCircle, Share2, Printer, Download, Sparkles, Filter, Search, Bell, Clock
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import {
@@ -523,6 +523,56 @@ export default function FieldDocumentationApp() {
   const [showWarningModalUser, setShowWarningModalUser] = useState<User | null>(null);
   const [warningReasonInput, setWarningReasonInput] = useState('');
 
+  // Field Employee Features & Reminders State
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [showEmployeePlaceModal, setShowEmployeePlaceModal] = useState<PlaceItem | null>(null);
+  const [showAddReminderModal, setShowAddReminderModal] = useState<PlaceItem | null>(null);
+  const [reminderNoteInput, setReminderNoteInput] = useState('');
+  const [reminderDateTimeInput, setReminderDateTimeInput] = useState('');
+
+  const handleSaveReminder = (placeId: string, dt: string, note: string) => {
+    if (!note.trim()) return;
+    triggerHaptic();
+    const formattedDt = dt || new Date(Date.now() + 86400000).toISOString().slice(0, 16);
+    setStore(prev => ({
+      ...prev,
+      places: prev.places.map(p => {
+        if (p.id === placeId) {
+          return {
+            ...p,
+            reminderDateTime: formattedDt,
+            reminderNote: note.trim(),
+            reminderCompleted: false
+          };
+        }
+        return p;
+      }),
+      notifications: [
+        {
+          id: `notif-${Date.now()}`,
+          title: 'تم جدولـة تذكير تجاري جديد ⏰',
+          message: `تذكير لمنشأة: ${note.trim()}`,
+          type: 'reminder',
+          targetPlaceId: placeId,
+          read: false,
+          createdAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+        },
+        ...(prev.notifications || [])
+      ]
+    }));
+    setShowAddReminderModal(null);
+    setReminderNoteInput('');
+    setReminderDateTimeInput('');
+  };
+
+  const handleMarkNotificationRead = (notifId: string) => {
+    triggerHaptic();
+    setStore(prev => ({
+      ...prev,
+      notifications: (prev.notifications || []).map(n => n.id === notifId ? { ...n, read: true } : n)
+    }));
+  };
+
   const handleToggleAdminStatus = (empId: string, targetStatus?: 'authorized' | 'suspended' | 'under_review') => {
     triggerHaptic();
     setStore(prev => ({
@@ -876,6 +926,11 @@ export default function FieldDocumentationApp() {
       {activeTab !== 'login' && (
         <Navbar
           currentUser={store.currentUser}
+          unreadNotificationsCount={(store.notifications || []).filter(n => !n.read).length}
+          onToggleNotifications={() => {
+            triggerHaptic();
+            setShowNotificationsModal(true);
+          }}
           onLogout={() => {
             triggerHaptic();
             setActiveTab('login');
@@ -1359,25 +1414,92 @@ export default function FieldDocumentationApp() {
 
             {/* Recent 5 Visits List */}
             <div className="bg-white p-5 rounded-2xl border border-slate-300 shadow-md space-y-3">
-              <h3 className="text-lg font-bold text-[#1E4A3A] pb-2 border-b border-slate-200">
-                آخر 5 أنشطة تم توثيقها اليوم
-              </h3>
-              <div className="space-y-2">
-                {store.places.slice(0, 5).map(p => (
-                  <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-right">
-                    <div>
-                      <h4 className="font-extrabold text-[#1E202A] text-base">{p.businessName}</h4>
-                      <p className="text-xs font-bold text-slate-500 mt-0.5">
-                        {new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <h3 className="text-lg font-bold text-[#1E4A3A]">
+                  أنشطة اليوم والتذكيرات الميدانية
+                </h3>
+                <span className="text-xs text-slate-500 font-bold">انقر لمعاينة التفاصيل والتذكير</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {store.places.slice(0, 5).map(p => {
+                  const isOverdue = p.reminderDateTime && new Date(p.reminderDateTime).getTime() < Date.now();
+                  return (
+                    <div
+                      key={p.id}
+                      className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-right space-y-2 transition-all hover:bg-slate-100/80"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <h4 className="font-extrabold text-[#1E202A] text-base">{p.businessName}</h4>
+                          <p className="text-xs font-bold text-slate-500 mt-0.5">
+                            <span>🏙️ {p.city || 'الجيزة'} — {p.neighborhood || 'حدائق الأهرام'}</span>
+                            <span className="mx-1">•</span>
+                            <span>{new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </p>
+                        </div>
+                        {p.visitResult === 'accepted' ? (
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-900 rounded-full text-xs font-black border border-emerald-300 shrink-0">🟢 قبول</span>
+                        ) : (
+                          <span className="px-3 py-1 bg-rose-100 text-rose-900 rounded-full text-xs font-black border border-rose-300 shrink-0">🔴 رفض</span>
+                        )}
+                      </div>
+
+                      {/* Admin Directive Badge */}
+                      {p.adminRequest && (
+                        <div className="p-2 bg-amber-50 rounded-xl border border-amber-300 text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                          <span>📩 ملاحظة وتوجيه الإدارة:</span>
+                          <span className="font-extrabold">{p.adminRequest}</span>
+                        </div>
+                      )}
+
+                      {/* Reminder Badge / Overdue Notice */}
+                      {p.reminderNote && (
+                        <div className={`p-2 rounded-xl text-xs font-bold border flex items-center justify-between ${
+                          isOverdue
+                            ? 'bg-rose-100 border-rose-400 text-rose-950 animate-pulse'
+                            : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                        }`}>
+                          <div className="flex items-center gap-1.5">
+                            <span>⏰ {isOverdue ? '⚠️ تنبيه: الموعد المحدد قد مر!' : 'تذكير تجاري محدد:'}</span>
+                            <span className="font-black">{p.reminderNote}</span>
+                          </div>
+                          {isOverdue && (
+                            <span className="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-md font-black shrink-0">
+                              مستحق الآن
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Action Buttons for Employee */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => {
+                            triggerHaptic();
+                            setShowEmployeePlaceModal(p);
+                          }}
+                          className="flex-1 bg-[#1E4A3A] hover:bg-[#143529] text-white text-xs font-bold py-2 rounded-xl border border-[#143529] flex items-center justify-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-amber-300" />
+                          <span>عرض تفاصيل وملاحظات المنشأة</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            triggerHaptic();
+                            setShowAddReminderModal(p);
+                            setReminderNoteInput(p.reminderNote || '');
+                            setReminderDateTimeInput(p.reminderDateTime || '');
+                          }}
+                          className="bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-bold px-3 py-2 rounded-xl border border-amber-300 flex items-center gap-1"
+                        >
+                          <Clock className="w-3.5 h-3.5 text-amber-800" />
+                          <span>{p.reminderNote ? 'تعديل التذكير' : 'إضافة تذكير'}</span>
+                        </button>
+                      </div>
                     </div>
-                    {p.visitResult === 'accepted' ? (
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-300">قبول</span>
-                    ) : (
-                      <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold border border-rose-300">رفض</span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -2791,6 +2913,248 @@ export default function FieldDocumentationApp() {
               <button
                 onClick={() => setShowWarningModalUser(null)}
                 className="btn-reject py-3 text-base"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 8: NOTIFICATIONS BELL HUB & ADMIN DIRECTIVES           */}
+      {/* ============================================================ */}
+      {showNotificationsModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 dir-rtl">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-right max-h-[85vh] overflow-y-auto border border-slate-300">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2">
+                <Bell className="w-6 h-6 text-amber-600" />
+                <h3 className="text-xl font-black text-[#1E4A3A]">
+                  جرس التنبيهات والتوجيهات الإدارية
+                </h3>
+              </div>
+              <button onClick={() => setShowNotificationsModal(false)} className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {(store.notifications || []).length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-6">لا توجد تنبيهات أو توجيهات جديدة حالياً.</p>
+              ) : (
+                (store.notifications || []).map(n => (
+                  <div
+                    key={n.id}
+                    onClick={() => handleMarkNotificationRead(n.id)}
+                    className={`p-3.5 rounded-2xl border text-xs space-y-1 transition-all cursor-pointer ${
+                      n.read
+                        ? 'bg-slate-50 border-slate-200 text-slate-700'
+                        : 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-sm'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-black">
+                      <span className="text-sm">{n.title}</span>
+                      <span className="text-[10px] text-slate-500 font-bold">{n.createdAt}</span>
+                    </div>
+                    <p className="font-bold leading-relaxed">{n.message}</p>
+                    {!n.read && (
+                      <span className="inline-block mt-1 text-[10px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-full">
+                        غير مقروء
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                triggerHaptic();
+                setStore(prev => ({
+                  ...prev,
+                  notifications: (prev.notifications || []).map(n => ({ ...n, read: true }))
+                }));
+                setShowNotificationsModal(false);
+              }}
+              className="w-full bg-[#1E4A3A] hover:bg-[#143529] text-white font-black py-3 rounded-xl text-sm"
+            >
+              تحديد الكل كـ مقروء وإغلاق
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 9: EMPLOYEE PLACE INSPECTION MODAL (تفاصيل وملاحظات)   */}
+      {/* ============================================================ */}
+      {showEmployeePlaceModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 dir-rtl">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-right max-h-[88vh] overflow-y-auto border border-slate-300">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-xl font-black text-[#1E4A3A]">
+                  تفاصيل وملاحظات: {showEmployeePlaceModal.businessName}
+                </h3>
+                <p className="text-xs text-slate-500 font-bold mt-0.5">
+                  تاريخ التوثيق: {new Date(showEmployeePlaceModal.createdAt || Date.now()).toLocaleString('ar-EG')}
+                </p>
+              </div>
+              <button onClick={() => setShowEmployeePlaceModal(null)} className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Base Details Card */}
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs font-bold space-y-1.5">
+              <div><span className="text-slate-500">🏙️ المدينة والحي:</span> <strong className="text-[#1E4A3A]">{showEmployeePlaceModal.city || 'الجيزة'} — {showEmployeePlaceModal.neighborhood || 'حدائق الأهرام'}</strong></div>
+              <div><span className="text-slate-500">التصنيف:</span> {showEmployeePlaceModal.mainCategory} ({showEmployeePlaceModal.subCategory})</div>
+              <div><span className="text-slate-500">العنوان الإحداثي:</span> {showEmployeePlaceModal.dms}</div>
+            </div>
+
+            {/* Admin Directive if present */}
+            {showEmployeePlaceModal.adminRequest && (
+              <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-300 text-xs font-bold text-amber-950 space-y-1">
+                <span className="block font-black text-amber-900 text-sm">📩 توجيه وملاحظة الإدارة الخاصة بهذا النشاط:</span>
+                <p className="bg-white p-2.5 rounded-xl border border-amber-200 text-amber-950 font-bold">{showEmployeePlaceModal.adminRequest}</p>
+              </div>
+            )}
+
+            {/* Custom Scheduled Reminder if present */}
+            {showEmployeePlaceModal.reminderNote && (
+              <div className={`p-3.5 rounded-2xl border text-xs font-bold space-y-1 ${
+                showEmployeePlaceModal.reminderDateTime && new Date(showEmployeePlaceModal.reminderDateTime).getTime() < Date.now()
+                  ? 'bg-rose-100 border-rose-400 text-rose-950 animate-pulse'
+                  : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+              }`}>
+                <div className="flex items-center justify-between font-black text-sm">
+                  <span>⏰ التذكير التجاري الخاص بالموظف:</span>
+                  {showEmployeePlaceModal.reminderDateTime && new Date(showEmployeePlaceModal.reminderDateTime).getTime() < Date.now() && (
+                    <span className="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
+                      ⚠️ الموعد المحدد قد مر!
+                    </span>
+                  )}
+                </div>
+                <p className="font-extrabold text-sm">{showEmployeePlaceModal.reminderNote}</p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => {
+                  triggerHaptic();
+                  setShowAddReminderModal(showEmployeePlaceModal);
+                  setReminderNoteInput(showEmployeePlaceModal.reminderNote || '');
+                  setReminderDateTimeInput(showEmployeePlaceModal.reminderDateTime || '');
+                  setShowEmployeePlaceModal(null);
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5"
+              >
+                <Clock className="w-4 h-4 text-slate-950" />
+                <span>إضافة / تعديل تذكير للمنشأة</span>
+              </button>
+
+              <button
+                onClick={() => setShowEmployeePlaceModal(null)}
+                className="btn-reject py-3 text-xs"
+              >
+                إغلاق المعاينة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 10: ADD / EDIT PLACE REMINDER MODAL                    */}
+      {/* ============================================================ */}
+      {showAddReminderModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 dir-rtl">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-right border border-slate-300">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-xl font-black text-[#1E4A3A] flex items-center gap-2">
+                <Clock className="w-6 h-6 text-amber-600" />
+                <span>إضافة تذكير ومؤقت مستقبلي</span>
+              </h3>
+              <button onClick={() => setShowAddReminderModal(null)} className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 font-bold">
+              نشاط: <strong className="text-[#1E4A3A] text-sm">{showAddReminderModal.businessName}</strong>
+            </p>
+
+            {/* Quick Presets */}
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-slate-700 block">اختيارات سريعة للتوقيت:</span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date(Date.now() + 3600000).toISOString().slice(0, 16);
+                    setReminderDateTimeInput(d);
+                  }}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold border border-slate-300"
+                >
+                  بعد ساعة ⏱️
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
+                    setReminderDateTimeInput(d);
+                  }}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold border border-slate-300"
+                >
+                  غداً 10 ص 🌅
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 16);
+                    setReminderDateTimeInput(d);
+                  }}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold border border-slate-300"
+                >
+                  بعد 3 أيام 📅
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Date Time */}
+            <div>
+              <label className="block text-xs font-bold text-[#1E202A] mb-1">وقت وتاريخ التذكير المحدد</label>
+              <input
+                type="datetime-local"
+                value={reminderDateTimeInput}
+                onChange={e => setReminderDateTimeInput(e.target.value)}
+                className="w-full text-xs font-bold rounded-xl border-slate-300"
+              />
+            </div>
+
+            {/* Reminder Note */}
+            <div>
+              <label className="block text-xs font-bold text-[#1E202A] mb-1">نص وملاحظة التذكير المخصصة للموظف</label>
+              <textarea
+                value={reminderNoteInput}
+                onChange={e => setReminderNoteInput(e.target.value)}
+                placeholder="أدخل نص التذكير (مثال: زيارة متابعة ثانية لتحصيل المبلغ المتبقي أو مراسلة التاجر عبر واتساب)"
+                className="w-full min-h-[85px] text-xs font-bold rounded-xl"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => handleSaveReminder(showAddReminderModal.id, reminderDateTimeInput, reminderNoteInput)}
+                className="bg-[#1E4A3A] hover:bg-[#143529] text-white font-black py-3 rounded-xl text-xs shadow-md"
+              >
+                حفظ وجدولة التذكير
+              </button>
+              <button
+                onClick={() => setShowAddReminderModal(null)}
+                className="btn-reject py-3 text-xs"
               >
                 إلغاء
               </button>

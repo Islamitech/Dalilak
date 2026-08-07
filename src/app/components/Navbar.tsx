@@ -1,15 +1,23 @@
 'use client';
 import React from 'react';
-import { LogOut, User as UserIcon, ShieldCheck, MapPin } from 'lucide-react';
+import { LogOut, User as UserIcon, ShieldCheck, MapPin, Bell } from 'lucide-react';
 import { User } from './store';
 
 interface NavbarProps {
   currentUser: User | null;
   onLogout: () => void;
   onSwitchRole?: (role: 'admin' | 'employee') => void;
+  unreadNotificationsCount?: number;
+  onToggleNotifications?: () => void;
 }
 
-export default function Navbar({ currentUser, onLogout, onSwitchRole }: NavbarProps) {
+export default function Navbar({
+  currentUser,
+  onLogout,
+  onSwitchRole,
+  unreadNotificationsCount = 0,
+  onToggleNotifications
+}: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 bg-[#1E4A3A] text-white shadow-md border-b border-[#143529] px-4 py-3">
       <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -42,12 +50,28 @@ export default function Navbar({ currentUser, onLogout, onSwitchRole }: NavbarPr
           </div>
         </div>
 
-        {/* Right / Actions & Role Switch & Logout */}
+        {/* Right / Actions & Bell & Role Switch & Logout */}
         <div className="flex items-center gap-2">
+          {/* Notification Bell Button */}
+          {onToggleNotifications && (
+            <button
+              onClick={onToggleNotifications}
+              className="relative p-2.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 border border-emerald-600/50 transition-all active:scale-95"
+              title="جرس التنبيهات والتذكيرات"
+            >
+              <Bell className="w-5 h-5 text-amber-300" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#1E4A3A] shadow-md animate-bounce">
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {onSwitchRole && currentUser && (
             <button
               onClick={() => onSwitchRole(currentUser.role === 'admin' ? 'employee' : 'admin')}
-              className="text-xs bg-emerald-900/90 hover:bg-emerald-800 text-amber-300 border border-amber-400/40 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
+              className="text-xs bg-emerald-900/90 hover:bg-emerald-800 text-amber-300 border border-amber-400/40 px-3 py-2 rounded-xl flex items-center gap-1 transition-all"
               title="تبديل الدور للتجربة"
             >
               <UserIcon className="w-3.5 h-3.5" />

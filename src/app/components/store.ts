@@ -33,6 +33,16 @@ export interface RejectionDetails {
   notes?: string;
 }
 
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: 'admin_directive' | 'admin_warning' | 'account_status' | 'reminder';
+  targetPlaceId?: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface PlaceItem {
   id: string;
   businessName: string;
@@ -76,6 +86,9 @@ export interface PlaceItem {
   city?: string;
   neighborhood?: string;
   street?: string;
+  reminderDateTime?: string; // ISO date or time string for follow-up timer
+  reminderNote?: string; // Custom reminder text (e.g., "زيارة متابعة ثانية لتحصيل المبلغ المتبقي")
+  reminderCompleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -84,6 +97,7 @@ export interface AppStoreData {
   currentUser: User | null;
   employees: User[];
   places: PlaceItem[];
+  notifications: NotificationItem[];
   dailyTarget: number;
   lastActivityNote: string;
   activeVisitDraft: Partial<PlaceItem> | null;
@@ -226,6 +240,27 @@ export const AVAILABLE_SERVICES: ServiceOffer[] = [
   }
 ];
 
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'notif-1',
+    title: 'توجيه إداري جديد من الإدارة 📩',
+    message: 'توجيه بشأن منشأة مؤسسة البركة: يرجى إرفاق صورة واضحة للافتة الخارجية عند الزيارة القادمة.',
+    type: 'admin_directive',
+    targetPlaceId: 'PLACE-909500',
+    read: false,
+    createdAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+  },
+  {
+    id: 'notif-2',
+    title: 'تنبيه موعد تذكير تجاري (مر الموعد المحدد) ⏰',
+    message: 'مر الموعد المحدد لمتابعة عيادات ومراكز طبية — تذكير بمراجعة التاجر لتحصيل المتبقي (عربون).',
+    type: 'reminder',
+    targetPlaceId: 'PLACE-909500',
+    read: false,
+    createdAt: new Date(Date.now() - 1800000).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+  }
+];
+
 const STORAGE_KEY = 'daleelak_field_system_v3';
 
 export function getStoredData(): AppStoreData {
@@ -234,6 +269,7 @@ export function getStoredData(): AppStoreData {
       currentUser: INITIAL_EMPLOYEES[0],
       employees: INITIAL_EMPLOYEES,
       places: INITIAL_PLACES,
+      notifications: INITIAL_NOTIFICATIONS,
       dailyTarget: 10,
       lastActivityNote: 'عيادات ومراكز طبية — منذ 15 دقيقة',
       activeVisitDraft: null,
@@ -244,7 +280,11 @@ export function getStoredData(): AppStoreData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return {
+        ...parsed,
+        notifications: parsed.notifications || INITIAL_NOTIFICATIONS
+      };
     }
   } catch (e) {
     console.error('Error reading localStorage', e);
@@ -254,6 +294,7 @@ export function getStoredData(): AppStoreData {
     currentUser: INITIAL_EMPLOYEES[0],
     employees: INITIAL_EMPLOYEES,
     places: INITIAL_PLACES,
+    notifications: INITIAL_NOTIFICATIONS,
     dailyTarget: 10,
     lastActivityNote: 'عيادات ومراكز طبية — منذ 15 دقيقة',
     activeVisitDraft: null,
