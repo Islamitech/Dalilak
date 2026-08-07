@@ -519,6 +519,7 @@ export default function FieldDocumentationApp() {
   const [adminNoteText, setAdminNoteText] = useState('');
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
   const [adminFilterStatus, setAdminFilterStatus] = useState('الكل');
+  const [adminCityFilter, setAdminCityFilter] = useState('الكل');
   const [showWarningModalUser, setShowWarningModalUser] = useState<User | null>(null);
   const [warningReasonInput, setWarningReasonInput] = useState('');
 
@@ -583,7 +584,9 @@ export default function FieldDocumentationApp() {
     dms: `N 30°03'${Math.floor(10 + Math.random() * 40)}.${Math.floor(10 + Math.random() * 89)}" E 31°14'${Math.floor(10 + Math.random() * 40)}"`,
     latitude: 30.0444,
     longitude: 31.2357,
-    address: 'القاهرة — الشارع الرئيسي',
+    city: 'الجيزة',
+    neighborhood: 'حدائق الأهرام',
+    address: 'الجيزة — حدائق الأهرام — الشارع الرئيسي',
     isActiveStreet: true,
     hasCompetitor: false,
     similarStoresCount: 2,
@@ -1200,15 +1203,27 @@ export default function FieldDocumentationApp() {
                       type="text"
                       value={adminSearchQuery}
                       onChange={e => setAdminSearchQuery(e.target.value)}
-                      placeholder="بحث باسم المكان أو الموثق..."
-                      className="text-xs min-h-[38px] pr-9 pl-3 rounded-xl border-slate-300 w-48"
+                      placeholder="بحث بالمكان أو الموثق أو المدينة أو الحي..."
+                      className="text-xs min-h-[38px] pr-9 pl-3 rounded-xl border-slate-300 w-56"
                     />
                   </div>
+
+                  {/* Filter by City */}
+                  <select
+                    value={adminCityFilter}
+                    onChange={e => setAdminCityFilter(e.target.value)}
+                    className="text-xs min-h-[38px] font-bold rounded-xl border-slate-300 bg-white"
+                  >
+                    <option value="الكل">كل المدن</option>
+                    <option value="الجيزة">الجيزة</option>
+                    <option value="القاهرة">القاهرة</option>
+                    <option value="الإسكندرية">الإسكندرية</option>
+                  </select>
 
                   <select
                     value={adminFilterStatus}
                     onChange={e => setAdminFilterStatus(e.target.value)}
-                    className="text-xs min-h-[38px] font-bold rounded-xl border-slate-300"
+                    className="text-xs min-h-[38px] font-bold rounded-xl border-slate-300 bg-white"
                   >
                     <option value="الكل">كل الحالات</option>
                     <option value="accepted">المقبولة</option>
@@ -1222,9 +1237,16 @@ export default function FieldDocumentationApp() {
                 {store.places
                   .filter(p => {
                     const q = adminSearchQuery.trim().toLowerCase();
-                    const matchesQ = !q || (p.businessName.toLowerCase().includes(q) || (p.documenterName && p.documenterName.toLowerCase().includes(q)));
+                    const matchesQ = !q || (
+                      p.businessName.toLowerCase().includes(q) ||
+                      (p.documenterName && p.documenterName.toLowerCase().includes(q)) ||
+                      (p.city && p.city.toLowerCase().includes(q)) ||
+                      (p.neighborhood && p.neighborhood.toLowerCase().includes(q)) ||
+                      (p.address && p.address.toLowerCase().includes(q))
+                    );
                     const matchesStatus = adminFilterStatus === 'الكل' || p.visitResult === adminFilterStatus;
-                    return matchesQ && matchesStatus;
+                    const matchesCity = adminCityFilter === 'الكل' || p.city === adminCityFilter;
+                    return matchesQ && matchesStatus && matchesCity;
                   })
                   .map(p => (
                     <div
@@ -1243,8 +1265,14 @@ export default function FieldDocumentationApp() {
                         </div>
                         <div>
                           <h4 className="font-extrabold text-[#1E202A] text-base">{p.businessName}</h4>
-                          <p className="text-xs font-bold text-slate-500">
-                            الموثق: {p.documenterName} — {new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                          <p className="text-xs font-bold text-slate-500 flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span>الموثق: {p.documenterName}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded text-[11px] font-black">
+                              🏙️ {p.city || 'الجيزة'} — {p.neighborhood || 'حدائق الأهرام'}
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <span>{new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
                           </p>
                           {p.adminRequest && (
                             <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full inline-block mt-1">
@@ -1509,14 +1537,47 @@ export default function FieldDocumentationApp() {
                 setDraft(prev => ({
                   ...prev,
                   dms: `N 30°03'${Math.floor(10 + Math.random() * 40)}.${Math.floor(10 + Math.random() * 89)}" E 31°14'${Math.floor(10 + Math.random() * 40)}"`,
-                  address: 'القاهرة — شارع مصدق الميداني'
+                  city: 'الجيزة',
+                  neighborhood: 'حدائق الأهرام',
+                  address: 'الجيزة — حدائق الأهرام — الشارع الرئيسي'
                 }));
               }}
               className="w-full btn-primary-action text-xl py-3.5 flex items-center justify-center gap-2"
             >
               <MapPin className="w-6 h-6" />
-              <span>تسجيل الموقع الحالي الآن</span>
+              <span>تسجيل الموقع الجغرافي والمنطقة تلقائياً (GPS)</span>
             </button>
+
+            {/* Auto GPS Resolved City & Neighborhood Card */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-300 space-y-3 dir-rtl text-right">
+              <h4 className="font-extrabold text-[#1E4A3A] text-base flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                <MapPin className="w-5 h-5 text-emerald-700" />
+                <span>البيانات الجغرافية (تُسجل تلقائياً عن طريق خدمة المواقع):</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">المدينة (تسجيل تلقائي GPS)</label>
+                  <input
+                    type="text"
+                    value={draft.city || ''}
+                    onChange={e => setDraft(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder="مثال: الجيزة"
+                    className="w-full text-sm font-extrabold rounded-xl border-slate-300 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">الحي / المنطقة (تسجيل تلقائي GPS)</label>
+                  <input
+                    type="text"
+                    value={draft.neighborhood || ''}
+                    onChange={e => setDraft(prev => ({ ...prev, neighborhood: e.target.value }))}
+                    placeholder="مثال: حدائق الأهرام"
+                    className="w-full text-sm font-extrabold rounded-xl border-slate-300 bg-white"
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Environmental Evaluation Questions */}
             <div className="bg-white p-5 rounded-2xl border border-slate-300 space-y-5">
