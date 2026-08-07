@@ -1158,43 +1158,18 @@ export default function FieldDocumentationApp() {
                             )}
                           </td>
 
-                          {/* Column 5: Clean Horizontal Admin Action Buttons */}
+                          {/* Column 5: Single Clean Enterprise Action Button */}
                           <td className="p-3.5 text-left">
-                            <div className="flex items-center gap-2 justify-end">
-                              {/* Quick Toggle Lock / Unlock Account Button */}
-                              <button
-                                onClick={() => handleToggleAdminStatus(emp.id)}
-                                className={`text-xs px-3 py-1.5 rounded-xl border font-black transition-all ${
-                                  emp.adminStatus === 'suspended'
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                                    : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
-                                }`}
-                                title={emp.adminStatus === 'suspended' ? 'تفعيل فوري للحساب' : 'إيقاف إداري للحساب'}
-                              >
-                                {emp.adminStatus === 'suspended' ? 'فك الإيقاف' : 'إيقاف الحساب'}
-                              </button>
-
-                              {/* Issue Warning Button */}
-                              <button
-                                onClick={() => {
-                                  triggerHaptic();
-                                  setShowWarningModalUser(emp);
-                                }}
-                                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs px-3 py-1.5 rounded-xl font-black transition-all"
-                                title="إصدار إنذار إداري"
-                              >
-                                إنذار
-                              </button>
-
-                              {/* View Full Dossier Button */}
+                            <div className="flex items-center justify-end">
                               <button
                                 onClick={() => {
                                   triggerHaptic();
                                   setSelectedEmployeeDetail(emp);
                                 }}
-                                className="bg-[#1E4A3A] hover:bg-[#143529] text-white text-xs px-3.5 py-1.5 rounded-xl font-black shadow-sm transition-all flex items-center gap-1"
+                                className="bg-[#1E4A3A] hover:bg-[#143529] text-white text-xs px-4 py-2 rounded-xl font-black shadow-md transition-all flex items-center gap-1.5 active:scale-95 border border-[#143529]"
                               >
-                                <span>الملف الشامل</span>
+                                <ShieldCheck className="w-4 h-4 text-amber-300" />
+                                <span>الملف الشامل والإدارة</span>
                               </button>
                             </div>
                           </td>
