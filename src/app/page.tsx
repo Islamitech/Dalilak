@@ -922,6 +922,33 @@ export default function FieldDocumentationApp() {
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
   };
 
+  // CSV Audit Report Export Handler
+  const handleExportCSV = () => {
+    triggerHaptic();
+    const headers = ['رقم المنشأة', 'اسم المنشأة', 'الموثق', 'حالة الزيارة', 'المدينة', 'الحي', 'المبلغ المدفوع', 'المبلغ المتبقي', 'التاريخ'];
+    const rows = store.places.map(p => [
+      p.id,
+      `"${p.businessName.replace(/"/g, '""')}"`,
+      `"${(p.documenterName || '').replace(/"/g, '""')}"`,
+      p.visitResult === 'accepted' ? 'مقبول' : 'مرفوض',
+      `"${p.city || ''}"`,
+      `"${p.neighborhood || ''}"`,
+      p.paidAmount || 0,
+      p.remainingAmount || 0,
+      `"${new Date(p.createdAt || Date.now()).toLocaleDateString('ar-EG')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `daleelak_field_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Calculate statistics for dashboards
   const todayVerifiedCount = store.places.length;
   const acceptedCount = store.places.filter(p => p.visitResult === 'accepted').length;
@@ -1293,6 +1320,15 @@ export default function FieldDocumentationApp() {
                     <option value="accepted">المقبولة</option>
                     <option value="rejected">المرفوضة</option>
                   </select>
+
+                  <button
+                    onClick={handleExportCSV}
+                    className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold px-3 py-2 rounded-xl border border-emerald-900 flex items-center gap-1.5 transition-all shadow-sm"
+                    title="تصدير السجل الكامل بتنسيق CSV"
+                  >
+                    <Download className="w-4 h-4 text-amber-300" />
+                    <span>تصدير السجل (CSV)</span>
+                  </button>
                 </div>
               </div>
 
@@ -3057,10 +3093,34 @@ export default function FieldDocumentationApp() {
             </div>
 
             {/* Base Details Card */}
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs font-bold space-y-1.5">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs font-bold space-y-2">
               <div><span className="text-slate-500">🏙️ المدينة والحي:</span> <strong className="text-[#1E4A3A]">{showEmployeePlaceModal.city || 'الجيزة'} — {showEmployeePlaceModal.neighborhood || 'حدائق الأهرام'}</strong></div>
               <div><span className="text-slate-500">التصنيف:</span> {showEmployeePlaceModal.mainCategory} ({showEmployeePlaceModal.subCategory})</div>
               <div><span className="text-slate-500">العنوان الإحداثي:</span> {showEmployeePlaceModal.dms}</div>
+
+              {/* GPS Navigation & Quick Contact Actions */}
+              <div className="flex gap-2 pt-1 border-t border-slate-200">
+                <button
+                  onClick={() => {
+                    const lat = showEmployeePlaceModal.latitude || 30.0444;
+                    const lng = showEmployeePlaceModal.longitude || 31.2357;
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                  }}
+                  className="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-amber-300" />
+                  <span>فتح الموقع في الخريطة والملاحة (GPS)</span>
+                </button>
+                {showEmployeePlaceModal.phone && (
+                  <button
+                    onClick={() => handleSendWhatsApp(showEmployeePlaceModal)}
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow-sm"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>مراسلة واتساب</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Admin Directive if present */}
