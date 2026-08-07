@@ -529,6 +529,15 @@ export default function FieldDocumentationApp() {
   const [showAddReminderModal, setShowAddReminderModal] = useState<PlaceItem | null>(null);
   const [reminderNoteInput, setReminderNoteInput] = useState('');
   const [reminderDateTimeInput, setReminderDateTimeInput] = useState('');
+  const [empFilterStatus, setEmpFilterStatus] = useState('الكل');
+
+  const handleToggleReminderCompleted = (placeId: string) => {
+    triggerHaptic();
+    setStore(prev => ({
+      ...prev,
+      places: prev.places.map(p => p.id === placeId ? { ...p, reminderCompleted: !p.reminderCompleted } : p)
+    }));
+  };
 
   const handleSaveReminder = (placeId: string, dt: string, note: string) => {
     if (!note.trim()) return;
@@ -1414,63 +1423,105 @@ export default function FieldDocumentationApp() {
 
             {/* Recent 5 Visits List */}
             <div className="bg-white p-5 rounded-2xl border border-slate-300 shadow-md space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
                 <h3 className="text-lg font-bold text-[#1E4A3A]">
                   أنشطة اليوم والتذكيرات الميدانية
                 </h3>
-                <span className="text-xs text-slate-500 font-bold">انقر لمعاينة التفاصيل والتذكير</span>
+                {/* Employee Filter Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap text-xs font-bold">
+                  <button
+                    onClick={() => setEmpFilterStatus('الكل')}
+                    className={`px-3 py-1 rounded-xl transition-all ${empFilterStatus === 'الكل' ? 'bg-[#1E4A3A] text-white shadow-sm' : 'bg-slate-100 text-slate-700'}`}
+                  >
+                    الكل
+                  </button>
+                  <button
+                    onClick={() => setEmpFilterStatus('accepted')}
+                    className={`px-3 py-1 rounded-xl transition-all ${empFilterStatus === 'accepted' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-50 text-emerald-900 border border-emerald-200'}`}
+                  >
+                    🟢 المقبولة
+                  </button>
+                  <button
+                    onClick={() => setEmpFilterStatus('rejected')}
+                    className={`px-3 py-1 rounded-xl transition-all ${empFilterStatus === 'rejected' ? 'bg-rose-700 text-white shadow-sm' : 'bg-rose-50 text-rose-900 border border-rose-200'}`}
+                  >
+                    🔴 المرفوضة
+                  </button>
+                  <button
+                    onClick={() => setEmpFilterStatus('reminders')}
+                    className={`px-3 py-1 rounded-xl transition-all ${empFilterStatus === 'reminders' ? 'bg-amber-600 text-white shadow-sm' : 'bg-amber-50 text-amber-900 border border-amber-200'}`}
+                  >
+                    ⏰ التذكيرات
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2.5">
-                {store.places.slice(0, 5).map(p => {
-                  const isOverdue = p.reminderDateTime && new Date(p.reminderDateTime).getTime() < Date.now();
-                  return (
-                    <div
-                      key={p.id}
-                      className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-right space-y-2 transition-all hover:bg-slate-100/80"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <h4 className="font-extrabold text-[#1E202A] text-base">{p.businessName}</h4>
-                          <p className="text-xs font-bold text-slate-500 mt-0.5">
-                            <span>🏙️ {p.city || 'الجيزة'} — {p.neighborhood || 'حدائق الأهرام'}</span>
-                            <span className="mx-1">•</span>
-                            <span>{new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
-                          </p>
-                        </div>
-                        {p.visitResult === 'accepted' ? (
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-900 rounded-full text-xs font-black border border-emerald-300 shrink-0">🟢 قبول</span>
-                        ) : (
-                          <span className="px-3 py-1 bg-rose-100 text-rose-900 rounded-full text-xs font-black border border-rose-300 shrink-0">🔴 رفض</span>
-                        )}
-                      </div>
-
-                      {/* Admin Directive Badge */}
-                      {p.adminRequest && (
-                        <div className="p-2 bg-amber-50 rounded-xl border border-amber-300 text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                          <span>📩 ملاحظة وتوجيه الإدارة:</span>
-                          <span className="font-extrabold">{p.adminRequest}</span>
-                        </div>
-                      )}
-
-                      {/* Reminder Badge / Overdue Notice */}
-                      {p.reminderNote && (
-                        <div className={`p-2 rounded-xl text-xs font-bold border flex items-center justify-between ${
-                          isOverdue
-                            ? 'bg-rose-100 border-rose-400 text-rose-950 animate-pulse'
-                            : 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                        }`}>
-                          <div className="flex items-center gap-1.5">
-                            <span>⏰ {isOverdue ? '⚠️ تنبيه: الموعد المحدد قد مر!' : 'تذكير تجاري محدد:'}</span>
-                            <span className="font-black">{p.reminderNote}</span>
+                {store.places
+                  .filter(p => {
+                    if (empFilterStatus === 'accepted') return p.visitResult === 'accepted';
+                    if (empFilterStatus === 'rejected') return p.visitResult === 'rejected';
+                    if (empFilterStatus === 'reminders') return !!p.reminderNote;
+                    if (empFilterStatus === 'admin_notes') return !!p.adminRequest;
+                    return true;
+                  })
+                  .slice(0, 6)
+                  .map(p => {
+                    const isOverdue = p.reminderDateTime && new Date(p.reminderDateTime).getTime() < Date.now();
+                    return (
+                      <div
+                        key={p.id}
+                        className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-right space-y-2 transition-all hover:bg-slate-100/80"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <h4 className="font-extrabold text-[#1E202A] text-base">{p.businessName}</h4>
+                            <p className="text-xs font-bold text-slate-500 mt-0.5">
+                              <span>🏙️ {p.city || 'الجيزة'} — {p.neighborhood || 'حدائق الأهرام'}</span>
+                              <span className="mx-1">•</span>
+                              <span>{new Date(p.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </p>
                           </div>
-                          {isOverdue && (
-                            <span className="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-md font-black shrink-0">
-                              مستحق الآن
-                            </span>
+                          {p.visitResult === 'accepted' ? (
+                            <span className="px-3 py-1 bg-emerald-100 text-emerald-900 rounded-full text-xs font-black border border-emerald-300 shrink-0">🟢 قبول</span>
+                          ) : (
+                            <span className="px-3 py-1 bg-rose-100 text-rose-900 rounded-full text-xs font-black border border-rose-300 shrink-0">🔴 رفض</span>
                           )}
                         </div>
-                      )}
+
+                        {/* Admin Directive Badge */}
+                        {p.adminRequest && (
+                          <div className="p-2 bg-amber-50 rounded-xl border border-amber-300 text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                            <span>📩 ملاحظة وتوجيه الإدارة:</span>
+                            <span className="font-extrabold">{p.adminRequest}</span>
+                          </div>
+                        )}
+
+                        {/* Reminder Badge / Overdue Notice */}
+                        {p.reminderNote && (
+                          <div className={`p-2 rounded-xl text-xs font-bold border flex items-center justify-between gap-2 ${
+                            p.reminderCompleted
+                              ? 'bg-slate-100 border-slate-300 text-slate-500 line-through'
+                              : isOverdue
+                              ? 'bg-rose-100 border-rose-400 text-rose-950 animate-pulse'
+                              : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                          }`}>
+                            <div className="flex items-center gap-1.5">
+                              <span>⏰ {p.reminderCompleted ? 'تم إنجاز التذكير:' : isOverdue ? '⚠️ تنبيه: الموعد المحدد قد مر!' : 'تذكير تجاري محدد:'}</span>
+                              <span className="font-black">{p.reminderNote}</span>
+                            </div>
+                            <button
+                              onClick={() => handleToggleReminderCompleted(p.id)}
+                              className={`text-[10px] px-2.5 py-1 rounded-lg font-black transition-all ${
+                                p.reminderCompleted
+                                  ? 'bg-slate-300 text-slate-800'
+                                  : 'bg-[#1E4A3A] text-white hover:bg-[#143529]'
+                              }`}
+                            >
+                              {p.reminderCompleted ? 'تم' : 'تعليم كـ منجز ✓'}
+                            </button>
+                          </div>
+                        )}
 
                       {/* Action Buttons for Employee */}
                       <div className="flex items-center gap-2 pt-1">
