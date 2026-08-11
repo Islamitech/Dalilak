@@ -124,9 +124,9 @@ export const MOCK_REPRESENTATIVES: Representative[] = [
     governorate: 'الجيزة',
     targetMonth: 25,
     avatar: '',
-    avatarStatus: 'pending_approval',
+    avatarStatus: 'rejected',
     commissionRate: 42.86,
-    status: 'suspended',
+    status: 'active',
     password: 'Aa132456',
   },
   {

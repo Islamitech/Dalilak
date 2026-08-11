@@ -95,8 +95,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Check Account Status (Active vs Suspended)
-      if (foundRep.status === 'suspended') {
+      // Allow login if active OR if user has a rejected photo to fix
+      if (foundRep.status === 'suspended' && foundRep.avatarStatus !== 'rejected') {
         setErrorMsg('⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.');
         setIsLoading(false);
         return;
@@ -113,8 +113,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       onClose();
     } catch (err) {
       console.error('Login error:', err);
-      setErrorMsg('حدث خطأ أثناء الاتصال بالخادم.');
-    } finally {
+      setErrorMsg('حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.');
       setIsLoading(false);
     }
   };

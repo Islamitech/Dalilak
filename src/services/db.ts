@@ -90,27 +90,33 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
 
 // 2. REPRESENTATIVES OPERATIONS
 export async function fetchRepsFromDb(): Promise<Representative[]> {
+  const mergedMap = new Map<string, Representative>();
+  MOCK_REPRESENTATIVES.forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
+
+  const localReps = localStorage.getItem('dalelak_representatives');
+  if (localReps) {
+    try {
+      const parsed = JSON.parse(localReps);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((r: Representative) => {
+          if (r.email) mergedMap.set(r.email.toLowerCase(), r);
+        });
+      }
+    } catch (e) {}
+  }
+
   try {
     const { data, error } = await supabase.from('representatives').select('*');
     if (!error && data && data.length > 0) {
-      const mapped = data.map(mapDbToRep);
-      localStorage.setItem('dalelak_representatives', JSON.stringify(mapped));
-      return mapped;
+      data.map(mapDbToRep).forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
     }
   } catch (err) {
     console.log('Supabase fetch reps notice:', err);
   }
 
-  // Fallback to localStorage persistence
-  const localReps = localStorage.getItem('dalelak_representatives');
-  if (localReps) {
-    try {
-      const parsed = JSON.parse(localReps);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch (e) {}
-  }
-
-  return MOCK_REPRESENTATIVES;
+  const result = Array.from(mergedMap.values());
+  localStorage.setItem('dalelak_representatives', JSON.stringify(result));
+  return result;
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
@@ -164,7 +170,7 @@ function mapDbToBusiness(item: any): Business {
     ownerPhone: item.owner_phone || item.ownerPhone || '',
     ownerEmail: item.owner_email,
     nationalId: item.national_id,
-    photos: item.photos || ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=400'],
+    photos: Array.isArray(item.photos) ? item.photos : [],
     repId: item.rep_id || item.repId || 'rep_1',
     repName: item.rep_name || item.repName || 'محمود عبد الفتاح',
     packageId: item.package_id || item.packageId || 'pkg_basic',
@@ -219,7 +225,7 @@ function mapDbToRep(item: any): Representative {
     avatar: item.avatar || '',
     avatarStatus: item.avatar_status || item.avatarStatus || 'none',
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
-    status: item.status || 'suspended',
+    status: item.status || 'active',
     password: item.password || 'Aa123456',
   };
 }
