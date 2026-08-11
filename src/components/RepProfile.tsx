@@ -146,6 +146,29 @@ export const RepProfile: React.FC<RepProfileProps> = ({
         </div>
       )}
 
+      {/* Avatar Rejection Alert Banner */}
+      {rep.avatarStatus === 'rejected' && (
+        <div className="bg-rose-500/15 border-2 border-rose-500/40 text-rose-800 dark:text-rose-300 p-4 rounded-2xl flex items-center justify-between text-xs font-bold shadow-md animate-fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+            <span>⚠️ تم رفض صورتك الشخصية السابقة من قِبل مدير النظام. يمكنك الآن التقاط أو رفع صورة جديدة معتمدة.</span>
+          </div>
+          <button
+            onClick={() => {
+              setEditName(rep.name);
+              setEditPhone(rep.phone);
+              setEditEmail(rep.email);
+              setEditNationalId(rep.nationalId || '29805120104892');
+              setEditAvatar('');
+              setShowEditModal(true);
+            }}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-black px-3 py-1.5 rounded-xl text-[11px] cursor-pointer shadow shrink-0"
+          >
+            رفع صورة جديدة الآن
+          </button>
+        </div>
+      )}
+
       {/* Top Header Card */}
       <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-5 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-4 text-white">
         <div className="flex items-center gap-4">
@@ -538,8 +561,12 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
                     <p className="text-[10px] text-[var(--text-muted)] font-bold">
                       {rep.avatarStatus === 'approved'
-                        ? '✅ صورتك الشخصية معتمدة من مدير النظام.'
-                        : '🔒 تبقى الصورة قيد المراجعة حتى موافقة مدير النظام.'}
+                        ? '✅ صورتك الشخصية معتمدة رسمياً من مدير النظام.'
+                        : rep.avatarStatus === 'rejected'
+                        ? '❌ تم رفض الصورة السابقة من مدير النظام. يمكنك التقاط صورة جديدة بالكاميرا أو اختيار صورة رسمية الآن.'
+                        : rep.avatarStatus === 'pending_approval'
+                        ? '🔒 تبقى الصورة قيد المراجعة حتى موافقة مدير النظام.'
+                        : '📸 يمكنك التقاط صورة شخصية جديدة بسيلفي الكاميرا أو رفعها من الجهاز.'}
                     </p>
                   </div>
                 </div>
