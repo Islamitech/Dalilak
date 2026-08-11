@@ -1,0 +1,6 @@
+{
+  "name": "دليلك - تسجيل الأنشطة على خرائط جوجل",
+  "description": "تطبيق دليلك لمناديب المبيعات والمديرين لتسجيل وتوثيق الأنشطة التجارية على خرائط جوجل في مصر وإصدار الفواتير الإلكترونية على واتساب ومتابعة الدفعات.",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
