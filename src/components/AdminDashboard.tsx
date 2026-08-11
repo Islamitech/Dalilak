@@ -89,8 +89,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return true;
   });
 
+  // Combine all representatives from props & localStorage to ensure freshly registered accounts are ALWAYS visible to Admin
+  const allAdminRepsMap = new Map<string, Representative>();
+  representatives.forEach((r) => allAdminRepsMap.set(r.email.trim().toLowerCase(), r));
+  const localRepsStr = localStorage.getItem('dalelak_representatives');
+  if (localRepsStr) {
+    try {
+      const parsed = JSON.parse(localRepsStr);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((pr: Representative) => {
+          if (pr.email) allAdminRepsMap.set(pr.email.trim().toLowerCase(), pr);
+        });
+      }
+    } catch (e) {}
+  }
+  const mergedAdminReps = Array.from(allAdminRepsMap.values());
+
   // Filter Accounts
-  const filteredAccounts = representatives.filter((acc) => {
+  const filteredAccounts = mergedAdminReps.filter((acc) => {
     if (accountSearchQuery && !acc.name.includes(accountSearchQuery) && !acc.email.includes(accountSearchQuery) && !acc.phone.includes(accountSearchQuery)) {
       return false;
     }
@@ -286,8 +302,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               activeAdminTab === 'reps' ? 'bg-amber-500 text-slate-950 shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <span>الحسابات ({representatives.length})</span>
-            {representatives.some((r) => r.status === 'suspended') && (
+            <span>الحسابات ({mergedAdminReps.length})</span>
+            {mergedAdminReps.some((r) => r.status === 'suspended') && (
               <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1 left-1 animate-ping" />
             )}
           </button>
@@ -303,7 +319,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* Pending New Accounts Alert Banner */}
-      {representatives.some((r) => r.status === 'suspended') && (
+      {mergedAdminReps.some((r) => r.status === 'suspended') && (
         <div className="bg-amber-500/15 border-2 border-amber-500/50 p-4 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0">
@@ -311,7 +327,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <div>
               <h3 className="font-black text-sm text-amber-300">
-                🔔 يوجد ({representatives.filter((r) => r.status === 'suspended').length}) حسابات جديدة معلقة في انتظار تفعيلك!
+                🔔 يوجد ({mergedAdminReps.filter((r) => r.status === 'suspended').length}) حسابات جديدة معلقة في انتظار تفعيلك!
               </h3>
               <p className="text-[11px] text-slate-300">
                 قام مستخدمون أو مناديب جدد بطلب إنشاء حساب، وتتطلب تفعيلهم لتخطي شاشة المعالجة والدخول للمنظومة.
@@ -323,12 +339,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <button
               onClick={() => {
                 if (onUpdateRepresentative) {
-                  representatives
+                  mergedAdminReps
                     .filter((r) => r.status === 'suspended')
                     .forEach((r) => onUpdateRepresentative({ ...r, status: 'active' }));
                 }
               }}
-              className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black px-4 py-2 rounded-xl text-xs shadow-lg transition-transform active:scale-95 flex items-center gap-1.5"
+              className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black px-4 py-2 rounded-xl text-xs shadow-lg transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
               <span>تفعيل جميع الحسابات المعلقة الآن</span>
@@ -798,9 +814,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onChange={(e) => setAccountStatusFilter(e.target.value)}
                 className="bg-[var(--input-bg)] border border-amber-500/40 text-amber-700 dark:text-amber-300 font-extrabold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 shadow-sm"
               >
-                <option value="all">كل حالات الحسابات ({representatives.length})</option>
-                <option value="suspended">🔔 معلقة بانتظار التفعيل ({representatives.filter((r) => r.status === 'suspended').length})</option>
-                <option value="active">✅ الحسابات النشطة والمفعلة ({representatives.filter((r) => r.status === 'active' || !r.status).length})</option>
+                <option value="all">كل حالات الحسابات ({mergedAdminReps.length})</option>
+                <option value="suspended">🔔 معلقة بانتظار التفعيل ({mergedAdminReps.filter((r) => r.status === 'suspended').length})</option>
+                <option value="active">✅ الحسابات النشطة والمفعلة ({mergedAdminReps.filter((r) => r.status === 'active' || !r.status).length})</option>
               </select>
             </div>
           </div>

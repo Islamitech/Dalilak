@@ -130,7 +130,7 @@ export const MOCK_REPRESENTATIVES: Representative[] = [
     avatar: '',
     avatarStatus: 'pending_approval',
     commissionRate: 42.86,
-    status: 'active',
+    status: 'suspended',
     password: 'Aa132456',
   },
   {
