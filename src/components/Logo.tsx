@@ -12,9 +12,9 @@ export const Logo: React.FC<LogoProps> = ({
   className = '',
 }) => {
   const iconDimensions = {
-    sm: 'w-8 h-8 sm:w-10 sm:h-10',
-    md: 'w-9 h-9 sm:w-12 sm:h-12',
-    lg: 'w-12 h-12 sm:w-16 sm:h-16',
+    sm: 'w-9 h-9 sm:w-11 sm:h-11',
+    md: 'w-10 h-10 sm:w-14 sm:h-14',
+    lg: 'w-14 h-14 sm:w-20 sm:h-20',
   }[size];
 
   const titleSize = {
@@ -25,78 +25,103 @@ export const Logo: React.FC<LogoProps> = ({
 
   return (
     <div className={`flex items-center gap-2 sm:gap-3 select-none ${className}`}>
-      {/* 3D Breakout Emblem Container */}
+      {/* 3D Gold Badge + Breakout Pin Emblem Container */}
       <div className={`relative ${iconDimensions} flex-shrink-0 group cursor-pointer`}>
         {/* Ambient Gold Glow */}
-        <div className="absolute inset-0 rounded-2xl bg-amber-400/40 blur-md group-hover:bg-amber-300/60 transition-all" />
+        <div className="absolute inset-0 rounded-3xl bg-amber-400/40 blur-md group-hover:bg-amber-300/60 transition-all" />
 
-        {/* 3D SVG Badge with Top Pin Breakout Effect */}
+        {/* 3D High-Precision SVG Logo matching User Reference Image */}
         <svg
           width="512"
           height="540"
-          viewBox="0 -35 512 547"
+          viewBox="0 0 512 540"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full relative overflow-visible transform group-hover:scale-105 transition-transform"
+          className="w-full h-full relative overflow-visible transform group-hover:scale-105 transition-transform drop-shadow-xl"
         >
-          <rect x="20" y="45" width="472" height="455" rx="104" fill="url(#goldBg)" />
-          <rect x="20" y="45" width="472" height="455" rx="104" fill="url(#goldShadow)" opacity="0.2" />
-          <rect x="28" y="53" width="456" height="439" rx="96" stroke="rgba(255,255,255,0.3)" strokeWidth="3.5" />
+          {/* Main Gold Square Badge (Rounded Squircle Base) */}
+          <rect x="40" y="125" width="432" height="375" rx="80" fill="url(#goldBaseGrad)" />
+          {/* Subtle Inner Bevel & Depth Shadow */}
+          <rect x="40" y="125" width="432" height="375" rx="80" fill="url(#goldInnerShadow)" opacity="0.3" />
+          {/* Inset Gold Line Border */}
+          <rect x="54" y="139" width="404" height="347" rx="66" stroke="url(#goldHighlight)" strokeWidth="6" fill="none" opacity="0.9" />
 
-          {/* Map Pin Emblem */}
-          <g transform="translate(256, 215) scale(1.38)">
-              <ellipse cx="0" cy="74" rx="46" ry="12" fill="rgba(0,0,0,0.35)" />
-              <path 
-                d="M0 -76 C-44 -76 -78 -36 -78 0 C-78 44 0 92 0 92 C0 92 78 44 78 0 C78 -36 44 -76 0 -76Z" 
-                fill="url(#darkGrad)" 
-                stroke="url(#goldGrad)" 
-                strokeWidth="4.5"
+          {/* Pin Point Drop Shadow on Badge */}
+          <path d="M256 350 L216 300 Q256 315 296 300 Z" fill="rgba(0,0,0,0.4)" blur="4" />
+
+          {/* Breakout Teardrop Map Pin Container */}
+          <g>
+            {/* Map Pin Outer Shape (Teardrop) */}
+            <path
+              d="M256 25 C185 25 132 78 132 150 C132 215 256 345 256 345 C256 345 380 215 380 150 C380 78 327 25 256 25 Z"
+              fill="url(#darkPinGrad)"
+              stroke="url(#goldHighlight)"
+              strokeWidth="11"
+              strokeLinejoin="round"
+            />
+
+            {/* Inner Ring Circle around House Icon */}
+            <circle cx="256" cy="145" r="70" stroke="url(#goldHighlight)" strokeWidth="10" fill="#111827" />
+
+            {/* House / Store Icon Inside Pin */}
+            {/* Roof (Golden/Yellow) */}
+            <path d="M214 140 L256 102 L298 140 Z" fill="url(#roofGold)" stroke="#d4af37" strokeWidth="2" strokeLinejoin="round" />
+            {/* Walls (White) */}
+            <rect x="224" y="138" width="64" height="42" rx="4" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.5" />
+            {/* Door (Emerald Green) */}
+            <rect x="246" y="152" width="20" height="28" rx="3" fill="#10b981" stroke="#047857" strokeWidth="1.5" />
+
+            {/* Emerald Green Verified Checkmark Circle Badge (Bottom Right of Pin) */}
+            <g transform="translate(325, 205)">
+              <circle cx="0" cy="0" r="26" fill="#10b981" stroke="#111827" strokeWidth="6" />
+              <path
+                d="M-10 1 L-3 8 L11 -6"
+                stroke="#ffffff"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-              <path 
-                d="M-28 -48 C-44 -32 -52 -14 -52 4 C-52 28 -20 52 0 64" 
-                stroke="rgba(255,255,255,0.18)" 
-                strokeWidth="4" 
-                fill="none"
-                strokeLinecap="round" 
-              />
-              <circle cx="0" cy="-8" r="36" fill="url(#goldGrad)" stroke="#ffffff" strokeWidth="2" opacity="0.95" />
-              <circle cx="0" cy="-8" r="30" fill="#0f172a" stroke="url(#goldGrad)" strokeWidth="2.5" />
-              <path d="M-16 -15 L0 -28 L16 -15 V-10 H-16 V-15Z" fill="url(#goldGrad)" />
-              <path d="M-15 -10 V3 H15 V-10 H-15ZM-5 3 V-5 H5 V3 H-5Z" fill="#ffffff" />
-              <path d="M-4 -5 H4 V3 H-4 V-5Z" fill="#10b981" />
-              <circle cx="30" cy="26" r="12" fill="#10b981" stroke="#0f172a" strokeWidth="3" />
-              <path d="M25 26 L28.5 29.5 L35 22.5" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </g>
           </g>
-          
-          <circle cx="256" cy="270" r="160" stroke="url(#goldGrad)" strokeWidth="2" opacity="0.08" />
-          <circle cx="256" cy="270" r="185" stroke="url(#goldGrad)" strokeWidth="1.5" opacity="0.05" />
-          
+
+          {/* Gradients Definition */}
           <defs>
-              <linearGradient id="goldBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fef08a" />
-                  <stop offset="25%" stopColor="#f5d742" />
-                  <stop offset="50%" stopColor="#d4af37" />
-                  <stop offset="85%" stopColor="#b8860b" />
-                  <stop offset="100%" stopColor="#784f04" />
-              </linearGradient>
-              
-              <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fffbeb" />
-                  <stop offset="30%" stopColor="#fef08a" />
-                  <stop offset="65%" stopColor="#fbbf24" />
-                  <stop offset="100%" stopColor="#b45309" />
-              </linearGradient>
-              
-              <linearGradient id="darkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#334155" />
-                  <stop offset="40%" stopColor="#0f172a" />
-                  <stop offset="100%" stopColor="#020617" />
-              </linearGradient>
-              
-              <radialGradient id="goldShadow" cx="50%" cy="100%" r="70%">
-                  <stop offset="0%" stopColor="transparent" />
-                  <stop offset="100%" stopColor="rgba(0,0,0,0.3)" />
-              </radialGradient>
+            {/* Gold Base Badge Gradient */}
+            <linearGradient id="goldBaseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#fff7ed" />
+              <stop offset="20%" stopColor="#fef08a" />
+              <stop offset="50%" stopColor="#d4af37" />
+              <stop offset="85%" stopColor="#b8860b" />
+              <stop offset="100%" stopColor="#78350f" />
+            </linearGradient>
+
+            {/* Gold Highlight & Border Lines */}
+            <linearGradient id="goldHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="35%" stopColor="#fef08a" />
+              <stop offset="70%" stopColor="#fbbf24" />
+              <stop offset="100%" stopColor="#92400e" />
+            </linearGradient>
+
+            {/* Roof Gold Gradient */}
+            <linearGradient id="roofGold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#fef08a" />
+              <stop offset="50%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#b45309" />
+            </linearGradient>
+
+            {/* Dark Pin Interior Gradient */}
+            <linearGradient id="darkPinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#334155" />
+              <stop offset="45%" stopColor="#1e293b" />
+              <stop offset="100%" stopColor="#020617" />
+            </linearGradient>
+
+            {/* Inner Depth Shadow */}
+            <radialGradient id="goldInnerShadow" cx="50%" cy="50%" r="70%">
+              <stop offset="60%" stopColor="transparent" />
+              <stop offset="100%" stopColor="rgba(0,0,0,0.35)" />
+            </radialGradient>
           </defs>
         </svg>
       </div>
