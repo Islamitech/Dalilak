@@ -212,6 +212,25 @@ export default function App() {
     return true;
   });
 
+  // Strict Unauthenticated Protection: If user is not logged in, render ONLY the Login screen!
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center font-['Cairo',sans-serif] transition-colors duration-300">
+        <LoginModal
+          isInline={true}
+          onClose={() => {}}
+          onLoginSuccess={(u) => {
+            setUser(u);
+            if (u.role === 'admin') setActiveTab('admin');
+            else setActiveTab('home');
+          }}
+          representatives={representatives}
+          onAddRepresentative={handleAddRepresentative}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col font-['Cairo',sans-serif] transition-colors duration-300">
       {/* Top Navbar */}

@@ -9,6 +9,7 @@ interface LoginModalProps {
   onLoginSuccess: (user: User) => void;
   representatives: Representative[];
   onAddRepresentative?: (newRep: Representative) => void;
+  isInline?: boolean;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -16,6 +17,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onLoginSuccess,
   representatives,
   onAddRepresentative,
+  isInline = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
@@ -192,17 +194,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }, 4000);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative my-auto transition-colors duration-300">
+  const modalBox = (
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative my-auto transition-colors duration-300">
+      {!isInline && (
         <button
           onClick={onClose}
           className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer"
         >
           ✕
         </button>
+      )}
 
-        {/* Logo Branding Header */}
+      {/* Logo Branding Header */}
         <div className="text-center space-y-2 pt-1">
           <Logo size="sm" showSubtitle={false} className="justify-center" />
           <h2 className="text-base font-black text-[var(--text-primary)]">منصة دليلك لتسجيل وتوثيق الأنشطة</h2>
@@ -418,7 +421,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </button>
           </form>
         )}
+    </div>
+  );
+
+  if (isInline) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[var(--bg-surface)] p-4 transition-colors duration-300">
+        {modalBox}
       </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+      {modalBox}
     </div>
   );
 };
