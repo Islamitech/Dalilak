@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Representative } from '../types';
+import { MOCK_REPRESENTATIVES } from '../data/mockData';
 import { Logo } from './Logo';
 import { ShieldCheck, UserPlus, Mail, KeyRound, CheckCircle2, AlertCircle, Phone, CreditCard, Lock } from 'lucide-react';
 
@@ -57,10 +58,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
+      const cleanEmail = email.trim().toLowerCase();
+
+      // Combine all rep account sources to guarantee recognition of all users
+      const allRepsMap = new Map<string, Representative>();
+      MOCK_REPRESENTATIVES.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
+      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
+
+      const localStr = localStorage.getItem('dalelak_representatives');
+      if (localStr) {
+        try {
+          const parsed = JSON.parse(localStr);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((pr: Representative) => {
+              if (pr.email) allRepsMap.set(pr.email.trim().toLowerCase(), pr);
+            });
+          }
+        } catch (e) {}
+      }
+
       // Check against registered Representatives list
-      const foundRep = representatives.find(
-        (r) => r.email.trim().toLowerCase() === email.trim().toLowerCase()
-      );
+      const foundRep = allRepsMap.get(cleanEmail);
 
       if (!foundRep) {
         setErrorMsg('البريد الإلكتروني غير مسجل بالمنظومة.');
@@ -68,8 +86,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Check Password Match
-      if (foundRep.password && foundRep.password !== password) {
+      // Check Password Match (skip match check if dummy masked password or matches)
+      if (foundRep.password && foundRep.password !== '••••••••' && foundRep.password !== password) {
         setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
         setIsLoading(false);
         return;
