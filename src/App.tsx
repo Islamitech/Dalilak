@@ -39,6 +39,9 @@ export default function App() {
   useEffect(() => {
     if (user) {
       localStorage.setItem('dalelak_logged_user', JSON.stringify(user));
+      if (user.role === 'admin') {
+        setActiveTab('admin');
+      }
     } else {
       localStorage.removeItem('dalelak_logged_user');
     }
@@ -480,7 +483,7 @@ export default function App() {
         )}
 
         {/* TAB 5 (ADMIN DASHBOARD / REP PROFILE) */}
-        {activeTab === 'admin' && user?.role === 'admin' && (
+        {(activeTab === 'admin' || activeTab === 'profile') && user?.role === 'admin' && (
           <AdminDashboard
             businesses={businesses}
             representatives={representatives}
@@ -495,7 +498,7 @@ export default function App() {
           />
         )}
 
-        {(activeTab === 'profile' || (activeTab === 'admin' && user?.role !== 'admin')) && (
+        {(activeTab === 'profile' || activeTab === 'admin') && user?.role !== 'admin' && (
           user ? (
             <RepProfile
               user={user}

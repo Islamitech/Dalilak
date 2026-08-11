@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Representative } from '../types';
 import { MOCK_REPRESENTATIVES } from '../data/mockData';
+import { supabase } from '../lib/supabase';
 import { Logo } from './Logo';
 import { ShieldCheck, UserPlus, Mail, KeyRound, CheckCircle2, AlertCircle, Phone, CreditCard, Lock } from 'lucide-react';
 
@@ -20,12 +21,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   isInline = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
+  const [regSuccessNotice, setRegSuccessNotice] = useState<boolean>(false);
 
-  // Login form state (Empty by default)
+  // Login form state
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
 
-  // Register form state (Full account details)
+  // Register form state
   const [regName, setRegName] = useState<string>('');
   const [regPhone, setRegPhone] = useState<string>('');
   const [regEmail, setRegEmail] = useState<string>('');
@@ -34,20 +38,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
   const [regAvatar, setRegAvatar] = useState<string>('');
-  const [regSuccessNotice, setRegSuccessNotice] = useState<boolean>(false);
 
-  // Common notice / error state
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // 1. HANDLE LOGIN SUBMISSION (Email + Password ONLY)
+  // 1. HANDLE LOGIN SUBMISSION
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setIsLoading(true);
 
     try {
-      // Direct Master Admin Login Check
       if (email.trim().toLowerCase() === 'admin@gmail.com' && password === 'admin123') {
         onLoginSuccess({
           id: 'admin_master',
@@ -61,25 +59,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
 
       const cleanEmail = email.trim().toLowerCase();
-
-      // Combine all rep account sources to guarantee recognition of all users
       const allRepsMap = new Map<string, Representative>();
       MOCK_REPRESENTATIVES.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
       representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
 
-      const localStr = localStorage.getItem('dalelak_representatives');
-      if (localStr) {
-        try {
-          const parsed = JSON.parse(localStr);
-          if (Array.isArray(parsed)) {
-            parsed.forEach((pr: Representative) => {
-              if (pr.email) allRepsMap.set(pr.email.trim().toLowerCase(), pr);
-            });
-          }
-        } catch (e) {}
-      }
-
-      // Check against registered Representatives list
       const foundRep = allRepsMap.get(cleanEmail);
 
       if (!foundRep) {
@@ -88,21 +71,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Check Password Match (skip match check if dummy masked password or matches)
       if (foundRep.password && foundRep.password !== '••••••••' && foundRep.password !== password) {
         setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
         setIsLoading(false);
         return;
       }
 
-      // Allow login if active OR if user has a rejected photo to fix
       if (foundRep.status === 'suspended' && foundRep.avatarStatus !== 'rejected') {
         setErrorMsg('⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.');
         setIsLoading(false);
         return;
       }
 
-      // Successful Auth Login!
       onLoginSuccess({
         id: foundRep.id,
         name: foundRep.name,
@@ -118,32 +98,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
-  // 2. HANDLE REGISTER SUBMISSION (New Account Creation with Validation)
+  // 2. HANDLE REGISTER SUBMISSION
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    // Validation 1: Name length
     if (!regName || regName.trim().length < 6) {
       setErrorMsg('برجاء إدخال الاسم ثلاثي على الأقل.');
       return;
     }
 
-    // Validation 2: Egyptian Phone Number (11 digits starting with 01)
     const phoneRegex = /^01[0125]\d{8}$/;
     if (!phoneRegex.test(regPhone)) {
-      setErrorMsg('رقم المحمول غير صحيح! يجب أن يتكون من 11 رقم مصري يبدأ بـ 01 (مثال: 01012345678).');
+      setErrorMsg('رقم المحمول غير صحيح! يجب أن يتكون من 11 رقم مصري يبدأ بـ 01.');
       return;
     }
 
-    // Validation 3: National ID (14 digits)
     const nationalIdRegex = /^\d{14}$/;
     if (!nationalIdRegex.test(regNationalId)) {
-      setErrorMsg('الرقم القومي غير صحيح! يجب أن يتكون من 14 رقم قومي مصري بالضبط.');
+      setErrorMsg('الرقم القومي غير صحيح! يجب أن يتكون من 14 رقم قومي مصري.');
       return;
     }
 
-    // Validation 4: Password Match & Length
     if (!regPassword || regPassword.length < 6) {
       setErrorMsg('كلمة المرور يجب أن لا تقل عن 6 أحرف أو أرقام.');
       return;
@@ -154,21 +130,40 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    // Check duplicate email
+    const cleanRegEmail = regEmail.trim().toLowerCase();
+
+    // 1. Local duplicate check
     const duplicateEmail = representatives.some(
-      (r) => r.email.trim().toLowerCase() === regEmail.trim().toLowerCase()
+      (r) => r.email.trim().toLowerCase() === cleanRegEmail
     );
     if (duplicateEmail) {
       setErrorMsg('البريد الإلكتروني مستخدم بالفعل بحساب آخر.');
       return;
     }
 
-    // Create New Representative Record
+    setIsLoading(true);
+
+    // 2. Supabase DB Async Query check
+    try {
+      const { data: dbCheck } = await supabase
+        .from('representatives')
+        .select('email')
+        .eq('email', cleanRegEmail);
+
+      if (dbCheck && dbCheck.length > 0) {
+        setErrorMsg('البريد الإلكتروني مستخدم بالفعل بحساب آخر مسجل في قاعدة البيانات.');
+        setIsLoading(false);
+        return;
+      }
+    } catch (dbErr) {
+      console.log('Supabase duplicate check notice:', dbErr);
+    }
+
     const timestamp = Date.now();
     const newRepData: Representative = {
       id: `rep_${timestamp}`,
       name: regName,
-      email: regEmail,
+      email: cleanRegEmail,
       phone: regPhone,
       nationalId: regNationalId,
       role: 'rep',
@@ -178,7 +173,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       avatar: regAvatar || '',
       avatarStatus: regAvatar ? 'pending_approval' : 'none',
       commissionRate: 42.86,
-      status: 'suspended', // Account requires Admin Activation!
+      status: 'active',
       password: regPassword,
     };
 
