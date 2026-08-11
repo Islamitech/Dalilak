@@ -18,9 +18,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
-  // Login form state (ONLY Email + Password)
-  const [email, setEmail] = useState<string>('admin@gmail.com');
-  const [password, setPassword] = useState<string>('admin123');
+  // Login form state (Empty by default)
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
 
   // Register form state (Full account details)
   const [regName, setRegName] = useState<string>('');
@@ -242,7 +242,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* 1. LOGIN FORM */}
         {activeTab === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="space-y-3.5 text-xs">
+          <form onSubmit={handleLoginSubmit} autoComplete="off" className="space-y-3.5 text-xs">
             <div>
               <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني المعتمد:</label>
               <div className="relative">
@@ -250,6 +250,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   placeholder="name@daleelek.eg"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -265,6 +266,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <input
                   type="password"
                   required
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

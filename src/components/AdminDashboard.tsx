@@ -3,7 +3,7 @@ import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationS
 import { EGYPT_GOVERNORATES } from '../data/mockData';
 import { calculateTotalRepCommission, getPackageCommission } from '../utils/commission';
 import { UserAvatar } from './UserAvatar';
-import { ShieldCheck, TrendingUp, DollarSign, CheckCircle2, Clock, AlertCircle, Users, Plus, Edit, Trash2, Search, ExternalLink, Phone, FileText, Settings, CreditCard, UserCheck, UserX, Briefcase, Crown, Calculator, Key, Mail, Lock, Camera } from 'lucide-react';
+import { ShieldCheck, TrendingUp, DollarSign, CheckCircle2, Clock, AlertCircle, Users, Plus, Edit, Trash2, Search, ExternalLink, Phone, FileText, Settings, CreditCard, UserCheck, UserX, Briefcase, Crown, Calculator, Key, Mail, Lock, Camera, Activity, Store } from 'lucide-react';
 
 interface AdminDashboardProps {
   businesses: Business[];
@@ -467,6 +467,74 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Real-time System Audit & Interaction Log for Admin */}
+          <div className="md:col-span-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-3xl space-y-3 shadow-md transition-colors duration-300">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+              <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <Activity className="w-5 h-5 text-amber-500" />
+                <span>سجل التوثيقات والأنشطة التفاعلية الحية لجميع الحسابات والأنشطة</span>
+              </h3>
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                <span>مزامنة مباشرة بقاعدة البيانات Cloud DB</span>
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              {businesses.map((biz, idx) => (
+                <div key={`audit_${biz.id}_${idx}`} className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-wrap items-center justify-between gap-2 shadow-sm hover:border-amber-500/30 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-[var(--text-primary)]">{biz.nameAr}</span>
+                        <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                          {biz.category}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
+                        تم بواسطة المندوب: <strong className="text-[var(--text-primary)]">{biz.repName}</strong> • {biz.governorate} ({biz.city})
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-left">
+                    <div>
+                      <span className="font-mono text-emerald-700 dark:text-emerald-400 font-black block">{biz.amountPaid} ج.م</span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold">{biz.createdDate || 'اليوم'}</span>
+                    </div>
+                    <button
+                      onClick={() => onShowInvoice(biz)}
+                      className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-1.5 rounded-xl text-[11px] cursor-pointer transition-colors shadow-sm"
+                    >
+                      معاينة الفاتورة
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {representatives.filter((r) => r.avatarStatus === 'pending_approval').map((rep) => (
+                <div key={`audit_rep_${rep.id}`} className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 flex items-center justify-between text-xs text-amber-900 dark:text-amber-300 font-bold">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>رفع صورة شخصية جديدة بواسطة المندوب: <strong>{rep.name}</strong> (تنتظر موافقتك واعتمادك)</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setActiveAdminTab('reps');
+                      setAccountStatusFilter('all');
+                    }}
+                    className="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-[10px] cursor-pointer shadow"
+                  >
+                    معاينة وقبول الصورة
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
