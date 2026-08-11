@@ -247,16 +247,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Notification Messages */}
         {errorMsg && (
-          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-300 p-3 rounded-xl text-xs flex items-start gap-2 font-bold leading-relaxed">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+          <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-red-950 border-2 border-rose-500 text-rose-100 p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {regSuccessNotice && (
-          <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3 rounded-xl text-xs flex items-start gap-2 font-bold leading-relaxed">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
-            <span>تم تقديم طلب إنشاء الحساب بنجاح! الحساب قيد المراجعة وسيقوم مدير النظام المعتمد بتفعيله فوراً.</span>
+          <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 border-2 border-emerald-500 text-emerald-100 p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+            <span>تم تقديم طلب إنشاء الحساب بنجاح! تم تفعيل الحساب ويمكنك الآن تسجيل الدخول مباشرة على المنصة.</span>
           </div>
         )}
 

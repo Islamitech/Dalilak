@@ -149,10 +149,15 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
       {/* Avatar Rejection Alert Banner */}
       {rep.avatarStatus === 'rejected' && (
-        <div className="bg-rose-500/15 border-2 border-rose-500/40 text-rose-800 dark:text-rose-300 p-4 rounded-2xl flex items-center justify-between text-xs font-bold shadow-md animate-fade-in">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
-            <span>⚠️ تم رفض صورتك الشخصية السابقة من قِبل مدير النظام. يمكنك الآن التقاط أو رفع صورة جديدة معتمدة.</span>
+        <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-red-950 border-2 border-rose-500 text-white p-4.5 rounded-3xl flex flex-wrap items-center justify-between gap-3 text-xs font-bold shadow-xl animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-black shrink-0 shadow">
+              <AlertCircle className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-rose-200">⚠️ تم رفض الصورة الشخصية من مدير النظام</h4>
+              <p className="text-xs text-slate-100 font-bold mt-0.5">يمكنك الآن التقاط صورة سيلفي جديدة أو اختيار صورة رسمية معتمدة من الاستوديو.</p>
+            </div>
           </div>
           <button
             onClick={() => {
@@ -163,7 +168,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
               setEditAvatar('');
               setShowEditModal(true);
             }}
-            className="bg-rose-600 hover:bg-rose-700 text-white font-black px-3 py-1.5 rounded-xl text-[11px] cursor-pointer shadow shrink-0"
+            className="bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-2.5 rounded-2xl text-xs cursor-pointer shadow-lg transition-transform active:scale-95 shrink-0"
           >
             رفع صورة جديدة الآن
           </button>
@@ -235,7 +240,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
         <div className="bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 border border-amber-500/40 rounded-3xl p-5 shadow-xl relative overflow-hidden space-y-4 text-white">
           <div className="flex items-center justify-between border-b border-amber-500/30 pb-3">
             <div className="flex items-center gap-2">
-              <Logo size="sm" showSubtitle={false} />
+              <Logo size="sm" variant="icon" />
               <h3 className="font-black text-xs sm:text-sm text-white">بطاقة التكليف الميداني الرقمية</h3>
             </div>
             <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">

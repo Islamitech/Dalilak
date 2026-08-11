@@ -141,8 +141,8 @@ export default function App() {
       avatar: repData.avatar || '',
       avatarStatus: repData.avatarStatus || 'none',
       commissionRate: repData.commissionRate || 42.86,
-      status: repData.status || 'suspended',
-      password: repData.password || 'Aa123456',
+      status: repData.status || 'active',
+      password: repData.password || 'Aa132456',
     };
 
     setRepresentatives((prev) => {
