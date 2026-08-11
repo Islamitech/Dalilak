@@ -285,7 +285,11 @@ export default function App() {
                     <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-base text-[var(--text-primary)]">الأنشطة المسجلة في مصر ({businesses.length})</h3>
+                    <h3 className="font-bold text-base text-[var(--text-primary)]">
+                      {isRepUser
+                        ? `الأنشطة المسجلة بواسطتك (${scopedBusinesses.length})`
+                        : `الأنشطة المسجلة في مصر (${businesses.length})`}
+                    </h3>
                     <p className="text-[11px] text-[var(--text-muted)]">تابع حالة الدفع والتفعيل على الخريطة أولاً بأول</p>
                   </div>
                 </div>
@@ -318,6 +322,14 @@ export default function App() {
 
               {/* Feed Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {filteredHomeBusinesses.length === 0 && (
+                  <div className="col-span-full text-center py-10 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-color)] space-y-2 shadow-sm">
+                    <Building2 className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-50" />
+                    <p className="font-extrabold text-sm text-[var(--text-primary)]">لم تقوم بتسجيل أي أنشطة بعد أو لا توجد نتائج للبحث</p>
+                    <p className="text-xs text-[var(--text-muted)] font-bold">اضغط على زر "تسجيل نشاط جديد" للبدء في توثيق أنشطتك من الميدان.</p>
+                  </div>
+                )}
+
                 {filteredHomeBusinesses.map((biz) => {
                   const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
 

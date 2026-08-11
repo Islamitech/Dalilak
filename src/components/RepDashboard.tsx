@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Business, Representative } from '../types';
 import { calculateTotalRepCommission, calculateBusinessCommission, getPackageCommission } from '../utils/commission';
+import { UserAvatar } from './UserAvatar';
 import { Store, PlusCircle, CheckCircle2, Clock, AlertCircle, Phone, MapPin, Share2, FileText, ExternalLink, Search, DollarSign, Award } from 'lucide-react';
 
 interface RepDashboardProps {
@@ -38,7 +39,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
       {/* Rep Welcome Header */}
       <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-5 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-4 text-white">
         <div className="flex items-center gap-3">
-          <img src={rep.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'} alt={rep.name} className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-500 shadow-md" />
+          <UserAvatar avatar={rep.avatar} name={rep.name} role={rep.role} avatarStatus={rep.avatarStatus} size="lg" />
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-black text-white">مرحباً، {rep.name}</h2>
