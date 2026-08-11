@@ -36,6 +36,35 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-20">
+      {/* Photo Rejection Alert Banner */}
+      {rep.avatarStatus === 'rejected' && (
+        <div className="bg-rose-500/15 border-2 border-rose-500/50 p-4 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs text-rose-900 dark:text-rose-300 font-bold animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black shrink-0 shadow">
+              <AlertCircle className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <h3 className="font-black text-sm text-rose-700 dark:text-rose-300">
+                ⚠️ إشعار عاجل: تم رفض الصورة الشخصية من مدير النظام
+              </h3>
+              <p className="text-[11px] text-rose-800 dark:text-rose-300 font-bold mt-0.5">
+                قام مدير النظام برفض الصورة الشخصية المرفوعة مسبقاً. يرجى التوجه لملفك الشخصي واختيار أو التقاط صورة سيلفي جديدة فوراً.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Pending Review Alert Banner */}
+      {rep.avatarStatus === 'pending_approval' && (
+        <div className="bg-amber-500/15 border-2 border-amber-500/50 p-3.5 rounded-3xl shadow-md flex items-center justify-between text-xs text-amber-900 dark:text-amber-300 font-bold animate-fade-in">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>🔒 صورتك الشخصية مرفوعة وحالياً قيد المراجعة والتدقيق بواسطة مدير النظام.</span>
+          </div>
+        </div>
+      )}
+
       {/* Rep Welcome Header */}
       <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-5 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-4 text-white">
         <div className="flex items-center gap-3">

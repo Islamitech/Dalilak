@@ -60,22 +60,28 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const isPending = avatarStatus === 'pending_approval';
 
-  // Render Image Avatar (If approved OR if pending for Admin preview / faded for user)
-  if (isValidImageUrl && !imageError && avatarStatus !== 'rejected') {
+  // Render Image Avatar:
+  // If Admin Preview is active OR if avatar is approved OR if pending for user
+  const shouldRenderImage =
+    isValidImageUrl &&
+    !imageError &&
+    (isAdminPreview || avatarStatus === 'approved' || avatarStatus === 'pending_approval');
+
+  if (shouldRenderImage) {
     // If pending approval and NOT admin preview, show as faded/muted image with 'Under Review' overlay
     const imgClasses = isPending && !isAdminPreview
       ? 'w-full h-full object-cover opacity-40 grayscale blur-[1.5px]'
       : 'w-full h-full object-cover';
 
     return (
-      <div className={`relative ${dimensions} rounded-2xl overflow-hidden border-2 ${isPending ? 'border-amber-500/80 shadow-amber-500/20' : 'border-amber-500/50'} shadow-md ${className}`}>
+      <div className={`relative ${dimensions} rounded-2xl overflow-hidden border-2 ${isPending ? 'border-amber-500/80 shadow-amber-500/20' : avatarStatus === 'rejected' ? 'border-rose-500/80' : 'border-amber-500/50'} shadow-md ${className}`}>
         <img
           src={avatar}
           alt={name}
           onError={() => setImageError(true)}
           className={imgClasses}
         />
-        {isPending && (
+        {isPending && !isAdminPreview && (
           <span className="absolute inset-0 bg-slate-950/75 backdrop-blur-[1px] flex items-center justify-center text-[9px] font-black text-amber-300 text-center p-0.5 leading-tight">
             🔒 قيد المراجعة
           </span>

@@ -59,6 +59,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingBizId, setEditingBizId] = useState<string | null>(null);
   const [editMapsUrl, setEditMapsUrl] = useState<string>('');
 
+  // Preview Representative Avatar Modal State
+  const [previewAvatarRep, setPreviewAvatarRep] = useState<Representative | null>(null);
+
   // Payment Config Form
   const [fawryCode, setFawryCode] = useState<string>(paymentConfig.fawryMerchantCode);
   const [vodaNumber, setVodaNumber] = useState<string>(paymentConfig.vodafoneCashNumber);
@@ -886,15 +889,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Photo Approval Banner for Pending Photos */}
+                  {/* Photo Review & Approval Bar */}
                   {acc.avatarStatus === 'pending_approval' && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-2xl flex items-center justify-between text-xs gap-2">
+                    <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-2xl flex flex-wrap items-center justify-between text-xs gap-2">
                       <span className="text-amber-900 dark:text-amber-300 font-black flex items-center gap-1">
                         <Camera className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                        <span>تم رفع صورة جديدة بانتظار الموافقة:</span>
+                        <span>صورة جديدة بانتظار موافقتك:</span>
                       </span>
 
                       <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setPreviewAvatarRep(acc)}
+                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-2.5 py-1 rounded-xl text-[11px] shadow cursor-pointer flex items-center gap-1"
+                        >
+                          <span>🔍 معاينة الصورة</span>
+                        </button>
                         <button
                           onClick={() => {
                             if (onUpdateRepresentative) {
@@ -903,12 +912,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           }}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-2.5 py-1 rounded-xl text-[11px] shadow cursor-pointer"
                         >
-                          ✔ قبول الصورة
+                          ✔ قبول
                         </button>
                         <button
                           onClick={() => {
                             if (onUpdateRepresentative) {
-                              onUpdateRepresentative({ ...acc, avatarStatus: 'rejected', avatar: '' });
+                              onUpdateRepresentative({ ...acc, avatarStatus: 'rejected' });
                             }
                           }}
                           className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded-xl text-[11px] shadow cursor-pointer"
@@ -916,6 +925,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           ✕ رفض
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {acc.avatarStatus === 'rejected' && (
+                    <div className="bg-rose-500/10 border border-rose-500/30 p-2 rounded-2xl flex items-center justify-between text-xs text-rose-900 dark:text-rose-300 font-bold">
+                      <span>❌ تم رفض الصورة الشخصية (تم تنبيه المندوب)</span>
+                      {acc.avatar && (
+                        <button
+                          onClick={() => setPreviewAvatarRep(acc)}
+                          className="bg-rose-500/20 hover:bg-rose-500 text-rose-900 dark:text-rose-300 hover:text-white font-black px-2 py-0.5 rounded-lg text-[10px] cursor-pointer"
+                        >
+                          معاينة الصورة
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {acc.avatarStatus === 'approved' && acc.avatar && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-2xl flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-400 font-bold">
+                      <span>✅ الصورة الشخصية معتمدة ومقبولة رسمياً</span>
+                      <button
+                        onClick={() => setPreviewAvatarRep(acc)}
+                        className="bg-emerald-500/20 hover:bg-emerald-500 text-emerald-900 dark:text-emerald-300 hover:text-white font-black px-2 py-0.5 rounded-lg text-[10px] cursor-pointer"
+                      >
+                        معاينة الصورة
+                      </button>
                     </div>
                   )}
 
@@ -1196,6 +1231,87 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 className="bg-emerald-500 text-slate-950 font-black px-4 py-2 rounded-xl"
               >
                 حفظ وتأكيد التوثيق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PHOTO PREVIEW & APPROVAL DIALOG FOR ADMIN */}
+      {previewAvatarRep && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl relative text-[var(--text-primary)] my-auto transition-colors duration-300">
+            <button
+              onClick={() => setPreviewAvatarRep(null)}
+              className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="text-center space-y-1 pt-1">
+              <h3 className="font-black text-base text-[var(--text-primary)]">معاينة الصورة الشخصية المرفوعة</h3>
+              <p className="text-xs text-amber-500 font-bold">{previewAvatarRep.name} • {previewAvatarRep.governorate}</p>
+            </div>
+
+            {/* Photo Preview Container */}
+            <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-col items-center justify-center space-y-3">
+              {previewAvatarRep.avatar ? (
+                <img
+                  src={previewAvatarRep.avatar}
+                  alt={previewAvatarRep.name}
+                  className="w-48 h-48 sm:w-56 sm:h-56 object-cover rounded-2xl border-2 border-amber-500 shadow-xl"
+                />
+              ) : (
+                <div className="w-40 h-40 rounded-2xl bg-slate-800 flex items-center justify-center text-amber-400 font-black text-4xl">
+                  {previewAvatarRep.name.charAt(0)}
+                </div>
+              )}
+
+              <div className="text-center text-xs space-y-1">
+                <p className="text-[var(--text-secondary)] font-bold">البريد: {previewAvatarRep.email}</p>
+                <p className="text-[var(--text-muted)] font-mono">الهاتف: {previewAvatarRep.phone}</p>
+                <span className={`inline-block text-[10px] font-black px-3 py-1 rounded-full border ${
+                  previewAvatarRep.avatarStatus === 'approved'
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                    : previewAvatarRep.avatarStatus === 'rejected'
+                    ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                }`}>
+                  {previewAvatarRep.avatarStatus === 'approved'
+                    ? '✅ الصورة معتمدة ومقبولة رسمياً'
+                    : previewAvatarRep.avatarStatus === 'rejected'
+                    ? '❌ الصورة تم رفضها مسبقاً'
+                    : '🔒 الصورة بانتظار موافقتك واعتمادك'}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onUpdateRepresentative) {
+                    onUpdateRepresentative({ ...previewAvatarRep, avatarStatus: 'approved' });
+                  }
+                  setPreviewAvatarRep(null);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3 rounded-xl shadow cursor-pointer transition-transform active:scale-95"
+              >
+                ✔ قبول وتأكيد الصورة
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onUpdateRepresentative) {
+                    onUpdateRepresentative({ ...previewAvatarRep, avatarStatus: 'rejected' });
+                  }
+                  setPreviewAvatarRep(null);
+                }}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs py-3 rounded-xl shadow cursor-pointer transition-transform active:scale-95"
+              >
+                ✕ رفض الصورة وإخفائها
               </button>
             </div>
           </div>
