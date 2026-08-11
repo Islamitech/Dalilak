@@ -60,15 +60,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
         <div className="space-y-4 bg-white text-slate-900 p-5 rounded-2xl shadow-inner border border-slate-200">
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center">
-                <MapPin className="w-6 h-6 stroke-[2.5]" />
-              </div>
-              <div>
-                <h2 className="font-black text-lg text-slate-900">شركة دليلك</h2>
-                <p className="text-[10px] text-slate-500 font-bold">توثيق وتسجيل الأنشطة على خرائط جوجل</p>
-              </div>
-            </div>
+            <Logo size="sm" />
 
             <div className="text-left">
               <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300 inline-block">

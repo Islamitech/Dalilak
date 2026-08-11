@@ -3,6 +3,7 @@ import { Representative, User } from '../types';
 import { calculateTotalRepCommission } from '../utils/commission';
 import { DocViewerModal, DocType } from './DocViewerModal';
 import { UserAvatar } from './UserAvatar';
+import { Logo } from './Logo';
 import {
   User as UserIcon,
   ShieldCheck,
@@ -234,8 +235,8 @@ export const RepProfile: React.FC<RepProfileProps> = ({
         <div className="bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 border border-amber-500/40 rounded-3xl p-5 shadow-xl relative overflow-hidden space-y-4 text-white">
           <div className="flex items-center justify-between border-b border-amber-500/30 pb-3">
             <div className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-amber-400" />
-              <h3 className="font-black text-sm text-white">بطاقة التكليف الميداني الرقمية المعتمدة</h3>
+              <Logo size="sm" showSubtitle={false} />
+              <h3 className="font-black text-xs sm:text-sm text-white">بطاقة التكليف الميداني الرقمية</h3>
             </div>
             <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
               صريحة وموثقة 2026
