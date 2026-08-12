@@ -3,6 +3,7 @@ import { User, Representative } from '../types';
 import { MOCK_REPRESENTATIVES } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { Logo } from './Logo';
+import { ThemeToggle } from './ThemeToggle';
 import { ShieldCheck, UserPlus, Mail, KeyRound, CheckCircle2, AlertCircle, Phone, CreditCard, Lock } from 'lucide-react';
 
 interface LoginModalProps {
