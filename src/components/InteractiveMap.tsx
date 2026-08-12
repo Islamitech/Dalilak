@@ -376,8 +376,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
 
   const containerClasses = isExpanded
-    ? 'fixed inset-2 sm:inset-6 z-50 bg-slate-950 border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in'
-    : 'bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl flex flex-col';
+    ? 'fixed inset-2 sm:inset-6 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
+    : 'bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
 
   const mapHeight = isExpanded ? 'flex-1 h-full min-h-[450px]' : heightClass;
 
@@ -400,13 +400,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       <div className={containerClasses}>
         {/* Map Header Bar */}
-        <div className="bg-slate-950/90 p-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
+        <div className="bg-[var(--map-header-bg)] p-3 border-b border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 z-20">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow">
               <MapPin className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h4 className="text-xs font-black text-white flex items-center gap-1.5">
+              <h4 className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1.5">
                 <span>{mode === 'picker' ? 'تحديد وتوجيه موقع النشاط على الخريطة' : 'خريطة الأنشطة والتوثيق الميداني المباشر'}</span>
                 <span className="bg-emerald-500/15 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
                   <Zap className="w-3 h-3 text-emerald-400 fill-emerald-400" />
@@ -427,7 +427,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <select
               value={selectedGovFilter}
               onChange={(e) => handleGovChange(e.target.value)}
-              className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
+              className="bg-[var(--input-bg)] hover:bg-amber-500/10 border border-[var(--border-color)] text-amber-600 dark:text-amber-300 font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
               title="الانتقال المباشر للمحافظة"
             >
               <option value="all">كل المحافظات (التنقل السريع)</option>
@@ -455,10 +455,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center transition-all ${
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
                 isExpanded
                   ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                  : 'bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border-[var(--border-color)]'
               }`}
               title={isExpanded ? 'إنهاء وضع الشاشة الكاملة' : 'توسيع الخريطة ملء الشاشة'}
             >
@@ -480,7 +480,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <button
               type="button"
               onClick={handleZoomIn}
-              className="bg-slate-900/95 hover:bg-amber-500 text-slate-200 hover:text-slate-950 p-2 rounded-xl border border-slate-700 shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95"
+              className="bg-[var(--map-control-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer"
               title="تكبير الخريطة (+)"
             >
               <ZoomIn className="w-4 h-4 stroke-[2.5]" />
@@ -489,7 +489,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <button
               type="button"
               onClick={handleZoomOut}
-              className="bg-slate-900/95 hover:bg-amber-500 text-slate-200 hover:text-slate-950 p-2 rounded-xl border border-slate-700 shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95"
+              className="bg-[var(--map-control-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer"
               title="تصغير الخريطة (-)"
             >
               <ZoomOut className="w-4 h-4 stroke-[2.5]" />
@@ -498,7 +498,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <button
               type="button"
               onClick={handleResetPosition}
-              className="bg-slate-900/95 hover:bg-slate-800 text-amber-400 p-2 rounded-xl border border-slate-700 shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 mt-1"
+              className="bg-[var(--map-control-bg)] hover:bg-amber-500/10 text-amber-500 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 mt-1 cursor-pointer"
               title="إعادة ضبط الموضع للمركز"
             >
               <RotateCcw className="w-4 h-4" />
@@ -506,13 +506,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           </div>
 
           {/* 2. D-PAD Directional Pan Movement Controls (Top Left Overlay) */}
-          <div className="absolute top-3 left-3 bg-slate-900/90 border border-slate-700/90 p-1.5 rounded-2xl shadow-2xl backdrop-blur-md z-20 flex flex-col items-center gap-1">
-            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-tighter">تحريك مباشر</span>
+          <div className="absolute top-3 left-3 bg-[var(--map-control-bg)] border border-[var(--map-control-border)] p-1.5 rounded-2xl shadow-2xl backdrop-blur-md z-20 flex flex-col items-center gap-1">
+            <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">تحريك مباشر</span>
 
             <button
               type="button"
               onClick={() => handlePan('up')}
-              className="bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 p-1.5 rounded-lg border border-slate-700 transition-colors"
+              className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
               title="تحريك لأعلى"
             >
               <ChevronUp className="w-4 h-4 stroke-[3]" />
@@ -522,20 +522,20 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <button
                 type="button"
                 onClick={() => handlePan('left')}
-                className="bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 p-1.5 rounded-lg border border-slate-700 transition-colors"
+                className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
                 title="تحريك لليسار"
               >
                 <ChevronLeft className="w-4 h-4 stroke-[3]" />
               </button>
 
-              <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">
+              <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-500 flex items-center justify-center text-[10px] font-bold">
                 <Crosshair className="w-3 h-3" />
               </div>
 
               <button
                 type="button"
                 onClick={() => handlePan('right')}
-                className="bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 p-1.5 rounded-lg border border-slate-700 transition-colors"
+                className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
                 title="تحريك لليمين"
               >
                 <ChevronRight className="w-4 h-4 stroke-[3]" />
@@ -545,7 +545,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <button
               type="button"
               onClick={() => handlePan('down')}
-              className="bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 p-1.5 rounded-lg border border-slate-700 transition-colors"
+              className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
               title="تحريك لأسفل"
             >
               <ChevronDown className="w-4 h-4 stroke-[3]" />
@@ -604,10 +604,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
 
         {/* GPS Coordinates & Footer Toolbar */}
-        <div className="bg-slate-950 p-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs z-20">
+        <div className="bg-[var(--map-footer-bg)] p-3 border-t border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 text-xs z-20">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 font-medium">الإحداثيات الحالية:</span>
-            <span className="font-mono bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-800 text-amber-300 font-bold tracking-wide dir-ltr">
+            <span className="text-[var(--text-muted)] font-medium">الإحداثيات الحالية:</span>
+            <span className="font-mono bg-[var(--map-coord-bg)] px-2.5 py-1 rounded-xl border border-[var(--border-color)] text-[var(--map-coord-text)] font-bold tracking-wide dir-ltr">
               {currentLat.toFixed(6)}, {currentLng.toFixed(6)} (مستوى التكبير: {zoomLevel}x)
             </span>
           </div>
@@ -616,9 +616,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <button
               type="button"
               onClick={handleCopyCoords}
-              className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-xl border border-slate-700 transition-all font-medium text-[11px]"
+              className="flex items-center gap-1 bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] transition-all font-medium text-[11px] cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
               <span>{copied ? 'تم النسخ!' : 'نسخ الإحداثيات'}</span>
             </button>
 

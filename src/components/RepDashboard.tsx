@@ -38,16 +38,16 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
     <div className="max-w-4xl mx-auto space-y-5 pb-20">
       {/* Photo Rejection Alert Banner */}
       {rep.avatarStatus === 'rejected' && (
-        <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-red-950 border-2 border-rose-500 p-4.5 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs text-white font-bold animate-fade-in">
+        <div className="bg-[var(--alert-error-bg)] border-2 border-[var(--alert-error-border)] p-4 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs font-bold animate-fade-in-up">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-black shrink-0 shadow">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black shrink-0 shadow">
               <AlertCircle className="w-6 h-6 stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="font-black text-sm text-rose-200">
+              <h3 className="font-black text-sm text-[var(--alert-error-text)]">
                 ⚠️ إشعار عاجل: تم رفض الصورة الشخصية من مدير النظام
               </h3>
-              <p className="text-xs text-slate-100 font-bold mt-1">
+              <p className="text-xs text-[var(--text-secondary)] font-bold mt-1">
                 قام مدير النظام برفض الصورة الشخصية المرفوعة مسبقاً. يرجى التوجه لملفك الشخصي واختيار أو التقاط صورة سيلفي جديدة فوراً.
               </p>
             </div>
@@ -57,9 +57,9 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
 
       {/* Photo Pending Review Alert Banner */}
       {rep.avatarStatus === 'pending_approval' && (
-        <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-yellow-950 border-2 border-amber-500 p-4 rounded-3xl shadow-lg flex items-center justify-between text-xs text-amber-100 font-extrabold animate-fade-in">
+        <div className="bg-[var(--alert-warning-bg)] border-2 border-[var(--alert-warning-border)] p-4 rounded-3xl shadow-lg flex items-center justify-between text-xs text-[var(--alert-warning-text)] font-extrabold animate-fade-in-up">
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-amber-400 shrink-0" />
+            <Clock className="w-5 h-5 text-amber-500 shrink-0" />
             <span>🔒 صورتك الشخصية مرفوعة وحالياً قيد المراجعة والتدقيق بواسطة مدير النظام.</span>
           </div>
         </div>

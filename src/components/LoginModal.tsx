@@ -189,7 +189,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const modalBox = (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative my-auto transition-colors duration-300">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative my-auto transition-colors duration-300 modal-content">
       {!isInline && (
         <button
           onClick={onClose}
@@ -242,15 +242,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Notification Messages */}
         {errorMsg && (
-          <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-red-950 border-2 border-rose-500 text-rose-100 p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+          <div className="bg-[var(--alert-error-bg)] border-2 border-[var(--alert-error-border)] text-[var(--alert-error-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {regSuccessNotice && (
-          <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 border-2 border-emerald-500 text-emerald-100 p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+          <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
             <span>تم تقديم طلب إنشاء الحساب بنجاح! تم تفعيل الحساب ويمكنك الآن تسجيل الدخول مباشرة على المنصة.</span>
           </div>
         )}
@@ -427,7 +427,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto modal-overlay">
       {modalBox}
     </div>
   );

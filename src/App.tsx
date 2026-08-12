@@ -398,7 +398,7 @@ export default function App() {
                             href={`https://www.google.com/maps/search/?api=1&query=${biz.lat},${biz.lng}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="bg-slate-800 text-slate-200 hover:text-white font-bold p-1.5 rounded-xl border border-slate-700 shrink-0"
+                            className="bg-[var(--input-bg)] text-[var(--text-primary)] hover:text-amber-500 font-bold p-1.5 rounded-xl border border-[var(--border-color)] shrink-0 cursor-pointer transition-colors"
                             title="فتح موقع الإحداثيات على الخريطة"
                           >
                             <ExternalLink className="w-4 h-4" />
@@ -415,7 +415,7 @@ export default function App() {
 
         {/* TAB 2: INTERACTIVE MAP OVERVIEW */}
         {activeTab === 'map' && (
-          <div className="space-y-4 pb-20">
+          <div className="space-y-4 pb-20 tab-content-enter">
             <InteractiveMap
               mode="view"
               businesses={scopedBusinesses}
@@ -449,34 +449,42 @@ export default function App() {
               </div>
 
               <div className="space-y-3">
-                {scopedBusinesses.map((biz) => {
-                  const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
+                {scopedBusinesses.length === 0 ? (
+                  <div className="text-center py-12 space-y-3 animate-fade-in">
+                    <FileText className="w-14 h-14 text-[var(--text-muted)] mx-auto opacity-30" />
+                    <h4 className="font-black text-sm text-[var(--text-secondary)]">لا توجد فواتير مسجلة بعد</h4>
+                    <p className="text-xs text-[var(--text-muted)] font-bold">قم بتسجيل أول نشاط تجاري لتظهر الفواتير هنا.</p>
+                  </div>
+                ) : (
+                  scopedBusinesses.map((biz) => {
+                    const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
 
-                  return (
-                    <div key={biz.id} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm hover:border-amber-500/30 transition-all">
-                      <div>
-                        <span className="text-amber-700 dark:text-amber-400 font-mono font-extrabold">{biz.invoiceNumber}</span>
-                        <h4 className="font-extrabold text-sm text-[var(--text-primary)] mt-0.5">{biz.nameAr}</h4>
-                        <p className="text-[var(--text-secondary)] font-bold">صاحب النشاط: {biz.ownerName} ({biz.ownerPhone})</p>
-                      </div>
-
-                      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-[var(--border-color)] pt-2 sm:pt-0">
-                        <div className="text-left font-bold">
-                          <span className="text-emerald-700 dark:text-emerald-400 text-sm block font-black">{biz.amountPaid} ج.م</span>
-                          {remaining > 0 && <span className="text-rose-700 dark:text-rose-400 text-[10px] font-bold">متبقي {remaining} ج.م</span>}
+                    return (
+                      <div key={biz.id} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm hover:border-amber-500/30 transition-all hover-card">
+                        <div>
+                          <span className="text-amber-700 dark:text-amber-400 font-mono font-extrabold">{biz.invoiceNumber}</span>
+                          <h4 className="font-extrabold text-sm text-[var(--text-primary)] mt-0.5">{biz.nameAr}</h4>
+                          <p className="text-[var(--text-secondary)] font-bold">صاحب النشاط: {biz.ownerName} ({biz.ownerPhone})</p>
                         </div>
 
-                        <button
-                          onClick={() => setSelectedInvoiceBiz(biz)}
-                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs flex items-center gap-1 shadow cursor-pointer"
-                        >
-                          <Share2 className="w-3.5 h-3.5" />
-                          <span>إرسال واتساب</span>
-                        </button>
+                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-[var(--border-color)] pt-2 sm:pt-0">
+                          <div className="text-left font-bold">
+                            <span className="text-emerald-700 dark:text-emerald-400 text-sm block font-black">{biz.amountPaid} ج.م</span>
+                            {remaining > 0 && <span className="text-rose-700 dark:text-rose-400 text-[10px] font-bold">متبقي {remaining} ج.م</span>}
+                          </div>
+
+                          <button
+                            onClick={() => setSelectedInvoiceBiz(biz)}
+                            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs flex items-center gap-1 shadow cursor-pointer"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span>إرسال واتساب</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

@@ -43,6 +43,30 @@
   --map-bg: linear-gradient(135deg, #e8edf4, #dce3ec);
   --nav-bg: rgba(255, 255, 255, 0.95);
   --input-bg: #f8fafc;
+
+  /* إضافية للمودالات والخريطة */
+  --modal-bg: #ffffff;
+  --modal-border: rgba(0, 0, 0, 0.08);
+  --modal-overlay: rgba(15, 23, 42, 0.5);
+  --map-header-bg: #f1f5f9;
+  --map-header-border: rgba(0, 0, 0, 0.06);
+  --map-footer-bg: #f8fafc;
+  --map-control-bg: rgba(255, 255, 255, 0.95);
+  --map-control-border: rgba(0, 0, 0, 0.08);
+  --map-control-text: #0f172a;
+  --map-coord-bg: #f1f5f9;
+  --map-coord-text: #92400e;
+  --alert-error-bg: #fef2f2;
+  --alert-error-border: #fca5a5;
+  --alert-error-text: #991b1b;
+  --alert-success-bg: #f0fdf4;
+  --alert-success-border: #86efac;
+  --alert-success-text: #166534;
+  --alert-warning-bg: #fffbeb;
+  --alert-warning-border: #fcd34d;
+  --alert-warning-text: #92400e;
+  --payment-surface: #f8fafc;
+  --payment-border: rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"], body.dark-mode {
@@ -60,6 +84,30 @@
   --map-bg: linear-gradient(135deg, #0f0f1a, #1a1a2e);
   --nav-bg: rgba(15, 23, 42, 0.95);
   --input-bg: #020617;
+
+  /* إضافية للمودالات والخريطة */
+  --modal-bg: #0f172a;
+  --modal-border: rgba(255, 255, 255, 0.08);
+  --modal-overlay: rgba(2, 6, 23, 0.8);
+  --map-header-bg: rgba(2, 6, 23, 0.9);
+  --map-header-border: rgba(255, 255, 255, 0.06);
+  --map-footer-bg: #020617;
+  --map-control-bg: rgba(15, 23, 42, 0.95);
+  --map-control-border: rgba(255, 255, 255, 0.08);
+  --map-control-text: #e2e8f0;
+  --map-coord-bg: #0f172a;
+  --map-coord-text: #fbbf24;
+  --alert-error-bg: rgba(127, 29, 29, 0.3);
+  --alert-error-border: #ef4444;
+  --alert-error-text: #fca5a5;
+  --alert-success-bg: rgba(22, 101, 52, 0.3);
+  --alert-success-border: #22c55e;
+  --alert-success-text: #86efac;
+  --alert-warning-bg: rgba(146, 64, 14, 0.3);
+  --alert-warning-border: #f59e0b;
+  --alert-warning-text: #fcd34d;
+  --payment-surface: #020617;
+  --payment-border: rgba(255, 255, 255, 0.06);
 }
 
 @layer base {
@@ -78,17 +126,20 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.1);
+  background: rgba(148, 163, 184, 0.08);
 }
 body.dark-mode ::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.6);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.3);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 175, 55, 0.8);
+  background: rgba(212, 175, 55, 0.7);
+}
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
 }
 
 /* Map Pin Icon */
@@ -112,6 +163,157 @@ body.dark-mode ::-webkit-scrollbar-track {
   height: 6px;
   background: #0a0a12;
   border-radius: 50%;
+}
+
+/* ============================================
+   CSS Keyframe Animations
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+}
+
+/* Utility Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+/* ============================================
+   Unified Focus Ring Styles
+   ============================================ */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(245, 158, 11, 0.6);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* ============================================
+   Safe Area Support (Notch devices)
+   ============================================ */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================
+   Tab Content Transition Wrapper
+   ============================================ */
+.tab-content-enter {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+/* ============================================
+   Modal Overlay Transition
+   ============================================ */
+.modal-overlay {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.modal-content {
+  animation: fadeInScale 0.25s ease-out forwards;
+}
+
+/* ============================================
+   Smooth Hover Card Effect
+   ============================================ */
+.hover-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+body.dark-mode .hover-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
 @media print {

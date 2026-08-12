@@ -46,13 +46,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-5 my-auto relative text-slate-100">
+    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
+      <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-5 my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold no-print"
-        >
+          className="absolute top-4 left-4 bg-[var(--input-bg)] hover:bg-rose-500/10 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold no-print border border-[var(--border-color)] cursor-pointer">
           ✕
         </button>
 
@@ -172,7 +171,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
           >
             <Share2 className="w-4 h-4" />
             <span>إرسال الفاتورة الآن عبر واتساب العميل</span>
@@ -180,7 +179,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
 
           <button
             onClick={() => window.print()}
-            className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-3 px-4 rounded-xl border border-slate-700 flex items-center justify-center gap-2 transition-colors"
+            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-3 px-4 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>طباعة</span>
