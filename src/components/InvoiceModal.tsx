@@ -7,9 +7,10 @@ import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink
 interface InvoiceModalProps {
   business: Business | null;
   onClose: () => void;
+  isExternalView?: boolean;
 }
 
-export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose }) => {
+export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, isExternalView = false }) => {
   if (!business) return null;
 
   const remaining = Math.max(0, business.packagePrice - business.amountPaid);
@@ -41,19 +42,22 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
   const formattedPhone = business.ownerPhone.replace(/^0/, '');
   const whatsappUrl = `https://wa.me/20${formattedPhone}?text=${waMessage}`;
 
-  // QR Code URL Generator using free QR server
-  const qrData = encodeURIComponent(`DALEELEK-INV-${business.invoiceNumber}-${business.nameAr}-${business.packagePrice}EGP`);
+  // Dynamic QR Code URL to open the invoice online
+  const qrUrl = `${window.location.origin}/?view=invoice&id=${business.id}`;
+  const qrData = encodeURIComponent(qrUrl);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-5 my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300">
         {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] hover:bg-rose-500/10 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold no-print border border-[var(--border-color)] cursor-pointer">
-          ✕
-        </button>
+        {!isExternalView && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 left-4 bg-[var(--input-bg)] hover:bg-rose-500/10 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold no-print border border-[var(--border-color)] cursor-pointer">
+            ✕
+          </button>
+        )}
 
         {/* Printable Invoice Container */}
         <div className="space-y-4 bg-white text-slate-900 p-5 rounded-2xl shadow-inner border border-slate-200">

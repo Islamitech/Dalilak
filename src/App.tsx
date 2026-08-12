@@ -73,6 +73,22 @@ export default function App() {
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
   const [homeStatusFilter, setHomeStatusFilter] = useState<string>('all');
 
+  // External View State (from QR code scanning)
+  const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
+
+  // Parse URL for deep linking (QR codes)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = urlParams.get('view');
+    const id = urlParams.get('id');
+
+    if (view === 'invoice' && id) {
+      setExternalView({ type: 'invoice', id });
+    } else if (view === 'rep' && id) {
+      setExternalView({ type: 'rep', id });
+    }
+  }, []);
+
   // Fetch initial data from Supabase Database & Local Backend
   useEffect(() => {
     fetchBusinessesFromDb().then((data) => {
@@ -215,6 +231,48 @@ export default function App() {
     return true;
   });
 
+  // Remove current user from local storage
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('dalelak_logged_user');
+  };
+
+  // -------------------------------------------------------------
+  // EXTERNAL READ-ONLY VIEWS (For QR Codes)
+  // -------------------------------------------------------------
+  if (externalView?.type === 'invoice') {
+    const biz = businesses.find(b => b.id === externalView.id || b.invoiceNumber === externalView.id);
+    if (!biz && businesses.length === 0) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل الفاتورة...</div>;
+    if (!biz) return <div className="min-h-screen flex items-center justify-center font-bold text-rose-500">هذه الفاتورة غير موجودة أو تم حذفها.</div>;
+
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)]">
+        <InvoiceModal business={biz} onClose={() => {}} isExternalView={true} />
+      </div>
+    );
+  }
+
+  if (externalView?.type === 'rep') {
+    const rep = representatives.find(r => r.id === externalView.id);
+    if (!rep && representatives.length === 0) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل البطاقة...</div>;
+    if (!rep) return <div className="min-h-screen flex items-center justify-center font-bold text-rose-500">هذا المندوب غير مسجل في النظام.</div>;
+
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)]">
+        <RepProfile 
+          user={null as any} 
+          rep={rep} 
+          businessesCount={0} 
+          totalRevenue={0} 
+          totalCommission={0} 
+          onLogout={() => {}} 
+          onUpdateRep={() => {}} 
+          isExternalView={true} 
+        />
+      </div>
+    );
+  }
+
   // Strict Unauthenticated Protection: If user is not logged in, render ONLY the Login screen!
   if (!user) {
     return (
@@ -235,12 +293,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col font-['Cairo',sans-serif] transition-colors duration-300">
-      {/* Top Navbar */}
+    <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>
+      {/* Top App Bar - Fixed */}
       <Navbar
         user={user}
         onOpenLogin={() => setShowLoginModal(true)}
-        onLogout={() => setUser(null)}
+        onLogout={handleLogout}
         activeTab={activeTab}
       />
 

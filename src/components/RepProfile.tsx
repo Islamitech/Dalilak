@@ -38,6 +38,7 @@ interface RepProfileProps {
   totalCommission: number;
   onLogout: () => void;
   onUpdateRep: (updatedRep: Representative) => void;
+  isExternalView?: boolean;
 }
 
 export const RepProfile: React.FC<RepProfileProps> = ({
@@ -48,6 +49,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   totalCommission,
   onLogout,
   onUpdateRep,
+  isExternalView = false,
 }) => {
   // Document Viewer Modal State
   const [selectedDocType, setSelectedDocType] = useState<DocType | null>(null);
@@ -73,8 +75,11 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
   const repCode = `REP-2026-${rep.id.replace(/\D/g, '') || '084'}`;
   const commissionPercentage = rep.commissionRate || 42.86;
-  const qrData = encodeURIComponent(`DALEELEK-OFFICIAL-REP-${rep.name}-${repCode}-${rep.governorate}`);
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+  
+  // Dynamic QR Code URL for the digital ID card
+  const qrUrl = `${window.location.origin}/?view=rep&id=${rep.id}`;
+  const qrData = encodeURIComponent(qrUrl);
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 
   // Handle Edit Profile Form Submission with Strict Egyptian Validation Rules
   const handleSaveProfileData = (e: React.FormEvent) => {
@@ -133,6 +138,45 @@ export const RepProfile: React.FC<RepProfileProps> = ({
     setNewPassword('');
     setTimeout(() => setPasswordNotice(false), 3000);
   };
+
+  if (isExternalView) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 border border-amber-500/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-6 text-white transform hover:scale-[1.02] transition-transform duration-300">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-amber-500/30 pb-4">
+            <div className="flex items-center gap-2">
+              <Logo size="sm" variant="icon" />
+              <h3 className="font-black text-sm text-white">بطاقة التكليف الميداني الرقمية</h3>
+            </div>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2.5 py-1 rounded-full border border-emerald-500/30 shadow-sm flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>معتمد رسمياً</span>
+            </span>
+          </div>
+
+          {/* Body */}
+          <div className="flex flex-col sm:flex-row items-center gap-5 bg-slate-950/80 p-5 rounded-2xl border border-amber-500/30 shadow-inner">
+            <img src={qrImageUrl} alt="QR Code" className="w-28 h-28 rounded-2xl border border-amber-500/50 bg-white p-2 shrink-0 shadow-lg" />
+            <div className="space-y-1.5 text-center sm:text-right w-full">
+              <p className="font-black text-amber-300 text-xl">{rep.name}</p>
+              <p className="text-slate-300 font-bold text-sm">{rep.roleTitle || 'مندوب مبيعات وتوثيق ميداني'}</p>
+              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-slate-400 text-xs mt-1">
+                <MapPin className="w-4 h-4" />
+                <span>نطاق العمل: {rep.governorate}</span>
+              </div>
+              <p className="text-xs text-emerald-400 font-black dir-ltr sm:text-right pt-2 border-t border-slate-800 mt-2">ID: {repCode}</p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-xs text-amber-200 text-center font-bold leading-relaxed shadow-sm">
+            يسمح لحامل هذه البطاقة الرسمية بتمثيل شركة دليلك في المعاينات الميدانية وتوثيق الأنشطة وإصدار الفواتير المعتمدة.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24">
