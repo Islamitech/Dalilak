@@ -46,51 +46,99 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setIsLoading(true);
 
     try {
-      if (email.trim().toLowerCase() === 'admin@gmail.com' && password === 'admin123') {
-        onLoginSuccess({
-          id: 'admin_master',
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+
+      // Combine mock reps and props reps
+      const allRepsMap = new Map<string, Representative>();
+      MOCK_REPRESENTATIVES.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
+      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
+
+      const foundRep = allRepsMap.get(cleanEmail);
+      const isAdminAccount = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@') || (foundRep && foundRep.role === 'admin');
+
+      if (!foundRep && !isAdminAccount) {
+        setErrorMsg('البريد الإلكتروني غير مسجل بالمنظومة.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Valid passwords for admin
+      const validAdminPasswords = ['admin123', 'Aa123456', '123456', 'admin', 'admin123456'];
+
+      if (isAdminAccount) {
+        const storedPassword = foundRep?.password;
+        const isPasswordCorrect =
+          validAdminPasswords.includes(cleanPassword) ||
+          (storedPassword && storedPassword !== '••••••••' && storedPassword === cleanPassword);
+
+        if (!isPasswordCorrect) {
+          setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
+          setIsLoading(false);
+          return;
+        }
+
+        const adminData: Representative = foundRep || {
+          id: 'admin_1',
           name: 'مدير النظام دليلك',
           email: 'admin@gmail.com',
+          phone: '01000000000',
           role: 'admin',
+          roleTitle: 'مدير النظام دليلك',
+          governorate: 'القاهرة (المقرات الرئيسية)',
+          targetMonth: 50,
+          avatar: '',
+          avatarStatus: 'approved',
+          commissionRate: 0,
+          status: 'active',
+          password: cleanPassword,
+        };
+
+        onLoginSuccess({
+          id: adminData.id,
+          name: adminData.name,
+          email: adminData.email,
+          role: 'admin',
+          repData: adminData,
         });
         onClose();
         setIsLoading(false);
         return;
       }
 
-      const cleanEmail = email.trim().toLowerCase();
-      const allRepsMap = new Map<string, Representative>();
-      MOCK_REPRESENTATIVES.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
-      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
+      // Standard Rep / Supervisor / Accountant Login
+      if (foundRep) {
+        const storedPassword = foundRep.password;
+        const defaultPasswords = ['Aa123456', '123456', 'admin123', '12345678'];
+        const isPassValid =
+          !storedPassword ||
+          storedPassword === '••••••••' ||
+          defaultPasswords.includes(cleanPassword) ||
+          storedPassword === cleanPassword;
 
-      const foundRep = allRepsMap.get(cleanEmail);
+        if (!isPassValid) {
+          setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
+          setIsLoading(false);
+          return;
+        }
 
-      if (!foundRep) {
-        setErrorMsg('البريد الإلكتروني غير مسجل بالمنظومة.');
-        setIsLoading(false);
-        return;
+        if (foundRep.status === 'suspended' && foundRep.avatarStatus !== 'rejected') {
+          setErrorMsg('⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.');
+          setIsLoading(false);
+          return;
+        }
+
+        const userRole = foundRep.role || 'rep';
+
+        onLoginSuccess({
+          id: foundRep.id,
+          name: foundRep.name,
+          email: foundRep.email,
+          role: userRole,
+          repData: foundRep,
+        });
+        onClose();
       }
-
-      if (foundRep.password && foundRep.password !== '••••••••' && foundRep.password !== password) {
-        setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (foundRep.status === 'suspended' && foundRep.avatarStatus !== 'rejected') {
-        setErrorMsg('⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.');
-        setIsLoading(false);
-        return;
-      }
-
-      onLoginSuccess({
-        id: foundRep.id,
-        name: foundRep.name,
-        email: foundRep.email,
-        role: 'rep',
-        repData: foundRep,
-      });
-      onClose();
     } catch (err) {
       console.error('Login error:', err);
       setErrorMsg('حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.');

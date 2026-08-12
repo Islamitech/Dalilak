@@ -97,7 +97,7 @@ export const MOCK_REPRESENTATIVES: Representative[] = [
     avatarStatus: 'approved',
     commissionRate: 0,
     status: 'active',
-    password: '••••••••',
+    password: 'admin123',
   },
   {
     id: 'rep_1',
