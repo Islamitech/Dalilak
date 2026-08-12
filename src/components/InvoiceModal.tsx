@@ -43,7 +43,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
 
   // QR Code URL Generator using free QR server
   const qrData = encodeURIComponent(`DALEELEK-INV-${business.invoiceNumber}-${business.nameAr}-${business.packagePrice}EGP`);
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
@@ -109,21 +109,21 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
           </table>
 
           {/* Financial Totals */}
-          <div className="bg-slate-900 text-slate-100 p-3 rounded-xl space-y-1.5 text-xs">
-            <div className="flex justify-between">
-              <span className="text-slate-400">إجمالي الباقة:</span>
-              <span className="font-bold">{business.packagePrice} جنيه مصري</span>
+          <div className="bg-slate-100 text-slate-900 p-3 rounded-xl space-y-1.5 text-xs border border-slate-200">
+            <div className="flex justify-between font-bold">
+              <span className="text-slate-600">إجمالي الباقة:</span>
+              <span>{business.packagePrice} جنيه مصري</span>
             </div>
-            <div className="flex justify-between text-emerald-400">
+            <div className="flex justify-between text-emerald-700 font-bold pt-1 border-t border-slate-200">
               <span>المبلغ المدفوع:</span>
-              <span className="font-bold">{business.amountPaid} جنيه مصري</span>
+              <span>{business.amountPaid} جنيه مصري</span>
             </div>
-            <div className="flex justify-between text-rose-400 font-black pt-1 border-t border-slate-800">
+            <div className="flex justify-between text-rose-600 font-black pt-1 border-t border-slate-200">
               <span>المبلغ المتبقي:</span>
               <span>{remaining} جنيه مصري</span>
             </div>
-            <div className="flex justify-between text-amber-300 font-bold pt-1 border-t border-slate-800/60 text-[11px]">
-              <span>عمولة المندوب (150 ج.م لكل باقة 350):</span>
+            <div className="flex justify-between text-amber-700 font-bold pt-1 border-t border-slate-200 text-[11px] no-print">
+              <span>عمولة المندوب:</span>
               <span>{calculateBusinessCommission(business.packagePrice, business.amountPaid)} جنيه مصري</span>
             </div>
           </div>
@@ -156,7 +156,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose })
 
             {/* Electronic QR Code */}
             <div className="flex items-center gap-2">
-              <img src={qrImageUrl} alt="QR Code" className="w-12 h-12 rounded border border-slate-300" />
+              <img src={qrImageUrl} alt="QR Code" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-slate-300 p-1 bg-white" />
             </div>
           </div>
 
