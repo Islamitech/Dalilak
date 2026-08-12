@@ -111,10 +111,14 @@
 }
 
 @layer base {
-  body {
-    font-family: var(--font-family);
+  html, body, #root {
+    min-height: 100vh;
     background-color: var(--bg-primary);
     color: var(--text-primary);
+  }
+
+  body {
+    font-family: var(--font-family);
     transition: background-color var(--transition-slow), color var(--transition-slow);
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;

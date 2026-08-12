@@ -78,22 +78,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: cleanEmail, password: cleanPassword, role: 'admin' }),
             });
-            if (!res.ok) {
-              setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
-              setIsLoading(false);
-              return;
-            }
-            const data = await res.json();
-            if (data.user) {
-              onLoginSuccess(data.user);
-              onClose();
-              setIsLoading(false);
-              return;
+            const contentType = res.headers.get('content-type') || '';
+            if (res.ok && contentType.includes('application/json')) {
+              const data = await res.json();
+              if (data && data.user) {
+                onLoginSuccess(data.user);
+                onClose();
+                setIsLoading(false);
+                return;
+              }
             }
           } catch {
-            setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
-            setIsLoading(false);
-            return;
+            console.log('Server auth fallback unavailable, using DB auth.');
           }
         }
 

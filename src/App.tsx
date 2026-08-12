@@ -100,7 +100,13 @@ export default function App() {
     });
 
     fetch('/api/payment-config')
-      .then((res) => res.json())
+      .then((res) => {
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          return res.json();
+        }
+        return null;
+      })
       .then((data) => {
         if (data && data.fawryMerchantCode) setPaymentConfig(data);
       })
