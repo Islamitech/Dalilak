@@ -50,6 +50,33 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   // Auto fill status notice
   const [autoFillNotice, setAutoFillNotice] = useState<string | null>(null);
 
+  // Success State
+  const [submittedBusiness, setSubmittedBusiness] = useState<Business | null>(null);
+
+  const resetForm = () => {
+    setNameAr('');
+    setNameEn('');
+    setCategory(BUSINESS_CATEGORIES[0]);
+    setGovernorate('القاهرة');
+    setCity('');
+    setStreet('');
+    setLandmark('');
+    setPhone('');
+    setSecondaryPhone('');
+    setWorkingHours('يومياً من 9:00 صباحاً حتى 11:00 مساءً');
+    setDescription('');
+    setOwnerName('');
+    setOwnerPhone('');
+    setOwnerEmail('');
+    setNationalId('');
+    setSelectedPackage(PACKAGES[1]);
+    setPaymentStatus('fully_paid');
+    setAmountPaid(PACKAGES[1].price);
+    setNotes('');
+    setPhotos([]);
+    setSubmittedBusiness(null);
+  };
+
   // Package select update helper
   const handlePackageChange = (pkg: PackageOption) => {
     setSelectedPackage(pkg);
@@ -126,8 +153,61 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     };
 
     onSubmitBusiness(newBusiness);
-    onShowInvoice(newBusiness);
+    setSubmittedBusiness(newBusiness);
   };
+
+  if (submittedBusiness) {
+    return (
+      <div className="max-w-xl mx-auto mt-10 bg-[var(--bg-card)] border border-emerald-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl text-center space-y-6 animate-fade-in-up">
+        <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner border border-emerald-200">
+          <CheckCircle2 className="w-10 h-10" />
+        </div>
+        
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] mb-3">تم تسجيل النشاط بنجاح!</h2>
+          <p className="text-[var(--text-secondary)] text-sm sm:text-base leading-relaxed">
+            تم حفظ بيانات نشاط <span className="font-bold text-[var(--text-primary)] px-1">{submittedBusiness.nameAr}</span> بنجاح. سيتم مراجعة البيانات وتوثيقها على خرائط جوجل قريباً.
+          </p>
+        </div>
+        
+        <div className="bg-[var(--input-bg)] rounded-2xl p-5 border border-[var(--border-color)] flex justify-between items-center text-sm font-bold shadow-sm">
+          <span className="text-[var(--text-secondary)]">حالة النشاط الحالي:</span>
+          <span className="bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-xs flex items-center gap-1.5 border border-amber-200 shadow-sm">
+            <Clock className="w-4 h-4" />
+            <span>قيد المراجعة</span>
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <button
+            onClick={() => onShowInvoice(submittedBusiness)}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 border border-emerald-700/50 cursor-pointer"
+          >
+            <FileText className="w-5 h-5" />
+            <span>معاينة وإصدار الفاتورة</span>
+          </button>
+          
+          <button
+            onClick={() => setSubmittedBusiness(null)}
+            className="flex-1 bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] font-bold py-3.5 px-4 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <User className="w-5 h-5" />
+            <span>تعديل البيانات</span>
+          </button>
+        </div>
+
+        <div className="pt-4 border-t border-[var(--border-color)] mt-6">
+          <button 
+             onClick={resetForm}
+             className="text-sm text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
+          >
+             <Store className="w-4 h-4" />
+             <span>تسجيل نشاط تجاري جديد</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-6 pb-20">
