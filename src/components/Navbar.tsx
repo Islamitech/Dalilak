@@ -30,7 +30,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {user ? (
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="flex items-center gap-1.5 sm:gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-full py-1 px-2.5 sm:px-3.5 shadow-sm transition-colors duration-300">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-amber-500 border border-amber-300 text-slate-950 flex items-center justify-center font-black text-[11px] sm:text-xs shrink-0">
+                <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center font-black text-[11px] sm:text-xs shrink-0 ${
+                  user.role === 'admin'
+                    ? 'bg-gradient-to-br from-amber-400 to-amber-600 border-amber-300 text-slate-950'
+                    : 'bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-400 text-white'
+                }`}>
                   {user.role === 'admin' ? 'M' : user.name.charAt(0)}
                 </div>
                 <div className="text-right">
@@ -46,6 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onLogout}
                 title="تسجيل الخروج"
+                aria-label="تسجيل الخروج"
                 className="p-1.5 sm:p-2 rounded-full text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />

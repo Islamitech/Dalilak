@@ -19,14 +19,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   useEffect(() => {
-    document.body.setAttribute('data-theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
     if (theme === 'dark') {
-      document.body.classList.add('dark-mode');
       document.documentElement.classList.add('dark');
+      document.body.classList.add('dark-mode');
     } else {
-      document.body.classList.remove('dark-mode');
       document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark-mode');
     }
     localStorage.setItem('dalelak_theme', theme);
   }, [theme]);

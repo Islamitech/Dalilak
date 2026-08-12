@@ -63,19 +63,38 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Valid passwords for admin
-      const validAdminPasswords = ['admin123', 'Aa123456', '123456', 'admin', 'admin123456'];
-
       if (isAdminAccount) {
         const storedPassword = foundRep?.password;
+        const validAdminPasswords = ['admin123', 'Aa132456', 'admin'];
         const isPasswordCorrect =
           validAdminPasswords.includes(cleanPassword) ||
           (storedPassword && storedPassword !== '••••••••' && storedPassword === cleanPassword);
 
         if (!isPasswordCorrect) {
-          setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
-          setIsLoading(false);
-          return;
+          // Fallback: try server-side auth
+          try {
+            const res = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: cleanEmail, password: cleanPassword, role: 'admin' }),
+            });
+            if (!res.ok) {
+              setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
+              setIsLoading(false);
+              return;
+            }
+            const data = await res.json();
+            if (data.user) {
+              onLoginSuccess(data.user);
+              onClose();
+              setIsLoading(false);
+              return;
+            }
+          } catch {
+            setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
+            setIsLoading(false);
+            return;
+          }
         }
 
         const adminData: Representative = foundRep || {
@@ -109,11 +128,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       // Standard Rep / Supervisor / Accountant Login
       if (foundRep) {
         const storedPassword = foundRep.password;
-        const defaultPasswords = ['Aa123456', '123456', 'admin123', '12345678'];
         const isPassValid =
           !storedPassword ||
           storedPassword === '••••••••' ||
-          defaultPasswords.includes(cleanPassword) ||
           storedPassword === cleanPassword;
 
         if (!isPassValid) {
@@ -237,7 +254,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const modalBox = (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative my-auto transition-colors duration-300 modal-content">
+    <div className="bg-[var(--bg-card)]/90 backdrop-blur-xl border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative my-auto transition-colors duration-300 modal-content">
       {!isInline && (
         <button
           onClick={onClose}
@@ -248,228 +265,304 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       )}
 
       {/* Logo Branding Header */}
-        <div className="text-center space-y-2 pt-1">
-          <Logo size="sm" showSubtitle={false} className="justify-center" />
-          <h2 className="text-base font-black text-[var(--text-primary)]">منصة دليلك لتسجيل وتوثيق الأنشطة</h2>
+      <div className="text-center space-y-2 pt-1">
+        <Logo size="md" showSubtitle={false} className="justify-center" />
+        <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1">
+          <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
+            🗺️ توثيق خرائط جوجل مصر
+          </span>
+          <span className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+            ⚡ تفعيل ميداني 24/7
+          </span>
         </div>
+      </div>
 
-        {/* Tab Switcher: Login vs Register */}
-        <div className="grid grid-cols-2 gap-1 bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] text-xs font-bold shadow-inner">
+      {/* Quick Demo Fill Buttons */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 space-y-1.5 text-center">
+        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-extrabold block">
+          ⚡ تسجيل دخول سريع للتجربة (اضغط للتعبئة التلقائية):
+        </span>
+        <div className="grid grid-cols-2 gap-2 text-xs">
           <button
             type="button"
             onClick={() => {
               setActiveTab('login');
+              setEmail('admin@gmail.com');
+              setPassword('admin123');
               setErrorMsg('');
             }}
-            className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'login'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow font-black'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-            }`}
+            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-1.5 px-2 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer text-[11px]"
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>تسجيل الدخول</span>
+            👑 دخول مدير النظام
           </button>
 
           <button
             type="button"
             onClick={() => {
-              setActiveTab('register');
+              setActiveTab('login');
+              setEmail('ahmedhufne@gmail.com');
+              setPassword('Aa132456');
               setErrorMsg('');
             }}
-            className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'register'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow font-black'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-            }`}
+            className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500 text-[var(--text-primary)] font-bold py-1.5 px-2 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer text-[11px]"
           >
-            <UserPlus className="w-4 h-4" />
-            <span>إنشاء حساب جديد</span>
+            💼 دخول مندوب ميداني
           </button>
         </div>
+      </div>
 
-        {/* Notification Messages */}
-        {errorMsg && (
-          <div className="bg-[var(--alert-error-bg)] border-2 border-[var(--alert-error-border)] text-[var(--alert-error-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+      {/* Tab Switcher: Login vs Register */}
+      <div className="grid grid-cols-2 gap-1 bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] text-xs font-bold shadow-inner">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('login');
+            setErrorMsg('');
+          }}
+          className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            activeTab === 'login'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow font-black'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>تسجيل الدخول</span>
+        </button>
 
-        {regSuccessNotice && (
-          <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>تم تقديم طلب إنشاء الحساب بنجاح! تم تفعيل الحساب ويمكنك الآن تسجيل الدخول مباشرة على المنصة.</span>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('register');
+            setErrorMsg('');
+          }}
+          className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            activeTab === 'register'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow font-black'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>إنشاء حساب جديد</span>
+        </button>
+      </div>
 
-        {/* 1. LOGIN FORM */}
-        {activeTab === 'login' && (
-          <form onSubmit={handleLoginSubmit} autoComplete="off" className="space-y-3.5 text-xs">
-            <div>
-              <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني المعتمد:</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  autoComplete="off"
-                  placeholder="name@daleelek.eg"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 font-mono shadow-sm"
-                />
-              </div>
-            </div>
+      {/* Notification Messages */}
+      {errorMsg && (
+        <div className="bg-[var(--alert-error-bg)] border-2 border-[var(--alert-error-border)] text-[var(--alert-error-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
-            <div>
-              <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور:</label>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
-                <input
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 font-mono shadow-sm"
-                />
-              </div>
-            </div>
+      {regSuccessNotice && (
+        <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
+          <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>تم تقديم طلب إنشاء الحساب بنجاح! تم تفعيل الحساب ويمكنك الآن تسجيل الدخول مباشرة على المنصة.</span>
+        </div>
+      )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 mt-2 text-xs cursor-pointer"
-            >
-              {isLoading ? 'جاري التحقق من الحساب...' : 'الدخول إلى المنصة'}
-            </button>
-          </form>
-        )}
-
-        {/* 2. REGISTER NEW ACCOUNT FORM */}
-        {activeTab === 'register' && (
-          <form onSubmit={handleRegisterSubmit} className="space-y-3 text-xs">
-            <div>
-              <label className="block text-[var(--text-primary)] font-extrabold mb-1">الاسم ثلاثي *</label>
+      {/* 1. LOGIN FORM */}
+      {activeTab === 'login' && (
+        <form onSubmit={handleLoginSubmit} autoComplete="off" className="space-y-3.5 text-xs">
+          <div>
+            <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني المعتمد:</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
               <input
-                type="text"
+                type="email"
                 required
-                placeholder="أدخل اسمك ثلاثي..."
-                value={regName}
-                onChange={(e) => setRegName(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
+                autoComplete="off"
+                placeholder="name@daleelek.eg"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 font-mono shadow-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور:</label>
+            <div className="relative">
+              <KeyRound className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 font-mono shadow-sm"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 mt-2 text-xs cursor-pointer"
+          >
+            {isLoading ? 'جاري التحقق من الحساب...' : 'الدخول إلى المنصة'}
+          </button>
+        </form>
+      )}
+
+      {/* 2. REGISTER NEW ACCOUNT FORM */}
+      {activeTab === 'register' && (
+        <form onSubmit={handleRegisterSubmit} className="space-y-3 text-xs">
+          <div>
+            <label className="block text-[var(--text-primary)] font-extrabold mb-1">الاسم ثلاثي *</label>
+            <input
+              type="text"
+              required
+              placeholder="أدخل اسمك ثلاثي..."
+              value={regName}
+              onChange={(e) => setRegName(e.target.value)}
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني *</label>
+              <input
+                type="email"
+                required
+                placeholder="user@gmail.com"
+                value={regEmail}
+                onChange={(e) => setRegEmail(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="user@gmail.com"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
-                />
-              </div>
+            <div>
+              <label className="block text-[var(--text-primary)] font-extrabold mb-1">رقم المحمول (11 رقم) *</label>
+              <input
+                type="tel"
+                required
+                placeholder="01012345678"
+                value={regPhone}
+                onChange={(e) => setRegPhone(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
+              />
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">رقم المحمول (11 رقم) *</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="01012345678"
-                  value={regPhone}
-                  onChange={(e) => setRegPhone(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
-                />
-              </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[var(--text-primary)] font-extrabold mb-1">الرقم القومي (14 رقم) *</label>
+              <input
+                type="text"
+                required
+                maxLength={14}
+                placeholder="29805120104892"
+                value={regNationalId}
+                onChange={(e) => setRegNationalId(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">الرقم القومي (14 رقم) *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={14}
-                  placeholder="29805120104892"
-                  value={regNationalId}
-                  onChange={(e) => setRegNationalId(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
-                />
-              </div>
+            <div>
+              <label className="block text-[var(--text-primary)] font-extrabold mb-1">المحافظة *</label>
+              <select
+                value={regGovernorate}
+                onChange={(e) => setRegGovernorate(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+              >
+                <option value="القاهرة">القاهرة</option>
+                <option value="الجيزة">الجيزة</option>
+                <option value="الإسكندرية">الإسكندرية</option>
+                <option value="الدقهلية (المنصورة)">الدقهلية (المنصورة)</option>
+                <option value="الشرقية (الزقازيق)">الشرقية (الزقازيق)</option>
+                <option value="الغربية (طنطا)">الغربية (طنطا)</option>
+                <option value="القليوبية">القليوبية</option>
+                <option value="البحيرة">البحيرة</option>
+                <option value="المنوفية">المنوفية</option>
+                <option value="أسيوط">أسيوط</option>
+                <option value="سوهاج">سوهاج</option>
+              </select>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">المحافظة *</label>
-                <select
-                  value={regGovernorate}
-                  onChange={(e) => setRegGovernorate(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
-                >
-                  <option value="القاهرة">القاهرة</option>
-                  <option value="الجيزة">الجيزة</option>
-                  <option value="الإسكندرية">الإسكندرية</option>
-                  <option value="الدقهلية (المنصورة)">الدقهلية (المنصورة)</option>
-                  <option value="الشرقية (الزقازيق)">الشرقية (الزقازيق)</option>
-                  <option value="الغربية (طنطا)">الغربية (طنطا)</option>
-                  <option value="القليوبية">القليوبية</option>
-                  <option value="البحيرة">البحيرة</option>
-                  <option value="المنوفية">المنوفية</option>
-                  <option value="أسيوط">أسيوط</option>
-                  <option value="سوهاج">سوهاج</option>
-                </select>
-              </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور *</label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={regPassword}
+                onChange={(e) => setRegPassword(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور *</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">تأكيد كلمة المرور *</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={regConfirmPassword}
-                  onChange={(e) => setRegConfirmPassword(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
-                />
-              </div>
+            <div>
+              <label className="block text-[var(--text-primary)] font-extrabold mb-1">تأكيد كلمة المرور *</label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={regConfirmPassword}
+                onChange={(e) => setRegConfirmPassword(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
+              />
             </div>
+          </div>
 
-            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">
-              🔒 يتم تقديم الحساب بحالة (معلق) لحين المراجعة والتفعيل الفوري من قبل مدير النظام المعتمد.
-            </div>
+          <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">
+            🔒 يتم تقديم الحساب بحالة (معلق) لحين المراجعة والتفعيل الفوري من قبل مدير النظام المعتمد.
+          </div>
 
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer"
-            >
-              إرسال طلب إنشاء الحساب
-            </button>
-          </form>
-        )}
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer"
+          >
+            إرسال طلب إنشاء الحساب
+          </button>
+        </form>
+      )}
     </div>
   );
 
   if (isInline) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-[var(--bg-surface)] p-4 transition-colors duration-300">
-        {modalBox}
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[var(--bg-primary)] p-4 transition-colors duration-300 relative overflow-hidden">
+        {/* Floating Top Controls Bar (Theme Toggle & Platform Badge) */}
+        <div className="w-full max-w-4xl mx-auto flex items-center justify-between gap-2 pb-4 z-20">
+          <div className="flex items-center gap-2">
+            <Logo size="sm" showSubtitle={false} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle in Login Screen */}
+            <ThemeToggle />
+          </div>
+        </div>
+
+        {/* Decorative animated background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Glowing Gradient blobs */}
+          <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-3xl" style={{ animation: 'pulse 4s ease-in-out infinite alternate' }} />
+          <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-yellow-400/10 rounded-full blur-2xl" style={{ animation: 'pulse 6s ease-in-out infinite alternate-reverse' }} />
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 opacity-[0.04]" style={{
+            backgroundImage: `linear-gradient(var(--text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--text-primary) 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
+          }} />
+          {/* Bottom fade */}
+          <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[var(--bg-primary)] to-transparent" />
+        </div>
+
+        {/* Main Center Content */}
+        <div className="relative z-10 w-full max-w-md my-auto">
+          {modalBox}
+        </div>
+
+        {/* Footer info */}
+        <div className="relative z-10 pt-4 text-center text-xs text-[var(--text-muted)] font-bold">
+          منصة دليلك الرقمية © 2026 — توثيق الأنشطة التجارية على خرائط جوجل في مصر
+        </div>
       </div>
     );
   }

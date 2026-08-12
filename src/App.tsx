@@ -172,6 +172,15 @@ export default function App() {
     });
 
     await saveRepToDb(newRep);
+    try {
+      await fetch('/api/representatives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRep),
+      });
+    } catch (err) {
+      console.log('Express backend rep sync notice:', err);
+    }
   };
 
   const handleUpdateRepresentative = async (updatedRep: Representative) => {
@@ -306,7 +315,7 @@ export default function App() {
       <main className="flex-1 w-full mx-auto max-w-7xl p-3 sm:p-5">
         {/* TAB 1: HOME FEED */}
         {activeTab === 'home' && (
-          <div className="space-y-5 pb-20">
+          <div className="space-y-5 pb-20 tab-content-enter">
             {/* Field Banner */}
             <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-4 sm:p-5 rounded-3xl shadow-xl flex items-center justify-between">
               <div>
@@ -382,7 +391,7 @@ export default function App() {
               </div>
 
               {/* Feed Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
                 {filteredHomeBusinesses.length === 0 && (
                   <div className="col-span-full text-center py-10 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-color)] space-y-2 shadow-sm">
                     <Building2 className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-50" />
@@ -494,7 +503,7 @@ export default function App() {
 
         {/* TAB 4: INVOICES & WHATSAPP DISPATCH */}
         {activeTab === 'invoices' && (
-          <div className="max-w-4xl mx-auto space-y-4 pb-20">
+          <div className="max-w-4xl mx-auto space-y-4 pb-20 tab-content-enter">
             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 space-y-4 shadow-md transition-colors duration-300">
               <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
                 <div className="flex items-center gap-2">
