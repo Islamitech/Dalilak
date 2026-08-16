@@ -39,9 +39,6 @@ export default function App() {
   useEffect(() => {
     if (user) {
       localStorage.setItem('dalelak_logged_user', JSON.stringify(user));
-      if (user.role === 'admin') {
-        setActiveTab('admin');
-      }
     } else {
       localStorage.removeItem('dalelak_logged_user');
     }
@@ -60,8 +57,44 @@ export default function App() {
   });
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(DEFAULT_PAYMENT_CONFIG);
 
-  // Navigation Tabs: 'home' | 'map' | 'add' | 'invoices' | 'admin'
-  const [activeTab, setActiveTab] = useState<string>('home');
+  // Navigation Tabs: 'home' | 'map' | 'add' | 'invoices' | 'admin' | 'profile'
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    // 1. Check URL query string first (e.g., ?tab=map or ?tab=admin or ?tab=add)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTab = urlParams.get('tab');
+    if (urlTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(urlTab)) {
+      return urlTab;
+    }
+
+    // 2. Check localStorage key 'dalelak_active_tab'
+    const savedTab = localStorage.getItem('dalelak_active_tab');
+    if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
+      return savedTab;
+    }
+
+    // 3. Fallback check for admin user
+    const savedUserStr = localStorage.getItem('dalelak_logged_user');
+    if (savedUserStr) {
+      try {
+        const parsed = JSON.parse(savedUserStr);
+        if (parsed?.role === 'admin') return 'admin';
+      } catch (e) {}
+    }
+
+    return 'home';
+  });
+
+  // Sync activeTab state with localStorage and browser URL query params
+  useEffect(() => {
+    if (activeTab) {
+      localStorage.setItem('dalelak_active_tab', activeTab);
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('tab') !== activeTab) {
+        url.searchParams.set('tab', activeTab);
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [activeTab]);
 
   // Modals & Selected items
   const [selectedInvoiceBiz, setSelectedInvoiceBiz] = useState<Business | null>(null);
@@ -246,10 +279,15 @@ export default function App() {
     return true;
   });
 
-  // Remove current user from local storage
+  // Remove current user from local storage & clear active tab
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('dalelak_logged_user');
+    localStorage.removeItem('dalelak_active_tab');
+    setActiveTab('home');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('tab');
+    window.history.replaceState({}, '', url.toString());
   };
 
   // -------------------------------------------------------------
@@ -297,8 +335,14 @@ export default function App() {
           onClose={() => {}}
           onLoginSuccess={(u) => {
             setUser(u);
-            if (u.role === 'admin') setActiveTab('admin');
-            else setActiveTab('home');
+            const savedTab = localStorage.getItem('dalelak_active_tab');
+            if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
+              setActiveTab(savedTab);
+            } else if (u.role === 'admin') {
+              setActiveTab('admin');
+            } else {
+              setActiveTab('home');
+            }
           }}
           representatives={representatives}
           onAddRepresentative={handleAddRepresentative}
@@ -646,7 +690,14 @@ export default function App() {
           onClose={() => setShowLoginModal(false)}
           onLoginSuccess={(u) => {
             setUser(u);
-            if (u.role === 'admin') setActiveTab('admin');
+            const savedTab = localStorage.getItem('dalelak_active_tab');
+            if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
+              setActiveTab(savedTab);
+            } else if (u.role === 'admin') {
+              setActiveTab('admin');
+            } else {
+              setActiveTab('home');
+            }
           }}
           representatives={representatives}
           onAddRepresentative={handleAddRepresentative}
