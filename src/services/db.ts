@@ -178,11 +178,11 @@ function mapDbToBusiness(item: any): Business {
     amountPaid: Number(item.amount_paid || item.amountPaid) || 350,
     paymentStatus: item.payment_status || item.paymentStatus || 'fully_paid',
     verificationStatus: item.verification_status || item.verificationStatus || 'verified',
-    googleMapsUrl: item.google_maps_url || item.googleMapsUrl,
+    googleMapsUrl: item.google_maps_url || item.googleMapsUrl || (item.lat && item.lng ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}` : ''),
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: item.notes,
-    createdDate: item.created_date || item.createdDate || new Date().toISOString().split('T')[0],
+    createdDate: item.created_at || item.created_date || item.createdDate || new Date().toISOString().split('T')[0],
   };
 }
 
@@ -209,7 +209,6 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   if (biz.nationalId !== undefined) dbRecord.national_id = biz.nationalId;
   if (biz.photos !== undefined) {
     dbRecord.photos = Array.isArray(biz.photos) ? biz.photos : [];
-    dbRecord.photos_urls = Array.isArray(biz.photos) ? biz.photos : [];
   }
   if (biz.repId !== undefined) dbRecord.rep_id = biz.repId;
   if (biz.repName !== undefined) dbRecord.rep_name = biz.repName;
@@ -219,11 +218,9 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   if (biz.amountPaid !== undefined) dbRecord.amount_paid = biz.amountPaid;
   if (biz.paymentStatus !== undefined) dbRecord.payment_status = biz.paymentStatus;
   if (biz.verificationStatus !== undefined) dbRecord.verification_status = biz.verificationStatus;
-  if (biz.googleMapsUrl !== undefined) dbRecord.google_maps_url = biz.googleMapsUrl;
   if (biz.invoiceNumber !== undefined) dbRecord.invoice_number = biz.invoiceNumber;
   if (biz.invoiceDate !== undefined) dbRecord.invoice_date = biz.invoiceDate;
   if (biz.notes !== undefined) dbRecord.notes = biz.notes;
-  if (biz.createdDate !== undefined) dbRecord.created_date = biz.createdDate;
 
   return dbRecord;
 }
