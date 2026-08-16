@@ -45,7 +45,16 @@ export default function App() {
     }
   }, [user]);
 
-  const [businesses, setBusinesses] = useState<Business[]>(INITIAL_BUSINESSES);
+  const [businesses, setBusinesses] = useState<Business[]>(() => {
+    const localBiz = localStorage.getItem('dalelak_businesses');
+    if (localBiz) {
+      try {
+        const parsed = JSON.parse(localBiz);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return [];
+  });
   const [representatives, setRepresentatives] = useState<Representative[]>(() => {
     const localReps = localStorage.getItem('dalelak_representatives');
     if (localReps) {
@@ -54,7 +63,7 @@ export default function App() {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
-    return MOCK_REPRESENTATIVES;
+    return [];
   });
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(DEFAULT_PAYMENT_CONFIG);
 
@@ -110,7 +119,6 @@ export default function App() {
   const [selectedInvoiceBiz, setSelectedInvoiceBiz] = useState<Business | null>(null);
   const [selectedPayBiz, setSelectedPayBiz] = useState<Business | null>(null);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
-  const [isMobileSimulated, setIsMobileSimulated] = useState<boolean>(false);
 
   // Home Feed Search & Filters
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');

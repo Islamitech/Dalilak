@@ -38,13 +38,13 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     } catch (e) {}
   }
 
-  return INITIAL_BUSINESSES;
+  return [];
 }
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
   try {
     const local = localStorage.getItem('dalelak_businesses');
-    let current: Business[] = local ? JSON.parse(local) : [...INITIAL_BUSINESSES];
+    let current: Business[] = local ? JSON.parse(local) : [];
     const idx = current.findIndex((b) => b.id === biz.id);
     if (idx >= 0) current[idx] = biz;
     else current = [biz, ...current];
@@ -113,7 +113,6 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
 // 2. REPRESENTATIVES OPERATIONS
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   const mergedMap = new Map<string, Representative>();
-  MOCK_REPRESENTATIVES.forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
 
   const localReps = localStorage.getItem('dalelak_representatives');
   if (localReps) {
@@ -144,7 +143,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 export async function saveRepToDb(rep: Representative): Promise<void> {
   try {
     const localReps = localStorage.getItem('dalelak_representatives');
-    let currentReps: Representative[] = localReps ? JSON.parse(localReps) : [...MOCK_REPRESENTATIVES];
+    let currentReps: Representative[] = localReps ? JSON.parse(localReps) : [];
     const index = currentReps.findIndex((r) => r.id === rep.id || r.email.toLowerCase() === rep.email.toLowerCase());
     if (index >= 0) {
       currentReps[index] = rep;

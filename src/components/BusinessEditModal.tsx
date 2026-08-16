@@ -93,17 +93,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     });
   };
 
-  const handleAddSamplePhotos = () => {
-    const samplePhotos = [
-      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&q=80&w=600',
-    ];
-    setFormData({
-      ...formData,
-      photos: samplePhotos,
-    });
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
@@ -525,15 +514,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
                 </label>
 
-                {(!formData.photos || formData.photos.length === 0) && (
-                  <button
-                    type="button"
-                    onClick={handleAddSamplePhotos}
-                    className="bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
-                  >
-                    ✨ إضافة صور توثيقية تجريبية
-                  </button>
-                )}
+
               </div>
             )}
           </div>
