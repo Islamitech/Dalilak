@@ -233,7 +233,10 @@ export const INITIAL_BUSINESSES: Business[] = [
     ownerPhone: '01001239876',
     ownerEmail: 'contact@abutarek.com',
     nationalId: '28001011200345',
-    photos: [],
+    photos: [
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=600'
+    ],
     repId: 'rep_1',
     repName: 'محمود عبد الفتاح',
     packageId: 'pkg_vip',
@@ -265,7 +268,9 @@ export const INITIAL_BUSINESSES: Business[] = [
     ownerName: 'محمد البرنس',
     ownerPhone: '01198765432',
     ownerEmail: 'elbaraka@gmail.com',
-    photos: [],
+    photos: [
+      'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&q=80&w=600'
+    ],
     repId: 'rep_2',
     repName: 'أحمد إبراهيم',
     packageId: 'pkg_pro',
@@ -296,7 +301,9 @@ export const INITIAL_BUSINESSES: Business[] = [
     lng: 29.9553,
     ownerName: 'د. عادل الشريف',
     ownerPhone: '01233445566',
-    photos: [],
+    photos: [
+      'https://images.unsplash.com/photo-1586015555751-63bb77f4322a?auto=format&fit=crop&q=80&w=600'
+    ],
     repId: 'rep_3',
     repName: 'سارة حسن',
     packageId: 'pkg_pro',
@@ -326,7 +333,9 @@ export const INITIAL_BUSINESSES: Business[] = [
     lng: 31.3785,
     ownerName: 'الأسطى منصور',
     ownerPhone: '01511223399',
-    photos: [],
+    photos: [
+      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=600'
+    ],
     repId: 'rep_4',
     repName: 'كريم السيد',
     packageId: 'pkg_basic',
@@ -338,7 +347,7 @@ export const INITIAL_BUSINESSES: Business[] = [
     googleMapsUrl: 'https://maps.google.com/?q=31.0409,31.3785',
     invoiceNumber: 'INV-2026-004',
     invoiceDate: '2026-08-09',
-    notes: 'تم الدفع كاش للمندوب وتوثيق الخريطة.',
+    notes: 'تم الدفع والتوثيق.',
     createdDate: '2026-08-09'
   }
 ];

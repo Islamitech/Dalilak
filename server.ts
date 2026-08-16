@@ -8,7 +8,8 @@ import { Business, Representative, PaymentGatewayConfig } from './src/types.js';
 const app = express();
 const DEFAULT_PORT = Number(process.env.PORT) || 3001;
 
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // In-memory persistent data store
 let businesses: Business[] = [...INITIAL_BUSINESSES];

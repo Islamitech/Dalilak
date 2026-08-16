@@ -40,6 +40,7 @@ import {
   Calendar,
   Hash,
   Compass,
+  UploadCloud,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -249,6 +250,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!editingBusiness) return;
     onUpdateBusiness(editingBusiness);
     setEditingBusiness(null);
+  };
+
+  const handleAdminPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && editingBusiness) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const currentPhotos = editingBusiness.photos || [];
+          setEditingBusiness({
+            ...editingBusiness,
+            photos: [...currentPhotos, event.target.result as string],
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhotoFromEditingBiz = (indexToRemove: number) => {
+    if (!editingBusiness) return;
+    const currentPhotos = editingBusiness.photos || [];
+    setEditingBusiness({
+      ...editingBusiness,
+      photos: currentPhotos.filter((_, idx) => idx !== indexToRemove),
+    });
+  };
+
+  const handleAddDefaultSamplePhotosToEditingBiz = () => {
+    if (!editingBusiness) return;
+    const samplePhotos = [
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&q=80&w=600',
+    ];
+    setEditingBusiness({
+      ...editingBusiness,
+      photos: samplePhotos,
+    });
   };
 
   const handleSavePaymentConfigModal = (e: React.FormEvent) => {
@@ -1447,32 +1487,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* SECTION 5: 📸 معرض الصور والمستندات المرفوعة أثناء التسجيل الميداني */}
             <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
-              <h4 className="font-black text-xs text-amber-500 flex items-center justify-between border-b border-[var(--border-color)] pb-2">
-                <span className="flex items-center gap-1.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2">
+                <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4 text-amber-500" />
                   <span>5. الصور والمستندات المرفوعة بواسطة المندوب ({editingBusiness.photos?.length || 0})</span>
-                </span>
-                <span className="text-[10px] text-[var(--text-muted)] font-bold">اضغط على أي صورة للمعاينة المباشرة</span>
-              </h4>
+                </h4>
+
+                <div className="flex items-center gap-2">
+                  <label className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1 shadow-sm transition-transform active:scale-95">
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    <span>📸 إرفاق صورة جديدة</span>
+                    <input type="file" accept="image/*" onChange={handleAdminPhotoUpload} className="hidden" />
+                  </label>
+
+                  {(!editingBusiness.photos || editingBusiness.photos.length === 0) && (
+                    <button
+                      type="button"
+                      onClick={handleAddDefaultSamplePhotosToEditingBiz}
+                      className="bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+                    >
+                      ✨ إضافة صور توثيقية تجريبية
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {editingBusiness.photos && editingBusiness.photos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {editingBusiness.photos.map((photo, idx) => (
                     <div
                       key={`photo_${idx}`}
-                      onClick={() => setSelectedPhotoPreview(photo)}
-                      className="relative group rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--input-bg)] aspect-video cursor-pointer hover:border-amber-500 transition-all shadow-sm"
+                      className="relative group rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--input-bg)] aspect-video shadow-sm"
                     >
-                      <img src={photo} alt={`معاينة الصورة ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-black transition-opacity">
-                        🔍 معاينة الصورة
+                      <img
+                        src={photo}
+                        alt={`معاينة الصورة ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                        onClick={() => setSelectedPhotoPreview(photo)}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhotoFromEditingBiz(idx)}
+                        className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow cursor-pointer transition-transform active:scale-95 z-10"
+                        title="حذف هذه الصورة"
+                      >
+                        ✕
+                      </button>
+
+                      <div
+                        onClick={() => setSelectedPhotoPreview(photo)}
+                        className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-black transition-opacity cursor-pointer pointer-events-none"
+                      >
+                        🔍 معاينة وتكبير
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-xs text-[var(--text-muted)] font-bold">
-                  لم يقم المندوب إبإرفاق صور واجهة النشاط لهذا التسجيل بعد.
+                <div className="text-center py-6 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-xs text-[var(--text-muted)] font-bold space-y-2">
+                  <p>لم يقم المندوب بإرفاق صور واجهة النشاط لهذا التسجيل بعد.</p>
+                  <p className="text-[11px] text-amber-500 font-normal">
+                    يمكنك استخدام زر <strong className="font-black">"📸 إرفاق صورة جديدة"</strong> أعلى جهة اليسار لإدخال الصورة وتوثيق النشاط الآن.
+                  </p>
                 </div>
               )}
             </div>
@@ -1547,7 +1624,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
                 >
                   <option value="rep">💼 مندوب مبيعات ميداني (تسجيل المحلات والتحصيل)</option>
-                  <option value="supervisor">👑 مشرف إدارة منطقة ومحافظة</option>
+                  <option value="supervisor">👑 مشرف إدارة منطقة ومافظة</option>
                   <option value="accountant">🧾 محاسب ومحصل فواتير إلكترونية</option>
                   <option value="admin">🛡️ مدير النظام (أدمن بجميع الصلاحيات)</option>
                 </select>

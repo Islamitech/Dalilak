@@ -66,6 +66,19 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
+  // Update local storage first for instant feedback
+  try {
+    const local = localStorage.getItem('dalelak_businesses');
+    if (local) {
+      const current: Business[] = JSON.parse(local);
+      const idx = current.findIndex((b) => b.id === id);
+      if (idx >= 0) {
+        current[idx] = { ...current[idx], ...updates };
+        localStorage.setItem('dalelak_businesses', JSON.stringify(current));
+      }
+    }
+  } catch (e) {}
+
   const dbUpdates = mapBusinessToDb(updates as Business);
   try {
     const { error } = await supabase.from('businesses').update(dbUpdates).eq('id', id);
@@ -81,6 +94,15 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
 }
 
 export async function deleteBusinessFromDb(id: string): Promise<void> {
+  try {
+    const local = localStorage.getItem('dalelak_businesses');
+    if (local) {
+      const current: Business[] = JSON.parse(local);
+      const updated = current.filter((b) => b.id !== id);
+      localStorage.setItem('dalelak_businesses', JSON.stringify(updated));
+    }
+  } catch (e) {}
+
   try {
     await supabase.from('businesses').delete().eq('id', id);
   } catch (err) {
@@ -120,7 +142,6 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
-  // Always update localStorage first for instantaneous UI update
   try {
     const localReps = localStorage.getItem('dalelak_representatives');
     let currentReps: Representative[] = localReps ? JSON.parse(localReps) : [...MOCK_REPRESENTATIVES];
@@ -161,16 +182,16 @@ function mapDbToBusiness(item: any): Business {
     street: item.street || '',
     landmark: item.landmark,
     phone: item.phone || '',
-    secondaryPhone: item.secondary_phone,
+    secondaryPhone: item.secondary_phone || item.secondaryPhone,
     workingHours: item.working_hours || item.workingHours || '9 ص - 10 م',
     description: item.description || '',
     lat: Number(item.lat) || 30.0444,
     lng: Number(item.lng) || 31.2357,
     ownerName: item.owner_name || item.ownerName || 'صاحب النشاط',
     ownerPhone: item.owner_phone || item.ownerPhone || '',
-    ownerEmail: item.owner_email,
-    nationalId: item.national_id,
-    photos: Array.isArray(item.photos) ? item.photos : [],
+    ownerEmail: item.owner_email || item.ownerEmail,
+    nationalId: item.national_id || item.nationalId,
+    photos: Array.isArray(item.photos) ? item.photos : Array.isArray(item.photos_urls) ? item.photos_urls : [],
     repId: item.rep_id || item.repId || 'rep_1',
     repName: item.rep_name || item.repName || 'محمود عبد الفتاح',
     packageId: item.package_id || item.packageId || 'pkg_basic',
@@ -179,8 +200,10 @@ function mapDbToBusiness(item: any): Business {
     amountPaid: Number(item.amount_paid || item.amountPaid) || 350,
     paymentStatus: item.payment_status || item.paymentStatus || 'fully_paid',
     verificationStatus: item.verification_status || item.verificationStatus || 'verified',
+    googleMapsUrl: item.google_maps_url || item.googleMapsUrl,
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
+    notes: item.notes,
     createdDate: item.created_date || item.createdDate || new Date().toISOString().split('T')[0],
   };
 }
@@ -194,20 +217,31 @@ function mapBusinessToDb(biz: Business): any {
     governorate: biz.governorate,
     city: biz.city,
     street: biz.street,
+    landmark: biz.landmark,
     phone: biz.phone,
-    owner_name: biz.ownerName,
-    owner_phone: biz.ownerPhone,
+    secondary_phone: biz.secondaryPhone,
+    working_hours: biz.workingHours,
+    description: biz.description,
     lat: biz.lat,
     lng: biz.lng,
+    owner_name: biz.ownerName,
+    owner_phone: biz.ownerPhone,
+    owner_email: biz.ownerEmail,
+    national_id: biz.nationalId,
+    photos: biz.photos || [],
+    rep_id: biz.repId,
+    rep_name: biz.repName,
+    package_id: biz.packageId,
     package_name: biz.packageName,
     package_price: biz.packagePrice,
     amount_paid: biz.amountPaid,
     payment_status: biz.paymentStatus,
     verification_status: biz.verificationStatus,
-    rep_id: biz.repId,
-    rep_name: biz.repName,
+    google_maps_url: biz.googleMapsUrl,
     invoice_number: biz.invoiceNumber,
     invoice_date: biz.invoiceDate,
+    notes: biz.notes,
+    created_date: biz.createdDate,
   };
 }
 
