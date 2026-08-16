@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Representative, User } from '../types';
 import { calculateTotalRepCommission } from '../utils/commission';
+import { compressImageFile } from '../utils/imageCompressor';
 import { DocViewerModal, DocType } from './DocViewerModal';
 import { UserAvatar } from './UserAvatar';
 import { Logo } from './Logo';
@@ -574,14 +575,14 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                           accept="image/*"
                           capture="user"
                           className="hidden"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setEditAvatar(reader.result as string);
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                const compressed = await compressImageFile(file, 400, 400, 0.8);
+                                setEditAvatar(compressed);
+                              } catch (err) {}
+                              e.target.value = '';
                             }
                           }}
                         />
@@ -595,14 +596,14 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setEditAvatar(reader.result as string);
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                const compressed = await compressImageFile(file, 400, 400, 0.8);
+                                setEditAvatar(compressed);
+                              } catch (err) {}
+                              e.target.value = '';
                             }
                           }}
                         />
