@@ -55,11 +55,6 @@ export const Logo: React.FC<LogoProps> = ({
           <span className={`font-black ${titleSize} tracking-tight text-[var(--text-primary)] font-['Cairo'] flex items-center gap-1 transition-colors duration-300 leading-none`}>
             <span>دليلك</span>
           </span>
-
-          <span className="hidden sm:inline-flex bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-500/30 items-center gap-1 shadow-sm shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>خرائط جوجل مصر</span>
-          </span>
         </div>
 
         {showSubtitle && (
