@@ -19,7 +19,8 @@ import {
   RotateCcw,
   Crosshair,
   Zap,
-  Sparkles
+  Sparkles,
+  Eye,
 } from 'lucide-react';
 
 declare global {
@@ -35,6 +36,7 @@ interface InteractiveMapProps {
   onLocationSelect?: (lat: number, lng: number, addressDetails?: LocationAddressData) => void;
   businesses?: Business[];
   onSelectBusiness?: (biz: Business) => void;
+  onEditBusiness?: (biz: Business) => void;
   heightClass?: string;
 }
 
@@ -74,6 +76,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   onLocationSelect,
   businesses = [],
   onSelectBusiness,
+  onEditBusiness,
   heightClass = 'h-[360px]',
 }) => {
   const [currentLat, setCurrentLat] = useState<number>(lat);
@@ -580,6 +583,17 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {onEditBusiness && (
+                    <button
+                      type="button"
+                      onClick={() => onEditBusiness(selectedBiz)}
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow cursor-pointer transition-transform active:scale-95"
+                      title="عرض وتعديل كافة البيانات في نافذة خاصة"
+                    >
+                      <Eye className="w-3 h-3 stroke-[2.5]" />
+                      <span>عرض وتعديل البيانات</span>
+                    </button>
+                  )}
                   <a
                     href={`https://wa.me/20${selectedBiz.ownerPhone.replace(/^0/, '')}`}
                     target="_blank"
@@ -592,7 +606,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                     href={`https://www.google.com/maps/search/?api=1&query=${selectedBiz.lat},${selectedBiz.lng}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="bg-amber-500 text-slate-950 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1"
+                    className="bg-[var(--input-bg)] text-white text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 border border-slate-700"
                   >
                     <span>جوجل ماب</span>
                     <ExternalLink className="w-3 h-3" />

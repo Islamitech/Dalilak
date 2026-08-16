@@ -550,6 +550,7 @@ export default function App() {
               mode="view"
               businesses={scopedBusinesses}
               onSelectBusiness={(b) => setSelectedInvoiceBiz(b)}
+              onEditBusiness={(b) => setEditingBusiness(b)}
               heightClass="h-[520px]"
             />
           </div>
