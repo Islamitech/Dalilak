@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DocViewerModal } from './DocViewerModal';
 import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus, PaymentStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
 import { calculateTotalRepCommission } from '../utils/commission';
@@ -19,6 +20,7 @@ import {
   ExternalLink,
   Phone,
   FileText,
+  FileSignature,
   CreditCard,
   UserCheck,
   UserX,
@@ -136,6 +138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // 4. Avatar Preview & Approval Modal State
   const [previewAvatarRep, setPreviewAvatarRep] = useState<Representative | null>(null);
+  const [selectedAdminDoc, setSelectedAdminDoc] = useState<{ type: 'field_letter' | 'digital_badge' | 'rep_contract', rep: Representative } | null>(null);
 
   // ---------------------------------------------------------------------------
   // CALCULATIONS & MERGED DATA
@@ -975,8 +978,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onCollectPayment={onCollectPayment}
         onDeleteBusiness={onDeleteBusiness}
       />
-
-      {/* --------------------------------------------------------------------- */}
       {/* MODAL 2: USER ACCOUNT CREATION / EDITING POP-UP */}
       {/* --------------------------------------------------------------------- */}
       {showAccountModal && (
@@ -1006,22 +1007,127 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   const target = editingRep?.targetMonth || 20;
 
                   return (
-                    <div className="sm:col-span-2 bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl grid grid-cols-3 gap-2 text-center text-xs font-bold my-1">
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">الأنشطة المسجلة:</span>
-                        <span className="text-emerald-700 dark:text-emerald-400 font-black">{bizCount} نشاط</span>
+                    <>
+                      <div className="sm:col-span-2 bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl grid grid-cols-3 gap-2 text-center text-xs font-bold my-1">
+                        <div>
+                          <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">الأنشطة المسجلة:</span>
+                          <span className="text-emerald-700 dark:text-emerald-400 font-black">{bizCount} نشاط</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">المستهدف الشهري:</span>
+                          <span className="text-[var(--text-primary)] font-black">{target} نشاط</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">نسبة الإنجاز:</span>
+                          <span className="text-amber-600 dark:text-amber-400 font-black">
+                            {target > 0 ? ((bizCount / target) * 100).toFixed(1) : 0}%
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">المستهدف الشهري:</span>
-                        <span className="text-[var(--text-primary)] font-black">{target} نشاط</span>
+
+                      {/* Avatar Image Review */}
+                      <div className="sm:col-span-2 bg-[var(--bg-surface)] border border-[var(--border-color)] p-3 rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            {editingRep?.avatar ? (
+                              <img
+                                src={editingRep.avatar}
+                                alt="الصورة الشخصية"
+                                className="w-14 h-14 rounded-xl object-cover border border-[var(--border-color)] shadow-sm cursor-pointer hover:opacity-90 animate-pulse-subtle"
+                                onClick={() => setPreviewAvatarRep(editingRep)}
+                                title="اضغط للتكبير والمراجعة الكاملة"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 rounded-xl bg-[var(--input-bg)] border border-[var(--border-color)] flex items-center justify-center text-[10px] text-[var(--text-muted)] font-bold text-center">
+                                لا توجد صورة
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-extrabold text-[var(--text-primary)] text-xs">الصورة الشخصية للملف</p>
+                              <p className="text-[10px] text-[var(--text-muted)] font-medium">مراجعة واعتماد صورة المندوب الرسمية</p>
+                            </div>
+                          </div>
+
+                          {editingRep?.avatar && (
+                            <div className="flex flex-col items-end gap-1.5">
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded border shadow-sm ${
+                                editingRep.avatarStatus === 'approved'
+                                  ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40'
+                                  : editingRep.avatarStatus === 'rejected'
+                                  ? 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/40'
+                                  : 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40'
+                              }`}>
+                                {editingRep.avatarStatus === 'approved'
+                                  ? 'مقبولة وموثقة'
+                                  : editingRep.avatarStatus === 'rejected'
+                                  ? 'مرفوضة'
+                                  : 'قيد المراجعة'}
+                              </span>
+                              
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (editingRep) onUpdateRepresentative({ ...editingRep, avatarStatus: 'approved' });
+                                  }}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[9px] px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                >
+                                  ✓ قبول
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (editingRep) onUpdateRepresentative({ ...editingRep, avatarStatus: 'rejected' });
+                                  }}
+                                  className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[9px] px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                >
+                                  ✕ رفض
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">نسبة الإنجاز:</span>
-                        <span className="text-amber-600 dark:text-amber-400 font-black">
-                          {target > 0 ? ((bizCount / target) * 100).toFixed(1) : 0}%
-                        </span>
+
+                      {/* Documents Preview Section */}
+                      <div className="sm:col-span-2 bg-[var(--bg-surface)] border border-[var(--border-color)] p-3 rounded-2xl space-y-2">
+                        <label className="block text-[var(--text-primary)] font-extrabold text-[11px] mb-1">
+                          📂 الأوراق الثبوتية والمستندات الرسمية للمندوب
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editingRep) setSelectedAdminDoc({ type: 'field_letter', rep: editingRep });
+                            }}
+                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[10px] py-2 rounded-xl border border-amber-500/20 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                          >
+                            <FileText className="w-4 h-4 text-amber-500 animate-bounce-subtle" />
+                            <span>تصريح الميدان</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editingRep) setSelectedAdminDoc({ type: 'digital_badge', rep: editingRep });
+                            }}
+                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[10px] py-2 rounded-xl border border-amber-500/20 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                          >
+                            <UserCheck className="w-4 h-4 text-amber-500" />
+                            <span>بطاقة المندوب</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editingRep) setSelectedAdminDoc({ type: 'rep_contract', rep: editingRep });
+                            }}
+                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[10px] py-2 rounded-xl border border-amber-500/20 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                          >
+                            <FileSignature className="w-4 h-4 text-amber-500" />
+                            <span>عقد الانضمام</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   );
                 })()
               )}
@@ -1330,6 +1436,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* MODAL 5: DOCUMENT VIEWER MODAL */}
+      {selectedAdminDoc && (
+        <DocViewerModal
+          docType={selectedAdminDoc.type}
+          rep={selectedAdminDoc.rep}
+          onClose={() => setSelectedAdminDoc(null)}
+        />
       )}
     </div>
   );
