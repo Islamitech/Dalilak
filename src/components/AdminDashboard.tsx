@@ -1,9 +1,46 @@
 import React, { useState } from 'react';
-import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus } from '../types';
-import { EGYPT_GOVERNORATES } from '../data/mockData';
-import { calculateTotalRepCommission, getPackageCommission } from '../utils/commission';
+import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus, PaymentStatus } from '../types';
+import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
+import { calculateTotalRepCommission } from '../utils/commission';
 import { UserAvatar } from './UserAvatar';
-import { ShieldCheck, TrendingUp, DollarSign, CheckCircle2, Clock, AlertCircle, Users, Plus, Edit, Trash2, Search, ExternalLink, Phone, FileText, Settings, CreditCard, UserCheck, UserX, Briefcase, Crown, Calculator, Key, Mail, Lock, Camera, Activity, Store } from 'lucide-react';
+import {
+  ShieldCheck,
+  TrendingUp,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  ExternalLink,
+  Phone,
+  FileText,
+  CreditCard,
+  UserCheck,
+  UserX,
+  Briefcase,
+  Crown,
+  Calculator,
+  Camera,
+  Activity,
+  Store,
+  MapPin,
+  Settings,
+  X,
+  Save,
+  Check,
+  Building2,
+  Eye,
+  Image as ImageIcon,
+  User,
+  Info,
+  Calendar,
+  Hash,
+  Compass,
+} from 'lucide-react';
 
 interface AdminDashboardProps {
   businesses: Business[];
@@ -30,21 +67,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdatePaymentConfig,
   onShowInvoice,
 }) => {
+  // Main Tab State
   const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways'>('overview');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Search & Filter States
+  const [bizSearchQuery, setBizSearchQuery] = useState<string>('');
   const [governorateFilter, setGovernorateFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [verificationFilter, setVerificationFilter] = useState<string>('all');
 
-  // Accounts Management Tab State
   const [accountSearchQuery, setAccountSearchQuery] = useState<string>('');
   const [accountRoleFilter, setAccountRoleFilter] = useState<string>('all');
   const [accountStatusFilter, setAccountStatusFilter] = useState<string>('all');
 
-  // Add / Edit Account Modal State
+  // ---------------------------------------------------------------------------
+  // MODAL STATES (Dedicated Pop-ups for Editing & Management)
+  // ---------------------------------------------------------------------------
+  // 1. Business Editing & Full Details Modal State
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
+
+  // 2. Account Editing / Adding Modal State
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
   const [editingAccId, setEditingAccId] = useState<string | null>(null);
-
   const [modalRole, setModalRole] = useState<UserRole>('rep');
   const [modalName, setModalName] = useState<string>('');
   const [modalEmail, setModalEmail] = useState<string>('');
@@ -55,26 +100,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [modalStatus, setModalStatus] = useState<'active' | 'suspended'>('active');
   const [modalPassword, setModalPassword] = useState<string>('Aa123456');
 
-  // Edit Business Google Maps URL State
-  const [editingBizId, setEditingBizId] = useState<string | null>(null);
-  const [editMapsUrl, setEditMapsUrl] = useState<string>('');
-
-  // Preview Representative Avatar Modal State
-  const [previewAvatarRep, setPreviewAvatarRep] = useState<Representative | null>(null);
-
-  // Payment Config Form
+  // 3. Payment Gateway Config Editing Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [fawryCode, setFawryCode] = useState<string>(paymentConfig.fawryMerchantCode);
   const [vodaNumber, setVodaNumber] = useState<string>(paymentConfig.vodafoneCashNumber);
   const [instaHandle, setInstaHandle] = useState<string>(paymentConfig.instaPayHandle);
 
-  // Financial Stats Calculation
+  // 4. Avatar Preview & Approval Modal State
+  const [previewAvatarRep, setPreviewAvatarRep] = useState<Representative | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // CALCULATIONS & MERGED DATA
+  // ---------------------------------------------------------------------------
   const totalRevenue = businesses.reduce((acc, b) => acc + b.amountPaid, 0);
   const totalDebt = businesses.reduce((acc, b) => acc + Math.max(0, b.packagePrice - b.amountPaid), 0);
   const verifiedCount = businesses.filter((b) => b.verificationStatus === 'verified').length;
   const inProgressCount = businesses.filter((b) => b.verificationStatus === 'in_progress').length;
 
+  // Filtered Businesses
   const filteredBusinesses = businesses.filter((b) => {
-    if (searchQuery && !b.nameAr.includes(searchQuery) && !b.ownerName.includes(searchQuery) && !b.ownerPhone.includes(searchQuery)) {
+    if (bizSearchQuery && !b.nameAr.includes(bizSearchQuery) && !b.ownerName.includes(bizSearchQuery) && !b.ownerPhone.includes(bizSearchQuery)) {
       return false;
     }
     if (governorateFilter !== 'all' && !b.governorate.includes(governorateFilter)) {
@@ -89,7 +134,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return true;
   });
 
-  // Combine all representatives from props & localStorage to ensure freshly registered accounts are ALWAYS visible to Admin
+  // Merged Representatives Map (Props + LocalStorage)
   const allAdminRepsMap = new Map<string, Representative>();
   representatives.forEach((r) => allAdminRepsMap.set(r.email.trim().toLowerCase(), r));
   const localRepsStr = localStorage.getItem('dalelak_representatives');
@@ -105,7 +150,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }
   const mergedAdminReps = Array.from(allAdminRepsMap.values());
 
-  // Filter Accounts
+  // Filtered Accounts
   const filteredAccounts = mergedAdminReps.filter((acc) => {
     if (accountSearchQuery && !acc.name.includes(accountSearchQuery) && !acc.email.includes(accountSearchQuery) && !acc.phone.includes(accountSearchQuery)) {
       return false;
@@ -121,6 +166,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return true;
   });
 
+  // ---------------------------------------------------------------------------
+  // HANDLERS FOR MODALS & ACTIONS
+  // ---------------------------------------------------------------------------
   const openAddAccountModal = () => {
     setEditingAccId(null);
     setModalRole('rep');
@@ -196,13 +244,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setShowAccountModal(false);
   };
 
-  const handleToggleAccountStatus = (acc: Representative) => {
-    if (!onUpdateRepresentative) return;
-    const newStatus = (acc.status || 'active') === 'active' ? 'suspended' : 'active';
-    onUpdateRepresentative({ ...acc, status: newStatus });
+  const handleSaveBusinessEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBusiness) return;
+    onUpdateBusiness(editingBusiness);
+    setEditingBusiness(null);
   };
 
-  const handleSavePaymentConfig = (e: React.FormEvent) => {
+  const handleSavePaymentConfigModal = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdatePaymentConfig({
       fawryMerchantCode: fawryCode,
@@ -210,17 +259,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       instaPayHandle: instaHandle,
       cardGatewayActive: true,
     });
-    alert('تم حفظ إعدادات بوابات الدفع الإلكترونية في مصر بنجاح.');
+    setShowPaymentModal(false);
   };
 
-  const handleSaveMapsUrl = (biz: Business) => {
-    onUpdateBusiness({
-      ...biz,
-      googleMapsUrl: editMapsUrl,
-      verificationStatus: 'verified',
-      notes: 'تم توثيق النشاط وبثه على خريطة جوجل بنجاح بواسطة مدير النظام.',
-    });
-    setEditingBizId(null);
+  const handleToggleAccountStatus = (acc: Representative) => {
+    if (!onUpdateRepresentative) return;
+    const newStatus = (acc.status || 'active') === 'active' ? 'suspended' : 'active';
+    onUpdateRepresentative({ ...acc, status: newStatus });
   };
 
   // Render role badge helper
@@ -258,8 +303,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20">
-      {/* Admin Title Header */}
+    <div className="max-w-6xl mx-auto space-y-6 pb-20 font-['Cairo',sans-serif]">
+      {/* --------------------------------------------------------------------- */}
+      {/* HEADER & TOP NAVIGATION TABS */}
+      {/* --------------------------------------------------------------------- */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-3xl shadow-md flex flex-wrap items-center justify-between gap-4 transition-colors duration-300">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-amber-500/20">
@@ -273,44 +320,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </span>
             </div>
             <p className="text-xs text-[var(--text-secondary)] font-bold mt-0.5">
-              إدارة كاملة للمناديب والحسابات، الأنشطة المسجلة، الفواتير، وبوابات الدفع في جمهورية مصر العربية
+              عرض كامل لبيانات الأنشطة الميدانية المرفوعة بواسطة المناديب ومعاينتها وتعديلها
             </p>
           </div>
         </div>
 
-        {/* Tab Buttons */}
+        {/* Tab Selector Navigation */}
         <div className="flex items-center gap-1.5 bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--border-color)] text-xs shadow-inner">
           <button
             onClick={() => setActiveAdminTab('overview')}
-            className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer ${
-              activeAdminTab === 'overview' ? 'bg-amber-500 text-slate-950 shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            className={`px-3.5 py-2 rounded-xl font-black transition-all cursor-pointer ${
+              activeAdminTab === 'overview'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
             الإحصائيات
           </button>
           <button
             onClick={() => setActiveAdminTab('businesses')}
-            className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer ${
-              activeAdminTab === 'businesses' ? 'bg-amber-500 text-slate-950 shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            className={`px-3.5 py-2 rounded-xl font-black transition-all cursor-pointer ${
+              activeAdminTab === 'businesses'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
             الأنشطة ({businesses.length})
           </button>
           <button
             onClick={() => setActiveAdminTab('reps')}
-            className={`px-3 py-1.5 rounded-xl font-black transition-all relative cursor-pointer ${
-              activeAdminTab === 'reps' ? 'bg-amber-500 text-slate-950 shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            className={`px-3.5 py-2 rounded-xl font-black transition-all relative cursor-pointer ${
+              activeAdminTab === 'reps'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
             <span>الحسابات ({mergedAdminReps.length})</span>
             {mergedAdminReps.some((r) => r.status === 'suspended') && (
-              <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1 left-1 animate-ping" />
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-1 left-1 animate-ping" />
             )}
           </button>
           <button
             onClick={() => setActiveAdminTab('gateways')}
-            className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer ${
-              activeAdminTab === 'gateways' ? 'bg-amber-500 text-slate-950 shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            className={`px-3.5 py-2 rounded-xl font-black transition-all cursor-pointer ${
+              activeAdminTab === 'gateways'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
             بوابات الدفع
@@ -318,7 +373,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* Pending New Accounts Alert Banner */}
+      {/* Pending Account Alert Banner if any suspended accounts exist */}
       {mergedAdminReps.some((r) => r.status === 'suspended') && (
         <div className="bg-amber-500/15 border-2 border-amber-500/50 p-4 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
@@ -327,10 +382,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <div>
               <h3 className="font-black text-sm text-amber-300">
-                🔔 يوجد ({mergedAdminReps.filter((r) => r.status === 'suspended').length}) حسابات جديدة معلقة في انتظار تفعيلك!
+                🔔 يوجد ({mergedAdminReps.filter((r) => r.status === 'suspended').length}) حسابات معلقة بانتظار تفعيلك!
               </h3>
               <p className="text-[11px] text-slate-300">
-                قام مستخدمون أو مناديب جدد بطلب إنشاء حساب، وتتطلب تفعيلهم لتخطي شاشة المعالجة والدخول للمنظومة.
+                يمكنك الموافقة المباشرة بنقرة واحدة أو الدخول لتبويب الحسابات للمعاينة والتعديل.
               </p>
             </div>
           </div>
@@ -349,102 +404,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
               <span>تفعيل جميع الحسابات المعلقة الآن</span>
             </button>
-
             <button
               onClick={() => {
                 setActiveAdminTab('reps');
                 setAccountStatusFilter('suspended');
               }}
-              className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold px-3 py-2 rounded-xl text-xs border border-amber-500/30"
+              className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold px-3 py-2 rounded-xl text-xs border border-amber-500/30 cursor-pointer"
             >
-              عرض وتصفية الحسابات
+              عرض الحسابات
             </button>
           </div>
         </div>
       )}
 
-      {/* KPI Cards */}
+      {/* --------------------------------------------------------------------- */}
+      {/* SUMMARY KPI CARDS */}
+      {/* --------------------------------------------------------------------- */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Total Revenue */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
           <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
             <span>المبالغ المحصلة</span>
             <DollarSign className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-xl font-black text-emerald-500">{totalRevenue.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span></p>
+          <p className="text-xl font-black text-emerald-500">
+            {totalRevenue.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span>
+          </p>
           <p className="text-[10px] text-[var(--text-muted)]">إجمالي المدفوعات المستلمة</p>
         </div>
 
-        {/* Total Debt */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
           <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
             <span>المبالغ المتبقية</span>
             <AlertCircle className="w-4 h-4 text-rose-500" />
           </div>
-          <p className="text-xl font-black text-rose-500">{totalDebt.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span></p>
+          <p className="text-xl font-black text-rose-500">
+            {totalDebt.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span>
+          </p>
           <p className="text-[10px] text-[var(--text-muted)]">ديون تحصيل معلقة</p>
         </div>
 
-        {/* Verified Businesses */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
           <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
-            <span>أنشطة تم توثيقها</span>
+            <span>أنشطة موثقة</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-xl font-black text-[var(--text-primary)]">{verifiedCount} <span className="text-xs text-[var(--text-muted)]">نشاط</span></p>
-          <p className="text-[10px] text-emerald-500 font-bold">ظهرت رسمياً على الخريطة</p>
+          <p className="text-xl font-black text-[var(--text-primary)]">
+            {verifiedCount} <span className="text-xs text-[var(--text-muted)]">نشاط</span>
+          </p>
+          <p className="text-[10px] text-emerald-500 font-bold">مبثوثة رسمياً على الخريطة</p>
         </div>
 
-        {/* In Progress */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
           <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
             <span>جاري التوثيق</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
-          <p className="text-xl font-black text-amber-500">{inProgressCount} <span className="text-xs text-[var(--text-secondary)]">نشاط</span></p>
+          <p className="text-xl font-black text-amber-500">
+            {inProgressCount} <span className="text-xs text-[var(--text-secondary)]">نشاط</span>
+          </p>
           <p className="text-[10px] text-[var(--text-muted)]">قيد المراجعة الفنية</p>
         </div>
       </div>
 
-      {/* TAB 1: OVERVIEW */}
+      {/* --------------------------------------------------------------------- */}
+      {/* TAB 1: OVERVIEW & AUDIT */}
+      {/* --------------------------------------------------------------------- */}
       {activeAdminTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Recent Businesses Progress */}
+          {/* Recent Businesses Summary */}
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-3xl space-y-3 shadow-md transition-colors duration-300">
-            <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-amber-500" />
-              <span>أحدث الأنشطة المسجلة في الميدان</span>
+            <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-amber-500" />
+                <span>أحدث الأنشطة المسجلة</span>
+              </span>
+              <button
+                onClick={() => setActiveAdminTab('businesses')}
+                className="text-[11px] text-amber-600 dark:text-amber-400 font-extrabold hover:underline"
+              >
+                عرض الكل ({businesses.length})
+              </button>
             </h3>
 
             <div className="space-y-2">
               {businesses.slice(0, 5).map((biz) => (
-                <div key={biz.id} className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex items-center justify-between text-xs transition-colors duration-300 shadow-sm hover:border-amber-500/30">
+                <div
+                  key={biz.id}
+                  className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex items-center justify-between text-xs transition-colors duration-300 shadow-sm hover:border-amber-500/30"
+                >
                   <div>
                     <h4 className="font-bold text-[var(--text-primary)]">{biz.nameAr}</h4>
-                    <p className="text-[10px] text-[var(--text-muted)]">{biz.governorate} • المندوب: {biz.repName}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      {biz.governorate} • المندوب: {biz.repName}
+                    </p>
                   </div>
 
-                  <div className="text-left">
-                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
-                      biz.verificationStatus === 'verified'
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                    }`}>
-                      {biz.verificationStatus === 'verified' ? 'مفعل ومكتمل' : 'جاري المعالجة'}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
+                        biz.verificationStatus === 'verified'
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                      }`}
+                    >
+                      {biz.verificationStatus === 'verified' ? 'مفعل' : 'قيد المراجعة'}
                     </span>
-                    <p className="text-xs font-bold text-amber-500 mt-0.5">{biz.packagePrice} ج.م</p>
+                    <button
+                      onClick={() => setEditingBusiness(biz)}
+                      className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-2.5 py-1 rounded-xl border border-amber-500/30 transition-colors shadow-sm cursor-pointer flex items-center gap-1 text-[11px]"
+                      title="عرض البيانات بالكامل والتعديل"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>عرض وتعديل</span>
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Representatives Leaderboard */}
+          {/* Accounts Summary */}
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-3xl space-y-3 shadow-md transition-colors duration-300">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <Users className="w-4 h-4 text-amber-500" />
-                <span>أداء الحسابات في المحافظات</span>
+                <span>ملخص أدوات وحسابات النظام</span>
               </h3>
               <button
                 onClick={openAddAccountModal}
@@ -456,12 +540,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="space-y-2">
-              {representatives.map((rep) => {
+              {mergedAdminReps.slice(0, 5).map((rep) => {
                 const repBiz = businesses.filter((b) => b.repId === rep.id);
-                const repRevenue = repBiz.reduce((sum, b) => sum + b.amountPaid, 0);
 
                 return (
-                  <div key={rep.id} className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex items-center justify-between text-xs transition-colors duration-300 shadow-sm hover:border-amber-500/30">
+                  <div
+                    key={rep.id}
+                    className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex items-center justify-between text-xs transition-colors duration-300 shadow-sm hover:border-amber-500/30"
+                  >
                     <div className="flex items-center gap-2.5">
                       <UserAvatar
                         avatar={rep.avatar}
@@ -475,36 +561,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <h4 className="font-bold text-[var(--text-primary)]">{rep.name}</h4>
                           {renderRoleBadge(rep.role)}
                         </div>
-                        <p className="text-[10px] text-[var(--text-muted)]">{rep.governorate} • {rep.phone}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">
+                          {rep.governorate} • {rep.phone}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="text-left">
-                      <p className="font-bold text-amber-500">{repBiz.length} / {rep.targetMonth} نشاط</p>
-                      <p className="text-[10px] text-emerald-500 font-bold">{repRevenue.toLocaleString()} ج.م تحصيل</p>
-                    </div>
+                    <button
+                      onClick={() => openEditAccountModal(rep)}
+                      className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-2.5 py-1 rounded-xl text-[11px] border border-amber-500/30 cursor-pointer shadow-sm"
+                    >
+                      تعديل
+                    </button>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Real-time System Audit & Interaction Log for Admin */}
+          {/* Audit log for recent interactions */}
           <div className="md:col-span-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-3xl space-y-3 shadow-md transition-colors duration-300">
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
               <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <Activity className="w-5 h-5 text-amber-500" />
-                <span>سجل التوثيقات والأنشطة التفاعلية الحية لجميع الحسابات والأنشطة</span>
+                <span>سجل التوثيقات والأنشطة الميدانية الحية</span>
               </h3>
-              <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                <span>مزامنة مباشرة بقاعدة البيانات Cloud DB</span>
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                مزامنة حية Cloud DB
               </span>
             </div>
 
             <div className="space-y-2 text-xs">
               {businesses.map((biz, idx) => (
-                <div key={`audit_${biz.id}_${idx}`} className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-wrap items-center justify-between gap-2 shadow-sm hover:border-amber-500/30 transition-all">
+                <div
+                  key={`audit_${biz.id}_${idx}`}
+                  className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-wrap items-center justify-between gap-2 shadow-sm hover:border-amber-500/30 transition-all"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold shrink-0">
                       <Store className="w-4 h-4" />
@@ -517,41 +609,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       </div>
                       <p className="text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
-                        تم بواسطة المندوب: <strong className="text-[var(--text-primary)]">{biz.repName}</strong> • {biz.governorate} ({biz.city})
+                        المندوب: <strong className="text-[var(--text-primary)]">{biz.repName}</strong> • {biz.governorate} ({biz.city})
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 text-left">
-                    <div>
-                      <span className="font-mono text-emerald-700 dark:text-emerald-400 font-black block">{biz.amountPaid} ج.م</span>
-                      <span className="text-[10px] text-[var(--text-muted)] font-bold">{biz.createdDate || 'اليوم'}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingBusiness(biz)}
+                      className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-1.5 rounded-xl text-[11px] cursor-pointer transition-colors shadow-sm flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>عرض البيانات الكاملة والتعديل</span>
+                    </button>
                     <button
                       onClick={() => onShowInvoice(biz)}
-                      className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-1.5 rounded-xl text-[11px] cursor-pointer transition-colors shadow-sm"
+                      className="bg-[var(--input-bg)] text-[var(--text-primary)] hover:text-amber-500 font-bold px-3 py-1.5 rounded-xl text-[11px] border border-[var(--border-color)] cursor-pointer"
                     >
-                      معاينة الفاتورة
+                      الفاتورة
                     </button>
                   </div>
-                </div>
-              ))}
-
-              {representatives.filter((r) => r.avatarStatus === 'pending_approval').map((rep) => (
-                <div key={`audit_rep_${rep.id}`} className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 flex items-center justify-between text-xs text-amber-900 dark:text-amber-300 font-bold">
-                  <div className="flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>رفع صورة شخصية جديدة بواسطة المندوب: <strong>{rep.name}</strong> (تنتظر موافقتك واعتمادك)</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setActiveAdminTab('reps');
-                      setAccountStatusFilter('all');
-                    }}
-                    className="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-[10px] cursor-pointer shadow"
-                  >
-                    معاينة وقبول الصورة
-                  </button>
                 </div>
               ))}
             </div>
@@ -559,18 +636,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 2: BUSINESSES LIST & CONTROLS */}
+      {/* --------------------------------------------------------------------- */}
+      {/* TAB 2: BUSINESSES TABLE & FULL DATA ACCESS */}
+      {/* --------------------------------------------------------------------- */}
       {activeAdminTab === 'businesses' && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
-          {/* Filters */}
+          {/* Simple Filters Header */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
             <div className="relative">
               <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3" />
               <input
                 type="text"
                 placeholder="بحث باسم النشاط أو العميل أو الهاتف..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={bizSearchQuery}
+                onChange={(e) => setBizSearchQuery(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
               />
             </div>
@@ -582,7 +661,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               <option value="all">كل المحافظات</option>
               {EGYPT_GOVERNORATES.map((g) => (
-                <option key={g} value={g}>{g}</option>
+                <option key={g} value={g}>
+                  {g}
+                </option>
               ))}
             </select>
 
@@ -609,20 +690,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </select>
           </div>
 
-          {/* Mobile Swipe Hint & Scrollable Table */}
-          <p className="sm:hidden text-[10px] text-amber-600 dark:text-amber-400 font-extrabold mb-1 flex items-center gap-1">
-            <span>👈 اسحب الجدول أفقياً لرؤية جميع بيانات المعاينة والتأكيد</span>
-          </p>
+          {/* Table displaying essential data with full pop-up view */}
           <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
             <table className="w-full text-xs text-right border-collapse min-w-[650px]">
               <thead>
                 <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold">
-                  <th className="p-3 font-bold">النشاط التجاري</th>
-                  <th className="p-3 font-bold">صاحب النشاط / الهاتف</th>
-                  <th className="p-3 font-bold">المحافظة / المندوب</th>
-                  <th className="p-3 font-bold">الباقة / الدفع</th>
-                  <th className="p-3 font-bold">حالة خرائط جوجل</th>
-                  <th className="p-3 font-bold text-center">التحكم والعمليات</th>
+                  <th className="p-3">النشاط التجاري والفئة</th>
+                  <th className="p-3">صاحب النشاط / الهواتف</th>
+                  <th className="p-3">العنوان / المندوب</th>
+                  <th className="p-3">الباقة / المدفوع</th>
+                  <th className="p-3">حالة التوثيق</th>
+                  <th className="p-3 text-center">التحكم وعرض كافة البيانات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-color)]">
@@ -630,35 +708,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
 
                   return (
-                    <tr key={biz.id} className="hover:bg-amber-500/5 border-b border-[var(--border-color)] transition-colors">
+                    <tr key={biz.id} className="hover:bg-amber-500/5 transition-colors">
                       <td className="p-3">
                         <p className="font-extrabold text-[var(--text-primary)] text-sm">{biz.nameAr}</p>
-                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-extrabold">{biz.category}</p>
+                        {biz.nameEn && <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.nameEn}</p>}
+                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold mt-0.5">{biz.category}</p>
                       </td>
 
                       <td className="p-3">
-                        <p className="font-extrabold text-[var(--text-primary)]">{biz.ownerName}</p>
-                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-mono font-bold dir-ltr text-right">{biz.ownerPhone}</p>
+                        <p className="font-bold text-[var(--text-primary)]">{biz.ownerName}</p>
+                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-mono font-bold">{biz.ownerPhone}</p>
+                        {biz.nationalId && <p className="text-[10px] text-[var(--text-muted)] font-mono">الرقم القومي: {biz.nationalId}</p>}
                       </td>
 
                       <td className="p-3">
-                        <p className="font-extrabold text-[var(--text-primary)]">{biz.governorate}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)] font-bold">{biz.repName}</p>
+                        <p className="font-bold text-[var(--text-primary)]">{biz.governorate} ({biz.city})</p>
+                        <p className="text-[11px] text-[var(--text-secondary)] font-bold">المندوب: {biz.repName}</p>
                       </td>
 
                       <td className="p-3">
                         <p className="font-bold text-[var(--text-primary)]">{biz.packageName}</p>
                         <p className="text-[11px]">
-                          <span className="text-emerald-700 dark:text-emerald-400 font-black">{biz.amountPaid} ج.م</span>
-                          {remaining > 0 && <span className="text-rose-700 dark:text-rose-400 font-bold"> (متبقي {remaining})</span>}
+                          <span className="text-emerald-600 dark:text-emerald-400 font-black">{biz.amountPaid} ج.م</span>
+                          {remaining > 0 && <span className="text-rose-600 dark:text-rose-400 font-bold"> (متبقي {remaining})</span>}
                         </p>
                       </td>
 
                       <td className="p-3">
-                        <select
-                          value={biz.verificationStatus}
-                          onChange={(e) => onUpdateBusiness({ ...biz, verificationStatus: e.target.value as VerificationStatus })}
-                          className={`text-[11px] font-black px-2.5 py-1.5 rounded-xl border focus:outline-none shadow-sm ${
+                        <span
+                          className={`text-[10px] font-black px-2.5 py-1 rounded-full border shadow-sm ${
                             biz.verificationStatus === 'verified'
                               ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40'
                               : biz.verificationStatus === 'in_progress'
@@ -666,33 +744,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               : 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/40'
                           }`}
                         >
-                          <option value="in_progress">جاري التوثيق والمراجعة</option>
-                          <option value="verified">تم التوثيق والظهور على الخريطة</option>
-                          <option value="pending">معلق</option>
-                          <option value="rejected">مرفوض</option>
-                        </select>
+                          {biz.verificationStatus === 'verified'
+                            ? 'مفعل ومبثوث'
+                            : biz.verificationStatus === 'in_progress'
+                            ? 'جاري التوثيق'
+                            : 'معلق'}
+                        </span>
                       </td>
 
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          {/* Full Data Display & Edit Pop-up */}
                           <button
-                            onClick={() => onShowInvoice(biz)}
-                            title="عرض وتصدير الفاتورة"
-                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-extrabold text-[11px] px-2.5 py-1 rounded-xl border border-amber-500/30 transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
+                            onClick={() => setEditingBusiness(biz)}
+                            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl transition-all shadow cursor-pointer flex items-center gap-1"
+                            title="عرض كل البيانات التي أدخلها المندوب والتعديل عليها"
                           >
-                            <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                            <span>الفاتورة</span>
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>عرض وتعديل البيانات</span>
                           </button>
 
                           <button
-                            onClick={() => {
-                              setEditingBizId(biz.id);
-                              setEditMapsUrl(biz.googleMapsUrl || `https://maps.google.com/?q=${biz.lat},${biz.lng}`);
-                            }}
-                            title="ربط رابط خريطة جوجل"
-                            className="bg-[var(--input-bg)] text-[var(--text-primary)] hover:bg-amber-500/10 text-[11px] font-bold px-2.5 py-1 rounded-xl border border-[var(--border-color)] flex items-center gap-1 shadow-sm cursor-pointer"
+                            onClick={() => onShowInvoice(biz)}
+                            title="الفاتورة الإلكترونية"
+                            className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-[11px] p-1.5 rounded-xl border border-[var(--border-color)] cursor-pointer"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <FileText className="w-4 h-4 text-amber-500" />
                           </button>
 
                           <button
@@ -702,6 +779,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               }
                             }}
                             className="text-rose-600 hover:text-rose-700 p-1.5 rounded-xl hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="حذف النشاط"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -716,81 +794,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 3: USER ACCOUNTS MANAGER (إدارة وتخصيص الحسابات) */}
+      {/* --------------------------------------------------------------------- */}
+      {/* TAB 3: ACCOUNTS MANAGEMENT */}
+      {/* --------------------------------------------------------------------- */}
       {activeAdminTab === 'reps' && (
         <div className="space-y-4">
-          {/* Explanation Banner & Roles Legend */}
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
               <div>
                 <h3 className="font-black text-base text-[var(--text-primary)] flex items-center gap-2">
                   <Users className="w-5 h-5 text-amber-500" />
-                  <span>إدارة وتخصيص حسابات المستخدمين والصلاحيات</span>
+                  <span>إدارة حسابات المستخدمين والصلاحيات</span>
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                  التحكم الشامل بحسابات أدمن النظام، المناديب الميدانيين، المشرفين، والمحاسبين
+                  عرض موجز وبسيط لجميع المناديب، المشرفين، المحاسبين، والأدمن مع التعديل في نوافذ خاصة
                 </p>
               </div>
 
               <button
                 onClick={openAddAccountModal}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-2xl flex items-center justify-center gap-1.5 shadow-lg shrink-0 transition-transform active:scale-95"
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-2xl flex items-center justify-center gap-1.5 shadow-lg shrink-0 transition-transform active:scale-95 cursor-pointer"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>إضافة حساب جديد</span>
               </button>
             </div>
 
-            {/* Role Explanation Legend Badges */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-400 font-black">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>مدير النظام (Admin)</span>
-                </div>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
-                  تحكم شامل بالبيانات، الإعدادات المالية، واعتمادات التوثيق.
-                </p>
-              </div>
-
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-black">
-                  <Briefcase className="w-4 h-4" />
-                  <span>مندوب ميداني (Rep)</span>
-                </div>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
-                  تسجيل المحلات بالميدان، رفع GPS، وإصدار الفواتير المباشرة.
-                </p>
-              </div>
-
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-black">
-                  <Crown className="w-4 h-4" />
-                  <span>مشرف منطقة (Supervisor)</span>
-                </div>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
-                  متابعة المناديب بالمحافظة وتحديد الأهداف والتارجد.
-                </p>
-              </div>
-
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-black">
-                  <Calculator className="w-4 h-4" />
-                  <span>محاسب (Accountant)</span>
-                </div>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
-                  إدارة تحصيلات فوري، فودافون كاش، وانستاباي المالية.
-                </p>
-              </div>
-            </div>
-
-            {/* Filter & Search Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-2">
+            {/* Filter Controls */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-1">
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute right-3 top-3" />
                 <input
                   type="text"
-                  placeholder="بحث باسم الحساب، البريد، أو رقم الهاتف..."
+                  placeholder="بحث باسم الحساب، البريد، أو الهاتف..."
                   value={accountSearchQuery}
                   onChange={(e) => setAccountSearchQuery(e.target.value)}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs rounded-xl pr-8 pl-3 py-2 focus:outline-none focus:border-amber-500 shadow-sm"
@@ -802,9 +838,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onChange={(e) => setAccountRoleFilter(e.target.value)}
                 className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 shadow-sm"
               >
-                <option value="all">كل أنواع وتصنيفات الحسابات</option>
-                <option value="rep">المناديب الميدانيين فقط</option>
-                <option value="supervisor">مشرفي المناطق والمحافظات</option>
+                <option value="all">كل الصلاحيات ({mergedAdminReps.length})</option>
+                <option value="rep">المناديب الميدانيين</option>
+                <option value="supervisor">مشرفي المناطق</option>
                 <option value="accountant">المحاسبين والمحصلين</option>
                 <option value="admin">مديري النظام والأدمن</option>
               </select>
@@ -814,9 +850,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onChange={(e) => setAccountStatusFilter(e.target.value)}
                 className="bg-[var(--input-bg)] border border-amber-500/40 text-amber-700 dark:text-amber-300 font-extrabold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 shadow-sm"
               >
-                <option value="all">كل حالات الحسابات ({mergedAdminReps.length})</option>
-                <option value="suspended">🔔 معلقة بانتظار التفعيل ({mergedAdminReps.filter((r) => r.status === 'suspended').length})</option>
-                <option value="active">✅ الحسابات النشطة والمفعلة ({mergedAdminReps.filter((r) => r.status === 'active' || !r.status).length})</option>
+                <option value="all">كل حالات الحسابات</option>
+                <option value="suspended">
+                  🔔 المعلقة ({mergedAdminReps.filter((r) => r.status === 'suspended').length})
+                </option>
+                <option value="active">✅ النشطة والمفعلة</option>
               </select>
             </div>
           </div>
@@ -840,27 +878,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <UserAvatar
-                            avatar={acc.avatar}
-                            name={acc.name}
-                            role={acc.role}
-                            avatarStatus={acc.avatarStatus}
-                            size="md"
-                            isAdminPreview={true}
-                          />
-                          <span
-                            className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[var(--bg-card)] z-10 ${
-                              isSuspended ? 'bg-amber-500' : 'bg-emerald-500'
-                            }`}
-                            title={isSuspended ? 'حساب معلق' : 'حساب نشط'}
-                          />
-                        </div>
-
+                        <UserAvatar
+                          avatar={acc.avatar}
+                          name={acc.name}
+                          role={acc.role}
+                          avatarStatus={acc.avatarStatus}
+                          size="md"
+                          isAdminPreview={true}
+                        />
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="font-bold text-sm text-[var(--text-primary)]">{acc.name}</h4>
-                          </div>
+                          <h4 className="font-bold text-sm text-[var(--text-primary)]">{acc.name}</h4>
                           <p className="text-xs text-amber-500 font-bold">{acc.governorate}</p>
                         </div>
                       </div>
@@ -874,101 +901,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-400 border-emerald-500/40'
                           }`}
                         >
-                          {isSuspended ? 'معلق (بانتظار تفعيل المدير)' : 'نشط ومصرح'}
+                          {isSuspended ? 'معلق' : 'نشط'}
                         </span>
                       </div>
                     </div>
 
-                    {/* Details Info */}
                     <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">البريد الإلكتروني:</span>
-                        <span className="text-[var(--text-primary)] font-mono text-[11px] font-bold truncate block">{acc.email}</span>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">رقم الهاتف:</span>
-                        <span className="text-amber-800 dark:text-amber-400 font-mono font-black text-[11px] dir-ltr text-right block">{acc.phone}</span>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">الهدف والعمولة:</span>
-                        <span className="text-emerald-800 dark:text-emerald-400 font-black text-[11px]">
-                          {bizCount} / {acc.targetMonth} (عمولة {calculateTotalRepCommission(businesses.filter((b) => b.repId === acc.id || b.repName === acc.name))} ج.م)
+                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">البريد:</span>
+                        <span className="text-[var(--text-primary)] font-mono text-[11px] font-bold truncate block">
+                          {acc.email}
                         </span>
                       </div>
-
                       <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">كلمة المرور:</span>
-                        <span className="text-[var(--text-primary)] font-mono text-[11px] font-black block">{acc.password || '••••••••'}</span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">الهاتف:</span>
+                        <span className="text-amber-800 dark:text-amber-400 font-mono font-black text-[11px] block">
+                          {acc.phone}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">الإنجاز:</span>
+                        <span className="text-emerald-800 dark:text-emerald-400 font-black text-[11px]">
+                          {bizCount} / {acc.targetMonth} نشاط
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">العمولة:</span>
+                        <span className="text-emerald-800 dark:text-emerald-400 font-black text-[11px]">
+                          {acc.commissionRate || 42.86}%
+                        </span>
                       </div>
                     </div>
                   </div>
-
-                  {/* Photo Review & Approval Bar */}
-                  {acc.avatarStatus === 'pending_approval' && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-2xl flex flex-wrap items-center justify-between text-xs gap-2">
-                      <span className="text-amber-900 dark:text-amber-300 font-black flex items-center gap-1">
-                        <Camera className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                        <span>صورة جديدة بانتظار موافقتك:</span>
-                      </span>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setPreviewAvatarRep(acc)}
-                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-2.5 py-1 rounded-xl text-[11px] shadow cursor-pointer flex items-center gap-1"
-                        >
-                          <span>🔍 معاينة الصورة</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (onUpdateRepresentative) {
-                              onUpdateRepresentative({ ...acc, avatarStatus: 'approved' });
-                            }
-                          }}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-2.5 py-1 rounded-xl text-[11px] shadow cursor-pointer"
-                        >
-                          ✔ قبول
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (onUpdateRepresentative) {
-                              onUpdateRepresentative({ ...acc, avatarStatus: 'rejected' });
-                            }
-                          }}
-                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded-xl text-[11px] shadow cursor-pointer"
-                        >
-                          ✕ رفض
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {acc.avatarStatus === 'rejected' && (
-                    <div className="bg-rose-500/10 border border-rose-500/30 p-2 rounded-2xl flex items-center justify-between text-xs text-rose-900 dark:text-rose-300 font-bold">
-                      <span>❌ تم رفض الصورة الشخصية (تم تنبيه المندوب)</span>
-                      {acc.avatar && (
-                        <button
-                          onClick={() => setPreviewAvatarRep(acc)}
-                          className="bg-rose-500/20 hover:bg-rose-500 text-rose-900 dark:text-rose-300 hover:text-white font-black px-2 py-0.5 rounded-lg text-[10px] cursor-pointer"
-                        >
-                          معاينة الصورة
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {acc.avatarStatus === 'approved' && acc.avatar && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-2xl flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-400 font-bold">
-                      <span>✅ الصورة الشخصية معتمدة ومقبولة رسمياً</span>
-                      <button
-                        onClick={() => setPreviewAvatarRep(acc)}
-                        className="bg-emerald-500/20 hover:bg-emerald-500 text-emerald-900 dark:text-emerald-300 hover:text-white font-black px-2 py-0.5 rounded-lg text-[10px] cursor-pointer"
-                      >
-                        معاينة الصورة
-                      </button>
-                    </div>
-                  )}
 
                   {/* Actions Toolbar */}
                   <div className="pt-2 border-t border-[var(--border-color)] flex items-center justify-between gap-2 text-xs">
@@ -989,8 +953,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }`}
                     >
                       {isSuspended ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
-                      <span>{isSuspended ? 'تفعيل الحساب' : 'تعطيل الحساب'}</span>
+                      <span>{isSuspended ? 'تفعيل' : 'تعطيل'}</span>
                     </button>
+
+                    {acc.avatar && (
+                      <button
+                        onClick={() => setPreviewAvatarRep(acc)}
+                        className="bg-[var(--input-bg)] text-amber-500 hover:bg-amber-500/10 p-2 rounded-xl border border-[var(--border-color)] cursor-pointer"
+                        title="معاينة الصورة الشخصية"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
+                    )}
 
                     {onDeleteRepresentative && (
                       <button
@@ -1013,59 +987,541 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 4: EGYPTIAN PAYMENT GATEWAYS CONFIG */}
+      {/* --------------------------------------------------------------------- */}
+      {/* TAB 4: EGYPTIAN PAYMENT GATEWAYS */}
+      {/* --------------------------------------------------------------------- */}
       {activeAdminTab === 'gateways' && (
-        <form onSubmit={handleSavePaymentConfig} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 space-y-4 shadow-md max-w-xl mx-auto transition-colors duration-300">
-          <div className="flex items-center gap-2 text-amber-500 pb-2 border-b border-[var(--border-color)]">
-            <CreditCard className="w-5 h-5" />
-            <h3 className="font-black text-base text-[var(--text-primary)]">إعدادات وسائل وبوابات الدفع الإلكترونية في مصر</h3>
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 space-y-5 shadow-md max-w-xl mx-auto transition-colors duration-300">
+          <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+            <div className="flex items-center gap-2 text-amber-500">
+              <CreditCard className="w-5 h-5" />
+              <h3 className="font-black text-base text-[var(--text-primary)]">إعدادات وسائل وبوابات الدفع الإلكتروني</h3>
+            </div>
+
+            <button
+              onClick={() => {
+                setFawryCode(paymentConfig.fawryMerchantCode);
+                setVodaNumber(paymentConfig.vodafoneCashNumber);
+                setInstaHandle(paymentConfig.instaPayHandle);
+                setShowPaymentModal(true);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-2xl shadow flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+            >
+              <Settings className="w-4 h-4" />
+              <span>تعديل الإعدادات</span>
+            </button>
           </div>
 
-          <div className="space-y-3.5 text-xs">
-            <div>
-              <label className="block text-[var(--text-primary)] font-extrabold mb-1">كود التاجر في خدمة فوري (Fawry Merchant Code):</label>
-              <input
-                type="text"
-                value={fawryCode}
-                onChange={(e) => setFawryCode(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm shadow-sm"
-              />
+          {/* Simple Display Cards */}
+          <div className="space-y-3 text-xs">
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between">
+              <div>
+                <span className="text-[var(--text-muted)] font-extrabold block">كود التاجر بخدمة فوري (Fawry Merchant):</span>
+                <span className="text-amber-500 font-mono font-black text-base mt-0.5 block">{paymentConfig.fawryMerchantCode}</span>
+              </div>
+              <span className="bg-amber-500/15 text-amber-600 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-500/30">
+                فوري Fawry
+              </span>
             </div>
 
-            <div>
-              <label className="block text-[var(--text-primary)] font-extrabold mb-1">رقم تحويل محفظة فودافون كاش (Vodafone Cash):</label>
-              <input
-                type="text"
-                value={vodaNumber}
-                onChange={(e) => setVodaNumber(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm dir-ltr text-right shadow-sm"
-              />
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between">
+              <div>
+                <span className="text-[var(--text-muted)] font-extrabold block">رقم تحويل محفظة فودافون كاش:</span>
+                <span className="text-amber-500 font-mono font-black text-base mt-0.5 block">{paymentConfig.vodafoneCashNumber}</span>
+              </div>
+              <span className="bg-red-500/15 text-red-600 text-[10px] font-black px-2.5 py-1 rounded-full border border-red-500/30">
+                Vodafone Cash
+              </span>
             </div>
 
-            <div>
-              <label className="block text-[var(--text-primary)] font-extrabold mb-1">معرف انستاباي للتحويل المباشر (InstaPay Handle):</label>
-              <input
-                type="text"
-                value={instaHandle}
-                onChange={(e) => setInstaHandle(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm dir-ltr text-right shadow-sm"
-              />
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between">
+              <div>
+                <span className="text-[var(--text-muted)] font-extrabold block">معرف انستاباي للتحويل المباشر (InstaPay):</span>
+                <span className="text-emerald-500 font-mono font-black text-base mt-0.5 block">{paymentConfig.instaPayHandle}</span>
+              </div>
+              <span className="bg-emerald-500/15 text-emerald-600 text-[10px] font-black px-2.5 py-1 rounded-full border border-emerald-500/30">
+                InstaPay Egypt
+              </span>
             </div>
           </div>
-
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs py-3.5 rounded-xl shadow-lg transition-transform active:scale-95 cursor-pointer mt-2"
-          >
-            حفظ إعدادات بوابات الدفع
-          </button>
-        </form>
+        </div>
       )}
 
-      {/* MODAL: ADD & EDIT USER ACCOUNT */}
+      {/* --------------------------------------------------------------------- */}
+      {/* MODAL 1: COMPLETE BUSINESS DATA VIEW & EDITING POP-UP */}
+      {/* Displays ALL fields gathered by field rep during business registration */}
+      {/* --------------------------------------------------------------------- */}
+      {editingBusiness && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <form
+            onSubmit={handleSaveBusinessEdit}
+            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-5 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 max-h-[90vh] overflow-y-auto"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3 sticky top-0 bg-[var(--bg-card)] z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold shrink-0">
+                  <Store className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
+                      كافة بيانات النشاط: {editingBusiness.nameAr}
+                    </h3>
+                    <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-mono font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                      {editingBusiness.invoiceNumber}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
+                    عُرضت جميع البيانات المسجلة بواسطة المندوب ({editingBusiness.repName}) من الميدان
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingBusiness(null)}
+                className="bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-9 h-9 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* SECTION 1: 🏢 بيانات النشاط الأساسية والتصنيف */}
+            <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
+              <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5 border-b border-[var(--border-color)] pb-2">
+                <Store className="w-4 h-4 text-amber-500" />
+                <span>1. البيانات الأساسية للنشاط التجاري والتصنيف</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-extrabold mb-1">اسم النشاط بالعربي *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingBusiness.nameAr}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, nameAr: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">اسم النشاط بالإنجليزي</label>
+                  <input
+                    type="text"
+                    placeholder="English Commercial Name"
+                    value={editingBusiness.nameEn || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, nameEn: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">فئة وتصنيف النشاط *</label>
+                  <select
+                    value={editingBusiness.category}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, category: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  >
+                    {BUSINESS_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">مواعيد وساعات العمل</label>
+                  <input
+                    type="text"
+                    value={editingBusiness.workingHours || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, workingHours: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-extrabold mb-1">الوصف التفصيلي للنشاط والخدمات</label>
+                  <textarea
+                    rows={2}
+                    value={editingBusiness.description || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, description: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm leading-relaxed"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 2: 👤 بيانات صاحب النشاط ورقم الهاتف والهوية */}
+            <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
+              <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5 border-b border-[var(--border-color)] pb-2">
+                <User className="w-4 h-4 text-amber-500" />
+                <span>2. بيانات صاحب النشاط والهوية الشخصية</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-extrabold mb-1">اسم صاحب النشاط *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingBusiness.ownerName}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, ownerName: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">رقم هاتف صاحب النشاط (الواتساب) *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={editingBusiness.ownerPhone}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, ownerPhone: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">هاتف المحل الرئيسي</label>
+                  <input
+                    type="tel"
+                    value={editingBusiness.phone || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, phone: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">هاتف إضافي / أرضي</label>
+                  <input
+                    type="tel"
+                    value={editingBusiness.secondaryPhone || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, secondaryPhone: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">الرقم القومي لمالك المحل</label>
+                  <input
+                    type="text"
+                    maxLength={14}
+                    placeholder="2990101010xxxx"
+                    value={editingBusiness.nationalId || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, nationalId: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">البريد الإلكتروني لمالك المحل</label>
+                  <input
+                    type="email"
+                    placeholder="owner@example.com"
+                    value={editingBusiness.ownerEmail || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, ownerEmail: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: 📍 العنوان التفصيلي وإحداثيات الخريطة */}
+            <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
+              <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5 border-b border-[var(--border-color)] pb-2">
+                <MapPin className="w-4 h-4 text-amber-500" />
+                <span>3. العنوان الميداني التفصيلي وإحداثيات الموقع (GPS)</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-extrabold mb-1">المحافظة *</label>
+                  <select
+                    value={editingBusiness.governorate}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, governorate: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  >
+                    {EGYPT_GOVERNORATES.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">المدينة / الحي *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingBusiness.city}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, city: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">الشارع الرئيسي *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingBusiness.street}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, street: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div className="sm:col-span-3">
+                  <label className="block font-extrabold mb-1">علامة مميزة (أقرب مبنى أو ميدان)</label>
+                  <input
+                    type="text"
+                    value={editingBusiness.landmark || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, landmark: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">خط العرض (Latitude)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editingBusiness.lat}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, lat: Number(e.target.value) })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">خط الطول (Longitude)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editingBusiness.lng}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, lng: Number(e.target.value) })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">رابط خريطة جوجل (Google Maps Link)</label>
+                  <input
+                    type="url"
+                    value={editingBusiness.googleMapsUrl || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, googleMapsUrl: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 4: 💰 بيانات الباقة والماليات وحالة الدفع */}
+            <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
+              <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5 border-b border-[var(--border-color)] pb-2">
+                <DollarSign className="w-4 h-4 text-amber-500" />
+                <span>4. الباقة والمدفوعات وحالة الدفع والتوثيق</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-extrabold mb-1">الباقة المختارة *</label>
+                  <select
+                    value={editingBusiness.packageId}
+                    onChange={(e) => {
+                      const selectedPkg = PACKAGES.find((p) => p.id === e.target.value);
+                      if (selectedPkg) {
+                        setEditingBusiness({
+                          ...editingBusiness,
+                          packageId: selectedPkg.id,
+                          packageName: selectedPkg.title,
+                          packagePrice: selectedPkg.price,
+                        });
+                      }
+                    }}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  >
+                    {PACKAGES.map((pkg) => (
+                      <option key={pkg.id} value={pkg.id}>
+                        {pkg.title} ({pkg.price} ج.م)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">المبلغ المحصل فعلياً (ج.م) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={editingBusiness.amountPaid}
+                    onChange={(e) => {
+                      const paid = Number(e.target.value);
+                      const status: PaymentStatus =
+                        paid >= editingBusiness.packagePrice
+                          ? 'fully_paid'
+                          : paid > 0
+                          ? 'partially_paid'
+                          : 'unpaid';
+                      setEditingBusiness({
+                        ...editingBusiness,
+                        amountPaid: paid,
+                        paymentStatus: status,
+                      });
+                    }}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-800 dark:text-emerald-400 font-mono font-black rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">حالة الدفع</label>
+                  <select
+                    value={editingBusiness.paymentStatus}
+                    onChange={(e) =>
+                      setEditingBusiness({
+                        ...editingBusiness,
+                        paymentStatus: e.target.value as PaymentStatus,
+                      })
+                    }
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  >
+                    <option value="fully_paid">مدفوع بالكامل</option>
+                    <option value="partially_paid">مدفوع جزء منه</option>
+                    <option value="unpaid">لم يدفع</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">حالة التوثيق والبث على الخريطة *</label>
+                  <select
+                    value={editingBusiness.verificationStatus}
+                    onChange={(e) =>
+                      setEditingBusiness({
+                        ...editingBusiness,
+                        verificationStatus: e.target.value as VerificationStatus,
+                      })
+                    }
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                  >
+                    <option value="verified">🟢 تم التوثيق والظهور رسمياً</option>
+                    <option value="in_progress">🟡 جاري التوثيق والمراجعة</option>
+                    <option value="pending">🟠 معلق</option>
+                    <option value="rejected">🔴 مرفوض</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">المندوب الميداني المسجل</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${editingBusiness.repName} (ID: ${editingBusiness.repId})`}
+                    className="w-full bg-[var(--input-bg)] opacity-70 border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold mb-1">تاريخ التسجيل الميداني</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={editingBusiness.createdDate || editingBusiness.invoiceDate}
+                    className="w-full bg-[var(--input-bg)] opacity-70 border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="block font-extrabold mb-1">ملاحظات المندوب الميداني</label>
+                <textarea
+                  rows={2}
+                  placeholder="لا توجد ملاحظات إضافية"
+                  value={editingBusiness.notes || ''}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, notes: e.target.value })}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                />
+              </div>
+            </div>
+
+            {/* SECTION 5: 📸 معرض الصور والمستندات المرفوعة أثناء التسجيل الميداني */}
+            <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
+              <h4 className="font-black text-xs text-amber-500 flex items-center justify-between border-b border-[var(--border-color)] pb-2">
+                <span className="flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-amber-500" />
+                  <span>5. الصور والمستندات المرفوعة بواسطة المندوب ({editingBusiness.photos?.length || 0})</span>
+                </span>
+                <span className="text-[10px] text-[var(--text-muted)] font-bold">اضغط على أي صورة للمعاينة المباشرة</span>
+              </h4>
+
+              {editingBusiness.photos && editingBusiness.photos.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {editingBusiness.photos.map((photo, idx) => (
+                    <div
+                      key={`photo_${idx}`}
+                      onClick={() => setSelectedPhotoPreview(photo)}
+                      className="relative group rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--input-bg)] aspect-video cursor-pointer hover:border-amber-500 transition-all shadow-sm"
+                    >
+                      <img src={photo} alt={`معاينة الصورة ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-black transition-opacity">
+                        🔍 معاينة الصورة
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-xs text-[var(--text-muted)] font-bold">
+                  لم يقم المندوب إبإرفاق صور واجهة النشاط لهذا التسجيل بعد.
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-color)] sticky bottom-0 bg-[var(--bg-card)] z-10">
+              <button
+                type="button"
+                onClick={() => setEditingBusiness(null)}
+                className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold px-4 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer"
+              >
+                إغلاق
+              </button>
+              <button
+                type="submit"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-6 py-2.5 rounded-xl shadow-lg cursor-pointer flex items-center gap-1.5"
+              >
+                <Save className="w-4 h-4" />
+                <span>حفظ التعديلات في النظام</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* PHOTO PREVIEW LIGHTBOX OVERLAY */}
+      {selectedPhotoPreview && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative max-w-3xl w-full max-h-[85vh] flex flex-col items-center">
+            <button
+              onClick={() => setSelectedPhotoPreview(null)}
+              className="absolute -top-10 left-0 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-black cursor-pointer"
+            >
+              ✕
+            </button>
+            <img src={selectedPhotoPreview} alt="معاينة الصورة المرفوعة" className="max-w-full max-h-[80vh] object-contain rounded-2xl border-2 border-amber-500 shadow-2xl" />
+          </div>
+        </div>
+      )}
+
+      {/* --------------------------------------------------------------------- */}
+      {/* MODAL 2: USER ACCOUNT CREATION / EDITING POP-UP */}
+      {/* --------------------------------------------------------------------- */}
       {showAccountModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <form onSubmit={handleSaveAccountModal} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300">
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <form
+            onSubmit={handleSaveAccountModal}
+            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300"
+          >
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
               <h3 className="font-black text-base text-[var(--text-primary)]">
                 {editingAccId ? 'تعديل بيانات وصلاحيات الحساب' : 'إضافة حساب مستخدم جديد'}
@@ -1082,7 +1538,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Account Role */}
               <div className="sm:col-span-2">
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">نوع وتصنيف الحساب والصلاحية *</label>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">
+                  نوع وتصنيف الحساب والصلاحية *
+                </label>
                 <select
                   value={modalRole}
                   onChange={(e) => setModalRole(e.target.value as UserRole)}
@@ -1097,11 +1555,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Full Name */}
               <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">الاسم الثلاثي / الاسم التجاري *</label>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">الاسم الثلاثي *</label>
                 <input
                   type="text"
                   required
-                  placeholder="مثال: مصطفى علي محمود"
+                  placeholder="مصطفى علي محمود"
                   value={modalName}
                   onChange={(e) => setModalName(e.target.value)}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
@@ -1110,7 +1568,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Phone */}
               <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">رقم الهاتف للتواصل والواتساب *</label>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">رقم الهاتف للتواصل *</label>
                 <input
                   type="tel"
                   required
@@ -1147,14 +1605,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Governorate */}
               <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">المحافظة / النطاق الجغرافي *</label>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">المحافظة *</label>
                 <select
                   value={modalGov}
                   onChange={(e) => setModalGov(e.target.value)}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
                 >
                   {EGYPT_GOVERNORATES.map((g) => (
-                    <option key={g} value={g}>{g}</option>
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -1174,7 +1634,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Monthly Target */}
               <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">الهدف الشهري (عدد الأنشطة)</label>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">الهدف الشهري (عدد المحلات)</label>
                 <input
                   type="number"
                   value={modalTarget}
@@ -1214,48 +1674,94 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* MODAL: EDIT GOOGLE MAPS LINK */}
-      {editingBizId && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 space-y-4 text-xs">
-            <h3 className="font-bold text-sm text-white border-b border-slate-800 pb-2">إدخال رابط توثيق الخريطة الرسمي</h3>
-
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">رابط النشاط المفعل على خرائط جوجل:</label>
-              <input
-                type="url"
-                value={editMapsUrl}
-                onChange={(e) => setEditMapsUrl(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-3 focus:outline-none focus:border-amber-500 dir-ltr"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
+      {/* --------------------------------------------------------------------- */}
+      {/* MODAL 3: PAYMENT GATEWAYS POP-UP */}
+      {/* --------------------------------------------------------------------- */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <form
+            onSubmit={handleSavePaymentConfigModal}
+            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-2 text-amber-500">
+                <CreditCard className="w-5 h-5" />
+                <h3 className="font-black text-base text-[var(--text-primary)]">تعديل بيانات بوابات الدفع الإلكتروني</h3>
+              </div>
               <button
                 type="button"
-                onClick={() => setEditingBizId(null)}
-                className="bg-slate-800 text-slate-300 font-bold px-4 py-2 rounded-xl"
+                onClick={() => setShowPaymentModal(false)}
+                className="bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">
+                  كود التاجر بخدمة فوري (Fawry Code):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={fawryCode}
+                  onChange={(e) => setFawryCode(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">
+                  رقم تحويل محفظة فودافون كاش:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={vodaNumber}
+                  onChange={(e) => setVodaNumber(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm dir-ltr text-right shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[var(--text-primary)] font-extrabold mb-1">
+                  معرف انستاباي للتحويل المباشر (InstaPay):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={instaHandle}
+                  onChange={(e) => setInstaHandle(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm dir-ltr text-right shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold px-4 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer"
               >
                 إلغاء
               </button>
               <button
-                type="button"
-                onClick={() => {
-                  const target = businesses.find((b) => b.id === editingBizId);
-                  if (target) handleSaveMapsUrl(target);
-                }}
-                className="bg-emerald-500 text-slate-950 font-black px-4 py-2 rounded-xl"
+                type="submit"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-5 py-2.5 rounded-xl shadow-lg cursor-pointer"
               >
-                حفظ وتأكيد التوثيق
+                حفظ التغيرات
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
-      {/* MODAL: PHOTO PREVIEW & APPROVAL DIALOG FOR ADMIN */}
+      {/* --------------------------------------------------------------------- */}
+      {/* MODAL 4: AVATAR PHOTO PREVIEW DIALOG */}
+      {/* --------------------------------------------------------------------- */}
       {previewAvatarRep && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl relative text-[var(--text-primary)] my-auto transition-colors duration-300">
             <button
               onClick={() => setPreviewAvatarRep(null)}
@@ -1266,10 +1772,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <div className="text-center space-y-1 pt-1">
               <h3 className="font-black text-base text-[var(--text-primary)]">معاينة الصورة الشخصية المرفوعة</h3>
-              <p className="text-xs text-amber-500 font-bold">{previewAvatarRep.name} • {previewAvatarRep.governorate}</p>
+              <p className="text-xs text-amber-500 font-bold">
+                {previewAvatarRep.name} • {previewAvatarRep.governorate}
+              </p>
             </div>
 
-            {/* Photo Preview Container */}
             <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-col items-center justify-center space-y-3">
               {previewAvatarRep.avatar ? (
                 <img
@@ -1282,27 +1789,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {previewAvatarRep.name.charAt(0)}
                 </div>
               )}
-
-              <div className="text-center text-xs space-y-1">
-                <p className="text-[var(--text-secondary)] font-bold">البريد: {previewAvatarRep.email}</p>
-                <p className="text-[var(--text-muted)] font-mono">الهاتف: {previewAvatarRep.phone}</p>
-                <span className={`inline-block text-[10px] font-black px-3 py-1 rounded-full border ${
-                  previewAvatarRep.avatarStatus === 'approved'
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                    : previewAvatarRep.avatarStatus === 'rejected'
-                    ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
-                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                }`}>
-                  {previewAvatarRep.avatarStatus === 'approved'
-                    ? '✅ الصورة معتمدة ومقبولة رسمياً'
-                    : previewAvatarRep.avatarStatus === 'rejected'
-                    ? '❌ الصورة تم رفضها مسبقاً'
-                    : '🔒 الصورة بانتظار موافقتك واعتمادك'}
-                </span>
-              </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button
                 type="button"
@@ -1327,7 +1815,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }}
                 className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs py-3 rounded-xl shadow cursor-pointer transition-transform active:scale-95"
               >
-                ✕ رفض الصورة وإخفائها
+                ✕ رفض الصورة
               </button>
             </div>
           </div>
