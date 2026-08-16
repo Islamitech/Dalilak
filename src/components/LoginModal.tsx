@@ -517,7 +517,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Footer info */}
         <div className="relative z-10 pt-4 text-center text-xs text-[var(--text-muted)] font-bold">
-          منصة دليلك الرقمية © 2026 — توثيق الأنشطة التجارية على خرائط جوجل في مصر
+          منصة دليلك الرقمية © 2026 — التوثيق الرقمي الكامل للمشاريع التجارية - نتبع سياسات جوجل
         </div>
       </div>
     );
