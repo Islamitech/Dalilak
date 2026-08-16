@@ -264,14 +264,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {/* Logo Branding Header */}
       <div className="text-center space-y-2 pt-1">
         <Logo size="md" showSubtitle={false} className="justify-center" />
-        <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1">
-          <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
-            🗺️ توثيق خرائط جوجل مصر
-          </span>
-          <span className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-            ⚡ تفعيل ميداني 24/7
-          </span>
-        </div>
       </div>
 
 
