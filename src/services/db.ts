@@ -171,6 +171,25 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
 }
 
 // 3. MAPPING HELPERS
+function parsePhotosArray(item: any): string[] {
+  const raw = item.photos || item.photos_urls || item.photosUrls;
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === 'string' && parsed.trim().length > 0) return [parsed];
+    } catch (e) {
+      if (raw.includes(',')) return raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (raw.startsWith('data:') || raw.startsWith('http') || raw.startsWith('/')) {
+        return [raw];
+      }
+    }
+  }
+  return [];
+}
+
 function mapDbToBusiness(item: any): Business {
   return {
     id: item.id || `biz_${Date.now()}`,
@@ -191,7 +210,7 @@ function mapDbToBusiness(item: any): Business {
     ownerPhone: item.owner_phone || item.ownerPhone || '',
     ownerEmail: item.owner_email || item.ownerEmail,
     nationalId: item.national_id || item.nationalId,
-    photos: Array.isArray(item.photos) ? item.photos : Array.isArray(item.photos_urls) ? item.photos_urls : [],
+    photos: parsePhotosArray(item),
     repId: item.rep_id || item.repId || 'rep_1',
     repName: item.rep_name || item.repName || 'محمود عبد الفتاح',
     packageId: item.package_id || item.packageId || 'pkg_basic',
@@ -209,6 +228,7 @@ function mapDbToBusiness(item: any): Business {
 }
 
 function mapBusinessToDb(biz: Business): any {
+  const photosArr = Array.isArray(biz.photos) ? biz.photos : [];
   return {
     id: biz.id,
     name_ar: biz.nameAr,
@@ -228,7 +248,8 @@ function mapBusinessToDb(biz: Business): any {
     owner_phone: biz.ownerPhone,
     owner_email: biz.ownerEmail,
     national_id: biz.nationalId,
-    photos: biz.photos || [],
+    photos: photosArr,
+    photos_urls: photosArr,
     rep_id: biz.repId,
     rep_name: biz.repName,
     package_id: biz.packageId,
