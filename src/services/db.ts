@@ -176,14 +176,32 @@ function parsePhotosArray(item: any): string[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
   if (typeof raw === 'string' && raw.trim().length > 0) {
+    const trimmed = raw.trim();
+    
+    // 1. If it's a single base64 data URL
+    if (trimmed.startsWith('data:')) {
+      return [trimmed];
+    }
+    
+    // 2. Try JSON parsing
     try {
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) return parsed;
       if (typeof parsed === 'string' && parsed.trim().length > 0) return [parsed];
     } catch (e) {
-      if (raw.includes(',')) return raw.split(',').map((s: string) => s.trim()).filter(Boolean);
-      if (raw.startsWith('data:') || raw.startsWith('http') || raw.startsWith('/')) {
-        return [raw];
+      // 3. Check for PG array format: e.g. {"url1", "url2"}
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        const matches = [...trimmed.matchAll(/"([^"]+)"/g)].map(m => m[1]);
+        if (matches.length > 0) return matches;
+      }
+      
+      // 4. Split by comma if it's a list of standard URLs (not base64)
+      if (trimmed.includes(',')) {
+        return trimmed.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+      
+      if (trimmed.startsWith('http') || trimmed.startsWith('/')) {
+        return [trimmed];
       }
     }
   }
@@ -227,43 +245,46 @@ function mapDbToBusiness(item: any): Business {
   };
 }
 
-function mapBusinessToDb(biz: Business): any {
-  const photosArr = Array.isArray(biz.photos) ? biz.photos : [];
-  return {
-    id: biz.id,
-    name_ar: biz.nameAr,
-    name_en: biz.nameEn,
-    category: biz.category,
-    governorate: biz.governorate,
-    city: biz.city,
-    street: biz.street,
-    landmark: biz.landmark,
-    phone: biz.phone,
-    secondary_phone: biz.secondaryPhone,
-    working_hours: biz.workingHours,
-    description: biz.description,
-    lat: biz.lat,
-    lng: biz.lng,
-    owner_name: biz.ownerName,
-    owner_phone: biz.ownerPhone,
-    owner_email: biz.ownerEmail,
-    national_id: biz.nationalId,
-    photos: photosArr,
-    photos_urls: photosArr,
-    rep_id: biz.repId,
-    rep_name: biz.repName,
-    package_id: biz.packageId,
-    package_name: biz.packageName,
-    package_price: biz.packagePrice,
-    amount_paid: biz.amountPaid,
-    payment_status: biz.paymentStatus,
-    verification_status: biz.verificationStatus,
-    google_maps_url: biz.googleMapsUrl,
-    invoice_number: biz.invoiceNumber,
-    invoice_date: biz.invoiceDate,
-    notes: biz.notes,
-    created_date: biz.createdDate,
-  };
+function mapBusinessToDb(biz: Partial<Business>): any {
+  const dbRecord: any = {};
+  
+  if (biz.id !== undefined) dbRecord.id = biz.id;
+  if (biz.nameAr !== undefined) dbRecord.name_ar = biz.nameAr;
+  if (biz.nameEn !== undefined) dbRecord.name_en = biz.nameEn;
+  if (biz.category !== undefined) dbRecord.category = biz.category;
+  if (biz.governorate !== undefined) dbRecord.governorate = biz.governorate;
+  if (biz.city !== undefined) dbRecord.city = biz.city;
+  if (biz.street !== undefined) dbRecord.street = biz.street;
+  if (biz.landmark !== undefined) dbRecord.landmark = biz.landmark;
+  if (biz.phone !== undefined) dbRecord.phone = biz.phone;
+  if (biz.secondaryPhone !== undefined) dbRecord.secondary_phone = biz.secondaryPhone;
+  if (biz.workingHours !== undefined) dbRecord.working_hours = biz.workingHours;
+  if (biz.description !== undefined) dbRecord.description = biz.description;
+  if (biz.lat !== undefined) dbRecord.lat = biz.lat;
+  if (biz.lng !== undefined) dbRecord.lng = biz.lng;
+  if (biz.ownerName !== undefined) dbRecord.owner_name = biz.ownerName;
+  if (biz.ownerPhone !== undefined) dbRecord.owner_phone = biz.ownerPhone;
+  if (biz.ownerEmail !== undefined) dbRecord.owner_email = biz.ownerEmail;
+  if (biz.nationalId !== undefined) dbRecord.national_id = biz.nationalId;
+  if (biz.photos !== undefined) {
+    dbRecord.photos = Array.isArray(biz.photos) ? biz.photos : [];
+    dbRecord.photos_urls = Array.isArray(biz.photos) ? biz.photos : [];
+  }
+  if (biz.repId !== undefined) dbRecord.rep_id = biz.repId;
+  if (biz.repName !== undefined) dbRecord.rep_name = biz.repName;
+  if (biz.packageId !== undefined) dbRecord.package_id = biz.packageId;
+  if (biz.packageName !== undefined) dbRecord.package_name = biz.packageName;
+  if (biz.packagePrice !== undefined) dbRecord.package_price = biz.packagePrice;
+  if (biz.amountPaid !== undefined) dbRecord.amount_paid = biz.amountPaid;
+  if (biz.paymentStatus !== undefined) dbRecord.payment_status = biz.paymentStatus;
+  if (biz.verificationStatus !== undefined) dbRecord.verification_status = biz.verificationStatus;
+  if (biz.googleMapsUrl !== undefined) dbRecord.google_maps_url = biz.googleMapsUrl;
+  if (biz.invoiceNumber !== undefined) dbRecord.invoice_number = biz.invoiceNumber;
+  if (biz.invoiceDate !== undefined) dbRecord.invoice_date = biz.invoiceDate;
+  if (biz.notes !== undefined) dbRecord.notes = biz.notes;
+  if (biz.createdDate !== undefined) dbRecord.created_date = biz.createdDate;
+
+  return dbRecord;
 }
 
 function mapDbToRep(item: any): Representative {

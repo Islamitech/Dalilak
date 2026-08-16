@@ -98,6 +98,9 @@ export default function App() {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', activeTab);
       url.hash = activeTab;
+      if (activeTab !== 'admin') {
+        url.searchParams.delete('subtab');
+      }
       window.history.replaceState({}, '', url.toString());
     }
   }, [activeTab]);
@@ -459,6 +462,11 @@ export default function App() {
 
                 {filteredHomeBusinesses.map((biz) => {
                   const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
+                  const isCreator =
+                    user?.role === 'admin' ||
+                    biz.repId === user?.id ||
+                    biz.repId === user?.repData?.id ||
+                    biz.repName === user?.name;
 
                   return (
                     <div key={biz.id} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3 hover:border-amber-500/30 transition-all flex flex-col justify-between shadow-sm">
@@ -470,75 +478,41 @@ export default function App() {
                             </span>
                             <h4 className="font-extrabold text-base text-[var(--text-primary)] mt-1">{biz.nameAr}</h4>
                             <p className="text-xs text-[var(--text-secondary)] font-bold">
-                              {biz.governorate} - {biz.city} ({biz.street})
+                              {biz.governorate} - {biz.city}
                             </p>
                           </div>
 
                           <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border shrink-0 shadow-sm ${
                             biz.verificationStatus === 'verified'
-                              ? 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-400 border-emerald-500/40'
-                              : 'bg-amber-500/15 text-amber-900 dark:text-amber-400 border-amber-500/40'
+                              ? 'bg-emerald-500/15 text-emerald-950 dark:text-emerald-400 border-emerald-500/40'
+                              : 'bg-amber-500/15 text-amber-955 dark:text-amber-400 border-amber-500/40'
                           }`}>
                             {biz.verificationStatus === 'verified' ? 'تم التوثيق والظهور' : 'جاري المعالجة'}
                           </span>
                         </div>
 
-                        <p className="text-xs text-[var(--text-secondary)] font-bold line-clamp-2 leading-relaxed">{biz.description}</p>
+                        {/* Simplified Paid summary instead of full owner/description details */}
+                        <div className="bg-[var(--bg-card)] px-3 py-2 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-xs mt-1">
+                          <span className="text-[var(--text-secondary)] font-bold">الماليات والمدفوع:</span>
+                          <span className="font-bold">
+                            <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">{biz.amountPaid} ج.م</span>
+                            {remaining > 0 ? (
+                              <span className="text-rose-600 dark:text-rose-400 text-[10px] mr-1"> (متبقي {remaining} ج.م)</span>
+                            ) : (
+                              <span className="text-emerald-600 text-[10px] mr-1"> (خالص)</span>
+                            )}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Payment status & Actions */}
-                      <div className="pt-3 border-t border-[var(--border-color)] space-y-2 text-xs">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-[var(--text-secondary)] font-bold">
-                            <Phone className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                            <span>{biz.ownerName} (<strong className="font-mono text-amber-800 dark:text-amber-400">{biz.ownerPhone}</strong>)</span>
-                          </div>
-
-                          <div className="text-left font-bold">
-                            <span className="text-emerald-700 dark:text-emerald-400 text-sm font-black">{biz.amountPaid} ج.م</span>
-                            {remaining > 0 && <span className="text-rose-700 dark:text-rose-400 text-[10px] block font-extrabold">متبقي {remaining} ج.م</span>}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 pt-1">
-                          <button
-                            onClick={() => setEditingBusiness(biz)}
-                            className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
-                            title="عرض كافة البيانات المسجلة بواسطة المندوب والتعديل عليها"
-                          >
-                            <Eye className="w-4 h-4 stroke-[2.5]" />
-                            <span>عرض وتعديل كافة البيانات</span>
-                          </button>
-
-                          <div className="flex items-center justify-between gap-2">
-                            <button
-                              onClick={() => setSelectedInvoiceBiz(biz)}
-                              className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer"
-                            >
-                              <FileText className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                              <span>الفاتورة الإلكترونية</span>
-                            </button>
-
-                            {remaining > 0 && (
-                              <button
-                                onClick={() => setSelectedPayBiz(biz)}
-                                className="w-full bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/40 font-black px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1 hover:bg-emerald-600 hover:text-white transition-colors shadow-sm cursor-pointer"
-                              >
-                                <span>تحصيل المتبقي</span>
-                              </button>
-                            )}
-
-                            <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${biz.lat},${biz.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="bg-[var(--input-bg)] text-[var(--text-primary)] hover:text-amber-500 font-bold p-2 rounded-xl border border-[var(--border-color)] shrink-0 cursor-pointer transition-colors"
-                              title="فتح موقع الإحداثيات على الخريطة"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          </div>
-                        </div>
+                      <div className="pt-2">
+                        <button
+                          onClick={() => setEditingBusiness(biz)}
+                          className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                        >
+                          <Eye className="w-4 h-4 stroke-[2.5]" />
+                          <span>{isCreator ? 'تفاصيل وتعديل النشاط' : 'عرض التفاصيل (قراءة فقط)'}</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -639,6 +613,7 @@ export default function App() {
             onDeleteRepresentative={handleDeleteRepresentative}
             onUpdatePaymentConfig={handleUpdatePaymentConfig}
             onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+            onCollectPayment={(b) => setSelectedPayBiz(b)}
           />
         )}
 
@@ -688,6 +663,22 @@ export default function App() {
             setEditingBusiness(null);
           }}
           userRole={user?.role}
+          canEdit={
+            user?.role === 'admin' ||
+            editingBusiness.repId === user?.id ||
+            editingBusiness.repId === user?.repData?.id ||
+            editingBusiness.repName === user?.name
+          }
+          onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+          onCollectPayment={(b) => setSelectedPayBiz(b)}
+          onDeleteBusiness={
+            user?.role === 'admin' ||
+            editingBusiness.repId === user?.id ||
+            editingBusiness.repId === user?.repData?.id ||
+            editingBusiness.repName === user?.name
+              ? handleDeleteBusiness
+              : undefined
+          }
         />
       )}
 

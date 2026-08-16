@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus, PaymentStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
 import { calculateTotalRepCommission } from '../utils/commission';
@@ -55,6 +55,7 @@ interface AdminDashboardProps {
   onDeleteRepresentative?: (id: string) => void;
   onUpdatePaymentConfig: (config: PaymentGatewayConfig) => void;
   onShowInvoice: (biz: Business) => void;
+  onCollectPayment?: (biz: Business) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -68,9 +69,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onDeleteRepresentative,
   onUpdatePaymentConfig,
   onShowInvoice,
+  onCollectPayment,
 }) => {
   // Main Tab State
-  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways'>('overview');
+  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways'>(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlSubtab = urlParams.get('subtab');
+    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways'].includes(urlSubtab)) {
+      return urlSubtab as any;
+    }
+
+    const savedSubtab = localStorage.getItem('dalelak_active_admin_tab');
+    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways'].includes(savedSubtab)) {
+      return savedSubtab as any;
+    }
+
+    return 'overview';
+  });
+
+  // Sync activeAdminTab state with localStorage and browser URL query params
+  useEffect(() => {
+    if (activeAdminTab) {
+      localStorage.setItem('dalelak_active_admin_tab', activeAdminTab);
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('subtab') !== activeAdminTab) {
+        url.searchParams.set('subtab', activeAdminTab);
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [activeAdminTab]);
 
   // Search & Filter States
   const [bizSearchQuery, setBizSearchQuery] = useState<string>('');
@@ -693,18 +720,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <table className="w-full text-xs text-right border-collapse min-w-[650px]">
               <thead>
                 <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold">
-                  <th className="p-3">النشاط التجاري والفئة</th>
-                  <th className="p-3">صاحب النشاط / الهواتف</th>
-                  <th className="p-3">العنوان / المندوب</th>
-                  <th className="p-3">الباقة / المدفوع</th>
+                  <th className="p-3">اسم النشاط والتصنيف</th>
+                  <th className="p-3">الموقع الجغرافي والمندوب</th>
                   <th className="p-3">حالة التوثيق</th>
-                  <th className="p-3 text-center">التحكم وعرض كافة البيانات</th>
+                  <th className="p-3 text-center">التفاصيل والتحكم</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-color)]">
                 {filteredBusinesses.map((biz) => {
-                  const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
-
                   return (
                     <tr key={biz.id} className="hover:bg-amber-500/5 transition-colors">
                       <td className="p-3">
@@ -714,22 +737,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </td>
 
                       <td className="p-3">
-                        <p className="font-bold text-[var(--text-primary)]">{biz.ownerName}</p>
-                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-mono font-bold">{biz.ownerPhone}</p>
-                        {biz.nationalId && <p className="text-[10px] text-[var(--text-muted)] font-mono">الرقم القومي: {biz.nationalId}</p>}
-                      </td>
-
-                      <td className="p-3">
                         <p className="font-bold text-[var(--text-primary)]">{biz.governorate} ({biz.city})</p>
                         <p className="text-[11px] text-[var(--text-secondary)] font-bold">المندوب: {biz.repName}</p>
-                      </td>
-
-                      <td className="p-3">
-                        <p className="font-bold text-[var(--text-primary)]">{biz.packageName}</p>
-                        <p className="text-[11px]">
-                          <span className="text-emerald-600 dark:text-emerald-400 font-black">{biz.amountPaid} ج.م</span>
-                          {remaining > 0 && <span className="text-rose-600 dark:text-rose-400 font-bold"> (متبقي {remaining})</span>}
-                        </p>
                       </td>
 
                       <td className="p-3">
@@ -751,37 +760,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </td>
 
                       <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Full Data Display & Edit Pop-up */}
-                          <button
-                            onClick={() => setEditingBusiness(biz)}
-                            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl transition-all shadow cursor-pointer flex items-center gap-1"
-                            title="عرض كل البيانات التي أدخلها المندوب والتعديل عليها"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>عرض وتعديل البيانات</span>
-                          </button>
-
-                          <button
-                            onClick={() => onShowInvoice(biz)}
-                            title="الفاتورة الإلكترونية"
-                            className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-[11px] p-1.5 rounded-xl border border-[var(--border-color)] cursor-pointer"
-                          >
-                            <FileText className="w-4 h-4 text-amber-500" />
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              if (confirm(`هل أنت تأكد من حذف النشاط ${biz.nameAr}؟`)) {
-                                onDeleteBusiness(biz.id);
-                              }
-                            }}
-                            className="text-rose-600 hover:text-rose-700 p-1.5 rounded-xl hover:bg-rose-500/10 transition-colors cursor-pointer"
-                            title="حذف النشاط"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => setEditingBusiness(biz)}
+                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-4 py-2 rounded-xl transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
+                          title="عرض كل البيانات التي أدخلها المندوب والتعديل عليها"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>عرض وتفاصيل النشاط</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -862,7 +848,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {filteredAccounts.map((acc) => {
               const role = acc.role || 'rep';
               const isSuspended = acc.status === 'suspended';
-              const bizCount = businesses.filter((b) => b.repId === acc.id).length;
 
               return (
                 <div
@@ -873,110 +858,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-amber-500/30'
                   }`}
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <UserAvatar
-                          avatar={acc.avatar}
-                          name={acc.name}
-                          role={acc.role}
-                          avatarStatus={acc.avatarStatus}
-                          size="md"
-                          isAdminPreview={true}
-                        />
-                        <div>
-                          <h4 className="font-bold text-sm text-[var(--text-primary)]">{acc.name}</h4>
-                          <p className="text-xs text-amber-500 font-bold">{acc.governorate}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1">
-                        {renderRoleBadge(role)}
-                        <span
-                          className={`text-[10px] font-black px-2.5 py-0.5 rounded-lg border shadow-sm ${
-                            isSuspended
-                              ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-500/50'
-                              : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-400 border-emerald-500/40'
-                          }`}
-                        >
-                          {isSuspended ? 'معلق' : 'نشط'}
-                        </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        avatar={acc.avatar}
+                        name={acc.name}
+                        role={acc.role}
+                        avatarStatus={acc.avatarStatus}
+                        size="md"
+                        isAdminPreview={true}
+                      />
+                      <div>
+                        <h4 className="font-bold text-sm text-[var(--text-primary)]">{acc.name}</h4>
+                        <p className="text-xs text-amber-500 font-bold">{acc.governorate}</p>
                       </div>
                     </div>
 
-                    <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">البريد:</span>
-                        <span className="text-[var(--text-primary)] font-mono text-[11px] font-bold truncate block">
-                          {acc.email}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">الهاتف:</span>
-                        <span className="text-amber-800 dark:text-amber-400 font-mono font-black text-[11px] block">
-                          {acc.phone}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">الإنجاز:</span>
-                        <span className="text-emerald-800 dark:text-emerald-400 font-black text-[11px]">
-                          {bizCount} / {acc.targetMonth} نشاط
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-extrabold block">العمولة:</span>
-                        <span className="text-emerald-800 dark:text-emerald-400 font-black text-[11px]">
-                          {acc.commissionRate || 42.86}%
-                        </span>
-                      </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {renderRoleBadge(role)}
+                      <span
+                        className={`text-[10px] font-black px-2.5 py-0.5 rounded-lg border shadow-sm ${
+                          isSuspended
+                            ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-500/50'
+                            : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-400 border-emerald-500/40'
+                        }`}
+                      >
+                        {isSuspended ? 'معلق' : 'نشط'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Actions Toolbar */}
                   <div className="pt-2 border-t border-[var(--border-color)] flex items-center justify-between gap-2 text-xs">
                     <button
                       onClick={() => openEditAccountModal(acc)}
-                      className="flex-1 bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer"
+                      className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer"
                     >
                       <Edit className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                      <span>تعديل الحساب</span>
+                      <span>عرض وتعديل الحساب</span>
                     </button>
-
-                    <button
-                      onClick={() => handleToggleAccountStatus(acc)}
-                      className={`flex-1 font-black py-2 rounded-xl border flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer ${
-                        isSuspended
-                          ? 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-600 hover:text-white'
-                          : 'bg-rose-500/15 text-rose-900 dark:text-rose-300 border-rose-500/40 hover:bg-rose-600 hover:text-white'
-                      }`}
-                    >
-                      {isSuspended ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
-                      <span>{isSuspended ? 'تفعيل' : 'تعطيل'}</span>
-                    </button>
-
-                    {acc.avatar && (
-                      <button
-                        onClick={() => setPreviewAvatarRep(acc)}
-                        className="bg-[var(--input-bg)] text-amber-500 hover:bg-amber-500/10 p-2 rounded-xl border border-[var(--border-color)] cursor-pointer"
-                        title="معاينة الصورة الشخصية"
-                      >
-                        <Camera className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    {onDeleteRepresentative && (
-                      <button
-                        onClick={() => {
-                          if (confirm(`هل أنت تأكد من حذف الحساب "${acc.name}" نهائياً؟`)) {
-                            onDeleteRepresentative(acc.id);
-                          }
-                        }}
-                        className="bg-[var(--input-bg)] hover:bg-rose-600 text-[var(--text-muted)] hover:text-white p-2 rounded-xl border border-[var(--border-color)] transition-colors shadow-sm cursor-pointer"
-                        title="حذف الحساب"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -1051,6 +970,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onClose={() => setEditingBusiness(null)}
         onSave={handleSaveBusinessFromModal}
         userRole="admin"
+        canEdit={true}
+        onShowInvoice={onShowInvoice}
+        onCollectPayment={onCollectPayment}
+        onDeleteBusiness={onDeleteBusiness}
       />
 
       {/* --------------------------------------------------------------------- */}
@@ -1076,6 +999,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {editingAccId && (
+                (() => {
+                  const editingRep = mergedAdminReps.find((r) => r.id === editingAccId);
+                  const bizCount = editingRep ? businesses.filter((b) => b.repId === editingRep.id).length : 0;
+                  const target = editingRep?.targetMonth || 20;
+
+                  return (
+                    <div className="sm:col-span-2 bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl grid grid-cols-3 gap-2 text-center text-xs font-bold my-1">
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">الأنشطة المسجلة:</span>
+                        <span className="text-emerald-700 dark:text-emerald-400 font-black">{bizCount} نشاط</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">المستهدف الشهري:</span>
+                        <span className="text-[var(--text-primary)] font-black">{target} نشاط</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">نسبة الإنجاز:</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-black">
+                          {target > 0 ? ((bizCount / target) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
               {/* Account Role */}
               <div className="sm:col-span-2">
                 <label className="block text-[var(--text-primary)] font-extrabold mb-1">
@@ -1195,20 +1145,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
-              <button
-                type="button"
-                onClick={() => setShowAccountModal(false)}
-                className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold px-4 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer"
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-5 py-2.5 rounded-xl shadow-lg cursor-pointer"
-              >
-                {editingAccId ? 'حفظ التعديلات' : 'إنشاء الحساب'}
-              </button>
+            <div className="flex justify-between items-center gap-2 pt-3 border-t border-[var(--border-color)]">
+              <div>
+                {editingAccId && onDeleteRepresentative && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`هل أنت متأكد من حذف الحساب "${modalName}" نهائياً؟`)) {
+                        onDeleteRepresentative(editingAccId);
+                        setShowAccountModal(false);
+                      }
+                    }}
+                    className="bg-rose-500/15 hover:bg-rose-600 text-rose-900 dark:text-rose-300 hover:text-white font-black px-4 py-2.5 rounded-xl border border-rose-500/40 flex items-center gap-1 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>حذف الحساب نهائياً</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAccountModal(false)}
+                  className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold px-4 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-5 py-2.5 rounded-xl shadow-lg cursor-pointer"
+                >
+                  {editingAccId ? 'حفظ التعديلات' : 'إنشاء الحساب'}
+                </button>
+              </div>
             </div>
           </form>
         </div>

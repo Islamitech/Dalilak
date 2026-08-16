@@ -16,6 +16,7 @@ import {
   FileText,
   Clock,
   Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 
 interface BusinessEditModalProps {
@@ -23,6 +24,10 @@ interface BusinessEditModalProps {
   onClose: () => void;
   onSave: (updatedBiz: Business) => void;
   userRole?: string;
+  canEdit?: boolean;
+  onShowInvoice?: (business: Business) => void;
+  onCollectPayment?: (business: Business) => void;
+  onDeleteBusiness?: (id: string) => void;
 }
 
 export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
@@ -30,6 +35,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   onClose,
   onSave,
   userRole,
+  canEdit = true,
+  onShowInvoice,
+  onCollectPayment,
+  onDeleteBusiness,
 }) => {
   const [formData, setFormData] = useState<Business | null>(null);
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
@@ -111,7 +120,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
-                  عرض وتعديل كافة بيانات النشاط: {formData.nameAr}
+                  عرض وتفاصيل النشاط: {formData.nameAr}
                 </h3>
                 <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-mono font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
                   {formData.invoiceNumber}
@@ -132,7 +141,17 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           </button>
         </div>
 
-        {/* SECTION 1: 🏢 البيانات الأساسية للنشاط التجاري والتصنيف */}
+        {!canEdit && (
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 p-4 rounded-2xl flex items-center gap-2.5 font-bold text-xs leading-relaxed">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+            <div>
+              وضع القراءة فقط: تعديل بيانات هذا النشاط متاح فقط للمندوب الذي قام بتسجيله أو لمدير النظام المسؤول.
+            </div>
+          </div>
+        )}
+
+        <fieldset disabled={!canEdit} className="border-none p-0 m-0 space-y-5">
+          {/* SECTION 1: 🏢 البيانات الأساسية للنشاط التجاري والتصنيف */}
         <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
           <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5 border-b border-[var(--border-color)] pb-2">
             <Store className="w-4 h-4 text-amber-500" />
@@ -498,23 +517,25 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               <span>5. الصور والمستندات المرفوعة بواسطة المندوب ({formData.photos?.length || 0})</span>
             </h4>
 
-            <div className="flex items-center gap-2">
-              <label className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1 shadow-sm transition-transform active:scale-95">
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>📸 إرفاق صورة جديدة</span>
-                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
-              </label>
+            {canEdit && (
+              <div className="flex items-center gap-2">
+                <label className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1 shadow-sm transition-transform active:scale-95">
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  <span>📸 إرفاق صورة جديدة</span>
+                  <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                </label>
 
-              {(!formData.photos || formData.photos.length === 0) && (
-                <button
-                  type="button"
-                  onClick={handleAddSamplePhotos}
-                  className="bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
-                >
-                  ✨ إضافة صور توثيقية تجريبية
-                </button>
-              )}
-            </div>
+                {(!formData.photos || formData.photos.length === 0) && (
+                  <button
+                    type="button"
+                    onClick={handleAddSamplePhotos}
+                    className="bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+                  >
+                    ✨ إضافة صور توثيقية تجريبية
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {formData.photos && formData.photos.length > 0 ? (
@@ -531,14 +552,16 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     onClick={() => setSelectedPhotoPreview(photo)}
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(idx)}
-                    className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow cursor-pointer transition-transform active:scale-95 z-10"
-                    title="حذف هذه الصورة"
-                  >
-                    ✕
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(idx)}
+                      className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow cursor-pointer transition-transform active:scale-95 z-10"
+                      title="حذف هذه الصورة"
+                    >
+                      ✕
+                    </button>
+                  )}
 
                   <div
                     onClick={() => setSelectedPhotoPreview(photo)}
@@ -558,6 +581,66 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
         </div>
+        </fieldset>
+
+        {/* SECTION: 🛠️ خيارات وإجراءات سريعة */}
+        <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
+          <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5 border-b border-[var(--border-color)] pb-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>أدوات وإجراءات سريعة للنشاط</span>
+          </h4>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {onShowInvoice && (
+              <button
+                type="button"
+                onClick={() => onShowInvoice(formData)}
+                className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3.5 py-2 rounded-xl flex items-center gap-1 transition-colors shadow-sm cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                <span>الفاتورة الإلكترونية</span>
+              </button>
+            )}
+
+            {onCollectPayment && Math.max(0, formData.packagePrice - formData.amountPaid) > 0 && (
+              <button
+                type="button"
+                onClick={() => onCollectPayment(formData)}
+                className="bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/40 font-black px-3.5 py-2 rounded-xl flex items-center gap-1 hover:bg-emerald-600 hover:text-white transition-colors shadow-sm cursor-pointer"
+              >
+                <DollarSign className="w-4 h-4" />
+                <span>تحصيل المبلغ المتبقي ({Math.max(0, formData.packagePrice - formData.amountPaid)} ج.م)</span>
+              </button>
+            )}
+
+            {(formData.googleMapsUrl || (formData.lat && formData.lng)) && (
+              <a
+                href={formData.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${formData.lat},${formData.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-[var(--input-bg)] text-[var(--text-primary)] hover:text-amber-500 font-bold px-3.5 py-2 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors text-center"
+              >
+                <MapPin className="w-4 h-4 text-amber-500" />
+                <span>فتح الموقع في الخريطة</span>
+              </a>
+            )}
+
+            {onDeleteBusiness && canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`هل أنت متأكد من حذف النشاط "${formData.nameAr}" نهائياً من النظام؟`)) {
+                    onDeleteBusiness(formData.id);
+                    onClose();
+                  }
+                }}
+                className="bg-rose-500/15 hover:bg-rose-600 text-rose-900 dark:text-rose-300 hover:text-white font-black px-3.5 py-2 rounded-xl border border-rose-500/40 flex items-center gap-1 transition-colors shadow-sm cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-rose-700 dark:text-rose-400 hover:text-white" />
+                <span>حذف النشاط</span>
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-color)] sticky bottom-0 bg-[var(--bg-card)] z-10">
@@ -568,13 +651,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           >
             إغلاق
           </button>
-          <button
-            type="submit"
-            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-6 py-2.5 rounded-xl shadow-lg cursor-pointer flex items-center gap-1.5"
-          >
-            <Save className="w-4 h-4" />
-            <span>حفظ التعديلات في النظام</span>
-          </button>
+          {canEdit && (
+            <button
+              type="submit"
+              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-6 py-2.5 rounded-xl shadow-lg cursor-pointer flex items-center gap-1.5"
+            >
+              <Save className="w-4 h-4" />
+              <span>حفظ التعديلات في النظام</span>
+            </button>
+          )}
         </div>
       </form>
 
