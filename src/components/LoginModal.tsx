@@ -274,39 +274,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         </div>
       </div>
 
-      {/* Quick Demo Fill Buttons */}
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 space-y-1.5 text-center">
-        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-extrabold block">
-          ⚡ تسجيل دخول سريع للتجربة (اضغط للتعبئة التلقائية):
-        </span>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('login');
-              setEmail('admin@gmail.com');
-              setPassword('admin123');
-              setErrorMsg('');
-            }}
-            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-1.5 px-2 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer text-[11px]"
-          >
-            👑 دخول مدير النظام
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('login');
-              setEmail('ahmedhufne@gmail.com');
-              setPassword('Aa132456');
-              setErrorMsg('');
-            }}
-            className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500 text-[var(--text-primary)] font-bold py-1.5 px-2 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer text-[11px]"
-          >
-            💼 دخول مندوب ميداني
-          </button>
-        </div>
-      </div>
 
       {/* Tab Switcher: Login vs Register */}
       <div className="grid grid-cols-2 gap-1 bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] text-xs font-bold shadow-inner">
