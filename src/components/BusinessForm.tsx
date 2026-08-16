@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Business, PackageOption, PaymentStatus, Representative } from '../types';
 import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, PACKAGES } from '../data/mockData';
 import { InteractiveMap } from './InteractiveMap';
-import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles } from 'lucide-react';
+import { compressImageFile } from '../utils/imageCompressor';
+import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2 } from 'lucide-react';
 
 interface BusinessFormProps {
   onSubmitBusiness: (biz: Business) => void;
@@ -100,17 +101,27 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
   };
 
-  // Quick Photo upload simulation / file picker
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        if (uploadEvent.target?.result) {
-          setPhotos([...photos, uploadEvent.target.result as string]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
+
+  // Compressed Photo upload handler for single/multiple pictures
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setIsUploadingPhoto(true);
+      const newCompressedPhotos: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const compressed = await compressImageFile(files[i]);
+          newCompressedPhotos.push(compressed);
+        } catch (err) {
+          console.warn('Image compression error:', err);
         }
-      };
-      reader.readAsDataURL(file);
+      }
+      if (newCompressedPhotos.length > 0) {
+        setPhotos((prev) => [...prev, ...newCompressedPhotos]);
+      }
+      e.target.value = '';
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -452,8 +463,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Direct Camera Capture */}
             <label className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md">
-              <Camera className="w-4 h-4 stroke-[2.5]" />
-              <span>📸 التقاط كاميرا الهاتف</span>
+              {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4 stroke-[2.5]" />}
+              <span>{isUploadingPhoto ? 'جاري ضغط ومعالجة الصورة...' : '📸 التقاط كاميرا الهاتف'}</span>
               <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
             </label>
 
@@ -461,7 +472,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             <label className="flex-1 sm:flex-none bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-sm">
               <UploadCloud className="w-4 h-4 text-amber-500" />
               <span>📁 الاستوديو</span>
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+              <input type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
             </label>
           </div>
         </div>

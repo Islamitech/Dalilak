@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus, PaymentStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
 import { calculateTotalRepCommission } from '../utils/commission';
+import { compressImageFile } from '../utils/imageCompressor';
 import { UserAvatar } from './UserAvatar';
 import {
   ShieldCheck,
@@ -252,20 +253,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setEditingBusiness(null);
   };
 
-  const handleAdminPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && editingBusiness) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const currentPhotos = editingBusiness.photos || [];
-          setEditingBusiness({
-            ...editingBusiness,
-            photos: [...currentPhotos, event.target.result as string],
-          });
+  const handleAdminPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0 && editingBusiness) {
+      const newCompressedPhotos: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const compressed = await compressImageFile(files[i]);
+          newCompressedPhotos.push(compressed);
+        } catch (err) {
+          console.warn('Admin image compression notice:', err);
         }
-      };
-      reader.readAsDataURL(file);
+      }
+      if (newCompressedPhotos.length > 0) {
+        const currentPhotos = editingBusiness.photos || [];
+        setEditingBusiness({
+          ...editingBusiness,
+          photos: [...currentPhotos, ...newCompressedPhotos],
+        });
+      }
+      e.target.value = '';
     }
   };
 
@@ -1497,7 +1504,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <label className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1 shadow-sm transition-transform active:scale-95">
                     <UploadCloud className="w-3.5 h-3.5" />
                     <span>📸 إرفاق صورة جديدة</span>
-                    <input type="file" accept="image/*" onChange={handleAdminPhotoUpload} className="hidden" />
+                    <input type="file" accept="image/*" multiple onChange={handleAdminPhotoUpload} className="hidden" />
                   </label>
 
                   {(!editingBusiness.photos || editingBusiness.photos.length === 0) && (
