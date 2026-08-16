@@ -108,6 +108,7 @@ export default function App() {
 
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
 
   // Parse URL for deep linking (QR codes)
   useEffect(() => {
@@ -124,13 +125,16 @@ export default function App() {
 
   // Fetch initial data from Supabase Database & Local Backend
   useEffect(() => {
-    fetchBusinessesFromDb().then((data) => {
-      if (data && data.length > 0) setBusinesses(data);
-    });
-
-    fetchRepsFromDb().then((data) => {
-      if (data && data.length > 0) setRepresentatives(data);
-    });
+    Promise.all([fetchBusinessesFromDb(), fetchRepsFromDb()])
+      .then(([bizData, repsData]) => {
+        setBusinesses(bizData || []);
+        setRepresentatives(repsData || []);
+        setIsLoadingData(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching initial database data:', err);
+        setIsLoadingData(false);
+      });
 
     fetch('/api/payment-config')
       .then((res) => {
@@ -293,7 +297,7 @@ export default function App() {
   // -------------------------------------------------------------
   if (externalView?.type === 'invoice') {
     const biz = businesses.find(b => b.id === externalView.id || b.invoiceNumber === externalView.id);
-    if (!biz && businesses.length === 0) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل الفاتورة...</div>;
+    if (isLoadingData) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل الفاتورة...</div>;
     if (!biz) return <div className="min-h-screen flex items-center justify-center font-bold text-rose-500">هذه الفاتورة غير موجودة أو تم حذفها.</div>;
 
     return (
@@ -305,7 +309,7 @@ export default function App() {
 
   if (externalView?.type === 'rep') {
     const rep = representatives.find(r => r.id === externalView.id);
-    if (!rep && representatives.length === 0) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل البطاقة...</div>;
+    if (isLoadingData) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل البطاقة...</div>;
     if (!rep) return <div className="min-h-screen flex items-center justify-center font-bold text-rose-500">هذا المندوب غير مسجل في النظام.</div>;
 
     return (
