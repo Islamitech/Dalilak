@@ -28,6 +28,7 @@ interface BusinessEditModalProps {
   onShowInvoice?: (business: Business) => void;
   onCollectPayment?: (business: Business) => void;
   onDeleteBusiness?: (id: string) => void;
+  businesses: Business[];
 }
 
 export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
@@ -39,10 +40,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   onShowInvoice,
   onCollectPayment,
   onDeleteBusiness,
+  businesses,
 }) => {
   const [formData, setFormData] = useState<Business | null>(null);
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
     if (business) {
@@ -56,6 +59,31 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+
+    // Validate phone number uniqueness
+    const normalizedPhone = formData.phone?.trim();
+    if (normalizedPhone) {
+      const isDuplicate = businesses.some(
+        (b) => b.id !== formData.id && (b.phone.trim() === normalizedPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone))
+      );
+      if (isDuplicate) {
+        setErrorMsg('رقم هاتف النشاط هذا مسجل بالفعل لنشاط تجاري آخر!');
+        return;
+      }
+    }
+
+    const normalizedOwnerPhone = formData.ownerPhone?.trim();
+    if (normalizedOwnerPhone) {
+      const isDuplicate = businesses.some(
+        (b) => b.id !== formData.id && (b.phone.trim() === normalizedOwnerPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone))
+      );
+      if (isDuplicate) {
+        setErrorMsg('رقم هاتف مالك النشاط مسجل بالفعل لنشاط تجاري آخر!');
+        return;
+      }
+    }
+
     onSave(formData);
     onClose();
   };
@@ -136,6 +164,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <div>
               وضع القراءة فقط: تعديل بيانات هذا النشاط متاح فقط للمندوب الذي قام بتسجيله أو لمدير النظام المسؤول.
             </div>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-bold animate-pulse-subtle">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+            <span>{errorMsg}</span>
           </div>
         )}
 

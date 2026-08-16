@@ -9,17 +9,20 @@ interface BusinessFormProps {
   onSubmitBusiness: (biz: Business) => void;
   currentRep: Representative | null;
   onShowInvoice: (biz: Business) => void;
+  businesses: Business[];
 }
 
 export const BusinessForm: React.FC<BusinessFormProps> = ({
   onSubmitBusiness,
   currentRep,
   onShowInvoice,
+  businesses,
 }) => {
   // Form State
   const [nameAr, setNameAr] = useState<string>('');
   const [nameEn, setNameEn] = useState<string>('');
   const [category, setCategory] = useState<string>(BUSINESS_CATEGORIES[0]);
+  const [errorMsg, setErrorMsg] = useState<string>('');
   const [governorate, setGovernorate] = useState<string>('القاهرة');
   const [city, setCity] = useState<string>('');
   const [street, setStreet] = useState<string>('');
@@ -127,6 +130,30 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+
+    // Validate phone number uniqueness
+    const normalizedPhone = phone.trim();
+    if (normalizedPhone) {
+      const isDuplicate = businesses.some(
+        (b) => b.phone.trim() === normalizedPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone)
+      );
+      if (isDuplicate) {
+        setErrorMsg('رقم هاتف النشاط هذا مسجل بالفعل لنشاط تجاري آخر!');
+        return;
+      }
+    }
+
+    const normalizedOwnerPhone = ownerPhone.trim();
+    if (normalizedOwnerPhone) {
+      const isDuplicate = businesses.some(
+        (b) => b.phone.trim() === normalizedOwnerPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone)
+      );
+      if (isDuplicate) {
+        setErrorMsg('رقم هاتف مالك النشاط مسجل بالفعل لنشاط تجاري آخر!');
+        return;
+      }
+    }
 
     const timestamp = Date.now();
     const newBusiness: Business = {
@@ -222,6 +249,12 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-6 pb-20">
+      {errorMsg && (
+        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-bold animate-pulse-subtle">
+          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
       {/* Step Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 border border-amber-500/40 p-5 rounded-3xl shadow-xl flex items-center justify-between text-white">
         <div className="flex items-center gap-3">

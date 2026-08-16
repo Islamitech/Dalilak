@@ -529,6 +529,7 @@ export default function App() {
             onSubmitBusiness={handleAddBusiness}
             currentRep={currentRep}
             onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+            businesses={businesses}
           />
         )}
 
@@ -659,6 +660,7 @@ export default function App() {
           }
           onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
           onCollectPayment={(b) => setSelectedPayBiz(b)}
+          businesses={businesses}
           onDeleteBusiness={
             user?.role === 'admin' ||
             editingBusiness.repId === user?.id ||
