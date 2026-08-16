@@ -12,7 +12,8 @@ import { RepDashboard } from './components/RepDashboard';
 import { RepProfile } from './components/RepProfile';
 import { LoginModal } from './components/LoginModal';
 import { PaymentGatewayModal } from './components/PaymentGatewayModal';
-import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database } from 'lucide-react';
+import { BusinessEditModal } from './components/BusinessEditModal';
+import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye } from 'lucide-react';
 import {
   fetchBusinessesFromDb,
   saveBusinessToDb,
@@ -97,6 +98,7 @@ export default function App() {
   }, [activeTab]);
 
   // Modals & Selected items
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [selectedInvoiceBiz, setSelectedInvoiceBiz] = useState<Business | null>(null);
   const [selectedPayBiz, setSelectedPayBiz] = useState<Business | null>(null);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
@@ -493,33 +495,44 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="space-y-2 pt-1">
                           <button
-                            onClick={() => setSelectedInvoiceBiz(biz)}
-                            className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer"
+                            onClick={() => setEditingBusiness(biz)}
+                            className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                            title="عرض كافة البيانات المسجلة بواسطة المندوب والتعديل عليها"
                           >
-                            <FileText className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                            <span>الفاتورة الإلكترونية</span>
+                            <Eye className="w-4 h-4 stroke-[2.5]" />
+                            <span>عرض وتعديل كافة البيانات</span>
                           </button>
 
-                          {remaining > 0 && (
+                          <div className="flex items-center justify-between gap-2">
                             <button
-                              onClick={() => setSelectedPayBiz(biz)}
-                              className="w-full bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/40 font-black px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1 hover:bg-emerald-600 hover:text-white transition-colors shadow-sm cursor-pointer"
+                              onClick={() => setSelectedInvoiceBiz(biz)}
+                              className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer"
                             >
-                              <span>تحصيل المتبقي</span>
+                              <FileText className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                              <span>الفاتورة الإلكترونية</span>
                             </button>
-                          )}
 
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${biz.lat},${biz.lng}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="bg-[var(--input-bg)] text-[var(--text-primary)] hover:text-amber-500 font-bold p-1.5 rounded-xl border border-[var(--border-color)] shrink-0 cursor-pointer transition-colors"
-                            title="فتح موقع الإحداثيات على الخريطة"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
+                            {remaining > 0 && (
+                              <button
+                                onClick={() => setSelectedPayBiz(biz)}
+                                className="w-full bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/40 font-black px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1 hover:bg-emerald-600 hover:text-white transition-colors shadow-sm cursor-pointer"
+                              >
+                                <span>تحصيل المتبقي</span>
+                              </button>
+                            )}
+
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${biz.lat},${biz.lng}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="bg-[var(--input-bg)] text-[var(--text-primary)] hover:text-amber-500 font-bold p-2 rounded-xl border border-[var(--border-color)] shrink-0 cursor-pointer transition-colors"
+                              title="فتح موقع الإحداثيات على الخريطة"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -658,6 +671,19 @@ export default function App() {
         setActiveTab={setActiveTab}
         isAdmin={user?.role === 'admin'}
       />
+
+      {/* MODAL: FULL BUSINESS DATA VIEW & EDITING POP-UP */}
+      {editingBusiness && (
+        <BusinessEditModal
+          business={editingBusiness}
+          onClose={() => setEditingBusiness(null)}
+          onSave={(updatedBiz) => {
+            handleUpdateBusiness(updatedBiz);
+            setEditingBusiness(null);
+          }}
+          userRole={user?.role}
+        />
+      )}
 
       {/* MODAL: INVOICE VIEWER & WHATSAPP DISPATCH */}
       <InvoiceModal
