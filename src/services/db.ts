@@ -11,9 +11,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   try {
     const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
     if (!error && data && data.length > 0) {
-      const mapped = data.map(mapDbToBusiness);
-      localStorage.setItem('dalelak_businesses', JSON.stringify(mapped));
-      return mapped;
+      return data.map(mapDbToBusiness);
     }
 
     // Try REST fetch fallback
@@ -21,36 +19,17 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     if (res.ok) {
       const restData = await res.json();
       if (Array.isArray(restData) && restData.length > 0) {
-        const mapped = restData.map(mapDbToBusiness);
-        localStorage.setItem('dalelak_businesses', JSON.stringify(mapped));
-        return mapped;
+        return restData.map(mapDbToBusiness);
       }
     }
   } catch (err) {
     console.log('Supabase fetch businesses notice:', err);
   }
 
-  const local = localStorage.getItem('dalelak_businesses');
-  if (local) {
-    try {
-      const parsed = JSON.parse(local);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch (e) {}
-  }
-
   return [];
 }
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
-  try {
-    const local = localStorage.getItem('dalelak_businesses');
-    let current: Business[] = local ? JSON.parse(local) : [];
-    const idx = current.findIndex((b) => b.id === biz.id);
-    if (idx >= 0) current[idx] = biz;
-    else current = [biz, ...current];
-    localStorage.setItem('dalelak_businesses', JSON.stringify(current));
-  } catch (e) {}
-
   const dbRecord = mapBusinessToDb(biz);
   try {
     const { error } = await supabase.from('businesses').insert([dbRecord]);
@@ -66,19 +45,6 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
-  // Update local storage first for instant feedback
-  try {
-    const local = localStorage.getItem('dalelak_businesses');
-    if (local) {
-      const current: Business[] = JSON.parse(local);
-      const idx = current.findIndex((b) => b.id === id);
-      if (idx >= 0) {
-        current[idx] = { ...current[idx], ...updates };
-        localStorage.setItem('dalelak_businesses', JSON.stringify(current));
-      }
-    }
-  } catch (e) {}
-
   const dbUpdates = mapBusinessToDb(updates as Business);
   try {
     const { error } = await supabase.from('businesses').update(dbUpdates).eq('id', id);
@@ -95,16 +61,12 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
 
 export async function deleteBusinessFromDb(id: string): Promise<void> {
   try {
-    const local = localStorage.getItem('dalelak_businesses');
-    if (local) {
-      const current: Business[] = JSON.parse(local);
-      const updated = current.filter((b) => b.id !== id);
-      localStorage.setItem('dalelak_businesses', JSON.stringify(updated));
+    const { error } = await supabase.from('businesses').delete().eq('id', id);
+    if (error) {
+      await supabaseRestFetch(`businesses?id=eq.${id}`, {
+        method: 'DELETE',
+      });
     }
-  } catch (e) {}
-
-  try {
-    await supabase.from('businesses').delete().eq('id', id);
   } catch (err) {
     console.log('Supabase delete business notice:', err);
   }
@@ -114,47 +76,27 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   const mergedMap = new Map<string, Representative>();
 
-  const localReps = localStorage.getItem('dalelak_representatives');
-  if (localReps) {
-    try {
-      const parsed = JSON.parse(localReps);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((r: Representative) => {
-          if (r.email) mergedMap.set(r.email.toLowerCase(), r);
-        });
-      }
-    } catch (e) {}
-  }
-
   try {
     const { data, error } = await supabase.from('representatives').select('*');
     if (!error && data && data.length > 0) {
       data.map(mapDbToRep).forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
+    } else {
+      const res = await supabaseRestFetch('representatives?select=*');
+      if (res.ok) {
+        const restData = await res.json();
+        if (Array.isArray(restData) && restData.length > 0) {
+          restData.map(mapDbToRep).forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
+        }
+      }
     }
   } catch (err) {
     console.log('Supabase fetch reps notice:', err);
   }
 
-  const result = Array.from(mergedMap.values());
-  localStorage.setItem('dalelak_representatives', JSON.stringify(result));
-  return result;
+  return Array.from(mergedMap.values());
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
-  try {
-    const localReps = localStorage.getItem('dalelak_representatives');
-    let currentReps: Representative[] = localReps ? JSON.parse(localReps) : [];
-    const index = currentReps.findIndex((r) => r.id === rep.id || r.email.toLowerCase() === rep.email.toLowerCase());
-    if (index >= 0) {
-      currentReps[index] = rep;
-    } else {
-      currentReps = [rep, ...currentReps];
-    }
-    localStorage.setItem('dalelak_representatives', JSON.stringify(currentReps));
-  } catch (e) {
-    console.log('localStorage save error:', e);
-  }
-
   const dbRecord = mapRepToDb(rep);
   try {
     const { error } = await supabase.from('representatives').upsert([dbRecord]);

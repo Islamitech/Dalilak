@@ -165,20 +165,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return true;
   });
 
-  // Merged Representatives Map (Props + LocalStorage)
+  // Merged Representatives Map (Props only, no localStorage)
   const allAdminRepsMap = new Map<string, Representative>();
   representatives.forEach((r) => allAdminRepsMap.set(r.email.trim().toLowerCase(), r));
-  const localRepsStr = localStorage.getItem('dalelak_representatives');
-  if (localRepsStr) {
-    try {
-      const parsed = JSON.parse(localRepsStr);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((pr: Representative) => {
-          if (pr.email) allAdminRepsMap.set(pr.email.trim().toLowerCase(), pr);
-        });
-      }
-    } catch (e) {}
-  }
   const mergedAdminReps = Array.from(allAdminRepsMap.values());
 
   // Filtered Accounts

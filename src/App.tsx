@@ -45,26 +45,8 @@ export default function App() {
     }
   }, [user]);
 
-  const [businesses, setBusinesses] = useState<Business[]>(() => {
-    const localBiz = localStorage.getItem('dalelak_businesses');
-    if (localBiz) {
-      try {
-        const parsed = JSON.parse(localBiz);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return [];
-  });
-  const [representatives, setRepresentatives] = useState<Representative[]>(() => {
-    const localReps = localStorage.getItem('dalelak_representatives');
-    if (localReps) {
-      try {
-        const parsed = JSON.parse(localReps);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return [];
-  });
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [representatives, setRepresentatives] = useState<Representative[]>([]);
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(DEFAULT_PAYMENT_CONFIG);
 
   // Navigation Tabs: 'home' | 'map' | 'add' | 'invoices' | 'admin' | 'profile'
@@ -224,7 +206,6 @@ export default function App() {
     setRepresentatives((prev) => {
       const filtered = prev.filter((r) => r.id !== newRep.id && r.email.toLowerCase() !== newRep.email.toLowerCase());
       const updated = [newRep, ...filtered];
-      localStorage.setItem('dalelak_representatives', JSON.stringify(updated));
       return updated;
     });
 
@@ -243,7 +224,6 @@ export default function App() {
   const handleUpdateRepresentative = async (updatedRep: Representative) => {
     setRepresentatives((prev) => {
       const updated = prev.map((r) => (r.id === updatedRep.id ? updatedRep : r));
-      localStorage.setItem('dalelak_representatives', JSON.stringify(updated));
       return updated;
     });
 
