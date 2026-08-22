@@ -114,10 +114,10 @@ export default function App() {
 
   const addNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    setNotifications((prev) => [...prev, { id, message, type }]);
+    setNotifications((prev) => [...prev, { id, message, type, createdAt: Date.now() }]);
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-    }, 4500);
+    }, 5500);
   };
 
   // Parse URL for deep linking (QR codes)
@@ -266,26 +266,34 @@ export default function App() {
       return updated;
     });
 
+    // CRITICAL FIX: Always sync user state & localStorage when the logged-in rep's data changes
+    // This ensures avatar approval is reflected immediately without re-login
     if (user?.repData?.id === updatedRep.id) {
-      setUser({ ...user, repData: updatedRep, name: updatedRep.name, email: updatedRep.email });
+      const updatedUser = { ...user, repData: updatedRep, name: updatedRep.name, email: updatedRep.email };
+      setUser(updatedUser);
+      try {
+        localStorage.setItem('dalelak_logged_user', JSON.stringify(updatedUser));
+      } catch {
+        // silent
+      }
     }
-    
+
     if (prevRep && prevRep.status !== updatedRep.status) {
       if (updatedRep.status === 'active') {
-        addNotification(`✅ تم تفعيل حساب \"${updatedRep.name}\" بنجاح ويمكنه الدخول الآن!`, 'success');
+        addNotification(`✅ تم تفعيل حساب "${updatedRep.name}" بنجاح ويمكنه الدخول الآن!`, 'success');
       } else {
-        addNotification(`🔒 تم تعليق حساب \"${updatedRep.name}\" مؤقتاً.`, 'warning');
+        addNotification(`🔒 تم تعليق حساب "${updatedRep.name}" مؤقتاً.`, 'warning');
       }
     } else if (prevRep && prevRep.avatarStatus !== updatedRep.avatarStatus && updatedRep.avatarStatus !== 'none') {
-      const statusMap: Record<string, string> = {
-        approved: 'مقبولة وموثقة ✓',
-        rejected: 'مرفوضة ✕',
-        pending_approval: 'قيد المراجعة ⏳',
-      };
-      const newStatus = statusMap[updatedRep.avatarStatus] || updatedRep.avatarStatus;
-      addNotification(`👤 تم تحديث حالة صورة ملف المندوب "${updatedRep.name}" إلى: ${newStatus}`, 'info');
+      if (updatedRep.avatarStatus === 'approved') {
+        addNotification(`📸 تمت الموافقة على صورة ملف "${updatedRep.name}" وتفعيلها في حسابه!`, 'success');
+      } else if (updatedRep.avatarStatus === 'rejected') {
+        addNotification(`❌ تم رفض صورة ملف "${updatedRep.name}" — يجب رفع صورة بديلة.`, 'warning');
+      } else {
+        addNotification(`⏳ تم إرسال صورة "${updatedRep.name}" لمراجعة المدير.`, 'info');
+      }
     } else {
-      addNotification(`💾 تم حفظ تعديلات حساب المندوب "${updatedRep.name}" بنجاح!`, 'success');
+      addNotification(`💾 تم حفظ تعديلات حساب "${updatedRep.name}" بنجاح!`, 'success');
     }
 
     await saveRepToDb(updatedRep);
@@ -446,31 +454,65 @@ export default function App() {
 
   return (
     <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>
-      {/* TOAST NOTIFICATIONS */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4">
-        {notifications.map((n: any) => (
-          <div
-            key={n.id}
-            className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-bold animate-fade-in-up backdrop-blur-sm ${
-              n.type === 'success'
-                ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100'
-                : n.type === 'error'
-                ? 'bg-rose-900/90 border-rose-500/50 text-rose-100'
-                : n.type === 'warning'
-                ? 'bg-amber-900/90 border-amber-500/50 text-amber-100'
-                : 'bg-slate-800/90 border-slate-600/50 text-slate-100'
-            }`}
-          >
-            <span className="flex-1 leading-relaxed">{n.message}</span>
-            <button
-              onClick={() => setNotifications((prev: any[]) => prev.filter((x: any) => x.id !== n.id))}
-              className="shrink-0 opacity-60 hover:opacity-100 cursor-pointer"
+      {/* ===================== PROFESSIONAL TOAST NOTIFICATIONS ===================== */}
+      <div
+        className="fixed top-4 right-0 left-0 z-[9999] flex flex-col items-center gap-2.5 pointer-events-none px-4"
+        aria-live="polite"
+        aria-atomic="false"
+      >
+        {notifications.map((n: any) => {
+          const icons: Record<string, string> = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️',
+          };
+          const colors: Record<string, string> = {
+            success: 'from-emerald-950/98 to-emerald-900/95 border-emerald-500/60 text-emerald-50',
+            error:   'from-rose-950/98 to-rose-900/95 border-rose-500/60 text-rose-50',
+            warning: 'from-amber-950/98 to-amber-900/95 border-amber-500/60 text-amber-50',
+            info:    'from-slate-900/98 to-slate-800/95 border-slate-500/50 text-slate-100',
+          };
+          const barColors: Record<string, string> = {
+            success: 'bg-emerald-400',
+            error:   'bg-rose-400',
+            warning: 'bg-amber-400',
+            info:    'bg-slate-400',
+          };
+          const colorClass = colors[n.type] || colors.info;
+          const barColor = barColors[n.type] || barColors.info;
+          const icon = icons[n.type] || icons.info;
+          return (
+            <div
+              key={n.id}
+              className={`pointer-events-auto w-full max-w-sm relative overflow-hidden rounded-2xl border bg-gradient-to-br ${colorClass} shadow-2xl backdrop-blur-xl animate-fade-in-up`}
+              style={{ direction: 'rtl' }}
             >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
+              {/* Progress Bar */}
+              <div
+                className={`absolute top-0 right-0 h-1 ${barColor} rounded-t-2xl`}
+                style={{
+                  animation: `shrink-width 5.5s linear forwards`,
+                  width: '100%',
+                }}
+              />
+              {/* Content */}
+              <div className="flex items-start gap-3 px-4 py-3.5 pt-4">
+                <span className="text-lg leading-none shrink-0 mt-0.5">{icon}</span>
+                <span className="flex-1 text-[13px] font-bold leading-relaxed">{n.message}</span>
+                <button
+                  onClick={() => setNotifications((prev: any[]) => prev.filter((x: any) => x.id !== n.id))}
+                  className="shrink-0 opacity-50 hover:opacity-100 transition-opacity cursor-pointer mt-0.5 hover:scale-110 active:scale-90"
+                  title="إغلاق"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
+      {/* =========================================================================== */}
       {/* Top App Bar - Fixed */}
       <Navbar
         user={user}
