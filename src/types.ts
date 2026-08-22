@@ -78,7 +78,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'rep';
+  role: 'admin' | 'rep' | 'supervisor' | 'accountant';
   repData?: Representative;
 }
 

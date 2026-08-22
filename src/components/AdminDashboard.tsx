@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DocViewerModal } from './DocViewerModal';
 import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus, PaymentStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
@@ -149,21 +149,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const inProgressCount = businesses.filter((b) => b.verificationStatus === 'in_progress').length;
 
   // Filtered Businesses
-  const filteredBusinesses = businesses.filter((b) => {
-    if (bizSearchQuery && !b.nameAr.includes(bizSearchQuery) && !b.ownerName.includes(bizSearchQuery) && !b.ownerPhone.includes(bizSearchQuery)) {
-      return false;
-    }
-    if (governorateFilter !== 'all' && !b.governorate.includes(governorateFilter)) {
-      return false;
-    }
-    if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
-      return false;
-    }
-    if (verificationFilter !== 'all' && b.verificationStatus !== verificationFilter) {
-      return false;
-    }
-    return true;
-  });
+  const filteredBusinesses = useMemo(
+    () =>
+      businesses.filter((b) => {
+        if (
+          bizSearchQuery &&
+          !b.nameAr.includes(bizSearchQuery) &&
+          !b.ownerName.includes(bizSearchQuery) &&
+          !b.ownerPhone.includes(bizSearchQuery)
+        ) {
+          return false;
+        }
+        if (governorateFilter !== 'all' && !b.governorate.includes(governorateFilter)) {
+          return false;
+        }
+        if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
+          return false;
+        }
+        if (verificationFilter !== 'all' && b.verificationStatus !== verificationFilter) {
+          return false;
+        }
+        return true;
+      }),
+    [businesses, bizSearchQuery, governorateFilter, paymentFilter, verificationFilter]
+  );
 
   // Merged Representatives Map (Props only, no localStorage)
   const allAdminRepsMap = new Map<string, Representative>();
@@ -171,20 +180,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const mergedAdminReps = Array.from(allAdminRepsMap.values());
 
   // Filtered Accounts
-  const filteredAccounts = mergedAdminReps.filter((acc) => {
-    if (accountSearchQuery && !acc.name.includes(accountSearchQuery) && !acc.email.includes(accountSearchQuery) && !acc.phone.includes(accountSearchQuery)) {
-      return false;
-    }
-    if (accountRoleFilter !== 'all') {
-      const accRole = acc.role || 'rep';
-      if (accRole !== accountRoleFilter) return false;
-    }
-    if (accountStatusFilter !== 'all') {
-      const accStatus = acc.status || 'active';
-      if (accStatus !== accountStatusFilter) return false;
-    }
-    return true;
-  });
+  const filteredAccounts = useMemo(
+    () =>
+      mergedAdminReps.filter((acc) => {
+        if (
+          accountSearchQuery &&
+          !acc.name.includes(accountSearchQuery) &&
+          !acc.email.includes(accountSearchQuery) &&
+          !acc.phone.includes(accountSearchQuery)
+        ) {
+          return false;
+        }
+        if (accountRoleFilter !== 'all') {
+          const accRole = acc.role || 'rep';
+          if (accRole !== accountRoleFilter) return false;
+        }
+        if (accountStatusFilter !== 'all') {
+          const accStatus = acc.status || 'active';
+          if (accStatus !== accountStatusFilter) return false;
+        }
+        return true;
+      }),
+    [mergedAdminReps, accountSearchQuery, accountRoleFilter, accountStatusFilter]
+  );
 
   // ---------------------------------------------------------------------------
   // HANDLERS FOR MODALS & ACTIONS
@@ -220,6 +238,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleSaveAccountModal = (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalName || !modalPhone) return;
+
+    // Arabic name validation
+    const arabicNameRegex = /^[\u0600-\u06ff\u0750-\u077f\ufb50-\ufbff\ufe70-\ufeff ]+$/;
+    if (!arabicNameRegex.test(modalName.trim())) {
+      alert('يجب إدخال الاسم باللغة العربية فقط (لا تستخدم أحرف إنجليزية أو أرقام).');
+      return;
+    }
 
     const roleTitleMap: Record<UserRole, string> = {
       admin: 'مدير النظام دليلك',
@@ -257,7 +282,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         commissionRate: modalCommission,
         status: modalStatus,
         password: modalPassword,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+        avatar: '', // No avatar — will show first letter initial
       });
     }
 
@@ -966,6 +991,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onShowInvoice={onShowInvoice}
         onCollectPayment={onCollectPayment}
         onDeleteBusiness={onDeleteBusiness}
+        businesses={businesses}
       />
       {/* MODAL 2: USER ACCOUNT CREATION / EDITING POP-UP */}
       {/* --------------------------------------------------------------------- */}
@@ -1132,7 +1158,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
                 >
                   <option value="rep">💼 مندوب مبيعات ميداني (تسجيل المحلات والتحصيل)</option>
-                  <option value="supervisor">👑 مشرف إدارة منطقة ومافظة</option>
+                  <option value="supervisor">👑 مشرف إدارة منطقة ومحافظة</option>
                   <option value="accountant">🧾 محاسب ومحصل فواتير إلكترونية</option>
                   <option value="admin">🛡️ مدير النظام (أدمن بجميع الصلاحيات)</option>
                 </select>

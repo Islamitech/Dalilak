@@ -42,7 +42,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {user.name}
                   </p>
                   <p className="hidden sm:block text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5">
-                    {user.role === 'admin' ? 'مدير النظام' : 'مندوب معتمد'}
+                    {user.role === 'admin'
+                      ? 'مدير النظام'
+                      : user.role === 'supervisor'
+                      ? 'مشرف منطقة'
+                      : user.role === 'accountant'
+                      ? 'محاسب ومحصل'
+                      : 'مندوب معتمد'}
                   </p>
                 </div>
               </div>

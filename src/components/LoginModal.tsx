@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Representative } from '../types';
-import { MOCK_REPRESENTATIVES } from '../data/mockData';
+import { MOCK_REPRESENTATIVES, EGYPT_GOVERNORATES } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
@@ -170,6 +170,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
+    // Arabic name validation — only Arabic letters and spaces allowed
+    const arabicNameRegex = /^[؀-ۿݐ-ݿﭐ-ﯿﹰ-﻿ ]+$/;
+    if (!arabicNameRegex.test(regName.trim())) {
+      setErrorMsg('يجب إدخال الاسم باللغة العربية فقط (لا تستخدم أحرف إنجليزية أو أرقاماً).');
+      return;
+    }
+
     const phoneRegex = /^01[0125]\d{8}$/;
     if (!phoneRegex.test(regPhone)) {
       setErrorMsg('رقم المحمول غير صحيح! يجب أن يتكون من 11 رقم مصري يبدأ بـ 01.');
@@ -224,7 +231,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const timestamp = Date.now();
     const newRepData: Representative = {
       id: `rep_${timestamp}`,
-      name: regName,
+      name: regName.trim(),
       email: cleanRegEmail,
       phone: regPhone,
       nationalId: regNationalId,
@@ -235,7 +242,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       avatar: regAvatar || '',
       avatarStatus: regAvatar ? 'pending_approval' : 'none',
       commissionRate: 42.86,
-      status: 'active',
+      status: 'suspended', // New accounts are suspended until admin activates
       password: regPassword,
     };
 
@@ -243,11 +250,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       onAddRepresentative(newRepData);
     }
 
+    setIsLoading(false);
     setRegSuccessNotice(true);
     setTimeout(() => {
       setRegSuccessNotice(false);
       setActiveTab('login');
-    }, 4000);
+    }, 5000);
   };
 
   const modalBox = (
@@ -313,7 +321,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {regSuccessNotice && (
         <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>تم تقديم طلب إنشاء الحساب بنجاح! تم تفعيل الحساب ويمكنك الآن تسجيل الدخول مباشرة على المنصة.</span>
+          <span>✅ تم تقديم طلب إنشاء الحساب بنجاح! حسابك قيد المراجعة وسيتم تفعيله بواسطة مدير النظام قريباً وستصلك الموافقة عبر المنصة.</span>
         </div>
       )}
 
@@ -424,17 +432,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 onChange={(e) => setRegGovernorate(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
               >
-                <option value="القاهرة">القاهرة</option>
-                <option value="الجيزة">الجيزة</option>
-                <option value="الإسكندرية">الإسكندرية</option>
-                <option value="الدقهلية (المنصورة)">الدقهلية (المنصورة)</option>
-                <option value="الشرقية (الزقازيق)">الشرقية (الزقازيق)</option>
-                <option value="الغربية (طنطا)">الغربية (طنطا)</option>
-                <option value="القليوبية">القليوبية</option>
-                <option value="البحيرة">البحيرة</option>
-                <option value="المنوفية">المنوفية</option>
-                <option value="أسيوط">أسيوط</option>
-                <option value="سوهاج">سوهاج</option>
+                {EGYPT_GOVERNORATES.map((gov) => (
+                  <option key={gov} value={gov}>{gov}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -471,9 +471,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            إرسال طلب إنشاء الحساب
+            {isLoading ? 'جاري إنشاء الحساب...' : 'إرسال طلب إنشاء الحساب'}
           </button>
         </form>
       )}

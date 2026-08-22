@@ -111,6 +111,19 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
   }
 }
 
+export async function deleteRepFromDb(id: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('representatives').delete().eq('id', id);
+    if (error) {
+      await supabaseRestFetch(`representatives?id=eq.${id}`, {
+        method: 'DELETE',
+      });
+    }
+  } catch (err) {
+    console.log('Supabase delete rep notice:', err);
+  }
+}
+
 // 3. MAPPING HELPERS
 function parsePhotosArray(item: any): string[] {
   const raw = item.photos || item.photos_urls || item.photosUrls;

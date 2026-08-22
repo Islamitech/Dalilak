@@ -143,7 +143,7 @@ app.post('/api/representatives', (req, res) => {
     roleTitle: req.body.roleTitle || (req.body.role === 'admin' ? 'مدير نظام' : req.body.role === 'supervisor' ? 'مشرف منطقة' : req.body.role === 'accountant' ? 'محاسب' : 'مندوب ميداني'),
     governorate: req.body.governorate || 'القاهرة',
     targetMonth: Number(req.body.targetMonth) || 20,
-    avatar: req.body.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+    avatar: req.body.avatar || '', // No default avatar — shows first letter initial
     commissionRate: Number(req.body.commissionRate) || 15,
     status: req.body.status || 'active',
     password: req.body.password || 'Aa123456',

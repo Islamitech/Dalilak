@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Business, Representative, PaymentGatewayConfig } from './types';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './data/mockData';
 import { calculateTotalRepCommission } from './utils/commission';
@@ -13,7 +13,7 @@ import { RepProfile } from './components/RepProfile';
 import { LoginModal } from './components/LoginModal';
 import { PaymentGatewayModal } from './components/PaymentGatewayModal';
 import { BusinessEditModal } from './components/BusinessEditModal';
-import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye } from 'lucide-react';
+import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X } from 'lucide-react';
 import {
   fetchBusinessesFromDb,
   saveBusinessToDb,
@@ -21,6 +21,7 @@ import {
   deleteBusinessFromDb,
   fetchRepsFromDb,
   saveRepToDb,
+  deleteRepFromDb,
 } from './services/db';
 
 export default function App() {
@@ -109,6 +110,15 @@ export default function App() {
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  const addNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+    const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    setNotifications((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    }, 4500);
+  };
 
   // Parse URL for deep linking (QR codes)
   useEffect(() => {
@@ -153,7 +163,8 @@ export default function App() {
   // Handlers synced with Supabase Database
   const handleAddBusiness = async (newBiz: Business) => {
     setBusinesses([newBiz, ...businesses]);
-    saveBusinessToDb(newBiz);
+    await saveBusinessToDb(newBiz);
+    addNotification(`🎉 تم تسجيل النشاط التجاري "${newBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
     try {
       await fetch('/api/businesses', {
         method: 'POST',
@@ -166,8 +177,22 @@ export default function App() {
   };
 
   const handleUpdateBusiness = async (updatedBiz: Business) => {
+    const prevBiz = businesses.find((b) => b.id === updatedBiz.id);
     setBusinesses(businesses.map((b) => (b.id === updatedBiz.id ? updatedBiz : b)));
     updateBusinessInDb(updatedBiz.id, updatedBiz);
+    
+    if (prevBiz && prevBiz.verificationStatus !== updatedBiz.verificationStatus) {
+      const statusMap: Record<string, string> = {
+        verified: 'مقبول وموثق ✅',
+        rejected: 'مرفوض ✕',
+        in_progress: 'قيد المراجعة ⏳',
+      };
+      const newStatus = statusMap[updatedBiz.verificationStatus] || updatedBiz.verificationStatus;
+      addNotification(`🔔 تم تحديث حالة نشاط "${updatedBiz.nameAr}" إلى: ${newStatus}`, 'info');
+    } else {
+      addNotification(`💾 تم حفظ تعديلات نشاط "${updatedBiz.nameAr}" بنجاح!`, 'success');
+    }
+
     try {
       await fetch(`/api/businesses/${updatedBiz.id}`, {
         method: 'PUT',
@@ -180,8 +205,12 @@ export default function App() {
   };
 
   const handleDeleteBusiness = async (id: string) => {
+    const biz = businesses.find((b) => b.id === id);
     setBusinesses(businesses.filter((b) => b.id !== id));
-    deleteBusinessFromDb(id);
+    await deleteBusinessFromDb(id);
+    if (biz) {
+      addNotification(`🗑️ تم حذف النشاط التجاري "${biz.nameAr}" من النظام.`, 'warning');
+    }
     try {
       await fetch(`/api/businesses/${id}`, { method: 'DELETE' });
     } catch (err) {
@@ -214,6 +243,11 @@ export default function App() {
     });
 
     await saveRepToDb(newRep);
+    if (newRep.status === 'suspended') {
+      addNotification(`⏳ تم تسجيل طلب حساب جديد لـ "${newRep.name}" بانتظار موافقة المدير لتفعيله.`, 'info');
+    } else {
+      addNotification(`👤 تم إنشاء حساب المندوب الجديد "${newRep.name}" بنجاح!`, 'success');
+    }
     try {
       await fetch('/api/representatives', {
         method: 'POST',
@@ -226,6 +260,7 @@ export default function App() {
   };
 
   const handleUpdateRepresentative = async (updatedRep: Representative) => {
+    const prevRep = representatives.find((r) => r.id === updatedRep.id);
     setRepresentatives((prev) => {
       const updated = prev.map((r) => (r.id === updatedRep.id ? updatedRep : r));
       return updated;
@@ -234,15 +269,41 @@ export default function App() {
     if (user?.repData?.id === updatedRep.id) {
       setUser({ ...user, repData: updatedRep, name: updatedRep.name, email: updatedRep.email });
     }
+    
+    if (prevRep && prevRep.status !== updatedRep.status) {
+      if (updatedRep.status === 'active') {
+        addNotification(`✅ تم تفعيل حساب \"${updatedRep.name}\" بنجاح ويمكنه الدخول الآن!`, 'success');
+      } else {
+        addNotification(`🔒 تم تعليق حساب \"${updatedRep.name}\" مؤقتاً.`, 'warning');
+      }
+    } else if (prevRep && prevRep.avatarStatus !== updatedRep.avatarStatus && updatedRep.avatarStatus !== 'none') {
+      const statusMap: Record<string, string> = {
+        approved: 'مقبولة وموثقة ✓',
+        rejected: 'مرفوضة ✕',
+        pending_approval: 'قيد المراجعة ⏳',
+      };
+      const newStatus = statusMap[updatedRep.avatarStatus] || updatedRep.avatarStatus;
+      addNotification(`👤 تم تحديث حالة صورة ملف المندوب "${updatedRep.name}" إلى: ${newStatus}`, 'info');
+    } else {
+      addNotification(`💾 تم حفظ تعديلات حساب المندوب "${updatedRep.name}" بنجاح!`, 'success');
+    }
+
     await saveRepToDb(updatedRep);
   };
 
   const handleDeleteRepresentative = async (id: string) => {
+    const rep = representatives.find((r) => r.id === id);
     setRepresentatives(representatives.filter((r) => r.id !== id));
+    // Delete from Supabase DB via service layer
+    await deleteRepFromDb(id);
+    // Delete from Express backend
     try {
       await fetch(`/api/representatives/${id}`, { method: 'DELETE' });
     } catch (err) {
-      console.log('Backend rep delete sync failed:', err);
+      console.log('Backend rep delete sync notice:', err);
+    }
+    if (rep) {
+      addNotification(`🗑️ تم حذف حساب المندوب "${rep.name}" نهائياً من النظام.`, 'warning');
     }
   };
 
@@ -260,26 +321,56 @@ export default function App() {
   };
 
   const rawRep = user?.repData || representatives[0];
-  const currentRep: Representative = {
-    ...rawRep,
-    commissionRate: rawRep?.commissionRate && rawRep.commissionRate > 0 && rawRep.commissionRate !== 15 ? rawRep.commissionRate : 42.86,
-  };
+  // Guard: use safe defaults if rawRep is undefined (e.g. during initial data load)
+  const currentRep: Representative = rawRep
+    ? {
+        ...rawRep,
+        commissionRate:
+          rawRep.commissionRate && rawRep.commissionRate > 0 && rawRep.commissionRate !== 15
+            ? rawRep.commissionRate
+            : 42.86,
+      }
+    : {
+        id: user?.id || 'rep_unknown',
+        name: user?.name || 'مندوب',
+        email: user?.email || '',
+        phone: '',
+        governorate: 'القاهرة',
+        targetMonth: 25,
+        avatar: '',
+        avatarStatus: 'none',
+        commissionRate: 42.86,
+        status: 'active',
+      };
   const isRepUser = user?.role !== 'admin';
 
   // Strict Scoping: If logged in as Representative, only display businesses registered by this rep!
-  const scopedBusinesses = isRepUser
-    ? businesses.filter((b) => b.repId === currentRep.id || b.repName === currentRep.name)
-    : businesses;
+  const scopedBusinesses = useMemo(
+    () =>
+      isRepUser
+        ? businesses.filter((b) => b.repId === currentRep.id || b.repName === currentRep.name)
+        : businesses,
+    [isRepUser, businesses, currentRep.id, currentRep.name]
+  );
 
-  const filteredHomeBusinesses = scopedBusinesses.filter((b) => {
-    if (homeSearchQuery && !b.nameAr.includes(homeSearchQuery) && !b.city.includes(homeSearchQuery) && !b.governorate.includes(homeSearchQuery)) {
-      return false;
-    }
-    if (homeStatusFilter !== 'all' && b.paymentStatus !== homeStatusFilter) {
-      return false;
-    }
-    return true;
-  });
+  const filteredHomeBusinesses = useMemo(
+    () =>
+      scopedBusinesses.filter((b) => {
+        if (
+          homeSearchQuery &&
+          !b.nameAr.includes(homeSearchQuery) &&
+          !b.city.includes(homeSearchQuery) &&
+          !b.governorate.includes(homeSearchQuery)
+        ) {
+          return false;
+        }
+        if (homeStatusFilter !== 'all' && b.paymentStatus !== homeStatusFilter) {
+          return false;
+        }
+        return true;
+      }),
+    [scopedBusinesses, homeSearchQuery, homeStatusFilter]
+  );
 
   // Remove current user from local storage & clear active tab
   const handleLogout = () => {
@@ -355,6 +446,31 @@ export default function App() {
 
   return (
     <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>
+      {/* TOAST NOTIFICATIONS */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4">
+        {notifications.map((n: any) => (
+          <div
+            key={n.id}
+            className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-bold animate-fade-in-up backdrop-blur-sm ${
+              n.type === 'success'
+                ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100'
+                : n.type === 'error'
+                ? 'bg-rose-900/90 border-rose-500/50 text-rose-100'
+                : n.type === 'warning'
+                ? 'bg-amber-900/90 border-amber-500/50 text-amber-100'
+                : 'bg-slate-800/90 border-slate-600/50 text-slate-100'
+            }`}
+          >
+            <span className="flex-1 leading-relaxed">{n.message}</span>
+            <button
+              onClick={() => setNotifications((prev: any[]) => prev.filter((x: any) => x.id !== n.id))}
+              className="shrink-0 opacity-60 hover:opacity-100 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
       {/* Top App Bar - Fixed */}
       <Navbar
         user={user}
