@@ -88,3 +88,19 @@ export interface PaymentGatewayConfig {
   instaPayHandle: string;
   cardGatewayActive: boolean;
 }
+
+export type NotificationCategory = 'account' | 'business' | 'payment' | 'avatar' | 'system';
+
+export interface SystemNotification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string; // ISO string
+  type: 'info' | 'success' | 'warning' | 'error';
+  category: NotificationCategory;
+  targetRole?: UserRole | 'all';
+  targetUserId?: string; // If specified, strictly for this rep/user
+  read: boolean;
+  linkTab?: string;
+}
+

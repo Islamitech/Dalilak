@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Business, Representative, PaymentGatewayConfig } from './types';
+import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole } from './types';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './data/mockData';
 import { calculateTotalRepCommission } from './utils/commission';
 import { Navbar } from './components/Navbar';
@@ -120,6 +120,109 @@ export default function App() {
     }, 5500);
   };
 
+  // Persistent System Notifications for Bell Notification Center
+  const INITIAL_SYSTEM_NOTIFICATIONS: SystemNotification[] = useMemo(
+    () => [
+      {
+        id: 'sys_init_1',
+        title: 'مرحباً بك في منصة دليلك 🚀',
+        message: 'تفعيل كامل لمنظومة الإشعارات والمستجدات الميدانية لمتابعة الأنشطة والحسابات والتحصيلات في مصر.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+        type: 'info',
+        category: 'system',
+        targetRole: 'all',
+        read: false,
+      },
+      {
+        id: 'sys_init_2',
+        title: 'حساب جديد معلق بانتظار التفعيل 👤',
+        message: 'طلب تسجيل حساب جديد للمندوب (Ahmed Ezalden - محافظة الجيزة)، الحساب معلق بانتظار مراجعته وتفعيله.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+        type: 'warning',
+        category: 'account',
+        targetRole: 'admin',
+        read: false,
+        linkTab: 'admin',
+      },
+      {
+        id: 'sys_init_3',
+        title: 'تأكيد توثيق نشاط تجاري 📌',
+        message: 'تم تفعيل التوثيق الميداني والظهور الرسمي لنشاط "مطعم أبو طارق للكشري" على خرائط جوجل بنجاح.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+        type: 'success',
+        category: 'business',
+        targetRole: 'all',
+        read: true,
+        linkTab: 'home',
+      },
+      {
+        id: 'sys_init_4',
+        title: 'تسجيل تحصيل فاتورة 💳',
+        message: 'تم استلام وتوثيق تحصيل سداد بقيمة 1,500 ج.م للباقة VIP (فاتورة رقم INV-2026-001).',
+        timestamp: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
+        type: 'success',
+        category: 'payment',
+        targetRole: 'admin',
+        read: true,
+        linkTab: 'invoices',
+      },
+    ],
+    []
+  );
+
+  const [systemNotifications, setSystemNotifications] = useState<SystemNotification[]>(() => {
+    const saved = localStorage.getItem('dalelak_system_notifications');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_SYSTEM_NOTIFICATIONS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('dalelak_system_notifications', JSON.stringify(systemNotifications));
+    } catch (e) {}
+  }, [systemNotifications]);
+
+  const addSystemNotification = (item: {
+    title: string;
+    message: string;
+    type?: 'info' | 'success' | 'warning' | 'error';
+    category?: NotificationCategory;
+    targetRole?: UserRole | 'all';
+    targetUserId?: string;
+    linkTab?: string;
+  }) => {
+    const newNotif: SystemNotification = {
+      id: `sys_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      title: item.title,
+      message: item.message,
+      timestamp: new Date().toISOString(),
+      type: item.type || 'info',
+      category: item.category || 'system',
+      targetRole: item.targetRole || 'all',
+      targetUserId: item.targetUserId,
+      read: false,
+      linkTab: item.linkTab,
+    };
+    setSystemNotifications((prev) => [newNotif, ...prev]);
+  };
+
+  const handleMarkAllNotificationsAsRead = () => {
+    setSystemNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleMarkNotificationAsRead = (id: string) => {
+    setSystemNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const handleClearNotifications = () => {
+    setSystemNotifications([]);
+  };
+
   // Parse URL for deep linking (QR codes)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -165,6 +268,25 @@ export default function App() {
     setBusinesses([newBiz, ...businesses]);
     await saveBusinessToDb(newBiz);
     addNotification(`🎉 تم تسجيل النشاط التجاري "${newBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
+    
+    // Add to System Notifications Bell Log
+    addSystemNotification({
+      title: 'نشاط تجاري جديد 🏪',
+      message: `قام المندوب "${newBiz.repName || user?.name || ''}" بتسجيل نشاط تجاري جديد "${newBiz.nameAr}" في ${newBiz.governorate}.`,
+      type: 'info',
+      category: 'business',
+      targetRole: 'admin',
+      linkTab: 'admin',
+    });
+    addSystemNotification({
+      title: 'تم تسجيل النشاط التجاري 📌',
+      message: `تم تسجيل نشاط "${newBiz.nameAr}" بنجاح في المنظومة وجاري معاينته وتوثيقه.`,
+      type: 'success',
+      category: 'business',
+      targetUserId: newBiz.repId,
+      linkTab: 'home',
+    });
+
     try {
       await fetch('/api/businesses', {
         method: 'POST',
@@ -189,8 +311,28 @@ export default function App() {
       };
       const newStatus = statusMap[updatedBiz.verificationStatus] || updatedBiz.verificationStatus;
       addNotification(`🔔 تم تحديث حالة نشاط "${updatedBiz.nameAr}" إلى: ${newStatus}`, 'info');
+
+      addSystemNotification({
+        title: 'تحديث توثيق النشاط 🗺️',
+        message: `تم تحديث حالة التوثيق لنشاط "${updatedBiz.nameAr}" إلى (${newStatus}).`,
+        type: updatedBiz.verificationStatus === 'verified' ? 'success' : 'info',
+        category: 'business',
+        targetRole: 'all',
+        linkTab: 'home',
+      });
     } else {
       addNotification(`💾 تم حفظ تعديلات نشاط "${updatedBiz.nameAr}" بنجاح!`, 'success');
+    }
+
+    if (prevBiz && (prevBiz.amountPaid !== updatedBiz.amountPaid || prevBiz.paymentStatus !== updatedBiz.paymentStatus)) {
+      addSystemNotification({
+        title: 'تحديث تحصيل سداد 💳',
+        message: `تم تحديث مدفوعات نشاط "${updatedBiz.nameAr}" (المبلغ المدفوع: ${updatedBiz.amountPaid} ج.م - الحالة: ${updatedBiz.paymentStatus === 'fully_paid' ? 'مكتمل' : 'جزئي'}).`,
+        type: 'success',
+        category: 'payment',
+        targetRole: 'admin',
+        linkTab: 'invoices',
+      });
     }
 
     try {
@@ -210,6 +352,13 @@ export default function App() {
     await deleteBusinessFromDb(id);
     if (biz) {
       addNotification(`🗑️ تم حذف النشاط التجاري "${biz.nameAr}" من النظام.`, 'warning');
+      addSystemNotification({
+        title: 'حذف نشاط تجاري 🗑️',
+        message: `تم حذف النشاط التجاري "${biz.nameAr}" من المنظومة.`,
+        type: 'warning',
+        category: 'business',
+        targetRole: 'admin',
+      });
     }
     try {
       await fetch(`/api/businesses/${id}`, { method: 'DELETE' });
@@ -245,8 +394,31 @@ export default function App() {
     await saveRepToDb(newRep);
     if (newRep.status === 'suspended') {
       addNotification(`⏳ تم تسجيل طلب حساب جديد لـ "${newRep.name}" بانتظار موافقة المدير لتفعيله.`, 'info');
+      addSystemNotification({
+        title: 'حساب جديد معلق بانتظار التفعيل 👤',
+        message: `قام المندوب "${newRep.name}" بتسجيل حساب جديد (محافظة ${newRep.governorate})، الحساب معلق بانتظار مراجعته وتفعيله.`,
+        type: 'warning',
+        category: 'account',
+        targetRole: 'admin',
+        linkTab: 'admin',
+      });
+      addSystemNotification({
+        title: 'طلب الحساب قيد المراجعة ⏳',
+        message: 'تم تسليم بيانات حسابك بنجاح وسنقوم بمراجعة وتفعيل الحساب من إدارة المنظومة قريباً.',
+        type: 'info',
+        category: 'account',
+        targetUserId: newRep.id,
+      });
     } else {
       addNotification(`👤 تم إنشاء حساب المندوب الجديد "${newRep.name}" بنجاح!`, 'success');
+      addSystemNotification({
+        title: 'إضافة حساب جديد 👤',
+        message: `تم إنشاء حساب جديد بنجاح لـ "${newRep.name}" بصلاحية (${newRep.roleTitle || 'مندوب'}).`,
+        type: 'success',
+        category: 'account',
+        targetRole: 'admin',
+        linkTab: 'admin',
+      });
     }
     try {
       await fetch('/api/representatives', {
@@ -281,16 +453,69 @@ export default function App() {
     if (prevRep && prevRep.status !== updatedRep.status) {
       if (updatedRep.status === 'active') {
         addNotification(`✅ تم تفعيل حساب "${updatedRep.name}" بنجاح ويمكنه الدخول الآن!`, 'success');
+        addSystemNotification({
+          title: 'تفعيل حساب مندوب 👤',
+          message: `تم تفعيل حساب المندوب "${updatedRep.name}" وسماح الدخول له بالكامل.`,
+          type: 'success',
+          category: 'account',
+          targetRole: 'admin',
+          linkTab: 'admin',
+        });
+        addSystemNotification({
+          title: '🎉 تم تفعيل حسابك بنجاح!',
+          message: 'تهانينا! تمت مراجعة وتفعيل حسابك رسمياً من مدير النظام، يمكنك الآن تسجيل وتوثيق المحلات والتحصيل.',
+          type: 'success',
+          category: 'account',
+          targetUserId: updatedRep.id,
+        });
       } else {
         addNotification(`🔒 تم تعليق حساب "${updatedRep.name}" مؤقتاً.`, 'warning');
+        addSystemNotification({
+          title: 'تعليق حساب مندوب 🔒',
+          message: `تم تعليق حساب المندوب "${updatedRep.name}" مؤقتاً.`,
+          type: 'warning',
+          category: 'account',
+          targetRole: 'admin',
+        });
       }
     } else if (prevRep && prevRep.avatarStatus !== updatedRep.avatarStatus && updatedRep.avatarStatus !== 'none') {
       if (updatedRep.avatarStatus === 'approved') {
         addNotification(`📸 تمت الموافقة على صورة ملف "${updatedRep.name}" وتفعيلها في حسابه!`, 'success');
+        addSystemNotification({
+          title: 'اعتماد صورة المندوب 📸',
+          message: `تمت الموافقة على الصورة الشخصية للمندوب "${updatedRep.name}".`,
+          type: 'success',
+          category: 'avatar',
+          targetRole: 'admin',
+        });
+        addSystemNotification({
+          title: '📸 تمت الموافقة على صورتك الشخصية!',
+          message: 'تم اعتماد وتوثيق صورتك الشخصية رسمياً وتحديث بطاقتك الرقمية التكليفية.',
+          type: 'success',
+          category: 'avatar',
+          targetUserId: updatedRep.id,
+          linkTab: 'profile',
+        });
       } else if (updatedRep.avatarStatus === 'rejected') {
         addNotification(`❌ تم رفض صورة ملف "${updatedRep.name}" — يجب رفع صورة بديلة.`, 'warning');
+        addSystemNotification({
+          title: '❌ مرفوض: الصورة الشخصية',
+          message: 'تم رفض الصورة الشخصية المرفوعة، يرجى إعادة رفع صورة رسمية واضحة ومطابقة للضوابط.',
+          type: 'error',
+          category: 'avatar',
+          targetUserId: updatedRep.id,
+          linkTab: 'profile',
+        });
       } else {
         addNotification(`⏳ تم إرسال صورة "${updatedRep.name}" لمراجعة المدير.`, 'info');
+        addSystemNotification({
+          title: 'صورة شخصية جديدة للمراجعة 📸',
+          message: `قام المندوب "${updatedRep.name}" برفع صورة شخصية جديدة للمراجعة والاعتماد.`,
+          type: 'info',
+          category: 'avatar',
+          targetRole: 'admin',
+          linkTab: 'admin',
+        });
       }
     } else {
       addNotification(`💾 تم حفظ تعديلات حساب "${updatedRep.name}" بنجاح!`, 'success');
@@ -312,6 +537,13 @@ export default function App() {
     }
     if (rep) {
       addNotification(`🗑️ تم حذف حساب المندوب "${rep.name}" نهائياً من النظام.`, 'warning');
+      addSystemNotification({
+        title: 'حذف حساب مندوب 🗑️',
+        message: `تم حذف حساب المندوب "${rep.name}" نهائياً من المنظومة.`,
+        type: 'warning',
+        category: 'account',
+        targetRole: 'admin',
+      });
     }
   };
 
@@ -519,6 +751,11 @@ export default function App() {
         onOpenLogin={() => setShowLoginModal(true)}
         onLogout={handleLogout}
         activeTab={activeTab}
+        systemNotifications={systemNotifications}
+        onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
+        onMarkNotificationAsRead={handleMarkNotificationAsRead}
+        onClearNotifications={handleClearNotifications}
+        onNavigateTab={(tab) => setActiveTab(tab)}
       />
 
       {/* Main App Container */}

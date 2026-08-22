@@ -1,7 +1,8 @@
 import React from 'react';
-import { User } from '../types';
+import { User, SystemNotification } from '../types';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
+import { NotificationCenter } from './NotificationCenter';
 import { LogIn, LogOut } from 'lucide-react';
 
 interface NavbarProps {
@@ -9,12 +10,22 @@ interface NavbarProps {
   onOpenLogin: () => void;
   onLogout: () => void;
   activeTab?: string;
+  systemNotifications: SystemNotification[];
+  onMarkAllNotificationsAsRead: () => void;
+  onMarkNotificationAsRead: (id: string) => void;
+  onClearNotifications: () => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   user,
   onOpenLogin,
   onLogout,
+  systemNotifications,
+  onMarkAllNotificationsAsRead,
+  onMarkNotificationAsRead,
+  onClearNotifications,
+  onNavigateTab,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-b border-[var(--border-color)] text-[var(--text-primary)] shadow-md transition-colors duration-300">
@@ -22,8 +33,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand Logo */}
         <Logo size="md" />
 
-        {/* Right side controls: Theme Toggle + User Badge / Login */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Right side controls: Notification Center + Theme Toggle + User Badge / Login */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Notification Center Bell Icon & Dropdown */}
+          <NotificationCenter
+            user={user}
+            notifications={systemNotifications}
+            onMarkAllAsRead={onMarkAllNotificationsAsRead}
+            onMarkAsRead={onMarkNotificationAsRead}
+            onClearAll={onClearNotifications}
+            onNavigateTab={onNavigateTab}
+          />
+
           {/* Theme Toggle Button (Light/Dark Switcher) */}
           <ThemeToggle />
 
