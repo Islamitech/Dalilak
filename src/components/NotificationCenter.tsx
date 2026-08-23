@@ -66,20 +66,22 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   // Filter notifications relevant to current user
   const userNotifications = notifications.filter((n) => {
-    if (!user) {
-      // Guests see general announcements/system notifications
-      return n.targetRole === 'all' || !n.targetRole;
+    // If targeted to specific user ID
+    if (n.targetUserId) {
+      if (user && user.id === n.targetUserId) return true;
+      if (user && user.role === 'admin') return true; // Admin sees all user notifications
+      return false;
     }
-    if (user.role === 'admin') {
-      // Admin sees everything OR admin-targeted items
-      return true;
+    // If targeted to a specific role
+    if (n.targetRole && n.targetRole !== 'all') {
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      if (user.role === n.targetRole) return true;
+      if (user.role !== 'admin' && n.targetRole === 'rep') return true;
+      return false;
     }
-    // Reps / Supervisors / Accountants see items for 'all', their role, or their specific userId
-    if (n.targetUserId && n.targetUserId === user.id) return true;
-    if (n.targetRole === 'all') return true;
-    if (n.targetRole === user.role) return true;
-    if (user.role !== 'admin' && n.targetRole === 'rep') return true;
-    return false;
+    // Otherwise general / all
+    return true;
   });
 
   const unreadCount = userNotifications.filter((n) => !n.read).length;
@@ -108,7 +110,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     <div className="relative" ref={dropdownRef}>
       {/* BELL ICON BUTTON */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen((prev) => !prev);
+        }}
         className="relative p-2 sm:p-2.5 rounded-full text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center"
         title="الإشعارات والمستجدات"
         aria-label="سجل الإشعارات"
@@ -124,8 +129,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       {/* DROPDOWN MENU PANEL */}
       {isOpen && (
         <div
-          className="absolute left-0 mt-2 w-80 sm:w-96 bg-[var(--bg-card)]/95 backdrop-blur-2xl border border-[var(--border-color)] rounded-3xl shadow-2xl z-50 overflow-hidden text-[var(--text-primary)] animate-fade-in-scale transform origin-top-left"
-          style={{ direction: 'rtl' }}
+          className="absolute left-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl shadow-2xl z-[9999] overflow-hidden text-[var(--text-primary)] animate-fade-in-scale transform origin-top-left"
+          style={{ direction: 'rtl', top: '100%' }}
         >
           {/* Header */}
           <div className="p-3.5 sm:p-4 border-b border-[var(--border-color)] bg-[var(--input-bg)]/50 flex items-center justify-between gap-2">
