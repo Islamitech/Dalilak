@@ -39,7 +39,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, i
     `*ملاحظة:* سيتم متابعة مراجعة وتوثيق النشاط حتى ظهوره رسمياً على خرائط جوجل. شكرًا لثقتكم بشركة دليلك!`
   );
 
-  const formattedPhone = business.ownerPhone.replace(/^0/, '');
+  const formattedPhone = (business.ownerPhone || '').replace(/^0/, '');
   const whatsappUrl = `https://wa.me/20${formattedPhone}?text=${waMessage}`;
 
   // Dynamic QR Code URL to open the invoice online

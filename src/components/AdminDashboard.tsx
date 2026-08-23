@@ -125,8 +125,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [modalEmail, setModalEmail] = useState<string>('');
   const [modalPhone, setModalPhone] = useState<string>('');
   const [modalGov, setModalGov] = useState<string>('القاهرة');
-  const [modalTarget, setModalTarget] = useState<number>(20);
-  const [modalCommission, setModalCommission] = useState<number>(15);
+  const [modalTarget, setModalTarget] = useState<number>(25);
+  const [modalCommission, setModalCommission] = useState<number>(42.86);
   const [modalStatus, setModalStatus] = useState<'active' | 'suspended'>('active');
   const [modalPassword, setModalPassword] = useState<string>('Aa123456');
 
@@ -214,8 +214,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setModalEmail('');
     setModalPhone('');
     setModalGov('القاهرة');
-    setModalTarget(20);
-    setModalCommission(15);
+    setModalTarget(25);
+    setModalCommission(42.86);
     setModalStatus('active');
     setModalPassword('Aa123456');
     setShowAccountModal(true);
@@ -229,7 +229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setModalPhone(acc.phone);
     setModalGov(acc.governorate);
     setModalTarget(acc.targetMonth);
-    setModalCommission(acc.commissionRate || 15);
+    setModalCommission(acc.commissionRate || 42.86);
     setModalStatus(acc.status || 'active');
     setModalPassword(acc.password || 'Aa123456');
     setShowAccountModal(true);

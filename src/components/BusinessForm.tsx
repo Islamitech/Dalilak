@@ -136,7 +136,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     const normalizedPhone = phone.trim();
     if (normalizedPhone) {
       const isDuplicate = businesses.some(
-        (b) => b.phone.trim() === normalizedPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone)
+        (b) => (b.phone && b.phone.trim() === normalizedPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone)
       );
       if (isDuplicate) {
         setErrorMsg('رقم هاتف النشاط هذا مسجل بالفعل لنشاط تجاري آخر!');
@@ -147,7 +147,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     const normalizedOwnerPhone = ownerPhone.trim();
     if (normalizedOwnerPhone) {
       const isDuplicate = businesses.some(
-        (b) => b.phone.trim() === normalizedOwnerPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone)
+        (b) => (b.phone && b.phone.trim() === normalizedOwnerPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone)
       );
       if (isDuplicate) {
         setErrorMsg('رقم هاتف مالك النشاط مسجل بالفعل لنشاط تجاري آخر!');

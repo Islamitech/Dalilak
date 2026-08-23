@@ -355,12 +355,21 @@ export default function App() {
   useEffect(() => {
     Promise.all([fetchBusinessesFromDb(), fetchRepsFromDb()])
       .then(([bizData, repsData]) => {
-        setBusinesses(bizData || []);
-        setRepresentatives(repsData || []);
+        setBusinesses(bizData && bizData.length > 0 ? bizData : INITIAL_BUSINESSES);
+        
+        // Merge DB reps with mock reps to ensure admin and initial demo accounts are always present
+        const repMap = new Map<string, Representative>();
+        MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
+        if (repsData && repsData.length > 0) {
+          repsData.forEach((r) => repMap.set(r.email.toLowerCase(), r));
+        }
+        setRepresentatives(Array.from(repMap.values()));
         setIsLoadingData(false);
       })
       .catch((err) => {
-        console.error('Error fetching initial database data:', err);
+        console.error('Error fetching initial database data, using defaults:', err);
+        setBusinesses(INITIAL_BUSINESSES);
+        setRepresentatives(MOCK_REPRESENTATIVES);
         setIsLoadingData(false);
       });
 
@@ -797,7 +806,8 @@ export default function App() {
     <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>
       {/* ===================== PROFESSIONAL TOAST NOTIFICATIONS ===================== */}
       <div
-        className="fixed top-4 right-0 left-0 z-[9999] flex flex-col items-center gap-2.5 pointer-events-none px-4"
+        className="fixed right-0 left-0 z-[9999] flex flex-col items-center gap-2 pointer-events-none px-2.5 sm:px-4"
+        style={{ top: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
         aria-live="polite"
         aria-atomic="false"
       >
@@ -826,7 +836,7 @@ export default function App() {
           return (
             <div
               key={n.id}
-              className={`pointer-events-auto w-full max-w-sm relative overflow-hidden rounded-2xl border bg-gradient-to-br ${colorClass} shadow-2xl backdrop-blur-xl animate-fade-in-up`}
+              className={`pointer-events-auto w-full max-w-[calc(100vw-1.25rem)] sm:max-w-sm relative overflow-hidden rounded-2xl border bg-gradient-to-br ${colorClass} shadow-2xl backdrop-blur-xl toast-slide-down`}
               style={{ direction: 'rtl' }}
             >
               {/* Progress Bar */}
@@ -838,13 +848,13 @@ export default function App() {
                 }}
               />
               {/* Content */}
-              <div className="flex items-start gap-3 px-4 py-3.5 pt-4">
-                <span className="text-lg leading-none shrink-0 mt-0.5">{icon}</span>
-                <span className="flex-1 text-[13px] font-bold leading-relaxed">{n.message}</span>
+              <div className="flex items-start gap-2.5 sm:gap-3 px-3.5 py-3 sm:px-4 sm:py-3.5 pt-3.5 sm:pt-4">
+                <span className="text-base sm:text-lg leading-none shrink-0 mt-0.5">{icon}</span>
+                <span className="flex-1 text-xs sm:text-[13px] font-bold leading-relaxed">{n.message}</span>
                 <button
                   onClick={() => setNotifications((prev: any[]) => prev.filter((x: any) => x.id !== n.id))}
-                  className="shrink-0 opacity-50 hover:opacity-100 transition-opacity cursor-pointer mt-0.5 hover:scale-110 active:scale-90"
-                  title="إغلاق"
+                  className="shrink-0 p-1 text-white/60 hover:text-white transition-colors cursor-pointer mt-0.5 hover:scale-110 active:scale-90"
+                  aria-label="إغلاق الإشعار"
                 >
                   <X className="w-4 h-4" />
                 </button>

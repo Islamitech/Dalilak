@@ -361,7 +361,6 @@ body.dark-mode .hover-card:hover {
   }
 }
 
-/* Override fade-in-up for toasts to use slide-in-down instead */
-.animate-fade-in-up {
-  animation: slideInDown 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) forwards !important;
+.toast-slide-down {
+  animation: slideInDown 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
 }

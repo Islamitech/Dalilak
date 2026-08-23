@@ -65,7 +65,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     const normalizedPhone = formData.phone?.trim();
     if (normalizedPhone) {
       const isDuplicate = businesses.some(
-        (b) => b.id !== formData.id && (b.phone.trim() === normalizedPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone))
+        (b) => b.id !== formData.id && ((b.phone && b.phone.trim() === normalizedPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone))
       );
       if (isDuplicate) {
         setErrorMsg('رقم هاتف النشاط هذا مسجل بالفعل لنشاط تجاري آخر!');
@@ -76,7 +76,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     const normalizedOwnerPhone = formData.ownerPhone?.trim();
     if (normalizedOwnerPhone) {
       const isDuplicate = businesses.some(
-        (b) => b.id !== formData.id && (b.phone.trim() === normalizedOwnerPhone || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone))
+        (b) => b.id !== formData.id && ((b.phone && b.phone.trim() === normalizedOwnerPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone))
       );
       if (isDuplicate) {
         setErrorMsg('رقم هاتف مالك النشاط مسجل بالفعل لنشاط تجاري آخر!');

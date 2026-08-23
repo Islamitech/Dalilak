@@ -52,11 +52,10 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     rep: 'from-blue-600 via-blue-700 to-indigo-700 border-blue-400 text-white shadow-blue-500/20',
   }[role];
 
-  // Check valid image URL
   const isValidImageUrl =
     avatar &&
     avatar.trim().length > 5 &&
-    (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:image/'));
+    (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:') || avatar.startsWith('blob:') || avatar.startsWith('/'));
 
   const isPending = avatarStatus === 'pending_approval';
 

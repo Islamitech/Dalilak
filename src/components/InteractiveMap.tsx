@@ -595,7 +595,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                     </button>
                   )}
                   <a
-                    href={`https://wa.me/20${selectedBiz.ownerPhone.replace(/^0/, '')}`}
+                    href={`https://wa.me/20${(selectedBiz.ownerPhone || '').replace(/^0/, '')}`}
                     target="_blank"
                     rel="noreferrer"
                     className="bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2.5 py-1 rounded-lg"
