@@ -238,6 +238,18 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   return dbRecord;
 }
 
+export async function updateRepSessionInDb(id: string, sessionId?: string, timestamp?: number): Promise<void> {
+  try {
+    const updates: any = {
+      active_session_id: sessionId || null,
+      last_active_timestamp: timestamp || null,
+    };
+    await supabase.from('representatives').update(updates).eq('id', id);
+  } catch (err) {
+    console.log('Supabase update rep session notice:', err);
+  }
+}
+
 function mapDbToRep(item: any): Representative {
   return {
     id: item.id,
@@ -254,6 +266,8 @@ function mapDbToRep(item: any): Representative {
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: item.status || 'active',
     password: item.password || 'Aa123456',
+    activeSessionId: item.active_session_id || item.activeSessionId,
+    lastActiveTimestamp: Number(item.last_active_timestamp || item.lastActiveTimestamp) || undefined,
   };
 }
 
@@ -273,5 +287,7 @@ function mapRepToDb(rep: Representative): any {
     commission_rate: rep.commissionRate,
     status: rep.status,
     password: rep.password,
+    active_session_id: rep.activeSessionId || null,
+    last_active_timestamp: rep.lastActiveTimestamp || null,
   };
 }

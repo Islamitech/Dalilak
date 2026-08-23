@@ -22,6 +22,7 @@ import {
   fetchRepsFromDb,
   saveRepToDb,
   deleteRepFromDb,
+  updateRepSessionInDb,
 } from './services/db';
 
 // Active user session duration (24 hours of inactivity)
@@ -779,6 +780,9 @@ export default function App() {
         )
       );
 
+      // Sync active session timestamp in Supabase DB
+      updateRepSessionInDb(user.id, user.activeSessionId, now);
+
       // Notify server to keep session alive
       fetch('/api/auth/heartbeat', {
         method: 'POST',
@@ -812,6 +816,7 @@ export default function App() {
     // Release session lock immediately on page close / unload
     const handleUnload = () => {
       if (user?.id && user.activeSessionId) {
+        updateRepSessionInDb(user.id, undefined, undefined);
         try {
           const payload = JSON.stringify({ userId: user.id, sessionId: user.activeSessionId });
           const blob = new Blob([payload], { type: 'application/json' });
@@ -831,6 +836,9 @@ export default function App() {
   // Remove current user from local storage & release single-session lock
   const handleLogout = () => {
     if (user?.id) {
+      // Release DB session lock
+      updateRepSessionInDb(user.id, undefined, undefined);
+
       // Release server session lock
       fetch('/api/auth/logout', {
         method: 'POST',
