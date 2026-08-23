@@ -285,7 +285,7 @@ export default function App() {
   const allNotifications = useMemo(() => {
     const list: SystemNotification[] = [...systemNotifications];
 
-    // Auto-generate notifications for all businesses in the system (1 single smart item per business)
+    // Auto-generate notifications for all businesses in the system (1 single smart item per business, targeted to admin and registering rep)
     businesses.forEach((biz) => {
       const exists = list.some(
         (n) => n.category === 'business' && (n.entityId === biz.id || n.message.includes(biz.nameAr))
@@ -298,7 +298,8 @@ export default function App() {
           timestamp: biz.createdDate ? new Date(biz.createdDate).toISOString() : new Date().toISOString(),
           type: 'info',
           category: 'business',
-          targetRole: 'all',
+          targetRole: 'admin',
+          targetUserId: biz.repId,
           entityId: biz.id,
           entityType: 'business',
           read: false,
@@ -759,10 +760,97 @@ export default function App() {
     [scopedBusinesses, homeSearchQuery, homeStatusFilter]
   );
 
-  // Remove current user from local storage & clear active tab
+  // Single-Session Active Heartbeat & Cross-Tab Invalidation Listener
+  useEffect(() => {
+    if (!user || !user.activeSessionId) return;
+
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_single_session_channel') : null;
+
+    // Send periodic heartbeat every 20 seconds
+    const interval = setInterval(() => {
+      const now = Date.now();
+      
+      // Update local rep active timestamp in state
+      setRepresentatives((prev) =>
+        prev.map((r) =>
+          r.id === user.id || (user.role === 'admin' && r.role === 'admin')
+            ? { ...r, activeSessionId: user.activeSessionId, lastActiveTimestamp: now }
+            : r
+        )
+      );
+
+      // Notify server to keep session alive
+      fetch('/api/auth/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
+      })
+        .then((res) => {
+          if (res.status === 409) {
+            // Session was superseded by a newer login
+            handleLogout();
+            addNotification('⚠️ تم تسجيل الدخول لهذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.', 'warning');
+          }
+        })
+        .catch(() => {});
+    }, 20000);
+
+    // Cross-tab broadcast listener (Prevent simultaneous tabs on same device)
+    if (channel) {
+      channel.onmessage = (event) => {
+        if (
+          event.data?.type === 'LOGIN' &&
+          event.data?.userId === user.id &&
+          event.data?.sessionId !== user.activeSessionId
+        ) {
+          handleLogout();
+          addNotification('⚠️ تم فتح هذا الحساب في تبويب آخر.', 'warning');
+        }
+      };
+    }
+
+    // Release session lock immediately on page close / unload
+    const handleUnload = () => {
+      if (user?.id && user.activeSessionId) {
+        try {
+          const payload = JSON.stringify({ userId: user.id, sessionId: user.activeSessionId });
+          const blob = new Blob([payload], { type: 'application/json' });
+          navigator.sendBeacon('/api/auth/logout', blob);
+        } catch {}
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      clearInterval(interval);
+      if (channel) channel.close();
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [user]);
+
+  // Remove current user from local storage & release single-session lock
   const handleLogout = () => {
+    if (user?.id) {
+      // Release server session lock
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
+      }).catch(() => {});
+
+      // Clear lock on representatives in local state
+      setRepresentatives((prev) =>
+        prev.map((r) =>
+          r.id === user.id || (user.role === 'admin' && r.role === 'admin')
+            ? { ...r, activeSessionId: undefined, lastActiveTimestamp: undefined }
+            : r
+        )
+      );
+    }
+
     setUser(null);
     localStorage.removeItem('dalelak_logged_user');
+    localStorage.removeItem('dalelak_session_expires_at');
     localStorage.removeItem('dalelak_active_tab');
     setActiveTab('home');
     const url = new URL(window.location.href);

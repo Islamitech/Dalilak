@@ -23,17 +23,35 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', app: 'Daleelek - Google Maps Business Registration' });
 });
 
-// 2. Auth endpoint
+// 2. Auth endpoints with Single-Session Concurrent Login Protection
+const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds heartbeat threshold
+
 app.post('/api/auth/login', (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password, role, forceSession } = req.body;
   const cleanEmail = email?.trim().toLowerCase();
   const cleanPassword = password?.trim();
+  const now = Date.now();
+  const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
 
   // Admin Login
   if (role === 'admin' || cleanEmail === 'admin@gmail.com') {
     const validAdminPasswords = ['admin123', 'Aa132456', 'admin'];
     if (cleanEmail === 'admin@gmail.com' && validAdminPasswords.includes(cleanPassword)) {
       const adminRep = representatives.find((r) => r.role === 'admin' || r.email.toLowerCase() === 'admin@gmail.com');
+      
+      // Check active concurrent session for admin
+      if (adminRep?.activeSessionId && adminRep.lastActiveTimestamp && (now - adminRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
+        return res.status(409).json({
+          error: '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان في نفس الوقت.',
+          isAlreadyActive: true,
+        });
+      }
+
+      if (adminRep) {
+        adminRep.activeSessionId = newSessionId;
+        adminRep.lastActiveTimestamp = now;
+      }
+
       return res.json({
         user: {
           id: adminRep?.id || 'admin_1',
@@ -41,7 +59,10 @@ app.post('/api/auth/login', (req, res) => {
           email: 'admin@gmail.com',
           role: 'admin',
           repData: adminRep,
+          activeSessionId: newSessionId,
+          lastActiveTimestamp: now,
         },
+        sessionId: newSessionId,
         token: 'admin-secret-token-2026',
       });
     } else {
@@ -68,6 +89,17 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(403).json({ error: '⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.' });
     }
 
+    // Check active concurrent session for representative
+    if (rep.activeSessionId && rep.lastActiveTimestamp && (now - rep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
+      return res.status(409).json({
+        error: '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان في نفس الوقت.',
+        isAlreadyActive: true,
+      });
+    }
+
+    rep.activeSessionId = newSessionId;
+    rep.lastActiveTimestamp = now;
+
     return res.json({
       user: {
         id: rep.id,
@@ -75,12 +107,47 @@ app.post('/api/auth/login', (req, res) => {
         email: rep.email,
         role: rep.role || 'rep',
         repData: rep,
+        activeSessionId: newSessionId,
+        lastActiveTimestamp: now,
       },
+      sessionId: newSessionId,
       token: `rep-token-${rep.id}`,
     });
   }
 
   return res.status(401).json({ error: 'البريد الإلكتروني غير مسجل بالمنظومة' });
+});
+
+// Heartbeat endpoint to maintain active session lock
+app.post('/api/auth/heartbeat', (req, res) => {
+  const { userId, sessionId } = req.body;
+  if (!userId || !sessionId) {
+    return res.status(400).json({ error: 'Missing userId or sessionId' });
+  }
+
+  const rep = representatives.find((r) => r.id === userId || (userId === 'admin_1' && r.role === 'admin'));
+  if (rep) {
+    if (rep.activeSessionId && rep.activeSessionId !== sessionId) {
+      // Another session took over
+      return res.status(409).json({ error: 'Session superseded', superseded: true });
+    }
+    rep.activeSessionId = sessionId;
+    rep.lastActiveTimestamp = Date.now();
+    return res.json({ status: 'ok', timestamp: rep.lastActiveTimestamp });
+  }
+
+  res.json({ status: 'ok' });
+});
+
+// Logout endpoint to release active session lock
+app.post('/api/auth/logout', (req, res) => {
+  const { userId, sessionId } = req.body;
+  const rep = representatives.find((r) => r.id === userId || (userId === 'admin_1' && r.role === 'admin'));
+  if (rep && (!sessionId || rep.activeSessionId === sessionId)) {
+    rep.activeSessionId = undefined;
+    rep.lastActiveTimestamp = undefined;
+  }
+  res.json({ status: 'logged_out' });
 });
 
 // 3. Businesses API

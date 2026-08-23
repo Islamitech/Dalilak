@@ -54,6 +54,8 @@ export interface Representative {
   commissionRate: number; // Percentage, e.g., 42.86%
   status?: 'active' | 'suspended';
   password?: string;
+  activeSessionId?: string;
+  lastActiveTimestamp?: number;
 }
 
 export interface PackageOption {
@@ -80,6 +82,8 @@ export interface User {
   email: string;
   role: 'admin' | 'rep' | 'supervisor' | 'accountant';
   repData?: Representative;
+  activeSessionId?: string;
+  lastActiveTimestamp?: number;
 }
 
 export interface PaymentGatewayConfig {

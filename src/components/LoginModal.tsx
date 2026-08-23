@@ -64,6 +64,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
+      const now = Date.now();
+      const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
+      const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60s active threshold
+
       if (isAdminAccount) {
         const storedPassword = foundRep?.password;
         const validAdminPasswords = ['admin123', 'Aa132456', 'admin'];
@@ -80,6 +84,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               body: JSON.stringify({ email: cleanEmail, password: cleanPassword, role: 'admin' }),
             });
             const contentType = res.headers.get('content-type') || '';
+            if (res.status === 409) {
+              const data = await res.json();
+              setErrorMsg(data.error || '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً.');
+              setIsLoading(false);
+              return;
+            }
             if (res.ok && contentType.includes('application/json')) {
               const data = await res.json();
               if (data && data.user) {
@@ -92,6 +102,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           } catch {
             console.log('Server auth fallback unavailable, using DB auth.');
           }
+        }
+
+        if (!isPasswordCorrect) {
+          setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if admin account is actively in use elsewhere
+        if (
+          foundRep?.activeSessionId &&
+          foundRep.lastActiveTimestamp &&
+          now - foundRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS
+        ) {
+          setErrorMsg('⚠️ حساب المدير مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بفتح الحساب في أكثر من مكان بنفس الوقت.');
+          setIsLoading(false);
+          return;
         }
 
         const adminData: Representative = foundRep || {
@@ -108,7 +135,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           commissionRate: 0,
           status: 'active',
           password: cleanPassword,
+          activeSessionId: newSessionId,
+          lastActiveTimestamp: now,
         };
+
+        adminData.activeSessionId = newSessionId;
+        adminData.lastActiveTimestamp = now;
 
         onLoginSuccess({
           id: adminData.id,
@@ -116,6 +148,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           email: adminData.email,
           role: 'admin',
           repData: adminData,
+          activeSessionId: newSessionId,
+          lastActiveTimestamp: now,
         });
         onClose();
         setIsLoading(false);
@@ -142,6 +176,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           return;
         }
 
+        // Check active concurrent session for representative
+        if (
+          foundRep.activeSessionId &&
+          foundRep.lastActiveTimestamp &&
+          now - foundRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS
+        ) {
+          setErrorMsg('⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من جهاز في نفس الوقت. يرجى تسجيل الخروج من الجهاز الآخر أولاً.');
+          setIsLoading(false);
+          return;
+        }
+
+        foundRep.activeSessionId = newSessionId;
+        foundRep.lastActiveTimestamp = now;
+
         const userRole = foundRep.role || 'rep';
 
         onLoginSuccess({
@@ -150,6 +198,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           email: foundRep.email,
           role: userRole,
           repData: foundRep,
+          activeSessionId: newSessionId,
+          lastActiveTimestamp: now,
         });
         onClose();
       }
