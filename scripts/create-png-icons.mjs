@@ -8,101 +8,54 @@ if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
 }
 
-// 1. Create SVG Icon Matching Concept 2 (Lighthouse Beacon + Verification Checkmark Swoosh)
+// 1. Create SVG Icon Matching the Pure Minimalist Vector
 const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="dalelakGold" x1="50" y1="50" x2="460" y2="460" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FFFBEB" />
-      <stop offset="25%" stop-color="#FDE68A" />
-      <stop offset="55%" stop-color="#F59E0B" />
+    <linearGradient id="dalelakAppAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="45%" stop-color="#F59E0B" />
       <stop offset="100%" stop-color="#D97706" />
     </linearGradient>
-    <linearGradient id="cyanEmerald" x1="50" y1="150" x2="460" y2="460" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="35%" stop-color="#06B6D4" />
-      <stop offset="75%" stop-color="#10B981" />
-      <stop offset="100%" stop-color="#047857" />
+    <linearGradient id="dalelakAppEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
     </linearGradient>
-    <linearGradient id="slateBase" x1="75" y1="75" x2="435" y2="435" gradientUnits="userSpaceOnUse">
+    <linearGradient id="dalelakAppDark" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#1E293B" />
-      <stop offset="50%" stop-color="#0F172A" />
-      <stop offset="100%" stop-color="#020617" />
+      <stop offset="100%" stop-color="#0F172A" />
     </linearGradient>
-    <filter id="beaconGlow" x="-15%" y="-15%" width="130%" height="130%" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#06B6D4" flood-opacity="0.4" />
-    </filter>
   </defs>
 
-  <!-- 1. Outer Rounded Squircle Base -->
-  <rect x="32" y="32" width="448" height="448" rx="118" fill="url(#slateBase)" stroke="url(#dalelakGold)" stroke-width="6" />
+  <!-- 1. Squircle Background Base with Golden Ring -->
+  <rect x="12" y="12" width="488" height="488" rx="132" fill="url(#dalelakAppDark)" />
+  <rect x="12" y="12" width="488" height="488" rx="132" fill="none" stroke="url(#dalelakAppAmber)" stroke-width="18" />
 
-  <!-- 2. Concentric Light Ray Rings -->
-  <circle cx="256" cy="205" r="128" stroke="#F59E0B" stroke-width="2.5" stroke-dasharray="8 8" opacity="0.35" fill="none" />
-  <circle cx="256" cy="205" r="82" stroke="#38BDF8" stroke-width="2.5" stroke-dasharray="5 10" opacity="0.4" fill="none" />
+  <!-- 2. Golden Map Pin Ring -->
+  <path
+    d="M256 82 C174 82 112 144 112 226 C112 292 200 370 256 422 C312 370 400 292 400 226 C400 144 338 82 256 82 Z"
+    fill="url(#dalelakAppAmber)"
+  />
 
-  <!-- 3. Radiant Lighthouse Beams -->
-  <path d="M256 62 L256 98" stroke="#FDE68A" stroke-width="7" stroke-linecap="round" />
-  <path d="M158 108 L184 134" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.85" />
-  <path d="M354 108 L328 134" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.85" />
-  <path d="M112 205 L148 205" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.85" />
-  <path d="M400 205 L364 205" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.85" />
+  <!-- 3. Dark Inner Circular Core -->
+  <circle cx="256" cy="216" r="88" fill="#0F172A" />
 
-  <!-- 4. The Lighthouse Guide Tower (منارة دليلك) -->
-  <g>
-    <!-- Top Star Beacon -->
-    <path
-      d="M256 98 L262 113 L276 114 L266 123 L268 137 L256 129 L244 137 L246 123 L236 114 L250 113 Z"
-      fill="#FFFBEB"
-    />
-    <!-- Lighthouse Lantern Room Dome -->
-    <path
-      d="M238 138 C238 128 274 128 274 138 L279 164 L233 164 Z"
-      fill="url(#dalelakGold)"
-      stroke="#FFFFFF"
-      stroke-width="3"
-    />
-    <rect x="241" y="148" width="30" height="13" rx="4" fill="#FFFBEB" />
-    <!-- Lighthouse Main Tapered Body -->
-    <path
-      d="M233 169 L220 266 L292 266 L279 169 Z"
-      fill="url(#dalelakGold)"
-      stroke="#FFFFFF"
-      stroke-width="4"
-    />
-    <rect x="246" y="190" width="20" height="23" rx="5" fill="#0F172A" />
-    <rect x="243" y="228" width="26" height="28" rx="5" fill="#0F172A" />
-    <line x1="225" y1="215" x2="287" y2="215" stroke="#D97706" stroke-width="5" />
-  </g>
-
-  <!-- 5. Interlocking Map Pin & Verification Checkmark Swoosh -->
-  <g filter="url(#beaconGlow)">
-    <path
-      d="M256 92 C164 92 98 158 98 251 C98 328 184 404 256 456 C256 456 266 448 276 438"
-      stroke="url(#cyanEmerald)"
-      stroke-width="25"
-      stroke-linecap="round"
-      fill="none"
-    />
-    <path
-      d="M123 287 C148 287 179 328 225 389 L420 174"
-      stroke="url(#cyanEmerald)"
-      stroke-width="28"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      fill="none"
-    />
-    <path
-      d="M133 287 C154 287 184 328 225 384 L410 184"
-      stroke="url(#dalelakGold)"
-      stroke-width="9"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      fill="none"
-    />
-  </g>
-
-  <!-- 6. Sharp GPS Location Pin Point -->
-  <path d="M256 425 L238 456 L274 456 Z" fill="url(#dalelakGold)" />
+  <!-- 4. Bold Vibrant Emerald Verification Checkmark -->
+  <path
+    d="M205 216 L241 252 L312 175"
+    stroke="url(#dalelakAppEmerald)"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <path
+    d="M205 216 L241 252 L312 175"
+    stroke="#FFFFFF"
+    stroke-width="13"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
 </svg>`;
 
 fs.writeFileSync(path.join(publicDir, 'favicon.svg'), svgIcon, 'utf8');
