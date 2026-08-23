@@ -24,25 +24,52 @@ import {
   deleteRepFromDb,
 } from './services/db';
 
+// Active user session duration (24 hours of inactivity)
+const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
 export default function App() {
-  // Application State - Default to null (Guest visitor) or restore saved user session
+  // Application State - Default to null (Guest visitor) or restore valid unexpired user session
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('dalelak_logged_user');
-    if (savedUser) {
+    const sessionExpiresAt = localStorage.getItem('dalelak_session_expires_at');
+
+    if (savedUser && sessionExpiresAt) {
+      const expiresTimestamp = Number(sessionExpiresAt);
+      if (!isNaN(expiresTimestamp) && Date.now() < expiresTimestamp) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          if (parsed && parsed.id && parsed.name) {
+            // Extend session expiration
+            localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_EXPIRY_MS));
+            return parsed;
+          }
+        } catch (e) {}
+      } else {
+        // Session expired, clean up
+        localStorage.removeItem('dalelak_logged_user');
+        localStorage.removeItem('dalelak_session_expires_at');
+      }
+    } else if (savedUser && !sessionExpiresAt) {
+      // Legacy session without expiry, set new 24h validity
       try {
         const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.id && parsed.name) return parsed;
+        if (parsed && parsed.id && parsed.name) {
+          localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_EXPIRY_MS));
+          return parsed;
+        }
       } catch (e) {}
     }
     return null; // Guest visitor by default
   });
 
-  // Sync user state with localStorage
+  // Sync user state and session timestamp with localStorage
   useEffect(() => {
     if (user) {
       localStorage.setItem('dalelak_logged_user', JSON.stringify(user));
+      localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_EXPIRY_MS));
     } else {
       localStorage.removeItem('dalelak_logged_user');
+      localStorage.removeItem('dalelak_session_expires_at');
     }
   }, [user]);
 
@@ -153,7 +180,7 @@ export default function App() {
         timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
         type: 'success',
         category: 'business',
-        targetRole: 'all',
+        targetRole: 'admin',
         entityId: 'biz_101',
         entityType: 'business',
         read: true,
@@ -393,13 +420,14 @@ export default function App() {
     await saveBusinessToDb(newBiz);
     addNotification(`🎉 تم تسجيل النشاط التجاري "${newBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
     
-    // Add 1 single clean Notification to Bell Log
+    // Add 1 single clean Notification to Bell Log (targeted to the registering rep and admin)
     addSystemNotification({
       title: `نشاط تجاري جديد: ${newBiz.nameAr} 🏪`,
       message: `قام المندوب "${newBiz.repName || user?.name || 'مندوب'}" بتسجيل نشاط تجاري جديد "${newBiz.nameAr}" في ${newBiz.governorate} (${newBiz.category}).`,
       type: 'info',
       category: 'business',
-      targetRole: 'all',
+      targetRole: 'admin',
+      targetUserId: newBiz.repId || user?.id,
       entityId: newBiz.id,
       entityType: 'business',
       linkTab: 'admin',
@@ -435,7 +463,8 @@ export default function App() {
         message: `تم تحديث حالة التوثيق لنشاط "${updatedBiz.nameAr}" إلى (${newStatus}).`,
         type: updatedBiz.verificationStatus === 'verified' ? 'success' : 'info',
         category: 'business',
-        targetRole: 'all',
+        targetRole: 'admin',
+        targetUserId: updatedBiz.repId || user?.id,
         linkTab: 'home',
       });
     } else {

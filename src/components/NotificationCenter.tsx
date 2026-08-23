@@ -66,22 +66,27 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   // Filter notifications relevant to current user
   const userNotifications = notifications.filter((n) => {
-    // If targeted to specific user ID
+    if (!user) return false;
+    // Admins see all notifications across the platform
+    if (user.role === 'admin') return true;
+
+    // If targeted to a specific user ID
     if (n.targetUserId) {
-      if (user && user.id === n.targetUserId) return true;
-      if (user && user.role === 'admin') return true; // Admin sees all user notifications
+      return n.targetUserId === user.id;
+    }
+
+    // Business notifications are private: only the rep who registered the business (or admin) can see them
+    if (n.category === 'business') {
       return false;
     }
+
     // If targeted to a specific role
     if (n.targetRole && n.targetRole !== 'all') {
-      if (!user) return false;
-      if (user.role === 'admin') return true;
-      if (user.role === n.targetRole) return true;
-      if (user.role !== 'admin' && n.targetRole === 'rep') return true;
-      return false;
+      return user.role === n.targetRole;
     }
-    // Otherwise general / all
-    return true;
+
+    // General system announcements
+    return n.category === 'system' || n.targetRole === 'all';
   });
 
   const unreadCount = userNotifications.filter((n) => !n.read).length;
