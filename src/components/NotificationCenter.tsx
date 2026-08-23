@@ -67,25 +67,28 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   // Filter notifications relevant to current user
   const userNotifications = notifications.filter((n) => {
     if (!user) return false;
-    // Admins see all notifications across the platform
-    if (user.role === 'admin') return true;
 
-    // If targeted to a specific user ID
+    // 1. If targeted to a specific user ID, only that exact user sees it (Admin does not receive rep's personal greeting)
     if (n.targetUserId) {
       return n.targetUserId === user.id;
     }
 
-    // Business notifications are private: only the rep who registered the business (or admin) can see them
+    // 2. Admins see all administrative and platform events
+    if (user.role === 'admin') {
+      return true;
+    }
+
+    // 3. Business notifications are private: only the rep who registered the business (or admin) can see them
     if (n.category === 'business') {
       return false;
     }
 
-    // If targeted to a specific role
+    // 4. If targeted to a specific role
     if (n.targetRole && n.targetRole !== 'all') {
       return user.role === n.targetRole;
     }
 
-    // General system announcements
+    // 5. General system announcements
     return n.category === 'system' || n.targetRole === 'all';
   });
 
