@@ -1257,6 +1257,14 @@ export default function App() {
                           )}
                         </div>
 
+                        {/* Package Info */}
+                        <div className="bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--text-secondary)] font-bold text-[11px]">الباقة المفعلة:</span>
+                          <span className="text-[11px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 truncate max-w-[190px]">
+                            {biz.packageName || 'باقة التوثيق الأساسي'}
+                          </span>
+                        </div>
+
                         {/* Simplified Paid summary */}
                         <div className="bg-[var(--bg-card)] px-3 py-2 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-xs mt-1">
                           <span className="text-[var(--text-secondary)] font-bold">الماليات والمدفوع:</span>

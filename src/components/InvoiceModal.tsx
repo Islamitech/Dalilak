@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Business } from '../types';
 import { calculateBusinessCommission } from '../utils/commission';
 import { Logo } from './Logo';
-import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink, ShieldCheck, QrCode, Copy, Check, CloudUpload, Sparkles } from 'lucide-react';
+import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink, ShieldCheck, QrCode, Copy, Check, CloudUpload, Sparkles, Zap, Gift } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
+import { generateUpgradeOffersWhatsAppMessage, getUpgradeOffersWhatsAppUrl } from '../utils/packageOffers';
 
 interface InvoiceModalProps {
   business: Business | null;
@@ -19,6 +20,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   onUpdateBusiness,
 }) => {
   const [copied, setCopied] = useState<boolean>(false);
+  const [copiedOffers, setCopiedOffers] = useState<boolean>(false);
   const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
   const [currentBiz, setCurrentBiz] = useState<Business | null>(business);
 
@@ -220,6 +222,47 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </button>
         </div>
 
+        {/* Package Upgrade Offers Box */}
+        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 p-3 rounded-2xl border border-amber-500/30 no-print space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-black text-amber-800 dark:text-amber-300">
+              <Gift className="w-4 h-4 text-amber-500" />
+              <span>عروض الترقية والتطوير الحصرية للعميل</span>
+            </div>
+            <span className="text-[10px] bg-amber-500/20 text-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
+              فرص مبيعات إضافية 🚀
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--text-muted)] font-medium">
+            يمكنك إرسال تفاصيل ومميزات الباقات الأخرى (عرض التأسيس والربط الذكي أو باقة الدعم الميداني VIP) مباشرة لصاحب النشاط عبر واتساب.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+            <a
+              href={getUpgradeOffersWhatsAppUrl(activeBusiness)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs py-2.5 px-3.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>إرسال عروض الترقية (واتساب)</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(generateUpgradeOffersWhatsAppMessage(activeBusiness));
+                setCopiedOffers(true);
+                setTimeout(() => setCopiedOffers(false), 2500);
+              }}
+              className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {copiedOffers ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+              <span>{copiedOffers ? 'تم نسخ العروض!' : 'نسخ نص العروض'}</span>
+            </button>
+          </div>
+        </div>
+
         {/* Dispatch Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center gap-2 no-print">
           <a
@@ -229,7 +272,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
           >
             <Share2 className="w-4 h-4" />
-            <span>إرسال واتساب</span>
+            <span>إرسال الفاتورة (واتساب)</span>
           </a>
 
           <button
@@ -238,7 +281,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             title="نسخ نص الفاتورة للحافظة"
           >
             {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
-            <span>{copied ? 'تم النسخ!' : 'نسخ النص'}</span>
+            <span>{copied ? 'تم النسخ!' : 'نسخ الفاتورة'}</span>
           </button>
 
           <button

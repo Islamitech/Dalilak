@@ -23,6 +23,8 @@ import {
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { formatActivityDateTime } from '../utils/dateFormatters';
+import { generateUpgradeOffersWhatsAppMessage, getUpgradeOffersWhatsAppUrl } from '../utils/packageOffers';
+import { Zap, Gift, Check, CheckCircle2, MessageSquare } from 'lucide-react';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -52,6 +54,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [showMapsSyncModal, setShowMapsSyncModal] = useState<boolean>(false);
+  const [copiedOffers, setCopiedOffers] = useState<boolean>(false);
+  const [upgradeNotice, setUpgradeNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (business) {
@@ -536,6 +540,104 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
             />
+          </div>
+
+          {/* Interactive Package Upgrades & Offers Dispatch */}
+          <div className="mt-4 pt-4 border-t border-[var(--border-color)] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-black text-amber-500">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <span>عروض الترقية والتطوير المتاحة لهذا النشاط</span>
+              </div>
+              <span className="text-[10px] bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full">
+                تفعيل مباشر وإرسال واتساب
+              </span>
+            </div>
+
+            {upgradeNotice && (
+              <div className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 p-2.5 rounded-xl border border-emerald-500/30 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>{upgradeNotice}</span>
+              </div>
+            )}
+
+            {/* Other Packages Cards for Instant Activation */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {PACKAGES.filter((p) => p.id !== formData.packageId).map((pkg) => {
+                const diff = pkg.price - formData.packagePrice;
+                return (
+                  <div
+                    key={pkg.id}
+                    className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-col justify-between space-y-2 hover:border-amber-500/40 transition-all shadow-sm"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-extrabold text-xs text-[var(--text-primary)]">{pkg.title}</h5>
+                        <span className="text-xs font-black text-amber-500 font-mono">{pkg.price} ج.م</span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] mt-1 line-clamp-2">
+                        {pkg.description}
+                      </p>
+                      {diff > 0 && (
+                        <span className="inline-block mt-1 text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                          فرق السداد: +{diff} ج.م
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newPrice = pkg.price;
+                        const newPaid = formData.amountPaid;
+                        const status: PaymentStatus =
+                          newPaid >= newPrice ? 'fully_paid' : newPaid > 0 ? 'partially_paid' : 'unpaid';
+
+                        setFormData({
+                          ...formData,
+                          packageId: pkg.id,
+                          packageName: pkg.title,
+                          packagePrice: newPrice,
+                          paymentStatus: status,
+                        });
+                        setUpgradeNotice(`تم تفعيل وترقية الباقة إلى "${pkg.title}" بنجاح!`);
+                        setTimeout(() => setUpgradeNotice(null), 4000);
+                      }}
+                      className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs py-2 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>تفعيل وترقية النشاط لهذه الباقة ⚡</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* WhatsApp Pitch Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+              <a
+                href={getUpgradeOffersWhatsAppUrl(formData)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>إرسال تفاصيل الباقات للعميل (واتساب) 💬</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(generateUpgradeOffersWhatsAppMessage(formData));
+                  setCopiedOffers(true);
+                  setTimeout(() => setCopiedOffers(false), 2500);
+                }}
+                className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {copiedOffers ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Gift className="w-3.5 h-3.5 text-amber-500" />}
+                <span>{copiedOffers ? 'تم نسخ نص العروض!' : 'نسخ نص العروض'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
