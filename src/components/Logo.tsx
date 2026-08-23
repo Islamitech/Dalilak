@@ -17,10 +17,10 @@ export const Logo: React.FC<LogoProps> = ({
 }) => {
   const iconPixelSizes = {
     sm: 36,
-    md: 46,
-    lg: 58,
-    xl: 74,
-    '2xl': 96,
+    md: 48,
+    lg: 60,
+    xl: 76,
+    '2xl': 98,
   }[size];
 
   const titleSize = {
@@ -39,7 +39,7 @@ export const Logo: React.FC<LogoProps> = ({
     '2xl': 'text-base sm:text-lg',
   }[size];
 
-  // Professional SVG Vector Emblem
+  // Tailored Concept 2 SVG: The Guide Lighthouse Beacon & Verification Map Pin
   const EmblemSvg = ({ sizeInPx }: { sizeInPx: number }) => (
     <svg
       width={sizeInPx}
@@ -50,116 +50,126 @@ export const Logo: React.FC<LogoProps> = ({
       className="shrink-0 transition-transform duration-300 group-hover:scale-105 filter drop-shadow-md"
     >
       <defs>
-        {/* Luxury Gold Amber Gradient */}
-        <linearGradient id="goldPlate" x1="20" y1="20" x2="180" y2="180" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FDE68A" />
-          <stop offset="25%" stopColor="#F59E0B" />
-          <stop offset="65%" stopColor="#D97706" />
-          <stop offset="100%" stopColor="#92400E" />
+        {/* Golden Beacon Gradient */}
+        <linearGradient id="dalelakGold" x1="20" y1="20" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFBEB" />
+          <stop offset="25%" stopColor="#FDE68A" />
+          <stop offset="55%" stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#D97706" />
         </linearGradient>
 
-        {/* Deep Slate Inset Gradient */}
-        <linearGradient id="innerPlate" x1="35" y1="35" x2="165" y2="165" gradientUnits="userSpaceOnUse">
+        {/* Cyan Emerald Verification Gradient */}
+        <linearGradient id="cyanEmerald" x1="20" y1="60" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#38BDF8" />
+          <stop offset="35%" stopColor="#06B6D4" />
+          <stop offset="75%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#047857" />
+        </linearGradient>
+
+        {/* Deep Slate Inset Background */}
+        <linearGradient id="slateBase" x1="30" y1="30" x2="170" y2="170" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#1E293B" />
           <stop offset="50%" stopColor="#0F172A" />
           <stop offset="100%" stopColor="#020617" />
         </linearGradient>
 
-        {/* Pin Accent Gradient */}
-        <linearGradient id="pinGold" x1="70" y1="40" x2="130" y2="150" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFFBEB" />
-          <stop offset="30%" stopColor="#FDE68A" />
-          <stop offset="70%" stopColor="#F59E0B" />
-          <stop offset="100%" stopColor="#D97706" />
-        </linearGradient>
-
-        {/* Emerald Beacon Gradient */}
-        <linearGradient id="emeraldBadge" x1="140" y1="140" x2="180" y2="180" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#6EE7B7" />
-          <stop offset="40%" stopColor="#10B981" />
-          <stop offset="100%" stopColor="#047857" />
-        </linearGradient>
-
-        {/* Ambient Glow Filter */}
-        <filter id="emblemGlow" x="-10%" y="-10%" width="120%" height="120%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#F59E0B" floodOpacity="0.35" />
+        {/* Glow Lighting Filter */}
+        <filter id="beaconGlow" x="-15%" y="-15%" width="130%" height="130%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#06B6D4" floodOpacity="0.4" />
         </filter>
       </defs>
 
-      {/* 1. Outer Metallic Gold Rounded Squircle Base */}
+      {/* 1. Outer Rounded Squircle Badge Base */}
       <rect
         x="12"
         y="12"
         width="176"
         height="176"
         rx="46"
-        fill="url(#goldPlate)"
-        filter="url(#emblemGlow)"
-      />
-
-      {/* 2. Inner Deep Obsidian Plate with Fine Border */}
-      <rect
-        x="22"
-        y="22"
-        width="156"
-        height="156"
-        rx="38"
-        fill="url(#innerPlate)"
-        stroke="url(#goldPlate)"
+        fill="url(#slateBase)"
+        stroke="url(#dalelakGold)"
         strokeWidth="2.5"
       />
 
-      {/* 3. Subtle Compass Navigation Grid & Rays */}
-      <circle cx="100" cy="94" r="54" stroke="#F59E0B" strokeWidth="1.2" strokeDasharray="3 3" opacity="0.4" />
-      <circle cx="100" cy="94" r="36" stroke="#FDE68A" strokeWidth="1" strokeDasharray="2 4" opacity="0.3" />
+      {/* 2. Concentric Light Ray Rings */}
+      <circle cx="100" cy="80" r="50" stroke="#F59E0B" strokeWidth="1" strokeDasharray="3 3" opacity="0.35" />
+      <circle cx="100" cy="80" r="32" stroke="#38BDF8" strokeWidth="1" strokeDasharray="2 4" opacity="0.4" />
 
-      {/* Compass North-South-East-West Accent Marks */}
-      <path d="M100 32 L100 42" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.8" />
-      <path d="M100 146 L100 156" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.8" />
-      <path d="M38 94 L48 94" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.8" />
-      <path d="M152 94 L162 94" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.8" />
+      {/* 3. Radiant Lighthouse Beams (Light Rays emanating outward) */}
+      <path d="M100 24 L100 38" stroke="#FDE68A" strokeWidth="3" strokeLinecap="round" />
+      <path d="M62 42 L72 52" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.85" />
+      <path d="M138 42 L128 52" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.85" />
+      <path d="M44 80 L58 80" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.85" />
+      <path d="M156 80 L142 80" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" opacity="0.85" />
 
-      {/* 4. Centerpiece: Stylized Modern Map Pin with Dynamic Angle */}
-      <g filter="drop-shadow(0 6px 10px rgba(0,0,0,0.5))">
-        {/* Main Pin Body */}
+      {/* 4. The Lighthouse Guide Tower (منارة دليلك) */}
+      <g filter="drop-shadow(0 4px 8px rgba(0,0,0,0.5))">
+        {/* Top Star Beacon */}
         <path
-          d="M100 48C76.8 48 58 66.8 58 90C58 121.5 100 158 100 158C100 158 142 121.5 142 90C142 66.8 123.2 48 100 48Z"
-          fill="url(#pinGold)"
-          stroke="#FFFFFF"
-          strokeWidth="3"
-          strokeLinejoin="round"
+          d="M100 38 L102.5 44 L108 44.5 L104 48 L105 53.5 L100 50.5 L95 53.5 L96 48 L92 44.5 L97.5 44 Z"
+          fill="#FFFBEB"
         />
 
-        {/* Pin Inner Lens / Ring */}
-        <circle cx="100" cy="90" r="18" fill="#0F172A" stroke="#FFFFFF" strokeWidth="2.5" />
+        {/* Lighthouse Lantern Room Dome & Glow */}
+        <path
+          d="M93 54 C93 50 107 50 107 54 L109 64 L91 64 Z"
+          fill="url(#dalelakGold)"
+          stroke="#FFFFFF"
+          strokeWidth="1.2"
+        />
+        <rect x="94" y="58" width="12" height="5" rx="1.5" fill="#FFFBEB" />
 
-        {/* Core Center Sparkle Dot */}
-        <circle cx="100" cy="90" r="8" fill="url(#goldPlate)" />
-        <circle cx="98" cy="88" r="2.5" fill="#FFFFFF" opacity="0.9" />
+        {/* Lighthouse Main Tapered Body */}
+        <path
+          d="M91 66 L86 104 L114 104 L109 66 Z"
+          fill="url(#dalelakGold)"
+          stroke="#FFFFFF"
+          strokeWidth="1.5"
+        />
+
+        {/* Windows & Architectural Bands on the Tower */}
+        <rect x="96" y="74" width="8" height="9" rx="2" fill="#0F172A" />
+        <rect x="95" y="89" width="10" height="11" rx="2" fill="#0F172A" />
+        <line x1="88" y1="84" x2="112" y2="84" stroke="#D97706" strokeWidth="2" />
       </g>
 
-      {/* 5. Bottom Right: Official Verification Seal Beacon */}
-      <g transform="translate(132, 132)">
-        {/* Glow Ring */}
-        <circle cx="24" cy="24" r="26" fill="#0F172A" />
-        <circle
-          cx="24"
-          cy="24"
-          r="23"
-          fill="url(#emeraldBadge)"
-          stroke="#FFFFFF"
-          strokeWidth="3"
-          filter="drop-shadow(0 4px 6px rgba(0,0,0,0.4))"
-        />
-        {/* Verification Checkmark */}
+      {/* 5. The Dynamic Interlocking Map Pin & Verification Checkmark Swoosh */}
+      <g filter="url(#beaconGlow)">
+        {/* Outer Map Pin Frame */}
         <path
-          d="M15 24L21 30L33 18"
-          stroke="#FFFFFF"
+          d="M100 36 C64 36 38 62 38 98 C38 128 72 158 100 178 C100 178 104 175 108 171"
+          stroke="url(#cyanEmerald)"
+          strokeWidth="10"
+          strokeLinecap="round"
+          fill="none"
+        />
+
+        {/* Verification Checkmark Swoosh intertwining through the base */}
+        <path
+          d="M48 112 C58 112 70 128 88 152 L164 68"
+          stroke="url(#cyanEmerald)"
+          strokeWidth="11"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+
+        {/* Inner Golden Highlights on the Checkmark */}
+        <path
+          d="M52 112 C60 112 72 128 88 150 L160 72"
+          stroke="url(#dalelakGold)"
           strokeWidth="3.5"
           strokeLinecap="round"
           strokeLinejoin="round"
+          fill="none"
         />
       </g>
+
+      {/* 6. Sharp GPS Location Pin Point */}
+      <path
+        d="M100 166 L93 178 L107 178 Z"
+        fill="url(#dalelakGold)"
+      />
     </svg>
   );
 
@@ -175,19 +185,19 @@ export const Logo: React.FC<LogoProps> = ({
   // 2. OFFICIAL SEAL BADGE VARIANT (For Invoices, ID Cards, Legal Contracts)
   if (variant === 'badge') {
     return (
-      <div className={`inline-flex items-center gap-3 bg-[var(--bg-surface)]/90 border border-amber-500/30 rounded-2xl p-2.5 sm:p-3 shadow-md backdrop-blur-md select-none ${className}`}>
+      <div className={`inline-flex items-center gap-3 bg-[var(--bg-surface)]/90 border border-cyan-500/30 rounded-2xl p-2.5 sm:p-3 shadow-md backdrop-blur-md select-none ${className}`}>
         <EmblemSvg sizeInPx={iconPixelSizes} />
         <div className="flex flex-col text-right">
           <div className="flex items-center gap-1.5">
             <span className="font-black text-sm sm:text-base text-[var(--text-primary)] font-['Cairo'] leading-none">
               دليلك
             </span>
-            <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/30">
-              معتمد رسمي
+            <span className="bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-cyan-500/30">
+              توثيق معتمد ⚡
             </span>
           </div>
           <span className="text-[10px] text-[var(--text-muted)] font-bold mt-1">
-            توثيق خرائط جوجل — جمهورية مصر العربية
+            منظومة توثيق خرائط جوجل — جمهورية مصر العربية
           </span>
         </div>
       </div>
@@ -216,12 +226,12 @@ export const Logo: React.FC<LogoProps> = ({
               lightText ? 'text-white' : 'text-[var(--text-primary)]'
             }`}
           >
-            <span className="bg-gradient-to-l from-amber-500 via-yellow-500 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500 bg-clip-text text-transparent drop-shadow-xs">
+            <span className="bg-gradient-to-l from-amber-400 via-yellow-400 to-cyan-400 dark:from-amber-300 dark:via-yellow-200 dark:to-cyan-400 bg-clip-text text-transparent drop-shadow-xs">
               دليلك
             </span>
           </span>
 
-          <span className="hidden sm:inline-flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-full border border-amber-500/25">
+          <span className="hidden sm:inline-flex items-center gap-1 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-[9px] font-black px-2 py-0.5 rounded-full border border-cyan-500/30">
             خرائط جوجل 🇪🇬
           </span>
         </div>
@@ -229,7 +239,7 @@ export const Logo: React.FC<LogoProps> = ({
         {showSubtitle && (
           <p
             className={`hidden sm:block ${subtitleSize} font-bold tracking-normal transition-colors duration-300 mt-1 leading-tight ${
-              lightText ? 'text-amber-200/90' : 'text-[var(--text-secondary)]'
+              lightText ? 'text-cyan-200/90' : 'text-[var(--text-secondary)]'
             }`}
           >
             المنصة الرسمية لتسجيل وتوثيق الأنشطة التجارية
