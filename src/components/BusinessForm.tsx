@@ -82,6 +82,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   // Package & Payments
   const [selectedPackage, setSelectedPackage] = useState<PackageOption>(PACKAGES[0]); // Default Package 1 (Basic 250 EGP)
+  const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null); // For accordion details toggle
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('fully_paid');
   const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[0].price);
   const [notes, setNotes] = useState<string>('');
@@ -622,71 +623,129 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         </div>
 
         {/* Packages Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-start">
           {PACKAGES.map((pkg) => {
             const isSelected = selectedPackage.id === pkg.id;
+            const isExpanded = expandedPackageId === pkg.id;
+
             return (
               <div
                 key={pkg.id}
                 onClick={() => handlePackageChange(pkg)}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between shadow-sm relative ${
                   isSelected
-                    ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/40 shadow-md'
-                    : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40'
+                    ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/40 shadow-lg'
+                    : 'bg-[var(--bg-surface)] border-[var(--border-color)] hover:border-amber-500/40'
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                  {/* Card Header Badges */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
                     {pkg.popular ? (
                       <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm">
                         ⭐ الأكثر طلباً
                       </span>
                     ) : (
-                      <span className="text-[10px] text-[var(--text-muted)] font-bold bg-[var(--bg-surface)] px-2 py-0.5 rounded-full border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold bg-[var(--bg-card)] px-2.5 py-0.5 rounded-full border border-[var(--border-color)]">
                         باقة معتمدة
                       </span>
                     )}
 
-                    {isSelected && (
-                      <span className="text-[10px] bg-emerald-500 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                    {isSelected ? (
+                      <span className="text-[10px] bg-emerald-500 text-white font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                         <CheckCircle2 className="w-3 h-3" />
                         محددة
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-[var(--text-muted)] font-medium">
+                        اضغط للتحديد
                       </span>
                     )}
                   </div>
 
-                  <h4 className="font-extrabold text-sm text-[var(--text-primary)] mt-1">{pkg.title}</h4>
+                  {/* Title & Pricing */}
+                  <h4 className="font-extrabold text-sm text-[var(--text-primary)] leading-tight">{pkg.title}</h4>
                   
-                  <div className="my-2 flex items-baseline gap-1">
+                  <div className="my-2.5 flex items-baseline gap-1.5 bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
                     <span className="text-2xl font-black text-amber-500">{pkg.price}</span>
                     <span className="text-xs font-bold text-[var(--text-secondary)]">جنيه مصري</span>
                     {pkg.id === 'pkg_vip' && (
-                      <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold mr-1">(أول شهر)</span>
+                      <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold mr-auto bg-amber-500/10 px-2 py-0.5 rounded-md">
+                        (أول شهر)
+                      </span>
                     )}
                   </div>
 
-                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed mb-3 font-medium bg-[var(--bg-surface)] p-2 rounded-xl border border-[var(--border-color)]/60">
+                  {/* Concise Tagline */}
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-medium mb-3">
                     {pkg.description}
                   </p>
+
+                  {/* Dropdown Accordion Trigger Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedPackageId(isExpanded ? null : pkg.id);
+                    }}
+                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-between border transition-all cursor-pointer ${
+                      isExpanded
+                        ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                        : 'bg-[var(--bg-card)] hover:bg-amber-500/15 text-amber-600 dark:text-amber-400 border-[var(--border-color)]'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      <span>{isExpanded ? 'إخفاء تفاصيل ومميزات الباقة' : 'عرض كافة التفاصيل والمميزات'}</span>
+                    </span>
+                    <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-slate-950' : ''}`} />
+                  </button>
                 </div>
 
-                <div className="pt-2.5 border-t border-[var(--border-color)] space-y-2">
-                  <div className="text-[10px] font-extrabold text-[var(--text-primary)]">المميزات والتفاصيل:</div>
-                  <ul className="text-[10.5px] text-[var(--text-secondary)] space-y-2">
-                    {pkg.features.filter(f => !f.startsWith('💡')).map((f, i) => (
-                      <li key={i} className="flex items-start gap-1.5 leading-snug">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{f}</span>
-                      </li>
+                {/* Collapsible Dropdown Content */}
+                {isExpanded && (
+                  <div className="pt-3 mt-3 border-t border-[var(--border-color)] space-y-2.5 animate-fade-in">
+                    <div className="text-[11px] font-extrabold text-[var(--text-primary)]">المميزات المشمولة:</div>
+                    
+                    <ul className="text-[11px] text-[var(--text-secondary)] space-y-2">
+                      {pkg.features.filter(f => !f.startsWith('💡')).map((f, i) => (
+                        <li key={i} className="flex items-start gap-2 leading-relaxed bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]/60">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {pkg.features.filter(f => f.startsWith('💡')).map((note, i) => (
+                      <div key={i} className="text-[10.5px] bg-amber-500/15 text-amber-950 dark:text-amber-300 p-2.5 rounded-xl border border-amber-500/35 font-bold leading-relaxed shadow-sm">
+                        {note}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
+                )}
 
-                  {pkg.features.filter(f => f.startsWith('💡')).map((note, i) => (
-                    <div key={i} className="text-[10px] bg-amber-500/10 text-amber-900 dark:text-amber-300 p-2.5 rounded-xl border border-amber-500/30 font-bold leading-relaxed mt-2 shadow-sm">
-                      {note}
-                    </div>
-                  ))}
-                </div>
+                {/* Bottom Select Action */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePackageChange(pkg);
+                  }}
+                  className={`w-full mt-3 py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+                      : 'bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)]'
+                  }`}
+                >
+                  {isSelected ? (
+                    <>
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>الباقة المحددة حالياً</span>
+                    </>
+                  ) : (
+                    <span>تحديد هذه الباقة</span>
+                  )}
+                </button>
               </div>
             );
           })}
