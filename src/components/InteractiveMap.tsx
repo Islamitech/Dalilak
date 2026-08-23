@@ -557,56 +557,68 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           {/* Selected Business Card Drawer on Map View */}
           {mode === 'view' && selectedBiz && (
-            <div className="absolute bottom-3 left-3 right-3 bg-slate-900/95 border border-slate-700/80 p-3 rounded-2xl shadow-2xl backdrop-blur-md z-30 flex flex-col gap-2 animate-fade-in">
-              <div className="flex items-start justify-between">
+            <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3 bg-slate-950/95 border border-amber-500/40 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-xl z-30 flex flex-col gap-2.5 animate-fade-in-scale">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <span className="bg-amber-500/10 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
-                    {selectedBiz.category}
-                  </span>
-                  <h3 className="text-sm font-bold text-white mt-1">{selectedBiz.nameAr}</h3>
-                  <p className="text-xs text-slate-300">
-                    {selectedBiz.governorate} - {selectedBiz.city} ({selectedBiz.street})
+                  <div className="flex items-center gap-2">
+                    <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/40">
+                      {selectedBiz.category}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      selectedBiz.verificationStatus === 'verified'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}>
+                      {selectedBiz.verificationStatus === 'verified' ? 'موثق ومبثوث' : 'قيد المراجعة'}
+                    </span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-black text-white mt-1.5">{selectedBiz.nameAr}</h3>
+                  <p className="text-xs text-slate-300 font-medium">
+                    {selectedBiz.governorate} - {selectedBiz.city} {selectedBiz.street ? `(${selectedBiz.street})` : ''}
                   </p>
                 </div>
                 <button
                   onClick={() => setSelectedBiz(null)}
-                  className="text-slate-400 hover:text-white text-xs font-bold p-1 bg-slate-800 rounded-lg"
+                  className="text-slate-400 hover:text-white text-xs font-black w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer transition-colors"
+                  aria-label="إغلاق"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800 text-xs">
-                <div className="flex items-center gap-1 text-slate-300">
-                  <Phone className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{selectedBiz.ownerPhone}</span>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
+                <div className="flex items-center gap-1.5 text-slate-300 font-mono text-xs">
+                  <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>{selectedBiz.ownerPhone || 'لا يوجد هاتف'}</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {onEditBusiness && (
                     <button
                       type="button"
                       onClick={() => onEditBusiness(selectedBiz)}
-                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow cursor-pointer transition-transform active:scale-95"
+                      className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow cursor-pointer transition-transform active:scale-95"
                       title="عرض وتعديل كافة البيانات في نافذة خاصة"
                     >
-                      <Eye className="w-3 h-3 stroke-[2.5]" />
-                      <span>عرض وتعديل البيانات</span>
+                      <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>عرض وتعديل</span>
                     </button>
                   )}
-                  <a
-                    href={`https://wa.me/20${(selectedBiz.ownerPhone || '').replace(/^0/, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2.5 py-1 rounded-lg"
-                  >
-                    واتساب
-                  </a>
+                  {selectedBiz.ownerPhone && (
+                    <a
+                      href={`https://wa.me/20${selectedBiz.ownerPhone.replace(/^0/, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 sm:flex-none bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 transition-colors"
+                    >
+                      واتساب
+                    </a>
+                  )}
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${selectedBiz.lat},${selectedBiz.lng}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="bg-[var(--input-bg)] text-white text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 border border-slate-700"
+                    className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 border border-slate-700 transition-colors"
                   >
                     <span>جوجل ماب</span>
                     <ExternalLink className="w-3 h-3" />

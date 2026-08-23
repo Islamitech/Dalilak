@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Business } from '../types';
 import { calculateBusinessCommission } from '../utils/commission';
 import { Logo } from './Logo';
-import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink, ShieldCheck, QrCode } from 'lucide-react';
+import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink, ShieldCheck, QrCode, Copy, Check } from 'lucide-react';
 
 interface InvoiceModalProps {
   business: Business | null;
@@ -11,12 +11,12 @@ interface InvoiceModalProps {
 }
 
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, isExternalView = false }) => {
+  const [copied, setCopied] = useState<boolean>(false);
   if (!business) return null;
 
   const remaining = Math.max(0, business.packagePrice - business.amountPaid);
 
-  // WhatsApp formatted Arabic message text
-  const waMessage = encodeURIComponent(
+  const invoiceRawText = 
     `*فاتورة توثيق نشاط تجاري - شركة دليلك لخرائط جوجل* 🗺️\n` +
     `-----------------------------------------\n` +
     `📋 *اسم النشاط:* ${business.nameAr}\n` +
@@ -36,11 +36,19 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, i
         : 'لم يتم الدفع نهائياً ❌'
     }\n\n` +
     `📍 *رابط الإحداثيات ورابط الخريطة:* https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}\n\n` +
-    `*ملاحظة:* سيتم متابعة مراجعة وتوثيق النشاط حتى ظهوره رسمياً على خرائط جوجل. شكرًا لثقتكم بشركة دليلك!`
-  );
+    `*ملاحظة:* سيتم متابعة مراجعة وتوثيق النشاط حتى ظهوره رسمياً على خرائط جوجل. شكرًا لثقتكم بشركة دليلك!`;
+
+  // WhatsApp formatted Arabic message text
+  const waMessage = encodeURIComponent(invoiceRawText);
 
   const formattedPhone = (business.ownerPhone || '').replace(/^0/, '');
   const whatsappUrl = `https://wa.me/20${formattedPhone}?text=${waMessage}`;
+
+  const handleCopyInvoice = () => {
+    navigator.clipboard.writeText(invoiceRawText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   // Dynamic QR Code URL to open the invoice online
   const qrUrl = `${window.location.origin}/?view=invoice&id=${business.id}`;
@@ -175,15 +183,24 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, i
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+            className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
           >
             <Share2 className="w-4 h-4" />
-            <span>إرسال الفاتورة الآن عبر واتساب العميل</span>
+            <span>إرسال واتساب</span>
           </a>
 
           <button
+            onClick={handleCopyInvoice}
+            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs py-3 px-3.5 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            title="نسخ نص الفاتورة للحافظة"
+          >
+            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+            <span>{copied ? 'تم النسخ!' : 'نسخ النص'}</span>
+          </button>
+
+          <button
             onClick={() => window.print()}
-            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-3 px-4 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-3 px-3.5 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>طباعة</span>

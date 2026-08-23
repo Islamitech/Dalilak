@@ -150,14 +150,22 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 
           {/* Amount to simulate payment */}
           <div className="pt-2 border-t border-[var(--border-color)] space-y-1">
-            <label className="block font-bold text-[var(--text-secondary)]">أدخل المبلغ المراد إثبات دفعه الآن (ج.م):</label>
+            <div className="flex items-center justify-between">
+              <label className="block font-bold text-[var(--text-secondary)]">أدخل المبلغ المراد إثبات دفعه الآن (ج.م):</label>
+              {remaining === 0 && (
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-full">
+                  مسددة بالكامل
+                </span>
+              )}
+            </div>
             <input
               type="number"
               min="1"
-              max={remaining || business.packagePrice}
+              max={remaining > 0 ? remaining : business.packagePrice}
               value={simulatedPayAmount}
-              onChange={(e) => setSimulatedPayAmount(Number(e.target.value))}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-600 dark:text-amber-400 font-black rounded-xl p-2.5 text-sm focus:outline-none focus:border-amber-500"
+              disabled={remaining === 0}
+              onChange={(e) => setSimulatedPayAmount(Math.max(0, Number(e.target.value)))}
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-600 dark:text-amber-400 font-black rounded-xl p-2.5 text-sm focus:outline-none focus:border-amber-500 disabled:opacity-50"
             />
           </div>
         </div>
@@ -165,11 +173,17 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
         <button
           type="button"
           onClick={handleConfirmSimulatedPayment}
-          disabled={isProcessing}
-          className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-slate-950 font-black text-xs py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+          disabled={isProcessing || remaining === 0 || simulatedPayAmount <= 0}
+          className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-slate-950 font-black text-xs py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-          <span>{isProcessing ? 'جاري معالجة وتأكيد العملية...' : 'تأكيد استلام الدفعة وإصدار الفاتورة'}</span>
+          <span>
+            {isProcessing
+              ? 'جاري معالجة وتأكيد العملية...'
+              : remaining === 0
+              ? 'الفاتورة مسددة بالكامل'
+              : 'تأكيد استلام الدفعة وإصدار الفاتورة'}
+          </span>
         </button>
       </div>
     </div>
