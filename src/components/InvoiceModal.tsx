@@ -2,17 +2,32 @@ import React, { useState } from 'react';
 import { Business } from '../types';
 import { calculateBusinessCommission } from '../utils/commission';
 import { Logo } from './Logo';
-import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink, ShieldCheck, QrCode, Copy, Check } from 'lucide-react';
+import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink, ShieldCheck, QrCode, Copy, Check, CloudUpload, Sparkles } from 'lucide-react';
+import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 
 interface InvoiceModalProps {
   business: Business | null;
   onClose: () => void;
   isExternalView?: boolean;
+  onUpdateBusiness?: (updatedBusiness: Business) => void;
 }
 
-export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, isExternalView = false }) => {
+export const InvoiceModal: React.FC<InvoiceModalProps> = ({ 
+  business, 
+  onClose, 
+  isExternalView = false,
+  onUpdateBusiness,
+}) => {
   const [copied, setCopied] = useState<boolean>(false);
-  if (!business) return null;
+  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
+  const [currentBiz, setCurrentBiz] = useState<Business | null>(business);
+
+  React.useEffect(() => {
+    setCurrentBiz(business);
+  }, [business]);
+
+  if (!currentBiz) return null;
+  const activeBusiness = currentBiz;
 
   const remaining = Math.max(0, business.packagePrice - business.amountPaid);
 
@@ -177,6 +192,31 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, i
           </div>
         </div>
 
+        {/* Google Maps Auto-Sync & Place ID Button */}
+        <div className="no-print">
+          <button
+            onClick={() => setShowSyncModal(true)}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg hover:shadow-blue-500/20 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer border border-blue-400/30"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-white" />
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-1.5">
+                  <span>مزامنة وتوثيق على خرائط جوجل</span>
+                  <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">API</span>
+                </div>
+                <p className="text-[10px] text-blue-100 font-normal">إرسال البيانات والصور وتوليد معرّف Place ID الرسمي</p>
+              </div>
+            </div>
+
+            <div className="bg-white/20 px-2.5 py-1 rounded-xl text-[11px] font-bold">
+              {activeBusiness.googleSyncStatus === 'synced' ? 'مُوثق ومعتمد ✅' : 'مزامنة الآن ⚡'}
+            </div>
+          </button>
+        </div>
+
         {/* Dispatch Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center gap-2 no-print">
           <a
@@ -206,6 +246,17 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ business, onClose, i
             <span>طباعة</span>
           </button>
         </div>
+
+        {/* Google Maps Sync Modal */}
+        <GoogleMapsSyncModal
+          business={activeBusiness}
+          isOpen={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+          onUpdateBusiness={(updated) => {
+            setCurrentBiz(updated);
+            if (onUpdateBusiness) onUpdateBusiness(updated);
+          }}
+        />
       </div>
     </div>
   );

@@ -17,7 +17,9 @@ import {
   Clock,
   Sparkles,
   AlertCircle,
+  CloudUpload,
 } from 'lucide-react';
+import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -46,6 +48,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [showMapsSyncModal, setShowMapsSyncModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (business) {
@@ -640,6 +643,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </a>
             )}
 
+            <button
+              type="button"
+              onClick={() => setShowMapsSyncModal(true)}
+              className="bg-blue-600/15 hover:bg-blue-600 text-blue-900 dark:text-blue-300 hover:text-white font-black px-3.5 py-2 rounded-xl border border-blue-500/40 flex items-center gap-1 transition-colors shadow-sm cursor-pointer"
+            >
+              <CloudUpload className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>مزامنة مع Google Maps ({formData.googleSyncStatus === 'synced' ? 'مُوثق ✅' : 'مزامنة ⚡'})</span>
+            </button>
+
             {onDeleteBusiness && canEdit && (
               <button
                 type="button"
@@ -696,6 +708,19 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             />
           </div>
         </div>
+      )}
+
+      {/* Google Maps Sync Modal */}
+      {formData && (
+        <GoogleMapsSyncModal
+          business={formData}
+          isOpen={showMapsSyncModal}
+          onClose={() => setShowMapsSyncModal(false)}
+          onUpdateBusiness={(updated) => {
+            setFormData(updated);
+            onSave(updated);
+          }}
+        />
       )}
     </div>
   );

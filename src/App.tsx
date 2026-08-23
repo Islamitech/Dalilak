@@ -1533,6 +1533,7 @@ export default function App() {
       <InvoiceModal
         business={selectedInvoiceBiz}
         onClose={() => setSelectedInvoiceBiz(null)}
+        onUpdateBusiness={handleUpdateBusiness}
       />
 
       {/* MODAL: PAYMENT GATEWAY SIMULATION */}

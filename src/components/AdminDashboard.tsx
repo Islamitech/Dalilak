@@ -358,7 +358,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black text-[var(--text-primary)]">لوحة تحكم مدير النظام</h2>
               <span className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                admin@gmail.com
+                dalilaakeg@gmail.com
               </span>
             </div>
             <p className="text-xs text-[var(--text-secondary)] font-bold mt-0.5">

@@ -87,7 +87,7 @@ export const MOCK_REPRESENTATIVES: Representative[] = [
   {
     id: 'admin_1',
     name: 'مدير النظام دليلك',
-    email: 'admin@gmail.com',
+    email: 'dalilaakeg@gmail.com',
     phone: '01000000000',
     role: 'admin',
     roleTitle: 'مدير النظام دليلك',

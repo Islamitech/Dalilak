@@ -3,7 +3,8 @@ import { Business, PackageOption, PaymentStatus, Representative } from '../types
 import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, PACKAGES } from '../data/mockData';
 import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
-import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2 } from 'lucide-react';
+import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2, CloudUpload } from 'lucide-react';
+import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 
 interface BusinessFormProps {
   onSubmitBusiness: (biz: Business) => void;
@@ -56,6 +57,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   // Success State
   const [submittedBusiness, setSubmittedBusiness] = useState<Business | null>(null);
+  const [showMapsSyncModal, setShowMapsSyncModal] = useState<boolean>(false);
 
   const resetForm = () => {
     setNameAr('');
@@ -216,23 +218,44 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           </span>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <div className="flex flex-col gap-3 pt-2">
           <button
-            onClick={() => onShowInvoice(submittedBusiness)}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 border border-emerald-700/50 cursor-pointer"
+            onClick={() => setShowMapsSyncModal(true)}
+            className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black py-3.5 px-4 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2 border border-blue-500/40 cursor-pointer text-sm"
           >
-            <FileText className="w-5 h-5" />
-            <span>معاينة وإصدار الفاتورة</span>
+            <CloudUpload className="w-5 h-5" />
+            <span>مزامنة وتوثيق النشاط على خرائط Google 🗺️</span>
           </button>
-          
-          <button
-            onClick={() => setSubmittedBusiness(null)}
-            className="flex-1 bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] font-bold py-3.5 px-4 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <User className="w-5 h-5" />
-            <span>تعديل البيانات</span>
-          </button>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => onShowInvoice(submittedBusiness)}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 border border-emerald-700/50 cursor-pointer"
+            >
+              <FileText className="w-5 h-5" />
+              <span>معاينة وإصدار الفاتورة</span>
+            </button>
+            
+            <button
+              onClick={() => setSubmittedBusiness(null)}
+              className="flex-1 bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] font-bold py-3.5 px-4 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <User className="w-5 h-5" />
+              <span>تعديل البيانات</span>
+            </button>
+          </div>
         </div>
+
+        {/* Google Maps Sync Modal */}
+        <GoogleMapsSyncModal
+          business={submittedBusiness}
+          isOpen={showMapsSyncModal}
+          onClose={() => setShowMapsSyncModal(false)}
+          onUpdateBusiness={(updated) => {
+            setSubmittedBusiness(updated);
+            onSubmitBusiness(updated);
+          }}
+        />
 
         <div className="pt-4 border-t border-[var(--border-color)] mt-6">
           <button 

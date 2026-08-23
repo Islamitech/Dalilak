@@ -31,6 +31,9 @@ export interface Business {
   paymentStatus: PaymentStatus;
   verificationStatus: VerificationStatus;
   googleMapsUrl?: string;
+  googlePlaceId?: string;
+  googleSyncStatus?: 'synced' | 'in_progress' | 'failed' | 'not_synced';
+  googleSyncDate?: string;
   invoiceNumber: string;
   invoiceDate: string;
   notes?: string;

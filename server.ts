@@ -34,10 +34,10 @@ app.post('/api/auth/login', (req, res) => {
   const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
 
   // Admin Login
-  if (role === 'admin' || cleanEmail === 'admin@gmail.com') {
+  if (role === 'admin' || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') {
     const validAdminPasswords = ['admin123', 'Aa132456', 'admin'];
-    if (cleanEmail === 'admin@gmail.com' && validAdminPasswords.includes(cleanPassword)) {
-      const adminRep = representatives.find((r) => r.role === 'admin' || r.email.toLowerCase() === 'admin@gmail.com');
+    if ((cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') && validAdminPasswords.includes(cleanPassword)) {
+      const adminRep = representatives.find((r) => r.role === 'admin' || r.email.toLowerCase() === 'dalilaakeg@gmail.com' || r.email.toLowerCase() === 'admin@gmail.com');
       
       // Check active concurrent session for admin
       if (adminRep?.activeSessionId && adminRep.lastActiveTimestamp && (now - adminRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
@@ -56,7 +56,7 @@ app.post('/api/auth/login', (req, res) => {
         user: {
           id: adminRep?.id || 'admin_1',
           name: adminRep?.name || 'مدير النظام دليلك',
-          email: 'admin@gmail.com',
+          email: 'dalilaakeg@gmail.com',
           role: 'admin',
           repData: adminRep,
           activeSessionId: newSessionId,

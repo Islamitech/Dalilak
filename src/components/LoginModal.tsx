@@ -99,7 +99,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       freshDbReps.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
 
       const foundRep = allRepsMap.get(cleanEmail);
-      const isAdminAccount = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@') || (foundRep && foundRep.role === 'admin');
+      const isAdminAccount = cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@') || (foundRep && foundRep.role === 'admin');
 
       if (!foundRep && !isAdminAccount) {
         setErrorMsg('البريد الإلكتروني غير مسجل بالمنظومة.');
@@ -138,7 +138,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         const adminData: Representative = foundRep || {
           id: 'admin_1',
           name: 'مدير النظام دليلك',
-          email: 'admin@gmail.com',
+          email: 'dalilaakeg@gmail.com',
           phone: '01000000000',
           role: 'admin',
           roleTitle: 'مدير النظام دليلك',
