@@ -14,7 +14,7 @@ interface NavbarProps {
   onMarkAllNotificationsAsRead: () => void;
   onMarkNotificationAsRead: (id: string) => void;
   onClearNotifications: () => void;
-  onNavigateTab?: (tab: string) => void;
+  onNavigateTab?: (tab: string, entityId?: string, entityType?: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({

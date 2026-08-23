@@ -141,6 +141,8 @@ export default function App() {
         type: 'warning',
         category: 'account',
         targetRole: 'admin',
+        entityId: 'rep_ahmed_ezalden',
+        entityType: 'rep',
         read: false,
         linkTab: 'admin',
       },
@@ -152,6 +154,8 @@ export default function App() {
         type: 'success',
         category: 'business',
         targetRole: 'all',
+        entityId: 'biz_101',
+        entityType: 'business',
         read: true,
         linkTab: 'home',
       },
@@ -163,6 +167,8 @@ export default function App() {
         type: 'success',
         category: 'payment',
         targetRole: 'admin',
+        entityId: 'biz_101',
+        entityType: 'invoice',
         read: true,
         linkTab: 'invoices',
       },
@@ -195,6 +201,8 @@ export default function App() {
     targetRole?: UserRole | 'all';
     targetUserId?: string;
     linkTab?: string;
+    entityId?: string;
+    entityType?: 'business' | 'rep' | 'invoice';
   }) => {
     const newNotif: SystemNotification = {
       id: `sys_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -207,6 +215,8 @@ export default function App() {
       targetUserId: item.targetUserId,
       read: false,
       linkTab: item.linkTab,
+      entityId: item.entityId,
+      entityType: item.entityType,
     };
     setSystemNotifications((prev) => [newNotif, ...prev]);
   };
@@ -223,43 +233,49 @@ export default function App() {
     setSystemNotifications([]);
   };
 
-  // Dynamically merge system notifications with all active business and account activities
+  // Direct navigation handler for Notification preview clicks
+  const handleNotificationNavigate = (tab: string, entityId?: string, entityType?: string) => {
+    if (tab) setActiveTab(tab);
+
+    if (entityId) {
+      if (entityType === 'business' || (!entityType && (tab === 'home' || tab === 'admin'))) {
+        const foundBiz = businesses.find((b) => b.id === entityId || b.nameAr.includes(entityId));
+        if (foundBiz) {
+          setEditingBusiness(foundBiz);
+        }
+      } else if (entityType === 'invoice' || (!entityType && tab === 'invoices')) {
+        const foundBiz = businesses.find(
+          (b) => b.id === entityId || b.invoiceNumber === entityId || b.nameAr.includes(entityId)
+        );
+        if (foundBiz) {
+          setSelectedInvoiceBiz(foundBiz);
+        }
+      }
+    }
+  };
+
+  // Dynamically merge system notifications with all active business and account activities (No duplicates!)
   const allNotifications = useMemo(() => {
     const list: SystemNotification[] = [...systemNotifications];
 
-    // Auto-generate notifications for all businesses in the system
+    // Auto-generate notifications for all businesses in the system (1 single smart item per business)
     businesses.forEach((biz) => {
-      const existsAdmin = list.some(
-        (n) => n.category === 'business' && n.message.includes(biz.nameAr) && n.targetRole === 'admin'
+      const exists = list.some(
+        (n) => n.category === 'business' && (n.entityId === biz.id || n.message.includes(biz.nameAr))
       );
-      if (!existsAdmin) {
+      if (!exists) {
         list.push({
-          id: `biz_notif_admin_${biz.id}`,
+          id: `biz_notif_${biz.id}`,
           title: `نشاط تجاري جديد: ${biz.nameAr} 🏪`,
           message: `تم تسجيل نشاط تجاري جديد "${biz.nameAr}" بواسطة المندوب "${biz.repName}" في ${biz.governorate} (${biz.category}).`,
           timestamp: biz.createdDate ? new Date(biz.createdDate).toISOString() : new Date().toISOString(),
           type: 'info',
           category: 'business',
-          targetRole: 'admin',
+          targetRole: 'all',
+          entityId: biz.id,
+          entityType: 'business',
           read: false,
           linkTab: 'admin',
-        });
-      }
-
-      const existsRep = list.some(
-        (n) => n.category === 'business' && n.message.includes(biz.nameAr) && n.targetUserId === biz.repId
-      );
-      if (!existsRep) {
-        list.push({
-          id: `biz_notif_rep_${biz.id}`,
-          title: `تم تسجيل نشاطك: ${biz.nameAr} 📌`,
-          message: `نشاط "${biz.nameAr}" مسجل في المنظومة (حالة الدفع: ${biz.paymentStatus === 'fully_paid' ? 'مكتمل' : 'جزئي'} - التوثيق: ${biz.verificationStatus === 'verified' ? 'موثق ✅' : 'قيد المتابعة ⏳'}).`,
-          timestamp: biz.createdDate ? new Date(biz.createdDate).toISOString() : new Date().toISOString(),
-          type: 'success',
-          category: 'business',
-          targetUserId: biz.repId,
-          read: false,
-          linkTab: 'home',
         });
       }
     });
@@ -268,7 +284,7 @@ export default function App() {
     representatives.forEach((rep) => {
       if (rep.status === 'suspended') {
         const existsSuspended = list.some(
-          (n) => n.category === 'account' && n.message.includes(rep.name) && n.targetRole === 'admin'
+          (n) => n.category === 'account' && (n.entityId === rep.id || n.message.includes(rep.name))
         );
         if (!existsSuspended) {
           list.push({
@@ -279,6 +295,8 @@ export default function App() {
             type: 'warning',
             category: 'account',
             targetRole: 'admin',
+            entityId: rep.id,
+            entityType: 'rep',
             read: false,
             linkTab: 'admin',
           });
@@ -287,7 +305,7 @@ export default function App() {
 
       if (rep.avatarStatus === 'pending_approval') {
         const existsAvatar = list.some(
-          (n) => n.category === 'avatar' && n.message.includes(rep.name) && n.targetRole === 'admin'
+          (n) => n.category === 'avatar' && (n.entityId === rep.id || n.message.includes(rep.name))
         );
         if (!existsAvatar) {
           list.push({
@@ -298,6 +316,8 @@ export default function App() {
             type: 'info',
             category: 'avatar',
             targetRole: 'admin',
+            entityId: rep.id,
+            entityType: 'rep',
             read: false,
             linkTab: 'admin',
           });
@@ -305,8 +325,17 @@ export default function App() {
       }
     });
 
+    // Deduplicate by title & entityId
+    const uniqueMap = new Map<string, SystemNotification>();
+    list.forEach((n) => {
+      const key = `${n.title}_${n.entityId || n.message.substring(0, 20)}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, n);
+      }
+    });
+
     // Sort newest first by timestamp
-    return list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return Array.from(uniqueMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [systemNotifications, businesses, representatives]);
 
   // Parse URL for deep linking (QR codes)
@@ -355,22 +384,16 @@ export default function App() {
     await saveBusinessToDb(newBiz);
     addNotification(`🎉 تم تسجيل النشاط التجاري "${newBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
     
-    // Add to System Notifications Bell Log
+    // Add 1 single clean Notification to Bell Log
     addSystemNotification({
-      title: 'نشاط تجاري جديد 🏪',
-      message: `قام المندوب "${newBiz.repName || user?.name || ''}" بتسجيل نشاط تجاري جديد "${newBiz.nameAr}" في ${newBiz.governorate}.`,
+      title: `نشاط تجاري جديد: ${newBiz.nameAr} 🏪`,
+      message: `قام المندوب "${newBiz.repName || user?.name || 'مندوب'}" بتسجيل نشاط تجاري جديد "${newBiz.nameAr}" في ${newBiz.governorate} (${newBiz.category}).`,
       type: 'info',
       category: 'business',
-      targetRole: 'admin',
+      targetRole: 'all',
+      entityId: newBiz.id,
+      entityType: 'business',
       linkTab: 'admin',
-    });
-    addSystemNotification({
-      title: 'تم تسجيل النشاط التجاري 📌',
-      message: `تم تسجيل نشاط "${newBiz.nameAr}" بنجاح في المنظومة وجاري معاينته وتوثيقه.`,
-      type: 'success',
-      category: 'business',
-      targetUserId: newBiz.repId,
-      linkTab: 'home',
     });
 
     try {
@@ -841,7 +864,7 @@ export default function App() {
         onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
         onMarkNotificationAsRead={handleMarkNotificationAsRead}
         onClearNotifications={handleClearNotifications}
-        onNavigateTab={(tab) => setActiveTab(tab)}
+        onNavigateTab={handleNotificationNavigate}
       />
 
       {/* Main App Container */}

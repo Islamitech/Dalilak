@@ -102,5 +102,7 @@ export interface SystemNotification {
   targetUserId?: string; // If specified, strictly for this rep/user
   read: boolean;
   linkTab?: string;
+  entityId?: string; // Specific ID of the business or rep
+  entityType?: 'business' | 'rep' | 'invoice';
 }
 

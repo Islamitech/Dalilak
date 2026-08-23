@@ -23,7 +23,7 @@ interface NotificationCenterProps {
   onMarkAllAsRead: () => void;
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
-  onNavigateTab?: (tab: string) => void;
+  onNavigateTab?: (tab: string, entityId?: string, entityType?: string) => void;
 }
 
 /**
@@ -223,8 +223,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   key={item.id}
                   onClick={() => {
                     if (!item.read) onMarkAsRead(item.id);
-                    if (item.linkTab && onNavigateTab) {
-                      onNavigateTab(item.linkTab);
+                    if (onNavigateTab && (item.linkTab || item.entityId)) {
+                      onNavigateTab(item.linkTab || 'home', item.entityId, item.entityType);
                       setIsOpen(false);
                     }
                   }}
