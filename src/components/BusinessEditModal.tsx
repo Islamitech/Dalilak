@@ -18,8 +18,10 @@ import {
   Sparkles,
   AlertCircle,
   CloudUpload,
+  Download,
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
+import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -541,20 +543,30 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2">
             <h4 className="font-black text-xs text-amber-500 flex items-center gap-1.5">
               <ImageIcon className="w-4 h-4 text-amber-500" />
-              <span>5. الصور والمستندات المرفوعة بواسطة المندوب ({formData.photos?.length || 0})</span>
+              <span>5. صور ومستندات النشاط ({formData.photos?.length || 0})</span>
             </h4>
 
-            {canEdit && (
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {formData.photos && formData.photos.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => downloadAllBusinessPhotos(formData.photos, formData.nameAr)}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1 shadow-sm transition-transform active:scale-95"
+                  title="تنزيل جميع صور النشاط لحفظها ورفعها على جوجل ماب"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>تنزيل جميع الصور 📦</span>
+                </button>
+              )}
+
+              {canEdit && (
                 <label className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1 shadow-sm transition-transform active:scale-95">
                   <UploadCloud className="w-3.5 h-3.5" />
-                  <span>📸 إرفاق صورة جديدة</span>
+                  <span>📸 إرفاق صورة</span>
                   <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
                 </label>
-
-
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {formData.photos && formData.photos.length > 0 ? (
@@ -582,11 +594,24 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     </button>
                   )}
 
-                  <div
-                    onClick={() => setSelectedPhotoPreview(photo)}
-                    className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-black transition-opacity cursor-pointer pointer-events-none"
-                  >
-                    🔍 معاينة وتكبير
+                  {/* Per Photo Quick Download & Preview Controls */}
+                  <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhotoPreview(photo)}
+                      className="bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-lg text-xs font-bold cursor-pointer"
+                      title="معاينة وتكبير"
+                    >
+                      🔍
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadSinglePhoto(photo, `${formData.nameAr}-photo-${idx + 1}`)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded-lg text-xs font-bold cursor-pointer"
+                      title="تحميل الصورة للجهاز"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -595,7 +620,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <div className="text-center py-6 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-xs text-[var(--text-muted)] font-bold space-y-2">
               <p>لم يتم إرفاق صور واجهة النشاط لهذا التسجيل بعد.</p>
               <p className="text-[11px] text-amber-500 font-normal">
-                يمكنك استخدام زر <strong className="font-black">"📸 إرفاق صورة جديدة"</strong> أعلاه لإدخال الصورة وتوثيق النشاط الآن.
+                يمكنك استخدام زر <strong className="font-black">"📸 إرفاق صورة"</strong> أعلاه لإدخال الصورة وتوثيق النشاط الآن.
               </p>
             </div>
           )}
@@ -704,8 +729,18 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <img
               src={selectedPhotoPreview}
               alt="معاينة الصورة المرفوعة"
-              className="max-w-full max-h-[80vh] object-contain rounded-2xl border-2 border-amber-500 shadow-2xl"
+              className="max-w-full max-h-[75vh] object-contain rounded-2xl border-2 border-amber-500 shadow-2xl"
             />
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={() => downloadSinglePhoto(selectedPhotoPreview, `${formData.nameAr}-photo-full`)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-4 rounded-xl inline-flex items-center gap-1.5 shadow-lg cursor-pointer transition-transform active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                <span>تحميل هذه الصورة بجودة عالية للرفع على جوجل</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
