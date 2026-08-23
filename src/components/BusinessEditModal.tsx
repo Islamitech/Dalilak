@@ -492,22 +492,85 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-extrabold mb-1">حالة التوثيق والبث على الخريطة *</label>
+              <label className="block font-extrabold mb-1">حالة التوثيق وGoogle Maps (تحديد يدوي) *</label>
               <select
                 value={formData.verificationStatus}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const vStatus = e.target.value as VerificationStatus;
+                  let gStatus = formData.googleSyncStatus;
+                  if (vStatus === 'verified') gStatus = 'synced';
+                  else if (vStatus === 'in_progress') gStatus = 'in_progress';
+                  else if (vStatus === 'pending') gStatus = 'not_synced';
+                  else if (vStatus === 'rejected') gStatus = 'failed';
+
                   setFormData({
                     ...formData,
-                    verificationStatus: e.target.value as VerificationStatus,
-                  })
-                }
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                    verificationStatus: vStatus,
+                    googleSyncStatus: gStatus,
+                  });
+                }}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm text-xs"
               >
-                <option value="verified">🟢 تم التوثيق والظهور رسمياً</option>
-                <option value="in_progress">🟡 جاري التوثيق والمراجعة</option>
-                <option value="pending">🟠 معلق</option>
-                <option value="rejected">🔴 مرفوض</option>
+                <option value="pending">🚨 لم تُرفع للتوثيق بعد (جديدة / بانتظار الرفع)</option>
+                <option value="in_progress">⏳ أُرسلت للتوثيق وبانتظار موافقة جوجل</option>
+                <option value="verified">🟢 تم التوثيق والظهور رسمياً على الخريطة</option>
+                <option value="rejected">🔴 مرفوض / يحتاج تعديل</option>
               </select>
+
+              {/* Quick Status Buttons */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      verificationStatus: 'pending',
+                      googleSyncStatus: 'not_synced',
+                    })
+                  }
+                  className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                    formData.verificationStatus === 'pending'
+                      ? 'bg-rose-500 text-white border-rose-600 shadow'
+                      : 'bg-[var(--bg-card)] text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'
+                  }`}
+                >
+                  🚨 لم تُرفع
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      verificationStatus: 'in_progress',
+                      googleSyncStatus: 'in_progress',
+                    })
+                  }
+                  className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                    formData.verificationStatus === 'in_progress'
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow'
+                      : 'bg-[var(--bg-card)] text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10'
+                  }`}
+                >
+                  ⏳ أُرسلت لجوجل
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      verificationStatus: 'verified',
+                      googleSyncStatus: 'synced',
+                    })
+                  }
+                  className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                    formData.verificationStatus === 'verified'
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow'
+                      : 'bg-[var(--bg-card)] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  🟢 موثق ومعتمد
+                </button>
+              </div>
             </div>
 
             <div>

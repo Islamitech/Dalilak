@@ -263,7 +263,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       packagePrice: selectedPackage.price,
       amountPaid: Number(amountPaid),
       paymentStatus,
-      verificationStatus: 'in_progress', // Default under review
+      verificationStatus: 'pending', // Default: new registration, not submitted to Google yet
+      googleSyncStatus: 'not_synced',
       invoiceNumber: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
       invoiceDate: new Date().toISOString().split('T')[0],
       createdDate: new Date().toISOString(),
