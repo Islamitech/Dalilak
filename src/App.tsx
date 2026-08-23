@@ -1236,18 +1236,24 @@ export default function App() {
                         </div>
 
                         {/* Addition Time & Representative info */}
-                        <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border-color)]">
-                          <span className="flex items-center gap-1.5 font-bold">
-                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                            <span>وقت الإضافة:</span>
-                            <span className="text-[var(--text-primary)] font-extrabold font-sans dir-ltr inline-block">
+                        <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-[11px] font-bold">
+                              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <span>وقت الإضافة:</span>
+                            </div>
+                            <span className="font-extrabold text-[var(--text-primary)] text-[11px] font-sans tracking-tight bg-[var(--bg-surface)] px-2.5 py-0.5 rounded-lg border border-[var(--border-color)]/70">
                               {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}
                             </span>
-                          </span>
+                          </div>
+
                           {biz.repName && (
-                            <span className="text-[10px] text-[var(--text-secondary)] font-bold">
-                              المندوب: {biz.repName}
-                            </span>
+                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]/50 text-[10px] text-[var(--text-muted)]">
+                              <span>المندوب المسجل:</span>
+                              <span className="font-bold text-[var(--text-secondary)] truncate max-w-[190px]">
+                                {biz.repName}
+                              </span>
+                            </div>
                           )}
                         </div>
 

@@ -1,8 +1,13 @@
 import { Business } from '../types';
 
+const ARABIC_MONTHS = [
+  'يناير', 'فبراير', 'مارس', 'إبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+];
+
 /**
- * Format activity creation date and time in a clear Arabic format
- * e.g. "23 أغسطس 2026 • 09:30 م" or "2026-08-23"
+ * Format activity creation date and time with clear English digits (0-9)
+ * e.g. "23 أغسطس 2026 • 10:58 م" or "23 أغسطس 2026"
  */
 export function formatActivityDateTime(dateStr?: string): string {
   if (!dateStr) return 'غير محدد';
@@ -10,30 +15,22 @@ export function formatActivityDateTime(dateStr?: string): string {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
 
-    // Check if timestamp contains time component
+    const day = d.getDate();
+    const month = ARABIC_MONTHS[d.getMonth()];
+    const year = d.getFullYear();
+
     const hasTime = dateStr.includes('T') || (dateStr.includes(':') && dateStr.length > 10);
 
-    const dateOptions: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    };
-
-    const formattedDate = d.toLocaleDateString('ar-EG', dateOptions);
-
     if (!hasTime) {
-      return formattedDate;
+      return `${day} ${month} ${year}`;
     }
 
-    const timeOptions: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    };
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const period = hours >= 12 ? 'م' : 'ص';
+    hours = hours % 12 || 12;
 
-    const formattedTime = d.toLocaleTimeString('ar-EG', timeOptions);
-
-    return `${formattedDate} • ${formattedTime}`;
+    return `${day} ${month} ${year} • ${hours}:${minutes} ${period}`;
   } catch {
     return dateStr;
   }
