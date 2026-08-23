@@ -208,9 +208,9 @@ export const MOCK_REPRESENTATIVES: Representative[] = [
 
 export const DEFAULT_PAYMENT_CONFIG: PaymentGatewayConfig = {
   fawryMerchantCode: '98472',
-  vodafoneCashNumber: '01099887766',
+  vodafoneCashNumber: '01143888355',
   instaPayHandle: 'daleelek@instapay',
-  cardGatewayActive: true
+  cardGatewayActive: false
 };
 
 export const INITIAL_BUSINESSES: Business[] = [

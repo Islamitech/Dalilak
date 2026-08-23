@@ -13,7 +13,10 @@ import { RepProfile } from './components/RepProfile';
 import { LoginModal } from './components/LoginModal';
 import { PaymentGatewayModal } from './components/PaymentGatewayModal';
 import { BusinessEditModal } from './components/BusinessEditModal';
-import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X } from 'lucide-react';
+import { AboutUsModal } from './components/AboutUsModal';
+import { TermsModal } from './components/TermsModal';
+import { Logo } from './components/Logo';
+import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X, Info, Heart, Smartphone } from 'lucide-react';
 import {
   fetchBusinessesFromDb,
   saveBusinessToDb,
@@ -135,6 +138,8 @@ export default function App() {
   const [selectedInvoiceBiz, setSelectedInvoiceBiz] = useState<Business | null>(null);
   const [selectedPayBiz, setSelectedPayBiz] = useState<Business | null>(null);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
+  const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
 
   // Home Feed Search & Filters
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
@@ -987,6 +992,8 @@ export default function App() {
         <LoginModal
           isInline={true}
           onClose={() => {}}
+          onOpenAbout={() => setShowAboutModal(true)}
+          onOpenTerms={() => setShowTermsModal(true)}
           onLoginSuccess={(u) => {
             setUser(u);
             const savedTab = localStorage.getItem('dalelak_active_tab');
@@ -1001,6 +1008,27 @@ export default function App() {
           representatives={representatives}
           onAddRepresentative={handleAddRepresentative}
         />
+
+        {/* Informational Modals for Unauthenticated Visitors */}
+        {showAboutModal && (
+          <AboutUsModal
+            onClose={() => setShowAboutModal(false)}
+            onOpenTerms={() => {
+              setShowAboutModal(false);
+              setShowTermsModal(true);
+            }}
+          />
+        )}
+
+        {showTermsModal && (
+          <TermsModal
+            onClose={() => setShowTermsModal(false)}
+            onOpenAbout={() => {
+              setShowTermsModal(false);
+              setShowAboutModal(true);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1078,6 +1106,8 @@ export default function App() {
         onMarkNotificationAsRead={handleMarkNotificationAsRead}
         onClearNotifications={handleClearNotifications}
         onNavigateTab={handleNotificationNavigate}
+        onOpenAbout={() => setShowAboutModal(true)}
+        onOpenTerms={() => setShowTermsModal(true)}
       />
 
       {/* Main App Container */}
@@ -1354,6 +1384,91 @@ export default function App() {
             </div>
           )
         )}
+
+        {/* Global Professional Footer */}
+        <footer className="mt-12 pt-8 pb-16 border-t border-[var(--border-color)] text-[var(--text-secondary)] text-xs space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            {/* Column 1: Brand & Bio */}
+            <div className="space-y-2.5 text-right">
+              <Logo size="sm" />
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-bold max-w-sm">
+                المنصة الرائدة في مصر لتوثيق وتثبيت الأنشطة التجارية والشركات على خرائط Google Maps باحترافية، وإصدار الفواتير الإلكترونية المعتمدة في جميع المحافظات.
+              </p>
+            </div>
+
+            {/* Column 2: Quick Links */}
+            <div className="space-y-2 text-right">
+              <h4 className="font-black text-sm text-[var(--text-primary)]">روابط سريعة</h4>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setShowAboutModal(true)}
+                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Info className="w-3.5 h-3.5 text-amber-500" />
+                  <span>من نحن</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 text-amber-500" />
+                  <span>شروط الاستخدام</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home')}
+                  className="hover:text-amber-500 cursor-pointer transition-colors"
+                >
+                  الرئيسية
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('map')}
+                  className="hover:text-amber-500 cursor-pointer transition-colors"
+                >
+                  الخريطة التفاعلية
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('add')}
+                  className="hover:text-amber-500 cursor-pointer transition-colors"
+                >
+                  تسجيل نشاط
+                </button>
+              </div>
+            </div>
+
+            {/* Column 3: Payment Method Badge */}
+            <div className="space-y-2 text-right bg-[var(--bg-card)] p-3.5 rounded-2xl border border-[var(--border-color)]">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-500 shrink-0" />
+                <h4 className="font-black text-xs text-[var(--text-primary)]">طريقة السداد المعتمدة:</h4>
+              </div>
+              <div className="flex items-center justify-between bg-[var(--input-bg)] p-2 rounded-xl border border-emerald-500/30">
+                <span className="font-bold text-[11px] text-emerald-600 dark:text-emerald-400">فودافون كاش:</span>
+                <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs dir-ltr">01143888355</span>
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] leading-tight">
+                * باقي طرق الدفع الإلكتروني (فوري، إنستاباي، فيزا) قيد التطوير والاعتماد.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-[var(--border-color)]/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+            <p>جميع الحقوق محفوظة © 2026 منصة دليلك لخدمات خرائط جوجل والتسويق الرقمي في مصر</p>
+            <div className="flex items-center gap-2 font-bold">
+              <span>نتبع سياسات ومعايير Google Maps</span>
+              <span>•</span>
+              <span className="text-emerald-600 dark:text-emerald-400">نظام محمي ومعتمد</span>
+            </div>
+          </div>
+        </footer>
       </main>
 
       {/* Bottom Navigation for Mobile */}
@@ -1362,6 +1477,28 @@ export default function App() {
         setActiveTab={setActiveTab}
         isAdmin={user?.role === 'admin'}
       />
+
+      {/* MODAL: ABOUT US */}
+      {showAboutModal && (
+        <AboutUsModal
+          onClose={() => setShowAboutModal(false)}
+          onOpenTerms={() => {
+            setShowAboutModal(false);
+            setShowTermsModal(true);
+          }}
+        />
+      )}
+
+      {/* MODAL: TERMS OF SERVICE */}
+      {showTermsModal && (
+        <TermsModal
+          onClose={() => setShowTermsModal(false)}
+          onOpenAbout={() => {
+            setShowTermsModal(false);
+            setShowAboutModal(true);
+          }}
+        />
+      )}
 
       {/* MODAL: FULL BUSINESS DATA VIEW & EDITING POP-UP */}
       {editingBusiness && (
@@ -1422,6 +1559,8 @@ export default function App() {
       {showLoginModal && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
+          onOpenAbout={() => setShowAboutModal(true)}
+          onOpenTerms={() => setShowTermsModal(true)}
           onLoginSuccess={(u) => {
             setUser(u);
             const savedTab = localStorage.getItem('dalelak_active_tab');

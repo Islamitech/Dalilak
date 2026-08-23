@@ -13,6 +13,8 @@ interface LoginModalProps {
   representatives: Representative[];
   onAddRepresentative?: (newRep: Representative) => void;
   isInline?: boolean;
+  onOpenAbout?: () => void;
+  onOpenTerms?: () => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -21,6 +23,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   representatives,
   onAddRepresentative,
   isInline = false,
+  onOpenAbout,
+  onOpenTerms,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -573,6 +577,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {onOpenAbout && (
+              <button
+                type="button"
+                onClick={onOpenAbout}
+                className="text-xs font-bold text-[var(--text-secondary)] hover:text-amber-500 bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] transition-colors cursor-pointer"
+              >
+                من نحن
+              </button>
+            )}
+
+            {onOpenTerms && (
+              <button
+                type="button"
+                onClick={onOpenTerms}
+                className="text-xs font-bold text-[var(--text-secondary)] hover:text-amber-500 bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] transition-colors cursor-pointer"
+              >
+                شروط الاستخدام
+              </button>
+            )}
+
             {/* Theme Toggle in Login Screen */}
             <ThemeToggle />
           </div>
@@ -599,8 +623,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         </div>
 
         {/* Footer info */}
-        <div className="relative z-10 pt-4 text-center text-xs text-[var(--text-muted)] font-bold">
-          منصة دليلك الرقمية © 2026 — التوثيق الرقمي الكامل للمشاريع التجارية - نتبع سياسات جوجل
+        <div className="relative z-10 pt-4 text-center text-xs text-[var(--text-muted)] font-bold space-y-1.5">
+          <div className="flex items-center justify-center gap-3">
+            {onOpenAbout && (
+              <button
+                type="button"
+                onClick={onOpenAbout}
+                className="hover:text-amber-500 transition-colors cursor-pointer underline"
+              >
+                من نحن
+              </button>
+            )}
+            <span>•</span>
+            {onOpenTerms && (
+              <button
+                type="button"
+                onClick={onOpenTerms}
+                className="hover:text-amber-500 transition-colors cursor-pointer underline"
+              >
+                شروط الاستخدام
+              </button>
+            )}
+            <span>•</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">فودافون كاش: 01143888355</span>
+          </div>
+          <p>منصة دليلك الرقمية © 2026 — التوثيق الرقمي الكامل للمشاريع التجارية - نتبع سياسات جوجل</p>
         </div>
       </div>
     );

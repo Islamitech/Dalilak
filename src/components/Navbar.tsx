@@ -3,7 +3,7 @@ import { User, SystemNotification } from '../types';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationCenter } from './NotificationCenter';
-import { LogIn, LogOut } from 'lucide-react';
+import { LogIn, LogOut, Info, FileText } from 'lucide-react';
 
 interface NavbarProps {
   user: User | null;
@@ -15,6 +15,8 @@ interface NavbarProps {
   onMarkNotificationAsRead: (id: string) => void;
   onClearNotifications: () => void;
   onNavigateTab?: (tab: string, entityId?: string, entityType?: string) => void;
+  onOpenAbout?: () => void;
+  onOpenTerms?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,12 +28,41 @@ export const Navbar: React.FC<NavbarProps> = ({
   onMarkNotificationAsRead,
   onClearNotifications,
   onNavigateTab,
+  onOpenAbout,
+  onOpenTerms,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-b border-[var(--border-color)] text-[var(--text-primary)] shadow-md transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-        {/* Brand Logo */}
-        <Logo size="md" />
+        {/* Left: Brand Logo & Links */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Logo size="md" />
+
+          {/* Quick Informational Links (About & Terms) */}
+          <div className="hidden md:flex items-center gap-1 text-xs font-bold">
+            {onOpenAbout && (
+              <button
+                type="button"
+                onClick={onOpenAbout}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+              >
+                <Info className="w-3.5 h-3.5" />
+                <span>من نحن</span>
+              </button>
+            )}
+
+            {onOpenTerms && (
+              <button
+                type="button"
+                onClick={onOpenTerms}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>شروط الاستخدام</span>
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Right side controls: Notification Center + Theme Toggle + User Badge / Login */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
