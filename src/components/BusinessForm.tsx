@@ -648,14 +648,22 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
                   <p className="text-[11px] text-[var(--text-muted)] leading-relaxed mb-2">{pkg.description}</p>
                 </div>
 
-                <ul className="text-[10px] text-[var(--text-secondary)] space-y-1 pt-2 border-t border-[var(--border-color)]">
-                  {pkg.features.slice(0, 3).map((f, i) => (
-                    <li key={i} className="flex items-center gap-1">
-                      <span className="text-amber-500 font-bold">•</span>
-                      <span>{f}</span>
-                    </li>
+                <div className="pt-2 border-t border-[var(--border-color)] space-y-1.5">
+                  <ul className="text-[10px] text-[var(--text-secondary)] space-y-1.5">
+                    {pkg.features.filter(f => !f.startsWith('💡')).map((f, i) => (
+                      <li key={i} className="flex items-start gap-1.5 leading-tight">
+                        <span className="text-amber-500 font-bold shrink-0 mt-0.5">•</span>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {pkg.features.filter(f => f.startsWith('💡')).map((note, i) => (
+                    <div key={i} className="text-[10px] bg-amber-500/10 text-amber-800 dark:text-amber-300 p-2 rounded-xl border border-amber-500/20 font-bold leading-tight mt-2">
+                      {note}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             );
           })}
