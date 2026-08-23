@@ -1205,7 +1205,7 @@ export default function App() {
                 )}
 
                 {filteredHomeBusinesses.map((biz) => {
-                  const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
+                  const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
                   const isCreator =
                     user?.role === 'admin' ||
                     biz.repId === user?.id ||
@@ -1328,7 +1328,7 @@ export default function App() {
                   </div>
                 ) : (
                   scopedBusinesses.map((biz) => {
-                    const remaining = Math.max(0, biz.packagePrice - biz.amountPaid);
+                    const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
 
                     return (
                       <div key={biz.id} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm hover:border-amber-500/30 transition-all hover-card">
@@ -1557,11 +1557,13 @@ export default function App() {
       )}
 
       {/* MODAL: INVOICE VIEWER & WHATSAPP DISPATCH */}
-      <InvoiceModal
-        business={selectedInvoiceBiz}
-        onClose={() => setSelectedInvoiceBiz(null)}
-        onUpdateBusiness={handleUpdateBusiness}
-      />
+      {selectedInvoiceBiz && (
+        <InvoiceModal
+          business={selectedInvoiceBiz}
+          onClose={() => setSelectedInvoiceBiz(null)}
+          onUpdateBusiness={handleUpdateBusiness}
+        />
+      )}
 
       {/* MODAL: PAYMENT GATEWAY SIMULATION */}
       {selectedPayBiz && (

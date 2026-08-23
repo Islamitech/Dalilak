@@ -15,11 +15,16 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   onClose,
   onPaymentSuccess,
 }) => {
-  const remaining = Math.max(0, business.packagePrice - business.amountPaid);
+  if (!business) return null;
+
+  const pkgPrice = business.packagePrice || 0;
+  const amtPaid = business.amountPaid || 0;
+  const remaining = Math.max(0, pkgPrice - amtPaid);
+
   // Default to vodafone cash as it is the only active payment method
   const [selectedMethod, setSelectedMethod] = useState<'vodafone' | 'instapay' | 'fawry' | 'card' | 'aman'>('vodafone');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [simulatedPayAmount, setSimulatedPayAmount] = useState<number>(remaining || business.packagePrice);
+  const [simulatedPayAmount, setSimulatedPayAmount] = useState<number>(remaining || pkgPrice);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const activeVodafoneNumber = config.vodafoneCashNumber || '01143888355';
@@ -35,7 +40,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
-      onPaymentSuccess(business.amountPaid + Number(simulatedPayAmount));
+      onPaymentSuccess(amtPaid + Number(simulatedPayAmount));
       onClose();
     }, 1200);
   };
@@ -69,7 +74,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 
           <div className="text-left">
             <span className="text-[var(--text-muted)] block text-[10px]">قيمة الباقة الكاملة:</span>
-            <span className="font-bold text-[var(--text-secondary)]">{business.packagePrice} ج.م</span>
+            <span className="font-bold text-[var(--text-secondary)]">{pkgPrice} ج.م</span>
           </div>
         </div>
 
@@ -340,7 +345,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             <input
               type="number"
               min="1"
-              max={remaining > 0 ? remaining : business.packagePrice}
+              max={remaining > 0 ? remaining : pkgPrice}
               value={simulatedPayAmount}
               disabled={remaining === 0}
               onChange={(e) => setSimulatedPayAmount(Math.max(0, Number(e.target.value)))}

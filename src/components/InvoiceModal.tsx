@@ -26,37 +26,40 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     setCurrentBiz(business);
   }, [business]);
 
-  if (!currentBiz) return null;
-  const activeBusiness = currentBiz;
+  // Safe early exit if neither business prop nor currentBiz state is present
+  const activeBusiness = business || currentBiz;
+  if (!activeBusiness) return null;
 
-  const remaining = Math.max(0, business.packagePrice - business.amountPaid);
+  const pkgPrice = activeBusiness.packagePrice || 0;
+  const amtPaid = activeBusiness.amountPaid || 0;
+  const remaining = Math.max(0, pkgPrice - amtPaid);
 
   const invoiceRawText = 
     `*فاتورة توثيق نشاط تجاري - شركة دليلك لخرائط جوجل* 🗺️\n` +
     `-----------------------------------------\n` +
-    `📋 *اسم النشاط:* ${business.nameAr}\n` +
-    `👤 *صاحب النشاط:* ${business.ownerName}\n` +
-    `📍 *الموقع:* ${business.governorate} - ${business.city}\n` +
-    `🧾 *رقم الفاتورة:* ${business.invoiceNumber}\n` +
-    `📅 *تاريخ الإصدار:* ${business.invoiceDate}\n\n` +
-    `📦 *الباقة المختارة:* ${business.packageName}\n` +
-    `💰 *إجمالي قيمة الباقة:* ${business.packagePrice} ج.م\n` +
-    `✅ *المبلغ المدفوع:* ${business.amountPaid} ج.م\n` +
+    `📋 *اسم النشاط:* ${activeBusiness.nameAr || ''}\n` +
+    `👤 *صاحب النشاط:* ${activeBusiness.ownerName || ''}\n` +
+    `📍 *الموقع:* ${activeBusiness.governorate || ''} - ${activeBusiness.city || ''}\n` +
+    `🧾 *رقم الفاتورة:* ${activeBusiness.invoiceNumber || ''}\n` +
+    `📅 *تاريخ الإصدار:* ${activeBusiness.invoiceDate || ''}\n\n` +
+    `📦 *الباقة المختارة:* ${activeBusiness.packageName || ''}\n` +
+    `💰 *إجمالي قيمة الباقة:* ${pkgPrice} ج.م\n` +
+    `✅ *المبلغ المدفوع:* ${amtPaid} ج.م\n` +
     `⏳ *المبلغ المتبقي:* ${remaining} ج.م\n` +
     `📌 *حالة الدفع:* ${
-      business.paymentStatus === 'fully_paid'
+      activeBusiness.paymentStatus === 'fully_paid'
         ? 'مدفوعة بالكامل ✅'
-        : business.paymentStatus === 'partially_paid'
+        : activeBusiness.paymentStatus === 'partially_paid'
         ? 'مدفوع جزء منها (متبقي ' + remaining + ' ج.م) ⏳'
         : 'لم يتم الدفع نهائياً ❌'
     }\n\n` +
-    `📍 *رابط الإحداثيات ورابط الخريطة:* https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}\n\n` +
+    `📍 *رابط الإحداثيات ورابط الخريطة:* https://www.google.com/maps/search/?api=1&query=${activeBusiness.lat || 0},${activeBusiness.lng || 0}\n\n` +
     `*ملاحظة:* سيتم متابعة مراجعة وتوثيق النشاط حتى ظهوره رسمياً على خرائط جوجل. شكرًا لثقتكم بشركة دليلك!`;
 
   // WhatsApp formatted Arabic message text
   const waMessage = encodeURIComponent(invoiceRawText);
 
-  const formattedPhone = (business.ownerPhone || '').replace(/^0/, '');
+  const formattedPhone = (activeBusiness.ownerPhone || '').replace(/^0/, '');
   const whatsappUrl = `https://wa.me/20${formattedPhone}?text=${waMessage}`;
 
   const handleCopyInvoice = () => {
@@ -66,7 +69,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   // Dynamic QR Code URL to open the invoice online
-  const qrUrl = `${window.location.origin}/?view=invoice&id=${business.id}`;
+  const qrUrl = `${window.location.origin}/?view=invoice&id=${activeBusiness.id}`;
   const qrData = encodeURIComponent(qrUrl);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 
@@ -92,8 +95,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300 inline-block">
                 فاتورة إلكترونية معتمدة
               </span>
-              <p className="text-xs font-mono font-bold text-slate-700 mt-1">{business.invoiceNumber}</p>
-              <p className="text-[10px] text-slate-500">{business.invoiceDate}</p>
+              <p className="text-xs font-mono font-bold text-slate-700 mt-1">{activeBusiness.invoiceNumber}</p>
+              <p className="text-[10px] text-slate-500">{activeBusiness.invoiceDate}</p>
             </div>
           </div>
 
@@ -101,18 +104,18 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
             <div>
               <p className="text-[10px] text-slate-500 font-bold">النشاط التجاري:</p>
-              <p className="font-black text-slate-900">{business.nameAr}</p>
-              <p className="text-[11px] text-slate-600">{business.category}</p>
+              <p className="font-black text-slate-900">{activeBusiness.nameAr}</p>
+              <p className="text-[11px] text-slate-600">{activeBusiness.category}</p>
               <p className="text-[10px] text-slate-500 mt-1">
-                {business.governorate} - {business.city}
+                {activeBusiness.governorate} - {activeBusiness.city}
               </p>
             </div>
 
             <div>
               <p className="text-[10px] text-slate-500 font-bold">صاحب النشاط / العميل:</p>
-              <p className="font-bold text-slate-900">{business.ownerName}</p>
-              <p className="text-[11px] text-slate-700 dir-ltr text-right">{business.ownerPhone}</p>
-              <p className="text-[10px] text-slate-500 mt-1">المندوب: {business.repName}</p>
+              <p className="font-bold text-slate-900">{activeBusiness.ownerName}</p>
+              <p className="text-[11px] text-slate-700 dir-ltr text-right">{activeBusiness.ownerPhone}</p>
+              <p className="text-[10px] text-slate-500 mt-1">المندوب: {activeBusiness.repName}</p>
             </div>
           </div>
 
@@ -127,10 +130,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             <tbody>
               <tr className="border-b border-slate-100">
                 <td className="p-2">
-                  <span className="font-bold text-slate-900">{business.packageName}</span>
+                  <span className="font-bold text-slate-900">{activeBusiness.packageName}</span>
                   <p className="text-[10px] text-slate-500">توثيق واستخراج الإحداثيات على خرائط جوجل</p>
                 </td>
-                <td className="p-2 font-black text-slate-900 text-center">{business.packagePrice} ج.م</td>
+                <td className="p-2 font-black text-slate-900 text-center">{pkgPrice} ج.م</td>
               </tr>
             </tbody>
           </table>
@@ -139,11 +142,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           <div className="bg-slate-100 text-slate-900 p-3 rounded-xl space-y-1.5 text-xs border border-slate-200">
             <div className="flex justify-between font-bold">
               <span className="text-slate-600">إجمالي الباقة:</span>
-              <span>{business.packagePrice} جنيه مصري</span>
+              <span>{pkgPrice} جنيه مصري</span>
             </div>
             <div className="flex justify-between text-emerald-700 font-bold pt-1 border-t border-slate-200">
               <span>المبلغ المدفوع:</span>
-              <span>{business.amountPaid} جنيه مصري</span>
+              <span>{amtPaid} جنيه مصري</span>
             </div>
             <div className="flex justify-between text-rose-600 font-black pt-1 border-t border-slate-200">
               <span>المبلغ المتبقي:</span>
@@ -151,7 +154,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
             <div className="flex justify-between text-amber-700 font-bold pt-1 border-t border-slate-200 text-[11px] no-print">
               <span>عمولة المندوب:</span>
-              <span>{calculateBusinessCommission(business.packagePrice, business.amountPaid)} جنيه مصري</span>
+              <span>{calculateBusinessCommission(pkgPrice, amtPaid)} جنيه مصري</span>
             </div>
           </div>
 
@@ -159,21 +162,21 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           <div className="flex items-center justify-between gap-3 pt-2">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold text-slate-600">حالة الفاتورة:</span>
-              {business.paymentStatus === 'fully_paid' && (
+              {activeBusiness.paymentStatus === 'fully_paid' && (
                 <span className="bg-emerald-100 text-emerald-800 text-[11px] font-black px-3 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>مدفوعة بالكامل</span>
                 </span>
               )}
 
-              {business.paymentStatus === 'partially_paid' && (
+              {activeBusiness.paymentStatus === 'partially_paid' && (
                 <span className="bg-amber-100 text-amber-800 text-[11px] font-black px-3 py-1 rounded-full border border-amber-300 flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                   <span>مدفوع جزء منها</span>
                 </span>
               )}
 
-              {business.paymentStatus === 'unpaid' && (
+              {activeBusiness.paymentStatus === 'unpaid' && (
                 <span className="bg-rose-100 text-rose-800 text-[11px] font-black px-3 py-1 rounded-full border border-rose-300 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
                   <span>لم يتم الدفع نهائياً</span>
