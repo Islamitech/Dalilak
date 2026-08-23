@@ -9,7 +9,7 @@ export const DEFAULT_COMMISSION_RATE = 42.86; // Default 42.86% rate
  * Returns full potential commission amount for a package based on commission percentage rate.
  */
 export function getPackageCommission(packagePrice: number, rate: number = DEFAULT_COMMISSION_RATE): number {
-  const price = packagePrice || 350;
+  const price = packagePrice || 250;
   const commissionRate = rate || DEFAULT_COMMISSION_RATE;
   return Math.round((price * commissionRate) / 100);
 }
