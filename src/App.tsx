@@ -25,52 +25,57 @@ import {
   updateRepSessionInDb,
 } from './services/db';
 
-// Active user session duration (24 hours of inactivity)
-const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+// Fixed Session Duration (12 hours maximum lifetime)
+const SESSION_MAX_DURATION_MS = 12 * 60 * 60 * 1000;
+// Inactivity Idle Duration (60 minutes of inactivity auto-logout)
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 export default function App() {
   // Application State - Default to null (Guest visitor) or restore valid unexpired user session
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('dalelak_logged_user');
     const sessionExpiresAt = localStorage.getItem('dalelak_session_expires_at');
+    const lastInteraction = localStorage.getItem('dalelak_last_interaction');
+    const now = Date.now();
 
     if (savedUser && sessionExpiresAt) {
       const expiresTimestamp = Number(sessionExpiresAt);
-      if (!isNaN(expiresTimestamp) && Date.now() < expiresTimestamp) {
+      const lastInteractionTimestamp = Number(lastInteraction) || now;
+
+      const isSessionValid = !isNaN(expiresTimestamp) && now < expiresTimestamp;
+      const isNotIdle = (now - lastInteractionTimestamp) < INACTIVITY_TIMEOUT_MS;
+
+      if (isSessionValid && isNotIdle) {
         try {
           const parsed = JSON.parse(savedUser);
           if (parsed && parsed.id && parsed.name) {
-            // Extend session expiration
-            localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_EXPIRY_MS));
             return parsed;
           }
         } catch (e) {}
-      } else {
-        // Session expired, clean up
-        localStorage.removeItem('dalelak_logged_user');
-        localStorage.removeItem('dalelak_session_expires_at');
       }
-    } else if (savedUser && !sessionExpiresAt) {
-      // Legacy session without expiry, set new 24h validity
-      try {
-        const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.id && parsed.name) {
-          localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_EXPIRY_MS));
-          return parsed;
-        }
-      } catch (e) {}
     }
+
+    // Clean expired or idle session from storage
+    localStorage.removeItem('dalelak_logged_user');
+    localStorage.removeItem('dalelak_session_expires_at');
+    localStorage.removeItem('dalelak_last_interaction');
     return null; // Guest visitor by default
   });
 
-  // Sync user state and session timestamp with localStorage
+  // Sync user state and session timestamps with localStorage
   useEffect(() => {
     if (user) {
       localStorage.setItem('dalelak_logged_user', JSON.stringify(user));
-      localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_EXPIRY_MS));
+      if (!localStorage.getItem('dalelak_session_expires_at')) {
+        localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_MAX_DURATION_MS));
+      }
+      if (!localStorage.getItem('dalelak_last_interaction')) {
+        localStorage.setItem('dalelak_last_interaction', String(Date.now()));
+      }
     } else {
       localStorage.removeItem('dalelak_logged_user');
       localStorage.removeItem('dalelak_session_expires_at');
+      localStorage.removeItem('dalelak_last_interaction');
     }
   }, [user]);
 
@@ -379,6 +384,49 @@ export default function App() {
       setExternalView({ type: 'rep', id });
     }
   }, []);
+
+  // Live Session Expiration & Idle Inactivity Auto-Logout Watcher
+  useEffect(() => {
+    if (!user) return;
+
+    const updateActivity = () => {
+      localStorage.setItem('dalelak_last_interaction', String(Date.now()));
+    };
+
+    window.addEventListener('click', updateActivity, { passive: true });
+    window.addEventListener('touchstart', updateActivity, { passive: true });
+    window.addEventListener('keydown', updateActivity, { passive: true });
+    window.addEventListener('scroll', updateActivity, { passive: true });
+
+    // Check expiration every 10 seconds
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const sessionExpiresAt = Number(localStorage.getItem('dalelak_session_expires_at')) || 0;
+      const lastInteraction = Number(localStorage.getItem('dalelak_last_interaction')) || now;
+
+      const isExpired = sessionExpiresAt > 0 && now >= sessionExpiresAt;
+      const isIdle = (now - lastInteraction) >= INACTIVITY_TIMEOUT_MS;
+
+      if (isExpired || isIdle) {
+        handleLogout();
+        setShowLoginModal(true);
+        addNotification(
+          isIdle
+            ? '⏳ تم تسجيل الخروج تلقائياً لعدم النشاط لفترة. يرجى تسجيل الدخول مجدداً.'
+            : '⏳ انتهت مدة الجلسة المحددة. يرجى تسجيل الدخول مرة أخرى للمتابعة.',
+          'warning'
+        );
+      }
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('scroll', updateActivity);
+    };
+  }, [user]);
 
   // Fetch initial data from Supabase Database & Local Backend
   useEffect(() => {

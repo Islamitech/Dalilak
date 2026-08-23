@@ -405,15 +405,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
       {/* 1. LOGIN FORM */}
       {activeTab === 'login' && (
-        <form onSubmit={handleLoginSubmit} autoComplete="off" className="space-y-3.5 text-xs">
+        <form onSubmit={handleLoginSubmit} autoComplete="on" className="space-y-3.5 text-xs">
           <div>
-            <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني المعتمد:</label>
+            <label htmlFor="login_email" className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني المعتمد:</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
               <input
+                id="login_email"
+                name="email"
                 type="email"
                 required
-                autoComplete="off"
+                autoComplete="username email"
                 placeholder="name@daleelek.eg"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -423,13 +425,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور:</label>
+            <label htmlFor="login_password" className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور:</label>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
               <input
+                id="login_password"
+                name="password"
                 type="password"
                 required
-                autoComplete="new-password"
+                autoComplete="current-password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
