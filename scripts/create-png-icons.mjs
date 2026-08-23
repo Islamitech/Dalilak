@@ -8,39 +8,69 @@ if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
 }
 
-// 1. Create SVG Icon
+// 1. Create SVG Icon Matching the New Ultra-Professional Emblem
 const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fbbf24" />
-      <stop offset="50%" stop-color="#f59e0b" />
-      <stop offset="100%" stop-color="#d97706" />
+    <linearGradient id="goldPlate" x1="50" y1="50" x2="460" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="25%" stop-color="#F59E0B" />
+      <stop offset="65%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#92400E" />
     </linearGradient>
-    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#34d399" />
-      <stop offset="100%" stop-color="#059669" />
+    <linearGradient id="innerPlate" x1="80" y1="80" x2="430" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="50%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#f59e0b" flood-opacity="0.35" />
-    </filter>
-    <filter id="badgeShadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.3" />
+    <linearGradient id="pinGold" x1="180" y1="100" x2="330" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFBEB" />
+      <stop offset="30%" stop-color="#FDE68A" />
+      <stop offset="70%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="emeraldBadge" x1="360" y1="360" x2="460" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7" />
+      <stop offset="40%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <filter id="emblemGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#F59E0B" flood-opacity="0.35" />
     </filter>
   </defs>
 
-  <!-- Background Squircle -->
-  <rect x="36" y="36" width="440" height="440" rx="110" fill="url(#amberGrad)" filter="url(#glow)" />
-  <rect x="36" y="36" width="440" height="440" rx="110" fill="none" stroke="#ffffff" stroke-width="14" stroke-opacity="0.95" />
+  <!-- 1. Outer Metallic Gold Rounded Squircle Base -->
+  <rect x="32" y="32" width="448" height="448" rx="118" fill="url(#goldPlate)" filter="url(#emblemGlow)" />
 
-  <!-- Inner MapPin Icon -->
-  <g transform="translate(136, 96) scale(10)" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 2C8.13401 2 5 5.13401 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13401 15.866 2 12 2Z" fill="#ffffff" fill-opacity="0.18" />
-    <circle cx="12" cy="9" r="2.8" fill="#ffffff" />
+  <!-- 2. Inner Deep Obsidian Plate with Gold Border -->
+  <rect x="56" y="56" width="400" height="400" rx="98" fill="url(#innerPlate)" stroke="url(#goldPlate)" stroke-width="6" />
+
+  <!-- 3. Compass Navigation Grid & Rays -->
+  <circle cx="256" cy="240" r="138" stroke="#F59E0B" stroke-width="3" stroke-dasharray="8 8" opacity="0.4" fill="none" />
+  <circle cx="256" cy="240" r="92" stroke="#FDE68A" stroke-width="2.5" stroke-dasharray="6 10" opacity="0.3" fill="none" />
+
+  <path d="M256 82 L256 108" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+  <path d="M256 372 L256 398" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+  <path d="M98 240 L124 240" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+  <path d="M388 240 L414 240" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+
+  <!-- 4. Stylized Modern Map Pin with White Border -->
+  <g>
+    <path
+      d="M256 122C196.5 122 148.5 170 148.5 229.5C148.5 310 256 404 256 404C256 404 363.5 310 363.5 229.5C363.5 170 315.5 122 256 122Z"
+      fill="url(#pinGold)"
+      stroke="#FFFFFF"
+      stroke-width="7"
+      stroke-linejoin="round"
+    />
+    <circle cx="256" cy="230" r="46" fill="#0F172A" stroke="#FFFFFF" stroke-width="6" />
+    <circle cx="256" cy="230" r="20" fill="url(#goldPlate)" />
+    <circle cx="251" cy="225" r="6" fill="#FFFFFF" opacity="0.9" />
   </g>
 
-  <!-- Bottom-Right Verification Badge -->
-  <circle cx="396" cy="396" r="68" fill="url(#emeraldGrad)" stroke="#ffffff" stroke-width="14" filter="url(#badgeShadow)" />
-  <path d="M374 396 L390 412 L422 380" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 5. Bottom Right: Verification Seal Beacon -->
+  <circle cx="400" cy="400" r="66" fill="#0F172A" />
+  <circle cx="400" cy="400" r="58" fill="url(#emeraldBadge)" stroke="#FFFFFF" stroke-width="7" />
+  <path d="M378 400 L394 416 L426 384" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
 </svg>`;
 
 fs.writeFileSync(path.join(publicDir, 'favicon.svg'), svgIcon, 'utf8');
