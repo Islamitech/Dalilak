@@ -262,9 +262,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             <Store className="w-7 h-7" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-white">تسجيل نشاط تجاري جديد على خرائط جوجل</h2>
+            <h2 className="text-lg font-black text-white">تسجيل وتوثيق نشاط تجاري جديد في المنظومة</h2>
             <p className="text-xs text-amber-300 font-bold mt-0.5">
-              تعبئة كافة البيانات المطلوبة لتفعيل وتوثيق النشاط مباشرة في مصر
+              تعبئة كافة البيانات وتوثيق النشاط الميداني وإصدار الفاتورة فورياً في مصر
             </p>
           </div>
         </div>

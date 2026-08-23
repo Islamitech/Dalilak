@@ -291,7 +291,7 @@ export default function App() {
   const allNotifications = useMemo(() => {
     const list: SystemNotification[] = [...systemNotifications];
 
-    // Auto-generate notifications for all businesses in the system (1 single smart item per business, targeted to admin and registering rep)
+    // Auto-generate notifications for all businesses in the system (detailed notification for admin)
     businesses.forEach((biz) => {
       const exists = list.some(
         (n) => n.category === 'business' && (n.entityId === biz.id || n.message.includes(biz.nameAr))
@@ -299,13 +299,12 @@ export default function App() {
       if (!exists) {
         list.push({
           id: `biz_notif_${biz.id}`,
-          title: `نشاط تجاري جديد: ${biz.nameAr} 🏪`,
-          message: `تم تسجيل نشاط تجاري جديد "${biz.nameAr}" بواسطة المندوب "${biz.repName}" في ${biz.governorate} (${biz.category}).`,
+          title: `إضافة نشاط تجاري جديد: ${biz.nameAr} 🏪`,
+          message: `قام المندوب "${biz.repName}" بتسجيل نشاط جديد "${biz.nameAr}" في ${biz.governorate} (${biz.city || ''}) — التصنيف: ${biz.category} — الباقة: ${biz.packageName} (${biz.packagePrice} ج.م) — هاتف المالك: ${biz.ownerPhone || 'غير محدد'}.`,
           timestamp: biz.createdDate ? new Date(biz.createdDate).toISOString() : new Date().toISOString(),
           type: 'info',
           category: 'business',
           targetRole: 'admin',
-          targetUserId: biz.repId,
           entityId: biz.id,
           entityType: 'business',
           read: false,
@@ -479,18 +478,31 @@ export default function App() {
     await saveBusinessToDb(newBiz);
     addNotification(`🎉 تم تسجيل النشاط التجاري "${newBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
     
-    // Add 1 single clean Notification to Bell Log (targeted to the registering rep and admin)
+    // 1. Detailed Admin Notification
     addSystemNotification({
-      title: `نشاط تجاري جديد: ${newBiz.nameAr} 🏪`,
-      message: `قام المندوب "${newBiz.repName || user?.name || 'مندوب'}" بتسجيل نشاط تجاري جديد "${newBiz.nameAr}" في ${newBiz.governorate} (${newBiz.category}).`,
+      title: `إضافة نشاط تجاري جديد: ${newBiz.nameAr} 🏪`,
+      message: `قام المندوب "${newBiz.repName || user?.name || 'مندوب'}" بتسجيل نشاط جديد "${newBiz.nameAr}" في ${newBiz.governorate} (${newBiz.city || ''}) — التصنيف: ${newBiz.category} — الباقة: ${newBiz.packageName} (${newBiz.packagePrice} ج.م) — هاتف المالك: ${newBiz.ownerPhone || 'غير محدد'}.`,
       type: 'info',
       category: 'business',
       targetRole: 'admin',
-      targetUserId: newBiz.repId || user?.id,
       entityId: newBiz.id,
       entityType: 'business',
       linkTab: 'admin',
     });
+
+    // 2. Personal confirmation notification for registering representative
+    if (newBiz.repId || user?.id) {
+      addSystemNotification({
+        title: `🎉 تم تسجيل نشاطك: ${newBiz.nameAr}`,
+        message: `تم تسليم وحفظ بيانات النشاط "${newBiz.nameAr}" بنجاح وجاري مراجعته وتوثيقه.`,
+        type: 'success',
+        category: 'business',
+        targetUserId: newBiz.repId || user?.id,
+        entityId: newBiz.id,
+        entityType: 'business',
+        linkTab: 'home',
+      });
+    }
 
     try {
       await fetch('/api/businesses', {
@@ -1077,9 +1089,9 @@ export default function App() {
             <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-4 sm:p-5 rounded-3xl shadow-xl flex items-center justify-between">
               <div>
                 <span className="bg-slate-950/20 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  منصة دليلك الميدانية
+                  منظومة دليلك الميدانية الشاملة
                 </span>
-                <h1 className="text-xl sm:text-2xl font-black mt-1">تسجيل وتوثيق الأنشطة التجارية على خرائط جوجل</h1>
+                <h1 className="text-xl sm:text-2xl font-black mt-1">المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات في مصر</h1>
                 <p className="text-xs font-bold text-slate-900/90 mt-1 max-w-lg">
                   تسجيل مباشر لبيانات المحلات، إحداثيات GPS الدقيقة، وإصدار الفواتير الإلكترونية على واتساب صاحب النشاط في جميع محافظات مصر.
                 </p>

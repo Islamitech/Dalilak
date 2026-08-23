@@ -144,11 +144,11 @@ export const Logo: React.FC<LogoProps> = ({
               دليلك
             </span>
             <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/30">
-              معتمد رسمي
+              منظومة معتمدة
             </span>
           </div>
           <span className="text-[10px] text-[var(--text-muted)] font-bold mt-1">
-            توثيق خرائط جوجل — جمهورية مصر العربية
+            المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات — مصر
           </span>
         </div>
       </div>
@@ -182,7 +182,7 @@ export const Logo: React.FC<LogoProps> = ({
           </span>
 
           <span className="hidden sm:inline-flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
-            خرائط جوجل 🇪🇬
+            المنظومة الشاملة 🇪🇬
           </span>
         </div>
 
@@ -192,7 +192,7 @@ export const Logo: React.FC<LogoProps> = ({
               lightText ? 'text-amber-100/90' : 'text-[var(--text-secondary)]'
             }`}
           >
-            المنصة الرسمية لتسجيل وتوثيق الأنشطة التجارية
+            المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات الميدانية
           </p>
         )}
       </div>
