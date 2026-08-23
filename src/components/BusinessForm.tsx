@@ -4,7 +4,7 @@ import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, PACKAGES } from '../data/mockD
 import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
 import { fetchLocationAddress } from '../utils/geocoding';
-import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2, CloudUpload, Navigation, EyeOff, Map, ChevronDown, ChevronUp } from 'lucide-react';
+import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2, CloudUpload, Navigation, EyeOff, Map, ChevronDown, ChevronUp, CreditCard, X, Check } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 
 interface BusinessFormProps {
@@ -81,10 +81,11 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [nationalId, setNationalId] = useState<string>('');
 
   // Package & Payments
-  const [selectedPackage, setSelectedPackage] = useState<PackageOption>(PACKAGES[1]); // Default Gold
+  const [selectedPackage, setSelectedPackage] = useState<PackageOption>(PACKAGES[0]); // Default Package 1 (Basic 250 EGP)
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('fully_paid');
-  const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[1].price);
+  const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[0].price);
   const [notes, setNotes] = useState<string>('');
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
 
   // Photos attached
   const [photos, setPhotos] = useState<string[]>([]);
@@ -112,12 +113,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setOwnerPhone('');
     setOwnerEmail('');
     setNationalId('');
-    setSelectedPackage(PACKAGES[1]);
+    setSelectedPackage(PACKAGES[0]);
     setPaymentStatus('fully_paid');
-    setAmountPaid(PACKAGES[1].price);
+    setAmountPaid(PACKAGES[0].price);
     setNotes('');
     setPhotos([]);
     setSubmittedBusiness(null);
+    setShowPaymentModal(false);
   };
 
   // Package select update helper
@@ -167,9 +169,24 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInitiateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (!nameAr.trim()) {
+      setErrorMsg('يرجى إدخال اسم النشاط باللغة العربية');
+      return;
+    }
+
+    if (!ownerName.trim()) {
+      setErrorMsg('يرجى إدخال اسم صاحب النشاط / المسؤول');
+      return;
+    }
+
+    if (!ownerPhone.trim()) {
+      setErrorMsg('يرجى إدخال رقم هاتف الواتساب لصاحب النشاط');
+      return;
+    }
 
     // Validate phone number uniqueness
     const normalizedPhone = (phone || ownerPhone).trim();
@@ -207,6 +224,16 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       }
     }
 
+    // Ensure amountPaid is synced with package if fully_paid
+    if (paymentStatus === 'fully_paid') {
+      setAmountPaid(selectedPackage.price);
+    }
+
+    // Open Payment Details Confirmation Popup
+    setShowPaymentModal(true);
+  };
+
+  const handleFinalConfirmPayment = () => {
     const timestamp = Date.now();
     const newBusiness: Business = {
       id: `biz_${timestamp}`,
@@ -242,6 +269,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       notes: notes || undefined,
     };
 
+    setShowPaymentModal(false);
     onSubmitBusiness(newBusiness);
     setSubmittedBusiness(newBusiness);
   };
@@ -321,7 +349,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-6 pb-20">
+    <form onSubmit={handleInitiateSubmit} className="max-w-3xl mx-auto space-y-6 pb-20">
       {errorMsg && (
         <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-bold animate-pulse-subtle">
           <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
@@ -633,88 +661,202 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           })}
         </div>
 
-        {/* Payment Status Switcher */}
-        <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] space-y-4">
-          <label className="block text-xs font-bold text-amber-500">حالة دفع الفاتورة لصاحب النشاط:</label>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => handlePaymentStatusChange('fully_paid')}
-              className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                paymentStatus === 'fully_paid'
-                  ? 'bg-emerald-500/15 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-black'
-                  : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)]'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>مدفوع بالكامل</span>
-              </div>
-              <span className="font-mono font-black">{selectedPackage.price} ج.م</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handlePaymentStatusChange('partially_paid')}
-              className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                paymentStatus === 'partially_paid'
-                  ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400 font-black'
-                  : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)]'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-500" />
-                <span>مبلغ جزئي (عربون)</span>
-              </div>
-              <span className="font-mono font-black">{amountPaid} ج.م</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handlePaymentStatusChange('unpaid')}
-              className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                paymentStatus === 'unpaid'
-                  ? 'bg-rose-500/15 border-rose-500 text-rose-600 dark:text-rose-400 font-black'
-                  : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)]'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-500" />
-                <span>غير مدفوع (آجل)</span>
-              </div>
-              <span className="font-mono font-black">0 ج.م</span>
-            </button>
-          </div>
-
-          {/* Amount Paid custom adjustment */}
-          {paymentStatus === 'partially_paid' && (
-            <div className="pt-2 border-t border-[var(--border-color)] text-xs flex items-center gap-3">
-              <label className="font-bold text-[var(--text-primary)] shrink-0">المبلغ المحصل فعلياً (ج.م):</label>
-              <input
-                type="number"
-                min={0}
-                max={selectedPackage.price}
-                value={amountPaid}
-                onChange={(e) => setAmountPaid(Number(e.target.value))}
-                className="w-32 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:border-amber-500"
-              />
-              <span className="text-rose-500 font-bold">
-                المتبقي غير مدفوع: {selectedPackage.price - amountPaid} ج.م
-              </span>
-            </div>
-          )}
-        </div>
-
         {/* Submit Action Button */}
         <button
           type="submit"
           className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-sm py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
         >
-          <Send className="w-5 h-5 stroke-[2.5]" />
-          <span>حفظ النشاط وإصدار الفاتورة المعتمدة فوراً</span>
+          <CreditCard className="w-5 h-5 stroke-[2.5]" />
+          <span>حفظ النشاط وتحديد حالة الدفع والفاتورة 💳</span>
         </button>
       </div>
+
+      {/* 💳 Dedicated Payment Confirmation Modal Popup */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+          <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 space-y-5 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
+                    تأكيد حالة الدفع والتحصيل المالي
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                    يرجى مراجعة وتحديد حالة سداد الفاتورة بدقة قبل الحفظ
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="w-8 h-8 rounded-full bg-[var(--input-bg)] hover:bg-rose-500/20 text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center font-bold transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Business Summary Card */}
+            <div className="bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--text-muted)] font-bold">النشاط:</span>
+                <span className="font-black text-[var(--text-primary)] text-sm">{nameAr}</span>
+              </div>
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-[var(--text-muted)] font-bold">صاحب النشاط:</span>
+                <span className="font-bold text-[var(--text-primary)]">{ownerName} ({ownerPhone})</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-[var(--border-color)]">
+                <span className="text-amber-500 font-bold">الباقة المختارة:</span>
+                <span className="font-black text-amber-500 font-mono text-sm">
+                  {selectedPackage.title} ({selectedPackage.price} ج.م)
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Status 3 Big Options */}
+            <div className="space-y-2.5">
+              <label className="block font-black text-xs text-[var(--text-primary)]">
+                اختر حالة السداد المحصلة من العميل:
+              </label>
+
+              <div className="grid grid-cols-1 gap-2.5">
+                {/* 1. Fully Paid */}
+                <div
+                  onClick={() => handlePaymentStatusChange('fully_paid')}
+                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between shadow-sm ${
+                    paymentStatus === 'fully_paid'
+                      ? 'bg-emerald-500/15 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+                      paymentStatus === 'fully_paid' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'
+                    }`}>
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-black text-xs">مدفوع بالكامل (سداد كلي)</div>
+                      <div className="text-[10px] opacity-80">تم استلام كامل قيمة الباقة من العميل</div>
+                    </div>
+                  </div>
+                  <span className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                    {selectedPackage.price} ج.م
+                  </span>
+                </div>
+
+                {/* 2. Partially Paid (Deposit) */}
+                <div
+                  onClick={() => handlePaymentStatusChange('partially_paid')}
+                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-2.5 shadow-sm ${
+                    paymentStatus === 'partially_paid'
+                      ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/20 text-amber-800 dark:text-amber-300'
+                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+                        paymentStatus === 'partially_paid' ? 'bg-amber-500 text-slate-950' : 'bg-amber-500/10 text-amber-500'
+                      }`}>
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-black text-xs">مبلغ جزئي (عربون مقدم)</div>
+                        <div className="text-[10px] opacity-80">تم استلام دفعة مقدمة والباقي آجل</div>
+                      </div>
+                    </div>
+                    <span className="font-mono font-black text-sm text-amber-600 dark:text-amber-400">
+                      {amountPaid} ج.م
+                    </span>
+                  </div>
+
+                  {paymentStatus === 'partially_paid' && (
+                    <div className="pt-2 border-t border-amber-500/30 flex flex-wrap items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <label className="font-black text-xs">المبلغ المستلم فعلياً:</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={selectedPackage.price}
+                          value={amountPaid}
+                          onChange={(e) => setAmountPaid(Number(e.target.value))}
+                          className="w-24 bg-[var(--bg-card)] border-2 border-amber-500 text-[var(--text-primary)] font-mono font-black rounded-xl px-2.5 py-1.5 text-center focus:outline-none shadow-sm"
+                        />
+                        <span className="font-bold text-xs">ج.م</span>
+                      </div>
+                      <span className="bg-rose-500/15 text-rose-600 dark:text-rose-400 px-2.5 py-1 rounded-lg font-black text-xs border border-rose-500/30">
+                        المتبقي: {Math.max(0, selectedPackage.price - amountPaid)} ج.م
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Unpaid (Deferred) */}
+                <div
+                  onClick={() => handlePaymentStatusChange('unpaid')}
+                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between shadow-sm ${
+                    paymentStatus === 'unpaid'
+                      ? 'bg-rose-500/15 border-rose-500 ring-2 ring-rose-500/20 text-rose-700 dark:text-rose-400'
+                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-rose-500/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+                      paymentStatus === 'unpaid' ? 'bg-rose-500 text-white' : 'bg-rose-500/10 text-rose-500'
+                    }`}>
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-black text-xs">غير مدفوع (آجل بالكامل)</div>
+                      <div className="text-[10px] opacity-80">لم يتم تحصيل أي مبالغ حتى الآن</div>
+                    </div>
+                  </div>
+                  <span className="font-mono font-black text-sm text-rose-600 dark:text-rose-400">
+                    0 ج.م
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Optional Notes */}
+            <div>
+              <label className="block font-bold mb-1 text-[var(--text-secondary)]">ملاحظات مالية أو تفاصيل التحصيل (اختياري):</label>
+              <input
+                type="text"
+                placeholder="مثال: تم الاتفاق على تحصيل باقي المبلغ عند معاينة التوثيق..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-medium focus:outline-none focus:border-amber-500 shadow-sm"
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2 border-t border-[var(--border-color)]">
+              <button
+                type="button"
+                onClick={handleFinalConfirmPayment}
+                className="flex-1 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-sm"
+              >
+                <CheckCircle2 className="w-5 h-5" />
+                <span>تأكيد الدفع وحفظ النشاط فوراً 🚀</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="bg-[var(--input-bg)] hover:bg-slate-500/10 text-[var(--text-secondary)] font-bold py-3.5 px-5 rounded-xl border border-[var(--border-color)] transition-all cursor-pointer text-xs"
+              >
+                رجوع للتعديل
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

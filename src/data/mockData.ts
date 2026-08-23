@@ -47,7 +47,7 @@ export const PACKAGES: PackageOption[] = [
   {
     id: 'pkg_basic',
     title: '1. باقة التوثيق الأساسي',
-    price: 350,
+    price: 250,
     description: 'تفعيل النشاط الميداني والظهور الرسمي على خرائط جوجل.',
     features: [
       'تفعيل النشاط الميداني والظهور على خرائط جوجل.',
