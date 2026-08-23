@@ -201,21 +201,33 @@ app.get('/api/representatives', (_req, res) => {
 });
 
 app.post('/api/representatives', (req, res) => {
+  const repData = req.body;
   const newRep: Representative = {
-    id: `acc_${Date.now()}`,
-    name: req.body.name,
-    email: req.body.email || `acc_${Date.now()}@daleelek.eg`,
-    phone: req.body.phone,
-    role: req.body.role || 'rep',
-    roleTitle: req.body.roleTitle || (req.body.role === 'admin' ? 'مدير نظام' : req.body.role === 'supervisor' ? 'مشرف منطقة' : req.body.role === 'accountant' ? 'محاسب' : 'مندوب ميداني'),
-    governorate: req.body.governorate || 'القاهرة',
-    targetMonth: Number(req.body.targetMonth) || 20,
-    avatar: req.body.avatar || '', // No default avatar — shows first letter initial
-    commissionRate: Number(req.body.commissionRate) || 15,
-    status: req.body.status || 'active',
-    password: req.body.password || 'Aa123456',
+    id: repData.id || `rep_${Date.now()}`,
+    name: repData.name,
+    email: repData.email,
+    phone: repData.phone,
+    nationalId: repData.nationalId || '',
+    role: repData.role || 'rep',
+    roleTitle: repData.roleTitle || (repData.role === 'admin' ? 'مدير نظام' : repData.role === 'supervisor' ? 'مشرف منطقة' : repData.role === 'accountant' ? 'محاسب' : 'مندوب مبيعات ميداني'),
+    governorate: repData.governorate || 'القاهرة',
+    targetMonth: Number(repData.targetMonth) || 25,
+    avatar: repData.avatar || '',
+    avatarStatus: repData.avatarStatus || (repData.avatar ? 'pending_approval' : 'none'),
+    commissionRate: Number(repData.commissionRate) || 42.86,
+    status: repData.status || 'suspended',
+    password: repData.password || 'Aa132456',
   };
-  representatives.push(newRep);
+
+  const existingIdx = representatives.findIndex(
+    (r) => r.id === newRep.id || r.email.toLowerCase() === newRep.email.toLowerCase()
+  );
+  if (existingIdx >= 0) {
+    representatives[existingIdx] = { ...representatives[existingIdx], ...newRep };
+  } else {
+    representatives.unshift(newRep);
+  }
+
   res.status(201).json(newRep);
 });
 

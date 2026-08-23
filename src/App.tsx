@@ -382,15 +382,24 @@ export default function App() {
 
   // Fetch initial data from Supabase Database & Local Backend
   useEffect(() => {
-    Promise.all([fetchBusinessesFromDb(), fetchRepsFromDb()])
-      .then(([bizData, repsData]) => {
+    Promise.all([
+      fetchBusinessesFromDb(),
+      fetchRepsFromDb(),
+      fetch('/api/representatives')
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+    ])
+      .then(([bizData, dbRepsData, apiRepsData]) => {
         setBusinesses(bizData && bizData.length > 0 ? bizData : INITIAL_BUSINESSES);
-        
-        // Merge DB reps with mock reps to ensure admin and initial demo accounts are always present
+
+        // Merge DB reps, API reps, and mock reps
         const repMap = new Map<string, Representative>();
         MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
-        if (repsData && repsData.length > 0) {
-          repsData.forEach((r) => repMap.set(r.email.toLowerCase(), r));
+        if (Array.isArray(dbRepsData) && dbRepsData.length > 0) {
+          dbRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), r));
+        }
+        if (Array.isArray(apiRepsData) && apiRepsData.length > 0) {
+          apiRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), r));
         }
         setRepresentatives(Array.from(repMap.values()));
         setIsLoadingData(false);

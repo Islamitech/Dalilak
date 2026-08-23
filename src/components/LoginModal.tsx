@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Representative } from '../types';
 import { MOCK_REPRESENTATIVES, EGYPT_GOVERNORATES } from '../data/mockData';
 import { supabase } from '../lib/supabase';
-import { updateRepSessionInDb, fetchRepsFromDb } from '../services/db';
+import { updateRepSessionInDb, fetchRepsFromDb, saveRepToDb } from '../services/db';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { ShieldCheck, UserPlus, Mail, KeyRound, CheckCircle2, AlertCircle, Phone, CreditCard, Lock } from 'lucide-react';
@@ -311,6 +311,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       status: 'suspended', // New accounts are suspended until admin activates
       password: regPassword,
     };
+
+    // Save directly to Supabase and Express backend immediately so Admin sees it across all sessions
+    await saveRepToDb(newRepData);
+    try {
+      await fetch('/api/representatives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRepData),
+      });
+    } catch (apiErr) {
+      console.log('API rep sync notice:', apiErr);
+    }
 
     if (onAddRepresentative) {
       onAddRepresentative(newRepData);

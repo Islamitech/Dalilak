@@ -860,6 +860,99 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
+          {/* DEDICATED PENDING REGISTRATIONS SECTION */}
+          {mergedAdminReps.some((r) => r.status === 'suspended') && (
+            <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-3xl p-4 sm:p-5 space-y-3 shadow-lg animate-fade-in-up">
+              <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-3 w-3 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                  </span>
+                  <h4 className="font-black text-sm text-amber-800 dark:text-amber-300">
+                    طلبات الحسابات الجديدة المعلقة بانتظار التفعيل ({mergedAdminReps.filter((r) => r.status === 'suspended').length})
+                  </h4>
+                </div>
+                <button
+                  onClick={() => {
+                    if (onUpdateRepresentative) {
+                      mergedAdminReps
+                        .filter((r) => r.status === 'suspended')
+                        .forEach((r) => onUpdateRepresentative({ ...r, status: 'active' }));
+                    }
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>تفعيل الكل دفعة واحدة</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {mergedAdminReps
+                  .filter((r) => r.status === 'suspended')
+                  .map((acc) => (
+                    <div
+                      key={acc.id}
+                      className="bg-[var(--bg-surface)] border-2 border-amber-500/40 rounded-2xl p-3.5 shadow-md flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <UserAvatar
+                            avatar={acc.avatar}
+                            name={acc.name}
+                            role={acc.role}
+                            avatarStatus={acc.avatarStatus}
+                            size="md"
+                            isAdminPreview={true}
+                          />
+                          <div>
+                            <h5 className="font-black text-sm text-[var(--text-primary)]">{acc.name}</h5>
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">{acc.governorate}</p>
+                            <p className="text-[10px] text-[var(--text-muted)] font-mono dir-ltr text-right">{acc.phone} • {acc.email}</p>
+                          </div>
+                        </div>
+
+                        <span className="bg-amber-500/20 text-amber-900 dark:text-amber-300 font-black text-[10px] px-2.5 py-1 rounded-lg border border-amber-500/40 shrink-0">
+                          معلق ⏳
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-[var(--border-color)]">
+                        <button
+                          onClick={() => {
+                            if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'active' });
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] py-2 rounded-xl shadow flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>قبول وتفعيل</span>
+                        </button>
+                        <button
+                          onClick={() => openEditAccountModal(acc)}
+                          className="bg-amber-500/20 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black text-[11px] py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          <span>تعديل</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`هل أنت متأكد من رفض وحذف طلب حساب "${acc.name}"؟`)) {
+                              if (onDeleteRepresentative) onDeleteRepresentative(acc.id);
+                            }
+                          }}
+                          className="bg-rose-500/15 hover:bg-rose-500 text-rose-800 dark:text-rose-300 hover:text-white font-black text-[11px] py-2 rounded-xl border border-rose-500/40 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>رفض</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
           {/* Accounts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {filteredAccounts.map((acc) => {
@@ -888,6 +981,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div>
                         <h4 className="font-bold text-sm text-[var(--text-primary)]">{acc.name}</h4>
                         <p className="text-xs text-amber-500 font-bold">{acc.governorate}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] font-mono dir-ltr text-right">{acc.phone}</p>
                       </div>
                     </div>
 
@@ -905,14 +999,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[var(--border-color)] flex items-center justify-between gap-2 text-xs">
-                    <button
-                      onClick={() => openEditAccountModal(acc)}
-                      className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer"
-                    >
-                      <Edit className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                      <span>عرض وتعديل الحساب</span>
-                    </button>
+                  <div className="pt-2 border-t border-[var(--border-color)] flex items-center gap-2 text-xs">
+                    {isSuspended ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'active' });
+                          }}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-xl shadow flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>قبول وتفعيل</span>
+                        </button>
+                        <button
+                          onClick={() => openEditAccountModal(acc)}
+                          className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          <span>تعديل</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => openEditAccountModal(acc)}
+                        className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer"
+                      >
+                        <Edit className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                        <span>عرض وتعديل الحساب</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
