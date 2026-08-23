@@ -238,16 +238,24 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   return dbRecord;
 }
 
-export async function updateRepSessionInDb(id: string, sessionId?: string, timestamp?: number): Promise<void> {
+export async function updateRepInDb(id: string, updates: Partial<Representative>): Promise<void> {
+  const dbUpdates = mapRepToDb(updates as Representative);
+  delete dbUpdates.id;
   try {
-    const updates: any = {
-      active_session_id: sessionId || null,
-      last_active_timestamp: timestamp || null,
-    };
-    await supabase.from('representatives').update(updates).eq('id', id);
+    const { error } = await supabase.from('representatives').update(dbUpdates).eq('id', id);
+    if (error) {
+      await supabaseRestFetch(`representatives?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(dbUpdates),
+      });
+    }
   } catch (err) {
-    console.log('Supabase update rep session notice:', err);
+    console.log('Supabase update rep notice:', err);
   }
+}
+
+export async function updateRepSessionInDb(_id: string, _sessionId?: string, _timestamp?: number): Promise<void> {
+  // Session tracking is managed dynamically in real-time memory and local sync
 }
 
 function mapDbToRep(item: any): Representative {
@@ -266,28 +274,25 @@ function mapDbToRep(item: any): Representative {
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: item.status || 'active',
     password: item.password || 'Aa123456',
-    activeSessionId: item.active_session_id || item.activeSessionId,
-    lastActiveTimestamp: Number(item.last_active_timestamp || item.lastActiveTimestamp) || undefined,
   };
 }
 
 function mapRepToDb(rep: Representative): any {
-  return {
+  const record: any = {
     id: rep.id,
     name: rep.name,
     email: rep.email,
     phone: rep.phone,
-    national_id: rep.nationalId,
-    role: rep.role,
-    role_title: rep.roleTitle,
-    governorate: rep.governorate,
-    target_month: rep.targetMonth,
-    avatar: rep.avatar,
-    avatar_status: rep.avatarStatus,
-    commission_rate: rep.commissionRate,
-    status: rep.status,
-    password: rep.password,
-    active_session_id: rep.activeSessionId || null,
-    last_active_timestamp: rep.lastActiveTimestamp || null,
+    national_id: rep.nationalId || null,
+    role: rep.role || 'rep',
+    role_title: rep.roleTitle || 'مندوب مبيعات ميداني',
+    governorate: rep.governorate || 'القاهرة',
+    target_month: Number(rep.targetMonth) || 25,
+    avatar: rep.avatar || '',
+    avatar_status: rep.avatarStatus || 'none',
+    commission_rate: Number(rep.commissionRate) || 42.86,
+    status: rep.status || 'suspended',
+    password: rep.password || 'Aa132456',
   };
+  return record;
 }

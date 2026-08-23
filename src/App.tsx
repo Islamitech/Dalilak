@@ -680,6 +680,15 @@ export default function App() {
     }
 
     await saveRepToDb(updatedRep);
+    try {
+      await fetch(`/api/representatives/${updatedRep.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedRep),
+      });
+    } catch (err) {
+      console.log('Backend rep update sync notice:', err);
+    }
   };
 
   const handleDeleteRepresentative = async (id: string) => {
