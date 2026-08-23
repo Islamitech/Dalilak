@@ -90,10 +90,11 @@ export interface User {
 }
 
 export interface PaymentGatewayConfig {
-  fawryMerchantCode: string;
   vodafoneCashNumber: string;
-  instaPayHandle: string;
-  cardGatewayActive: boolean;
+  vodafoneCashNumber2?: string;
+  fawryMerchantCode?: string;
+  instaPayHandle?: string;
+  cardGatewayActive?: boolean;
 }
 
 export type NotificationCategory = 'account' | 'business' | 'payment' | 'avatar' | 'system';

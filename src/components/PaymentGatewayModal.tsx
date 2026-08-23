@@ -17,12 +17,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 }) => {
   const remaining = Math.max(0, business.packagePrice - business.amountPaid);
   // Default to vodafone cash as it is the only active payment method
-  const [selectedMethod, setSelectedMethod] = useState<'vodafone' | 'fawry' | 'instapay' | 'card'>('vodafone');
+  const [selectedMethod, setSelectedMethod] = useState<'vodafone' | 'instapay' | 'fawry' | 'card' | 'aman'>('vodafone');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [simulatedPayAmount, setSimulatedPayAmount] = useState<number>(remaining || business.packagePrice);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const activeVodafoneNumber = config.vodafoneCashNumber || '01143888355';
+  const activeVodafoneNumber2 = config.vodafoneCashNumber2 || '01556221141';
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -72,19 +73,19 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           </div>
         </div>
 
-        {/* Notice: Sole Active Method */}
+        {/* Notice: Active Wallets */}
         <div className="bg-emerald-500/10 border border-emerald-500/25 p-2.5 rounded-xl flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
           <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
-          <span>طريقة الدفع المعتمدة والمفعلة حالياً هي محفظة <strong>فودافون كاش</strong>. باقي الوسائل قيد التطوير والتفعيل قريباً.</span>
+          <span>طرق الدفع المعتمدة والمفعلة حالياً هي <strong>المحافظ الإلكترونية (فودافون كاش)</strong>. باقي الوسائل قيد التطوير والربط البنكي.</span>
         </div>
 
         {/* Payment Methods Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-[var(--payment-surface)] p-1.5 rounded-2xl border border-[var(--payment-border)] text-[11px] font-bold">
-          {/* Vodafone Cash - Sole Active */}
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 bg-[var(--payment-surface)] p-1.5 rounded-2xl border border-[var(--payment-border)] text-[10px] font-bold">
+          {/* 1. Vodafone Cash / Wallets - Active */}
           <button
             type="button"
             onClick={() => setSelectedMethod('vodafone')}
-            className={`py-2 px-1.5 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
+            className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
               selectedMethod === 'vodafone'
                 ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 font-black shadow-md'
                 : 'text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
@@ -92,17 +93,33 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           >
             <div className="flex items-center gap-1">
               <span>فودافون كاش</span>
-              <span className={`text-[9px] px-1 py-0.2 rounded font-black ${
+              <span className={`text-[8px] px-1 py-0.2 rounded font-black ${
                 selectedMethod === 'vodafone' ? 'bg-slate-950 text-emerald-300' : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
               }`}>مفعل</span>
             </div>
           </button>
 
-          {/* Fawry - Under Development */}
+          {/* 2. InstaPay - Under Development */}
+          <button
+            type="button"
+            onClick={() => setSelectedMethod('instapay')}
+            className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
+              selectedMethod === 'instapay'
+                ? 'bg-purple-500/20 border border-purple-500/40 text-purple-600 dark:text-purple-300 font-black'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
+            }`}
+          >
+            <div className="flex items-center gap-1">
+              <span>إنستاباي</span>
+              <span className="text-[8px] bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1 py-0.2 rounded">تطوير</span>
+            </div>
+          </button>
+
+          {/* 3. Fawry - Under Development */}
           <button
             type="button"
             onClick={() => setSelectedMethod('fawry')}
-            className={`py-2 px-1.5 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
+            className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
               selectedMethod === 'fawry'
                 ? 'bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-300 font-black'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
@@ -110,66 +127,92 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           >
             <div className="flex items-center gap-1">
               <span>فوري</span>
-              <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 py-0.2 rounded">قيد التطوير</span>
+              <span className="text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 py-0.2 rounded">تطوير</span>
             </div>
           </button>
 
-          {/* InstaPay - Under Development */}
-          <button
-            type="button"
-            onClick={() => setSelectedMethod('instapay')}
-            className={`py-2 px-1.5 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
-              selectedMethod === 'instapay'
-                ? 'bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-300 font-black'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
-            }`}
-          >
-            <div className="flex items-center gap-1">
-              <span>إنستاباي</span>
-              <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 py-0.2 rounded">قيد التطوير</span>
-            </div>
-          </button>
-
-          {/* Card / Visa - Under Development */}
+          {/* 4. Card / Visa - Under Development */}
           <button
             type="button"
             onClick={() => setSelectedMethod('card')}
-            className={`py-2 px-1.5 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
+            className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
               selectedMethod === 'card'
-                ? 'bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-300 font-black'
+                ? 'bg-blue-500/20 border border-blue-500/40 text-blue-600 dark:text-blue-300 font-black'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
             }`}
           >
             <div className="flex items-center gap-1">
               <span>فيزا / كارت</span>
-              <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 py-0.2 rounded">قيد التطوير</span>
+              <span className="text-[8px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1 py-0.2 rounded">تطوير</span>
+            </div>
+          </button>
+
+          {/* 5. Aman - Under Development */}
+          <button
+            type="button"
+            onClick={() => setSelectedMethod('aman')}
+            className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
+              selectedMethod === 'aman'
+                ? 'bg-orange-500/20 border border-orange-500/40 text-orange-600 dark:text-orange-300 font-black'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
+            }`}
+          >
+            <div className="flex items-center gap-1">
+              <span>أمان</span>
+              <span className="text-[8px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1 py-0.2 rounded">تطوير</span>
             </div>
           </button>
         </div>
 
         {/* Method details */}
         <div className="bg-[var(--payment-surface)] p-4 rounded-2xl border border-[var(--payment-border)] space-y-3 text-xs">
-          {/* 1. VODAFONE CASH (ACTIVE) */}
+          {/* 1. VODAFONE CASH (ACTIVE - DUAL WALLETS) */}
           {selectedMethod === 'vodafone' && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <p className="text-[var(--text-secondary)] font-bold">التحويل المباشر عبر محفظة فودافون كاش المعتمدة:</p>
+                <p className="text-[var(--text-secondary)] font-bold">التحويل المباشر عبر المحافظ الإلكترونية المعتمدة:</p>
                 <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-md">
-                  الوسيلة المعتمدة حالياً
+                  مفعلة للاستلام
                 </span>
               </div>
 
+              {/* Wallet 1 */}
               <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 font-mono text-emerald-600 dark:text-emerald-400 shadow-sm">
                 <div className="text-right">
-                  <span className="text-[10px] text-[var(--text-muted)] block font-sans">رقم فودافون كاش للتحويل:</span>
+                  <span className="text-[10px] text-[var(--text-muted)] block font-sans font-bold">رقم المحفظة الرئيسي (1):</span>
                   <span className="text-base font-black tracking-wider dir-ltr inline-block">{activeVodafoneNumber}</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleCopy(activeVodafoneNumber, 'voda')}
+                  onClick={() => handleCopy(activeVodafoneNumber, 'voda1')}
                   className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1 cursor-pointer transition-all shadow active:scale-95"
                 >
-                  {copiedCode === 'voda' ? (
+                  {copiedCode === 'voda1' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>تم النسخ</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>نسخ الرقم</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Wallet 2 */}
+              <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 font-mono text-emerald-600 dark:text-emerald-400 shadow-sm">
+                <div className="text-right">
+                  <span className="text-[10px] text-[var(--text-muted)] block font-sans font-bold">رقم المحفظة الإضافي (2):</span>
+                  <span className="text-base font-black tracking-wider dir-ltr inline-block">{activeVodafoneNumber2}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(activeVodafoneNumber2, 'voda2')}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1 cursor-pointer transition-all shadow active:scale-95"
+                >
+                  {copiedCode === 'voda2' ? (
                     <>
                       <Check className="w-3.5 h-3.5 stroke-[3]" />
                       <span>تم النسخ</span>
@@ -185,23 +228,23 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 
               <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-1 text-[11px] text-[var(--text-secondary)]">
                 <p className="font-bold text-[var(--text-primary)]">📌 خطوات التحويل والتأكيد:</p>
-                <p>1. قم بطلب كود التحويل من محفظتك: <strong>*9*7*{activeVodafoneNumber}*المبلغ#</strong></p>
-                <p>2. أو قم بالتحويل المباشر من تطبيق أنا فودافون إلى الرقم <strong>{activeVodafoneNumber}</strong>.</p>
-                <p>3. احتفظ برسالة التأكيد، وأدخل المبلغ المحصل أدناه لإصدار الفاتورة وتحديث حالة النشاط.</p>
+                <p>1. قم بالتحويل من محفظتك إلى أي من الرقمين أعلاه: <strong>*9*7*{activeVodafoneNumber}*المبلغ#</strong></p>
+                <p>2. أو قم بالتحويل المباشر من تطبيق المحفظة (أنا فودافون / My Orange / My Etisalat / My WE).</p>
+                <p>3. احتفظ برسالة التأكيد، وأدخل المبلغ المحصل أدناه لتحديث حالة النشاط فورياً.</p>
               </div>
             </div>
           )}
 
-          {/* 2. FAWRY (UNDER DEVELOPMENT) */}
-          {selectedMethod === 'fawry' && (
+          {/* 2. INSTAPAY (UNDER DEVELOPMENT - NO FAKE DATA) */}
+          {selectedMethod === 'instapay' && (
             <div className="space-y-2.5">
-              <div className="bg-amber-500/15 border border-amber-500/30 p-3 rounded-xl space-y-1.5 text-amber-800 dark:text-amber-300">
+              <div className="bg-purple-500/15 border border-purple-500/30 p-3.5 rounded-xl space-y-1.5 text-purple-900 dark:text-purple-300">
                 <div className="flex items-center gap-1.5 font-black text-xs">
-                  <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>خدمة الدفع عبر فوري قيد التطوير والربط البرمجي</span>
+                  <Clock className="w-4 h-4 text-purple-500 shrink-0" />
+                  <span>خدمة إنستاباي (InstaPay) قيد التطوير والاعتماد المصرفي</span>
                 </div>
                 <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                  يتم حالياً استكمال الربط المباشر مع شبكة فوري (Fawry). برجاء استخدام محفظة <strong>فودافون كاش ({activeVodafoneNumber})</strong> كوسيلة دفع معتمدة حالياً.
+                  جاري إتمام الربط الآلي المباشر مع شبكة المدفوعات اللحظية إنستاباي. يرجى سداد المبلغ حالياً عبر أي من أرقام المحافظ الإلكترونية المعتمدة (<strong>{activeVodafoneNumber}</strong> أو <strong>{activeVodafoneNumber2}</strong>).
                 </p>
               </div>
 
@@ -210,21 +253,21 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                 onClick={() => setSelectedMethod('vodafone')}
                 className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
               >
-                التحويل الآن عبر فودافون كاش ({activeVodafoneNumber}) ←
+                التحويل الآن عبر المحافظ الإلكترونية المعتمدة ←
               </button>
             </div>
           )}
 
-          {/* 3. INSTAPAY (UNDER DEVELOPMENT) */}
-          {selectedMethod === 'instapay' && (
+          {/* 3. FAWRY (UNDER DEVELOPMENT - NO FAKE DATA) */}
+          {selectedMethod === 'fawry' && (
             <div className="space-y-2.5">
-              <div className="bg-amber-500/15 border border-amber-500/30 p-3 rounded-xl space-y-1.5 text-amber-800 dark:text-amber-300">
+              <div className="bg-amber-500/15 border border-amber-500/30 p-3.5 rounded-xl space-y-1.5 text-amber-900 dark:text-amber-300">
                 <div className="flex items-center gap-1.5 font-black text-xs">
                   <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>خدمة إنستاباي (InstaPay) قيد التطوير والاعتماد</span>
+                  <span>خدمة الدفع عبر فوري (Fawry) قيد التطوير والربط البرمجي</span>
                 </div>
                 <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                  جاري إتمام الربط الآلي مع منظومة المدفوعات اللحظية إنستاباي. يرجى سداد المبلغ عبر محفظة <strong>فودافون كاش ({activeVodafoneNumber})</strong>.
+                  يتم حالياً استكمال الربط المباشر مع كود التاجر بشبكة فوري. يرجى استخدام المحافظ الإلكترونية المعتمدة (<strong>{activeVodafoneNumber}</strong> أو <strong>{activeVodafoneNumber2}</strong>) حالياً.
                 </p>
               </div>
 
@@ -233,7 +276,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                 onClick={() => setSelectedMethod('vodafone')}
                 className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
               >
-                التحويل الآن عبر فودافون كاش ({activeVodafoneNumber}) ←
+                التحويل الآن عبر المحافظ الإلكترونية المعتمدة ←
               </button>
             </div>
           )}
@@ -241,13 +284,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           {/* 4. VISA / MASTERCARD (UNDER DEVELOPMENT) */}
           {selectedMethod === 'card' && (
             <div className="space-y-2.5">
-              <div className="bg-amber-500/15 border border-amber-500/30 p-3 rounded-xl space-y-1.5 text-amber-800 dark:text-amber-300">
+              <div className="bg-blue-500/15 border border-blue-500/30 p-3.5 rounded-xl space-y-1.5 text-blue-900 dark:text-blue-300">
                 <div className="flex items-center gap-1.5 font-black text-xs">
-                  <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                  <Clock className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>الدفع ببطاقات فيزا / ميزة / ماستركارد قيد التطوير</span>
                 </div>
                 <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                  بوابة الدفع المباشر بالبطاقات البنكية قيد المراجعة الأمنية والربط البنكي. يرجى استخدام محفظة <strong>فودافون كاش ({activeVodafoneNumber})</strong> حالياً.
+                  بوابة الدفع الإلكتروني المباشر بالبطاقات البنكية قيد المراجعة والاعتماد المصرفي. يرجى استخدام المحافظ الإلكترونية المعتمدة حالياً.
                 </p>
               </div>
 
@@ -256,7 +299,30 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                 onClick={() => setSelectedMethod('vodafone')}
                 className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
               >
-                التحويل الآن عبر فودافون كاش ({activeVodafoneNumber}) ←
+                التحويل الآن عبر المحافظ الإلكترونية المعتمدة ←
+              </button>
+            </div>
+          )}
+
+          {/* 5. AMAN (UNDER DEVELOPMENT) */}
+          {selectedMethod === 'aman' && (
+            <div className="space-y-2.5">
+              <div className="bg-orange-500/15 border border-orange-500/30 p-3.5 rounded-xl space-y-1.5 text-orange-900 dark:text-orange-300">
+                <div className="flex items-center gap-1.5 font-black text-xs">
+                  <Clock className="w-4 h-4 text-orange-500 shrink-0" />
+                  <span>خدمات التحصيل عبر منافذ أمان (Aman) قيد التجهيز</span>
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                  جاري إعداد الربط التقني مع شبكة منافذ أمان للدفع الإلكتروني في المحافظات. يرجى استخدام المحافظ الإلكترونية المعتمدة حالياً.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedMethod('vodafone')}
+                className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
+              >
+                التحويل الآن عبر المحافظ الإلكترونية المعتمدة ←
               </button>
             </div>
           )}

@@ -132,9 +132,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // 3. Payment Gateway Config Editing Modal State
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
-  const [fawryCode, setFawryCode] = useState<string>(paymentConfig.fawryMerchantCode);
-  const [vodaNumber, setVodaNumber] = useState<string>(paymentConfig.vodafoneCashNumber);
-  const [instaHandle, setInstaHandle] = useState<string>(paymentConfig.instaPayHandle);
+  const [vodaNumber, setVodaNumber] = useState<string>(paymentConfig.vodafoneCashNumber || '01143888355');
+  const [vodaNumber2, setVodaNumber2] = useState<string>(paymentConfig.vodafoneCashNumber2 || '01556221141');
 
   // 4. Avatar Preview & Approval Modal State
   const [previewAvatarRep, setPreviewAvatarRep] = useState<Representative | null>(null);
@@ -1037,10 +1036,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* --------------------------------------------------------------------- */}
-      {/* TAB 4: EGYPTIAN PAYMENT GATEWAYS */}
+      {/* TAB 4: PAYMENT GATEWAY SETTINGS */}
       {/* --------------------------------------------------------------------- */}
       {activeAdminTab === 'gateways' && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 space-y-5 shadow-md max-w-xl mx-auto transition-colors duration-300">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 space-y-5 shadow-md max-w-2xl mx-auto transition-colors duration-300">
           <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
             <div className="flex items-center gap-2 text-amber-500">
               <CreditCard className="w-5 h-5" />
@@ -1049,65 +1048,117 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <button
               onClick={() => {
-                setFawryCode(paymentConfig.fawryMerchantCode);
-                setVodaNumber(paymentConfig.vodafoneCashNumber);
-                setInstaHandle(paymentConfig.instaPayHandle);
+                setVodaNumber(paymentConfig.vodafoneCashNumber || '01143888355');
+                setVodaNumber2(paymentConfig.vodafoneCashNumber2 || '01556221141');
                 setShowPaymentModal(true);
               }}
               className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-2xl shadow flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
             >
               <Settings className="w-4 h-4" />
-              <span>تعديل الإعدادات</span>
+              <span>تعديل أرقام المحافظ</span>
             </button>
           </div>
 
           {/* Simple Display Cards */}
           <div className="space-y-3 text-xs">
-            {/* Vodafone Cash - Primary and active */}
-            <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/30 flex items-center justify-between">
-              <div>
+            {/* 1. Vodafone Cash / Wallets - Primary and active (with 2 numbers) */}
+            <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/30 space-y-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[var(--text-primary)] font-extrabold block">رقم تحويل محفظة فودافون كاش المعتمدة:</span>
-                  <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full">
-                    مفعلة وحيدة
+                  <span className="text-[var(--text-primary)] font-extrabold block">محافظ التحويل الإلكتروني المعتمدة (فودافون كاش / اتصالات / وي / أورانج):</span>
+                  <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm">
+                    مفعلة للاستلام
                   </span>
                 </div>
-                <span className="text-emerald-700 dark:text-emerald-400 font-mono font-black text-lg mt-0.5 block dir-ltr text-right">{paymentConfig.vodafoneCashNumber || '01143888355'}</span>
+                <span className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-black px-3 py-1.5 rounded-xl border border-emerald-500/30">
+                  E-Wallets
+                </span>
               </div>
-              <span className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-black px-3 py-1.5 rounded-xl border border-emerald-500/30">
-                Vodafone Cash
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                <div className="bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">رقم المحفظة الرئيسي (1):</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-mono font-black text-base dir-ltr text-right inline-block">
+                      {paymentConfig.vodafoneCashNumber || '01143888355'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md">رئيسي</span>
+                </div>
+
+                <div className="bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">رقم المحفظة الإضافي (2):</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-mono font-black text-base dir-ltr text-right inline-block">
+                      {paymentConfig.vodafoneCashNumber2 || '01556221141'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md">إضافي</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. InstaPay - Under Development (No fake data) */}
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between opacity-80">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[var(--text-primary)] font-extrabold block">شبكة المدفوعات اللحظية إنستاباي (InstaPay Egypt):</span>
+                  <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                    قيد التطوير والربط
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">جاري استكمال الربط المباشر مع المنظومة البنكية للمدفوعات اللحظية</p>
+              </div>
+              <span className="bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-black px-2.5 py-1 rounded-full border border-purple-500/30">
+                InstaPay
               </span>
             </div>
 
-            {/* Fawry - Under Development */}
+            {/* 3. Fawry - Under Development (No fake data) */}
             <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between opacity-80">
-              <div>
+              <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-[var(--text-muted)] font-extrabold block">كود التاجر بخدمة فوري (Fawry Merchant):</span>
-                  <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full">
-                    قيد التطوير
+                  <span className="text-[var(--text-primary)] font-extrabold block">خدمة الدفع عبر شبكة فوري (Fawry Merchant / FawryPay):</span>
+                  <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                    قيد التطوير والربط
                   </span>
                 </div>
-                <span className="text-[var(--text-secondary)] font-mono font-black text-base mt-0.5 block">{paymentConfig.fawryMerchantCode}</span>
+                <p className="text-[11px] text-[var(--text-muted)]">جاري الربط البرمجي المباشر مع كود التاجر بشبكة فوري</p>
               </div>
-              <span className="bg-amber-500/15 text-amber-600 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-500/30">
+              <span className="bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-500/30">
                 فوري Fawry
               </span>
             </div>
 
-            {/* InstaPay - Under Development */}
+            {/* 4. Credit & Debit Cards (Visa / Mastercard / Meeza) - Under Development */}
             <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between opacity-80">
-              <div>
+              <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-[var(--text-muted)] font-extrabold block">معرف انستاباي للتحويل المباشر (InstaPay):</span>
-                  <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full">
-                    قيد التطوير
+                  <span className="text-[var(--text-primary)] font-extrabold block">بطاقات الدفع البنكية (Visa / MasterCard / Meeza):</span>
+                  <span className="bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-500/30">
+                    قيد الاعتماد المصرفي
                   </span>
                 </div>
-                <span className="text-[var(--text-secondary)] font-mono font-black text-base mt-0.5 block">{paymentConfig.instaPayHandle}</span>
+                <p className="text-[11px] text-[var(--text-muted)]">بوابة الدفع الإلكتروني المباشر عبر البطاقات الائتمانية والبنكية قيد الإعداد</p>
               </div>
-              <span className="bg-purple-500/15 text-purple-600 text-[10px] font-black px-2.5 py-1 rounded-full border border-purple-500/30">
-                InstaPay Egypt
+              <span className="bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-500/30">
+                Visa / MasterCard
+              </span>
+            </div>
+
+            {/* 5. Aman Payments - Under Development */}
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between opacity-80">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[var(--text-primary)] font-extrabold block">خدمات التحصيل عبر شبكة أمان (Aman Payments):</span>
+                  <span className="bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-orange-500/30">
+                    قيد التجهيز
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">التحصيل والسداد عبر منافذ وفروع أمان في جميع المحافظات قريباً</p>
+              </div>
+              <span className="bg-orange-500/15 text-orange-600 dark:text-orange-400 text-[10px] font-black px-2.5 py-1 rounded-full border border-orange-500/30">
+                أمان Aman
               </span>
             </div>
           </div>
@@ -1439,18 +1490,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* --------------------------------------------------------------------- */}
-      {/* MODAL 3: PAYMENT GATEWAYS POP-UP */}
+      {/* MODAL 3: PAYMENT GATEWAY CONFIG DIALOG */}
       {/* --------------------------------------------------------------------- */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
           <form
-            onSubmit={handleSavePaymentConfigModal}
-            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onUpdatePaymentConfig({
+                vodafoneCashNumber: vodaNumber,
+                vodafoneCashNumber2: vodaNumber2,
+                fawryMerchantCode: '',
+                instaPayHandle: '',
+                cardGatewayActive: false,
+              });
+              setShowPaymentModal(false);
+            }}
+            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative text-[var(--text-primary)] my-auto transition-colors duration-300"
           >
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
               <div className="flex items-center gap-2 text-amber-500">
                 <CreditCard className="w-5 h-5" />
-                <h3 className="font-black text-base text-[var(--text-primary)]">تعديل بيانات بوابات الدفع الإلكتروني</h3>
+                <h3 className="font-black text-base text-[var(--text-primary)]">تعديل أرقام محافظ التحويل الإلكتروني</h3>
               </div>
               <button
                 type="button"
@@ -1464,41 +1525,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="space-y-3.5 text-xs">
               <div>
                 <label className="block text-[var(--text-primary)] font-extrabold mb-1">
-                  كود التاجر بخدمة فوري (Fawry Code):
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={fawryCode}
-                  onChange={(e) => setFawryCode(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">
-                  رقم تحويل محفظة فودافون كاش:
+                  رقم المحفظة الرئيسي (1) - فودافون كاش / محافظ:
                 </label>
                 <input
                   type="text"
                   required
                   value={vodaNumber}
                   onChange={(e) => setVodaNumber(e.target.value)}
+                  placeholder="01143888355"
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm dir-ltr text-right shadow-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-[var(--text-primary)] font-extrabold mb-1">
-                  معرف انستاباي للتحويل المباشر (InstaPay):
+                  رقم المحفظة الإضافي (2) - فودافون كاش / محافظ:
                 </label>
                 <input
                   type="text"
                   required
-                  value={instaHandle}
-                  onChange={(e) => setInstaHandle(e.target.value)}
+                  value={vodaNumber2}
+                  onChange={(e) => setVodaNumber2(e.target.value)}
+                  placeholder="01556221141"
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 text-sm dir-ltr text-right shadow-sm"
                 />
+              </div>
+
+              <div className="bg-amber-500/10 border border-amber-500/25 p-3 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1 font-bold">
+                <p>💡 باقي وسائل الدفع (فوري، إنستاباي، البطاقات البنكية، أمان):</p>
+                <p className="font-normal opacity-90">مدرجة كأنظمة تحت التطوير وسيتم تفعيل إعداداتها وتعيين أكوادها فور انتهاء الربط البرمجي المباشر.</p>
               </div>
             </div>
 
