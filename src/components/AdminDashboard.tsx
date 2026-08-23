@@ -6,6 +6,7 @@ import { calculateTotalRepCommission } from '../utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { UserAvatar } from './UserAvatar';
 import { BusinessEditModal } from './BusinessEditModal';
+import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import {
   ShieldCheck,
   TrendingUp,
@@ -13,6 +14,9 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  AlertTriangle,
+  Zap,
+  Send,
   Users,
   Plus,
   Edit,
@@ -141,12 +145,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedAdminDoc, setSelectedAdminDoc] = useState<{ type: 'field_letter' | 'digital_badge' | 'rep_contract', rep: Representative } | null>(null);
 
   // ---------------------------------------------------------------------------
-  // CALCULATIONS & MERGED DATA
+  // CALCULATIONS & MERGED DATA (Strict Verification Pipeline)
   // ---------------------------------------------------------------------------
-  const totalRevenue = businesses.reduce((acc, b) => acc + b.amountPaid, 0);
-  const totalDebt = businesses.reduce((acc, b) => acc + Math.max(0, b.packagePrice - b.amountPaid), 0);
-  const verifiedCount = businesses.filter((b) => b.verificationStatus === 'verified').length;
-  const inProgressCount = businesses.filter((b) => b.verificationStatus === 'in_progress').length;
+  const [syncModalBiz, setSyncModalBiz] = useState<Business | null>(null);
+
+  const totalRevenue = businesses.reduce((acc, b) => acc + (b.amountPaid || 0), 0);
+  const totalDebt = businesses.reduce((acc, b) => acc + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)), 0);
+  
+  // 1. Verified & Live on Google Maps
+  const verifiedCount = businesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
+  
+  // 2. Sent to Google & Awaiting Approval
+  const inProgressCount = businesses.filter(
+    (b) => (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress') && b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced'
+  ).length;
+
+  // 3. New & Not Submitted for Verification Yet
+  const notSubmittedCount = businesses.filter(
+    (b) => b.verificationStatus !== 'verified' && b.verificationStatus !== 'in_progress' && b.googleSyncStatus !== 'synced' && b.googleSyncStatus !== 'in_progress'
+  ).length;
 
   // Filtered Businesses (Sorted newest first)
   const filteredBusinesses = useMemo(
@@ -167,8 +184,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
             return false;
           }
-          if (verificationFilter !== 'all' && b.verificationStatus !== verificationFilter) {
-            return false;
+          if (verificationFilter === 'not_submitted') {
+            const isNotSubmitted =
+              b.verificationStatus !== 'verified' &&
+              b.verificationStatus !== 'in_progress' &&
+              b.googleSyncStatus !== 'synced' &&
+              b.googleSyncStatus !== 'in_progress';
+            if (!isNotSubmitted) return false;
+          } else if (verificationFilter === 'in_progress') {
+            const isInProgress =
+              (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress') &&
+              b.verificationStatus !== 'verified' &&
+              b.googleSyncStatus !== 'synced';
+            if (!isInProgress) return false;
+          } else if (verificationFilter === 'verified') {
+            if (b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced') return false;
+          } else if (verificationFilter === 'rejected') {
+            if (b.verificationStatus !== 'rejected') return false;
+          } else if (verificationFilter !== 'all') {
+            if (b.verificationStatus !== verificationFilter) return false;
           }
           return true;
         })
@@ -462,53 +496,166 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* --------------------------------------------------------------------- */}
-      {/* SUMMARY KPI CARDS */}
+      {/* SUMMARY KPI CARDS (Enhanced Verification Pipeline) */}
       {/* --------------------------------------------------------------------- */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
           <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
-            <span>المبالغ المحصلة</span>
+            <span>المحصل</span>
             <DollarSign className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-xl font-black text-emerald-500">
+          <p className="text-lg font-black text-emerald-500">
             {totalRevenue.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span>
           </p>
-          <p className="text-[10px] text-[var(--text-muted)]">إجمالي المدفوعات المستلمة</p>
+          <p className="text-[10px] text-[var(--text-muted)]">إجمالي المدفوعات</p>
         </div>
 
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
           <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
-            <span>المبالغ المتبقية</span>
+            <span>المتبقي</span>
             <AlertCircle className="w-4 h-4 text-rose-500" />
           </div>
-          <p className="text-xl font-black text-rose-500">
+          <p className="text-lg font-black text-rose-500">
             {totalDebt.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span>
           </p>
-          <p className="text-[10px] text-[var(--text-muted)]">ديون تحصيل معلقة</p>
+          <p className="text-[10px] text-[var(--text-muted)]">ديون معلقة</p>
         </div>
 
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
-          <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
-            <span>أنشطة موثقة</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        {/* 1. Un-submitted Alert Card */}
+        <div 
+          onClick={() => {
+            setActiveAdminTab('businesses');
+            setVerificationFilter('not_submitted');
+          }}
+          className={`bg-[var(--bg-card)] border p-3.5 rounded-2xl shadow-sm space-y-1 transition-all duration-300 cursor-pointer hover:scale-[1.02] ${
+            notSubmittedCount > 0 
+              ? 'border-rose-500/50 bg-rose-500/5 hover:border-rose-500' 
+              : 'border-[var(--border-color)]'
+          }`}
+          title="اضغط لعرض الأنشطة غير المرفوعة للتوثيق"
+        >
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className={notSubmittedCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--text-muted)]'}>
+              لم تُرفع للتوثيق
+            </span>
+            <AlertTriangle className={`w-4 h-4 ${notSubmittedCount > 0 ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
           </div>
-          <p className="text-xl font-black text-[var(--text-primary)]">
-            {verifiedCount} <span className="text-xs text-[var(--text-muted)]">نشاط</span>
+          <p className="text-lg font-black text-rose-500">
+            {notSubmittedCount} <span className="text-xs text-[var(--text-secondary)]">نشاط</span>
           </p>
-          <p className="text-[10px] text-emerald-500 font-bold">مبثوثة رسمياً على الخريطة</p>
+          <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">تحتاج رفع واعتماد ⚡</p>
         </div>
 
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm space-y-1 transition-colors duration-300">
-          <div className="flex items-center justify-between text-[var(--text-muted)] text-xs font-bold">
-            <span>جاري التوثيق</span>
+        {/* 2. In-Progress Google Review Card */}
+        <div 
+          onClick={() => {
+            setActiveAdminTab('businesses');
+            setVerificationFilter('in_progress');
+          }}
+          className={`bg-[var(--bg-card)] border p-3.5 rounded-2xl shadow-sm space-y-1 transition-all duration-300 cursor-pointer hover:scale-[1.02] ${
+            inProgressCount > 0 
+              ? 'border-amber-500/50 bg-amber-500/5 hover:border-amber-500' 
+              : 'border-[var(--border-color)]'
+          }`}
+          title="اضغط لعرض الأنشطة قيد مراجعة جوجل"
+        >
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className={inProgressCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-[var(--text-muted)]'}>
+              بانتظار موافقة جوجل
+            </span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
-          <p className="text-xl font-black text-amber-500">
+          <p className="text-lg font-black text-amber-500">
             {inProgressCount} <span className="text-xs text-[var(--text-secondary)]">نشاط</span>
           </p>
-          <p className="text-[10px] text-[var(--text-muted)]">قيد المراجعة الفنية</p>
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">أُرسلت وقيد المراجعة ⏳</p>
+        </div>
+
+        {/* 3. Verified Live Card */}
+        <div 
+          onClick={() => {
+            setActiveAdminTab('businesses');
+            setVerificationFilter('verified');
+          }}
+          className="bg-[var(--bg-card)] border border-emerald-500/40 p-3.5 rounded-2xl shadow-sm space-y-1 transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:border-emerald-500"
+          title="اضغط لعرض الأنشطة الموثقة"
+        >
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-emerald-700 dark:text-emerald-400">أنشطة موثقة</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          </div>
+          <p className="text-lg font-black text-emerald-500">
+            {verifiedCount} <span className="text-xs text-[var(--text-secondary)]">نشاط</span>
+          </p>
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">مبثوثة رسمياً ✅</p>
         </div>
       </div>
+
+      {/* --------------------------------------------------------------------- */}
+      {/* VERIFICATION PIPELINE ALERT BANNERS */}
+      {/* --------------------------------------------------------------------- */}
+      {notSubmittedCount > 0 && (
+        <div className="bg-gradient-to-r from-rose-500/20 via-rose-500/10 to-amber-500/20 border-2 border-rose-500/50 p-4 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/20 flex items-center justify-center shrink-0 border border-rose-500/40">
+              <AlertTriangle className="w-5 h-5 text-rose-500 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-rose-800 dark:text-rose-300 flex items-center gap-2">
+                <span>تنبيه عاجل لمدير التطبيق: أنشطة جديدة لم تُرفع للتوثيق بعد!</span>
+                <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {notSubmittedCount} أنشطة
+                </span>
+              </h4>
+              <p className="text-xs text-[var(--text-muted)] font-bold mt-0.5">
+                قام المناديب بتسجيل هذه الأنشطة ولم يتم رفعها أو توليد Place ID لها على خرائط جوجل حتى الآن.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setActiveAdminTab('businesses');
+              setVerificationFilter('not_submitted');
+            }}
+            className="w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0"
+          >
+            <Zap className="w-4 h-4" />
+            <span>عرض وتوثيق الأنشطة ({notSubmittedCount}) ⚡</span>
+          </button>
+        </div>
+      )}
+
+      {inProgressCount > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border border-amber-500/40 p-3.5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 flex items-center justify-center shrink-0 border border-amber-500/40">
+              <Clock className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                <span>أنشطة تم إرسالها وبانتظار موافقة Google Maps الرسمية</span>
+                <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.2 rounded-full">
+                  {inProgressCount} أنشطة
+                </span>
+              </h4>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                تم رفع البيانات وتوليد الإحداثيات وهي قيد المراجعة الفنية من فريق جوجل.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setActiveAdminTab('businesses');
+              setVerificationFilter('in_progress');
+            }}
+            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+          >
+            <span>متابعة الأنشطة المعلقة ({inProgressCount}) ⏳</span>
+          </button>
+        </div>
+      )}
 
       {/* --------------------------------------------------------------------- */}
       {/* TAB 1: OVERVIEW & AUDIT */}
@@ -732,27 +879,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onChange={(e) => setVerificationFilter(e.target.value)}
               className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-sm"
             >
-              <option value="all">كل حالات التوثيق</option>
-              <option value="verified">تم التوثيق والظهور</option>
-              <option value="in_progress">جاري التوثيق والمراجعة</option>
-              <option value="pending">معلق</option>
+              <option value="all">كل حالات التوثيق ({businesses.length})</option>
+              <option value="not_submitted">🚨 لم تُرسل للتوثيق بعد ({notSubmittedCount})</option>
+              <option value="in_progress">⏳ أُرسلت وبانتظار موافقة جوجل ({inProgressCount})</option>
+              <option value="verified">✅ موثقة ومبثوثة رسمياً ({verifiedCount})</option>
+              <option value="rejected">❌ مرفوضة / معلقة</option>
             </select>
           </div>
 
           {/* Table displaying essential data with full pop-up view */}
           <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
-            <table className="w-full text-xs text-right border-collapse min-w-[720px]">
+            <table className="w-full text-xs text-right border-collapse min-w-[760px]">
               <thead>
                 <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold">
                   <th className="p-3">اسم النشاط والتصنيف</th>
                   <th className="p-3">الموقع الجغرافي والمندوب</th>
                   <th className="p-3">تاريخ ووقت الإضافة</th>
-                  <th className="p-3">حالة التوثيق</th>
-                  <th className="p-3 text-center">التفاصيل والتحكم</th>
+                  <th className="p-3">حالة التوثيق وGoogle Maps</th>
+                  <th className="p-3 text-center">الإجراءات والتحكم</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-color)]">
                 {filteredBusinesses.map((biz) => {
+                  const isLiveVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                  const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isLiveVerified;
+                  const isNotSubmitted = !isLiveVerified && !isInGoogleReview && biz.verificationStatus !== 'rejected';
+
                   return (
                     <tr key={biz.id} className="hover:bg-amber-500/5 transition-colors">
                       <td className="p-3">
@@ -774,32 +926,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </td>
 
                       <td className="p-3">
-                        <span
-                          className={`text-[10px] font-black px-2.5 py-1 rounded-full border shadow-sm ${
-                            biz.verificationStatus === 'verified'
-                              ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40'
-                              : biz.verificationStatus === 'in_progress'
-                              ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40'
-                              : 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/40'
-                          }`}
-                        >
-                          {biz.verificationStatus === 'verified'
-                            ? 'مفعل ومبثوث'
-                            : biz.verificationStatus === 'in_progress'
-                            ? 'جاري التوثيق'
-                            : 'معلق'}
-                        </span>
+                        {isLiveVerified ? (
+                          <span className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            <span>موثق ومبثوث رسمياً ✅</span>
+                          </span>
+                        ) : isInGoogleReview ? (
+                          <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-500" />
+                            <span>أُرسل وبانتظار موافقة جوجل ⏳</span>
+                          </span>
+                        ) : (
+                          <span className="bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/40 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm inline-flex items-center gap-1 animate-pulse">
+                            <AlertTriangle className="w-3 h-3 text-rose-500" />
+                            <span>لم يُرفع للتوثيق بعد 🚨</span>
+                          </span>
+                        )}
                       </td>
 
                       <td className="p-3 text-center">
-                        <button
-                          onClick={() => setEditingBusiness(biz)}
-                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-4 py-2 rounded-xl transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
-                          title="عرض كل البيانات التي أدخلها المندوب والتعديل عليها"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>عرض وتفاصيل النشاط</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Quick Google Sync Button */}
+                          {!isLiveVerified && (
+                            <button
+                              type="button"
+                              onClick={() => setSyncModalBiz(biz)}
+                              className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] px-2.5 py-1.5 rounded-xl shadow transition-all cursor-pointer flex items-center gap-1"
+                              title="رفع وتوثيق النشاط مباشرة إلى Google Maps"
+                            >
+                              <Zap className="w-3 h-3" />
+                              <span>رفع لجوجل</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => setEditingBusiness(biz)}
+                            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
+                            title="عرض كل البيانات التي أدخلها المندوب والتعديل عليها"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>التفاصيل</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1662,6 +1830,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           docType={selectedAdminDoc.type}
           rep={selectedAdminDoc.rep}
           onClose={() => setSelectedAdminDoc(null)}
+        />
+      )}
+
+      {/* MODAL 6: GOOGLE MAPS SYNC MODAL */}
+      {syncModalBiz && (
+        <GoogleMapsSyncModal
+          business={syncModalBiz}
+          isOpen={true}
+          onClose={() => setSyncModalBiz(null)}
+          onUpdateBusiness={(updated) => {
+            if (onUpdateBusiness) onUpdateBusiness(updated);
+            setSyncModalBiz(null);
+          }}
         />
       )}
     </div>
