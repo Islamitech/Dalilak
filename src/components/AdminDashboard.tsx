@@ -3,6 +3,7 @@ import { DocViewerModal } from './DocViewerModal';
 import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus, PaymentStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
 import { calculateTotalRepCommission } from '../utils/commission';
+import { formatActivityDateTime, sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { UserAvatar } from './UserAvatar';
 import { BusinessEditModal } from './BusinessEditModal';
 import {
@@ -147,29 +148,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const verifiedCount = businesses.filter((b) => b.verificationStatus === 'verified').length;
   const inProgressCount = businesses.filter((b) => b.verificationStatus === 'in_progress').length;
 
-  // Filtered Businesses
+  // Filtered Businesses (Sorted newest first)
   const filteredBusinesses = useMemo(
     () =>
-      businesses.filter((b) => {
-        if (
-          bizSearchQuery &&
-          !b.nameAr.includes(bizSearchQuery) &&
-          !b.ownerName.includes(bizSearchQuery) &&
-          !b.ownerPhone.includes(bizSearchQuery)
-        ) {
-          return false;
-        }
-        if (governorateFilter !== 'all' && !b.governorate.includes(governorateFilter)) {
-          return false;
-        }
-        if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
-          return false;
-        }
-        if (verificationFilter !== 'all' && b.verificationStatus !== verificationFilter) {
-          return false;
-        }
-        return true;
-      }),
+      sortBusinessesNewestFirst(
+        businesses.filter((b) => {
+          if (
+            bizSearchQuery &&
+            !b.nameAr.includes(bizSearchQuery) &&
+            !b.ownerName.includes(bizSearchQuery) &&
+            !b.ownerPhone.includes(bizSearchQuery)
+          ) {
+            return false;
+          }
+          if (governorateFilter !== 'all' && !b.governorate.includes(governorateFilter)) {
+            return false;
+          }
+          if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
+            return false;
+          }
+          if (verificationFilter !== 'all' && b.verificationStatus !== verificationFilter) {
+            return false;
+          }
+          return true;
+        })
+      ),
     [businesses, bizSearchQuery, governorateFilter, paymentFilter, verificationFilter]
   );
 
@@ -528,15 +531,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </h3>
 
             <div className="space-y-2">
-              {businesses.slice(0, 5).map((biz) => (
+              {sortBusinessesNewestFirst(businesses).slice(0, 5).map((biz) => (
                 <div
                   key={biz.id}
                   className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex items-center justify-between text-xs transition-colors duration-300 shadow-sm hover:border-amber-500/30"
                 >
                   <div>
                     <h4 className="font-bold text-[var(--text-primary)]">{biz.nameAr}</h4>
-                    <p className="text-[10px] text-[var(--text-muted)]">
-                      {biz.governorate} • المندوب: {biz.repName}
+                    <p className="text-[10px] text-[var(--text-muted)] flex items-center gap-1.5 mt-0.5">
+                      <span>{biz.governorate} • المندوب: {biz.repName}</span>
+                      <span>•</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-sans font-bold flex items-center gap-0.5">
+                        <Clock className="w-2.5 h-2.5" />
+                        {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}
+                      </span>
                     </p>
                   </div>
 
@@ -733,11 +741,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Table displaying essential data with full pop-up view */}
           <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
-            <table className="w-full text-xs text-right border-collapse min-w-[650px]">
+            <table className="w-full text-xs text-right border-collapse min-w-[720px]">
               <thead>
                 <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold">
                   <th className="p-3">اسم النشاط والتصنيف</th>
                   <th className="p-3">الموقع الجغرافي والمندوب</th>
+                  <th className="p-3">تاريخ ووقت الإضافة</th>
                   <th className="p-3">حالة التوثيق</th>
                   <th className="p-3 text-center">التفاصيل والتحكم</th>
                 </tr>
@@ -755,6 +764,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <td className="p-3">
                         <p className="font-bold text-[var(--text-primary)]">{biz.governorate} ({biz.city})</p>
                         <p className="text-[11px] text-[var(--text-secondary)] font-bold">المندوب: {biz.repName}</p>
+                      </td>
+
+                      <td className="p-3">
+                        <div className="flex items-center gap-1.5 text-xs text-[var(--text-primary)] font-bold font-sans">
+                          <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span>{formatActivityDateTime(biz.createdDate || biz.invoiceDate)}</span>
+                        </div>
                       </td>
 
                       <td className="p-3">

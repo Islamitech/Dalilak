@@ -168,7 +168,7 @@ app.post('/api/businesses', (req, res) => {
       newBiz.invoiceDate = new Date().toISOString().split('T')[0];
     }
     if (!newBiz.createdDate) {
-      newBiz.createdDate = new Date().toISOString().split('T')[0];
+      newBiz.createdDate = new Date().toISOString();
     }
 
     businesses.unshift(newBiz);

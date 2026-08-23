@@ -250,7 +250,7 @@ export const INITIAL_BUSINESSES: Business[] = [
     invoiceNumber: 'INV-2026-001',
     invoiceDate: '2026-08-01',
     notes: 'تم توثيق النشاط وبثه على الخريطة بنجاح.',
-    createdDate: '2026-08-01'
+    createdDate: '2026-08-01T10:30:00.000Z'
   },
   {
     id: 'biz_102',
@@ -284,7 +284,7 @@ export const INITIAL_BUSINESSES: Business[] = [
     invoiceNumber: 'INV-2026-002',
     invoiceDate: '2026-08-05',
     notes: 'تم استلام 400 ج.م والمتبقي 350 ج.م عند ظهور النشاط.',
-    createdDate: '2026-08-05'
+    createdDate: '2026-08-05T14:10:00.000Z'
   },
   {
     id: 'biz_103',
@@ -316,7 +316,7 @@ export const INITIAL_BUSINESSES: Business[] = [
     invoiceNumber: 'INV-2026-003',
     invoiceDate: '2026-08-08',
     notes: 'لم يتم الدفع نهائياً، بانتظار تحويل النقدية عبر فودافون كاش.',
-    createdDate: '2026-08-08'
+    createdDate: '2026-08-08T18:40:00.000Z'
   },
   {
     id: 'biz_104',
@@ -349,6 +349,6 @@ export const INITIAL_BUSINESSES: Business[] = [
     invoiceNumber: 'INV-2026-004',
     invoiceDate: '2026-08-09',
     notes: 'تم الدفع والتوثيق.',
-    createdDate: '2026-08-09'
+    createdDate: '2026-08-09T20:15:00.000Z'
   }
 ];

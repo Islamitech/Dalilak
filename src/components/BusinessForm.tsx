@@ -265,7 +265,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       verificationStatus: 'in_progress', // Default under review
       invoiceNumber: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
       invoiceDate: new Date().toISOString().split('T')[0],
-      createdDate: new Date().toISOString().split('T')[0],
+      createdDate: new Date().toISOString(),
       notes: notes || undefined,
     };
 

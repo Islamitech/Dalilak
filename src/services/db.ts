@@ -195,7 +195,7 @@ function mapDbToBusiness(item: any): Business {
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: item.notes,
-    createdDate: item.created_at || item.created_date || item.createdDate || new Date().toISOString().split('T')[0],
+    createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
   };
 }
 
@@ -233,6 +233,7 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   if (biz.verificationStatus !== undefined) dbRecord.verification_status = biz.verificationStatus;
   if (biz.invoiceNumber !== undefined) dbRecord.invoice_number = biz.invoiceNumber;
   if (biz.invoiceDate !== undefined) dbRecord.invoice_date = biz.invoiceDate;
+  if (biz.createdDate !== undefined) dbRecord.created_at = biz.createdDate;
   if (biz.notes !== undefined) dbRecord.notes = biz.notes;
 
   return dbRecord;

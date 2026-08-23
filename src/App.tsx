@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole } from './types';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './data/mockData';
 import { calculateTotalRepCommission } from './utils/commission';
+import { formatActivityDateTime, sortBusinessesNewestFirst } from './utils/dateFormatters';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { InteractiveMap } from './components/InteractiveMap';
@@ -816,31 +817,35 @@ export default function App() {
       };
   const isRepUser = user?.role !== 'admin';
 
-  // Strict Scoping: If logged in as Representative, only display businesses registered by this rep!
+  // Strict Scoping & Newest-First Sorting:
   const scopedBusinesses = useMemo(
-    () =>
-      isRepUser
+    () => {
+      const filtered = isRepUser
         ? businesses.filter((b) => b.repId === currentRep.id || b.repName === currentRep.name)
-        : businesses,
+        : businesses;
+      return sortBusinessesNewestFirst(filtered);
+    },
     [isRepUser, businesses, currentRep.id, currentRep.name]
   );
 
   const filteredHomeBusinesses = useMemo(
     () =>
-      scopedBusinesses.filter((b) => {
-        if (
-          homeSearchQuery &&
-          !b.nameAr.includes(homeSearchQuery) &&
-          !b.city.includes(homeSearchQuery) &&
-          !b.governorate.includes(homeSearchQuery)
-        ) {
-          return false;
-        }
-        if (homeStatusFilter !== 'all' && b.paymentStatus !== homeStatusFilter) {
-          return false;
-        }
-        return true;
-      }),
+      sortBusinessesNewestFirst(
+        scopedBusinesses.filter((b) => {
+          if (
+            homeSearchQuery &&
+            !b.nameAr.includes(homeSearchQuery) &&
+            !b.city.includes(homeSearchQuery) &&
+            !b.governorate.includes(homeSearchQuery)
+          ) {
+            return false;
+          }
+          if (homeStatusFilter !== 'all' && b.paymentStatus !== homeStatusFilter) {
+            return false;
+          }
+          return true;
+        })
+      ),
     [scopedBusinesses, homeSearchQuery, homeStatusFilter]
   );
 
@@ -1230,7 +1235,23 @@ export default function App() {
                           </span>
                         </div>
 
-                        {/* Simplified Paid summary instead of full owner/description details */}
+                        {/* Addition Time & Representative info */}
+                        <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border-color)]">
+                          <span className="flex items-center gap-1.5 font-bold">
+                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span>وقت الإضافة:</span>
+                            <span className="text-[var(--text-primary)] font-extrabold font-sans dir-ltr inline-block">
+                              {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}
+                            </span>
+                          </span>
+                          {biz.repName && (
+                            <span className="text-[10px] text-[var(--text-secondary)] font-bold">
+                              المندوب: {biz.repName}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Simplified Paid summary */}
                         <div className="bg-[var(--bg-card)] px-3 py-2 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-xs mt-1">
                           <span className="text-[var(--text-secondary)] font-bold">الماليات والمدفوع:</span>
                           <span className="font-bold">
@@ -1312,7 +1333,13 @@ export default function App() {
                     return (
                       <div key={biz.id} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm hover:border-amber-500/30 transition-all hover-card">
                         <div>
-                          <span className="text-amber-700 dark:text-amber-400 font-mono font-extrabold">{biz.invoiceNumber}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-amber-700 dark:text-amber-400 font-mono font-extrabold">{biz.invoiceNumber}</span>
+                            <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-sans">
+                              <Clock className="w-3 h-3 text-amber-500" />
+                              {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}
+                            </span>
+                          </div>
                           <h4 className="font-extrabold text-sm text-[var(--text-primary)] mt-0.5">{biz.nameAr}</h4>
                           <p className="text-[var(--text-secondary)] font-bold">صاحب النشاط: {biz.ownerName} ({biz.ownerPhone})</p>
                         </div>

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
+import { formatActivityDateTime } from '../utils/dateFormatters';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -516,12 +517,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-extrabold mb-1">تاريخ التسجيل الميداني</label>
+              <label className="block font-extrabold mb-1">وقت وتاريخ التسجيل الميداني</label>
               <input
                 type="text"
                 readOnly
-                value={formData.createdDate || formData.invoiceDate}
-                className="w-full bg-[var(--input-bg)] opacity-70 border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5"
+                value={formatActivityDateTime(formData.createdDate || formData.invoiceDate)}
+                className="w-full bg-[var(--input-bg)] opacity-70 border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 font-sans"
               />
             </div>
           </div>
