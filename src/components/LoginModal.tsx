@@ -644,10 +644,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 شروط الاستخدام
               </button>
             )}
-            <span>•</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">فودافون كاش: 01143888355</span>
           </div>
-          <p>منصة دليلك الرقمية © 2026 — التوثيق الرقمي الكامل للمشاريع التجارية - نتبع سياسات جوجل</p>
+          <p>منصة دليلك الرقمية © 2026 — المنظومة المتكاملة لرقمنة وتنمية الأعمال والأنشطة التجارية في مصر</p>
         </div>
       </div>
     );

@@ -3,15 +3,13 @@ import { Logo } from './Logo';
 import { 
   FileText, 
   ShieldCheck, 
-  CreditCard, 
-  Smartphone, 
-  AlertCircle, 
-  CheckCircle2, 
   Lock, 
   RefreshCw, 
   Scale,
   Building2,
-  ChevronLeft
+  Cpu,
+  ChevronLeft,
+  Briefcase
 } from 'lucide-react';
 
 interface TermsModalProps {
@@ -41,12 +39,12 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
             شروط وأحكام الاستخدام - منصة دليلك 📜
           </h2>
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] font-bold max-w-lg mx-auto leading-relaxed">
-            يرجى قراءة شروط وأحكام الخدمة بعناية قبل استخدام المنصة أو تسجيل الأنشطة التجارية وسداد الرسوم.
+            يرجى قراءة شروط وأحكام الخدمة والالتزامات العامة قبل استخدام المنصة أو الاستفادة من خدمات رقمنة وتوثيق الأعمال.
           </p>
         </div>
 
         {/* Terms Sections Scrollable Body */}
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-xs sm:text-xs">
+        <div className="space-y-3.5 max-h-[60vh] overflow-y-auto pr-1 text-xs sm:text-xs">
           {/* Section 1: Acceptance */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
             <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
@@ -54,81 +52,73 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
               <h3>1. قبول الشروط والأحكام العامة</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              باستخدامك لمنصة "دليلك" لخدمات توثيق خرائط جوجل أو تسجيلك لأي نشاط تجاري من خلال مندوبينا أو عبر موقعنا، فإنك تقر وتوافق صراحة على الالتزام الكامل بكافة الشروط والبنود المنصوص عليها في هذه الوثيقة وأي تحديثات تطرأ عليها مستقبلاً.
+              باستخدامك لمنصة "دليلك" لخدمات رقمنة وتوثيق الأعمال والأنشطة التجارية، فإنك تقر وتوافق صراحة على الالتزام الكامل بكافة الشروط والبنود المنصوص عليها في هذه الاتفاقية والسياسات المنظمة لتقديم الخدمات.
             </p>
           </div>
 
-          {/* Section 2: Payment Policy - Emphasizing Vodafone Cash */}
-          <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/30 space-y-2.5">
-            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-sm">
-              <Smartphone className="w-4 h-4" />
-              <h3>2. سياسة الدفع والتحصيل المالي (فودافون كاش)</h3>
-            </div>
-            <ul className="space-y-2 text-[var(--text-secondary)] list-disc list-inside font-medium leading-relaxed">
-              <li>
-                <strong className="text-[var(--text-primary)]">وسيلة الدفع الوحيدة المعتمدة حالياً:</strong> يتم سداد وتحصيل كافة رسوم الباقات والاشتراكات حصرياً عبر محفظة فودافون كاش الرسمية التابعة للشركة على الرقم: <span className="text-emerald-600 dark:text-emerald-400 font-mono font-black dir-ltr inline-block px-1.5 py-0.5 bg-[var(--input-bg)] rounded">01143888355</span>.
-              </li>
-              <li>
-                <strong className="text-[var(--text-primary)]">طرق الدفع الأخرى:</strong> نود التوضيح أن بوابات الدفع الإلكتروني الإضافية مثل (شبكة فوري Fawry، منظومة إنستاباي InstaPay، بطاقات فيزا / ميزة / ماستركارد البنكية) هي <em>قيد التطوير والربط البرمجي والاعتماد حالياً</em> وستتاح فور اكتمالها رسمياً.
-              </li>
-              <li>
-                <strong className="text-[var(--text-primary)]">إثبات التحويل:</strong> يلتزم العميل أو المندوب بالاحتفاظ برسالة التأكيد النصية أو كود العملية وإدخال القيمة المسددة لإصدار الفاتورة الإلكترونية الفورية.
-              </li>
-            </ul>
-          </div>
-
-          {/* Section 3: Data Accuracy & Responsibility */}
+          {/* Section 2: Data Accuracy & Legal Responsibility */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
             <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
               <Building2 className="w-4 h-4" />
-              <h3>3. دقة البيانات التجارية والمسؤولية القانونية</h3>
+              <h3>2. دقة البيانات التجارية والمسؤولية القانونية</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              يقر صاحب النشاط التجاري بصحة ودقة كافة البيانات المقدمة (الاسم التجاري، العنوان بالتفصيل، أرقام الهواتف، صور واجهة المحل، وساعات العمل). وتخلي شركة "دليلك" مسؤوليتها عن أي بيانات مضللة أو غير حقيقية يتم تقديمها من قبل العميل.
+              يقر صاحب النشاط التجاري بصحة ودقة كافة البيانات والمستندات المقدمة (الاسم التجاري، العنوان بالتفصيل، أرقام الهواتف، الصور، ونوع النشاط). وتخلي المنصة مسؤوليتها عن أي بيانات غير دقيقة يقدمها صاحب العمل أو مفوضه.
             </p>
           </div>
 
-          {/* Section 4: Google Maps Policies & Verification */}
+          {/* Section 3: Intellectual Property & Trademark Protection */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
             <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
               <ShieldCheck className="w-4 h-4" />
-              <h3>4. إجراءات التوثيق والتوافق مع معايير Google</h3>
+              <h3>3. الملكية الفكرية وحماية الهوية التجارية</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              تتم عمليات توثيق وتثبيت الأنشطة وفقاً للإرشادات الفنية وسياسات الخصوصية والجودة المعتمدة من Google. قد تستغرق فترة المراجعة والظهور الكامل على الخرائط فترة تتراوح بين 24 إلى 72 ساعة عمل بعد التحقق الميداني واستيفاء المتطلبات.
+              كافة المحتويات والأنظمة والعلامات الخاصة بمنصة "دليلك" محمية بموجب قوانين الملكية الفكرية. كما تلتزم المنصة بالمحافظة على الهوية التجارية للعملاء وحمايتها من أي تعديات أو انتحال رقمي وفق النظم المعمول بها.
             </p>
           </div>
 
-          {/* Section 5: Electronic Invoices */}
+          {/* Section 4: Verification and Google Policies */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
             <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
-              <FileText className="w-4 h-4" />
+              <Briefcase className="w-4 h-4" />
+              <h3>4. إجراءات التوثيق والامتثال للمعايير الرقمية</h3>
+            </div>
+            <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
+              تخضع عمليات توثيق وتثبيت الأنشطة وتطويرها للمعايير الفنية والسياسات الصادرة من المنصات الرقمية العالمية ومحركات البحث وGoogle Maps لضمان استمرارية النشاط وظهوره الموثوق.
+            </p>
+          </div>
+
+          {/* Section 5: Electronic Invoices & Tech Delivery */}
+          <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
+            <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
+              <Cpu className="w-4 h-4" />
               <h3>5. الفواتير الإلكترونية المعتمدة ورموز QR</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              تصدر المنصة فاتورة إلكترونية معتمدة برقم موحد وتاريخ إصدار ورمز استجابة سريعة (QR Code) قابل للتحقق عبر الإنترنت، ويتم إرسال نسخة الفاتورة فورياً إلى رقم واتساب المالك المسجل في النظام.
+              تصدر المنصة فاتورة إلكترونية معتمدة برقم تسلسلي موحد ورمز استجابة سريعة (QR Code) موثق لكل عملية تسجيل ونشاط يتم إنجازه وربطه في المنظومة.
             </p>
           </div>
 
-          {/* Section 6: Privacy & Data Protection */}
+          {/* Section 6: Privacy & Confidentiality */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
             <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
               <Lock className="w-4 h-4" />
-              <h3>6. سياسة الخصوصية وحماية البيانات</h3>
+              <h3>6. سرية البيانات والخصوصية</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              تلتزم منصة "دليلك" بالحفاظ على سرية وخصوصية البيانات الحساسة لأصحاب الأنشطة والمناديب، وعدم بيعها أو مشاركتها مع أي جهات خارجية غير مفوضة، وتستخدم البيانات فقط لأغراض التوثيق والدعم الفني وإصدار الفواتير.
+              تتعهد المنصة بالمحافظة على سرية وخصوصية البيانات الحساسة لأصحاب الأنشطة والشركات المسجلة وعدم استخدامها إلا للأغراض الخدمية والتشغيلية المعتمدة.
             </p>
           </div>
 
-          {/* Section 7: Cancellation & Refund */}
+          {/* Section 7: Modification & Amendments */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
             <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
               <RefreshCw className="w-4 h-4" />
-              <h3>7. سياسة الإلغاء والتعديل والاسترجاع</h3>
+              <h3>7. التعديلات وتحديثات الشروط</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              يحق للعميل طلب تعديل بيانات النشاط في أي وقت قبل استكمال إجراءات النشر الميداني النهائي. في حال تعذر التوثيق لظروف تقنية ترجع للمنصة، يتم رد المبالغ المحصلة لنفس محفظة فودافون كاش بعد مراجعة الإدارة المختصة.
+              تحتفظ إدارة المنصة بالحق في تحديث وتطوير بنود هذه الاتفاقية لتواكب التطورات التكنولوجية والتنظيمية، وتصبح التحديثات سارية فور نشرها على المنصة.
             </p>
           </div>
         </div>
@@ -144,7 +134,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
               }}
               className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
             >
-              <span>التعرف أكثر على منصة دليلك (من نحن)</span>
+              <span>التعرف على منصة دليلك وخدماتنا (من نحن)</span>
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
           ) : <div />}

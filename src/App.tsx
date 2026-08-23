@@ -1392,7 +1392,7 @@ export default function App() {
             <div className="space-y-2.5 text-right">
               <Logo size="sm" />
               <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-bold max-w-sm">
-                المنصة الرائدة في مصر لتوثيق وتثبيت الأنشطة التجارية والشركات على خرائط Google Maps باحترافية، وإصدار الفواتير الإلكترونية المعتمدة في جميع المحافظات.
+                المنصة الرائدة في مصر لرقمنة الأنشطة التجارية والشركات: توثيقات الخرائط، التسويق الرقمي، الحلول التكنولوجية، الحماية القانونية والفكرية، واستشارات تنمية ونمو الأعمال.
               </p>
             </div>
 
@@ -1444,26 +1444,25 @@ export default function App() {
               </div>
             </div>
 
-            {/* Column 3: Payment Method Badge */}
+            {/* Column 3: Ecosystem Highlights */}
             <div className="space-y-2 text-right bg-[var(--bg-card)] p-3.5 rounded-2xl border border-[var(--border-color)]">
               <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-emerald-500 shrink-0" />
-                <h4 className="font-black text-xs text-[var(--text-primary)]">طريقة السداد المعتمدة:</h4>
+                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                <h4 className="font-black text-xs text-[var(--text-primary)]">خدمات المنظومة:</h4>
               </div>
-              <div className="flex items-center justify-between bg-[var(--input-bg)] p-2 rounded-xl border border-emerald-500/30">
-                <span className="font-bold text-[11px] text-emerald-600 dark:text-emerald-400">فودافون كاش:</span>
-                <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs dir-ltr">01143888355</span>
-              </div>
-              <p className="text-[10px] text-[var(--text-muted)] leading-tight">
-                * باقي طرق الدفع الإلكتروني (فوري، إنستاباي، فيزا) قيد التطوير والاعتماد.
-              </p>
+              <ul className="space-y-1 text-[11px] text-[var(--text-secondary)] font-bold">
+                <li>• توثيق وتثبيت إحداثيات Google Maps</li>
+                <li>• تسويق رقمي وإدارة الهوية التجارية</li>
+                <li>• خدمات قانونية وحماية الملكية الفكرية</li>
+                <li>• استشارات تنمية ونمو الأعمال والمبيعات</li>
+              </ul>
             </div>
           </div>
 
           <div className="pt-4 border-t border-[var(--border-color)]/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
-            <p>جميع الحقوق محفوظة © 2026 منصة دليلك لخدمات خرائط جوجل والتسويق الرقمي في مصر</p>
+            <p>جميع الحقوق محفوظة © 2026 منصة دليلك لرقمنة وتنمية الأعمال والأنشطة التجارية في مصر</p>
             <div className="flex items-center gap-2 font-bold">
-              <span>نتبع سياسات ومعايير Google Maps</span>
+              <span>نتبع معايير الجودة العالمية</span>
               <span>•</span>
               <span className="text-emerald-600 dark:text-emerald-400">نظام محمي ومعتمد</span>
             </div>

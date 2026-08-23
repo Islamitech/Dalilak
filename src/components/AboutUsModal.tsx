@@ -8,14 +8,13 @@ import {
   Compass, 
   Award, 
   CheckCircle2, 
-  Phone, 
-  Smartphone, 
-  Users, 
   Building2, 
-  HelpCircle,
-  Clock,
+  TrendingUp,
+  Cpu,
+  Scale,
+  Megaphone,
+  Briefcase,
   Layers,
-  FileCheck,
   ChevronLeft
 } from 'lucide-react';
 
@@ -27,7 +26,7 @@ interface AboutUsModalProps {
 export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms }) => {
   return (
     <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay">
-      <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
+      <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -43,10 +42,10 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
             <Logo size="lg" />
           </div>
           <h2 className="font-black text-xl sm:text-2xl text-[var(--text-primary)]">
-            من نحن - شركة دليلك لخرائط جوجل والتسويق الرقمي 🗺️
+            من نحن - منصة دليلك الشاملة لرقمنة وتنمية الأعمال 🚀
           </h2>
-          <p className="text-xs sm:text-sm text-[var(--text-secondary)] font-bold max-w-lg mx-auto leading-relaxed">
-            المنظومة الرقمية الرائدة في جمهورية مصر العربية لتوثيق وتثبيت الأنشطة التجارية والمحلات والشركات على خرائط Google Maps ومحركات البحث العالمية.
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] font-bold max-w-2xl mx-auto leading-relaxed">
+            منظومة متكاملة رائدة في مصر لرقمنة الأنشطة التجارية والشركات؛ نقدم باقة شاملة من التوثيقات الرسمية، التسويق الرقمي، الحلول التكنولوجية، الحماية القانونية والفكرية، واستشارات تنمية ونمو الأعمال.
           </p>
         </div>
 
@@ -58,7 +57,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
             </div>
             <h3 className="font-black text-sm text-[var(--text-primary)]">رؤيتنا (Our Vision)</h3>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              أن نكون الجسر الرقمي الأول لكل صاحب عمل ونشاط تجاري في مصر للوصول إلى ملايين العملاء عبر الخرائط الذكية والبحث الجغرافي بأعلى دقة واحترافية.
+              أن نكون الشريك الاستراتيجي والمنظومة الأولى في مصر لتمكين كافة الأنشطة التجارية والشركات من التحول الرقمي الكامل، وحماية حقوقها، ومضاعفة أرباحها وانتشارها في السوق.
             </p>
           </div>
 
@@ -68,70 +67,89 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
             </div>
             <h3 className="font-black text-sm text-[var(--text-primary)]">رسالتنا (Our Mission)</h3>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              تقديم خدمات توثيق وتثبيت ميدانية معتمدة مطابقة لسياسات ومعايير Google، مع إصدار فواتير إلكترونية فورية ومتابعة مستمرة لضمان تصدر نشاطك محلياً.
+              توفير بيئة رقمية وتكنولوجية وقانونية محكمة لكل صاحب عمل تضمن له الظهور الجغرافي الدقيق، والحماية القانونية لعلامته، وخطط نمو وتطوير مدروسة تواكب أحدث التقنيات.
             </p>
           </div>
         </div>
 
-        {/* What We Offer / Core Features */}
-        <div className="space-y-3">
-          <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>ما يميز منظومة دليلك:</span>
-          </h3>
+        {/* Core Pillars / Services of Dalelak */}
+        <div className="space-y-3.5">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>محاور وخدمات منظومة دليلك المتكاملة:</span>
+            </h3>
+            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+              حلول 360° متكاملة
+            </span>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-            <div className="flex items-start gap-2.5 bg-[var(--input-bg)] p-3 rounded-xl border border-[var(--border-color)]">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-[var(--text-primary)] block">توثيق رسمي وإحداثيات GPS دقيقة:</span>
-                <span className="text-[11px] text-[var(--text-muted)]">تثبيت الموقع الجغرافي وتصنيف النشاط وساعات العمل وأرقام التواصل.</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            {/* Pillar 1: Documentation & Maps */}
+            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">1. التوثيقات الرسمية والتواجد الجغرافي</h4>
               </div>
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                توثيق وتثبيت الأنشطة على خرائط Google Maps والمنصات الجغرافية العالمية بإحداثيات GPS الدقيقة، لضمان وصول العملاء إلى موقعك بسهولة وموثوقية تامة.
+              </p>
             </div>
 
-            <div className="flex items-start gap-2.5 bg-[var(--input-bg)] p-3 rounded-xl border border-[var(--border-color)]">
-              <Users className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-[var(--text-primary)] block">شبكة مناديب ميدانيين معتمدين:</span>
-                <span className="text-[11px] text-[var(--text-muted)]">تغطية شاملة لجميع محافظات مصر مع زيارات ميدانية للتحقق وتصوير الموقع.</span>
+            {/* Pillar 2: Digital Marketing */}
+            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Megaphone className="w-4 h-4" />
+                </div>
+                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">2. التسويق الرقمي وإدارة الهوية</h4>
               </div>
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                تحسين محركات البحث المحلية (Local SEO)، تصدر الكلمات المفتاحية في منطقتك، وبناء حضور رقمي قوي يجلب المزيد من الاتصالات والزيارات الميدانية.
+              </p>
             </div>
 
-            <div className="flex items-start gap-2.5 bg-[var(--input-bg)] p-3 rounded-xl border border-[var(--border-color)]">
-              <FileCheck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-[var(--text-primary)] block">فواتير إلكترونية معتمدة:</span>
-                <span className="text-[11px] text-[var(--text-muted)]">إصدار فاتورة إلكترونية مع رمز QR وإرسالها فورياً عبر الواتساب لصاحب العمل.</span>
+            {/* Pillar 3: Technology Solutions */}
+            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <Cpu className="w-4 h-4" />
+                </div>
+                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">3. الخدمات التكنولوجية والبرمجية</h4>
               </div>
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                إصدار الفواتير الإلكترونية المعتمدة مع رموز QR الذكية، الربط البرمجي السحابي، وإدارة بيانات الأعمال عبر لوحات تحكم متطورة ومحمية.
+              </p>
             </div>
 
-            <div className="flex items-start gap-2.5 bg-[var(--input-bg)] p-3 rounded-xl border border-[var(--border-color)]">
-              <ShieldCheck className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-[var(--text-primary)] block">توافق كامل مع سياسات Google:</span>
-                <span className="text-[11px] text-[var(--text-muted)]">نلتزم بالمعايير الفنية والسياسات الرسمية لضمان ثبات وظهور النشاط واستمراريته.</span>
+            {/* Pillar 4: Legal & IP Protection */}
+            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <Scale className="w-4 h-4" />
+                </div>
+                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">4. الخدمات القانونية والحماية الفكرية</h4>
               </div>
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                حماية الهوية والعلامات التجارية والأسماء المسجلة من الانتحال أو التعدي الرقمي، مع استشارات الامتثال للمعايير والسياسات الرسمية المعمول بها.
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Payment & Contact Box */}
-        <div className="bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/15 border border-emerald-500/30 rounded-2xl p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          {/* Pillar 5: Business Growth & Consulting Full Width */}
+          <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-yellow-500/15 p-4 rounded-2xl border border-amber-500/30 space-y-1.5 text-xs">
             <div className="flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <div>
-                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">طريقة السداد والتحصيل المعتمدة:</h4>
-                <p className="text-[11px] text-[var(--text-secondary)]">التحويل الرسمي عبر محفظة فودافون كاش</p>
+              <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                <TrendingUp className="w-4 h-4" />
               </div>
+              <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">5. استشارات نمو وتنمية الأنشطة التجارية (Business Growth & Consulting)</h4>
             </div>
-            <div className="bg-emerald-600 text-white font-mono font-black text-sm px-3.5 py-1 rounded-xl shadow dir-ltr">
-              01143888355
-            </div>
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-medium">
+              تقديم استشارات إدارية وتسويقية متخصصة لمساعدة الأنشطة على التوسع الجغرافي، رفع العائد على الاستثمار، وتحليل الفرص السوقية والمنافسين لتحقيق نمو مستدام ومتسارع.
+            </p>
           </div>
-          <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-            * تنويه: محفظة فودافون كاش على الرقم أعلاه هي وسيلة الدفع المعتمدة حالياً، وباقي الوسائل الإلكترونية (فوري، إنستاباي، البطاقات البنكية) قيد التطوير والتفعيل قريباً.
-          </p>
         </div>
 
         {/* Bottom Actions */}
