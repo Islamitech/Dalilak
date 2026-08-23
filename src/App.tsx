@@ -223,6 +223,92 @@ export default function App() {
     setSystemNotifications([]);
   };
 
+  // Dynamically merge system notifications with all active business and account activities
+  const allNotifications = useMemo(() => {
+    const list: SystemNotification[] = [...systemNotifications];
+
+    // Auto-generate notifications for all businesses in the system
+    businesses.forEach((biz) => {
+      const existsAdmin = list.some(
+        (n) => n.category === 'business' && n.message.includes(biz.nameAr) && n.targetRole === 'admin'
+      );
+      if (!existsAdmin) {
+        list.push({
+          id: `biz_notif_admin_${biz.id}`,
+          title: `نشاط تجاري جديد: ${biz.nameAr} 🏪`,
+          message: `تم تسجيل نشاط تجاري جديد "${biz.nameAr}" بواسطة المندوب "${biz.repName}" في ${biz.governorate} (${biz.category}).`,
+          timestamp: biz.createdDate ? new Date(biz.createdDate).toISOString() : new Date().toISOString(),
+          type: 'info',
+          category: 'business',
+          targetRole: 'admin',
+          read: false,
+          linkTab: 'admin',
+        });
+      }
+
+      const existsRep = list.some(
+        (n) => n.category === 'business' && n.message.includes(biz.nameAr) && n.targetUserId === biz.repId
+      );
+      if (!existsRep) {
+        list.push({
+          id: `biz_notif_rep_${biz.id}`,
+          title: `تم تسجيل نشاطك: ${biz.nameAr} 📌`,
+          message: `نشاط "${biz.nameAr}" مسجل في المنظومة (حالة الدفع: ${biz.paymentStatus === 'fully_paid' ? 'مكتمل' : 'جزئي'} - التوثيق: ${biz.verificationStatus === 'verified' ? 'موثق ✅' : 'قيد المتابعة ⏳'}).`,
+          timestamp: biz.createdDate ? new Date(biz.createdDate).toISOString() : new Date().toISOString(),
+          type: 'success',
+          category: 'business',
+          targetUserId: biz.repId,
+          read: false,
+          linkTab: 'home',
+        });
+      }
+    });
+
+    // Auto-generate notifications for all suspended accounts
+    representatives.forEach((rep) => {
+      if (rep.status === 'suspended') {
+        const existsSuspended = list.some(
+          (n) => n.category === 'account' && n.message.includes(rep.name) && n.targetRole === 'admin'
+        );
+        if (!existsSuspended) {
+          list.push({
+            id: `rep_suspended_notif_${rep.id}`,
+            title: `حساب جديد معلق بانتظار التفعيل 👤`,
+            message: `طلب تسجيل حساب مندوب جديد "${rep.name}" (${rep.governorate})، الحساب معلق بانتظار مراجعته وتفعيله.`,
+            timestamp: new Date().toISOString(),
+            type: 'warning',
+            category: 'account',
+            targetRole: 'admin',
+            read: false,
+            linkTab: 'admin',
+          });
+        }
+      }
+
+      if (rep.avatarStatus === 'pending_approval') {
+        const existsAvatar = list.some(
+          (n) => n.category === 'avatar' && n.message.includes(rep.name) && n.targetRole === 'admin'
+        );
+        if (!existsAvatar) {
+          list.push({
+            id: `rep_avatar_notif_${rep.id}`,
+            title: `صورة شخصية جديدة للمراجعة 📸`,
+            message: `قام المندوب "${rep.name}" برفع صورة شخصية جديدة للمراجعة والاعتماد.`,
+            timestamp: new Date().toISOString(),
+            type: 'info',
+            category: 'avatar',
+            targetRole: 'admin',
+            read: false,
+            linkTab: 'admin',
+          });
+        }
+      }
+    });
+
+    // Sort newest first by timestamp
+    return list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [systemNotifications, businesses, representatives]);
+
   // Parse URL for deep linking (QR codes)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -751,7 +837,7 @@ export default function App() {
         onOpenLogin={() => setShowLoginModal(true)}
         onLogout={handleLogout}
         activeTab={activeTab}
-        systemNotifications={systemNotifications}
+        systemNotifications={allNotifications}
         onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
         onMarkNotificationAsRead={handleMarkNotificationAsRead}
         onClearNotifications={handleClearNotifications}
