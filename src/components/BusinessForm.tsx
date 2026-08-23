@@ -3,7 +3,8 @@ import { Business, PackageOption, PaymentStatus, Representative } from '../types
 import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, PACKAGES } from '../data/mockData';
 import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
-import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2, CloudUpload } from 'lucide-react';
+import { fetchLocationAddress } from '../utils/geocoding';
+import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2, CloudUpload, Navigation, EyeOff, Map, ChevronDown, ChevronUp } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 
 interface BusinessFormProps {
@@ -33,9 +34,45 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [workingHours, setWorkingHours] = useState<string>('يومياً من 9:00 صباحاً حتى 11:00 مساءً');
   const [description, setDescription] = useState<string>('');
 
-  // GPS Coordinates
+  // GPS Coordinates & Map display state
   const [lat, setLat] = useState<number>(30.0444);
   const [lng, setLng] = useState<number>(31.2357);
+  const [showMap, setShowMap] = useState<boolean>(false);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+
+  const handleGetLocation = () => {
+    setIsLocating(true);
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const userLat = Number(position.coords.latitude.toFixed(6));
+          const userLng = Number(position.coords.longitude.toFixed(6));
+          setLat(userLat);
+          setLng(userLng);
+          setIsLocating(false);
+
+          const addrDetails = await fetchLocationAddress(userLat, userLng);
+          if (addrDetails.governorate) setGovernorate(addrDetails.governorate);
+          if (addrDetails.city) setCity(addrDetails.city);
+          if (addrDetails.street) setStreet(addrDetails.street);
+          if (addrDetails.landmark) setLandmark(addrDetails.landmark);
+
+          setAutoFillNotice(`✨ تم تحديد موقعك الجغرافي بنجاح (${userLat}, ${userLng})`);
+          setTimeout(() => setAutoFillNotice(null), 5000);
+        },
+        async (error) => {
+          console.warn('Geolocation error / fallback:', error);
+          setIsLocating(false);
+          setAutoFillNotice('⚠️ تعذر جلب GPS تلقائياً، يمكنك إظهار الخريطة لتحديد الموقع يدوياً.');
+          setTimeout(() => setAutoFillNotice(null), 5000);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setIsLocating(false);
+      alert('خدمة GPS غير مدعومة على متصفحك.');
+    }
+  };
 
   // Owner Info
   const [ownerName, setOwnerName] = useState<string>('');
@@ -135,13 +172,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setErrorMsg('');
 
     // Validate phone number uniqueness
-    const normalizedPhone = phone.trim();
+    const normalizedPhone = (phone || ownerPhone).trim();
     if (normalizedPhone) {
       const isDuplicate = businesses.some(
         (b) => (b.phone && b.phone.trim() === normalizedPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone)
       );
       if (isDuplicate) {
-        setErrorMsg('رقم هاتف النشاط هذا مسجل بالفعل لنشاط تجاري آخر!');
+        setErrorMsg('رقم هاتف النشاط مسجل بالفعل لنشاط تجاري آخر!');
         return;
       }
     }
@@ -157,6 +194,19 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       }
     }
 
+    const normalizedSecondaryPhone = secondaryPhone.trim();
+    if (normalizedSecondaryPhone) {
+      const isDuplicate = businesses.some(
+        (b) => (b.phone && b.phone.trim() === normalizedSecondaryPhone) ||
+               (b.ownerPhone && b.ownerPhone.trim() === normalizedSecondaryPhone) ||
+               (b.secondaryPhone && b.secondaryPhone.trim() === normalizedSecondaryPhone)
+      );
+      if (isDuplicate) {
+        setErrorMsg('رقم الهاتف الإضافي مسجل بالفعل لنشاط تجاري آخر!');
+        return;
+      }
+    }
+
     const timestamp = Date.now();
     const newBusiness: Business = {
       id: `biz_${timestamp}`,
@@ -164,13 +214,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       nameEn: nameEn || undefined,
       category,
       governorate,
-      city,
-      street,
+      city: city || governorate,
+      street: street || 'الموقع الجغرافي المسجل على الخريطة',
       landmark: landmark || undefined,
       phone: phone || ownerPhone,
       secondaryPhone: secondaryPhone || undefined,
-      workingHours,
-      description: description || `محل ${nameAr} في ${governorate} - ${city}`,
+      workingHours: workingHours || 'يومياً',
+      description: description || `نشاط ${nameAr} في ${governorate}`,
       lat,
       lng,
       ownerName,
@@ -353,76 +403,57 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">المدينة / الحي / المنطقة *</label>
-            <input
-              type="text"
-              required
-              placeholder="مثال: الدقي / سموحة / حي الجامعة"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">العنوان التفصيلي / الشارع *</label>
-            <input
-              type="text"
-              required
-              placeholder="مثال: شارع مصدق الرئيسي - عمارة 14"
-              value={street}
-              onChange={(e) => setStreet(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">علامة مميزة للموقع</label>
-            <input
-              type="text"
-              placeholder="مثال: بجوار محطة المترو أو خلف بنك مصر"
-              value={landmark}
-              onChange={(e) => setLandmark(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">أوقات العمل وأيام الدوام</label>
-            <input
-              type="text"
-              placeholder="مثال: يومياً من 9 صباحاً حتى 11 مساءً"
-              value={workingHours}
-              onChange={(e) => setWorkingHours(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
-            />
-          </div>
-        </div>
-
-        {/* Business Description */}
-        <div className="pt-2">
-          <label className="block text-[var(--text-primary)] font-bold text-xs mb-1.5">وصف النشاط التجاري لصفحة جوجل ماب</label>
-
-          <textarea
-            rows={3}
-            placeholder="اكتب نبذة عن الخدمات والمنتجات أو مميزات النشاط التجاري..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 text-xs focus:outline-none focus:border-amber-500 shadow-sm"
-          />
         </div>
       </div>
 
-      {/* 2. الخريطة المصغرة وتحديد الموقع الجغرافي GPS */}
+      {/* 2. موقع النشاط الجغرافي وتحديد GPS */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3 shadow-md transition-colors duration-300">
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)] text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-color)]">
           <div className="flex items-center gap-2 text-amber-500">
             <MapPin className="w-5 h-5" />
-            <h3 className="font-bold text-sm text-[var(--text-primary)]">2. موقع النشاط على الخريطة (GPS Coordinates)</h3>
+            <h3 className="font-bold text-sm text-[var(--text-primary)]">2. موقع النشاط الجغرافي (GPS Coordinates)</h3>
           </div>
-          <span className="text-[11px] text-[var(--text-muted)] font-bold">تحديد دقيق للموقع على جوجل ماب</span>
+
+          <div className="flex items-center gap-2">
+            {/* GPS Locator Button - Always Visible */}
+            <button
+              type="button"
+              onClick={handleGetLocation}
+              disabled={isLocating}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-yellow-600 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl shadow transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+            >
+              {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4 fill-slate-950" />}
+              <span>{isLocating ? 'جاري تحديد موقعك...' : '📍 تحديد موقعي الحالي'}</span>
+            </button>
+
+            {/* Map Toggle Button (Show/Hide) */}
+            <button
+              type="button"
+              onClick={() => setShowMap(!showMap)}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border transition-all cursor-pointer shadow-sm ${
+                showMap
+                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
+                  : 'bg-[var(--input-bg)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-amber-500/10'
+              }`}
+            >
+              {showMap ? <EyeOff className="w-4 h-4 text-amber-500" /> : <Map className="w-4 h-4 text-amber-500" />}
+              <span>{showMap ? 'إخفاء الخريطة' : 'إظهار الخريطة'}</span>
+              {showMap ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Current Coordinates Info Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-[var(--input-bg)] px-3.5 py-2 rounded-xl border border-[var(--border-color)] text-xs font-bold text-[var(--text-secondary)]">
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--text-muted)] text-[11px]">الإحداثيات المسجلة:</span>
+            <span className="font-mono text-amber-600 dark:text-amber-400 dir-ltr font-bold text-xs bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
+              {lat.toFixed(6)}, {lng.toFixed(6)}
+            </span>
+          </div>
+          <span className="text-[11px] text-[var(--text-muted)] font-medium">
+            {showMap ? 'اسحب الخريطة أو الدبوس للتعديل اليدوي الدقيق' : 'اضغط "تحديد موقعي الحالي" للتحديد الفوري أو "إظهار الخريطة" للضبط اليدوي'}
+          </span>
         </div>
 
         {autoFillNotice && (
@@ -432,24 +463,29 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           </div>
         )}
 
-        <InteractiveMap
-          mode="picker"
-          lat={lat}
-          lng={lng}
-          onLocationSelect={(newLat, newLng, details) => {
-            setLat(newLat);
-            setLng(newLng);
-            if (details) {
-              if (details.governorate) setGovernorate(details.governorate);
-              if (details.city) setCity(details.city);
-              if (details.street) setStreet(details.street);
-              if (details.landmark) setLandmark(details.landmark);
-              setAutoFillNotice('✨ تم استخراج عنوان الموقع تلقائياً وتعبئة الخانات (المحافظة، المدينة، والشارع)!');
-              setTimeout(() => setAutoFillNotice(null), 5000);
-            }
-          }}
-          heightClass="h-[260px]"
-        />
+        {/* Collapsible Interactive Map */}
+        {showMap && (
+          <div className="animate-fade-in pt-1">
+            <InteractiveMap
+              mode="picker"
+              lat={lat}
+              lng={lng}
+              onLocationSelect={(newLat, newLng, details) => {
+                setLat(newLat);
+                setLng(newLng);
+                if (details) {
+                  if (details.governorate) setGovernorate(details.governorate);
+                  if (details.city) setCity(details.city);
+                  if (details.street) setStreet(details.street);
+                  if (details.landmark) setLandmark(details.landmark);
+                  setAutoFillNotice('✨ تم تحديد إحداثيات الموقع على الخريطة بنجاح!');
+                  setTimeout(() => setAutoFillNotice(null), 5000);
+                }
+              }}
+              heightClass="h-[280px]"
+            />
+          </div>
+        )}
       </div>
 
       {/* 3. بيانات صاحب النشاط والتواصل */}
@@ -459,7 +495,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           <h3 className="font-bold text-sm text-[var(--text-primary)]">3. بيانات صاحب النشاط للتواصل والفاتورة</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div>
             <label className="block text-[var(--text-primary)] font-bold mb-1">اسم صاحب النشاط / المسؤول *</label>
             <input
@@ -485,24 +521,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">البريد الإلكتروني (إن وجد)</label>
+            <label className="block text-[var(--text-primary)] font-bold mb-1">رقم هاتف آخر (اختياري)</label>
             <input
-              type="email"
-              placeholder="owner@gmail.com"
-              value={ownerEmail}
-              onChange={(e) => setOwnerEmail(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">الرقم القومي / السجل التجاري (اختياري)</label>
-            <input
-              type="text"
-              placeholder="14 رقم قومي أو رقم السجل"
-              value={nationalId}
-              onChange={(e) => setNationalId(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
+              type="tel"
+              placeholder="مثال: 01123456789 أو رقم أرضي"
+              value={secondaryPhone}
+              onChange={(e) => setSecondaryPhone(e.target.value)}
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 font-mono dir-ltr text-right shadow-sm"
             />
           </div>
         </div>
