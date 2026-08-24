@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole } from './types';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification } from './types';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './data/mockData';
 import { calculateTotalRepCommission } from './utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from './utils/dateFormatters';
@@ -149,7 +149,7 @@ export default function App() {
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
   const addNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -449,18 +449,33 @@ export default function App() {
         const repMap = new Map<string, Representative>();
         MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
         if (Array.isArray(dbRepsData) && dbRepsData.length > 0) {
-          dbRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), r));
+          dbRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
         }
         if (Array.isArray(apiRepsData) && apiRepsData.length > 0) {
-          apiRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), r));
+          apiRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
         }
+        try {
+          const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+          if (Array.isArray(cachedCustom)) {
+            cachedCustom.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
+          }
+        } catch {}
+
         setRepresentatives(Array.from(repMap.values()));
         setIsLoadingData(false);
       })
       .catch((err) => {
         console.error('Error fetching initial database data, using defaults:', err);
+        const repMap = new Map<string, Representative>();
+        MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
+        try {
+          const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+          if (Array.isArray(cachedCustom)) {
+            cachedCustom.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
+          }
+        } catch {}
         setBusinesses(INITIAL_BUSINESSES);
-        setRepresentatives(MOCK_REPRESENTATIVES);
+        setRepresentatives(Array.from(repMap.values()));
         setIsLoadingData(false);
       });
 
@@ -592,12 +607,16 @@ export default function App() {
   };
 
   const handleAddRepresentative = async (repData: Partial<Representative>) => {
+    const timestamp = Date.now();
     const newRep: Representative = {
-      id: repData.id || `acc_${Date.now()}`,
+      id: repData.id || `acc_${timestamp}`,
       name: repData.name || 'حساب جديد',
       email: repData.email || 'user@daleelek.eg',
       phone: repData.phone || '01000000000',
       nationalId: repData.nationalId || '',
+      activationFacePhoto: repData.activationFacePhoto || '',
+      nationalIdCardPhoto: repData.nationalIdCardPhoto || '',
+      nationalIdCardBackPhoto: repData.nationalIdCardBackPhoto || '',
       role: repData.role || 'rep',
       roleTitle: repData.roleTitle || 'مندوب مبيعات ميداني',
       governorate: repData.governorate || 'القاهرة',
@@ -606,12 +625,20 @@ export default function App() {
       avatarStatus: repData.avatarStatus || 'none',
       commissionRate: repData.commissionRate || 42.86,
       status: repData.status || 'active',
-      password: repData.password || 'Aa132456',
+      password: repData.password || 'Aa123456',
+      referralCode: repData.referralCode || `DALIL-${timestamp.toString().slice(-4)}`,
+      referredByCode: repData.referredByCode || undefined,
+      referralUnlocked: repData.referralUnlocked ?? false,
+      adminBypassReferral: repData.adminBypassReferral ?? false,
+      referralRewardGranted: repData.referralRewardGranted ?? false,
     };
 
     setRepresentatives((prev) => {
       const filtered = prev.filter((r) => r.id !== newRep.id && r.email.toLowerCase() !== newRep.email.toLowerCase());
       const updated = [newRep, ...filtered];
+      try {
+        localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+      } catch {}
       return updated;
     });
 
@@ -659,6 +686,9 @@ export default function App() {
     const prevRep = representatives.find((r) => r.id === updatedRep.id);
     setRepresentatives((prev) => {
       const updated = prev.map((r) => (r.id === updatedRep.id ? updatedRep : r));
+      try {
+        localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+      } catch {}
       return updated;
     });
 
@@ -922,7 +952,7 @@ export default function App() {
   }, [user]);
 
   // Remove current user from local storage & release single-session lock
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     if (user?.id) {
       // Release DB session lock
       updateRepSessionInDb(user.id, undefined, undefined);
@@ -952,14 +982,24 @@ export default function App() {
     const url = new URL(window.location.href);
     url.searchParams.delete('tab');
     window.history.replaceState({}, '', url.toString());
-  };
+  }, [user]);
 
   // -------------------------------------------------------------
   // EXTERNAL READ-ONLY VIEWS (For QR Codes)
   // -------------------------------------------------------------
   if (externalView?.type === 'invoice') {
     const biz = businesses.find(b => b.id === externalView.id || b.invoiceNumber === externalView.id);
-    if (isLoadingData) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل الفاتورة...</div>;
+    if (isLoadingData) return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-5">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-2xl border-[3px] border-amber-500/20 border-t-amber-500 animate-spin" style={{ animation: 'spinGlow 1s linear infinite' }} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-amber-500 font-black text-lg">د</span>
+          </div>
+        </div>
+        <p className="text-sm font-bold text-[var(--text-muted)]" style={{ animation: 'breathe 2s ease-in-out infinite' }}>جاري تحميل الفاتورة...</p>
+      </div>
+    );
     if (!biz) return <div className="min-h-screen flex items-center justify-center font-bold text-rose-500">هذه الفاتورة غير موجودة أو تم حذفها.</div>;
 
     return (
@@ -971,7 +1011,17 @@ export default function App() {
 
   if (externalView?.type === 'rep') {
     const rep = representatives.find(r => r.id === externalView.id);
-    if (isLoadingData) return <div className="min-h-screen flex items-center justify-center font-bold text-amber-600">جاري تحميل البطاقة...</div>;
+    if (isLoadingData) return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-5">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-2xl border-[3px] border-amber-500/20 border-t-amber-500" style={{ animation: 'spinGlow 1s linear infinite' }} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-amber-500 font-black text-lg">د</span>
+          </div>
+        </div>
+        <p className="text-sm font-bold text-[var(--text-muted)]" style={{ animation: 'breathe 2s ease-in-out infinite' }}>جاري تحميل البطاقة...</p>
+      </div>
+    );
     if (!rep) return <div className="min-h-screen flex items-center justify-center font-bold text-rose-500">هذا المندوب غير مسجل في النظام.</div>;
 
     return (
@@ -982,6 +1032,8 @@ export default function App() {
           businessesCount={0} 
           totalRevenue={0} 
           totalCommission={0} 
+          allReps={representatives}
+          allBusinesses={businesses}
           onLogout={() => {}} 
           onUpdateRep={() => {}} 
           isExternalView={true} 
@@ -1146,6 +1198,7 @@ export default function App() {
               <RepDashboard
                 rep={currentRep}
                 businesses={businesses}
+                allReps={representatives}
                 onAddNewClick={() => setActiveTab('add')}
                 onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
               />
@@ -1226,12 +1279,16 @@ export default function App() {
                             </p>
                           </div>
 
-                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border shrink-0 shadow-sm ${
-                            biz.verificationStatus === 'verified'
-                              ? 'bg-emerald-500/15 text-emerald-950 dark:text-emerald-400 border-emerald-500/40'
-                              : 'bg-amber-500/15 text-amber-955 dark:text-amber-400 border-amber-500/40'
+                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 shadow-sm ${
+                            biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced'
+                              ? remaining > 0
+                                ? 'badge-warning'
+                                : 'badge-success'
+                              : 'badge-warning'
                           }`}>
-                            {biz.verificationStatus === 'verified' ? 'تم التوثيق والظهور' : 'جاري المعالجة'}
+                            {biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced'
+                              ? remaining > 0 ? '✅ موثق (متبقي سداد ⚠️)' : '✅ موثق ومعتمد'
+                              : '⏳ جاري المعالجة'}
                           </span>
                         </div>
 
@@ -1406,6 +1463,8 @@ export default function App() {
               businessesCount={scopedBusinesses.length}
               totalRevenue={scopedBusinesses.reduce((acc, b) => acc + b.amountPaid, 0)}
               totalCommission={calculateTotalRepCommission(scopedBusinesses, currentRep.commissionRate)}
+              allReps={representatives}
+              allBusinesses={businesses}
               onLogout={() => setUser(null)}
               onUpdateRep={handleUpdateRepresentative}
             />

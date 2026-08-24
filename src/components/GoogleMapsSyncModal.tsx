@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Business } from '../types';
+import { Business, VerificationStatus } from '../types';
 import { 
   MapPin, 
   CheckCircle2, 
@@ -8,25 +8,17 @@ import {
   Check, 
   CloudUpload, 
   Sparkles, 
-  FileCheck, 
-  Building2, 
   Clock, 
   Image as ImageIcon, 
   ShieldCheck, 
-  ArrowRight, 
   Printer,
   RefreshCw,
   AlertCircle,
   Download,
   Eye,
-  Layers,
-  Phone,
   Store,
-  ChevronDown,
-  ChevronUp
 } from 'lucide-react';
-import { Logo } from './Logo';
-import { downloadSinglePhoto, downloadAllBusinessPhotos, copyImageToClipboard } from '../utils/photoDownloader';
+import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 
 interface GoogleMapsSyncModalProps {
   business: Business;
@@ -51,9 +43,12 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
+  const [currentStatus, setCurrentStatus] = useState<VerificationStatus>(business.verificationStatus || 'pending');
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      setCurrentStatus(business.verificationStatus || 'pending');
       if (business.googleSyncStatus === 'synced') {
         setPlaceId(business.googlePlaceId || placeId);
       }
@@ -75,6 +70,35 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     setIsDownloadingAll(true);
     await downloadAllBusinessPhotos(business.photos, business.nameAr);
     setIsDownloadingAll(false);
+  };
+
+  const handleUpdateStatus = (newStatus: VerificationStatus) => {
+    let gStatus: 'synced' | 'in_progress' | 'not_synced' | 'failed' = 'not_synced';
+    if (newStatus === 'verified') gStatus = 'synced';
+    else if (newStatus === 'in_progress') gStatus = 'in_progress';
+    else if (newStatus === 'pending') gStatus = 'not_synced';
+    else if (newStatus === 'rejected') gStatus = 'failed';
+
+    const updated: Business = {
+      ...business,
+      verificationStatus: newStatus,
+      googleSyncStatus: gStatus,
+      googleSyncDate: newStatus === 'verified' ? (business.googleSyncDate || new Date().toISOString().split('T')[0]) : business.googleSyncDate,
+      googlePlaceId: newStatus === 'verified' ? (business.googlePlaceId || placeId) : business.googlePlaceId,
+    };
+
+    setCurrentStatus(newStatus);
+    if (onUpdateBusiness) {
+      onUpdateBusiness(updated);
+    }
+    
+    const label = 
+      newStatus === 'verified' ? '🟢 موثق ومعتمد رسمياً على الخريطة' : 
+      newStatus === 'in_progress' ? '⏳ أُرسلت لجوجل ماب (بانتظار الموافقة)' : 
+      newStatus === 'rejected' ? '🔴 مرفوض' : '🚨 لم تُرفع للتوثيق بعد';
+      
+    setStatusFeedback(`تم تحديث حالة النشاط بنجاح: ${label}`);
+    setTimeout(() => setStatusFeedback(null), 3500);
   };
 
   const startSyncProcess = () => {
@@ -102,11 +126,13 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
       setPlaceId(generatedPlaceId);
       setSyncProgress(100);
       setStep('completed');
+      setCurrentStatus('verified');
 
       const updated: Business = {
         ...business,
         googlePlaceId: generatedPlaceId,
         googleSyncStatus: 'synced',
+        verificationStatus: 'verified',
         googleSyncDate: new Date().toISOString().split('T')[0],
         googleMapsUrl: directMapUrl,
       };
@@ -128,7 +154,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
-      <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-5 my-auto relative text-[var(--text-primary)] transition-all duration-300">
+      <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-all duration-300">
         
         {/* Close Button */}
         <button
@@ -139,25 +165,101 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
         </button>
 
         {/* Header */}
-        <div className="text-center space-y-2 pt-1">
+        <div className="text-center space-y-1.5 pt-1">
           <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 text-blue-500 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
             <MapPin className="w-6 h-6" />
           </div>
-          <h3 className="text-lg sm:text-xl font-black text-[var(--text-primary)]">
+          <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
             مساعد نقل ورفع النشاط على خرائط جوجل
           </h3>
-          <div className="flex items-center justify-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300 bg-blue-500/10 border border-blue-500/20 py-1 px-3 rounded-full w-fit mx-auto font-mono">
+          <div className="flex items-center justify-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300 bg-blue-500/10 border border-blue-500/20 py-0.5 px-3 rounded-full w-fit mx-auto font-mono">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
             <span>الحساب المعتمد:</span>
             <span className="font-bold underline">dalilaakeg@gmail.com</span>
           </div>
         </div>
 
+        {/* DIRECT STATUS CONTROLLER (تحديث وتعديل حالة النشاط دون مغادرة النافذة) */}
+        <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-black text-amber-500">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>تعديل وتثبيت حالة التوثيق في النظام:</span>
+            </div>
+            <span className="text-[10px] text-[var(--text-muted)] font-bold">تحديث مباشر وفوري</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleUpdateStatus('pending')}
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-black transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 text-center ${
+                currentStatus === 'pending'
+                  ? 'bg-rose-500 text-white border-rose-600 shadow-md scale-102 ring-2 ring-rose-400/50'
+                  : 'bg-[var(--bg-card)] text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'
+              }`}
+            >
+              <AlertCircle className="w-3 h-3 shrink-0" />
+              <span>🚨 لم تُرفع بعد</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleUpdateStatus('in_progress')}
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-black transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 text-center ${
+                currentStatus === 'in_progress'
+                  ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-md scale-102 ring-2 ring-amber-400/50'
+                  : 'bg-[var(--bg-card)] text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10'
+              }`}
+            >
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>⏳ أُرسلت لجوجل</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleUpdateStatus('verified')}
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-black transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 text-center ${
+                currentStatus === 'verified'
+                  ? 'bg-emerald-600 text-white border-emerald-700 shadow-md scale-102 ring-2 ring-emerald-400/50'
+                  : 'bg-[var(--bg-card)] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'
+              }`}
+            >
+              <CheckCircle2 className="w-3 h-3 shrink-0" />
+              <span>🟢 موثق ومعتمد ✅</span>
+            </button>
+          </div>
+
+          {statusFeedback && (
+            <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 p-1.5 rounded-xl text-[11px] font-bold text-center flex items-center justify-center gap-1.5 animate-fade-in">
+              <Check className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{statusFeedback}</span>
+            </div>
+          )}
+
+          {/* CLARIFICATION BANNER: When Verified with Unpaid/Remaining Balance */}
+          {(currentStatus === 'verified' || business.verificationStatus === 'verified' || business.googleSyncStatus === 'synced') && Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0)) > 0 && (
+            <div className="alert-card-warning border-2 p-3 rounded-2xl flex items-center gap-2.5 text-xs animate-fade-in shadow-xs">
+              <div className="alert-icon-box w-7 h-7 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <div className="leading-snug">
+                <span className="alert-title font-black block text-sm">
+                  تنبيه تحصيل: النشاط موثق ومعتمد رسمياً ولكن عليه مبلغ متبقي!
+                </span>
+                <span className="alert-desc text-[11px] font-bold mt-0.5 block">
+                  متبقي على هذا النشاط مبلغ <strong className="font-mono font-black">{Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0)).toLocaleString()} ج.م</strong> من إجمالي قيمة باقة ({business.packageTitle || 'الاشتراك'}).
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Mode Selector Tabs */}
         <div className="flex bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] text-xs font-black">
           <button
             onClick={() => setActiveTab('manual_fast')}
-            className={`flex-1 py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            className={`flex-1 py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'manual_fast'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -169,7 +271,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
           
           <button
             onClick={() => setActiveTab('api_sync')}
-            className={`flex-1 py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            className={`flex-1 py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'api_sync'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -182,9 +284,9 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
         {/* TAB 1: MANUAL FAST DISPATCH & PHOTO GALLERY */}
         {activeTab === 'manual_fast' && (
-          <div className="space-y-4 text-xs">
+          <div className="space-y-3.5 text-xs">
             {/* Business Quick Copy Card */}
-            <div className="bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-3">
+            <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-2.5">
               <div className="flex justify-between items-center pb-2 border-b border-[var(--border-color)]">
                 <div>
                   <span className="text-[10px] text-[var(--text-muted)] font-bold block">اسم النشاط التجاري:</span>
@@ -192,7 +294,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 </div>
                 <button
                   onClick={() => copyToClipboard(business.nameAr, 'name')}
-                  className="bg-blue-500/10 hover:bg-blue-500 text-blue-700 dark:text-blue-300 hover:text-white font-bold py-1.5 px-2.5 rounded-lg border border-blue-500/20 flex items-center gap-1 transition-colors cursor-pointer"
+                  className="bg-blue-500/10 hover:bg-blue-500 text-blue-700 dark:text-blue-300 hover:text-white font-bold py-1 px-2.5 rounded-lg border border-blue-500/20 flex items-center gap-1 transition-colors cursor-pointer text-[11px]"
                 >
                   {copiedKey === 'name' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedKey === 'name' ? 'تم النسخ' : 'نسخ الاسم'}</span>
@@ -260,7 +362,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             </div>
 
             {/* PHOTOS SECTION: ENHANCED GALLERY & DOWNLOAD */}
-            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3">
+            <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-2.5">
               <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-blue-500" />
@@ -273,7 +375,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   <button
                     onClick={handleDownloadAll}
                     disabled={isDownloadingAll}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] py-1.5 px-3 rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] py-1 px-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>{isDownloadingAll ? 'جاري التحميل...' : 'تنزيل جميع الصور 📦'}</span>
@@ -283,7 +385,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
               {/* Photos Grid */}
               {business.photos && business.photos.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
                   {business.photos.map((photo, idx) => (
                     <div 
                       key={idx}
@@ -296,7 +398,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                       />
 
                       {/* Badge Number */}
-                      <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                      <span className="absolute top-1 right-1 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
                         صورة {idx + 1}
                       </span>
 
@@ -322,8 +424,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 border border-dashed border-[var(--border-color)] rounded-xl space-y-1">
-                  <ImageIcon className="w-8 h-8 text-[var(--text-muted)] mx-auto" />
+                <div className="text-center py-5 border border-dashed border-[var(--border-color)] rounded-xl space-y-1">
+                  <ImageIcon className="w-7 h-7 text-[var(--text-muted)] mx-auto" />
                   <p className="text-xs text-[var(--text-muted)] font-bold">لم يتم إرفاق صور لهذا النشاط بعد.</p>
                 </div>
               )}
@@ -335,7 +437,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 href={directMapUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-2.5 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span>فتح موقع النشاط على Google Maps لرفع الصور وتأكيد المكان 🗺️</span>
@@ -343,7 +445,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
               <button
                 onClick={() => copyToClipboard(allDetailsText, 'all')}
-                className="w-full bg-[var(--input-bg)] hover:bg-blue-500/10 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="w-full bg-[var(--input-bg)] hover:bg-blue-500/10 text-[var(--text-primary)] font-bold text-xs py-2 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 {copiedKey === 'all' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-blue-500" />}
                 <span>{copiedKey === 'all' ? 'تم نسخ جميع البيانات بنجاح!' : 'نسخ جميع بيانات النشاط كنص كامل'}</span>
@@ -371,7 +473,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
                 <button
                   onClick={startSyncProcess}
-                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black py-3.5 px-6 rounded-2xl shadow-xl hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2 text-sm active:scale-95 cursor-pointer"
+                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black py-3 px-6 rounded-2xl shadow-xl hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2 text-sm active:scale-95 cursor-pointer"
                 >
                   <CloudUpload className="w-5 h-5" />
                   <span>بدء الإرسال والمزامنة التلقائية مع Google</span>
@@ -380,9 +482,9 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             )}
 
             {step === 'syncing' && (
-              <div className="space-y-5 text-center py-4">
+              <div className="space-y-4 text-center py-4">
                 <div className="relative flex items-center justify-center">
-                  <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
+                  <RefreshCw className="w-10 h-10 text-blue-500 animate-spin" />
                 </div>
 
                 <div className="space-y-2">
@@ -390,7 +492,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                     <span>{currentSyncTask}</span>
                     <span>{syncProgress}%</span>
                   </div>
-                  <div className="w-full bg-[var(--input-bg)] h-3 rounded-full overflow-hidden border border-[var(--border-color)]">
+                  <div className="w-full bg-[var(--input-bg)] h-2.5 rounded-full overflow-hidden border border-[var(--border-color)]">
                     <div 
                       className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-500 rounded-full"
                       style={{ width: `${syncProgress}%` }}
@@ -418,7 +520,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   </p>
                 </div>
 
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-4 space-y-2.5">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-[var(--text-secondary)] flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-blue-500" />

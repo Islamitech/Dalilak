@@ -5,7 +5,7 @@
  */
 
 export async function compressImageFile(
-  file: File,
+  file: File | Blob,
   maxWidth = 1000,
   maxHeight = 1000,
   quality = 0.75
@@ -18,8 +18,8 @@ export async function compressImageFile(
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+        let width = img.width || 800;
+        let height = img.height || 600;
 
         if (width > height) {
           if (width > maxWidth) {
@@ -33,14 +33,18 @@ export async function compressImageFile(
           }
         }
 
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           resolve(event.target?.result as string);
           return;
         }
+
+        // Fill background with white to avoid black background on transparent PNGs when converted to JPEG
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
 
         ctx.drawImage(img, 0, 0, width, height);
         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
@@ -51,3 +55,4 @@ export async function compressImageFile(
     reader.onerror = (err) => reject(err);
   });
 }
+

@@ -269,13 +269,33 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   }, [mode, businesses, selectedGovFilter, currentLat, currentLng]);
 
-  // Map Invalidations on Resize or Fullscreen Toggle
+  // Map Invalidations on Resize, Fullscreen Toggle, or Container Dimension Changes
   useEffect(() => {
-    if (leafletMapRef.current) {
-      setTimeout(() => {
+    const handleResize = () => {
+      if (leafletMapRef.current) {
         leafletMapRef.current.invalidateSize();
-      }, 200);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      resizeObserver.observe(containerRef.current);
     }
+
+    const timer = setTimeout(handleResize, 250);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
+      clearTimeout(timer);
+    };
   }, [isExpanded]);
 
   // GPS Geolocation Handler

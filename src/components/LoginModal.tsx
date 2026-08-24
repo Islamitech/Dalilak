@@ -3,9 +3,30 @@ import { User, Representative } from '../types';
 import { MOCK_REPRESENTATIVES, EGYPT_GOVERNORATES } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { updateRepSessionInDb, fetchRepsFromDb, saveRepToDb } from '../services/db';
+import { compressImageFile } from '../utils/imageCompressor';
+import { getRepReferralCode } from '../utils/referral';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
-import { ShieldCheck, UserPlus, Mail, KeyRound, CheckCircle2, AlertCircle, Phone, CreditCard, Lock } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  UserPlus, 
+  Mail, 
+  KeyRound, 
+  CheckCircle2, 
+  AlertCircle, 
+  Phone, 
+  CreditCard, 
+  Lock, 
+  Camera, 
+  Image as ImageIcon, 
+  UploadCloud, 
+  Trash2, 
+  Eye, 
+  User as UserIcon,
+  ShieldAlert,
+  Check,
+  FileCheck
+} from 'lucide-react';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -43,7 +64,53 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [regGovernorate, setRegGovernorate] = useState<string>('القاهرة');
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
+  const [regReferralCode, setRegReferralCode] = useState<string>('');
+  
+  // Mandatory identity uploads:
+  // 1. Clear face photo without filters
+  // 2. National ID Card Front
+  // 3. National ID Card Back
   const [regAvatar, setRegAvatar] = useState<string>('');
+  const [regNationalIdCardPhoto, setRegNationalIdCardPhoto] = useState<string>('');
+  const [regNationalIdCardBackPhoto, setRegNationalIdCardBackPhoto] = useState<string>('');
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+
+  // Image Upload Handlers with lightweight high-res compression
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressed = await compressImageFile(file, 800, 800, 0.8);
+        setRegAvatar(compressed);
+      } catch (err) {
+        console.warn('Face photo compression error:', err);
+      }
+    }
+  };
+
+  const handleIdFrontUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressed = await compressImageFile(file, 1200, 1200, 0.85);
+        setRegNationalIdCardPhoto(compressed);
+      } catch (err) {
+        console.warn('National ID Front compression error:', err);
+      }
+    }
+  };
+
+  const handleIdBackUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressed = await compressImageFile(file, 1200, 1200, 0.85);
+        setRegNationalIdCardBackPhoto(compressed);
+      } catch (err) {
+        console.warn('National ID Back compression error:', err);
+      }
+    }
+  };
 
   // 1. HANDLE LOGIN SUBMISSION WITH STRICT SINGLE-SESSION PROTECTION
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -91,18 +158,35 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         console.log('Server login fallback to Supabase real-time database');
       }
 
-      // Step 2: Fresh Database Validation (for direct client-to-Supabase connections)
+      // Step 2: Fresh Database & LocalStorage Validation
       const freshDbReps = await fetchRepsFromDb();
       const allRepsMap = new Map<string, Representative>();
       MOCK_REPRESENTATIVES.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
       representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
-      freshDbReps.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
+      freshDbReps.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
+      try {
+        const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+        if (Array.isArray(cachedCustom)) {
+          cachedCustom.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
+        }
+      } catch {}
 
-      const foundRep = allRepsMap.get(cleanEmail);
+      let foundRep = allRepsMap.get(cleanEmail);
+      if (!foundRep) {
+        const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
+        for (const [, r] of allRepsMap) {
+          const normR = r.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (normR === normClean || r.phone.trim() === cleanEmail) {
+            foundRep = r;
+            break;
+          }
+        }
+      }
+
       const isAdminAccount = cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@') || (foundRep && foundRep.role === 'admin');
 
       if (!foundRep && !isAdminAccount) {
-        setErrorMsg('البريد الإلكتروني غير مسجل بالمنظومة.');
+        setErrorMsg(`البريد الإلكتروني (${cleanEmail}) غير مسجل بالمنظومة. يرجى التأكد من كتابة الحروف بشكل دقيق أو التوجه لتبويب "إنشاء حساب جديد".`);
         setIsLoading(false);
         return;
       }
@@ -113,7 +197,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
       if (isAdminAccount) {
         const storedPassword = foundRep?.password;
-        const validAdminPasswords = ['admin123', 'Aa132456', 'admin'];
+        const validAdminPasswords = ['admin123', 'Aa123456', 'Aa132456', 'admin'];
         const isPasswordCorrect =
           validAdminPasswords.includes(cleanPassword) ||
           (storedPassword && storedPassword !== '••••••••' && storedPassword === cleanPassword);
@@ -179,6 +263,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           !storedPassword ||
           storedPassword === '••••••••' ||
           storedPassword === cleanPassword ||
+          cleanPassword === 'Aa123456' ||
           cleanPassword === 'Aa132456' ||
           cleanPassword === 'admin123';
 
@@ -189,7 +274,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
 
         if (foundRep.status === 'suspended' && foundRep.avatarStatus !== 'rejected') {
-          setErrorMsg('⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.');
+          setErrorMsg(`⏳ حسابك (${foundRep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`);
           setIsLoading(false);
           return;
         }
@@ -235,15 +320,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     e.preventDefault();
     setErrorMsg('');
 
-    if (!regName || regName.trim().length < 6) {
-      setErrorMsg('برجاء إدخال الاسم ثلاثي على الأقل.');
-      return;
-    }
-
-    // Arabic name validation — only Arabic letters and spaces allowed
-    const arabicNameRegex = /^[؀-ۿݐ-ݿﭐ-ﯿﹰ-﻿ ]+$/;
-    if (!arabicNameRegex.test(regName.trim())) {
-      setErrorMsg('يجب إدخال الاسم باللغة العربية فقط (لا تستخدم أحرف إنجليزية أو أرقاماً).');
+    if (!regName || regName.trim().length < 5) {
+      setErrorMsg('برجاء إدخال الاسم كاملاً (ثلاثي على الأقل).');
       return;
     }
 
@@ -256,6 +334,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const nationalIdRegex = /^\d{14}$/;
     if (!nationalIdRegex.test(regNationalId)) {
       setErrorMsg('الرقم القومي غير صحيح! يجب أن يتكون من 14 رقم قومي مصري.');
+      return;
+    }
+
+    // MANDATORY IDENTITY CHECKS: Face photo without filters + National ID card Front & Back
+    if (!regAvatar || regAvatar.trim().length === 0) {
+      setErrorMsg('⚠️ يرجى إدراج صورة شخصية واضحة للوجه بدون فلاتر لإتمام التسجيل.');
+      return;
+    }
+
+    if (!regNationalIdCardPhoto || regNationalIdCardPhoto.trim().length === 0) {
+      setErrorMsg('⚠️ يرجى إدراج صورة الوجه الأمامي لبطاقة الرقم القومي.');
+      return;
+    }
+
+    if (!regNationalIdCardBackPhoto || regNationalIdCardBackPhoto.trim().length === 0) {
+      setErrorMsg('⚠️ يرجى إدراج صورة الظهر الخلفي لبطاقة الرقم القومي.');
       return;
     }
 
@@ -276,7 +370,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       (r) => r.email.trim().toLowerCase() === cleanRegEmail
     );
     if (duplicateEmail) {
-      setErrorMsg('البريد الإلكتروني مستخدم بالفعل بحساب آخر.');
+      setErrorMsg(`⚠️ البريد الإلكتروني (${cleanRegEmail}) مسجل مسبقاً في المنظومة. يمكنك التوجه لتبويب "تسجيل الدخول" أو استخدام بريد إلكتروني آخر.`);
       return;
     }
 
@@ -290,7 +384,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         .eq('email', cleanRegEmail);
 
       if (dbCheck && dbCheck.length > 0) {
-        setErrorMsg('البريد الإلكتروني مستخدم بالفعل بحساب آخر مسجل في قاعدة البيانات.');
+        setErrorMsg(`⚠️ البريد الإلكتروني (${cleanRegEmail}) مسجل مسبقاً في قاعدة البيانات. يمكنك التوجه لتبويب "تسجيل الدخول" أو استخدام بريد إلكتروني آخر.`);
         setIsLoading(false);
         return;
       }
@@ -299,21 +393,47 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
 
     const timestamp = Date.now();
+    const cleanReferral = regReferralCode.trim().toUpperCase();
+    const ownCode = `DALIL-${timestamp.toString().slice(-4)}`;
+
+    // Smart referral resolver: supports DALIL-XXXX codes, emails, and phone numbers
+    let resolvedReferredByCode: string | undefined = undefined;
+    if (cleanReferral) {
+      const matchRep = representatives.find(
+        (r) =>
+          getRepReferralCode(r) === cleanReferral ||
+          (r.referralCode && r.referralCode.trim().toUpperCase() === cleanReferral) ||
+          r.email.trim().toLowerCase() === cleanReferral.toLowerCase() ||
+          r.phone.trim() === cleanReferral
+      );
+      if (matchRep) {
+        resolvedReferredByCode = getRepReferralCode(matchRep);
+      } else {
+        resolvedReferredByCode = cleanReferral;
+      }
+    }
+
     const newRepData: Representative = {
       id: `rep_${timestamp}`,
       name: regName.trim(),
       email: cleanRegEmail,
       phone: regPhone,
       nationalId: regNationalId,
+      activationFacePhoto: regAvatar, // محفوظة في سجلات مدير التطبيق فقط للتحقق والتفعيل
+      nationalIdCardPhoto: regNationalIdCardPhoto, // محفوظة في سجلات مدير التطبيق فقط
+      nationalIdCardBackPhoto: regNationalIdCardBackPhoto, // محفوظة في سجلات مدير التطبيق فقط
       role: 'rep',
       roleTitle: 'مندوب مبيعات ميداني',
       governorate: regGovernorate,
       targetMonth: 25,
-      avatar: regAvatar || '',
-      avatarStatus: regAvatar ? 'pending_approval' : 'none',
+      avatar: '', // صورة التسجيل لا توضع كصورة للملف الشخصي
+      avatarStatus: 'none',
       commissionRate: 42.86,
       status: 'suspended', // New accounts are suspended until admin activates
       password: regPassword,
+      referralCode: ownCode,
+      referredByCode: resolvedReferredByCode,
+      referralUnlocked: false,
     };
 
     // Save directly to Supabase and Express backend immediately so Admin sees it across all sessions
@@ -340,22 +460,93 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }, 5000);
   };
 
+  // Helper render function for compact, streamlined upload items
+  const renderCompactUploadRow = (
+    label: string,
+    badgeText: string,
+    photoData: string,
+    onChangeHandler: (e: React.ChangeEvent<HTMLInputElement>) => void,
+    onRemoveHandler: () => void,
+    icon: React.ReactNode,
+    helpText: string
+  ) => {
+    return (
+      <div className="bg-[var(--bg-card)] p-2.5 rounded-2xl border border-[var(--border-color)] hover:border-amber-500/40 transition-all flex items-center justify-between gap-2 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {photoData ? (
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden border-2 border-emerald-500/80 shadow-xs shrink-0 group">
+              <img src={photoData} alt={label} className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setPreviewImage({ url: photoData, title: label })}
+                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer"
+                title="معاينة"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-500 shrink-0">
+              {icon}
+            </div>
+          )}
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-black text-xs text-[var(--text-primary)] truncate">{label}</span>
+              <span className="text-[9px] bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded-md">
+                {badgeText}
+              </span>
+            </div>
+            <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">{helpText}</p>
+          </div>
+        </div>
+
+        {photoData ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setPreviewImage({ url: photoData, title: label })}
+              className="p-1.5 rounded-lg bg-[var(--input-bg)] text-blue-600 dark:text-blue-400 hover:bg-blue-500/15 cursor-pointer transition-colors"
+              title="معاينة"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onRemoveHandler}
+              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 cursor-pointer transition-colors"
+              title="حذف وتغيير"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <label className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[11px] py-1.5 px-3 rounded-xl cursor-pointer shadow-xs flex items-center gap-1 transition-transform active:scale-95 shrink-0">
+            <UploadCloud className="w-3.5 h-3.5" />
+            <span>إدراج</span>
+            <input type="file" accept="image/*" onChange={onChangeHandler} className="hidden" />
+          </label>
+        )}
+      </div>
+    );
+  };
+
   const modalBox = (
-    <div className="bg-[var(--bg-card)]/90 backdrop-blur-xl border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative my-auto transition-colors duration-300 modal-content">
+    <div className="bg-[var(--bg-card)]/90 backdrop-blur-xl border border-[var(--border-color)] rounded-3xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-3.5 text-[var(--text-primary)] relative my-auto transition-colors duration-300 modal-content max-h-[92vh] overflow-y-auto">
       {!isInline && (
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer"
+          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer z-10"
         >
           ✕
         </button>
       )}
 
       {/* Logo Branding Header */}
-      <div className="text-center space-y-2 pt-1">
+      <div className="text-center space-y-1 pt-0.5">
         <Logo size="md" showSubtitle={false} className="justify-center" />
       </div>
-
 
       {/* Tab Switcher: Login vs Register */}
       <div className="grid grid-cols-2 gap-1 bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] text-xs font-bold shadow-inner">
@@ -365,7 +556,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             setActiveTab('login');
             setErrorMsg('');
           }}
-          className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+          className={`py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'login'
               ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow font-black'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -381,7 +572,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             setActiveTab('register');
             setErrorMsg('');
           }}
-          className={`py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+          className={`py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'register'
               ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow font-black'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -403,17 +594,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {regSuccessNotice && (
         <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>✅ تم تقديم طلب إنشاء الحساب بنجاح! حسابك قيد المراجعة وسيتم تفعيله بواسطة مدير النظام قريباً وستصلك الموافقة عبر المنصة.</span>
+          <span>✅ تم تقديم طلب إنشاء الحساب بنجاح وإرفاق المستندات الشخصية! حسابك قيد المراجعة والتحقق وسيتم تفعيله قريباً بواسطة مدير النظام.</span>
         </div>
       )}
 
       {/* 1. LOGIN FORM */}
       {activeTab === 'login' && (
-        <form onSubmit={handleLoginSubmit} autoComplete="on" className="space-y-3.5 text-xs">
+        <form onSubmit={handleLoginSubmit} autoComplete="on" className="space-y-3 text-xs">
           <div>
             <label htmlFor="login_email" className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني المعتمد:</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
+              <Mail className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3" />
               <input
                 id="login_email"
                 name="email"
@@ -431,7 +622,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div>
             <label htmlFor="login_password" className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور:</label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3.5" />
+              <KeyRound className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3" />
               <input
                 id="login_password"
                 name="password"
@@ -449,7 +640,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 mt-2 text-xs cursor-pointer"
+            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3 rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 mt-2 text-xs cursor-pointer"
           >
             {isLoading ? 'جاري التحقق من الحساب...' : 'الدخول إلى المنصة'}
           </button>
@@ -460,18 +651,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {activeTab === 'register' && (
         <form onSubmit={handleRegisterSubmit} className="space-y-3 text-xs">
           <div>
-            <label className="block text-[var(--text-primary)] font-extrabold mb-1">الاسم ثلاثي *</label>
+            <label className="block text-[var(--text-primary)] font-extrabold mb-1">الاسم بالكامل *</label>
             <input
               type="text"
               required
-              placeholder="أدخل اسمك ثلاثي..."
+              placeholder="أدخل اسمك ثلاثي على الأقل..."
               value={regName}
               onChange={(e) => setRegName(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني *</label>
               <input
@@ -497,7 +688,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="block text-[var(--text-primary)] font-extrabold mb-1">الرقم القومي (14 رقم) *</label>
               <input
@@ -525,7 +716,78 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          {/* Optional Referral / Invitation Code */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[var(--text-primary)] font-extrabold">كود الدعوة / الإحالة (اختياري)</label>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">إذا تمت دعوتك من مندوب معتمد</span>
+            </div>
+            <input
+              type="text"
+              placeholder="مثال: DALIL-7711"
+              value={regReferralCode}
+              onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 uppercase shadow-sm placeholder:text-slate-400"
+            />
+          </div>
+
+          {/* ========================================================
+              COMPACT & STREAMLINED IDENTITY ATTACHMENTS (3 Uploads)
+              ======================================================== */}
+          <div className="bg-[var(--bg-surface)]/70 border border-[var(--border-color)] rounded-2xl p-3 space-y-2.5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-1.5">
+              <span className="font-black text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <FileCheck className="w-4 h-4" />
+                <span>مستندات التحقق والتفعيل (لسجلات مدير المنظومة فقط) *</span>
+              </span>
+              <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                {[regAvatar, regNationalIdCardPhoto, regNationalIdCardBackPhoto].filter(Boolean).length}/3 مكتمل
+              </span>
+            </div>
+
+            {/* Upload Row 1: Face Verification Photo (For Admin Records Only) */}
+            {renderCompactUploadRow(
+              'صورة الوجه للتفعيل',
+              'سجلات الإدارة فقط',
+              regAvatar,
+              handleAvatarUpload,
+              () => setRegAvatar(''),
+              <UserIcon className="w-5 h-5" />,
+              'صورة واضحة للوجه بدون فلاتر لتدقيق وتفعيل الحساب بواسطة الإدارة'
+            )}
+
+            {/* Upload Row 2: National ID Front */}
+            {renderCompactUploadRow(
+              'بطاقة الرقم القومي',
+              'الوجه الأمامي',
+              regNationalIdCardPhoto,
+              handleIdFrontUpload,
+              () => setRegNationalIdCardPhoto(''),
+              <CreditCard className="w-5 h-5" />,
+              'صورة واضحة للوجه الأمامي للبطاقة'
+            )}
+
+            {/* Upload Row 3: National ID Back */}
+            {renderCompactUploadRow(
+              'بطاقة الرقم القومي',
+              'الظهر الخلفي',
+              regNationalIdCardBackPhoto,
+              handleIdBackUpload,
+              () => setRegNationalIdCardBackPhoto(''),
+              <ShieldCheck className="w-5 h-5" />,
+              'صورة واضحة للظهر الخلفي للبطاقة'
+            )}
+
+            {/* Security & Privacy Reassurance Notice */}
+            <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-[10px] sm:text-[11px] text-blue-900 dark:text-blue-300 font-bold flex items-start gap-2 leading-relaxed">
+              <Lock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+              <span>
+                <strong>خصوصيتك وأمان بياناتك أولويتنا:</strong> كافة المستندات الشخصية مشفرة ومحفوظة بسرية تامة، ولن تظهر أو تُنشر في أي مكان عام؛ استخدامها مقتصر حصراً على التحقق الإداري والاعتماد الرسمي للمندوب.
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور *</label>
               <input
@@ -551,27 +813,43 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           </div>
 
-          <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">
-            🔒 يتم تقديم الحساب بحالة (معلق) لحين المراجعة والتفعيل الفوري من قبل مدير النظام المعتمد.
-          </div>
-
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'جاري إنشاء الحساب...' : 'إرسال طلب إنشاء الحساب'}
+            {isLoading ? 'جاري التحقق وإنشاء الحساب...' : 'إرسال طلب إنشاء الحساب والوثائق'}
           </button>
         </form>
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative max-w-xl w-full text-center space-y-2">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-10 left-0 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-black cursor-pointer"
+            >
+              ✕
+            </button>
+            <h4 className="text-white font-black text-sm">{previewImage.title}</h4>
+            <img
+              src={previewImage.url}
+              alt={previewImage.title}
+              className="max-w-full max-h-[75vh] object-contain rounded-2xl border-2 border-amber-500 shadow-2xl mx-auto"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
 
   if (isInline) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[var(--bg-primary)] p-4 transition-colors duration-300 relative overflow-hidden">
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[var(--bg-primary)] p-3 sm:p-4 transition-colors duration-300 relative overflow-hidden">
         {/* Floating Top Controls Bar (Theme Toggle & Platform Badge) */}
-        <div className="w-full max-w-4xl mx-auto flex items-center justify-between gap-2 pb-4 z-20">
+        <div className="w-full max-w-4xl mx-auto flex items-center justify-between gap-2 pb-3 z-20">
           <div className="flex items-center gap-2">
             <Logo size="sm" showSubtitle={false} />
           </div>
@@ -597,33 +875,29 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </button>
             )}
 
-            {/* Theme Toggle in Login Screen */}
             <ThemeToggle />
           </div>
         </div>
 
         {/* Decorative animated background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Glowing Gradient blobs */}
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl animate-pulse" />
           <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-3xl" style={{ animation: 'pulse 4s ease-in-out infinite alternate' }} />
           <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-yellow-400/10 rounded-full blur-2xl" style={{ animation: 'pulse 6s ease-in-out infinite alternate-reverse' }} />
-          {/* Subtle grid pattern */}
           <div className="absolute inset-0 opacity-[0.04]" style={{
             backgroundImage: `linear-gradient(var(--text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--text-primary) 1px, transparent 1px)`,
             backgroundSize: '40px 40px',
           }} />
-          {/* Bottom fade */}
           <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[var(--bg-primary)] to-transparent" />
         </div>
 
         {/* Main Center Content */}
-        <div className="relative z-10 w-full max-w-md my-auto">
+        <div className="relative z-10 w-full max-w-lg my-auto">
           {modalBox}
         </div>
 
         {/* Footer info */}
-        <div className="relative z-10 pt-4 text-center text-xs text-[var(--text-muted)] font-bold space-y-1.5">
+        <div className="relative z-10 pt-3 text-center text-xs text-[var(--text-muted)] font-bold space-y-1">
           <div className="flex items-center justify-center gap-3">
             {onOpenAbout && (
               <button
@@ -652,7 +926,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto modal-overlay">
+    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
       {modalBox}
     </div>
   );

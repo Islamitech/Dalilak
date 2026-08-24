@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Representative, User } from '../types';
+import { Representative, User, Business } from '../types';
 import { calculateTotalRepCommission } from '../utils/commission';
 import { compressImageFile } from '../utils/imageCompressor';
+import { getRepReferralSummary, getRepReferralCode, INVITATION_GIFT_BONUS } from '../utils/referral';
 import { DocViewerModal, DocType } from './DocViewerModal';
 import { UserAvatar } from './UserAvatar';
 import { Logo } from './Logo';
@@ -28,7 +29,14 @@ import {
   Percent,
   Upload,
   Camera,
-  UploadCloud
+  UploadCloud,
+  Share2,
+  Copy,
+  Check,
+  Sparkles,
+  Users,
+  TrendingUp,
+  Gift
 } from 'lucide-react';
 
 interface RepProfileProps {
@@ -37,6 +45,8 @@ interface RepProfileProps {
   businessesCount: number;
   totalRevenue: number;
   totalCommission: number;
+  allReps?: Representative[];
+  allBusinesses?: Business[];
   onLogout: () => void;
   onUpdateRep: (updatedRep: Representative) => void;
   isExternalView?: boolean;
@@ -48,10 +58,26 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   businessesCount,
   totalRevenue,
   totalCommission,
+  allReps = [],
+  allBusinesses = [],
   onLogout,
   onUpdateRep,
   isExternalView = false,
 }) => {
+  const [copiedCode, setCopiedCode] = useState(false);
+  const referralSummary = getRepReferralSummary(rep, allReps, allBusinesses);
+  const referralCode = getRepReferralCode(rep);
+
+  const handleCopyReferral = () => {
+    navigator.clipboard.writeText(referralCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2500);
+  };
+
+  const inviteMessage = encodeURIComponent(
+    `انضم الآن لمنظومة دليلك وسجل حسابك الميداني باستخدام كود الدعوة المعتمد: ${referralCode}\nرابط المنصة: ${window.location.origin}`
+  );
+  const whatsappInviteUrl = `https://wa.me/?text=${inviteMessage}`;
   // Document Viewer Modal State
   const [selectedDocType, setSelectedDocType] = useState<DocType | null>(null);
 
@@ -189,34 +215,6 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             <span>تم استيفاء الشروط والضوابط وتحديث بيانات المندوب بنجاح في المنظومة الرسمية!</span>
           </div>
           <button onClick={() => setUpdateSuccess(false)}>✕</button>
-        </div>
-      )}
-
-      {/* Avatar Rejection Alert Banner */}
-      {rep.avatarStatus === 'rejected' && (
-        <div className="bg-gradient-to-r from-rose-950 via-rose-900 to-red-950 border-2 border-rose-500 text-white p-4.5 rounded-3xl flex flex-wrap items-center justify-between gap-3 text-xs font-bold shadow-xl animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-black shrink-0 shadow">
-              <AlertCircle className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <div>
-              <h4 className="font-black text-sm text-rose-200">⚠️ تم رفض الصورة الشخصية من مدير النظام</h4>
-              <p className="text-xs text-slate-100 font-bold mt-0.5">يمكنك الآن التقاط صورة سيلفي جديدة أو اختيار صورة رسمية معتمدة من الاستوديو.</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setEditName(rep.name);
-              setEditPhone(rep.phone);
-              setEditEmail(rep.email);
-              setEditNationalId(rep.nationalId || '29805120104892');
-              setEditAvatar('');
-              setShowEditModal(true);
-            }}
-            className="bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-2.5 rounded-2xl text-xs cursor-pointer shadow-lg transition-transform active:scale-95 shrink-0"
-          >
-            رفع صورة جديدة الآن
-          </button>
         </div>
       )}
 
@@ -374,6 +372,121 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             </div>
           </form>
         </div>
+      </div>
+
+      {/* 3. Referral Program & Team Network Section */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 space-y-4 shadow-md transition-colors duration-300">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-sm text-[var(--text-primary)]">
+                برنامج الإحالة الميداني وبناء الفريق (3% - 7%)
+              </h3>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                ادعُ مناديب جدد لمنظومة دليلك وتلقَّ هدية الدعوة وعمولات إضافية مستمرة
+              </p>
+            </div>
+          </div>
+
+          <span className={`text-[11px] font-black px-3 py-1 rounded-full ${
+            referralSummary.isUnlocked ? 'badge-success' : 'badge-warning'
+          }`}>
+            {referralSummary.isUnlocked ? '✨ كود الإحالة مفعل' : '🔒 قيد الفتح (المهمة 2)'}
+          </span>
+        </div>
+
+        {referralSummary.isUnlocked ? (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/5 border border-amber-500/40 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-extrabold block">
+                  كود الدعوة المعتمد الخاص بك
+                </span>
+                <span className="font-mono text-2xl font-black text-[var(--text-primary)] tracking-wider">
+                  {referralCode}
+                </span>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium mt-0.5">
+                  يحصل المندوب الجديد على تفعيل الحساب وتتلقى أنت عمولة 3% - 7% على كل تسجيل يتم بواسطته.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleCopyReferral}
+                  className="flex-1 sm:flex-none bg-[var(--bg-card)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs px-3.5 py-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {copiedCode ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                  <span>{copiedCode ? 'تم النسخ' : 'نسخ الكود'}</span>
+                </button>
+
+                <a
+                  href={whatsappInviteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>دعوة عبر واتساب</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Referral Stats Summary Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center text-xs">
+              <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي المناديب</span>
+                <span className="font-black text-lg text-[var(--text-primary)]">{referralSummary.totalInvitedCount}</span>
+              </div>
+
+              <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">مكتملي المهمة 1 (10+)</span>
+                <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">{referralSummary.qualifiedRepsCount}</span>
+              </div>
+
+              <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">مكافآت الدعوة</span>
+                <span className="font-black text-lg text-amber-600 dark:text-amber-400">{referralSummary.totalGiftsEarned.toLocaleString()} ج.م</span>
+              </div>
+
+              <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات الإحالة التراكمية</span>
+                <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">{referralSummary.totalReferralCommission.toLocaleString()} ج.م</span>
+              </div>
+            </div>
+
+            {/* Invited Reps List (if any) */}
+            {referralSummary.invitedRepsDetails.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-[var(--border-color)]">
+                <h4 className="font-extrabold text-xs text-[var(--text-primary)]">أعضاء الفريق المنضمين عبر كودك:</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {referralSummary.invitedRepsDetails.map(({ rep: invRep, bizCount, currentRate, commissionEarned, isMission1Complete }) => (
+                    <div key={invRep.id} className="bg-[var(--bg-surface)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-black text-[var(--text-primary)]">{invRep.name}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">{invRep.governorate} • {bizCount} نشاط مسجل</p>
+                      </div>
+                      <div className="text-left">
+                        <span className="badge-warning text-[9px] font-black px-2 py-0.5 rounded-full inline-block">عمولة {currentRate}%</span>
+                        <p className="font-black text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">+{commissionEarned} ج.م</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] text-xs text-[var(--text-secondary)] font-medium flex items-center gap-3">
+            <Lock className="w-5 h-5 text-amber-500 shrink-0" />
+            <p leading-relaxed>
+              يفتح كود الإحالة الخاص بك تلقائياً بمجرد إتمام <strong>25 نشاطاً مسجلاً</strong> في الميدان (أنجزت حالياً {businessesCount} نشاط)، أو يمكن لمدير النظام تفعيله وتجاوز المهام مباشرة من لوحة الإدارة.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Official Field Documents List */}
@@ -559,7 +672,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
               {/* Profile Photo Upload Section */}
               <div>
-                <label className="block text-[var(--text-primary)] font-bold mb-1">رفع أو التقاط الصورة الشخصية (بانتظار موافقة مدير النظام):</label>
+                <label className="block text-[var(--text-primary)] font-bold mb-1">الصورة الشخصية للملف (اختيارية):</label>
                 
                 <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] flex items-center gap-3">
                   <UserAvatar avatar={editAvatar} name={rep.name} role={rep.role} avatarStatus={rep.avatarStatus} size="md" />
@@ -611,13 +724,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                     </div>
 
                     <p className="text-[10px] text-[var(--text-muted)] font-bold">
-                      {rep.avatarStatus === 'approved'
-                        ? '✅ صورتك الشخصية معتمدة رسمياً من مدير النظام.'
-                        : rep.avatarStatus === 'rejected'
-                        ? '❌ تم رفض الصورة السابقة من مدير النظام. يمكنك التقاط صورة جديدة بالكاميرا أو اختيار صورة رسمية الآن.'
-                        : rep.avatarStatus === 'pending_approval'
-                        ? '🔒 تبقى الصورة قيد المراجعة حتى موافقة مدير النظام.'
-                        : '📸 يمكنك التقاط صورة شخصية جديدة بسيلفي الكاميرا أو رفعها من الجهاز.'}
+                      📸 يمكنك اختيار صورة شخصية لملفك، مع العلم أن مستندات التفعيل الرسمية محفوظة بسرية في سجلات إدارة المنظومة فقط.
                     </p>
                   </div>
                 </div>

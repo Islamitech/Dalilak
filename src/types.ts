@@ -26,6 +26,7 @@ export interface Business {
   repName: string;
   packageId: string;
   packageName: string;
+  packageTitle?: string; // alias for display
   packagePrice: number; // in EGP
   amountPaid: number;   // in EGP
   paymentStatus: PaymentStatus;
@@ -40,6 +41,13 @@ export interface Business {
   createdDate: string;
 }
 
+export interface ToastNotification {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  createdAt: number;
+}
+
 export type UserRole = 'admin' | 'rep' | 'supervisor' | 'accountant';
 
 export interface Representative {
@@ -48,17 +56,25 @@ export interface Representative {
   email: string;
   phone: string;
   nationalId?: string;
+  activationFacePhoto?: string; // صورة وجه التفعيل والتحقق الإداري (سجلات مدير التطبيق فقط)
+  nationalIdCardPhoto?: string; // صورة وجه البطاقة الأمامي (سجلات مدير التطبيق فقط)
+  nationalIdCardBackPhoto?: string; // صورة ظهر البطاقة الخلفي (سجلات مدير التطبيق فقط)
   role?: UserRole;
   roleTitle?: string;
   governorate: string;
   targetMonth: number;
-  avatar?: string;
+  avatar?: string; // صورة الملف الشخصي المعتادة (اختيارية)
   avatarStatus?: 'none' | 'pending_approval' | 'approved' | 'rejected';
   commissionRate: number; // Percentage, e.g., 42.86%
   status?: 'active' | 'suspended';
   password?: string;
   activeSessionId?: string;
   lastActiveTimestamp?: number;
+  referralCode?: string; // كود الإحالة الخاص بالمندوب
+  referredByCode?: string; // كود المندوب الذي قام بدعوته
+  referralUnlocked?: boolean; // هل تم فتح كود الإحالة للمندوب
+  adminBypassReferral?: boolean; // تجاوز وتفعيل يدوي من قبل المدير
+  referralRewardGranted?: boolean; // هل تم منح هدية الدعوة لمن دعاه
 }
 
 export interface PackageOption {

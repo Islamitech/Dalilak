@@ -266,6 +266,9 @@ function mapDbToRep(item: any): Representative {
     email: item.email,
     phone: item.phone,
     nationalId: item.national_id || item.nationalId,
+    activationFacePhoto: item.activation_face_photo || item.activationFacePhoto || '',
+    nationalIdCardPhoto: item.national_id_card_photo || item.nationalIdCardPhoto || '',
+    nationalIdCardBackPhoto: item.national_id_card_back_photo || item.nationalIdCardBackPhoto || '',
     role: item.role || 'rep',
     roleTitle: item.role_title || item.roleTitle || 'مندوب مبيعات ميداني',
     governorate: item.governorate || 'القاهرة',
@@ -275,6 +278,11 @@ function mapDbToRep(item: any): Representative {
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: item.status || 'active',
     password: item.password || 'Aa123456',
+    referralCode: item.referral_code || item.referralCode,
+    referredByCode: item.referred_by_code || item.referredByCode,
+    referralUnlocked: Boolean(item.referral_unlocked ?? item.referralUnlocked),
+    adminBypassReferral: Boolean(item.admin_bypass_referral ?? item.adminBypassReferral),
+    referralRewardGranted: Boolean(item.referral_reward_granted ?? item.referralRewardGranted),
   };
 }
 
@@ -285,6 +293,9 @@ function mapRepToDb(rep: Representative): any {
     email: rep.email,
     phone: rep.phone,
     national_id: rep.nationalId || null,
+    activation_face_photo: rep.activationFacePhoto || null,
+    national_id_card_photo: rep.nationalIdCardPhoto || null,
+    national_id_card_back_photo: rep.nationalIdCardBackPhoto || null,
     role: rep.role || 'rep',
     role_title: rep.roleTitle || 'مندوب مبيعات ميداني',
     governorate: rep.governorate || 'القاهرة',
@@ -293,7 +304,12 @@ function mapRepToDb(rep: Representative): any {
     avatar_status: rep.avatarStatus || 'none',
     commission_rate: Number(rep.commissionRate) || 42.86,
     status: rep.status || 'suspended',
-    password: rep.password || 'Aa132456',
+    password: rep.password || 'Aa123456',
+    referral_code: rep.referralCode || null,
+    referred_by_code: rep.referredByCode || null,
+    referral_unlocked: Boolean(rep.referralUnlocked),
+    admin_bypass_referral: Boolean(rep.adminBypassReferral),
+    referral_reward_granted: Boolean(rep.referralRewardGranted),
   };
   return record;
 }

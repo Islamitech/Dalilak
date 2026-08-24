@@ -27,7 +27,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-amber-500/30'
       } ${className}`}
     >
-      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+      <p className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
         {title}
       </p>
       <div className="flex items-center gap-2 mt-1">

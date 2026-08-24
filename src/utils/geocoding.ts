@@ -50,12 +50,12 @@ export async function fetchLocationAddress(lat: number, lng: number): Promise<Lo
     console.warn('Network geocode attempt fallback to coords bounds:', err);
   }
 
-  // Coords-based smart default lookup for Egyptian governorates & cities
+  // Coords-based smart default lookup for all Egyptian governorates & cities
   let gov = 'القاهرة';
   let city = 'المنطقة الحالية';
   let street = `شارع الموقع (GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)})`;
 
-  if (lat >= 29.9 && lat <= 30.2 && lng >= 31.1 && lng <= 31.4) {
+  if (lat >= 29.9 && lat <= 30.3 && lng >= 31.1 && lng <= 31.5) {
     if (lat > 30.03 && lng > 31.22) {
       gov = 'القاهرة';
       city = 'وسط البلد / التحرير';
@@ -69,18 +69,62 @@ export async function fetchLocationAddress(lat: number, lng: number): Promise<Lo
     gov = 'الإسكندرية';
     city = 'سموحة / محطة الرمل';
     street = 'طريق الجيش - كورنيش الإسكندرية';
-  } else if (lat >= 30.9 && lat <= 31.2 && lng >= 31.2 && lng <= 31.5) {
+  } else if (lat >= 30.9 && lat <= 31.3 && lng >= 31.2 && lng <= 31.6) {
     gov = 'الدقهلية (المنصورة)';
-    city = 'حي الجامعة';
+    city = 'حي الجامعة / المنصورة';
     street = 'شارع جيهان الرئيسي';
-  } else if (lat >= 30.7 && lat <= 30.9 && lng >= 30.9 && lng <= 31.2) {
+  } else if (lat >= 30.7 && lat <= 31.0 && lng >= 30.8 && lng <= 31.2) {
     gov = 'الغربية (طنطا)';
     city = 'حي أول طنطا';
     street = 'شارع الجيش الرئيسي';
-  } else if (lat >= 30.5 && lat <= 30.7 && lng >= 31.4 && lng <= 31.7) {
+  } else if (lat >= 30.4 && lat <= 30.8 && lng >= 31.3 && lng <= 31.8) {
     gov = 'الشرقية (الزقازيق)';
-    city = 'حي الزهور';
+    city = 'حي الزهور / الزقازيق';
     street = 'شارع الجلاء الرئيسي';
+  } else if (lat >= 30.3 && lat <= 30.6 && lng >= 31.0 && lng <= 31.3) {
+    gov = 'القليوبية (بنها)';
+    city = 'بنها / شبرا الخيمة';
+    street = 'شارع كورنيش النيل - بنها';
+  } else if (lat >= 30.4 && lat <= 30.7 && lng >= 30.8 && lng <= 31.2) {
+    gov = 'المنوفية (شبين الكوم)';
+    city = 'شبين الكوم';
+    street = 'شارع جمال عبد الناصر';
+  } else if (lat >= 30.9 && lat <= 31.3 && lng >= 30.2 && lng <= 30.7) {
+    gov = 'البحيرة (دمنهور)';
+    city = 'دمنهور';
+    street = 'شارع عبد السلام الشاذلي';
+  } else if (lat >= 31.2 && lat <= 31.4 && lng >= 32.1 && lng <= 32.4) {
+    gov = 'بورسعيد';
+    city = 'حي الشرق / بورسعيد';
+    street = 'شارع الجمهورية';
+  } else if (lat >= 30.4 && lat <= 30.8 && lng >= 32.1 && lng <= 32.5) {
+    gov = 'الإسماعيلية';
+    city = 'حي أول الإسماعيلية';
+    street = 'شارع محمد علي';
+  } else if (lat >= 29.8 && lat <= 30.1 && lng >= 32.4 && lng <= 32.7) {
+    gov = 'السويس';
+    city = 'حي السويس';
+    street = 'شارع الجيش - السويس';
+  } else if (lat >= 27.9 && lat <= 28.3 && lng >= 30.6 && lng <= 31.0) {
+    gov = 'المنيا';
+    city = 'المنيا';
+    street = 'طريق كورنيش النيل - المنيا';
+  } else if (lat >= 27.0 && lat <= 27.4 && lng >= 31.0 && lng <= 31.4) {
+    gov = 'أسيوط';
+    city = 'حي شرق أسيوط';
+    street = 'شارع الجمهورية - أسيوط';
+  } else if (lat >= 26.4 && lat <= 26.7 && lng >= 31.5 && lng <= 31.9) {
+    gov = 'سوهاج';
+    city = 'سوهاج';
+    street = 'شارع 15 مايو - سوهاج';
+  } else if (lat >= 25.5 && lat <= 25.9 && lng >= 32.5 && lng <= 32.9) {
+    gov = 'الأقصر';
+    city = 'الأقصر';
+    street = 'شارع خالد بن الوليد';
+  } else if (lat >= 23.9 && lat <= 24.3 && lng >= 32.7 && lng <= 33.1) {
+    gov = 'أسوان';
+    city = 'أسوان';
+    street = 'شارع كورنيش النيل - أسوان';
   }
 
   return { governorate: gov, city, street };

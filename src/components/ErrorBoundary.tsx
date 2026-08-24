@@ -26,6 +26,22 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught React error:', error, errorInfo);
+    // Save crash report for admin review
+    try {
+      const report = {
+        message: error.message,
+        stack: error.stack?.substring(0, 500),
+        componentStack: errorInfo.componentStack?.substring(0, 300),
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+      };
+      const existing = JSON.parse(localStorage.getItem('dalelak_crash_reports') || '[]');
+      existing.unshift(report);
+      // Keep only last 10 reports
+      localStorage.setItem('dalelak_crash_reports', JSON.stringify(existing.slice(0, 10)));
+    } catch {
+      // Silently fail if storage is full
+    }
   }
 
   public render() {
