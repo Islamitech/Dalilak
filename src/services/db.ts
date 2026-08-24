@@ -99,13 +99,15 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 export async function saveRepToDb(rep: Representative): Promise<void> {
   const dbRecord = mapRepToDb(rep);
   try {
-    const { error } = await supabase.from('representatives').upsert([dbRecord], { onConflict: 'email' });
+    const { error } = await supabase.from('representatives').upsert([dbRecord]);
     if (error) {
-      console.warn('Supabase save rep notice, trying REST fallback:', error);
-      await supabaseRestFetch('representatives', {
-        method: 'POST',
-        body: JSON.stringify(dbRecord),
-      });
+      const { error: updateErr } = await supabase.from('representatives').update(dbRecord).eq('id', rep.id);
+      if (updateErr) {
+        await supabaseRestFetch('representatives', {
+          method: 'POST',
+          body: JSON.stringify(dbRecord),
+        });
+      }
     }
   } catch (err) {
     console.warn('Supabase save rep catch notice:', err);

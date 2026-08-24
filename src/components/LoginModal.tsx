@@ -158,25 +158,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         console.log('Server login fallback to Supabase real-time database');
       }
 
-      // Step 2: Fresh Database & LocalStorage Validation
+      // Step 2: Fresh Database & LocalStorage Validation (Fresh DB is strictly authoritative!)
       const freshDbReps = await fetchRepsFromDb();
       const allRepsMap = new Map<string, Representative>();
       MOCK_REPRESENTATIVES.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
-      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
-      freshDbReps.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
       try {
         const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
         if (Array.isArray(cachedCustom)) {
           cachedCustom.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
         }
       } catch {}
+      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
+      freshDbReps.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
 
       let foundRep = allRepsMap.get(cleanEmail);
       if (!foundRep) {
+        const cleanPhone = cleanEmail.replace(/\D/g, '');
         const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
         for (const [, r] of allRepsMap) {
           const normR = r.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (normR === normClean || r.phone.trim() === cleanEmail) {
+          const rPhone = (r.phone || '').replace(/\D/g, '');
+          if (
+            normR === normClean ||
+            (cleanPhone.length >= 8 && rPhone && (rPhone === cleanPhone || rPhone.endsWith(cleanPhone) || cleanPhone.endsWith(rPhone))) ||
+            r.id.toLowerCase() === cleanEmail
+          ) {
             foundRep = r;
             break;
           }

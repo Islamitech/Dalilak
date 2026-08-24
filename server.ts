@@ -133,10 +133,17 @@ app.post('/api/auth/login', (req, res) => {
   // Representative login (with exact and smart normalized matching)
   let rep = representatives.find((r) => r.email.toLowerCase() === cleanEmail);
   if (!rep) {
+    const cleanPhone = cleanEmail.replace(/\D/g, '');
     const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
     rep = representatives.find((r) => {
       const normRep = r.email.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return normRep === normClean || r.phone.trim() === cleanEmail;
+      const normPhone = (r.phone || '').replace(/\D/g, '');
+      return (
+        normRep === normClean ||
+        (cleanPhone.length >= 8 && normPhone && (normPhone === cleanPhone || normPhone.endsWith(cleanPhone) || cleanPhone.endsWith(normPhone))) ||
+        r.phone.trim() === cleanEmail ||
+        r.id.toLowerCase() === cleanEmail
+      );
     });
   }
 
