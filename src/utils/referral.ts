@@ -34,9 +34,19 @@ export function getRepReferralCode(rep: Representative): string {
  * 3. Has registered >= 25 businesses
  */
 export function isReferralSystemUnlocked(rep: Representative, myBusinessesCount: number): boolean {
+  if (!rep) return false;
   if (rep.role === 'admin' || rep.role === 'supervisor') return true;
-  if (rep.adminBypassReferral || rep.referralUnlocked) return true;
-  return myBusinessesCount >= 25;
+  if (
+    rep.adminBypassReferral === true ||
+    rep.referralUnlocked === true ||
+    String(rep.adminBypassReferral) === 'true' ||
+    String(rep.referralUnlocked) === 'true' ||
+    Boolean(rep.adminBypassReferral) ||
+    Boolean(rep.referralUnlocked)
+  ) {
+    return true;
+  }
+  return (Number(myBusinessesCount) || 0) >= 25;
 }
 
 export interface RepReferralSummary {

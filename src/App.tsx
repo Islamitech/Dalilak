@@ -445,23 +445,41 @@ export default function App() {
       .then(([bizData, dbRepsData, apiRepsData]) => {
         setBusinesses(bizData && bizData.length > 0 ? bizData : INITIAL_BUSINESSES);
 
-        // Merge DB reps, API reps, and mock reps
+        // Correct Merge Order: mock first, cache second, Express API third, and Supabase DB LAST (strictly authoritative!)
         const repMap = new Map<string, Representative>();
         MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
-        if (Array.isArray(dbRepsData) && dbRepsData.length > 0) {
-          dbRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
-        }
-        if (Array.isArray(apiRepsData) && apiRepsData.length > 0) {
-          apiRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
-        }
         try {
           const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
           if (Array.isArray(cachedCustom)) {
             cachedCustom.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
           }
         } catch {}
+        if (Array.isArray(apiRepsData) && apiRepsData.length > 0) {
+          apiRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
+        }
+        if (Array.isArray(dbRepsData) && dbRepsData.length > 0) {
+          dbRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
+        }
 
-        setRepresentatives(Array.from(repMap.values()));
+        const mergedReps = Array.from(repMap.values());
+        setRepresentatives(mergedReps);
+
+        // Instant user state sync if logged-in representative data changed
+        if (user) {
+          const freshUserRep = mergedReps.find(
+            (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
+          );
+          if (freshUserRep) {
+            setUser((prev) => (prev ? { ...prev, repData: freshUserRep } : prev));
+            try {
+              localStorage.setItem(
+                'dalelak_logged_user',
+                JSON.stringify({ ...user, repData: freshUserRep })
+              );
+            } catch {}
+          }
+        }
+
         setIsLoadingData(false);
       })
       .catch((err) => {
@@ -492,6 +510,66 @@ export default function App() {
       })
       .catch((err) => console.log('Using local payment config fallback:', err));
   }, []);
+
+  // Live Real-Time Poller & Cross-Tab Syncer (Reflects Admin changes instantaneously)
+  useEffect(() => {
+    const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+
+    const refreshLiveData = async () => {
+      try {
+        const [freshBiz, freshReps] = await Promise.all([
+          fetchBusinessesFromDb(),
+          fetchRepsFromDb(),
+        ]);
+
+        if (Array.isArray(freshBiz) && freshBiz.length > 0) {
+          setBusinesses(freshBiz);
+        }
+
+        if (Array.isArray(freshReps) && freshReps.length > 0) {
+          setRepresentatives((prev) => {
+            const map = new Map<string, Representative>();
+            prev.forEach((r) => map.set(r.email.toLowerCase(), r));
+            freshReps.forEach((r) => map.set(r.email.toLowerCase(), { ...map.get(r.email.toLowerCase()), ...r }));
+            return Array.from(map.values());
+          });
+
+          // Sync current logged-in user in real time
+          if (user) {
+            const myFreshRep = freshReps.find(
+              (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
+            );
+            if (myFreshRep) {
+              setUser((prev) => (prev ? { ...prev, repData: myFreshRep } : prev));
+              try {
+                localStorage.setItem(
+                  'dalelak_logged_user',
+                  JSON.stringify({ ...user, repData: myFreshRep })
+                );
+              } catch {}
+            }
+          }
+        }
+      } catch (err) {
+        // silent
+      }
+    };
+
+    if (syncChannel) {
+      syncChannel.onmessage = (event) => {
+        if (event.data?.type === 'SYNC_DATA' || event.data?.type === 'REP_UPDATED') {
+          refreshLiveData();
+        }
+      };
+    }
+
+    const interval = setInterval(refreshLiveData, 8000);
+
+    return () => {
+      clearInterval(interval);
+      if (syncChannel) syncChannel.close();
+    };
+  }, [user?.id, user?.email]);
 
   // Handlers synced with Supabase Database
   const handleAddBusiness = async (newBiz: Business) => {
@@ -693,8 +771,8 @@ export default function App() {
     });
 
     // CRITICAL FIX: Always sync user state & localStorage when the logged-in rep's data changes
-    // This ensures avatar approval is reflected immediately without re-login
-    if (user?.repData?.id === updatedRep.id) {
+    // This ensures referral unlock, name, and avatar updates are reflected immediately in real time
+    if (user && (user.id === updatedRep.id || user.repData?.id === updatedRep.id || user.email.toLowerCase() === updatedRep.email.toLowerCase())) {
       const updatedUser = { ...user, repData: updatedRep, name: updatedRep.name, email: updatedRep.email };
       setUser(updatedUser);
       try {
@@ -785,6 +863,14 @@ export default function App() {
     } catch (err) {
       console.log('Backend rep update sync notice:', err);
     }
+
+    try {
+      const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (channel) {
+        channel.postMessage({ type: 'REP_UPDATED', repId: updatedRep.id });
+        channel.close();
+      }
+    } catch {}
   };
 
   const handleDeleteRepresentative = async (id: string) => {
