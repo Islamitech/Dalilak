@@ -257,7 +257,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       nationalId: nationalId || undefined,
       photos: photos,
       repId: currentRep?.id || 'rep_1',
-      repName: currentRep?.name || 'محمود عبد الفتاح',
+      repName: currentRep?.name || 'مندوب معتمد',
       packageId: selectedPackage.id,
       packageName: selectedPackage.title,
       packagePrice: selectedPackage.price,
