@@ -63,6 +63,64 @@ export interface RepReferralSummary {
 }
 
 /**
+ * Checks if an invited representative was referred by a specific inviter.
+ * Matches by code (e.g. DALIL-8355), 4-digit suffix (8355), phone number, email, or ID.
+ */
+export function isReferredByInviter(invitedRep: Representative, inviterRep: Representative): boolean {
+  if (!invitedRep || !inviterRep || invitedRep.id === inviterRep.id) return false;
+
+  const rawRefBy = (invitedRep.referredByCode || '').trim();
+  if (!rawRefBy) return false;
+
+  const cleanRefBy = rawRefBy.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const ownCode = getRepReferralCode(inviterRep).toUpperCase();
+  const cleanOwnCode = ownCode.replace(/[^A-Z0-9]/g, '');
+  const customCode = (inviterRep.referralCode || '').toUpperCase();
+  const cleanCustomCode = customCode.replace(/[^A-Z0-9]/g, '');
+
+  // 1. Direct exact or alphanumeric code match
+  if (
+    cleanRefBy === cleanOwnCode ||
+    (cleanCustomCode && cleanRefBy === cleanCustomCode) ||
+    rawRefBy.toUpperCase() === ownCode ||
+    (customCode && rawRefBy.toUpperCase() === customCode)
+  ) {
+    return true;
+  }
+
+  // 2. 4-digit code suffix match (e.g. '8355' matches 'DALIL-8355')
+  const inviterDigits = (inviterRep.referralCode || '').replace(/\D/g, '').slice(-4) ||
+    inviterRep.phone.replace(/\D/g, '').slice(-4) ||
+    inviterRep.id.replace(/\D/g, '').slice(-4);
+
+  const refDigits = rawRefBy.replace(/\D/g, '').slice(-4);
+  if (inviterDigits && refDigits && inviterDigits === refDigits) {
+    return true;
+  }
+
+  // 3. Match by inviter's phone number
+  const inviterCleanPhone = (inviterRep.phone || '').replace(/\D/g, '');
+  const refCleanPhone = rawRefBy.replace(/\D/g, '');
+  if (inviterCleanPhone && refCleanPhone && (inviterCleanPhone === refCleanPhone || inviterCleanPhone.endsWith(refCleanPhone) || refCleanPhone.endsWith(inviterCleanPhone))) {
+    return true;
+  }
+
+  // 4. Match by inviter's email
+  const inviterEmail = (inviterRep.email || '').trim().toLowerCase();
+  if (inviterEmail && rawRefBy.toLowerCase() === inviterEmail) {
+    return true;
+  }
+
+  // 5. Match by inviter's unique ID
+  const inviterId = (inviterRep.id || '').trim().toLowerCase();
+  if (inviterId && rawRefBy.toLowerCase() === inviterId) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Aggregates all referral earnings, network members, and commission tiers for an inviter.
  */
 export function getRepReferralSummary(
@@ -76,35 +134,17 @@ export function getRepReferralSummary(
   ).length;
   const isUnlocked = isReferralSystemUnlocked(inviterRep, myBizCount);
 
-  // Normalize code for clean comparison
-  const normalizedOwnCode = referralCode.trim().toUpperCase();
-  const normalizedRepId = (inviterRep.id || '').trim().toLowerCase();
-
-  // Find all reps who registered with this referral code
-  const invitedReps = allReps.filter((r) => {
-    if (!r || r.id === inviterRep.id) return false;
-    const refBy = (r.referredByCode || '').trim().toUpperCase();
-    if (!refBy) return false;
-    return (
-      refBy === normalizedOwnCode ||
-      (inviterRep.referralCode && refBy === inviterRep.referralCode.trim().toUpperCase()) ||
-      r.referredByCode?.toLowerCase() === normalizedRepId
-    );
-  });
+  // Find all reps who registered with this referral code using robust matching
+  const invitedReps = allReps.filter((r) => isReferredByInviter(r, inviterRep));
 
   // Find who invited the current rep (if applicable)
   let inviterInfo: { rep: Representative; code: string } | undefined = undefined;
   if (inviterRep.referredByCode) {
-    const parentCode = inviterRep.referredByCode.trim().toUpperCase();
-    const parentRep = allReps.find(
-      (r) =>
-        r.id !== inviterRep.id &&
-        (getRepReferralCode(r) === parentCode || (r.referralCode && r.referralCode.trim().toUpperCase() === parentCode))
-    );
+    const parentRep = allReps.find((r) => isReferredByInviter(inviterRep, r));
     if (parentRep) {
       inviterInfo = {
         rep: parentRep,
-        code: parentCode,
+        code: getRepReferralCode(parentRep),
       };
     }
   }
@@ -152,3 +192,4 @@ export function getRepReferralSummary(
     invitedRepsDetails,
   };
 }
+

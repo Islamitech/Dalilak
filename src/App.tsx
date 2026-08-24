@@ -823,7 +823,10 @@ export default function App() {
     }
   };
 
-  const rawRep = user?.repData || representatives[0];
+  const liveRep = user
+    ? representatives.find((r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase())
+    : null;
+  const rawRep = liveRep || user?.repData || representatives[0];
   // Guard: use safe defaults if rawRep is undefined (e.g. during initial data load)
   const currentRep: Representative = rawRep
     ? {

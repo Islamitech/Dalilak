@@ -4,7 +4,7 @@ import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationS
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
 import { calculateTotalRepCommission } from '../utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../utils/dateFormatters';
-import { getRepReferralCode, isReferralSystemUnlocked, calculateReferralCommissionRate } from '../utils/referral';
+import { getRepReferralCode, isReferralSystemUnlocked, calculateReferralCommissionRate, isReferredByInviter } from '../utils/referral';
 import { compressImageFile } from '../utils/imageCompressor';
 import { UserAvatar } from './UserAvatar';
 import { BusinessEditModal } from './BusinessEditModal';
@@ -1342,7 +1342,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const repBizCount = businesses.filter((b) => b.repId === acc.id || b.repName === acc.name).length;
                       const repRefCode = getRepReferralCode(acc);
                       const isRefUnlocked = isReferralSystemUnlocked(acc, repBizCount);
-                      const invitedCount = mergedAdminReps.filter((r) => r.id !== acc.id && r.referredByCode?.toUpperCase() === repRefCode).length;
+                      const invitedCount = mergedAdminReps.filter((r) => isReferredByInviter(r, acc)).length;
 
                       return (
                         <div className="bg-[var(--input-bg)] p-2 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-[11px]">

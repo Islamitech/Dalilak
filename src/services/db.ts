@@ -99,15 +99,16 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 export async function saveRepToDb(rep: Representative): Promise<void> {
   const dbRecord = mapRepToDb(rep);
   try {
-    const { error } = await supabase.from('representatives').upsert([dbRecord]);
+    const { error } = await supabase.from('representatives').upsert([dbRecord], { onConflict: 'email' });
     if (error) {
+      console.warn('Supabase save rep notice, trying REST fallback:', error);
       await supabaseRestFetch('representatives', {
         method: 'POST',
         body: JSON.stringify(dbRecord),
       });
     }
   } catch (err) {
-    console.log('Supabase save rep notice:', err);
+    console.warn('Supabase save rep catch notice:', err);
   }
 }
 
@@ -184,7 +185,7 @@ function mapDbToBusiness(item: any): Business {
     nationalId: item.national_id || item.nationalId,
     photos: parsePhotosArray(item),
     repId: item.rep_id || item.repId || 'rep_1',
-    repName: item.rep_name || item.repName || 'محمود عبد الفتاح',
+    repName: item.rep_name || item.repName || 'مندوب معتمد',
     packageId: item.package_id || item.packageId || 'pkg_basic',
     packageName: item.package_name || item.packageName || '1. باقة التوثيق الأساسي',
     packagePrice: item.package_price !== undefined && item.package_price !== null ? Number(item.package_price) : (item.packagePrice !== undefined && item.packagePrice !== null ? Number(item.packagePrice) : 250),
@@ -260,56 +261,96 @@ export async function updateRepSessionInDb(_id: string, _sessionId?: string, _ti
 }
 
 function mapDbToRep(item: any): Representative {
+  let parsedAvatar = item.avatar || '';
+  let metaReferralCode: string | undefined = item.referral_code || item.referralCode;
+  let metaReferredByCode: string | undefined = item.referred_by_code || item.referredByCode;
+  let metaReferralUnlocked = item.referral_unlocked ?? item.referralUnlocked;
+  let metaAdminBypassReferral = item.admin_bypass_referral ?? item.adminBypassReferral;
+  let metaReferralRewardGranted = item.referral_reward_granted ?? item.referralRewardGranted;
+  let metaActivationFacePhoto: string | undefined = item.activation_face_photo || item.activationFacePhoto;
+  let metaNationalIdCardPhoto: string | undefined = item.national_id_card_photo || item.nationalIdCardPhoto;
+  let metaNationalIdCardBackPhoto: string | undefined = item.national_id_card_back_photo || item.nationalIdCardBackPhoto;
+
+  if (typeof parsedAvatar === 'string' && parsedAvatar.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(parsedAvatar.trim());
+      if (parsed && typeof parsed === 'object') {
+        parsedAvatar = parsed.avatar || '';
+        if (parsed.referralCode) metaReferralCode = parsed.referralCode;
+        if (parsed.referredByCode) metaReferredByCode = parsed.referredByCode;
+        if (parsed.referralUnlocked !== undefined) metaReferralUnlocked = parsed.referralUnlocked;
+        if (parsed.adminBypassReferral !== undefined) metaAdminBypassReferral = parsed.adminBypassReferral;
+        if (parsed.referralRewardGranted !== undefined) metaReferralRewardGranted = parsed.referralRewardGranted;
+        if (parsed.activationFacePhoto) metaActivationFacePhoto = parsed.activationFacePhoto;
+        if (parsed.nationalIdCardPhoto) metaNationalIdCardPhoto = parsed.nationalIdCardPhoto;
+        if (parsed.nationalIdCardBackPhoto) metaNationalIdCardBackPhoto = parsed.nationalIdCardBackPhoto;
+      }
+    } catch {}
+  }
+
+  // Deterministic fallback referral code if none stored
+  const cleanId = (item.id || '').replace(/\D/g, '').slice(-4) || (item.phone || '').replace(/\D/g, '').slice(-4) || '2026';
+  const defaultRefCode = item.id === 'rep_ahmed_ezalden' ? 'DALIL-8355' : `DALIL-${cleanId}`;
+
   return {
     id: item.id,
     name: item.name,
     email: item.email,
     phone: item.phone,
     nationalId: item.national_id || item.nationalId,
-    activationFacePhoto: item.activation_face_photo || item.activationFacePhoto || '',
-    nationalIdCardPhoto: item.national_id_card_photo || item.nationalIdCardPhoto || '',
-    nationalIdCardBackPhoto: item.national_id_card_back_photo || item.nationalIdCardBackPhoto || '',
+    activationFacePhoto: metaActivationFacePhoto || '',
+    nationalIdCardPhoto: metaNationalIdCardPhoto || '',
+    nationalIdCardBackPhoto: metaNationalIdCardBackPhoto || '',
     role: item.role || 'rep',
     roleTitle: item.role_title || item.roleTitle || 'مندوب مبيعات ميداني',
     governorate: item.governorate || 'القاهرة',
     targetMonth: Number(item.target_month || item.targetMonth) || 25,
-    avatar: item.avatar || '',
+    avatar: parsedAvatar,
     avatarStatus: item.avatar_status || item.avatarStatus || 'none',
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: item.status || 'active',
     password: item.password || 'Aa123456',
-    referralCode: item.referral_code || item.referralCode,
-    referredByCode: item.referred_by_code || item.referredByCode,
-    referralUnlocked: Boolean(item.referral_unlocked ?? item.referralUnlocked),
-    adminBypassReferral: Boolean(item.admin_bypass_referral ?? item.adminBypassReferral),
-    referralRewardGranted: Boolean(item.referral_reward_granted ?? item.referralRewardGranted),
+    referralCode: metaReferralCode || defaultRefCode,
+    referredByCode: metaReferredByCode || undefined,
+    referralUnlocked: Boolean(metaReferralUnlocked),
+    adminBypassReferral: Boolean(metaAdminBypassReferral),
+    referralRewardGranted: Boolean(metaReferralRewardGranted),
   };
 }
 
 function mapRepToDb(rep: Representative): any {
+  // Serialize metadata envelope into avatar field to support all fields in Supabase without schema limitation
+  let avatarPayload = rep.avatar || '';
+  const metadata: any = {
+    avatar: rep.avatar || '',
+  };
+  if (rep.referralCode) metadata.referralCode = rep.referralCode;
+  if (rep.referredByCode) metadata.referredByCode = rep.referredByCode;
+  if (rep.referralUnlocked !== undefined) metadata.referralUnlocked = rep.referralUnlocked;
+  if (rep.adminBypassReferral !== undefined) metadata.adminBypassReferral = rep.adminBypassReferral;
+  if (rep.referralRewardGranted !== undefined) metadata.referralRewardGranted = rep.referralRewardGranted;
+  if (rep.activationFacePhoto) metadata.activationFacePhoto = rep.activationFacePhoto;
+  if (rep.nationalIdCardPhoto) metadata.nationalIdCardPhoto = rep.nationalIdCardPhoto;
+  if (rep.nationalIdCardBackPhoto) metadata.nationalIdCardBackPhoto = rep.nationalIdCardBackPhoto;
+
+  avatarPayload = JSON.stringify(metadata);
+
   const record: any = {
     id: rep.id,
     name: rep.name,
     email: rep.email,
     phone: rep.phone,
     national_id: rep.nationalId || null,
-    activation_face_photo: rep.activationFacePhoto || null,
-    national_id_card_photo: rep.nationalIdCardPhoto || null,
-    national_id_card_back_photo: rep.nationalIdCardBackPhoto || null,
     role: rep.role || 'rep',
     role_title: rep.roleTitle || 'مندوب مبيعات ميداني',
     governorate: rep.governorate || 'القاهرة',
     target_month: Number(rep.targetMonth) || 25,
-    avatar: rep.avatar || '',
+    avatar: avatarPayload,
     avatar_status: rep.avatarStatus || 'none',
     commission_rate: Number(rep.commissionRate) || 42.86,
     status: rep.status || 'suspended',
     password: rep.password || 'Aa123456',
-    referral_code: rep.referralCode || null,
-    referred_by_code: rep.referredByCode || null,
-    referral_unlocked: Boolean(rep.referralUnlocked),
-    admin_bypass_referral: Boolean(rep.adminBypassReferral),
-    referral_reward_granted: Boolean(rep.referralRewardGranted),
   };
   return record;
 }
+

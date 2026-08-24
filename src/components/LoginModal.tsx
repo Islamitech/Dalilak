@@ -396,20 +396,57 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const cleanReferral = regReferralCode.trim().toUpperCase();
     const ownCode = `DALIL-${timestamp.toString().slice(-4)}`;
 
-    // Smart referral resolver: supports DALIL-XXXX codes, emails, and phone numbers
+    // Smart referral resolver: supports DALIL-XXXX codes, 4-digit codes (8355), emails, and phone numbers
     let resolvedReferredByCode: string | undefined = undefined;
     if (cleanReferral) {
-      const matchRep = representatives.find(
-        (r) =>
-          getRepReferralCode(r) === cleanReferral ||
-          (r.referralCode && r.referralCode.trim().toUpperCase() === cleanReferral) ||
-          r.email.trim().toLowerCase() === cleanReferral.toLowerCase() ||
-          r.phone.trim() === cleanReferral
-      );
+      const cleanRefNorm = cleanReferral.replace(/[^A-Z0-9]/g, '');
+      const refDigits = cleanReferral.replace(/\D/g, '').slice(-4);
+
+      let matchRep = representatives.find((r) => {
+        const rCode = getRepReferralCode(r).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const rCustom = (r.referralCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const rDigits = (r.referralCode || '').replace(/\D/g, '').slice(-4) || (r.phone || '').replace(/\D/g, '').slice(-4);
+        const rPhone = (r.phone || '').replace(/\D/g, '');
+        const rEmail = (r.email || '').trim().toLowerCase();
+
+        return (
+          rCode === cleanRefNorm ||
+          (rCustom && rCustom === cleanRefNorm) ||
+          (rDigits && refDigits && rDigits === refDigits) ||
+          (rPhone && (rPhone === cleanReferral.replace(/\D/g, '') || rPhone.endsWith(cleanReferral.replace(/\D/g, '')))) ||
+          rEmail === cleanReferral.toLowerCase() ||
+          r.id.toLowerCase() === cleanReferral.toLowerCase()
+        );
+      });
+
+      if (!matchRep) {
+        try {
+          const freshReps = await fetchRepsFromDb();
+          matchRep = freshReps.find((r) => {
+            const rCode = getRepReferralCode(r).toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const rCustom = (r.referralCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const rDigits = (r.referralCode || '').replace(/\D/g, '').slice(-4) || (r.phone || '').replace(/\D/g, '').slice(-4);
+            const rPhone = (r.phone || '').replace(/\D/g, '');
+            const rEmail = (r.email || '').trim().toLowerCase();
+
+            return (
+              rCode === cleanRefNorm ||
+              (rCustom && rCustom === cleanRefNorm) ||
+              (rDigits && refDigits && rDigits === refDigits) ||
+              (rPhone && (rPhone === cleanReferral.replace(/\D/g, '') || rPhone.endsWith(cleanReferral.replace(/\D/g, '')))) ||
+              rEmail === cleanReferral.toLowerCase() ||
+              r.id.toLowerCase() === cleanReferral.toLowerCase()
+            );
+          });
+        } catch {}
+      }
+
       if (matchRep) {
         resolvedReferredByCode = getRepReferralCode(matchRep);
       } else {
-        resolvedReferredByCode = cleanReferral;
+        resolvedReferredByCode = cleanReferral.startsWith('DALIL-')
+          ? cleanReferral
+          : (refDigits ? `DALIL-${refDigits}` : cleanReferral);
       }
     }
 
