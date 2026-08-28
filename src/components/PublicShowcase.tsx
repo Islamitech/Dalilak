@@ -39,28 +39,26 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
 
-  // Search and Filters
+  // Search and Filters (Default to 'الجيزة' as requested)
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [govFilter, setGovFilter] = useState<string>('all');
+  const [govFilter, setGovFilter] = useState<string>('الجيزة');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeView, setActiveView] = useState<'grid' | 'map'>('grid');
 
   // Selected Business for Detail Modal
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // Quick Consultation Form State
+  // Quick Consultation Form State (Default to 'الجيزة')
   const [formBizName, setFormBizName] = useState<string>('');
   const [formOwnerName, setFormOwnerName] = useState<string>('');
   const [formPhone, setFormPhone] = useState<string>('');
-  const [formGov, setFormGov] = useState<string>('القاهرة');
+  const [formGov, setFormGov] = useState<string>('الجيزة');
   const [formSelectedPackage, setFormSelectedPackage] = useState<string>(PACKAGES[1].title);
   const [consultSuccess, setConsultSuccess] = useState<boolean>(false);
 
-  // Verified Businesses only for public view
+  // All registered businesses for the comprehensive public directory
   const publicBusinesses = useMemo(() => {
-    return businesses.filter(
-      (b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced' || (b.amountPaid || 0) > 0
-    );
+    return businesses;
   }, [businesses]);
 
   // Filtered Businesses
@@ -186,44 +184,43 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           {/* Trust Badge */}
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-[var(--bg-card)] to-yellow-500/20 border border-amber-500/40 px-4 py-1.5 rounded-full shadow-sm text-xs font-black text-amber-700 dark:text-amber-300">
             <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-            <span>المنظومة الوطنية الأولى لتوثيق وتطوير الأنشطة على خرائط Google 🗺️✨</span>
+            <span>🇪🇬 دليل الأنشطة والمحلات والخدمات المعتمدة في مصر</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-[var(--text-primary)] leading-tight max-w-4xl mx-auto">
-            اجعل نشاطك التجاري في مقدمة نتائج بحث{' '}
+            دليل الأنشطة والمحلات والخدمات في{' '}
             <span className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 bg-clip-text text-transparent">
-              خرائط Google
+              الجيزة وكافة المحافظات
             </span>{' '}
-            واكسب ثقة آلاف العملاء الجدد
+            • اعثر على ما تبحث عنه بسهولة
           </h1>
 
           <p className="text-xs sm:text-base text-[var(--text-secondary)] font-bold max-w-2xl mx-auto leading-relaxed">
-            استكشف أفضل المتاجر والشركات والعيادات والخدمات الموثقة رسمياً في مصر، أو اشترك الآن لتوثيق وتثبيت نشاطك
-            التجاري بإحداثيات GPS دقيقة وصور احترافية بتقنية الذكاء الاصطناعي.
+            استكشف العناوين المعتمدة، أرقام الهواتف، مواعيد العمل، ومواقع الأنشطة التجارية والطبية والحرفية على خرائط Google بدقة عالية.
           </p>
 
           {/* Action CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <a
-              href="#packages"
+              href="#explore"
               className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
             >
-              <Award className="w-4 h-4 stroke-[2.5]" />
-              <span>استعرض باقات التوثيق الرسمية</span>
+              <Search className="w-4 h-4 stroke-[2.5]" />
+              <span>استكشف المحلات والأنشطة ({publicBusinesses.length})</span>
             </a>
             <a
-              href="#explore"
+              href="#packages"
               className="bg-[var(--input-bg)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-color)] font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
             >
-              <Search className="w-4 h-4 text-amber-500" />
-              <span>تصفح الأنشطة المعتمدة ({publicBusinesses.length})</span>
+              <Award className="w-4 h-4 text-amber-500" />
+              <span>أصحاب الأنشطة: باقات التوثيق على Google</span>
             </a>
           </div>
 
           {/* Key Metric Counters */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 max-w-4xl mx-auto text-right">
             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-sm space-y-1">
-              <span className="text-[11px] text-[var(--text-muted)] font-bold block">الأنشطة الموثقة</span>
+              <span className="text-[11px] text-[var(--text-muted)] font-bold block">الأنشطة المسجلة</span>
               <span className="text-xl sm:text-2xl font-black text-amber-500 font-mono">
                 {publicBusinesses.length > 0 ? publicBusinesses.length : 120}+
               </span>
@@ -251,10 +248,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           <div className="space-y-1">
             <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] flex items-center gap-2">
               <Building2 className="w-6 h-6 text-amber-500" />
-              <span>معرض الأنشطة والخدمات المعتمدة في مصر</span>
+              <span>دليل المحلات والأنشطة التجارية والخدمية</span>
             </h2>
             <p className="text-xs text-[var(--text-muted)] font-bold">
-              تصفح الأنشطة الموثقة رسميّاً مع بيانات الاتصال وموقعها المعتمد على الخريطة
+              تصفح كافة الأنشطة والمحلات المسجلة مع بيانات التواصل والعنوان الدقيق وموقعها المعتمد على الخريطة
             </p>
           </div>
 
@@ -335,8 +332,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] font-bold">
             <span>
-              عرض <span className="text-amber-500 font-black">{filteredBusinesses.length}</span> من أصل{' '}
-              <span className="font-mono">{publicBusinesses.length}</span> نشاط موثق معتمد
+              عرض <span className="text-amber-500 font-black">{filteredBusinesses.length}</span> من إجمالي{' '}
+              <span className="font-mono">{publicBusinesses.length}</span> نشاط ومحل مسجل
             </span>
             {(searchQuery || govFilter !== 'all' || categoryFilter !== 'all') && (
               <button
@@ -345,9 +342,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   setGovFilter('all');
                   setCategoryFilter('all');
                 }}
-                className="text-rose-500 hover:underline cursor-pointer"
+                className="text-rose-500 hover:underline cursor-pointer font-black"
               >
-                إعادة ضبط الفلاتر ✕
+                عرض كافة المحافظات ✕
               </button>
             )}
           </div>
@@ -402,10 +399,17 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
                         {/* Top Badges */}
                         <div className="absolute top-3 right-3 left-3 flex items-center justify-between">
-                          <span className="bg-emerald-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>موثق رسمياً</span>
-                          </span>
+                          {biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced' ? (
+                            <span className="bg-emerald-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>موثق رسمياً</span>
+                            </span>
+                          ) : (
+                            <span className="bg-amber-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm">
+                              <Sparkles className="w-3 h-3" />
+                              <span>نشاط مسجل</span>
+                            </span>
+                          )}
 
                           <span className="bg-slate-950/70 text-amber-400 text-[10.5px] font-bold px-2 py-0.5 rounded-lg border border-amber-500/30 backdrop-blur-md">
                             {biz.governorate}
