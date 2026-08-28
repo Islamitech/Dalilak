@@ -9,10 +9,54 @@ import { Business, Representative, PaymentGatewayConfig, PayoutRequest, Interest
 // ============================================
 // 1. BUSINESSES OPERATIONS (الأنشطة التجارية)
 // ============================================
+
+// Helper to ensure all remote database records are permanently standardized to 250 EGP
+async function reconcileLegacyBusinessesTo250(records: any[]): Promise<void> {
+  for (const item of records) {
+    const isPaid = item.payment_status === 'fully_paid' || (Number(item.amount_paid || 0) > 0);
+    const expectedAmountPaid = isPaid ? 250 : 0;
+    const expectedPaymentStatus = isPaid ? 'fully_paid' : (item.payment_status || 'unpaid');
+    const isCash = (item.payment_method || 'cash_by_rep') === 'cash_by_rep';
+    const expectedCashCollected = isPaid && isCash ? 250 : 0;
+
+    const needsUpdate =
+      Number(item.package_price) !== 250 ||
+      item.package_id !== 'pkg_basic' ||
+      item.package_name !== '1. باقة التوثيق الأساسي' ||
+      Number(item.amount_paid || 0) !== expectedAmountPaid ||
+      item.payment_status !== expectedPaymentStatus;
+
+    if (needsUpdate && item.id) {
+      const updates = {
+        package_id: 'pkg_basic',
+        package_name: '1. باقة التوثيق الأساسي',
+        package_price: 250,
+        amount_paid: expectedAmountPaid,
+        payment_status: expectedPaymentStatus,
+      };
+
+      // Background update in Supabase
+      (async () => {
+        try {
+          const { error } = await supabase.from('businesses').update(updates).eq('id', item.id);
+          if (error) {
+            await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(item.id)}`, {
+              method: 'PATCH',
+              body: JSON.stringify(updates),
+            });
+          }
+        } catch {}
+      })();
+    }
+  }
+}
+
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   try {
     const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
     if (!error && data && Array.isArray(data)) {
+      // Reconcile in background
+      reconcileLegacyBusinessesTo250(data).catch(() => {});
       return data.map(mapDbToBusiness);
     }
 
@@ -21,6 +65,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     if (res.ok) {
       const restData = await res.json();
       if (Array.isArray(restData)) {
+        reconcileLegacyBusinessesTo250(restData).catch(() => {});
         return restData.map(mapDbToBusiness);
       }
     }
@@ -364,6 +409,23 @@ function parsePhotosArray(item: any): string[] {
 }
 
 function mapDbToBusiness(item: any): Business {
+  // Single standardized unified package across all previous & current records: 250 EGP
+  const packagePrice = 250;
+  const packageName = '1. باقة التوثيق الأساسي';
+  const packageId = 'pkg_basic';
+
+  const rawPaid = Number(item.amount_paid !== undefined && item.amount_paid !== null ? item.amount_paid : (item.amountPaid || 0));
+  const rawStatus = item.payment_status || item.paymentStatus;
+  const isPaid = rawStatus === 'fully_paid' || rawPaid > 0;
+  
+  // Standardize paid status to 250 EGP
+  const amountPaid = isPaid ? 250 : 0;
+  const paymentStatus = isPaid ? 'fully_paid' : 'unpaid';
+  const paymentMethod = item.payment_method || item.paymentMethod || (isPaid ? 'cash_by_rep' : undefined);
+  
+  const isCash = paymentMethod === 'cash_by_rep' || (item.cash_collected_by_rep !== undefined ? Number(item.cash_collected_by_rep) > 0 : false);
+  const cashCollectedByRep = isPaid && isCash ? 250 : 0;
+
   return {
     id: item.id || `biz_${Date.now()}`,
     nameAr: item.name_ar || item.nameAr || 'نشاط تجاري',
@@ -387,17 +449,13 @@ function mapDbToBusiness(item: any): Business {
     repId: item.rep_id || item.repId || 'rep_1',
     repName: item.rep_name || item.repName || 'مندوب معتمد',
     repCommissionRate: item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : undefined,
-    packageId: item.package_id || item.packageId || 'pkg_basic',
-    packageName: item.package_name || item.packageName || '1. باقة التوثيق الأساسي',
-    packagePrice: item.package_price !== undefined && item.package_price !== null ? Number(item.package_price) : (item.packagePrice !== undefined && item.packagePrice !== null ? Number(item.packagePrice) : 250),
-    amountPaid: item.amount_paid !== undefined && item.amount_paid !== null ? Number(item.amount_paid) : (item.amountPaid !== undefined && item.amountPaid !== null ? Number(item.amountPaid) : 0),
-    paymentMethod: item.payment_method || item.paymentMethod || ((Number(item.amount_paid || item.amountPaid || 0) > 0) ? 'cash_by_rep' : undefined),
-    cashCollectedByRep: item.cash_collected_by_rep !== undefined && item.cash_collected_by_rep !== null
-      ? Number(item.cash_collected_by_rep)
-      : (item.cashCollectedByRep !== undefined && item.cashCollectedByRep !== null
-        ? Number(item.cashCollectedByRep)
-        : ((item.payment_method || item.paymentMethod) === 'gateway_online' || (item.payment_method || item.paymentMethod) === 'platform_collected' ? 0 : Number(item.amount_paid || item.amountPaid || 0))),
-    paymentStatus: item.payment_status || item.paymentStatus || (Number(item.amount_paid || item.amountPaid || 0) > 0 ? 'fully_paid' : 'unpaid'),
+    packageId,
+    packageName,
+    packagePrice,
+    amountPaid,
+    paymentMethod,
+    cashCollectedByRep,
+    paymentStatus,
     verificationStatus: item.verification_status || item.verificationStatus || 'verified',
     googleMapsUrl: item.google_maps_url || item.googleMapsUrl || (item.lat && item.lng ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}` : ''),
     googlePlaceId: item.google_place_id || item.googlePlaceId,
@@ -437,13 +495,22 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   if (biz.repId !== undefined) dbRecord.rep_id = biz.repId;
   if (biz.repName !== undefined) dbRecord.rep_name = biz.repName;
   if (biz.repCommissionRate !== undefined) dbRecord.rep_commission_rate = biz.repCommissionRate;
-  if (biz.packageId !== undefined) dbRecord.package_id = biz.packageId;
-  if (biz.packageName !== undefined) dbRecord.package_name = biz.packageName;
-  if (biz.packagePrice !== undefined) dbRecord.package_price = biz.packagePrice;
-  if (biz.amountPaid !== undefined) dbRecord.amount_paid = biz.amountPaid;
+  dbRecord.package_id = 'pkg_basic';
+  dbRecord.package_name = '1. باقة التوثيق الأساسي';
+  dbRecord.package_price = 250;
+  if (biz.amountPaid !== undefined) {
+    const isPaid = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'fully_paid';
+    dbRecord.amount_paid = isPaid ? 250 : 0;
+  }
   if (biz.paymentMethod !== undefined) dbRecord.payment_method = biz.paymentMethod;
-  if (biz.cashCollectedByRep !== undefined) dbRecord.cash_collected_by_rep = biz.cashCollectedByRep;
-  if (biz.paymentStatus !== undefined) dbRecord.payment_status = biz.paymentStatus;
+  if (biz.cashCollectedByRep !== undefined) {
+    const isCash = (biz.paymentMethod || 'cash_by_rep') === 'cash_by_rep';
+    const isPaid = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'fully_paid';
+    dbRecord.cash_collected_by_rep = isPaid && isCash ? 250 : 0;
+  }
+  if (biz.paymentStatus !== undefined) {
+    dbRecord.payment_status = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'fully_paid' ? 'fully_paid' : 'unpaid';
+  }
   if (biz.verificationStatus !== undefined) dbRecord.verification_status = biz.verificationStatus;
   if (biz.googleMapsUrl !== undefined) dbRecord.google_maps_url = biz.googleMapsUrl;
   if (biz.googlePlaceId !== undefined) dbRecord.google_place_id = biz.googlePlaceId;
