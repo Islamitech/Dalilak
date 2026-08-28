@@ -72,10 +72,9 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 modal-overlay">
+    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 modal-overlay">
       <div 
-        className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full shadow-2xl text-[var(--text-primary)] relative modal-content flex flex-col overflow-hidden animate-fade-in"
-        style={{ maxHeight: '92vh' }}
+        className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl text-[var(--text-primary)] relative modal-content flex flex-col overflow-hidden max-h-[95vh] sm:max-h-[92vh] animate-fade-in"
       >
         {/* ── HEADER ─────────────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[var(--modal-border)] shrink-0 bg-[var(--bg-card)]/40">

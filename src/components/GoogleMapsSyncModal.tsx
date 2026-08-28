@@ -156,8 +156,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     `رابط الخريطة: ${directMapUrl}`;
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
-      <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-all duration-300 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
+      <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] transition-all duration-300 max-h-[95vh] sm:max-h-[92vh] flex flex-col">
         
         {/* Close Button */}
         <button

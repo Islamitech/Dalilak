@@ -384,16 +384,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     : { label: 'غير مسدد', cls: 'bg-rose-500/20 text-rose-400 border-rose-500/30' };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: '92vh' }}
+        className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-t-3xl sm:rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] sm:max-h-[88vh]"
       >
 
         {/* ── HEADER ─────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between gap-2.5 px-3.5 sm:px-5 py-3 sm:py-4 border-b border-[var(--border-color)] shrink-0">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3.5 border-b border-[var(--border-color)] shrink-0 bg-[var(--bg-card)]/40">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
               <Store className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
@@ -401,15 +400,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               <h3 className="font-black text-xs sm:text-sm text-[var(--text-primary)] truncate">
                 {formData.nameAr || formData.nameEn || 'تفاصيل النشاط'}
               </h3>
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap mt-0.5">
                 <span className="text-[9px] sm:text-[10px] font-mono text-[var(--text-muted)]">{formData.invoiceNumber}</span>
-                <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full border ${verificationBadge.cls}`}>{verificationBadge.label}</span>
-                <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full border ${paymentBadge.cls}`}>{paymentBadge.label}</span>
+                <span className={`text-[8.5px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.2 rounded-full border ${verificationBadge.cls}`}>{verificationBadge.label}</span>
+                <span className={`text-[8.5px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.2 rounded-full border ${paymentBadge.cls}`}>{paymentBadge.label}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Direct Collection Button if debt exists (Visible on Mobile & Desktop) */}
             {canEdit && remainingDebt > 0 && (
               <button
@@ -421,11 +420,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     setActiveSection('payment');
                   }
                 }}
-                className="flex items-center gap-1 text-[10.5px] sm:text-xs font-black px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
-                title={`تحصيل مباشر (${remainingDebt} ج.م)`}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-[10px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                title="تحصيل المبلغ المتبقي فوراً"
               >
-                <DollarSign className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>تحصيل مباشر ({remainingDebt} ج)</span>
+                <DollarSign className="w-3 h-3" />
+                <span>تحصيل ({remainingDebt} ج)</span>
               </button>
             )}
 
@@ -445,29 +444,29 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </button>
             )}
             <button type="button" onClick={onClose}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--input-bg)] hover:bg-rose-500/15 border border-[var(--border-color)] text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center transition-colors cursor-pointer">
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--input-bg)] hover:bg-rose-500/15 border border-[var(--border-color)] text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center transition-colors cursor-pointer shrink-0">
               <span className="text-xs sm:text-sm font-black">✕</span>
             </button>
           </div>
         </div>
 
         {/* ── TAB NAV (All 5 options visible at once in balanced grid) ── */}
-        <div className="grid grid-cols-5 gap-0.5 sm:gap-1 px-1.5 sm:px-4 pt-1.5 pb-0 border-b border-[var(--border-color)] bg-[var(--bg-card)]/40 shrink-0">
+        <div className="grid grid-cols-5 gap-0.5 sm:gap-1 px-1 sm:px-4 pt-1 pb-0 border-b border-[var(--border-color)] bg-[var(--bg-card)]/40 shrink-0">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveSection(tab.key)}
-              className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-2 px-1 text-[11px] sm:text-xs font-bold border-b-2 transition-all cursor-pointer rounded-t-xl ${
+              className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-1 text-[10px] sm:text-xs font-bold border-b-2 transition-all cursor-pointer rounded-t-xl ${
                 activeSection === tab.key
-                  ? 'border-amber-500 text-amber-500 bg-amber-500/10 shadow-xs'
+                  ? 'border-amber-500 text-amber-500 bg-amber-500/10 shadow-xs font-black'
                   : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
               }`}
             >
               <span className={activeSection === tab.key ? 'text-amber-500' : 'text-[var(--text-muted)]'}>{tab.icon}</span>
               <span className="truncate">{tab.label}</span>
               {tab.count !== undefined && tab.count > 0 && (
-                <span className={`text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                <span className={`text-[8px] sm:text-[9px] font-black px-1 py-0.2 rounded-full ${
                   activeSection === tab.key ? 'bg-amber-500 text-slate-950' : 'bg-[var(--input-bg)] text-[var(--text-muted)]'
                 }`}>
                   {tab.count}
@@ -478,7 +477,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         </div>
 
         {/* ── BODY ─────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-3.5 sm:px-6 py-4 space-y-4 pb-8 sm:pb-6">
 
           {!canEdit && (
             <div className="flex items-center gap-2.5 p-3 bg-amber-500/8 border border-amber-500/25 rounded-xl text-xs text-amber-700 dark:text-amber-300 font-bold">
@@ -967,42 +966,67 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
         </div>
 
-        {/* ── FOOTER ──────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[var(--border-color)] bg-[var(--bg-surface)] shrink-0">
-          <div className="flex items-center gap-2">
+        {/* ── FOOTER ACTIONS ──────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-3.5 sm:px-6 py-3 border-t border-[var(--border-color)] bg-[var(--bg-surface)] shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {onDeleteBusiness && (
-              <button type="button"
-                onClick={() => { if (confirm(`هل أنت متأكد من حذف نشاط "${formData.nameAr || formData.nameEn}" نهائياً من المنظومة؟`)) { onDeleteBusiness(formData.id); onClose(); } }}
-                className="text-xs font-bold px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
-                title="حذف النشاط">
-                <Trash2 className="w-3.5 h-3.5" /> حذف النشاط
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`هل أنت متأكد من حذف نشاط "${formData.nameAr || formData.nameEn}" نهائياً من المنظومة؟`)) {
+                    onDeleteBusiness(formData.id);
+                    onClose();
+                  }
+                }}
+                className="text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer flex items-center gap-1 shadow-xs shrink-0"
+                title="حذف النشاط"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>حذف النشاط</span>
               </button>
             )}
             {canEdit && (
-              <button type="button" onClick={() => setEditAllMode(!editAllMode)}
-                className={`text-xs font-bold px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${editAllMode ? 'bg-amber-500 text-slate-950 border-amber-600' : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'}`}>
+              <button
+                type="button"
+                onClick={() => setEditAllMode(!editAllMode)}
+                className={`text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                  editAllMode
+                    ? 'bg-amber-500 text-slate-950 border-amber-600'
+                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
+                }`}
+              >
                 <Pencil className="w-3.5 h-3.5" />
-                {editAllMode ? 'إنهاء التعديل' : 'تعديل الكل'}
+                <span>{editAllMode ? 'إنهاء التعديل' : 'تعديل الكل'}</span>
               </button>
             )}
             {(formData.googleMapsUrl || (formData.lat && formData.lng)) && (
-              <a href={formData.googleMapsUrl || `https://www.google.com/maps/?q=${formData.lat},${formData.lng}`}
-                target="_blank" rel="noreferrer"
-                className="text-xs font-bold px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 flex items-center gap-1.5 transition-colors">
-                <ExternalLink className="w-3.5 h-3.5 text-amber-500" /> خرائط
+              <a
+                href={formData.googleMapsUrl || `https://www.google.com/maps/?q=${formData.lat},${formData.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 flex items-center gap-1 transition-colors shrink-0"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-amber-500" />
+                <span>خرائط</span>
               </a>
             )}
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button type="button" onClick={onClose}
-              className="text-xs font-bold px-4 py-2 rounded-xl bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 sm:flex-initial text-[11px] sm:text-xs font-bold px-4 py-2 rounded-xl bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer text-center"
+            >
               إغلاق
             </button>
             {canEdit && (
-              <button type="submit"
-                className="text-xs font-black px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-md cursor-pointer flex items-center gap-1.5 transition-all active:scale-95">
-                <Save className="w-3.5 h-3.5" /> حفظ التعديلات
+              <button
+                type="submit"
+                className="flex-1 sm:flex-initial text-[11px] sm:text-xs font-black px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-md cursor-pointer flex items-center justify-center gap-1.5 transition-all active:scale-95 shrink-0"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>حفظ التعديلات</span>
               </button>
             )}
           </div>
