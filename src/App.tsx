@@ -477,6 +477,13 @@ export default function App() {
       .then(([dbBizData, dbRepsData, dbPayouts, dbLeads]) => {
         if (Array.isArray(dbBizData) && dbBizData.length > 0) {
           setBusinesses(dbBizData);
+        } else {
+          try {
+            const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+            if (Array.isArray(cached) && cached.length > 0) {
+              setBusinesses(cached);
+            }
+          } catch {}
         }
         if (Array.isArray(dbPayouts)) {
           setPayoutRequests(dbPayouts);
@@ -520,7 +527,16 @@ export default function App() {
       })
       .catch((err) => {
         console.error('Error fetching initial database data, using defaults:', err);
-        setBusinesses(INITIAL_BUSINESSES);
+        try {
+          const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+          if (Array.isArray(cached) && cached.length > 0) {
+            setBusinesses(cached);
+          } else {
+            setBusinesses(INITIAL_BUSINESSES);
+          }
+        } catch {
+          setBusinesses(INITIAL_BUSINESSES);
+        }
         setIsLoadingData(false);
       });
 
@@ -544,7 +560,18 @@ export default function App() {
         ]);
 
         if (Array.isArray(freshBiz) && freshBiz.length > 0) {
-          setBusinesses(freshBiz);
+          setBusinesses((prev) => {
+            const map = new Map<string, Business>();
+            freshBiz.forEach((b) => map.set(b.id, b));
+            prev.forEach((b) => {
+              if (!map.has(b.id)) map.set(b.id, b);
+            });
+            const merged = Array.from(map.values());
+            try {
+              localStorage.setItem('dalelak_cached_businesses', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
         }
 
         if (Array.isArray(freshPayouts)) {
@@ -607,12 +634,35 @@ export default function App() {
 
     const normalizedBiz: Business = {
       ...newBiz,
+      repId: newBiz.repId || currentRep.id || user?.id || 'rep_1',
+      repName: newBiz.repName || currentRep.name || user?.name || 'مندوب معتمد',
       paymentStatus: autoPaymentStatus,
     };
 
-    setBusinesses([normalizedBiz, ...businesses]);
+    setBusinesses((prev) => {
+      const map = new Map<string, Business>();
+      map.set(normalizedBiz.id, normalizedBiz);
+      prev.forEach((b) => {
+        if (!map.has(b.id)) map.set(b.id, b);
+      });
+      const updated = Array.from(map.values());
+      try {
+        localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     await saveBusinessToDb(normalizedBiz);
     addNotification(`🎉 تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
+
+    // Broadcast across tabs
+    try {
+      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SYNC_DATA' });
+        syncChannel.close();
+      }
+    } catch {}
     
     // 1. Broadcast notification for Admin
     addSystemNotification({
@@ -1092,42 +1142,56 @@ export default function App() {
   };
 
   const liveRep = user
-    ? representatives.find((r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase())
+    ? representatives.find((r) => r.id === user.id || (user.email && r.email.toLowerCase() === user.email.toLowerCase()) || r.name === user.name)
     : null;
-  const rawRep = liveRep || user?.repData || representatives[0];
-  // Guard: use safe defaults if rawRep is undefined (e.g. during initial data load)
-  const currentRep: Representative = rawRep
-    ? {
-        ...rawRep,
-        commissionRate:
-          rawRep.commissionRate && rawRep.commissionRate > 0 && rawRep.commissionRate !== 15
-            ? rawRep.commissionRate
-            : 42.86,
-      }
-    : {
-        id: user?.id || 'rep_unknown',
-        name: user?.name || 'مندوب',
-        email: user?.email || '',
-        phone: '',
-        governorate: 'القاهرة',
-        targetMonth: 25,
-        avatar: '',
-        avatarStatus: 'none',
-        commissionRate: 42.86,
-        status: 'active',
-      };
+
+  const currentRep: Representative = {
+    id: user?.repData?.id || liveRep?.id || user?.id || 'rep_1',
+    name: user?.repData?.name || liveRep?.name || user?.name || 'مندوب معتمد',
+    email: user?.repData?.email || liveRep?.email || user?.email || '',
+    phone: user?.repData?.phone || liveRep?.phone || user?.phone || '',
+    nationalId: user?.repData?.nationalId || liveRep?.nationalId || '',
+    role: user?.repData?.role || liveRep?.role || user?.role || 'rep',
+    roleTitle: user?.repData?.roleTitle || liveRep?.roleTitle || (user?.role === 'admin' ? 'مدير النظام' : 'مندوب مبيعات ميداني'),
+    governorate: user?.repData?.governorate || liveRep?.governorate || 'القاهرة',
+    targetMonth: user?.repData?.targetMonth || liveRep?.targetMonth || 25,
+    avatar: user?.repData?.avatar || liveRep?.avatar || user?.avatar || '',
+    avatarStatus: user?.repData?.avatarStatus || liveRep?.avatarStatus || user?.avatarStatus || 'none',
+    commissionRate: user?.repData?.commissionRate || liveRep?.commissionRate || (user?.role === 'admin' ? 0 : 42.86),
+    status: user?.repData?.status || liveRep?.status || 'active',
+    referralCode: user?.repData?.referralCode || liveRep?.referralCode || undefined,
+    referredByCode: user?.repData?.referredByCode || liveRep?.referredByCode || undefined,
+    referralUnlocked: user?.repData?.referralUnlocked ?? liveRep?.referralUnlocked ?? true,
+    adminBypassReferral: user?.repData?.adminBypassReferral ?? liveRep?.adminBypassReferral ?? true,
+  };
+
   const isRepUser = user?.role === 'rep';
 
   // Strict Scoping & Newest-First Sorting:
-  const scopedBusinesses = useMemo(
-    () => {
-      const filtered = isRepUser
-        ? businesses.filter((b) => b.repId === currentRep.id || b.repName === currentRep.name)
-        : businesses;
-      return sortBusinessesNewestFirst(filtered);
-    },
-    [isRepUser, businesses, currentRep.id, currentRep.name]
-  );
+  const scopedBusinesses = useMemo(() => {
+    if (!isRepUser) return sortBusinessesNewestFirst(businesses);
+
+    const repId = (currentRep.id || '').toLowerCase().trim();
+    const repName = (currentRep.name || '').toLowerCase().trim();
+    const userId = (user?.id || '').toLowerCase().trim();
+    const userName = (user?.name || '').toLowerCase().trim();
+
+    const filtered = businesses.filter((b) => {
+      const bRepId = (b.repId || '').toLowerCase().trim();
+      const bRepName = (b.repName || '').toLowerCase().trim();
+
+      const matchId = (repId && bRepId === repId) || (userId && bRepId === userId);
+      const matchName = 
+        (repName && bRepName === repName) || 
+        (userName && bRepName === userName) ||
+        (repName && bRepName && (bRepName.includes(repName) || repName.includes(bRepName))) ||
+        (userName && bRepName && (bRepName.includes(userName) || userName.includes(bRepName)));
+
+      return matchId || matchName;
+    });
+
+    return sortBusinessesNewestFirst(filtered);
+  }, [isRepUser, businesses, currentRep.id, currentRep.name, user?.id, user?.name]);
 
   const filteredHomeBusinesses = useMemo(
     () =>

@@ -52,39 +52,67 @@ async function reconcileLegacyBusinessesTo250(records: any[]): Promise<void> {
 }
 
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
+  const mergedMap = new Map<string, Business>();
+
+  // 1. Try Supabase SDK
   try {
     const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
     if (!error && data && Array.isArray(data) && data.length > 0) {
-      // Reconcile in background
       reconcileLegacyBusinessesTo250(data).catch(() => {});
-      return data.map(mapDbToBusiness);
-    }
-
-    // Direct REST API fallback
-    const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
-    if (res.ok) {
-      const restData = await res.json();
-      if (Array.isArray(restData) && restData.length > 0) {
-        reconcileLegacyBusinessesTo250(restData).catch(() => {});
-        return restData.map(mapDbToBusiness);
-      }
+      data.map(mapDbToBusiness).forEach((b) => mergedMap.set(b.id, b));
     }
   } catch (err) {
     console.error('Supabase fetch businesses error:', err);
   }
 
-  // Local server fallback
+  // 2. Try Direct Supabase REST API
+  if (mergedMap.size === 0) {
+    try {
+      const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
+      if (res.ok) {
+        const restData = await res.json();
+        if (Array.isArray(restData) && restData.length > 0) {
+          reconcileLegacyBusinessesTo250(restData).catch(() => {});
+          restData.map(mapDbToBusiness).forEach((b) => mergedMap.set(b.id, b));
+        }
+      }
+    } catch {}
+  }
+
+  // 3. Always merge with Local Server (/api/businesses)
   try {
     const localRes = await fetch('/api/businesses');
     if (localRes.ok) {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
-        return localData;
+        localData.forEach((b: Business) => {
+          if (!mergedMap.has(b.id)) {
+            mergedMap.set(b.id, b);
+          }
+        });
       }
     }
   } catch {}
 
-  return [];
+  // 4. Always merge with LocalStorage cache
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    if (Array.isArray(cached) && cached.length > 0) {
+      cached.forEach((b: Business) => {
+        if (!mergedMap.has(b.id)) {
+          mergedMap.set(b.id, b);
+        }
+      });
+    }
+  } catch {}
+
+  const result = Array.from(mergedMap.values());
+  if (result.length > 0) {
+    try {
+      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(result));
+    } catch {}
+  }
+  return result;
 }
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
@@ -113,6 +141,19 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       body: JSON.stringify(biz),
     });
   } catch {}
+
+  // Cache in LocalStorage
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    const map = new Map<string, Business>();
+    map.set(biz.id, biz);
+    if (Array.isArray(cached)) {
+      cached.forEach((b: Business) => {
+        if (!map.has(b.id)) map.set(b.id, b);
+      });
+    }
+    localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
+  } catch {}
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
@@ -138,6 +179,15 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
       body: JSON.stringify(updates),
     });
   } catch {}
+
+  // Update in LocalStorage
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    if (Array.isArray(cached)) {
+      const updated = cached.map((b: Business) => (b.id === id ? { ...b, ...updates } : b));
+      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+    }
+  } catch {}
 }
 
 export async function deleteBusinessFromDb(id: string): Promise<void> {
@@ -157,6 +207,15 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
+  } catch {}
+
+  // Delete from LocalStorage
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    if (Array.isArray(cached)) {
+      const filtered = cached.filter((b: Business) => b.id !== id);
+      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(filtered));
+    }
   } catch {}
 }
 
@@ -182,17 +241,32 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     console.error('Supabase fetch reps error:', err);
   }
 
-  if (mergedMap.size === 0) {
-    try {
-      const localRes = await fetch('/api/representatives');
-      if (localRes.ok) {
-        const localData = await localRes.json();
-        if (Array.isArray(localData) && localData.length > 0) {
-          localData.forEach((r: Representative) => mergedMap.set(r.email.toLowerCase(), r));
-        }
+  // Local server merge
+  try {
+    const localRes = await fetch('/api/representatives');
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (Array.isArray(localData) && localData.length > 0) {
+        localData.forEach((r: Representative) => {
+          if (!mergedMap.has(r.email.toLowerCase())) {
+            mergedMap.set(r.email.toLowerCase(), r);
+          }
+        });
       }
-    } catch {}
-  }
+    }
+  } catch {}
+
+  // LocalStorage custom reps merge
+  try {
+    const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    if (Array.isArray(cachedCustom) && cachedCustom.length > 0) {
+      cachedCustom.forEach((r: Representative) => {
+        if (!mergedMap.has(r.email.toLowerCase())) {
+          mergedMap.set(r.email.toLowerCase(), r);
+        }
+      });
+    }
+  } catch {}
 
   return Array.from(mergedMap.values());
 }
