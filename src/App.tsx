@@ -2183,23 +2183,27 @@ export default function App() {
                   <span>شروط الاستخدام</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowPermissionsModal(true)}
-                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                  <span>دليل الصلاحيات</span>
-                </button>
+                {user?.role !== 'rep' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowPermissionsModal(true)}
+                      className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                      <span>دليل الصلاحيات</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowPackagesModal(true)}
-                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>باقات دليلك</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPackagesModal(true)}
+                      className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>باقات دليلك</span>
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"

@@ -46,22 +46,24 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Quick Informational Links (About, Terms, Roles & Packages Guide) */}
           <div className="hidden md:flex items-center gap-1 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => {
-                const repCode = user?.repData?.referralCode || (user?.role === 'rep' ? `DALIL-${user.id.replace(/\D/g, '')}` : '');
-                const url = new URL('https://dalilak-directory.vercel.app/');
-                if (repCode) url.searchParams.set('ref', repCode);
-                window.open(url.toString(), '_blank');
-              }}
-              title="فتح رابط دليل الأنشطة العام للعملاء"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-teal-700 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-colors cursor-pointer"
-            >
-              <Globe className="w-3.5 h-3.5 text-teal-500" />
-              <span>دليل الأنشطة العام 🌐</span>
-            </button>
+            {user?.role !== 'rep' && (
+              <button
+                type="button"
+                onClick={() => {
+                  const repCode = user?.repData?.referralCode || (user?.role === 'rep' ? `DALIL-${user.id.replace(/\D/g, '')}` : '');
+                  const url = new URL('https://dalilak-directory.vercel.app/');
+                  if (repCode) url.searchParams.set('ref', repCode);
+                  window.open(url.toString(), '_blank');
+                }}
+                title="فتح رابط دليل الأنشطة العام للعملاء"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-teal-700 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-colors cursor-pointer"
+              >
+                <Globe className="w-3.5 h-3.5 text-teal-500" />
+                <span>دليل الأنشطة العام 🌐</span>
+              </button>
+            )}
 
-            {onOpenPackages && (
+            {user?.role !== 'rep' && onOpenPackages && (
               <button
                 type="button"
                 onClick={onOpenPackages}
@@ -94,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {onOpenPermissions && (
+            {user?.role !== 'rep' && onOpenPermissions && (
               <button
                 type="button"
                 onClick={onOpenPermissions}
