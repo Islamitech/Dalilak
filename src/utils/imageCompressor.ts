@@ -4,10 +4,14 @@
  * and sleek brand logo ("دليلك • Daleelek").
  */
 
+import { applyLuxuryAIEnhancement, EnhancementOptions } from './aiImageEnhancer';
+
 export interface WatermarkOptions {
   applyWatermark?: boolean;
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   opacity?: number;
+  enhanceAI?: boolean;
+  enhancementOptions?: EnhancementOptions;
 }
 
 /**
@@ -325,7 +329,12 @@ export async function compressImageFile(
         // Draw original scaled photo
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Automatically Apply Daleelek Official Watermark if enabled
+        // 🌟 1. Automatically Apply On-Device Luxury AI Image Enhancement (100% Free, Seamless & Transparent)
+        if (watermarkOptions.enhanceAI !== false) {
+          applyLuxuryAIEnhancement(ctx, width, height, watermarkOptions.enhancementOptions);
+        }
+
+        // 🛡️ 2. Automatically Apply Daleelek Official Watermark if enabled
         if (watermarkOptions.applyWatermark !== false) {
           drawDaleelekWatermark(ctx, width, height, watermarkOptions);
         }
@@ -362,6 +371,13 @@ export async function applyWatermarkToDataUrl(
       }
 
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // 🌟 Automatically Apply On-Device Luxury AI Image Enhancement
+      if (options.enhanceAI !== false) {
+        applyLuxuryAIEnhancement(ctx, canvas.width, canvas.height, options.enhancementOptions);
+      }
+
+      // 🛡️ Apply Watermark
       drawDaleelekWatermark(ctx, canvas.width, canvas.height, options);
 
       const result = canvas.toDataURL('image/jpeg', 0.85);
