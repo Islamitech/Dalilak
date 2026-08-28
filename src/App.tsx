@@ -578,12 +578,33 @@ export default function App() {
 
         if (Array.isArray(freshBiz) && freshBiz.length > 0) {
           setBusinesses((prev) => {
-            const map = new Map<string, Business>();
-            freshBiz.forEach((b) => map.set(b.id, b));
-            prev.forEach((b) => {
-              if (!map.has(b.id)) map.set(b.id, b);
+            const prevMap = new Map<string, Business>(prev.map((b) => [b.id, b]));
+            const freshMap = new Map<string, Business>();
+
+            freshBiz.forEach((b) => {
+              const current = prevMap.get(b.id);
+              if (current) {
+                const isCurrentPaid = current.paymentStatus === 'fully_paid' || (current.amountPaid || 0) > 0;
+                const isFreshPaid = b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) > 0;
+                if (isCurrentPaid && !isFreshPaid) {
+                  freshMap.set(b.id, {
+                    ...b,
+                    amountPaid: current.amountPaid,
+                    paymentStatus: current.paymentStatus,
+                    paymentMethod: current.paymentMethod || b.paymentMethod,
+                    cashCollectedByRep: current.cashCollectedByRep ?? b.cashCollectedByRep,
+                  });
+                  return;
+                }
+              }
+              freshMap.set(b.id, b);
             });
-            const merged = Array.from(map.values());
+
+            prev.forEach((b) => {
+              if (!freshMap.has(b.id)) freshMap.set(b.id, b);
+            });
+
+            const merged = Array.from(freshMap.values());
             try {
               localStorage.setItem('dalelak_cached_businesses', JSON.stringify(merged));
             } catch {}
@@ -721,7 +742,13 @@ export default function App() {
       paymentStatus: autoPaymentStatus,
     };
 
-    setBusinesses(businesses.map((b) => (b.id === normalizedBiz.id ? normalizedBiz : b)));
+    setBusinesses((prev) => {
+      const updated = prev.map((b) => (b.id === normalizedBiz.id ? normalizedBiz : b));
+      try {
+        localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     updateBusinessInDb(normalizedBiz.id, normalizedBiz);
     
     // 1. Verification status change notification

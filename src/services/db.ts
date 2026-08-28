@@ -154,8 +154,19 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
+  // 1. Immediately update LocalStorage cache (0ms persistence)
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    if (Array.isArray(cached)) {
+      const updated = cached.map((b: Business) => (b.id === id ? { ...b, ...updates } : b));
+      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+    }
+  } catch {}
+
   const dbUpdates = mapBusinessToDb(updates as Business);
   delete dbUpdates.id;
+
+  // 2. Sync to Supabase in background
   try {
     const { error } = await supabase.from('businesses').update(dbUpdates).eq('id', id);
     if (error) {
@@ -168,22 +179,13 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     console.error('Supabase update business error:', err);
   }
 
-  // Always sync to local server
+  // 3. Always sync to local server
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
-  } catch {}
-
-  // Update in LocalStorage
-  try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-    if (Array.isArray(cached)) {
-      const updated = cached.map((b: Business) => (b.id === id ? { ...b, ...updates } : b));
-      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
-    }
   } catch {}
 }
 
