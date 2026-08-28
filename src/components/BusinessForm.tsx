@@ -348,10 +348,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       packageName: selectedPackage.title,
       packagePrice: selectedPackage.price,
       amountPaid: Number(amountPaid),
-      // If any amount was collected in field: it's strictly cash_by_rep
-      // If no amount (unpaid): it's platform_collected (deferred via platform)
-      paymentMethod: Number(amountPaid) > 0 ? 'cash_by_rep' : 'platform_collected',
-      cashCollectedByRep: Number(amountPaid) > 0 ? Number(amountPaid) : 0,
+      // Set payment method and cash in hand accurately:
+      paymentMethod: paymentStatus === 'unpaid' ? 'platform_collected' : paymentMethod,
+      cashCollectedByRep: paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
       paymentStatus,
       verificationStatus: 'pending', // Default: new registration, not submitted to Google yet
       googleSyncStatus: 'not_synced',
@@ -1175,34 +1174,70 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               </div>
             </div>
 
-            {/* Field Cash Collection & Share Breakdown */}
+            {/* Collection Method Selector & Financial Breakdown */}
             {paymentStatus !== 'unpaid' && amountPaid > 0 && (
-              <div className="space-y-2.5">
-                {/* Method Pill */}
-                <div className="bg-amber-500/15 border-2 border-amber-500/50 rounded-2xl p-3 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
-                      💵
+              <div className="space-y-3">
+                <label className="block font-black text-xs text-[var(--text-primary)]">
+                  طريقة استلام المبلغ المحصل ({amountPaid} ج.م):
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Option A: Platform / Online Collection */}
+                  <div
+                    onClick={() => setPaymentMethod('platform_collected')}
+                    className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between shadow-xs ${
+                      paymentMethod === 'platform_collected'
+                        ? 'bg-emerald-500/15 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-800 dark:text-emerald-300'
+                        : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm ${
+                        paymentMethod === 'platform_collected' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'
+                      }`}>
+                        💳
+                      </div>
+                      <div>
+                        <div className="font-black text-xs">سداد للمنصة مباشرة</div>
+                        <div className="text-[10px] opacity-80">إنستاباي / فودافون كاش / إلكتروني</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-black text-xs text-[var(--text-primary)]">
-                        طريقة الاستلام: كاش نقداً (استلمه المندوب بيده في الميدان)
-                      </div>
-                      <div className="text-[10px] text-[var(--text-muted)] font-bold">
-                        يتم توريد حصة المنصة لاحقاً عبر وسائل التوريد المعتمدة
-                      </div>
+                    <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-emerald-700 dark:text-emerald-400">
+                      ✨ عمولتك (+{Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج) تضاف كأرباح متاحة لك!
                     </div>
                   </div>
-                  <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-lg shadow-xs">
-                    تحصيل كاش
-                  </span>
+
+                  {/* Option B: Cash in Rep's Hand */}
+                  <div
+                    onClick={() => setPaymentMethod('cash_by_rep')}
+                    className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between shadow-xs ${
+                      paymentMethod === 'cash_by_rep'
+                        ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/20 text-amber-800 dark:text-amber-300'
+                        : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm ${
+                        paymentMethod === 'cash_by_rep' ? 'bg-amber-500 text-slate-950' : 'bg-amber-500/10 text-amber-500'
+                      }`}>
+                        💵
+                      </div>
+                      <div>
+                        <div className="font-black text-xs">كاش بيدك في الميدان</div>
+                        <div className="text-[10px] opacity-80">استلمت المبلغ نقداً من العميل بيدك</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-amber-700 dark:text-amber-400">
+                      ⚠️ أخذت عمولتك بيدك وتلتزم بتوريد حصة المنصة
+                    </div>
+                  </div>
                 </div>
 
                 {/* Real-time Commission & Platform Share Calculation */}
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-black text-xs text-[var(--text-primary)]">
-                      الحسبة المالية وتوزيع الحصص ({currentRep?.commissionRate || 42.86}%):
+                      الموقف المالي ({currentRep?.commissionRate || 42.86}%):
                     </span>
                     <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
                       المحصل: {amountPaid} ج.م
@@ -1211,25 +1246,31 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
-                      <span className="text-[10px] text-[var(--text-muted)] block font-bold">نصيبك كعمولة معتمدة:</span>
+                      <span className="text-[10px] text-[var(--text-muted)] block font-bold">عمولتك المعتمدة:</span>
                       <span className="text-emerald-600 dark:text-emerald-400 font-black font-mono text-sm">
-                        {Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج.م
+                        +{Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج.م
                       </span>
                     </div>
 
                     <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
                       <span className="text-[10px] text-[var(--text-muted)] block font-bold">
-                        مستحق عليك توريده للمنصة:
+                        {paymentMethod === 'cash_by_rep' ? 'مطلوب توريده للمنصة:' : 'كاش استلمته بيدك:'}
                       </span>
-                      <span className="font-black font-mono text-sm text-rose-600 dark:text-rose-400">
-                        {amountPaid - Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج.م
+                      <span className={`font-black font-mono text-sm ${paymentMethod === 'cash_by_rep' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'}`}>
+                        {paymentMethod === 'cash_by_rep'
+                          ? `${amountPaid - Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج.م`
+                          : '0 ج.م (سداد للمنصة)'}
                       </span>
                     </div>
                   </div>
 
                   <div className="text-[10.5px] text-[var(--text-secondary)] font-bold flex items-start gap-1.5 pt-1">
-                    <span className="text-amber-500 font-black shrink-0">⚠️ تنبيه:</span>
-                    <span>بما أنك استلمت كاش نقداً، أخذت عمولتك في يدك فورياً، وتُقيد حصة المنصة عليك لحين توريدها في صفحة حسابك.</span>
+                    <span className="text-amber-500 font-black shrink-0">💡 ملاحظة:</span>
+                    <span>
+                      {paymentMethod === 'cash_by_rep'
+                        ? 'استلمت الكاش بيدك وأخذت عمولتك فوراً، ويتم تقييد باقي المبلغ عليك لتوريده للمنصة.'
+                        : 'تم السداد مباشرة للمنصة إلكترونياً، لذلك عمولتك بالكامل رصيد أرباح متاح لك لسحبه فورياً.'}
+                    </span>
                   </div>
                 </div>
               </div>

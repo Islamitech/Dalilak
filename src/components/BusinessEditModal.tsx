@@ -706,25 +706,50 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {isAdminOrFinancial && (editingField === 'paymentStatus' || editAllMode) ? (
-                  <select value={formData.paymentStatus}
-                    onChange={(e) => {
-                      const s = e.target.value as PaymentStatus;
-                      const price = formData.packagePrice || 250;
-                      let paid = formData.amountPaid || 0;
-                      let cash = formData.cashCollectedByRep || 0;
-                      let method = formData.paymentMethod || 'platform_collected';
-                      if (s === 'fully_paid') {
-                        paid = price;
-                        if (!formData.cashCollectedByRep && formData.paymentMethod !== 'cash_by_rep') { method = 'platform_collected'; cash = 0; }
-                      } else if (s === 'unpaid') { paid = 0; cash = 0; method = 'platform_collected'; }
-                      setFormData({ ...formData, paymentStatus: s, amountPaid: paid, cashCollectedByRep: cash, paymentMethod: method });
-                      if (!editAllMode) setEditingField(null);
-                    }}
-                    className="w-full bg-[var(--input-bg)] border-2 border-amber-500 text-[var(--text-primary)] font-bold rounded-xl p-2 text-xs">
-                    <option value="fully_paid">مدفوع بالكامل (تم السداد)</option>
-                    <option value="partially_paid">مدفوع جزء منه</option>
-                    <option value="unpaid">لم يدفع (آجل لاحقاً)</option>
-                  </select>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1">حالة السداد:</label>
+                      <select value={formData.paymentStatus}
+                        onChange={(e) => {
+                          const s = e.target.value as PaymentStatus;
+                          const price = formData.packagePrice || 250;
+                          let paid = formData.amountPaid || 0;
+                          let cash = formData.cashCollectedByRep || 0;
+                          let method = formData.paymentMethod || 'platform_collected';
+                          if (s === 'fully_paid') {
+                            paid = price;
+                            if (method === 'cash_by_rep') cash = paid;
+                            else cash = 0;
+                          } else if (s === 'unpaid') { paid = 0; cash = 0; }
+                          setFormData({ ...formData, paymentStatus: s, amountPaid: paid, cashCollectedByRep: cash, paymentMethod: method });
+                        }}
+                        className="w-full bg-[var(--input-bg)] border-2 border-amber-500 text-[var(--text-primary)] font-bold rounded-xl p-2 text-xs">
+                        <option value="fully_paid">مدفوع بالكامل (تم السداد)</option>
+                        <option value="partially_paid">مدفوع جزء منه</option>
+                        <option value="unpaid">لم يدفع (آجل لاحقاً)</option>
+                      </select>
+                    </div>
+
+                    {formData.paymentStatus !== 'unpaid' && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1">طريقة ومكان الاستلام:</label>
+                        <select
+                          value={formData.paymentMethod || 'platform_collected'}
+                          onChange={(e) => {
+                            const method = e.target.value as Business['paymentMethod'];
+                            const cash = method === 'cash_by_rep' ? (formData.amountPaid || formData.packagePrice || 250) : 0;
+                            setFormData({ ...formData, paymentMethod: method, cashCollectedByRep: cash });
+                          }}
+                          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2 text-xs"
+                        >
+                          <option value="platform_collected">💳 سداد للمنصة مباشرة (إلكتروني / إنستاباي / فودافون كاش)</option>
+                          <option value="cash_by_rep">💵 كاش نقداً استلمه المندوب بيده في الميدان</option>
+                          <option value="gateway_online">🌐 دفع إلكتروني عبر البوابة البنكية</option>
+                          <option value="bank_transfer">🏦 تحويل بنكي رسمي</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {formData.paymentStatus === 'fully_paid' ? (
@@ -732,8 +757,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                         <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-lg text-xs font-black">
                           <Check className="w-3.5 h-3.5" /> مدفوع بالكامل — {formData.amountPaid} ج.م
                         </span>
-                        <p className="text-[10px] text-[var(--text-muted)] font-medium mt-1">
-                          {getBusinessPaymentLabel(formData).label}
+                        <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1 flex items-center gap-1">
+                          <span>{formData.paymentMethod === 'cash_by_rep' ? '💵 كاش استلمه المندوب بيده' : '💳 تم السداد للمنصة مباشرة (عمولة المندوب أرباح متاحة)'}</span>
                         </p>
                       </div>
                     ) : formData.paymentStatus === 'partially_paid' ? (

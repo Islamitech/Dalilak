@@ -84,18 +84,15 @@ export function calculateRepTotalCashCollected(
     if (paid <= 0) return sum;
 
     if (b.cashCollectedByRep !== undefined) {
-      return sum + (b.cashCollectedByRep || 0);
-    }
-
-    if (b.paymentMethod === 'platform_collected' || b.paymentMethod === 'gateway_online' || b.paymentMethod === 'bank_transfer') {
-      return sum + 0;
+      return sum + (Number(b.cashCollectedByRep) || 0);
     }
 
     if (b.paymentMethod === 'cash_by_rep') {
       return sum + paid;
     }
 
-    return sum + paid;
+    // Default: If not explicitly cash_by_rep, it is collected via platform/gateway (0 cash in rep's hand)
+    return sum + 0;
   }, 0);
 }
 
@@ -111,11 +108,9 @@ export function calculateRepCommissionFromCash(
     const paid = Number(b.amountPaid) || 0;
     if (paid <= 0) return sum;
 
-    let cash = paid;
+    let cash = 0;
     if (b.cashCollectedByRep !== undefined) {
-      cash = b.cashCollectedByRep || 0;
-    } else if (b.paymentMethod === 'platform_collected' || b.paymentMethod === 'gateway_online' || b.paymentMethod === 'bank_transfer') {
-      cash = 0;
+      cash = Number(b.cashCollectedByRep) || 0;
     } else if (b.paymentMethod === 'cash_by_rep') {
       cash = paid;
     }

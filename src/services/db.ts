@@ -708,6 +708,32 @@ function parsePhotosArray(item: any): string[] {
 }
 
 function mapDbToBusiness(item: any): Business {
+  // Extract packed metadata from notes if present
+  let metaPaymentMethod = item.payment_method || item.paymentMethod;
+  let metaCashCollectedByRep = item.cash_collected_by_rep !== undefined ? Number(item.cash_collected_by_rep) : item.cashCollectedByRep !== undefined ? Number(item.cashCollectedByRep) : undefined;
+  let metaGoogleSyncStatus = item.google_sync_status || item.googleSyncStatus;
+  let metaGooglePlaceId = item.google_place_id || item.googlePlaceId;
+  let metaGoogleSyncDate = item.google_sync_date || item.googleSyncDate;
+  let metaGoogleMapsUrl = item.google_maps_url || item.googleMapsUrl;
+  let metaRepCommissionRate = item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : item.repCommissionRate;
+  let pureNotes = item.notes;
+
+  if (typeof item.notes === 'string' && item.notes.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(item.notes.trim());
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.paymentMethod && !metaPaymentMethod) metaPaymentMethod = parsed.paymentMethod;
+        if (parsed.cashCollectedByRep !== undefined && metaCashCollectedByRep === undefined) metaCashCollectedByRep = Number(parsed.cashCollectedByRep);
+        if (parsed.googleSyncStatus && !metaGoogleSyncStatus) metaGoogleSyncStatus = parsed.googleSyncStatus;
+        if (parsed.googlePlaceId && !metaGooglePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
+        if (parsed.googleSyncDate && !metaGoogleSyncDate) metaGoogleSyncDate = parsed.googleSyncDate;
+        if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
+        if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
+        pureNotes = parsed.userNotes !== undefined ? parsed.userNotes : undefined;
+      }
+    } catch {}
+  }
+
   // Preserve real package price and configuration
   const packagePrice = Number(item.package_price !== undefined && item.package_price !== null ? item.package_price : (item.packagePrice || 250)) || 250;
   const packageId = item.package_id || item.packageId || (packagePrice === 750 ? 'pkg_pro' : packagePrice === 2000 ? 'pkg_vip' : 'pkg_basic');
@@ -718,14 +744,13 @@ function mapDbToBusiness(item: any): Business {
   const isFullyPaid = rawStatus === 'fully_paid' || (packagePrice > 0 && rawPaid >= packagePrice);
   const amountPaid = isFullyPaid ? packagePrice : rawPaid;
   const paymentStatus: PaymentStatus = isFullyPaid ? 'fully_paid' : amountPaid > 0 ? 'partially_paid' : 'unpaid';
-  const paymentMethod = item.payment_method || item.paymentMethod || (isFullyPaid ? 'cash_by_rep' : undefined);
-  
-  const isCash = paymentMethod === 'cash_by_rep' || (item.cash_collected_by_rep !== undefined ? Number(item.cash_collected_by_rep) > 0 : false);
-  const cashCollectedByRep = item.cash_collected_by_rep !== undefined
-    ? Number(item.cash_collected_by_rep) || 0
-    : item.cashCollectedByRep !== undefined
-    ? Number(item.cashCollectedByRep) || 0
-    : isCash
+
+  // Determine actual payment method (Never blindly default to cash_by_rep!)
+  const paymentMethod: Business['paymentMethod'] = metaPaymentMethod || (amountPaid > 0 ? (metaCashCollectedByRep && metaCashCollectedByRep > 0 ? 'cash_by_rep' : 'platform_collected') : 'platform_collected');
+
+  const cashCollectedByRep = metaCashCollectedByRep !== undefined
+    ? metaCashCollectedByRep
+    : paymentMethod === 'cash_by_rep'
     ? amountPaid
     : 0;
 
@@ -751,7 +776,7 @@ function mapDbToBusiness(item: any): Business {
     photos: parsePhotosArray(item),
     repId: item.rep_id || item.repId || 'rep_1',
     repName: item.rep_name || item.repName || 'مندوب معتمد',
-    repCommissionRate: item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : undefined,
+    repCommissionRate: metaRepCommissionRate,
     packageId,
     packageName,
     packagePrice,
@@ -760,13 +785,13 @@ function mapDbToBusiness(item: any): Business {
     cashCollectedByRep,
     paymentStatus,
     verificationStatus: item.verification_status || item.verificationStatus || 'verified',
-    googleMapsUrl: item.google_maps_url || item.googleMapsUrl || (item.lat && item.lng ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}` : ''),
-    googlePlaceId: item.google_place_id || item.googlePlaceId,
-    googleSyncStatus: item.google_sync_status || item.googleSyncStatus,
-    googleSyncDate: item.google_sync_date || item.googleSyncDate,
+    googleMapsUrl: metaGoogleMapsUrl || (item.lat && item.lng ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}` : ''),
+    googlePlaceId: metaGooglePlaceId,
+    googleSyncStatus: metaGoogleSyncStatus,
+    googleSyncDate: metaGoogleSyncDate,
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
-    notes: item.notes,
+    notes: pureNotes,
     createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
   };
 }
@@ -805,7 +830,20 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.invoiceNumber !== undefined) record.invoice_number = biz.invoiceNumber;
   if (biz.invoiceDate !== undefined) record.invoice_date = biz.invoiceDate;
   if (biz.createdDate !== undefined) record.created_at = biz.createdDate;
-  if (biz.notes !== undefined) record.notes = biz.notes;
+
+  // Safely preserve financial & sync metadata in notes JSON
+  const metaObj = {
+    paymentMethod: biz.paymentMethod,
+    cashCollectedByRep: biz.cashCollectedByRep,
+    repCommissionRate: biz.repCommissionRate,
+    googleSyncStatus: biz.googleSyncStatus,
+    googlePlaceId: biz.googlePlaceId,
+    googleSyncDate: biz.googleSyncDate,
+    googleMapsUrl: biz.googleMapsUrl,
+    userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
+  };
+  record.notes = JSON.stringify(metaObj);
+
   return record;
 }
 
