@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification, PayoutRequest, InterestedLead } from './types';
-import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './data/mockData';
+import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG, EGYPT_GOVERNORATES, CATEGORY_GROUPS } from './data/mockData';
 import { calculateTotalRepCommission, getBusinessPaymentLabel } from './utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from './utils/dateFormatters';
 import { Navbar } from './components/Navbar';
@@ -22,7 +22,7 @@ import { PermissionsModal } from './components/PermissionsModal';
 import { PackagesModal } from './components/PackagesModal';
 import { Logo } from './components/Logo';
 import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, canUserManagePayouts } from './utils/permissions';
-import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X, Info, Heart, Smartphone } from 'lucide-react';
+import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X, Info, Heart, Smartphone, LayoutGrid, List, MessageCircle, Filter, ArrowUpDown, Check, Store, Tag, Globe, DollarSign, TrendingUp, UserCheck, Calendar, Navigation } from 'lucide-react';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
 import {
   fetchBusinessesFromDb,
@@ -199,9 +199,13 @@ export default function App() {
   const [leads, setLeads] = useState<InterestedLead[]>([]);
   const [convertingLead, setConvertingLead] = useState<InterestedLead | null>(null);
 
-  // Home Feed Search & Filters
+  // Home Feed Search & Modern Directory Filters
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
   const [homeStatusFilter, setHomeStatusFilter] = useState<string>('all');
+  const [homeGovFilter, setHomeGovFilter] = useState<string>('all');
+  const [homeCategoryFilter, setHomeCategoryFilter] = useState<string>('all');
+  const [homeVerificationFilter, setHomeVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
+  const [homeViewMode, setHomeViewMode] = useState<'grid' | 'list'>('grid');
 
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
@@ -1129,26 +1133,58 @@ export default function App() {
     return sortBusinessesNewestFirst(filtered);
   }, [isRepUser, businesses, currentRep.id, currentRep.name, user?.id, user?.name]);
 
-  const filteredHomeBusinesses = useMemo(
-    () =>
-      sortBusinessesNewestFirst(
-        scopedBusinesses.filter((b) => {
-          if (
-            homeSearchQuery &&
-            !b.nameAr.includes(homeSearchQuery) &&
-            !b.city.includes(homeSearchQuery) &&
-            !b.governorate.includes(homeSearchQuery)
-          ) {
+  const homeStats = useMemo(() => {
+    const total = scopedBusinesses.length;
+    const verified = scopedBusinesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
+    const inProgress = scopedBusinesses.filter((b) => b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced').length;
+    const govs = new Set(scopedBusinesses.map((b) => b.governorate).filter(Boolean)).size;
+    const fullyPaid = scopedBusinesses.filter((b) => b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
+    return { total, verified, inProgress, govs, fullyPaid };
+  }, [scopedBusinesses]);
+
+  const filteredHomeBusinesses = useMemo(() => {
+    return sortBusinessesNewestFirst(
+      scopedBusinesses.filter((b) => {
+        if (homeSearchQuery) {
+          const q = homeSearchQuery.trim().toLowerCase();
+          const matchName = (b.nameAr || '').toLowerCase().includes(q) || (b.nameEn || '').toLowerCase().includes(q);
+          const matchCity = (b.city || '').toLowerCase().includes(q) || (b.governorate || '').toLowerCase().includes(q);
+          const matchOwner = (b.ownerName || '').toLowerCase().includes(q) || (b.ownerPhone || '').includes(q);
+          const matchRep = (b.repName || '').toLowerCase().includes(q);
+          const matchInvoice = (b.invoiceNumber || '').toLowerCase().includes(q);
+          if (!matchName && !matchCity && !matchOwner && !matchRep && !matchInvoice) {
             return false;
           }
-          if (homeStatusFilter !== 'all' && b.paymentStatus !== homeStatusFilter) {
+        }
+        if (homeGovFilter !== 'all' && !b.governorate.includes(homeGovFilter)) {
+          return false;
+        }
+        if (homeCategoryFilter !== 'all') {
+          const grp = CATEGORY_GROUPS.find((g) => g.group === homeCategoryFilter);
+          if (grp) {
+            if (!grp.items.includes(b.category) && !b.category.includes(homeCategoryFilter)) {
+              return false;
+            }
+          } else if (!b.category.includes(homeCategoryFilter)) {
             return false;
           }
-          return true;
-        })
-      ),
-    [scopedBusinesses, homeSearchQuery, homeStatusFilter]
-  );
+        }
+        if (homeVerificationFilter === 'verified') {
+          if (b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced') return false;
+        } else if (homeVerificationFilter === 'in_progress') {
+          if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') return false;
+        } else if (homeVerificationFilter === 'fully_paid') {
+          if (b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
+        } else if (homeVerificationFilter === 'unpaid') {
+          if (b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) > 0) return false;
+        }
+        if (homeStatusFilter !== 'all' && b.paymentStatus !== homeStatusFilter) {
+          return false;
+        }
+        return true;
+      })
+    );
+  }, [scopedBusinesses, homeSearchQuery, homeGovFilter, homeCategoryFilter, homeVerificationFilter, homeStatusFilter]);
 
   // Single-Session Active Heartbeat & Cross-Tab Invalidation Listener
   useEffect(() => {
@@ -1502,195 +1538,447 @@ export default function App() {
               />
             )}
 
-            {/* Registered Businesses Feed */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
-                    <Building2 className="w-5 h-5" />
+            {/* Modern Global Directory Container */}
+            <div className="space-y-4">
+              
+              {/* ── TOP KPI METRICS BAR ────────────────────────────────────── */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
+                    <Store className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-base text-[var(--text-primary)]">
-                      {isRepUser
-                        ? `الأنشطة المسجلة بواسطتك (${scopedBusinesses.length})`
-                        : `الأنشطة المسجلة في مصر (${businesses.length})`}
-                    </h3>
-                    <p className="text-[11px] text-[var(--text-muted)]">تابع حالة الدفع والتفعيل على الخريطة أولاً بأول</p>
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي الأنشطة</div>
+                    <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.total}</div>
                   </div>
                 </div>
 
-                {/* Filter Controls */}
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-56">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">موثقة على Maps</div>
+                    <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.verified}</div>
+                  </div>
+                </div>
+
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">قيد التوثيق</div>
+                    <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.inProgress}</div>
+                  </div>
+                </div>
+
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
+                    <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── UNIFIED DIRECTORY TOOLBAR & FILTERS ────────────────────────── */}
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 space-y-3.5 shadow-sm">
+                
+                {/* Row 1: Search + Governorate + View Switcher */}
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-3" />
                     <input
                       type="text"
-                      placeholder="بحث باسم النشاط أو المدينة..."
+                      placeholder="ابحث باسم المحل، المالك، الهاتف، أو المدينة..."
                       value={homeSearchQuery}
                       onChange={(e) => setHomeSearchQuery(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl pr-8 pl-3 py-1.5 focus:outline-none focus:border-amber-500 shadow-sm"
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs sm:text-sm rounded-2xl pr-10 pl-8 py-2.5 focus:outline-none focus:border-amber-500 font-bold shadow-inner placeholder:text-[var(--text-muted)]"
                     />
+                    {homeSearchQuery && (
+                      <button
+                        onClick={() => setHomeSearchQuery('')}
+                        className="absolute left-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
 
-                  <select
-                    value={homeStatusFilter}
-                    onChange={(e) => setHomeStatusFilter(e.target.value)}
-                    className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 shrink-0 shadow-sm font-bold"
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={homeGovFilter}
+                      onChange={(e) => setHomeGovFilter(e.target.value)}
+                      className="flex-1 sm:flex-initial bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-2xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    >
+                      <option value="all">📍 كل المحافظات</option>
+                      {EGYPT_GOVERNORATES.map((gov) => (
+                        <option key={gov} value={gov}>
+                          {gov}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* View Switcher: Grid vs List */}
+                    <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0">
+                      <button
+                        onClick={() => setHomeViewMode('grid')}
+                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                          homeViewMode === 'grid'
+                            ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        }`}
+                        title="عرض البطاقات العصرية"
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setHomeViewMode('list')}
+                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                          homeViewMode === 'list'
+                            ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        }`}
+                        title="عرض القائمة المجدولة"
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 2: Status Quick Filter Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
+                  {[
+                    { key: 'all', label: 'الكل', count: homeStats.total },
+                    { key: 'verified', label: '🗺️ موثقة رسمياً', count: homeStats.verified },
+                    { key: 'in_progress', label: '⏳ قيد التوثيق', count: homeStats.inProgress },
+                    { key: 'fully_paid', label: '💳 مسددة بالكامل', count: homeStats.fullyPaid },
+                    { key: 'unpaid', label: '⚠️ بانتظار السداد', count: Math.max(0, homeStats.total - homeStats.fullyPaid) },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setHomeVerificationFilter(tab.key as any)}
+                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 border ${
+                        homeVerificationFilter === tab.key
+                          ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black'
+                          : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
+                        homeVerificationFilter === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Row 3: Category Quick Chips Bar */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-bold border-t border-[var(--border-color)]/50 pt-2.5">
+                  <button
+                    onClick={() => setHomeCategoryFilter('all')}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                      homeCategoryFilter === 'all'
+                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black border border-amber-500/40'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+                    }`}
                   >
-                    <option value="all">كل حالات الدفع</option>
-                    <option value="fully_paid">مدفوعة بالكامل</option>
-                    <option value="partially_paid">مدفوع جزء منها</option>
-                    <option value="unpaid">لم يتم الدفع نهائياً</option>
-                  </select>
+                    ⭐ جميع التصنيفات
+                  </button>
+                  {CATEGORY_GROUPS.map((grp) => (
+                    <button
+                      key={grp.group}
+                      onClick={() => setHomeCategoryFilter(grp.group === homeCategoryFilter ? 'all' : grp.group)}
+                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
+                        homeCategoryFilter === grp.group
+                          ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black border border-amber-500/40 shadow-2xs'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+                      }`}
+                    >
+                      <span>{grp.icon}</span>
+                      <span>{grp.group}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Feed Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
-                {filteredHomeBusinesses.length === 0 && (
-                  <div className="col-span-full text-center py-10 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-color)] space-y-2 shadow-sm">
-                    <Building2 className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-50" />
-                    <p className="font-extrabold text-sm text-[var(--text-primary)]">لم تقوم بتسجيل أي أنشطة بعد أو لا توجد نتائج للبحث</p>
-                    <p className="text-xs text-[var(--text-muted)] font-bold">اضغط على زر "تسجيل نشاط جديد" للبدء في توثيق أنشطتك من الميدان.</p>
+              {/* ── EMPTY STATE ────────────────────────────────────────────── */}
+              {filteredHomeBusinesses.length === 0 && (
+                <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3 shadow-sm">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                    <Building2 className="w-7 h-7 stroke-[1.5]" />
                   </div>
-                )}
+                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                    لا توجد أنشطة تجارية مطابقة للبحث أو التصفية الحالية
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
+                    جرب تغيير خيارات التصفية أو البحث، أو اضغط على "تسجيل نشاط جديد" للبدء في توثيق المحلات.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setHomeSearchQuery('');
+                      setHomeGovFilter('all');
+                      setHomeCategoryFilter('all');
+                      setHomeVerificationFilter('all');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                  >
+                    إعادة ضبط الفلاتر 🔄
+                  </button>
+                </div>
+              )}
 
-                {filteredHomeBusinesses.map((biz) => {
-                  const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                  const isCreator =
-                    user?.role === 'admin' ||
-                    biz.repId === user?.id ||
-                    biz.repId === user?.repData?.id ||
-                    biz.repName === user?.name;
+              {/* ── GRID MODE (WORLD-CLASS DIRECTORY CARDS) ─────────────────── */}
+              {homeViewMode === 'grid' && filteredHomeBusinesses.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+                  {filteredHomeBusinesses.map((biz) => {
+                    const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                    const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                    const hasPhotos = biz.photos && biz.photos.length > 0;
+                    const coverPhoto = hasPhotos ? biz.photos[0] : null;
 
-                  return (
-                    <div key={biz.id} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3 hover:border-amber-500/30 transition-all flex flex-col justify-between shadow-sm">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-500/30">
-                              {biz.category}
-                            </span>
-                            <h4 className="font-extrabold text-base text-[var(--text-primary)] mt-1">{biz.nameAr}</h4>
-                            <p className="text-xs text-[var(--text-secondary)] font-bold">
-                              {biz.governorate} - {biz.city}
-                            </p>
-                          </div>
-
-                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 shadow-sm ${
-                            biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced'
-                              ? remaining > 0
-                                ? 'badge-warning'
-                                : 'badge-success'
-                              : 'badge-warning'
-                          }`}>
-                            {biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced'
-                              ? remaining > 0 ? '✅ موثق (متبقي سداد ⚠️)' : '✅ موثق ومعتمد'
-                              : '⏳ جاري المعالجة'}
-                          </span>
-                        </div>
-
-                        {/* Addition Time & Representative info */}
-                        <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-1.5 text-xs">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-[11px] font-bold">
-                              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                              <span>وقت الإضافة:</span>
-                            </div>
-                            <span className="font-extrabold text-[var(--text-primary)] text-[11px] font-sans tracking-tight bg-[var(--bg-surface)] px-2.5 py-0.5 rounded-lg border border-[var(--border-color)]/70">
-                              {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}
-                            </span>
-                          </div>
-
-                          {biz.repName && (
-                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]/50 text-[10px] text-[var(--text-muted)]">
-                              <span>المندوب المسجل:</span>
-                              <span className="font-bold text-[var(--text-secondary)] truncate max-w-[190px]">
-                                {biz.repName}
-                              </span>
+                    return (
+                      <div
+                        key={biz.id}
+                        className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between group"
+                      >
+                        {/* Visual Header / Cover */}
+                        <div className="relative aspect-[16/8.5] bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-slate-900/10 overflow-hidden">
+                          {coverPhoto ? (
+                            <img
+                              src={coverPhoto}
+                              alt={biz.nameAr}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-amber-500/60 bg-[var(--bg-surface)]">
+                              <Store className="w-8 h-8 opacity-40 group-hover:scale-110 transition-transform" />
+                              <span className="text-[10px] font-bold text-[var(--text-muted)] opacity-70">منظومة دليلك الميدانية</span>
                             </div>
                           )}
-                        </div>
 
-                        {/* Package & Payment Status */}
-                        <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-2 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-secondary)] font-bold text-[11px]">الباقة:</span>
-                            <span className="text-[11px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 truncate max-w-[190px]">
-                              {biz.packageName || 'باقة التوثيق الأساسي'} ({biz.packagePrice || 250} ج.م)
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+
+                          {/* Floating Verified & Status Badges */}
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                            <span
+                              className={`text-[9.5px] font-black px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm border ${
+                                isVerified
+                                  ? 'bg-emerald-500/90 text-white border-emerald-400/40'
+                                  : 'bg-amber-500/90 text-slate-950 border-amber-400/40'
+                              }`}
+                            >
+                              {isVerified ? '✓ موثق رسمي' : '⏳ قيد التوثيق'}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between pt-1 border-t border-[var(--border-color)]/50">
-                            <span className="text-[var(--text-secondary)] font-bold text-[11px]">حالة السداد:</span>
+                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1">
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-950/70 text-slate-200 backdrop-blur-md border border-white/10">
+                              {biz.invoiceNumber || 'INV'}
+                            </span>
+                          </div>
+
+                          {/* Bottom info on photo */}
+                          <div className="absolute bottom-2 right-2.5 left-2.5 flex items-center justify-between text-white">
+                            <span className="text-[10px] font-bold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 truncate max-w-[170px]">
+                              {biz.category}
+                            </span>
+                            {biz.workingHours && (
+                              <span className="text-[9px] font-medium opacity-80 truncate max-w-[130px] flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5" /> {biz.workingHours}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Card Content Body */}
+                        <div className="p-3.5 sm:p-4 space-y-3 flex-1 flex flex-col justify-between">
+                          <div className="space-y-2">
                             <div>
-                              {(() => {
-                                const payInfo = getBusinessPaymentLabel(biz);
-                                if ((biz.amountPaid || 0) > 0) {
-                                  return (
-                                    <span className={`font-extrabold ${payInfo.isCash ? 'text-emerald-700 dark:text-emerald-400' : 'text-purple-700 dark:text-purple-400'}`}>
-                                      {payInfo.label}
-                                      {remaining > 0 && <span className="text-rose-600 dark:text-rose-400 text-[10px] mr-1"> (متبقي {remaining} ج)</span>}
-                                    </span>
-                                  );
-                                }
-                                return (
-                                  <span className="font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30 text-[10.5px]">
-                                    {payInfo.label}
+                              <h4 className="font-black text-sm sm:text-base text-[var(--text-primary)] group-hover:text-amber-500 transition-colors line-clamp-1">
+                                {biz.nameAr}
+                              </h4>
+                              <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
+                                <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                <span className="truncate">{biz.governorate} • {biz.city} {biz.street ? `• ${biz.street}` : ''}</span>
+                              </div>
+                            </div>
+
+                            {/* Representative & Date Strip */}
+                            <div className="flex items-center justify-between text-[10.5px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
+                              <span className="truncate max-w-[140px] text-[var(--text-secondary)]">👤 {biz.repName || 'مندوب ميداني'}</span>
+                              <span className="font-mono text-[9.5px] shrink-0">{formatActivityDateTime(biz.createdDate || biz.invoiceDate)}</span>
+                            </div>
+
+                            {/* Financial Package & Payment Row */}
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                  {biz.packagePrice || 250} ج.م
+                                </span>
+                              </div>
+                              <div>
+                                {remaining === 0 ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                    ✓ مسدد بالكامل
                                   </span>
-                                );
-                              })()}
+                                ) : (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                    متبقي {remaining} ج
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
-                          {/* Commission Clarity Row */}
-                          <div className="flex items-center justify-between pt-1 border-t border-[var(--border-color)]/50 text-[11px]">
-                            <span className="text-[var(--text-muted)] font-bold">موقف العمولة:</span>
-                            {(() => {
-                              const repRate = biz.repCommissionRate || 42.86;
-                              const isLive = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
-                              const paid = biz.amountPaid || 0;
-                              const earnedComm = Math.round((paid * repRate) / 100);
-                              const fullComm = Math.round(((biz.packagePrice || 250) * repRate) / 100);
+                          {/* Quick Interactive Actions */}
+                          <div className="pt-2 border-t border-[var(--border-color)]/60 space-y-2">
+                            {/* Fast Action Buttons Bar */}
+                            <div className="grid grid-cols-4 gap-1.5 text-center">
+                              {/* Call */}
+                              <a
+                                href={`tel:${biz.phone || biz.ownerPhone}`}
+                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+                                title="اتصال هاتفي"
+                              >
+                                <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>اتصال</span>
+                              </a>
 
-                              if (isLive && paid > 0) {
-                                return (
-                                  <span className="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    <span>محققة ومتاحة: {earnedComm} ج.م</span>
-                                  </span>
-                                );
-                              } else if (paid > 0 && !isLive) {
-                                return (
-                                  <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 text-[10.5px]">
-                                    💵 استلمت كاش ({paid} ج) • عمولتك {earnedComm} ج
-                                  </span>
-                                );
-                              } else {
-                                return (
-                                  <span className="font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 text-[10px]">
-                                    ⏳ عمولة منتظرة: {fullComm} ج.م عند التفعيل والسداد
-                                  </span>
-                                );
-                              }
-                            })()}
+                              {/* WhatsApp */}
+                              <a
+                                href={`https://wa.me/20${(biz.phone || biz.ownerPhone || '').replace(/\D/g, '').replace(/^0/, '')}?text=${encodeURIComponent(`مرحباً بك نشاط "${biz.nameAr}" من منصة دليلك للتوثيق الرقمي.`)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+                                title="محادثة واتساب"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>واتساب</span>
+                              </a>
+
+                              {/* Google Maps */}
+                              <a
+                                href={biz.googleMapsUrl || `https://www.google.com/maps/?q=${biz.lat},${biz.lng}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-blue-500/15 text-[var(--text-secondary)] hover:text-blue-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+                                title="فتح الموقع على الخريطة"
+                              >
+                                <Navigation className="w-3.5 h-3.5 text-blue-500" />
+                                <span>الخريطة</span>
+                              </a>
+
+                              {/* Invoice Preview */}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedInvoiceBiz(biz)}
+                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-purple-500/15 text-[var(--text-secondary)] hover:text-purple-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)] cursor-pointer"
+                                title="عرض الفاتورة الإلكترونية"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-purple-500" />
+                                <span>فاتورة</span>
+                              </button>
+                            </div>
+
+                            {/* Primary Details / Edit Button */}
+                            <button
+                              onClick={() => setEditingBusiness(biz)}
+                              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                            >
+                              <Eye className="w-4 h-4 stroke-[2.5]" />
+                              <span>تفاصيل وتعديل النشاط</span>
+                            </button>
                           </div>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
 
-                      <div className="pt-2">
-                        <button
-                          onClick={() => setEditingBusiness(biz)}
-                          className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
-                        >
-                          <Eye className="w-4 h-4 stroke-[2.5]" />
-                          <span>{isCreator ? 'تفاصيل وتعديل النشاط' : 'عرض التفاصيل (قراءة فقط)'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              {/* ── LIST / TABLE MODE (HIGH DENSITY PRODUCTIVITY VIEW) ─────────── */}
+              {homeViewMode === 'list' && filteredHomeBusinesses.length > 0 && (
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right text-xs">
+                      <thead className="bg-[var(--input-bg)] border-b border-[var(--border-color)] text-[var(--text-muted)] font-black text-[11px]">
+                        <tr>
+                          <th className="py-3 px-4">النشاط التجاري</th>
+                          <th className="py-3 px-3">التصنيف</th>
+                          <th className="py-3 px-3">الموقع</th>
+                          <th className="py-3 px-3">حالة التوثيق</th>
+                          <th className="py-3 px-3">السداد</th>
+                          <th className="py-3 px-3">المندوب المسجل</th>
+                          <th className="py-3 px-4 text-center">الإجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-color)]/60">
+                        {filteredHomeBusinesses.map((biz) => {
+                          const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                          const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+
+                          return (
+                            <tr key={`list_${biz.id}`} className="hover:bg-[var(--input-bg)]/40 transition-colors">
+                              <td className="py-3 px-4">
+                                <div className="font-black text-[var(--text-primary)]">{biz.nameAr}</div>
+                                <div className="text-[10px] font-mono text-[var(--text-muted)]">{biz.invoiceNumber}</div>
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-500/20">
+                                  {biz.category}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-[var(--text-secondary)] font-bold">
+                                {biz.governorate} • {biz.city}
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                  isVerified ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                }`}>
+                                  {isVerified ? '✓ موثق رسمي' : '⏳ قيد التوثيق'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className={`text-[10px] font-bold ${remaining === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                  {remaining === 0 ? 'مسدد (250 ج)' : `متبقي ${remaining} ج`}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-[11px] text-[var(--text-muted)] font-bold">
+                                {biz.repName || '—'}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => setEditingBusiness(biz)}
+                                    className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-black hover:bg-amber-600 transition-colors cursor-pointer text-xs flex items-center gap-1"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>معاينة</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedInvoiceBiz(biz)}
+                                    className="p-1.5 rounded-lg bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)] transition-colors cursor-pointer"
+                                    title="الفاتورة"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
