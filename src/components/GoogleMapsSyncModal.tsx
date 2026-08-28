@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Business, VerificationStatus } from '../types';
 import { 
   MapPin, 
@@ -40,6 +41,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const [placeId, setPlaceId] = useState<string>(
     business.googlePlaceId || `ChIJ_${Math.random().toString(36).substring(2, 9).toUpperCase()}_${Date.now().toString(36).toUpperCase()}`
   );
+  const [finalMapUrl, setFinalMapUrl] = useState<string>(business.googleMapsUrl || '');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
@@ -49,6 +51,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setCurrentStatus(business.verificationStatus || 'pending');
+      setFinalMapUrl(business.googleMapsUrl || '');
       if (business.googleSyncStatus === 'synced') {
         setPlaceId(business.googlePlaceId || placeId);
       }
@@ -152,9 +155,9 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     `الإحداثيات: ${business.lat}, ${business.lng}\n` +
     `رابط الخريطة: ${directMapUrl}`;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
-      <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-all duration-300">
+  return createPortal(
+    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
+      <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-all duration-300 max-h-[92vh] flex flex-col">
         
         {/* Close Button */}
         <button
@@ -175,7 +178,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300 bg-blue-500/10 border border-blue-500/20 py-0.5 px-3 rounded-full w-fit mx-auto font-mono">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
             <span>الحساب المعتمد:</span>
-            <span className="font-bold underline">dalilaakeg@gmail.com</span>
+            <span className="font-bold underline">@daz31181 (daz31181@gmail.com)</span>
           </div>
         </div>
 
@@ -236,6 +239,58 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               <span>{statusFeedback}</span>
             </div>
           )}
+
+          {/* 🔗 FINAL GOOGLE MAPS LIVE URL INPUT (رابط خرائط جوجل النهائي المباشر) */}
+          <div className="bg-gradient-to-r from-blue-500/10 via-[var(--bg-card)] to-amber-500/10 p-3 sm:p-3.5 rounded-2xl border-2 border-blue-500/30 space-y-2 text-xs">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
+                <span className="font-black text-[var(--text-primary)]">
+                  رابط النشاط المباشر على خرائط جوجل (Google Maps URL):
+                </span>
+              </div>
+              {finalMapUrl && (
+                <a
+                  href={finalMapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>فتح الرابط المباشر 🌐</span>
+                </a>
+              )}
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <input
+                type="url"
+                dir="ltr"
+                placeholder="مثال: https://maps.app.goo.gl/... أو https://goo.gl/maps/..."
+                value={finalMapUrl}
+                onChange={(e) => setFinalMapUrl(e.target.value)}
+                className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none focus:border-blue-500 shadow-xs font-bold text-left"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!finalMapUrl.trim()) return;
+                  const updated: Business = {
+                    ...business,
+                    googleMapsUrl: finalMapUrl.trim(),
+                    verificationStatus: 'verified',
+                    googleSyncStatus: 'synced',
+                  };
+                  if (onUpdateBusiness) onUpdateBusiness(updated);
+                  setStatusFeedback('✅ تم حفظ وتثبيت رابط جوجل ماب المباشر للنشاط بنجاح!');
+                  setTimeout(() => setStatusFeedback(null), 3000);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow cursor-pointer transition-transform active:scale-95 shrink-0"
+              >
+                حفظ الرابط 💾
+              </button>
+            </div>
+          </div>
 
           {/* CLARIFICATION BANNER: When Verified with Unpaid/Remaining Balance */}
           {(currentStatus === 'verified' || business.verificationStatus === 'verified' || business.googleSyncStatus === 'synced') && Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0)) > 0 && (
@@ -462,10 +517,10 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-4 text-right space-y-2 text-xs">
                   <p className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-blue-600" />
-                    <span>المزامنة عبر حساب المنصة الرسمي (dalilaakeg@gmail.com):</span>
+                    <span>المزامنة عبر حساب المنصة الرسمي (@daz31181):</span>
                   </p>
                   <ul className="space-y-1.5 text-blue-800 dark:text-blue-400 text-[11px] pr-2">
-                    <li>• يتم رفع وتوثيق النشاط التجاري رسمياً من خلال حساب المنصة <strong>dalilaakeg@gmail.com</strong>.</li>
+                    <li>• يتم رفع وتوثيق النشاط التجاري رسمياً من خلال حساب المنصة <strong>@daz31181 (daz31181@gmail.com)</strong>.</li>
                     <li>• إرسال وتعبئة البيانات (الاسم، التصنيف، العنوان، الإحداثيات) لخوادم Google Business Profile.</li>
                     <li>• توليد معرّف النشاط الرقمي الرسمي (Google Place ID) كإثبات تسجيل معتمد.</li>
                   </ul>
@@ -544,7 +599,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
                   <div className="bg-blue-500/5 border border-blue-500/20 p-2 rounded-xl text-[11px] flex items-center justify-between">
                     <span className="text-[var(--text-secondary)] font-bold">الحساب الإداري الموثق:</span>
-                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">dalilaakeg@gmail.com</span>
+                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">@daz31181 (daz31181@gmail.com)</span>
                   </div>
                 </div>
 
@@ -574,7 +629,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
         {/* FULL PHOTO PREVIEW MODAL */}
         {previewPhoto && (
-          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[10100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
             <div className="relative max-w-2xl w-full">
               <button
                 onClick={() => setPreviewPhoto(null)}
@@ -601,6 +656,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

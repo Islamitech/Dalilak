@@ -1,15 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { toPng } from 'html-to-image';
 import { Business } from '../types';
 import { calculateBusinessCommission } from '../utils/commission';
 import { Logo } from './Logo';
-import { Printer, Share2, CheckCircle2, Clock, AlertCircle, MapPin, ExternalLink, ShieldCheck, QrCode, Copy, Check, CloudUpload, Sparkles, Zap, Gift } from 'lucide-react';
+import { 
+  Printer, 
+  Share2, 
+  CheckCircle2, 
+  Clock, 
+  AlertCircle, 
+  MapPin, 
+  ExternalLink, 
+  ShieldCheck, 
+  QrCode, 
+  Copy, 
+  Check, 
+  CloudUpload, 
+  Sparkles, 
+  Zap, 
+  Gift,
+  Download,
+  Save,
+  Loader2
+} from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { generateUpgradeOffersWhatsAppMessage, getUpgradeOffersWhatsAppUrl } from '../utils/packageOffers';
+import { downloadSinglePhoto } from '../utils/photoDownloader';
 
 interface InvoiceModalProps {
   business: Business | null;
   onClose: () => void;
   isExternalView?: boolean;
+  userRole?: string;
+  isAdmin?: boolean;
   onUpdateBusiness?: (updatedBusiness: Business) => void;
 }
 
@@ -17,16 +41,28 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   business, 
   onClose, 
   isExternalView = false,
+  userRole,
+  isAdmin = false,
   onUpdateBusiness,
 }) => {
+  const isPrivilegedUser = isAdmin || userRole === 'admin' || userRole === 'supervisor' || userRole === 'accountant';
   const [copied, setCopied] = useState<boolean>(false);
   const [copiedOffers, setCopiedOffers] = useState<boolean>(false);
   const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
   const [currentBiz, setCurrentBiz] = useState<Business | null>(business);
+  const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentBiz(business);
   }, [business]);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Safe early exit if neither business prop nor currentBiz state is present
   const activeBusiness = business || currentBiz;
@@ -55,7 +91,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         ? 'مدفوع جزء منها (متبقي ' + remaining + ' ج.م) ⏳'
         : 'لم يتم الدفع نهائياً ❌'
     }\n\n` +
-    `📍 *رابط الإحداثيات ورابط الخريطة:* https://www.google.com/maps/search/?api=1&query=${activeBusiness.lat || 0},${activeBusiness.lng || 0}\n\n` +
+    `📍 *رابط الخريطة المباشر:* ${activeBusiness.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${activeBusiness.lat || 0},${activeBusiness.lng || 0}`}\n\n` +
     `*ملاحظة:* سيتم متابعة مراجعة وتوثيق النشاط حتى ظهوره رسمياً على خرائط جوجل. شكرًا لثقتكم بشركة دليلك!`;
 
   // WhatsApp formatted Arabic message text
@@ -75,20 +111,75 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const qrData = encodeURIComponent(qrUrl);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
-      <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-5 my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300">
-        {/* Close Button */}
-        {!isExternalView && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 left-4 bg-[var(--input-bg)] hover:bg-rose-500/10 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold no-print border border-[var(--border-color)] cursor-pointer">
-            ✕
-          </button>
-        )}
+  // Pixel-Perfect DOM Screenshot Downloader using html-to-image
+  const handleSaveInvoiceImage = async () => {
+    if (!invoiceRef.current) return;
+    try {
+      setIsSavingImage(true);
+      const dataUrl = await toPng(invoiceRef.current, {
+        cacheBust: true,
+        pixelRatio: 3, // Ultra-sharp resolution
+        backgroundColor: '#ffffff',
+      });
+      downloadSinglePhoto(
+        dataUrl,
+        `فاتورة-${activeBusiness.nameAr || 'نشاط'}-${activeBusiness.invoiceNumber || 'INV'}.png`
+      );
+    } catch (err) {
+      console.warn('html-to-image capture error, falling back to print:', err);
+      window.print();
+    } finally {
+      setIsSavingImage(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div 
+        className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300 overflow-y-auto"
+        style={{ maxHeight: '92vh' }}
+      >
+        {/* Top Header Bar: Close Button + Simple Actions */}
+        <div className="flex items-center justify-between no-print mb-1">
+          {!isExternalView ? (
+            <button
+              onClick={onClose}
+              className="bg-[var(--input-bg)] hover:bg-rose-500/10 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold border border-[var(--border-color)] cursor-pointer"
+              title="إغلاق"
+            >
+              ✕
+            </button>
+          ) : <div />}
+
+          {/* Simple Top Actions (Save / Print) */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSaveInvoiceImage}
+              disabled={isSavingImage}
+              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] hover:text-amber-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors border border-[var(--border-color)] cursor-pointer shadow-xs disabled:opacity-50"
+              title="حفظ الفاتورة كصورة"
+            >
+              {isSavingImage ? (
+                <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 text-amber-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] hover:text-amber-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors border border-[var(--border-color)] cursor-pointer shadow-xs"
+              title="طباعة الفاتورة"
+            >
+              <Printer className="w-4 h-4 text-amber-500" />
+            </button>
+          </div>
+        </div>
 
         {/* Printable Invoice Container */}
-        <div className="space-y-4 bg-white text-slate-900 p-5 rounded-2xl shadow-inner border border-slate-200">
+        <div ref={invoiceRef} className="space-y-4 bg-white text-slate-900 p-5 rounded-2xl shadow-inner border border-slate-200">
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-200">
             <Logo size="sm" />
@@ -154,10 +245,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <span>المبلغ المتبقي:</span>
               <span>{remaining} جنيه مصري</span>
             </div>
-            <div className="flex justify-between text-amber-700 font-bold pt-1 border-t border-slate-200 text-[11px] no-print">
-              <span>عمولة المندوب:</span>
-              <span>{calculateBusinessCommission(pkgPrice, amtPaid)} جنيه مصري</span>
-            </div>
           </div>
 
           {/* Payment Status & Follow Up note */}
@@ -188,7 +275,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
             {/* Electronic QR Code */}
             <div className="flex items-center gap-2">
-              <img src={qrImageUrl} alt="QR Code" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-slate-300 p-1 bg-white" />
+              <img src={qrImageUrl} crossOrigin="anonymous" alt="QR Code" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-slate-300 p-1 bg-white" />
             </div>
           </div>
 
@@ -197,113 +284,138 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </div>
         </div>
 
-        {/* Google Maps Auto-Sync & Place ID Button */}
-        <div className="no-print">
-          <button
-            onClick={() => setShowSyncModal(true)}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg hover:shadow-blue-500/20 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer border border-blue-400/30"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center">
-                <MapPin className="w-4 h-4 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1.5">
-                  <span>مزامنة وتوثيق على خرائط جوجل</span>
-                  <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">API</span>
-                </div>
-                <p className="text-[10px] text-blue-100 font-normal">إرسال البيانات والصور وتوليد معرّف Place ID الرسمي</p>
-              </div>
-            </div>
-
-            <div className="bg-white/20 px-2.5 py-1 rounded-xl text-[11px] font-bold">
-              {activeBusiness.googleSyncStatus === 'synced' ? 'مُوثق ومعتمد ✅' : 'مزامنة الآن ⚡'}
-            </div>
-          </button>
-        </div>
-
-        {/* Package Upgrade Offers Box */}
-        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 p-3 rounded-2xl border border-amber-500/30 no-print space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-black text-amber-800 dark:text-amber-300">
-              <Gift className="w-4 h-4 text-amber-500" />
-              <span>عروض الترقية والتطوير الحصرية للعميل</span>
-            </div>
-            <span className="text-[10px] bg-amber-500/20 text-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
-              فرص مبيعات إضافية 🚀
-            </span>
-          </div>
-          <p className="text-[11px] text-[var(--text-muted)] font-medium">
-            يمكنك إرسال تفاصيل ومميزات الباقات الأخرى (عرض التأسيس والربط الذكي أو باقة الدعم الميداني VIP) مباشرة لصاحب النشاط عبر واتساب.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-            <a
-              href={getUpgradeOffersWhatsAppUrl(activeBusiness)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs py-2.5 px-3.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>إرسال عروض الترقية (واتساب)</span>
-            </a>
-
+        {/* Google Maps Auto-Sync & Place ID Button (Admins only) */}
+        {isPrivilegedUser && (
+          <div className="no-print">
             <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(generateUpgradeOffersWhatsAppMessage(activeBusiness));
-                setCopiedOffers(true);
-                setTimeout(() => setCopiedOffers(false), 2500);
-              }}
-              className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              onClick={() => setShowSyncModal(true)}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg hover:shadow-blue-500/20 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer border border-blue-400/30"
             >
-              {copiedOffers ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
-              <span>{copiedOffers ? 'تم نسخ العروض!' : 'نسخ نص العروض'}</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5">
+                    <span>مزامنة وتوثيق على خرائط جوجل</span>
+                    <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">API</span>
+                  </div>
+                  <p className="text-[10px] text-blue-100 font-normal">إرسال البيانات والصور وتوليد معرّف Place ID الرسمي</p>
+                </div>
+              </div>
+
+              <div className="bg-white/20 px-2.5 py-1 rounded-xl text-[11px] font-bold">
+                {activeBusiness.googleSyncStatus === 'synced' ? 'مُوثق ومعتمد ✅' : 'مزامنة الآن ⚡'}
+              </div>
             </button>
           </div>
-        </div>
+        )}
 
-        {/* Dispatch Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-2 no-print">
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>إرسال الفاتورة (واتساب)</span>
-          </a>
+        {/* Package Upgrade Offers Box (Admins only) */}
+        {isPrivilegedUser && (
+          <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 p-3 rounded-2xl border border-amber-500/30 no-print space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-black text-amber-800 dark:text-amber-300">
+                <Gift className="w-4 h-4 text-amber-500" />
+                <span>عروض الترقية والتطوير الحصرية للعميل</span>
+              </div>
+              <span className="text-[10px] bg-amber-500/20 text-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                فرص مبيعات إضافية 🚀
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--text-muted)] font-medium">
+              يمكنك إرسال تفاصيل ومميزات الباقات الأخرى (عرض التأسيس والربط الذكي أو باقة الدعم الميداني VIP) مباشرة لصاحب النشاط عبر واتساب.
+            </p>
 
-          <button
-            onClick={handleCopyInvoice}
-            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs py-3 px-3.5 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            title="نسخ نص الفاتورة للحافظة"
-          >
-            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
-            <span>{copied ? 'تم النسخ!' : 'نسخ الفاتورة'}</span>
-          </button>
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+              <a
+                href={getUpgradeOffersWhatsAppUrl(activeBusiness)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs py-2.5 px-3.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>إرسال عروض الترقية (واتساب)</span>
+              </a>
 
-          <button
-            onClick={() => window.print()}
-            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-3 px-3.5 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>طباعة</span>
-          </button>
-        </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(generateUpgradeOffersWhatsAppMessage(activeBusiness));
+                  setCopiedOffers(true);
+                  setTimeout(() => setCopiedOffers(false), 2500);
+                }}
+                className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {copiedOffers ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+                <span>{copiedOffers ? 'تم نسخ العروض!' : 'نسخ نص العروض'}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
-        {/* Google Maps Sync Modal */}
-        <GoogleMapsSyncModal
-          business={activeBusiness}
-          isOpen={showSyncModal}
-          onClose={() => setShowSyncModal(false)}
-          onUpdateBusiness={(updated) => {
-            setCurrentBiz(updated);
-            if (onUpdateBusiness) onUpdateBusiness(updated);
-          }}
-        />
+        {/* Action Buttons for Admins only (Reps use the clean header icons) */}
+        {isPrivilegedUser && (
+          <div className="no-print pt-1">
+            <div className="flex items-center gap-2">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 sm:py-3 px-3 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>إرسال بالواتساب</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={handleCopyInvoice}
+                className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs py-2.5 sm:py-3 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                title="نسخ نص الفاتورة للحافظة"
+              >
+                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                <span className="hidden sm:inline">{copied ? 'تم النسخ!' : 'نسخ'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveInvoiceImage}
+                disabled={isSavingImage}
+                className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-2.5 sm:py-3 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                title="حفظ الفاتورة كصورة"
+              >
+                <Download className="w-4 h-4 text-amber-500" />
+                <span className="hidden sm:inline">حفظ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-2.5 sm:py-3 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                title="طباعة الفاتورة"
+              >
+                <Printer className="w-4 h-4 text-amber-500" />
+                <span className="hidden sm:inline">طباعة</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Google Maps Sync Modal (Admins only) */}
+        {isPrivilegedUser && (
+          <GoogleMapsSyncModal
+            business={activeBusiness}
+            isOpen={showSyncModal}
+            onClose={() => setShowSyncModal(false)}
+            onUpdateBusiness={(updated) => {
+              setCurrentBiz(updated);
+              if (onUpdateBusiness) onUpdateBusiness(updated);
+            }}
+          />
+        )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification } from './types';
+import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification, PayoutRequest, InterestedLead } from './types';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './data/mockData';
-import { calculateTotalRepCommission } from './utils/commission';
+import { calculateTotalRepCommission, getBusinessPaymentLabel } from './utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from './utils/dateFormatters';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { InteractiveMap } from './components/InteractiveMap';
 import { BusinessForm } from './components/BusinessForm';
 import { InvoiceModal } from './components/InvoiceModal';
+import { InvoicesLeadsHub } from './components/InvoicesLeadsHub';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AdminProfileModal } from './components/AdminProfileModal';
 import { RepDashboard } from './components/RepDashboard';
 import { RepProfile } from './components/RepProfile';
 import { LoginModal } from './components/LoginModal';
@@ -16,7 +18,10 @@ import { PaymentGatewayModal } from './components/PaymentGatewayModal';
 import { BusinessEditModal } from './components/BusinessEditModal';
 import { AboutUsModal } from './components/AboutUsModal';
 import { TermsModal } from './components/TermsModal';
+import { PermissionsModal } from './components/PermissionsModal';
+import { PackagesModal } from './components/PackagesModal';
 import { Logo } from './components/Logo';
+import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, canUserManagePayouts } from './utils/permissions';
 import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X, Info, Heart, Smartphone } from 'lucide-react';
 import {
   fetchBusinessesFromDb,
@@ -27,6 +32,15 @@ import {
   saveRepToDb,
   deleteRepFromDb,
   updateRepSessionInDb,
+  fetchPayoutRequestsFromDb,
+  createPayoutRequestInDb,
+  updatePayoutRequestInDb,
+  fetchLeadsFromDb,
+  saveLeadToDb,
+  updateLeadInDb,
+  deleteLeadFromDb,
+  fetchPaymentConfigFromDb,
+  savePaymentConfigToDb,
 } from './services/db';
 
 // Fixed Session Duration (12 hours maximum lifetime)
@@ -53,6 +67,10 @@ export default function App() {
         try {
           const parsed = JSON.parse(savedUser);
           if (parsed && parsed.id && parsed.name) {
+            if (parsed.role === 'admin' && (parsed.email === 'dalilaakeg@gmail.com' || !parsed.email)) {
+              parsed.email = 'daz31181@gmail.com';
+              if (parsed.repData) parsed.repData.email = 'daz31181@gmail.com';
+            }
             return parsed;
           }
         } catch (e) {}
@@ -85,7 +103,17 @@ export default function App() {
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [representatives, setRepresentatives] = useState<Representative[]>([]);
-  const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(DEFAULT_PAYMENT_CONFIG);
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(() => {
+    const saved = localStorage.getItem('dalelak_payment_config');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_PAYMENT_CONFIG, ...parsed, instaPayHandle: parsed.instaPayHandle || '@daz31181' };
+      } catch (e) {}
+    }
+    return DEFAULT_PAYMENT_CONFIG;
+  });
 
   // Navigation Tabs: 'home' | 'map' | 'add' | 'invoices' | 'admin' | 'profile'
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -122,6 +150,9 @@ export default function App() {
 
   // Sync activeTab state with localStorage and browser URL (Query Param & Hash)
   useEffect(() => {
+    // Always guarantee body scrolling is freely active on tab/page change
+    document.body.style.overflow = '';
+
     if (activeTab) {
       localStorage.setItem('dalelak_active_tab', activeTab);
       const url = new URL(window.location.href);
@@ -141,6 +172,13 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
   const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState<boolean>(false);
+  const [showPackagesModal, setShowPackagesModal] = useState<boolean>(false);
+  const [showAdminProfileModal, setShowAdminProfileModal] = useState<boolean>(false);
+
+  // Interested Leads State & Conversion
+  const [leads, setLeads] = useState<InterestedLead[]>([]);
+  const [convertingLead, setConvertingLead] = useState<InterestedLead | null>(null);
 
   // Home Feed Search & Filters
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
@@ -435,17 +473,18 @@ export default function App() {
 
   // Fetch initial data from Supabase Database & Local Backend
   useEffect(() => {
-    Promise.all([
-      fetchBusinessesFromDb(),
-      fetchRepsFromDb(),
-      fetch('/api/representatives')
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
-    ])
-      .then(([bizData, dbRepsData, apiRepsData]) => {
-        setBusinesses(bizData && bizData.length > 0 ? bizData : INITIAL_BUSINESSES);
+    Promise.all([fetchBusinessesFromDb(), fetchRepsFromDb(), fetchPayoutRequestsFromDb(), fetchLeadsFromDb()])
+      .then(([dbBizData, dbRepsData, dbPayouts, dbLeads]) => {
+        if (Array.isArray(dbBizData) && dbBizData.length > 0) {
+          setBusinesses(dbBizData);
+        }
+        if (Array.isArray(dbPayouts)) {
+          setPayoutRequests(dbPayouts);
+        }
+        if (Array.isArray(dbLeads)) {
+          setLeads(dbLeads);
+        }
 
-        // Correct Merge Order: mock first, cache second, Express API third, and Supabase DB LAST (strictly authoritative!)
         const repMap = new Map<string, Representative>();
         MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
         try {
@@ -454,9 +493,6 @@ export default function App() {
             cachedCustom.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
           }
         } catch {}
-        if (Array.isArray(apiRepsData) && apiRepsData.length > 0) {
-          apiRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
-        }
         if (Array.isArray(dbRepsData) && dbRepsData.length > 0) {
           dbRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
         }
@@ -484,31 +520,15 @@ export default function App() {
       })
       .catch((err) => {
         console.error('Error fetching initial database data, using defaults:', err);
-        const repMap = new Map<string, Representative>();
-        MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
-        try {
-          const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
-          if (Array.isArray(cachedCustom)) {
-            cachedCustom.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
-          }
-        } catch {}
         setBusinesses(INITIAL_BUSINESSES);
-        setRepresentatives(Array.from(repMap.values()));
         setIsLoadingData(false);
       });
 
-    fetch('/api/payment-config')
-      .then((res) => {
-        const contentType = res.headers.get('content-type') || '';
-        if (res.ok && contentType.includes('application/json')) {
-          return res.json();
-        }
-        return null;
+    fetchPaymentConfigFromDb()
+      .then((cfg) => {
+        if (cfg) setPaymentConfig(cfg);
       })
-      .then((data) => {
-        if (data && data.fawryMerchantCode) setPaymentConfig(data);
-      })
-      .catch((err) => console.log('Using local payment config fallback:', err));
+      .catch((err) => console.log('Payment config load notice:', err));
   }, []);
 
   // Live Real-Time Poller & Cross-Tab Syncer (Reflects Admin changes instantaneously)
@@ -517,13 +537,18 @@ export default function App() {
 
     const refreshLiveData = async () => {
       try {
-        const [freshBiz, freshReps] = await Promise.all([
+        const [freshBiz, freshReps, freshPayouts] = await Promise.all([
           fetchBusinessesFromDb(),
           fetchRepsFromDb(),
+          fetchPayoutRequestsFromDb(),
         ]);
 
         if (Array.isArray(freshBiz) && freshBiz.length > 0) {
           setBusinesses(freshBiz);
+        }
+
+        if (Array.isArray(freshPayouts)) {
+          setPayoutRequests(freshPayouts);
         }
 
         if (Array.isArray(freshReps) && freshReps.length > 0) {
@@ -571,96 +596,282 @@ export default function App() {
     };
   }, [user?.id, user?.email]);
 
-  // Handlers synced with Supabase Database
+  // Handlers synced with Supabase Database & Real-Time Lifecycle
   const handleAddBusiness = async (newBiz: Business) => {
-    setBusinesses([newBiz, ...businesses]);
-    await saveBusinessToDb(newBiz);
-    addNotification(`🎉 تم تسجيل النشاط التجاري "${newBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
+    // 1. Automatically calculate payment status from amountPaid and packagePrice
+    const autoPaymentStatus = (newBiz.amountPaid || 0) >= (newBiz.packagePrice || 250)
+      ? 'fully_paid'
+      : (newBiz.amountPaid || 0) > 0
+      ? 'partially_paid'
+      : 'unpaid';
+
+    const normalizedBiz: Business = {
+      ...newBiz,
+      paymentStatus: autoPaymentStatus,
+    };
+
+    setBusinesses([normalizedBiz, ...businesses]);
+    await saveBusinessToDb(normalizedBiz);
+    addNotification(`🎉 تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
     
-    // 1. Detailed Admin Notification
+    // 1. Broadcast notification for Admin
     addSystemNotification({
-      title: `إضافة نشاط تجاري جديد: ${newBiz.nameAr} 🏪`,
-      message: `قام المندوب "${newBiz.repName || user?.name || 'مندوب'}" بتسجيل نشاط جديد "${newBiz.nameAr}" في ${newBiz.governorate} (${newBiz.city || ''}) — التصنيف: ${newBiz.category} — الباقة: ${newBiz.packageName} (${newBiz.packagePrice} ج.م) — هاتف المالك: ${newBiz.ownerPhone || 'غير محدد'}.`,
+      title: 'تسجيل نشاط تجاري جديد 🏪',
+      message: `قام المندوب "${normalizedBiz.repName || user?.name || 'ميداني'}" بتسجيل نشاط جديد "${normalizedBiz.nameAr}" في (${normalizedBiz.governorate} - ${normalizedBiz.city}).`,
       type: 'info',
       category: 'business',
       targetRole: 'admin',
-      entityId: newBiz.id,
-      entityType: 'business',
       linkTab: 'admin',
     });
 
     // 2. Personal confirmation notification for registering representative
-    if (newBiz.repId || user?.id) {
+    if (normalizedBiz.repId || user?.id) {
       addSystemNotification({
-        title: `🎉 تم تسجيل نشاطك: ${newBiz.nameAr}`,
-        message: `تم تسليم وحفظ بيانات النشاط "${newBiz.nameAr}" بنجاح وجاري مراجعته وتوثيقه.`,
+        title: `🎉 تم تسجيل نشاطك: ${normalizedBiz.nameAr}`,
+        message: `تم تسليم وحفظ بيانات النشاط "${normalizedBiz.nameAr}" بنجاح وجاري مراجعته وتوثيقه.`,
         type: 'success',
         category: 'business',
-        targetUserId: newBiz.repId || user?.id,
-        entityId: newBiz.id,
+        targetUserId: normalizedBiz.repId || user?.id,
+        entityId: normalizedBiz.id,
         entityType: 'business',
         linkTab: 'home',
       });
     }
+  };
+
+  const handleUpdateBusiness = async (updatedBiz: Business) => {
+    const prevBiz = businesses.find((b) => b.id === updatedBiz.id);
+
+    // Automatically recalculate payment status based on amountPaid and packagePrice
+    const autoPaymentStatus = (updatedBiz.amountPaid || 0) >= (updatedBiz.packagePrice || 250)
+      ? 'fully_paid'
+      : (updatedBiz.amountPaid || 0) > 0
+      ? 'partially_paid'
+      : 'unpaid';
+
+    const normalizedBiz: Business = {
+      ...updatedBiz,
+      paymentStatus: autoPaymentStatus,
+    };
+
+    setBusinesses(businesses.map((b) => (b.id === normalizedBiz.id ? normalizedBiz : b)));
+    updateBusinessInDb(normalizedBiz.id, normalizedBiz);
+    
+    // 1. Verification status change notification
+    if (prevBiz && prevBiz.verificationStatus !== normalizedBiz.verificationStatus) {
+      const statusMap: Record<string, string> = {
+        verified: 'مقبول وموثق ✅',
+        rejected: 'مرفوض ✕',
+        in_progress: 'قيد المراجعة ⏳',
+      };
+      const newStatus = statusMap[normalizedBiz.verificationStatus] || normalizedBiz.verificationStatus;
+      addNotification(`🔔 تم تحديث حالة نشاط "${normalizedBiz.nameAr}" إلى: ${newStatus}`, 'info');
+
+      addSystemNotification({
+        title: 'تحديث توثيق النشاط 🗺️',
+        message: `تم تحديث حالة التوثيق لنشاط "${normalizedBiz.nameAr}" إلى (${newStatus}).`,
+        type: normalizedBiz.verificationStatus === 'verified' ? 'success' : 'info',
+        category: 'business',
+        targetRole: 'admin',
+        targetUserId: normalizedBiz.repId || user?.id,
+        linkTab: 'home',
+      });
+    } else {
+      addNotification(`💾 تم حفظ تعديلات نشاط "${normalizedBiz.nameAr}" بنجاح!`, 'success');
+    }
+
+    // 2. Automated Payment lifecycle interaction & Commission Unlock notification for Rep
+    if (prevBiz && (prevBiz.amountPaid !== normalizedBiz.amountPaid || prevBiz.paymentStatus !== normalizedBiz.paymentStatus)) {
+      addSystemNotification({
+        title: 'تحديث تحصيل سداد 💳',
+        message: `تم تحديث مدفوعات نشاط "${normalizedBiz.nameAr}" (المبلغ المدفوع: ${normalizedBiz.amountPaid} ج.م - الحالة: ${normalizedBiz.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل ✅' : 'مدفوع جزئياً ⏳'}).`,
+        type: 'success',
+        category: 'payment',
+        targetRole: 'admin',
+        linkTab: 'invoices',
+      });
+
+      // If payment was added, notify the rep that commission is unlocked and available
+      if ((normalizedBiz.amountPaid || 0) > (prevBiz.amountPaid || 0) && normalizedBiz.repId) {
+        addSystemNotification({
+          title: '💰 تم سداد الفاتورة - عمولتك متاحة للسحب!',
+          message: `تم تسجيل سداد مبلغ ${normalizedBiz.amountPaid} ج.م لنشاط "${normalizedBiz.nameAr}"، وأصبحت عمولتك المستحقة متاحة للسحب الفوري في محفظتك.`,
+          type: 'success',
+          category: 'payment',
+          targetUserId: normalizedBiz.repId,
+          linkTab: 'profile',
+        });
+      }
+    }
 
     try {
-      await fetch('/api/businesses', {
-        method: 'POST',
+      await fetch(`/api/businesses/${normalizedBiz.id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBiz),
+        body: JSON.stringify(normalizedBiz),
       });
     } catch (err) {
       console.log('Express backend sync notice:', err);
     }
   };
 
-  const handleUpdateBusiness = async (updatedBiz: Business) => {
-    const prevBiz = businesses.find((b) => b.id === updatedBiz.id);
-    setBusinesses(businesses.map((b) => (b.id === updatedBiz.id ? updatedBiz : b)));
-    updateBusinessInDb(updatedBiz.id, updatedBiz);
+  // Commission Payout & Remittance Request Handlers
+  const handleCreatePayoutRequest = async (payout: PayoutRequest) => {
+    setPayoutRequests((prev) => [payout, ...prev]);
+    await createPayoutRequestInDb(payout);
     
-    if (prevBiz && prevBiz.verificationStatus !== updatedBiz.verificationStatus) {
-      const statusMap: Record<string, string> = {
-        verified: 'مقبول وموثق ✅',
-        rejected: 'مرفوض ✕',
-        in_progress: 'قيد المراجعة ⏳',
-      };
-      const newStatus = statusMap[updatedBiz.verificationStatus] || updatedBiz.verificationStatus;
-      addNotification(`🔔 تم تحديث حالة نشاط "${updatedBiz.nameAr}" إلى: ${newStatus}`, 'info');
+    const isRemit = payout.type === 'remittance';
+    
+    addNotification(
+      isRemit
+        ? `💳 تم إرسال إشعار وإيصال سداد توريد المنصة بقيمة ${payout.amount} ج.م للإدارة بنجاح!`
+        : `💵 تم إرسال طلب سحب العمولة بقيمة ${payout.amount} ج.م للإدارة بنجاح!`,
+      'success'
+    );
+    
+    // 1. Notification for Admin
+    addSystemNotification({
+      title: isRemit ? '📥 إشعار سداد وتوريد جديد للمنصة' : '🔔 طلب سحب عمولة جديد',
+      message: isRemit
+        ? `المندوب "${payout.repName}" أرسل إشعار تحويل وتوريد للمنصة بمبلغ ${payout.amount} ج.م عبر (${payout.method}) مرفقاً صورة الإيصال للمراجعة.`
+        : `المندوب "${payout.repName}" يطلب سحب عمولة بقيمة ${payout.amount} ج.م عبر (${payout.method})، الحساب: ${payout.accountDetails}.`,
+      type: 'info',
+      category: 'payout',
+      targetRole: 'admin',
+      linkTab: 'admin',
+    });
 
+    // 2. Notification for Representative
+    addSystemNotification({
+      title: isRemit ? '⏳ إشعار السداد قيد المراجعة والتدقيق' : '⏳ طلب سحب العمولة قيد المراجعة',
+      message: isRemit
+        ? `تم استلام إيصال سدادك بمبلغ ${payout.amount} ج.م وجاري مراجعته وتدقيقه من قبل الإدارة لتصفية حسابك.`
+        : `تم استلام طلب سحب أرباحك بمبلغ ${payout.amount} ج.م وجاري مراجعته والتحويل من الإدارة.`,
+      type: 'info',
+      category: 'payout',
+      targetUserId: payout.repId,
+      linkTab: 'home',
+    });
+  };
+
+  const handleUpdatePayoutRequest = async (payout: PayoutRequest) => {
+    setPayoutRequests((prev) => prev.map((p) => (p.id === payout.id ? payout : p)));
+    await updatePayoutRequestInDb(payout);
+
+    const isRemit = payout.type === 'remittance';
+
+    if (payout.status === 'approved') {
+      addNotification(
+        isRemit
+          ? `✅ تم اعتماد وتأكيد استلام سداد المندوب "${payout.repName}" بمبلغ ${payout.amount} ج.م!`
+          : `✅ تم تأكيد وصرف الحوالة للمندوب "${payout.repName}" بمبلغ ${payout.amount} ج.م!`,
+        'success'
+      );
       addSystemNotification({
-        title: 'تحديث توثيق النشاط 🗺️',
-        message: `تم تحديث حالة التوثيق لنشاط "${updatedBiz.nameAr}" إلى (${newStatus}).`,
-        type: updatedBiz.verificationStatus === 'verified' ? 'success' : 'info',
-        category: 'business',
-        targetRole: 'admin',
-        targetUserId: updatedBiz.repId || user?.id,
+        title: isRemit ? '🎉 تم اعتماد وتأكيد سدادك بنجاح!' : '🎉 تم تحويل وصرف العمولة بنجاح!',
+        message: isRemit
+          ? `تمت مراجعة إيصالك واعتماد سداد مبلغ ${payout.amount} ج.م وتصفية ذمتك المالية لدى المنصة بنجاح.`
+          : `تم تحويل مبلغ ${payout.amount} ج.م بنجاح إلى حسابك (${payout.accountDetails})${payout.transactionRef ? ` - رقم العملية: ${payout.transactionRef}` : ''}.`,
+        type: 'success',
+        category: 'payout',
+        targetUserId: payout.repId,
         linkTab: 'home',
       });
-    } else {
-      addNotification(`💾 تم حفظ تعديلات نشاط "${updatedBiz.nameAr}" بنجاح!`, 'success');
-    }
-
-    if (prevBiz && (prevBiz.amountPaid !== updatedBiz.amountPaid || prevBiz.paymentStatus !== updatedBiz.paymentStatus)) {
+    } else if (payout.status === 'rejected') {
+      addNotification(
+        isRemit
+          ? `❌ تم رفض إشعار سداد المندوب "${payout.repName}".`
+          : `❌ تم رفض طلب سحب المندوب "${payout.repName}".`,
+        'warning'
+      );
       addSystemNotification({
-        title: 'تحديث تحصيل سداد 💳',
-        message: `تم تحديث مدفوعات نشاط "${updatedBiz.nameAr}" (المبلغ المدفوع: ${updatedBiz.amountPaid} ج.م - الحالة: ${updatedBiz.paymentStatus === 'fully_paid' ? 'مكتمل' : 'جزئي'}).`,
-        type: 'success',
-        category: 'payment',
-        targetRole: 'admin',
-        linkTab: 'invoices',
+        title: isRemit ? '⚠️ تنبيه: تم رفض إشعار السداد' : '⚠️ تنبيه: تم رفض طلب سحب العمولة',
+        message: isRemit
+          ? `تم رفض إشعار سداد المبلغ (${payout.amount} ج.م) بسبب: ${payout.adminNotes || 'يرجى التأكد من وضوح الإيصال وصحة بيانات التحويل'}.`
+          : `تم رفض طلب سحب المبلغ (${payout.amount} ج.م) بسبب: ${payout.adminNotes || 'يرجى مراجعة الإدارة'}، وقد عاد المبلغ تلقائياً لرصيدك المتاح للسحب.`,
+        type: 'error',
+        category: 'payout',
+        targetUserId: payout.repId,
+        linkTab: 'home',
       });
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // INTERESTED LEADS (CRM) HANDLERS
+  // ---------------------------------------------------------------------------
+  const handleCreateLead = async (newLead: InterestedLead) => {
+    setLeads((prev) => [newLead, ...prev]);
+    await saveLeadToDb(newLead);
+    addNotification(`✨ تم حفظ بيانات العميل المهتم "${newLead.clientName}" بنجاح!`, 'success');
+  };
+
+  const handleUpdateLead = async (updatedLead: InterestedLead) => {
+    setLeads((prev) => prev.map((l) => (l.id === updatedLead.id ? updatedLead : l)));
+    await updateLeadInDb(updatedLead);
+    addNotification(`تم تحديث بيانات ومتابعة العميل "${updatedLead.clientName}".`, 'info');
+  };
+
+  const handleDeleteLead = async (leadId: string) => {
+    setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    await deleteLeadFromDb(leadId);
+    addNotification('تم حذف العميل من سجل المتابعات.', 'info');
+  };
+
+  const handleConvertToBusiness = (lead: InterestedLead) => {
+    setConvertingLead(lead);
+    setActiveTab('add');
+    addNotification(`جاري تحويل بيانات العميل "${lead.clientName}" إلى نموذج تسجيل نشاط جديد...`, 'info');
+  };
+
+  // ---------------------------------------------------------------------------
+  // ADMIN & USER PROFILE UPDATE HANDLER
+  // ---------------------------------------------------------------------------
+  const handleUpdateUserProfile = async (updatedData: Partial<Representative> & { name?: string; email?: string; avatar?: string }) => {
+    if (!user) return;
+
+    const newName = updatedData.name || user.name;
+    const newEmail = updatedData.email || user.email;
+    const newAvatar = updatedData.avatar !== undefined ? updatedData.avatar : user.avatar;
+
+    const updatedUser: User = {
+      ...user,
+      name: newName,
+      email: newEmail,
+      avatar: newAvatar,
+      repData: user.repData
+        ? {
+            ...user.repData,
+            name: newName,
+            email: newEmail,
+            phone: updatedData.phone || user.repData.phone,
+            avatar: newAvatar,
+            avatarStatus: 'approved',
+          }
+        : undefined,
+    };
+
+    setUser(updatedUser);
+    localStorage.setItem('dalelak_user', JSON.stringify(updatedUser));
+    localStorage.setItem('dalelak_logged_user', JSON.stringify(updatedUser));
+
+    // Update representative records in state and backend
+    const repId = user.repData?.id || user.id;
+    const existingRep = representatives.find((r) => r.id === repId || r.email.toLowerCase() === user.email.toLowerCase());
+    if (existingRep) {
+      const freshRep: Representative = {
+        ...existingRep,
+        name: newName,
+        email: newEmail,
+        phone: updatedData.phone || existingRep.phone,
+        avatar: newAvatar,
+        avatarStatus: 'approved',
+      };
+      setRepresentatives((prev) => prev.map((r) => (r.id === freshRep.id ? freshRep : r)));
+      await saveRepToDb(freshRep);
     }
 
-    try {
-      await fetch(`/api/businesses/${updatedBiz.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedBiz),
-      });
-    } catch (err) {
-      console.log('Express backend sync notice:', err);
-    }
+    addNotification('✅ تم تحديث بياناتك وصورة البروفايل بنجاح!', 'success');
   };
 
   const handleDeleteBusiness = async (id: string) => {
@@ -676,11 +887,6 @@ export default function App() {
         category: 'business',
         targetRole: 'admin',
       });
-    }
-    try {
-      await fetch(`/api/businesses/${id}`, { method: 'DELETE' });
-    } catch (err) {
-      console.log('Express backend sync notice:', err);
     }
   };
 
@@ -748,15 +954,6 @@ export default function App() {
         targetRole: 'admin',
         linkTab: 'admin',
       });
-    }
-    try {
-      await fetch('/api/representatives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRep),
-      });
-    } catch (err) {
-      console.log('Express backend rep sync notice:', err);
     }
   };
 
@@ -854,15 +1051,6 @@ export default function App() {
     }
 
     await saveRepToDb(updatedRep);
-    try {
-      await fetch(`/api/representatives/${updatedRep.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedRep),
-      });
-    } catch (err) {
-      console.log('Backend rep update sync notice:', err);
-    }
 
     try {
       const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
@@ -878,12 +1066,6 @@ export default function App() {
     setRepresentatives(representatives.filter((r) => r.id !== id));
     // Delete from Supabase DB via service layer
     await deleteRepFromDb(id);
-    // Delete from Express backend
-    try {
-      await fetch(`/api/representatives/${id}`, { method: 'DELETE' });
-    } catch (err) {
-      console.log('Backend rep delete sync notice:', err);
-    }
     if (rep) {
       addNotification(`🗑️ تم حذف حساب المندوب "${rep.name}" نهائياً من النظام.`, 'warning');
       addSystemNotification({
@@ -899,14 +1081,9 @@ export default function App() {
   const handleUpdatePaymentConfig = async (newConfig: PaymentGatewayConfig) => {
     setPaymentConfig(newConfig);
     try {
-      await fetch('/api/payment-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newConfig),
-      });
-    } catch (err) {
-      console.log('Backend payment config update failed:', err);
-    }
+      localStorage.setItem('dalelak_payment_config', JSON.stringify(newConfig));
+    } catch {}
+    await savePaymentConfigToDb(newConfig);
   };
 
   const liveRep = user
@@ -934,7 +1111,7 @@ export default function App() {
         commissionRate: 42.86,
         status: 'active',
       };
-  const isRepUser = user?.role !== 'admin';
+  const isRepUser = user?.role === 'rep';
 
   // Strict Scoping & Newest-First Sorting:
   const scopedBusinesses = useMemo(
@@ -1073,6 +1250,24 @@ export default function App() {
     window.history.replaceState({}, '', url.toString());
   }, [user]);
 
+  // Handler to reload all data when switching mode or resetting test sandbox
+  const handleReloadAllData = async () => {
+    setIsLoadingData(true);
+    try {
+      const [bizData, dbRepsData] = await Promise.all([
+        fetchBusinessesFromDb(),
+        fetchRepsFromDb(),
+      ]);
+      setBusinesses(bizData && bizData.length > 0 ? bizData : INITIAL_BUSINESSES);
+      setRepresentatives(dbRepsData && dbRepsData.length > 0 ? dbRepsData : MOCK_REPRESENTATIVES);
+      addNotification('🔄 تمت مزامنة وتحديث البيانات التجريبية بنجاح!', 'info');
+    } catch (e) {
+      console.error('Reload data error:', e);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   // -------------------------------------------------------------
   // EXTERNAL READ-ONLY VIEWS (For QR Codes)
   // -------------------------------------------------------------
@@ -1131,29 +1326,31 @@ export default function App() {
     );
   }
 
-  // Strict Unauthenticated Protection: If user is not logged in, render ONLY the Login screen!
+  // Strict Unauthenticated Protection: If user is not logged in, render ONLY the Login screen
   if (!user) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center font-['Cairo',sans-serif] transition-colors duration-300">
-        <LoginModal
-          isInline={true}
-          onClose={() => {}}
-          onOpenAbout={() => setShowAboutModal(true)}
-          onOpenTerms={() => setShowTermsModal(true)}
-          onLoginSuccess={(u) => {
-            setUser(u);
-            const savedTab = localStorage.getItem('dalelak_active_tab');
-            if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
-              setActiveTab(savedTab);
-            } else if (u.role === 'admin') {
-              setActiveTab('admin');
-            } else {
-              setActiveTab('home');
-            }
-          }}
-          representatives={representatives}
-          onAddRepresentative={handleAddRepresentative}
-        />
+      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col font-['Cairo',sans-serif] transition-colors duration-300">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <LoginModal
+            isInline={true}
+            onClose={() => {}}
+            onOpenAbout={() => setShowAboutModal(true)}
+            onOpenTerms={() => setShowTermsModal(true)}
+            onLoginSuccess={(u) => {
+              setUser(u);
+              const savedTab = localStorage.getItem('dalelak_active_tab');
+              if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
+                setActiveTab(savedTab);
+              } else if (u.role === 'admin') {
+                setActiveTab('admin');
+              } else {
+                setActiveTab('home');
+              }
+            }}
+            representatives={representatives}
+            onAddRepresentative={handleAddRepresentative}
+          />
+        </div>
 
         {/* Informational Modals for Unauthenticated Visitors */}
         {showAboutModal && (
@@ -1246,6 +1443,7 @@ export default function App() {
         user={user}
         onOpenLogin={() => setShowLoginModal(true)}
         onLogout={handleLogout}
+        onOpenProfile={() => setShowAdminProfileModal(true)}
         activeTab={activeTab}
         systemNotifications={allNotifications}
         onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
@@ -1254,6 +1452,8 @@ export default function App() {
         onNavigateTab={handleNotificationNavigate}
         onOpenAbout={() => setShowAboutModal(true)}
         onOpenTerms={() => setShowTermsModal(true)}
+        onOpenPermissions={() => setShowPermissionsModal(true)}
+        onOpenPackages={() => setShowPackagesModal(true)}
       />
 
       {/* Main App Container */}
@@ -1261,26 +1461,28 @@ export default function App() {
         {/* TAB 1: HOME FEED */}
         {activeTab === 'home' && (
           <div className="space-y-5 pb-20 tab-content-enter">
-            {/* Field Banner */}
-            <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-4 sm:p-5 rounded-3xl shadow-xl flex items-center justify-between">
-              <div>
-                <span className="bg-slate-950/20 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  منظومة دليلك الميدانية الشاملة
-                </span>
-                <h1 className="text-xl sm:text-2xl font-black mt-1">المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات في مصر</h1>
-                <p className="text-xs font-bold text-slate-900/90 mt-1 max-w-lg">
-                  تسجيل مباشر لبيانات المحلات، إحداثيات GPS الدقيقة، وإصدار الفواتير الإلكترونية على واتساب صاحب النشاط في جميع محافظات مصر.
-                </p>
-              </div>
+            {/* Field Banner (Only for non-rep or general view to avoid duplicate headers) */}
+            {user?.role !== 'rep' && (
+              <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-4 sm:p-5 rounded-3xl shadow-xl flex items-center justify-between">
+                <div>
+                  <span className="bg-slate-950/20 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    منظومة دليلك الميدانية الشاملة
+                  </span>
+                  <h1 className="text-xl sm:text-2xl font-black mt-1">المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات في مصر</h1>
+                  <p className="text-xs font-bold text-slate-900/90 mt-1 max-w-lg">
+                    تسجيل مباشر لبيانات المحلات، إحداثيات GPS الدقيقة، وإصدار الفواتير الإلكترونية على واتساب صاحب النشاط في جميع محافظات مصر.
+                  </p>
+                </div>
 
-              <button
-                onClick={() => setActiveTab('add')}
-                className="hidden sm:flex bg-slate-950 hover:bg-slate-900 text-amber-400 font-extrabold text-xs px-4 py-3 rounded-2xl shadow-lg items-center gap-2 transition-transform active:scale-95 shrink-0 cursor-pointer"
-              >
-                <PlusCircle className="w-5 h-5 text-amber-400" />
-                <span>تسجيل نشاط جديد</span>
-              </button>
-            </div>
+                <button
+                  onClick={() => setActiveTab('add')}
+                  className="hidden sm:flex bg-slate-950 hover:bg-slate-900 text-amber-400 font-extrabold text-xs px-4 py-3 rounded-2xl shadow-lg items-center gap-2 transition-transform active:scale-95 shrink-0 cursor-pointer"
+                >
+                  <PlusCircle className="w-5 h-5 text-amber-400" />
+                  <span>تسجيل نشاط جديد</span>
+                </button>
+              </div>
+            )}
 
             {/* Quick Rep Workspace summary if Rep logged in */}
             {user?.role === 'rep' && (
@@ -1288,8 +1490,10 @@ export default function App() {
                 rep={currentRep}
                 businesses={businesses}
                 allReps={representatives}
+                payoutRequests={payoutRequests}
                 onAddNewClick={() => setActiveTab('add')}
                 onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+                onRequestPayout={handleCreatePayoutRequest}
               />
             )}
 
@@ -1403,25 +1607,69 @@ export default function App() {
                           )}
                         </div>
 
-                        {/* Package Info */}
-                        <div className="bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-xs">
-                          <span className="text-[var(--text-secondary)] font-bold text-[11px]">الباقة المفعلة:</span>
-                          <span className="text-[11px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 truncate max-w-[190px]">
-                            {biz.packageName || 'باقة التوثيق الأساسي'}
-                          </span>
-                        </div>
+                        {/* Package & Payment Status */}
+                        <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[var(--text-secondary)] font-bold text-[11px]">الباقة:</span>
+                            <span className="text-[11px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 truncate max-w-[190px]">
+                              {biz.packageName || 'باقة التوثيق الأساسي'} ({biz.packagePrice || 250} ج.م)
+                            </span>
+                          </div>
 
-                        {/* Simplified Paid summary */}
-                        <div className="bg-[var(--bg-card)] px-3 py-2 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-xs mt-1">
-                          <span className="text-[var(--text-secondary)] font-bold">الماليات والمدفوع:</span>
-                          <span className="font-bold">
-                            <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">{biz.amountPaid} ج.م</span>
-                            {remaining > 0 ? (
-                              <span className="text-rose-600 dark:text-rose-400 text-[10px] mr-1"> (متبقي {remaining} ج.م)</span>
-                            ) : (
-                              <span className="text-emerald-600 text-[10px] mr-1"> (خالص)</span>
-                            )}
-                          </span>
+                          <div className="flex items-center justify-between pt-1 border-t border-[var(--border-color)]/50">
+                            <span className="text-[var(--text-secondary)] font-bold text-[11px]">حالة السداد:</span>
+                            <div>
+                              {(() => {
+                                const payInfo = getBusinessPaymentLabel(biz);
+                                if ((biz.amountPaid || 0) > 0) {
+                                  return (
+                                    <span className={`font-extrabold ${payInfo.isCash ? 'text-emerald-700 dark:text-emerald-400' : 'text-purple-700 dark:text-purple-400'}`}>
+                                      {payInfo.label}
+                                      {remaining > 0 && <span className="text-rose-600 dark:text-rose-400 text-[10px] mr-1"> (متبقي {remaining} ج)</span>}
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30 text-[10.5px]">
+                                    {payInfo.label}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* Commission Clarity Row */}
+                          <div className="flex items-center justify-between pt-1 border-t border-[var(--border-color)]/50 text-[11px]">
+                            <span className="text-[var(--text-muted)] font-bold">موقف العمولة:</span>
+                            {(() => {
+                              const repRate = biz.repCommissionRate || 42.86;
+                              const isLive = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                              const paid = biz.amountPaid || 0;
+                              const earnedComm = Math.round((paid * repRate) / 100);
+                              const fullComm = Math.round(((biz.packagePrice || 250) * repRate) / 100);
+
+                              if (isLive && paid > 0) {
+                                return (
+                                  <span className="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>محققة ومتاحة: {earnedComm} ج.م</span>
+                                  </span>
+                                );
+                              } else if (paid > 0 && !isLive) {
+                                return (
+                                  <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 text-[10.5px]">
+                                    💵 استلمت كاش ({paid} ج) • عمولتك {earnedComm} ج
+                                  </span>
+                                );
+                              } else {
+                                return (
+                                  <span className="font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 text-[10px]">
+                                    ⏳ عمولة منتظرة: {fullComm} ج.م عند التفعيل والسداد
+                                  </span>
+                                );
+                              }
+                            })()}
+                          </div>
                         </div>
                       </div>
 
@@ -1458,93 +1706,56 @@ export default function App() {
         {/* TAB 3: REGISTER NEW BUSINESS FORM */}
         {activeTab === 'add' && (
           <BusinessForm
-            onSubmitBusiness={handleAddBusiness}
+            onSubmitBusiness={(newBiz) => {
+              handleAddBusiness(newBiz);
+              if (convertingLead) {
+                handleUpdateLead({ ...convertingLead, status: 'converted' });
+                setConvertingLead(null);
+              }
+            }}
             currentRep={currentRep}
             onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
             businesses={businesses}
+            onSaveLead={handleCreateLead}
+            initialLead={convertingLead}
+            onOpenPackages={() => setShowPackagesModal(true)}
           />
         )}
 
-        {/* TAB 4: INVOICES & WHATSAPP DISPATCH */}
+        {/* TAB 4: REVIEWS & INTERESTED LEADS HUB */}
         {activeTab === 'invoices' && (
-          <div className="max-w-4xl mx-auto space-y-4 pb-20 tab-content-enter">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 space-y-4 shadow-md transition-colors duration-300">
-              <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-amber-500" />
-                  <h3 className="font-bold text-base text-[var(--text-primary)]">سجل الفواتير والتحصيلات ({scopedBusinesses.length})</h3>
-                </div>
-                <span className="text-xs text-amber-600 dark:text-amber-300 font-bold bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                  {scopedBusinesses.length} فاتورة مسجلة
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {scopedBusinesses.length === 0 ? (
-                  <div className="text-center py-12 space-y-3 animate-fade-in">
-                    <FileText className="w-14 h-14 text-[var(--text-muted)] mx-auto opacity-30" />
-                    <h4 className="font-black text-sm text-[var(--text-secondary)]">لا توجد فواتير مسجلة بعد</h4>
-                    <p className="text-xs text-[var(--text-muted)] font-bold">قم بتسجيل أول نشاط تجاري لتظهر الفواتير هنا.</p>
-                  </div>
-                ) : (
-                  scopedBusinesses.map((biz) => {
-                    const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-
-                    return (
-                      <div key={biz.id} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm hover:border-amber-500/30 transition-all hover-card">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-amber-700 dark:text-amber-400 font-mono font-extrabold">{biz.invoiceNumber}</span>
-                            <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-sans">
-                              <Clock className="w-3 h-3 text-amber-500" />
-                              {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}
-                            </span>
-                          </div>
-                          <h4 className="font-extrabold text-sm text-[var(--text-primary)] mt-0.5">{biz.nameAr}</h4>
-                          <p className="text-[var(--text-secondary)] font-bold">صاحب النشاط: {biz.ownerName} ({biz.ownerPhone})</p>
-                        </div>
-
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-[var(--border-color)] pt-2 sm:pt-0">
-                          <div className="text-left font-bold">
-                            <span className="text-emerald-700 dark:text-emerald-400 text-sm block font-black">{biz.amountPaid} ج.م</span>
-                            {remaining > 0 && <span className="text-rose-700 dark:text-rose-400 text-[10px] font-bold">متبقي {remaining} ج.م</span>}
-                          </div>
-
-                          <button
-                            onClick={() => setSelectedInvoiceBiz(biz)}
-                            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs flex items-center gap-1 shadow cursor-pointer"
-                          >
-                            <Share2 className="w-3.5 h-3.5" />
-                            <span>إرسال واتساب</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
+          <InvoicesLeadsHub
+            leads={leads}
+            currentUser={user}
+            currentRep={currentRep}
+            onCreateLead={handleCreateLead}
+            onUpdateLead={handleUpdateLead}
+            onDeleteLead={handleDeleteLead}
+            onConvertToBusiness={handleConvertToBusiness}
+          />
         )}
 
         {/* TAB 5 (ADMIN DASHBOARD / REP PROFILE) */}
-        {(activeTab === 'admin' || activeTab === 'profile') && user?.role === 'admin' && (
+        {activeTab === 'admin' && canUserAccessAdminPanel(user) && (
           <AdminDashboard
+            currentUser={user}
             businesses={businesses}
             representatives={representatives}
             paymentConfig={paymentConfig}
+            payoutRequests={payoutRequests}
             onUpdateBusiness={handleUpdateBusiness}
             onDeleteBusiness={handleDeleteBusiness}
             onAddRepresentative={handleAddRepresentative}
             onUpdateRepresentative={handleUpdateRepresentative}
             onDeleteRepresentative={handleDeleteRepresentative}
             onUpdatePaymentConfig={handleUpdatePaymentConfig}
+            onUpdatePayoutRequest={handleUpdatePayoutRequest}
             onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
             onCollectPayment={(b) => setSelectedPayBiz(b)}
           />
         )}
 
-        {(activeTab === 'profile' || activeTab === 'admin') && user?.role !== 'admin' && (
+        {(activeTab === 'profile' || (activeTab === 'admin' && !canUserAccessAdminPanel(user))) && (
           user ? (
             <RepProfile
               user={user}
@@ -1554,8 +1765,10 @@ export default function App() {
               totalCommission={calculateTotalRepCommission(scopedBusinesses, currentRep.commissionRate)}
               allReps={representatives}
               allBusinesses={businesses}
+              payoutRequests={payoutRequests}
               onLogout={() => setUser(null)}
               onUpdateRep={handleUpdateRepresentative}
+              onRequestPayout={handleCreatePayoutRequest}
             />
           ) : (
             <div className="text-center py-16 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-4 max-w-md mx-auto shadow-md transition-colors duration-300">
@@ -1605,6 +1818,24 @@ export default function App() {
                 >
                   <FileText className="w-3.5 h-3.5 text-amber-500" />
                   <span>شروط الاستخدام</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPermissionsModal(true)}
+                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                  <span>دليل الصلاحيات</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPackagesModal(true)}
+                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>باقات دليلك</span>
                 </button>
 
                 <button
@@ -1663,7 +1894,7 @@ export default function App() {
       <BottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isAdmin={user?.role === 'admin'}
+        isAdmin={canUserAccessAdminPanel(user)}
       />
 
       {/* MODAL: ABOUT US */}
@@ -1688,6 +1919,20 @@ export default function App() {
         />
       )}
 
+      {/* MODAL: PERMISSIONS & ROLES MATRIX */}
+      {showPermissionsModal && (
+        <PermissionsModal
+          onClose={() => setShowPermissionsModal(false)}
+        />
+      )}
+
+      {/* MODAL: PACKAGES & OFFERS GUIDE */}
+      {showPackagesModal && (
+        <PackagesModal
+          onClose={() => setShowPackagesModal(false)}
+        />
+      )}
+
       {/* MODAL: FULL BUSINESS DATA VIEW & EDITING POP-UP */}
       {editingBusiness && (
         <BusinessEditModal
@@ -1698,20 +1943,16 @@ export default function App() {
             setEditingBusiness(null);
           }}
           userRole={user?.role}
-          canEdit={
-            user?.role === 'admin' ||
-            editingBusiness.repId === user?.id ||
-            editingBusiness.repId === user?.repData?.id ||
-            editingBusiness.repName === user?.name
-          }
+          canEdit={canUserEditBusiness(user, editingBusiness)}
           onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-          onCollectPayment={(b) => setSelectedPayBiz(b)}
+          onCollectPayment={
+            user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
+              ? (b) => setSelectedPayBiz(b)
+              : undefined
+          }
           businesses={businesses}
           onDeleteBusiness={
-            user?.role === 'admin' ||
-            editingBusiness.repId === user?.id ||
-            editingBusiness.repId === user?.repData?.id ||
-            editingBusiness.repName === user?.name
+            canUserDeleteBusiness(user, editingBusiness)
               ? handleDeleteBusiness
               : undefined
           }
@@ -1724,6 +1965,8 @@ export default function App() {
           business={selectedInvoiceBiz}
           onClose={() => setSelectedInvoiceBiz(null)}
           onUpdateBusiness={handleUpdateBusiness}
+          userRole={user?.role}
+          isAdmin={user?.role === 'admin' || user?.role === 'supervisor'}
         />
       )}
 
@@ -1733,13 +1976,15 @@ export default function App() {
           business={selectedPayBiz}
           config={paymentConfig}
           onClose={() => setSelectedPayBiz(null)}
-          onPaymentSuccess={(newPaid) => {
+          onPaymentSuccess={(newPaid, method = 'gateway_online') => {
             if (selectedPayBiz) {
               const status = newPaid >= selectedPayBiz.packagePrice ? 'fully_paid' : 'partially_paid';
               handleUpdateBusiness({
                 ...selectedPayBiz,
                 amountPaid: newPaid,
                 paymentStatus: status,
+                paymentMethod: method,
+                cashCollectedByRep: 0, // Received directly via platform payment gateway / wallets
               });
             }
           }}
@@ -1765,6 +2010,15 @@ export default function App() {
           }}
           representatives={representatives}
           onAddRepresentative={handleAddRepresentative}
+        />
+      )}
+
+      {/* MODAL: ADMIN & USER PROFILE / AVATAR MODAL */}
+      {showAdminProfileModal && user && (
+        <AdminProfileModal
+          user={user}
+          onClose={() => setShowAdminProfileModal(false)}
+          onUpdateProfile={handleUpdateUserProfile}
         />
       )}
     </div>

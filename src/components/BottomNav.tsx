@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Map, PlusCircle, FileText, Shield, ShieldCheck } from 'lucide-react';
+import { Home, Map, PlusCircle, UserCheck, Shield, ShieldCheck } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -12,7 +12,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
     { id: 'home', label: 'الرئيسية', icon: Home },
     { id: 'map', label: 'الخريطة', icon: Map },
     { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
-    { id: 'invoices', label: 'الفواتير', icon: FileText },
+    { id: 'invoices', label: 'المراجعات', icon: UserCheck },
     { id: isAdmin ? 'admin' : 'profile', label: isAdmin ? 'الإدارة' : 'ملفي', icon: isAdmin ? Shield : ShieldCheck },
   ];
 

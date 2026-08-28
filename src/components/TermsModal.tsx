@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Logo } from './Logo';
 import { 
   FileText, 
@@ -18,8 +19,15 @@ interface TermsModalProps {
 }
 
 export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) => {
-  return (
-    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay">
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
         {/* Close Button */}
         <button
@@ -148,6 +156,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

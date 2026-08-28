@@ -117,8 +117,15 @@
     color: var(--text-primary);
   }
 
+  html {
+    overflow-x: hidden;
+    overflow-y: scroll;
+  }
+
   body {
     font-family: var(--font-family);
+    overflow-x: hidden;
+    overflow-y: auto;
     transition: background-color var(--transition-slow), color var(--transition-slow);
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;

@@ -3,12 +3,13 @@ import { User, SystemNotification } from '../types';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationCenter } from './NotificationCenter';
-import { LogIn, LogOut, Info, FileText } from 'lucide-react';
+import { LogIn, LogOut, Info, FileText, ShieldCheck, Sparkles } from 'lucide-react';
 
 interface NavbarProps {
   user: User | null;
   onOpenLogin: () => void;
   onLogout: () => void;
+  onOpenProfile?: () => void;
   activeTab?: string;
   systemNotifications: SystemNotification[];
   onMarkAllNotificationsAsRead: () => void;
@@ -17,12 +18,15 @@ interface NavbarProps {
   onNavigateTab?: (tab: string, entityId?: string, entityType?: string) => void;
   onOpenAbout?: () => void;
   onOpenTerms?: () => void;
+  onOpenPermissions?: () => void;
+  onOpenPackages?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   user,
   onOpenLogin,
   onLogout,
+  onOpenProfile,
   systemNotifications,
   onMarkAllNotificationsAsRead,
   onMarkNotificationAsRead,
@@ -30,6 +34,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigateTab,
   onOpenAbout,
   onOpenTerms,
+  onOpenPermissions,
+  onOpenPackages,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-b border-[var(--border-color)] text-[var(--text-primary)] shadow-md transition-colors duration-300">
@@ -38,8 +44,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-3 sm:gap-4">
           <Logo size="md" />
 
-          {/* Quick Informational Links (About & Terms) */}
+          {/* Quick Informational Links (About, Terms, Roles & Packages Guide) */}
           <div className="hidden md:flex items-center gap-1 text-xs font-bold">
+            {onOpenPackages && (
+              <button
+                type="button"
+                onClick={onOpenPackages}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>باقات دليلك 💎</span>
+              </button>
+            )}
+
             {onOpenAbout && (
               <button
                 type="button"
@@ -59,6 +76,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>شروط الاستخدام</span>
+              </button>
+            )}
+
+            {onOpenPermissions && (
+              <button
+                type="button"
+                onClick={onOpenPermissions}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                <span>دليل الصلاحيات</span>
               </button>
             )}
           </div>
@@ -81,29 +109,38 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {user ? (
             <div className="flex items-center gap-1 sm:gap-2">
-              <div className="flex items-center gap-1.5 sm:gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-full py-1 px-2.5 sm:px-3.5 shadow-sm transition-colors duration-300">
-                <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center font-black text-[11px] sm:text-xs shrink-0 ${
-                  user.role === 'admin'
-                    ? 'bg-gradient-to-br from-amber-400 to-amber-600 border-amber-300 text-slate-950'
-                    : 'bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-400 text-white'
-                }`}>
-                  {user.role === 'admin' ? 'M' : user.name.charAt(0)}
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                title="الملف الشخصي وتعديل الصورة"
+                className="flex items-center gap-1.5 sm:gap-2 bg-[var(--bg-card)] hover:bg-amber-500/10 border border-[var(--border-color)] hover:border-amber-500/40 rounded-full py-1 px-2 sm:px-3 shadow-sm transition-all duration-300 cursor-pointer group"
+              >
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-400/60 shrink-0 flex items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-xs shadow-xs">
+                  {user.repData?.avatar || user.avatar ? (
+                    <img
+                      src={user.repData?.avatar || user.avatar}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{user.name ? user.name.trim().charAt(0) : 'م'}</span>
+                  )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] sm:text-xs font-bold text-[var(--text-primary)] truncate max-w-[65px] sm:max-w-[140px] leading-tight">
+                  <p className="text-[11px] sm:text-xs font-bold text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[70px] sm:max-w-[140px] leading-tight">
                     {user.name}
                   </p>
                   <p className="hidden sm:block text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5">
                     {user.role === 'admin'
                       ? 'مدير النظام'
                       : user.role === 'supervisor'
-                      ? 'مشرف منطقة'
+                      ? 'مشرف الإدارة'
                       : user.role === 'accountant'
                       ? 'محاسب ومحصل'
                       : 'مندوب معتمد'}
                   </p>
                 </div>
-              </div>
+              </button>
 
               <button
                 onClick={onLogout}

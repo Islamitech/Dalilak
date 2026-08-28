@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Representative } from '../types';
 import { Logo } from './Logo';
 import { Printer, Download, ShieldCheck, CheckCircle2, FileText, MapPin, QrCode, Award, Lock, FileSignature } from 'lucide-react';
@@ -12,6 +13,14 @@ interface DocViewerModalProps {
 }
 
 export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, onClose }) => {
+  useEffect(() => {
+    if (!docType) return;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [docType]);
+
   if (!docType) return null;
 
   const repCode = `REP-2026-${rep.id.replace(/\D/g, '') || '084'}`;
@@ -19,8 +28,8 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
   const qrData = encodeURIComponent(`DALEELEK-OFFICIAL-CONTRACT-${rep.name}-${nationalId}-${repCode}`);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-colors duration-300">
         {/* Close Button */}
         <button
@@ -267,6 +276,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

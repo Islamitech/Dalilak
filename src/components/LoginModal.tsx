@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { User, Representative } from '../types';
 import { MOCK_REPRESENTATIVES, EGYPT_GOVERNORATES } from '../data/mockData';
 import { supabase } from '../lib/supabase';
@@ -80,7 +81,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 800, 800, 0.8);
+        const compressed = await compressImageFile(file, 800, 800, 0.8, { applyWatermark: false });
         setRegAvatar(compressed);
       } catch (err) {
         console.warn('Face photo compression error:', err);
@@ -92,7 +93,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 1200, 1200, 0.85);
+        const compressed = await compressImageFile(file, 1200, 1200, 0.85, { applyWatermark: false });
         setRegNationalIdCardPhoto(compressed);
       } catch (err) {
         console.warn('National ID Front compression error:', err);
@@ -104,7 +105,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 1200, 1200, 0.85);
+        const compressed = await compressImageFile(file, 1200, 1200, 0.85, { applyWatermark: false });
         setRegNationalIdCardBackPhoto(compressed);
       } catch (err) {
         console.warn('National ID Back compression error:', err);
@@ -189,10 +190,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
       }
 
-      const isAdminAccount = cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@') || (foundRep && foundRep.role === 'admin');
+      const isDazAdmin =
+        cleanEmail === 'daz31181' ||
+        cleanEmail === '@daz31181' ||
+        cleanEmail === 'daz31181@gmail.com' ||
+        cleanEmail.includes('daz31181');
+
+      const isAdminAccount =
+        isDazAdmin ||
+        cleanEmail === 'dalilaakeg@gmail.com' ||
+        cleanEmail === 'admin@gmail.com' ||
+        cleanEmail.startsWith('admin@') ||
+        (foundRep && foundRep.role === 'admin');
 
       if (!foundRep && !isAdminAccount) {
-        setErrorMsg(`البريد الإلكتروني (${cleanEmail}) غير مسجل بالمنظومة. يرجى التأكد من كتابة الحروف بشكل دقيق أو التوجه لتبويب "إنشاء حساب جديد".`);
+        setErrorMsg(`اسم المستخدم أو البريد الإلكتروني (${cleanEmail}) غير مسجل بالمنظومة. يرجى التأكد من كتابة الحروف بشكل دقيق أو التوجه لتبويب "إنشاء حساب جديد".`);
         setIsLoading(false);
         return;
       }
@@ -227,11 +239,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         const adminData: Representative = foundRep || {
           id: 'admin_1',
-          name: 'مدير النظام دليلك',
-          email: 'dalilaakeg@gmail.com',
+          name: 'مدير النظام دليلك (@daz31181)',
+          email: 'daz31181@gmail.com',
           phone: '01000000000',
           role: 'admin',
-          roleTitle: 'مدير النظام دليلك',
+          roleTitle: 'مدير المنظومة الرسمي (@daz31181)',
           governorate: 'القاهرة (المقرات الرئيسية)',
           targetMonth: 50,
           avatar: '',
@@ -371,12 +383,29 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     const cleanRegEmail = regEmail.trim().toLowerCase();
 
-    // 1. Local duplicate check
+    // 1. Local duplicate check (Email, Phone, National ID)
     const duplicateEmail = representatives.some(
       (r) => r.email.trim().toLowerCase() === cleanRegEmail
     );
     if (duplicateEmail) {
       setErrorMsg(`⚠️ البريد الإلكتروني (${cleanRegEmail}) مسجل مسبقاً في المنظومة. يمكنك التوجه لتبويب "تسجيل الدخول" أو استخدام بريد إلكتروني آخر.`);
+      return;
+    }
+
+    const cleanPhoneDigits = regPhone.replace(/\D/g, '');
+    const duplicatePhone = representatives.some(
+      (r) => (r.phone || '').replace(/\D/g, '') === cleanPhoneDigits
+    );
+    if (duplicatePhone) {
+      setErrorMsg(`⚠️ رقم الهاتف (${regPhone}) مسجل مسبقاً لحساب آخر في المنظومة.`);
+      return;
+    }
+
+    const duplicateNationalId = representatives.some(
+      (r) => (r.nationalId || '').trim() === regNationalId.trim()
+    );
+    if (duplicateNationalId) {
+      setErrorMsg(`⚠️ الرقم القومي (${regNationalId}) مسجل مسبقاً لحساب آخر في المنظومة.`);
       return;
     }
 
@@ -479,17 +508,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       referralUnlocked: false,
     };
 
-    // Save directly to Supabase and Express backend immediately so Admin sees it across all sessions
+    // Save directly to Supabase Database immediately so Admin sees it across all sessions
     await saveRepToDb(newRepData);
-    try {
-      await fetch('/api/representatives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRepData),
-      });
-    } catch (apiErr) {
-      console.log('API rep sync notice:', apiErr);
-    }
 
     if (onAddRepresentative) {
       onAddRepresentative(newRepData);
@@ -645,16 +665,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {activeTab === 'login' && (
         <form onSubmit={handleLoginSubmit} autoComplete="on" className="space-y-3 text-xs">
           <div>
-            <label htmlFor="login_email" className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني المعتمد:</label>
+            <label htmlFor="login_email" className="block text-[var(--text-primary)] font-extrabold mb-1">اسم المستخدم أو البريد الإلكتروني أو الهاتف:</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3" />
               <input
                 id="login_email"
                 name="email"
-                type="email"
+                type="text"
                 required
-                autoComplete="username email"
-                placeholder="name@daleelek.eg"
+                autoComplete="username"
+                placeholder="@daz31181 أو البريد أو الهاتف"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 font-mono shadow-sm"
@@ -867,24 +887,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       )}
 
       {/* Image Preview Modal */}
-      {previewImage && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative max-w-xl w-full text-center space-y-2">
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="absolute -top-10 left-0 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-black cursor-pointer"
-            >
-              ✕
-            </button>
-            <h4 className="text-white font-black text-sm">{previewImage.title}</h4>
-            <img
-              src={previewImage.url}
-              alt={previewImage.title}
-              className="max-w-full max-h-[75vh] object-contain rounded-2xl border-2 border-amber-500 shadow-2xl mx-auto"
-            />
-          </div>
-        </div>
-      )}
+      {previewImage &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="relative max-w-xl w-full text-center space-y-2">
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="absolute -top-10 left-0 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-black cursor-pointer"
+              >
+                ✕
+              </button>
+              <h4 className="text-white font-black text-sm">{previewImage.title}</h4>
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl border-2 border-amber-500 shadow-2xl mx-auto"
+              />
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 
@@ -968,9 +990,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 bg-[var(--modal-overlay)] backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
       {modalBox}
-    </div>
+    </div>,
+    document.body
   );
 };

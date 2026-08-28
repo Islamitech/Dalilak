@@ -29,6 +29,8 @@ export interface Business {
   packageTitle?: string; // alias for display
   packagePrice: number; // in EGP
   amountPaid: number;   // in EGP
+  paymentMethod?: 'cash_by_rep' | 'platform_collected' | 'gateway_online' | 'bank_transfer' | 'other'; // طريقة الاستلام
+  cashCollectedByRep?: number; // المبلغ الكاش المستلم في يد المندوب
   paymentStatus: PaymentStatus;
   verificationStatus: VerificationStatus;
   googleMapsUrl?: string;
@@ -37,6 +39,7 @@ export interface Business {
   googleSyncDate?: string;
   invoiceNumber: string;
   invoiceDate: string;
+  repCommissionRate?: number;
   notes?: string;
   createdDate: string;
 }
@@ -65,6 +68,8 @@ export interface Representative {
   targetMonth: number;
   avatar?: string; // صورة الملف الشخصي المعتادة (اختيارية)
   avatarStatus?: 'none' | 'pending_approval' | 'approved' | 'rejected';
+  pendingPhone?: string; // رقم الهاتف الجديد المطلوب اعتماده من المسؤول
+  phoneStatus?: 'none' | 'pending_approval' | 'approved' | 'rejected'; // حالة اعتماد تعديل رقم الهاتف
   commissionRate: number; // Percentage, e.g., 42.86%
   status?: 'active' | 'suspended';
   password?: string;
@@ -99,7 +104,10 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: 'admin' | 'rep' | 'supervisor' | 'accountant';
+  avatar?: string;
+  avatarStatus?: 'none' | 'pending_approval' | 'approved' | 'rejected';
   repData?: Representative;
   activeSessionId?: string;
   lastActiveTimestamp?: number;
@@ -113,7 +121,7 @@ export interface PaymentGatewayConfig {
   cardGatewayActive?: boolean;
 }
 
-export type NotificationCategory = 'account' | 'business' | 'payment' | 'avatar' | 'system';
+export type NotificationCategory = 'account' | 'business' | 'payment' | 'avatar' | 'system' | 'payout';
 
 export interface SystemNotification {
   id: string;
@@ -127,6 +135,48 @@ export interface SystemNotification {
   read: boolean;
   linkTab?: string;
   entityId?: string; // Specific ID of the business or rep
-  entityType?: 'business' | 'rep' | 'invoice';
+  entityType?: 'business' | 'rep' | 'invoice' | 'payout';
+}
+
+export type PayoutMethod = 'vodafone_cash' | 'instapay' | 'orange_cash' | 'etisalat_cash' | 'we_pay' | 'bank_transfer' | 'cash';
+export type PayoutStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PayoutRequest {
+  id: string;
+  repId: string;
+  repName: string;
+  repPhone: string;
+  amount: number;
+  method: PayoutMethod;
+  accountDetails: string; // رقم المحفظة أو معرف إنستاباي أو الحساب
+  status: PayoutStatus;
+  requestDate: string; // ISO String
+  processedDate?: string; // ISO String
+  adminNotes?: string;
+  transactionRef?: string;
+  receiptPhoto?: string;
+  type?: 'payout' | 'remittance'; // طلب سحب أرباح أو إشعار توريد سداد للمنصة
+}
+
+export type LeadInterestLevel = 'high' | 'medium' | 'low' | 'intro_sent' | 'need_visit';
+export type LeadStatus = 'pending_followup' | 'contacted' | 'converted' | 'cancelled';
+
+export interface InterestedLead {
+  id: string;
+  clientName: string;
+  businessName?: string;
+  businessCategory?: string;
+  phone: string;
+  secondaryPhone?: string;
+  governorate: string;
+  city?: string;
+  interestLevel: LeadInterestLevel;
+  notes?: string;
+  followUpDate?: string;
+  createdDate: string;
+  repId: string;
+  repName: string;
+  lastContactedDate?: string;
+  status: LeadStatus;
 }
 

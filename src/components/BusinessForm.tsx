@@ -1,38 +1,137 @@
-import React, { useState } from 'react';
-import { Business, PackageOption, PaymentStatus, Representative } from '../types';
-import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, PACKAGES } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Business, PackageOption, PaymentStatus, Representative, InterestedLead, LeadInterestLevel } from '../types';
+import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory, PACKAGES } from '../data/mockData';
 import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
 import { fetchLocationAddress } from '../utils/geocoding';
-import { Camera, MapPin, CheckCircle2, DollarSign, Send, User, Phone, FileText, Store, Building2, UploadCloud, AlertCircle, Clock, Sparkles, Loader2, CloudUpload, Navigation, EyeOff, Map, ChevronDown, ChevronUp, CreditCard, X, Check } from 'lucide-react';
+import { saveLeadToDb } from '../services/db';
+import {
+  Camera,
+  MapPin,
+  Tag,
+  DollarSign,
+  Phone,
+  FileText,
+  User,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Sparkles,
+  QrCode,
+  Image as ImageIcon,
+  Building,
+  Building2,
+  Navigation,
+  Globe,
+  Loader2,
+  CreditCard,
+  X,
+  UserCheck,
+  UserPlus,
+  Send,
+  Calendar,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  CloudUpload,
+  UploadCloud,
+  Store,
+  EyeOff,
+  Map as MapIcon,
+  Check,
+  Share2
+} from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 
 interface BusinessFormProps {
-  onSubmitBusiness: (biz: Business) => void;
   currentRep: Representative | null;
+  onSubmitBusiness: (business: Business) => void;
   onShowInvoice: (biz: Business) => void;
   businesses: Business[];
+  onSaveLead?: (lead: InterestedLead) => void;
+  initialLead?: InterestedLead | null;
+  onOpenPackages?: () => void;
 }
 
 export const BusinessForm: React.FC<BusinessFormProps> = ({
-  onSubmitBusiness,
   currentRep,
+  onSubmitBusiness,
   onShowInvoice,
   businesses,
+  onSaveLead,
+  initialLead,
+  onOpenPackages,
 }) => {
   // Form State
-  const [nameAr, setNameAr] = useState<string>('');
+  const [nameAr, setNameAr] = useState<string>(initialLead?.businessName || '');
   const [nameEn, setNameEn] = useState<string>('');
-  const [category, setCategory] = useState<string>(BUSINESS_CATEGORIES[0]);
+  const [selectedGroup, setSelectedGroup] = useState<string>(() => {
+    const found = getGroupFromCategory(initialLead?.businessCategory);
+    return found?.group || CATEGORY_GROUPS[0].group;
+  });
+  const [category, setCategory] = useState<string>(() => {
+    return initialLead?.businessCategory || CATEGORY_GROUPS[0].items[0];
+  });
   const [errorMsg, setErrorMsg] = useState<string>('');
-  const [governorate, setGovernorate] = useState<string>('القاهرة');
-  const [city, setCity] = useState<string>('');
+  const [governorate, setGovernorate] = useState<string>(initialLead?.governorate || 'القاهرة');
+  const [city, setCity] = useState<string>(initialLead?.city || '');
   const [street, setStreet] = useState<string>('');
   const [landmark, setLandmark] = useState<string>('');
-  const [phone, setPhone] = useState<string>('');
+  const [phone, setPhone] = useState<string>(initialLead?.phone || '');
   const [secondaryPhone, setSecondaryPhone] = useState<string>('');
   const [workingHours, setWorkingHours] = useState<string>('يومياً من 9:00 صباحاً حتى 11:00 مساءً');
   const [description, setDescription] = useState<string>('');
+
+  // Owner Info
+  const [ownerName, setOwnerName] = useState<string>(initialLead?.clientName || '');
+  const [ownerPhone, setOwnerPhone] = useState<string>(initialLead?.phone || '');
+  const [ownerEmail, setOwnerEmail] = useState<string>('');
+  const [nationalId, setNationalId] = useState<string>('');
+
+  // Sync with initialLead when prop changes
+  useEffect(() => {
+    if (initialLead) {
+      if (initialLead.clientName) setOwnerName(initialLead.clientName);
+      if (initialLead.businessName) setNameAr(initialLead.businessName);
+      if (initialLead.phone) {
+        setPhone(initialLead.phone);
+        setOwnerPhone(initialLead.phone);
+      }
+      if (initialLead.governorate) setGovernorate(initialLead.governorate);
+      if (initialLead.city) setCity(initialLead.city);
+      if (initialLead.businessCategory) {
+        setCategory(initialLead.businessCategory);
+        const found = getGroupFromCategory(initialLead.businessCategory);
+        if (found) setSelectedGroup(found.group);
+      }
+    }
+  }, [initialLead]);
+
+  const handleGroupChange = (newGroupName: string) => {
+    setSelectedGroup(newGroupName);
+    const grp = CATEGORY_GROUPS.find((g) => g.group === newGroupName);
+    if (grp && grp.items.length > 0) {
+      setCategory(grp.items[0]);
+    }
+  };
+
+  const currentGroupObj = CATEGORY_GROUPS.find((g) => g.group === selectedGroup) || CATEGORY_GROUPS[0];
+
+  // Lead Section State at the bottom
+  const [showLeadSection, setShowLeadSection] = useState<boolean>(false);
+  const [leadClientName, setLeadClientName] = useState<string>('');
+  const [leadBizName, setLeadBizName] = useState<string>('');
+  const [leadPhone, setLeadPhone] = useState<string>('');
+  const [leadGov, setLeadGov] = useState<string>('القاهرة');
+  const [leadCity, setLeadCity] = useState<string>('');
+  const [leadInterest, setLeadInterest] = useState<LeadInterestLevel>('medium');
+  const [leadFollowDate, setLeadFollowDate] = useState<string>(
+    new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
+  const [leadNotes, setLeadNotes] = useState<string>('');
+  const [leadSuccessMsg, setLeadSuccessMsg] = useState<string | null>(null);
+  const [savedLeadForWhatsApp, setSavedLeadForWhatsApp] = useState<InterestedLead | null>(null);
 
   // GPS Coordinates & Map display state
   const [lat, setLat] = useState<number>(30.0444);
@@ -74,17 +173,12 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
   };
 
-  // Owner Info
-  const [ownerName, setOwnerName] = useState<string>('');
-  const [ownerPhone, setOwnerPhone] = useState<string>('');
-  const [ownerEmail, setOwnerEmail] = useState<string>('');
-  const [nationalId, setNationalId] = useState<string>('');
-
   // Package & Payments
   const [selectedPackage, setSelectedPackage] = useState<PackageOption>(PACKAGES[0]); // Default Package 1 (Basic 250 EGP)
   const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null); // For accordion details toggle
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('fully_paid');
   const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[0].price);
+  const [paymentMethod, setPaymentMethod] = useState<'cash_by_rep' | 'gateway_online'>('cash_by_rep');
   const [notes, setNotes] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
 
@@ -147,8 +241,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
+  const [enableWatermark, setEnableWatermark] = useState<boolean>(true);
+  const [watermarkPosition, setWatermarkPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
 
-  // Compressed Photo upload handler for single/multiple pictures
+  // Compressed Photo upload handler with automatic Daleelek Watermark branding
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -156,7 +252,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       const newCompressedPhotos: string[] = [];
       for (let i = 0; i < files.length; i++) {
         try {
-          const compressed = await compressImageFile(files[i]);
+          const compressed = await compressImageFile(files[i], 1200, 1200, 0.8, {
+            applyWatermark: enableWatermark,
+            position: watermarkPosition,
+          });
           newCompressedPhotos.push(compressed);
         } catch (err) {
           console.warn('Image compression error:', err);
@@ -174,8 +273,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     e.preventDefault();
     setErrorMsg('');
 
-    if (!nameAr.trim()) {
-      setErrorMsg('يرجى إدخال اسم النشاط باللغة العربية');
+    if (!nameAr.trim() && !nameEn.trim()) {
+      setErrorMsg('يرجى إدخال اسم النشاط (باللغة العربية أو باللغة الإنجليزية على الأقل)');
       return;
     }
 
@@ -236,10 +335,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   const handleFinalConfirmPayment = () => {
     const timestamp = Date.now();
+    const finalNameAr = nameAr.trim() || nameEn.trim();
+    const finalNameEn = nameEn.trim() || undefined;
+
     const newBusiness: Business = {
       id: `biz_${timestamp}`,
-      nameAr,
-      nameEn: nameEn || undefined,
+      nameAr: finalNameAr,
+      nameEn: finalNameEn,
       category,
       governorate,
       city: city || governorate,
@@ -248,7 +350,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       phone: phone || ownerPhone,
       secondaryPhone: secondaryPhone || undefined,
       workingHours: workingHours || 'يومياً',
-      description: description || `نشاط ${nameAr} في ${governorate}`,
+      description: description || `نشاط ${finalNameAr} في ${governorate}`,
       lat,
       lng,
       ownerName,
@@ -262,6 +364,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       packageName: selectedPackage.title,
       packagePrice: selectedPackage.price,
       amountPaid: Number(amountPaid),
+      // If any amount was collected in field: it's strictly cash_by_rep
+      // If no amount (unpaid): it's platform_collected (deferred via platform)
+      paymentMethod: Number(amountPaid) > 0 ? 'cash_by_rep' : 'platform_collected',
+      cashCollectedByRep: Number(amountPaid) > 0 ? Number(amountPaid) : 0,
       paymentStatus,
       verificationStatus: 'pending', // Default: new registration, not submitted to Google yet
       googleSyncStatus: 'not_synced',
@@ -299,13 +405,15 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         </div>
 
         <div className="flex flex-col gap-3 pt-2">
-          <button
-            onClick={() => setShowMapsSyncModal(true)}
-            className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black py-3.5 px-4 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2 border border-blue-500/40 cursor-pointer text-sm"
-          >
-            <CloudUpload className="w-5 h-5" />
-            <span>مزامنة وتوثيق النشاط على خرائط Google 🗺️</span>
-          </button>
+          {(currentRep?.role === 'admin' || currentRep?.role === 'supervisor') && (
+            <button
+              onClick={() => setShowMapsSyncModal(true)}
+              className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black py-3.5 px-4 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2 border border-blue-500/40 cursor-pointer text-sm"
+            >
+              <CloudUpload className="w-5 h-5" />
+              <span>مزامنة وتوثيق النشاط على خرائط Google 🗺️</span>
+            </button>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
@@ -382,10 +490,12 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">اسم النشاط باللغة العربية *</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[var(--text-primary)] font-bold">اسم النشاط باللغة العربية</label>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">عربي أو إنجليزي</span>
+            </div>
             <input
               type="text"
-              required
               placeholder="مثال: مطعم وسوبر ماركت الخير"
               value={nameAr}
               onChange={(e) => setNameAr(e.target.value)}
@@ -394,24 +504,51 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">اسم النشاط بالإنجليزية (اختياري)</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[var(--text-primary)] font-bold">اسم النشاط بالإنجليزية</label>
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-500/10 px-1.5 py-0.5 rounded">اختياري / بديل</span>
+            </div>
             <input
               type="text"
               placeholder="e.g. El Kheer Restaurant"
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 transition-all shadow-sm"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 transition-all shadow-sm dir-ltr text-right font-sans"
             />
           </div>
 
+          {/* 1. القسم الرئيسي للنشاط */}
           <div>
-            <label className="block text-[var(--text-primary)] font-bold mb-1">تصنيف النشاط الرئيسي *</label>
+            <label className="block text-[var(--text-primary)] font-bold mb-1">
+              القسم / النشاط الرئيسي *
+            </label>
+            <select
+              value={selectedGroup}
+              onChange={(e) => handleGroupChange(e.target.value)}
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm text-xs sm:text-sm cursor-pointer"
+            >
+              {CATEGORY_GROUPS.map((g) => (
+                <option key={g.group} value={g.group}>
+                  {g.icon} {g.group}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. التخصص والتصنيف الداخلي */}
+          <div>
+            <label className="block text-[var(--text-primary)] font-bold mb-1 flex items-center justify-between">
+              <span>التخصص / التصنيف الداخلي *</span>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
+                {currentGroupObj.items.length} تخصص متاح
+              </span>
+            </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm text-xs sm:text-sm cursor-pointer"
             >
-              {BUSINESS_CATEGORIES.map((cat) => (
+              {currentGroupObj.items.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
@@ -466,7 +603,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
                   : 'bg-[var(--input-bg)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-amber-500/10'
               }`}
             >
-              {showMap ? <EyeOff className="w-4 h-4 text-amber-500" /> : <Map className="w-4 h-4 text-amber-500" />}
+              {showMap ? <EyeOff className="w-4 h-4 text-amber-500" /> : <MapIcon className="w-4 h-4 text-amber-500" />}
               <span>{showMap ? 'إخفاء الخريطة' : 'إظهار الخريطة'}</span>
               {showMap ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
@@ -588,6 +725,61 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           </div>
         </div>
 
+        {/* Watermark Auto-branding Control Bar */}
+        <div className="bg-[var(--input-bg)]/80 border border-amber-500/30 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-inner">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-black text-[var(--text-primary)]">
+                  شعار دليلك التلقائي على الصور 🛡️
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${enableWatermark ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'}`}>
+                  {enableWatermark ? 'مفعل تلقائياً 🟢' : 'معطل ✕'}
+                </span>
+              </div>
+              <span className="text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
+                دمج الشعار الرسمي (دليلك • Daleelek) تلقائياً لحفظ الهوية الرقمية للصور
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mr-auto sm:mr-0">
+            {enableWatermark && (
+              <div className="flex items-center bg-[var(--bg-card)] rounded-xl p-1 border border-[var(--border-color)] text-[10px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setWatermarkPosition('bottom-right')}
+                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${watermarkPosition === 'bottom-right' ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                >
+                  أسفل اليمين
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWatermarkPosition('bottom-left')}
+                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${watermarkPosition === 'bottom-left' ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                >
+                  أسفل اليسار
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setEnableWatermark(!enableWatermark)}
+              className={`text-xs font-black px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                enableWatermark
+                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              {enableWatermark ? 'تعطيل الختم' : 'تفعيل الختم 🛡️'}
+            </button>
+          </div>
+        </div>
+
         {photos.length === 0 ? (
           <div className="border-2 border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center space-y-2 bg-[var(--input-bg)]/50">
             <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
@@ -616,179 +808,257 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         )}
       </div>
 
-      {/* 5. باقة التوثيق وحالة الفاتورة والدفع */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-5 shadow-md transition-colors duration-300">
-        <div className="flex items-center gap-2 text-amber-500 pb-2 border-b border-[var(--border-color)]">
-          <DollarSign className="w-5 h-5" />
-          <h3 className="font-bold text-sm text-[var(--text-primary)]">5. اختيار الباقات والفاتورة المعتمدة (بالجنيه المصري)</h3>
-        </div>
+      {/* Submit Action Button */}
+      <button
+        type="submit"
+        className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-sm sm:text-base py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+      >
+        <CreditCard className="w-5 h-5 stroke-[2.5]" />
+        <span>حفظ النشاط وتحديد حالة الدفع والفاتورة 💳</span>
+      </button>
 
-        {/* Packages Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-start">
-          {PACKAGES.map((pkg) => {
-            const isSelected = selectedPackage.id === pkg.id;
-            const isExpanded = expandedPackageId === pkg.id;
-
-            return (
-              <div
-                key={pkg.id}
-                onClick={() => handlePackageChange(pkg)}
-                className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between shadow-sm relative ${
-                  isSelected
-                    ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/40 shadow-lg'
-                    : 'bg-[var(--bg-surface)] border-[var(--border-color)] hover:border-amber-500/40'
-                }`}
-              >
-                <div>
-                  {/* Card Header Badges */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    {pkg.popular ? (
-                      <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm">
-                        ⭐ الأكثر طلباً
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-[var(--text-muted)] font-bold bg-[var(--bg-card)] px-2.5 py-0.5 rounded-full border border-[var(--border-color)]">
-                        باقة معتمدة
-                      </span>
-                    )}
-
-                    {isSelected ? (
-                      <span className="text-[10px] bg-emerald-500 text-white font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                        <CheckCircle2 className="w-3 h-3" />
-                        محددة
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-[var(--text-muted)] font-medium">
-                        اضغط للتحديد
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Title & Pricing */}
-                  <h4 className="font-extrabold text-sm text-[var(--text-primary)] leading-tight">{pkg.title}</h4>
-                  
-                  <div className="my-2.5 flex items-baseline gap-1.5 bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
-                    <span className="text-2xl font-black text-amber-500">{pkg.price}</span>
-                    <span className="text-xs font-bold text-[var(--text-secondary)]">جنيه مصري</span>
-                    {pkg.id === 'pkg_vip' && (
-                      <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold mr-auto bg-amber-500/10 px-2 py-0.5 rounded-md">
-                        (أول شهر)
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Concise Tagline */}
-                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-medium mb-3">
-                    {pkg.description}
-                  </p>
-
-                  {/* Dropdown Accordion Trigger Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setExpandedPackageId(isExpanded ? null : pkg.id);
-                    }}
-                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-between border transition-all cursor-pointer ${
-                      isExpanded
-                        ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
-                        : 'bg-[var(--bg-card)] hover:bg-amber-500/15 text-amber-600 dark:text-amber-400 border-[var(--border-color)]'
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                      <span>{isExpanded ? 'إخفاء تفاصيل ومميزات الباقة' : 'عرض كافة التفاصيل والمميزات'}</span>
-                    </span>
-                    <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-slate-950' : ''}`} />
-                  </button>
-                </div>
-
-                {/* Collapsible Dropdown Content */}
-                {isExpanded && (
-                  <div className="pt-3 mt-3 border-t border-[var(--border-color)] space-y-2.5 animate-fade-in">
-                    <div className="text-[11px] font-extrabold text-[var(--text-primary)]">المميزات المشمولة:</div>
-                    
-                    <ul className="text-[11px] text-[var(--text-secondary)] space-y-2">
-                      {pkg.features.filter(f => !f.startsWith('💡')).map((f, i) => (
-                        <li key={i} className="flex items-start gap-2 leading-relaxed bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]/60">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    {pkg.features.filter(f => f.startsWith('💡')).map((note, i) => (
-                      <div key={i} className="text-[10.5px] bg-amber-500/15 text-amber-950 dark:text-amber-300 p-2.5 rounded-xl border border-amber-500/35 font-bold leading-relaxed shadow-sm">
-                        {note}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Bottom Select Action */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePackageChange(pkg);
-                  }}
-                  className={`w-full mt-3 py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
-                      : 'bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)]'
-                  }`}
-                >
-                  {isSelected ? (
-                    <>
-                      <Check className="w-4 h-4 stroke-[3]" />
-                      <span>الباقة المحددة حالياً</span>
-                    </>
-                  ) : (
-                    <span>تحديد هذه الباقة</span>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Submit Action Button */}
-        <button
-          type="submit"
-          className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-sm py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <CreditCard className="w-5 h-5 stroke-[2.5]" />
-          <span>حفظ النشاط وتحديد حالة الدفع والفاتورة 💳</span>
-        </button>
-      </div>
-
-      {/* 💳 Dedicated Payment Confirmation Modal Popup */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
-          <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 space-y-5 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
-                  <CreditCard className="w-5 h-5" />
+        {/* ========================================================
+            ⚡ BOTTOM SECTION: REGISTER INTERESTED LEAD / PROSPECT
+            ======================================================== */}
+        <div className="pt-2 border-t-2 border-dashed border-amber-500/30">
+          <div className="bg-gradient-to-br from-amber-500/10 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-500/40 rounded-3xl p-4 sm:p-6 space-y-4 shadow-lg">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold shrink-0">
+                  <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
-                    تأكيد حالة الدفع والتحصيل المالي
+                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                    ⚡ تسجيل عميل مهتم / زيارة ميدانية (بدون باقة حالياً)
                   </h3>
                   <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                    يرجى مراجعة وتحديد حالة سداد الفاتورة بدقة قبل الحفظ
+                    قابلت صاحب نشاط مهتم لكنه لم يطلب باقة بعد؟ سجّل رقمه هنا لحفظه وإرسال رسالة تعريفية ومتابعته لاحقاً
                   </p>
                 </div>
               </div>
+
               <button
                 type="button"
-                onClick={() => setShowPaymentModal(false)}
-                className="w-8 h-8 rounded-full bg-[var(--input-bg)] hover:bg-rose-500/20 text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center font-bold transition-colors cursor-pointer"
+                onClick={() => setShowLeadSection(!showLeadSection)}
+                className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
               >
-                <X className="w-4 h-4" />
+                {showLeadSection ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                <span>{showLeadSection ? 'إخفاء النموذج' : 'فتح نموذج المهتمين'}</span>
               </button>
             </div>
+
+            {leadSuccessMsg && (
+              <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3 rounded-2xl font-bold text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>{leadSuccessMsg}</span>
+                </div>
+                {savedLeadForWhatsApp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cleanP = savedLeadForWhatsApp.phone.replace(/\D/g, '');
+                      const intP = cleanP.startsWith('0') ? `2${cleanP}` : cleanP;
+                      const msg = `السلام عليكم ورحمة الله وبركاته يا فندم 👋
+مع حضرتك ${currentRep?.name || 'فريق دليلك'} من منصة "دليلك" لتوثيق الأنشطة التجارية على خرائط جوجل 🗺️✨
+يسعدنا تواصلنا مع حضراتكم لمساعدتكم في توثيق نشاطكم التجاري وظهوره لعملاء منطقتكم على Google Maps.
+باقة التوثيق تبدأ من 250 جنيه فقط لتوثيق دائم للأبد بدون اشتراكات شهرية! 🤝`;
+                      window.open(`https://wa.me/${intP}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow cursor-pointer self-stretch sm:self-auto justify-center"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>مراسلة العميل عبر واتساب فوراً 🚀</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showLeadSection && (
+              <div className="space-y-3 pt-2 border-t border-[var(--border-color)] animate-fade-in text-xs">
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم صاحب النشاط / العميل *</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: أ. محمود خالد"
+                    value={leadClientName}
+                    onChange={(e) => setLeadClientName(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم المحل / النشاط (اختياري)</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: صيدلية النور"
+                      value={leadBizName}
+                      onChange={(e) => setLeadBizName(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">رقم الهاتف / واتساب (11 رقم) *</label>
+                    <input
+                      type="tel"
+                      placeholder="011XXXXXXXX"
+                      value={leadPhone}
+                      onChange={(e) => setLeadPhone(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المحافظة</label>
+                    <select
+                      value={leadGov}
+                      onChange={(e) => setLeadGov(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    >
+                      {EGYPT_GOVERNORATES.map((gov) => (
+                        <option key={gov} value={gov}>
+                          {gov}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المدينة / المنطقة</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: مدينة نصر"
+                      value={leadCity}
+                      onChange={(e) => setLeadCity(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">درجة الاهتمام</label>
+                    <select
+                      value={leadInterest}
+                      onChange={(e) => setLeadInterest(e.target.value as LeadInterestLevel)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    >
+                      <option value="high">🔥 مهتم جداً (أولوية عالية)</option>
+                      <option value="medium">⏳ يحتاج تفكير ومتابعة</option>
+                      <option value="need_visit">📅 طلب زيارة ميدانية</option>
+                      <option value="intro_sent">💬 طلب رسالة تعريفية</option>
+                      <option value="low">متردد / استفسار عام</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">موعد المتابعة المقترح</label>
+                    <input
+                      type="date"
+                      value={leadFollowDate}
+                      onChange={(e) => setLeadFollowDate(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">ملاحظات الزيارة (اختياري)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="مثال: تم شرح الباقات وسيقوم بالرد بعد العودة لمدير الفرع..."
+                    value={leadNotes}
+                    onChange={(e) => setLeadNotes(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    if (!leadClientName || leadClientName.trim().length < 3) {
+                      alert('يرجى كتابة اسم العميل بشكل صحيح.');
+                      return;
+                    }
+                    const cleanP = leadPhone.replace(/\D/g, '');
+                    if (cleanP.length < 10) {
+                      alert('يرجى إدخال رقم هاتف صحيح (11 رقم).');
+                      return;
+                    }
+
+                    const lead: InterestedLead = {
+                      id: `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                      clientName: leadClientName.trim(),
+                      businessName: leadBizName.trim() || undefined,
+                      phone: cleanP,
+                      governorate: leadGov,
+                      city: leadCity.trim() || undefined,
+                      interestLevel: leadInterest,
+                      followUpDate: leadFollowDate || undefined,
+                      notes: leadNotes.trim() || undefined,
+                      createdDate: new Date().toISOString(),
+                      repId: currentRep?.id || 'rep_1',
+                      repName: currentRep?.name || 'مندوب معتمد',
+                      status: 'pending_followup',
+                    };
+
+                    if (onSaveLead) {
+                      onSaveLead(lead);
+                    } else {
+                      await saveLeadToDb(lead);
+                    }
+
+                    setSavedLeadForWhatsApp(lead);
+                    setLeadSuccessMsg(`✅ تم حفظ بيانات العميل "${lead.clientName}" بنجاح في مركز المتابعات والمهتمين!`);
+                    setLeadClientName('');
+                    setLeadBizName('');
+                    setLeadPhone('');
+                    setLeadCity('');
+                    setLeadNotes('');
+                  }}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 rounded-xl shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <UserCheck className="w-4 h-4 stroke-[3]" />
+                  <span>حفظ العميل في مركز المتابعات والمهتمين 📋</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+      {/* 💳 Dedicated Payment Confirmation Modal Popup */}
+      {showPaymentModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+            <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 space-y-5 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
+                      تأكيد حالة الدفع والتحصيل المالي
+                    </h3>
+                    <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                      يرجى مراجعة وتحديد حالة سداد الفاتورة بدقة قبل الحفظ
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="w-8 h-8 rounded-full bg-[var(--input-bg)] hover:bg-rose-500/20 text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center font-bold transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
             {/* Business Summary Card */}
             <div className="bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-2">
@@ -914,6 +1184,66 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               </div>
             </div>
 
+            {/* Field Cash Collection & Share Breakdown */}
+            {paymentStatus !== 'unpaid' && amountPaid > 0 && (
+              <div className="space-y-2.5">
+                {/* Method Pill */}
+                <div className="bg-amber-500/15 border-2 border-amber-500/50 rounded-2xl p-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
+                      💵
+                    </div>
+                    <div>
+                      <div className="font-black text-xs text-[var(--text-primary)]">
+                        طريقة الاستلام: كاش نقداً (استلمه المندوب بيده في الميدان)
+                      </div>
+                      <div className="text-[10px] text-[var(--text-muted)] font-bold">
+                        يتم توريد حصة المنصة لاحقاً عبر وسائل التوريد المعتمدة
+                      </div>
+                    </div>
+                  </div>
+                  <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-lg shadow-xs">
+                    تحصيل كاش
+                  </span>
+                </div>
+
+                {/* Real-time Commission & Platform Share Calculation */}
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-xs text-[var(--text-primary)]">
+                      الحسبة المالية وتوزيع الحصص ({currentRep?.commissionRate || 42.86}%):
+                    </span>
+                    <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                      المحصل: {amountPaid} ج.م
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] block font-bold">نصيبك كعمولة معتمدة:</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black font-mono text-sm">
+                        {Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج.م
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] block font-bold">
+                        مستحق عليك توريده للمنصة:
+                      </span>
+                      <span className="font-black font-mono text-sm text-rose-600 dark:text-rose-400">
+                        {amountPaid - Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج.م
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-[10.5px] text-[var(--text-secondary)] font-bold flex items-start gap-1.5 pt-1">
+                    <span className="text-amber-500 font-black shrink-0">⚠️ تنبيه:</span>
+                    <span>بما أنك استلمت كاش نقداً، أخذت عمولتك في يدك فورياً، وتُقيد حصة المنصة عليك لحين توريدها في صفحة حسابك.</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Optional Notes */}
             <div>
               <label className="block font-bold mb-1 text-[var(--text-secondary)]">ملاحظات مالية أو تفاصيل التحصيل (اختياري):</label>
@@ -946,7 +1276,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </form>
   );

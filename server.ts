@@ -15,6 +15,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const STORE_DIR = path.resolve(process.cwd(), 'data');
 const REPS_STORE_PATH = path.resolve(STORE_DIR, 'server_reps_store.json');
 const BIZ_STORE_PATH = path.resolve(STORE_DIR, 'server_biz_store.json');
+const PAYOUTS_STORE_PATH = path.resolve(STORE_DIR, 'server_payouts_store.json');
 
 if (!fs.existsSync(STORE_DIR)) {
   try { fs.mkdirSync(STORE_DIR, { recursive: true }); } catch {}
@@ -67,15 +68,83 @@ function persistStoredBusinesses(bizList: Business[]) {
   }
 }
 
+function loadStoredPayouts(): any[] {
+  try {
+    if (fs.existsSync(PAYOUTS_STORE_PATH)) {
+      const data = JSON.parse(fs.readFileSync(PAYOUTS_STORE_PATH, 'utf-8'));
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {
+    console.error('Error loading stored payouts:', e);
+  }
+  return [];
+}
+
+function persistStoredPayouts(payoutList: any[]) {
+  try {
+    fs.writeFileSync(PAYOUTS_STORE_PATH, JSON.stringify(payoutList, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error persisting payouts:', e);
+  }
+}
+
 let businesses: Business[] = loadStoredBusinesses();
 let representatives: Representative[] = loadStoredReps();
+let payoutRequests: any[] = loadStoredPayouts();
 let paymentConfig: PaymentGatewayConfig = { ...DEFAULT_PAYMENT_CONFIG };
 
 // REST API Endpoints
 
-// 1. Health check
+// 1. Health check & Test Mode check
+let isServerTestMode = true;
+
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', app: 'Daleelek - Google Maps Business Registration' });
+  res.json({ 
+    status: 'ok', 
+    app: 'Daleelek - Google Maps Business Registration',
+    testMode: isServerTestMode,
+    environment: isServerTestMode ? 'local_test_sandbox' : 'production'
+  });
+});
+
+app.get('/api/test-mode', (_req, res) => {
+  businesses = loadStoredBusinesses();
+  representatives = loadStoredReps();
+  res.json({
+    testMode: isServerTestMode,
+    message: isServerTestMode
+      ? 'وضع الاختبار المحلي مفعل - جميع العمليات معزولة على السيرفر المحلي ولا تؤثر على السيرفر المباشر'
+      : 'وضع الإنتاج المباشر مفعل',
+    businessesCount: businesses.length,
+    representativesCount: representatives.length,
+  });
+});
+
+app.post('/api/test-mode', (req, res) => {
+  if (typeof req.body.testMode === 'boolean') {
+    isServerTestMode = req.body.testMode;
+  }
+  res.json({ 
+    success: true, 
+    testMode: isServerTestMode,
+    message: isServerTestMode ? 'تم تفعيل وضع الاختبار المحلي' : 'تم تفعيل وضع الإنتاج المباشر'
+  });
+});
+
+app.post('/api/test-mode/reset', (_req, res) => {
+  businesses = [...INITIAL_BUSINESSES];
+  representatives = [...MOCK_REPRESENTATIVES];
+  payoutRequests = [];
+  persistStoredBusinesses(businesses);
+  persistStoredReps(representatives);
+  persistStoredPayouts(payoutRequests);
+  res.json({
+    success: true,
+    message: 'تمت تصفية البيانات التجريبية بالكامل وإعادة ضبطها بنجاح',
+    businessesCount: businesses.length,
+    representativesCount: representatives.length,
+    payoutRequestsCount: payoutRequests.length,
+  });
 });
 
 // 2. Auth endpoints with Single-Session Concurrent Login Protection
@@ -92,10 +161,16 @@ app.post('/api/auth/login', (req, res) => {
   representatives = loadStoredReps();
 
   // Admin Login
-  if (role === 'admin' || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') {
+  const isDazLogin =
+    cleanEmail === 'daz31181' ||
+    cleanEmail === '@daz31181' ||
+    cleanEmail === 'daz31181@gmail.com' ||
+    cleanEmail.includes('daz31181');
+
+  if (role === 'admin' || isDazLogin || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') {
     const validAdminPasswords = ['admin123', 'Aa123456', 'Aa132456', 'admin'];
-    if ((cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') && validAdminPasswords.includes(cleanPassword)) {
-      const adminRep = representatives.find((r) => r.role === 'admin' || r.email.toLowerCase() === 'dalilaakeg@gmail.com' || r.email.toLowerCase() === 'admin@gmail.com');
+    if ((isDazLogin || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') && validAdminPasswords.includes(cleanPassword)) {
+      const adminRep = representatives.find((r) => r.role === 'admin' || r.email.toLowerCase().includes('daz31181') || r.email.toLowerCase() === 'dalilaakeg@gmail.com' || r.email.toLowerCase() === 'admin@gmail.com');
       
       // Check active concurrent session for admin
       if (adminRep?.activeSessionId && adminRep.lastActiveTimestamp && (now - adminRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
@@ -115,8 +190,8 @@ app.post('/api/auth/login', (req, res) => {
       return res.json({
         user: {
           id: adminRep?.id || 'admin_1',
-          name: adminRep?.name || 'مدير النظام دليلك',
-          email: 'dalilaakeg@gmail.com',
+          name: adminRep?.name || 'مدير النظام دليلك (@daz31181)',
+          email: adminRep?.email || 'daz31181@gmail.com',
           role: 'admin',
           repData: adminRep,
           activeSessionId: newSessionId,
@@ -348,7 +423,111 @@ app.delete('/api/representatives/:id', (req, res) => {
   res.json({ success: true, message: 'تم حذف الحساب بنجاح' });
 });
 
-// 5. Payment config API
+// 5. Payout Requests API
+app.get('/api/payouts', (_req, res) => {
+  payoutRequests = loadStoredPayouts();
+  res.json(payoutRequests);
+});
+
+app.post('/api/payouts', (req, res) => {
+  try {
+    const newPayout = req.body;
+    if (!newPayout.id) {
+      newPayout.id = `payout_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    }
+    if (!newPayout.requestDate) {
+      newPayout.requestDate = new Date().toISOString();
+    }
+    if (!newPayout.status) {
+      newPayout.status = 'pending';
+    }
+    payoutRequests.unshift(newPayout);
+    persistStoredPayouts(payoutRequests);
+    res.status(201).json(newPayout);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'خطأ في إنشاء طلب السحب' });
+  }
+});
+
+app.put('/api/payouts/:id', (req, res) => {
+  const { id } = req.params;
+  const idx = payoutRequests.findIndex((p) => p.id === id);
+  if (idx === -1) {
+    return res.status(404).json({ error: 'طلب السحب غير موجود' });
+  }
+  payoutRequests[idx] = { ...payoutRequests[idx], ...req.body };
+  persistStoredPayouts(payoutRequests);
+  res.json(payoutRequests[idx]);
+});
+
+// 6. Interested Leads API & Store (العملاء المحتملين والمتابعات الميدانية)
+const LEADS_STORE_FILE = path.join(process.cwd(), 'data', 'server_leads_store.json');
+
+function loadStoredLeads(): any[] {
+  try {
+    if (fs.existsSync(LEADS_STORE_FILE)) {
+      const content = fs.readFileSync(LEADS_STORE_FILE, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.error('Error loading stored leads:', err);
+  }
+  return [];
+}
+
+function persistStoredLeads(data: any[]) {
+  try {
+    const dir = path.dirname(LEADS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(LEADS_STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error persisting leads:', err);
+  }
+}
+
+let leadsStore: any[] = loadStoredLeads();
+
+app.get('/api/leads', (_req, res) => {
+  leadsStore = loadStoredLeads();
+  res.json(leadsStore);
+});
+
+app.post('/api/leads', (req, res) => {
+  try {
+    const newLead = {
+      id: req.body.id || `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      createdDate: new Date().toISOString(),
+      status: req.body.status || 'pending_followup',
+      interestLevel: req.body.interestLevel || 'medium',
+      ...req.body,
+    };
+    leadsStore.unshift(newLead);
+    persistStoredLeads(leadsStore);
+    res.status(201).json(newLead);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'خطأ في حفظ بيانات العميل المهتم' });
+  }
+});
+
+app.put('/api/leads/:id', (req, res) => {
+  const { id } = req.params;
+  const idx = leadsStore.findIndex((l) => l.id === id);
+  if (idx === -1) {
+    return res.status(404).json({ error: 'العميل المهتم غير موجود' });
+  }
+  leadsStore[idx] = { ...leadsStore[idx], ...req.body };
+  persistStoredLeads(leadsStore);
+  res.json(leadsStore[idx]);
+});
+
+app.delete('/api/leads/:id', (req, res) => {
+  const { id } = req.params;
+  leadsStore = leadsStore.filter((l) => l.id !== id);
+  persistStoredLeads(leadsStore);
+  res.json({ success: true });
+});
+
+// 7. Payment config API
 app.get('/api/payment-config', (_req, res) => {
   res.json(paymentConfig);
 });
