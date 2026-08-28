@@ -133,6 +133,9 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
       return;
     }
 
+    // Strict Role & Permission Security Guard: Non-admins cannot alter their role, status, or commission
+    const isCallerAdmin = user.role === 'admin';
+
     onUpdateProfile({
       name: name.trim(),
       email: email.trim(),
@@ -140,12 +143,12 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
       pendingPhone: pendingPhone.trim() || undefined,
       governorate: governorate,
       nationalId: nationalId.trim() || undefined,
-      role: role,
-      roleTitle: roleTitle.trim() || undefined,
+      role: isCallerAdmin ? role : (user.role || 'rep'),
+      roleTitle: isCallerAdmin ? (roleTitle.trim() || undefined) : (rep?.roleTitle || undefined),
       referralCode: referralCode.trim().toUpperCase() || undefined,
-      targetMonth: Number(targetMonth) || 25,
-      commissionRate: Number(commissionRate) || 42.86,
-      status: status,
+      targetMonth: isCallerAdmin ? (Number(targetMonth) || 25) : (rep?.targetMonth || 25),
+      commissionRate: isCallerAdmin ? (Number(commissionRate) || 42.86) : (rep?.commissionRate || 42.86),
+      status: isCallerAdmin ? status : (rep?.status || 'active'),
       password: password.trim() || undefined,
       avatar: avatar,
       avatarStatus: 'approved',
@@ -234,18 +237,20 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
             <span>البيانات والاتصال</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('role')}
-            className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeTab === 'role'
-                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            <Crown className="w-3.5 h-3.5" />
-            <span>الرتبة والصلاحيات</span>
-          </button>
+          {user.role === 'admin' && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('role')}
+              className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'role'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              <Crown className="w-3.5 h-3.5" />
+              <span>الرتبة والصلاحيات</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -585,9 +590,9 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
           )}
 
           {/* ============================================================== */}
-          {/* TAB 3: ROLE & ADMINISTRATIVE SETTINGS */}
+          {/* TAB 3: ROLE & ADMINISTRATIVE SETTINGS (STRICT ADMIN ONLY) */}
           {/* ============================================================== */}
-          {activeTab === 'role' && (
+          {activeTab === 'role' && user.role === 'admin' && (
             <div className="space-y-3 animate-fade-in">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* User Role */}

@@ -829,6 +829,8 @@ export default function App() {
     const repId = user.repData?.id || user.id;
     const existingRep = representatives.find((r) => r.id === repId || r.email.toLowerCase() === user.email.toLowerCase()) || user.repData;
 
+    const isCallerAdmin = user.role === 'admin';
+
     const freshRep: Representative = {
       id: repId,
       name: updatedData.name || existingRep?.name || user.name,
@@ -840,14 +842,14 @@ export default function App() {
       activationFacePhoto: updatedData.activationFacePhoto !== undefined ? updatedData.activationFacePhoto : existingRep?.activationFacePhoto,
       nationalIdCardPhoto: updatedData.nationalIdCardPhoto !== undefined ? updatedData.nationalIdCardPhoto : existingRep?.nationalIdCardPhoto,
       nationalIdCardBackPhoto: updatedData.nationalIdCardBackPhoto !== undefined ? updatedData.nationalIdCardBackPhoto : existingRep?.nationalIdCardBackPhoto,
-      role: updatedData.role || existingRep?.role || user.role,
-      roleTitle: updatedData.roleTitle || existingRep?.roleTitle,
+      role: isCallerAdmin && updatedData.role ? updatedData.role : (existingRep?.role || user.role || 'rep'),
+      roleTitle: isCallerAdmin && updatedData.roleTitle ? updatedData.roleTitle : (existingRep?.roleTitle || 'مندوب مبيعات معتمد'),
       governorate: updatedData.governorate || existingRep?.governorate || 'القاهرة',
-      targetMonth: Number(updatedData.targetMonth ?? existingRep?.targetMonth) || 25,
+      targetMonth: isCallerAdmin && updatedData.targetMonth !== undefined ? (Number(updatedData.targetMonth) || 25) : (existingRep?.targetMonth || 25),
       avatar: updatedData.avatar !== undefined ? updatedData.avatar : (existingRep?.avatar || user.avatar || ''),
       avatarStatus: 'approved',
-      commissionRate: Number(updatedData.commissionRate ?? existingRep?.commissionRate) || 42.86,
-      status: updatedData.status || existingRep?.status || 'active',
+      commissionRate: isCallerAdmin && updatedData.commissionRate !== undefined ? (Number(updatedData.commissionRate) || 42.86) : (existingRep?.commissionRate || 42.86),
+      status: isCallerAdmin && updatedData.status ? updatedData.status : (existingRep?.status || 'active'),
       password: updatedData.password || existingRep?.password || 'Aa123456',
       referralCode: updatedData.referralCode || existingRep?.referralCode,
       referredByCode: updatedData.referredByCode || existingRep?.referredByCode,
@@ -1012,18 +1014,30 @@ export default function App() {
 
   const handleUpdateRepresentative = async (updatedRep: Representative) => {
     const prevRep = representatives.find((r) => r.id === updatedRep.id);
+
+    // Strict Role & Permission Security Guard:
+    // Only Admin / Supervisor can change roles, commission rates, or account status.
+    const isCallerAdmin = user?.role === 'admin' || user?.role === 'supervisor';
+    const secureRep: Representative = {
+      ...updatedRep,
+      role: isCallerAdmin && updatedRep.role ? updatedRep.role : (prevRep?.role || 'rep'),
+      roleTitle: isCallerAdmin && updatedRep.roleTitle ? updatedRep.roleTitle : (prevRep?.roleTitle || 'مندوب مبيعات معتمد'),
+      commissionRate: isCallerAdmin && updatedRep.commissionRate !== undefined ? Number(updatedRep.commissionRate) : (prevRep?.commissionRate || 42.86),
+      status: isCallerAdmin && updatedRep.status ? updatedRep.status : (prevRep?.status || 'active'),
+      targetMonth: isCallerAdmin && updatedRep.targetMonth !== undefined ? Number(updatedRep.targetMonth) : (prevRep?.targetMonth || 25),
+    };
+
     setRepresentatives((prev) => {
-      const updated = prev.map((r) => (r.id === updatedRep.id ? updatedRep : r));
+      const updated = prev.map((r) => (r.id === secureRep.id ? secureRep : r));
       try {
         localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
       } catch {}
       return updated;
     });
 
-    // CRITICAL FIX: Always sync user state & localStorage when the logged-in rep's data changes
-    // This ensures referral unlock, name, and avatar updates are reflected immediately in real time
-    if (user && (user.id === updatedRep.id || user.repData?.id === updatedRep.id || user.email.toLowerCase() === updatedRep.email.toLowerCase())) {
-      const updatedUser = { ...user, repData: updatedRep, name: updatedRep.name, email: updatedRep.email };
+    // Always sync user state & localStorage when the logged-in rep's data changes
+    if (user && (user.id === secureRep.id || user.repData?.id === secureRep.id || user.email.toLowerCase() === secureRep.email.toLowerCase())) {
+      const updatedUser = { ...user, repData: secureRep, name: secureRep.name, email: secureRep.email, role: secureRep.role || user.role };
       setUser(updatedUser);
       safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
     }
@@ -1534,7 +1548,13 @@ export default function App() {
         user={user}
         onOpenLogin={() => setShowLoginModal(true)}
         onLogout={handleLogout}
-        onOpenProfile={() => setShowAdminProfileModal(true)}
+        onOpenProfile={() => {
+          if (user?.role === 'admin') {
+            setShowAdminProfileModal(true);
+          } else {
+            setActiveTab('profile');
+          }
+        }}
         activeTab={activeTab}
         systemNotifications={allNotifications}
         onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
@@ -2372,8 +2392,8 @@ export default function App() {
         />
       )}
 
-      {/* MODAL: ADMIN & USER PROFILE / AVATAR MODAL */}
-      {showAdminProfileModal && user && (
+      {/* MODAL: ADMIN & USER PROFILE / AVATAR MODAL (STRICT ADMIN ONLY) */}
+      {showAdminProfileModal && user && user.role === 'admin' && (
         <AdminProfileModal
           user={user}
           onClose={() => setShowAdminProfileModal(false)}
