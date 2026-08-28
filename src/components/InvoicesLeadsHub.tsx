@@ -66,16 +66,25 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   const [formError, setFormError] = useState<string>('');
 
   // Scoped Data (Filter by Rep if not Admin)
-  const isRepAdmin = currentUser?.role === 'admin';
+  const isRepAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor' || currentUser?.role === 'accountant' || !currentUser;
   const scopedLeads = useMemo(() => {
     if (isRepAdmin) return leads;
-    return leads.filter(
-      (l) =>
-        l.repId === currentUser?.id ||
-        l.repId === currentUser?.repData?.id ||
-        l.repName === currentUser?.name
-    );
-  }, [leads, currentUser, isRepAdmin]);
+    const myId = (currentUser?.id || currentRep?.id || '').toLowerCase().trim();
+    const myRepDataId = (currentUser?.repData?.id || '').toLowerCase().trim();
+    const myName = (currentUser?.name || currentRep?.name || '').toLowerCase().trim();
+
+    return leads.filter((l) => {
+      const lRepId = (l.repId || '').toLowerCase().trim();
+      const lRepName = (l.repName || '').toLowerCase().trim();
+
+      const matchId = (myId && lRepId === myId) || (myRepDataId && lRepId === myRepDataId);
+      const matchName =
+        (myName && lRepName === myName) ||
+        (myName && lRepName && (lRepName.includes(myName) || myName.includes(lRepName)));
+
+      return matchId || matchName;
+    });
+  }, [leads, currentUser, currentRep, isRepAdmin]);
 
   // Filtered Leads
   const filteredLeads = useMemo(() => {
@@ -119,6 +128,9 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     }
 
     const leadId = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const repId = currentUser?.repData?.id || currentUser?.id || currentRep?.id || 'rep_1';
+    const repName = currentUser?.repData?.name || currentUser?.name || currentRep?.name || 'مندوب معتمد';
+
     const newLead: InterestedLead = {
       id: leadId,
       clientName: newClientName.trim(),
@@ -130,8 +142,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
       followUpDate: newFollowUpDate || undefined,
       notes: newNotes.trim() || undefined,
       createdDate: new Date().toISOString(),
-      repId: currentUser?.id || currentRep?.id || 'rep_1',
-      repName: currentUser?.name || currentRep?.name || 'مندوب معتمد',
+      repId,
+      repName,
       status: 'pending_followup',
     };
 

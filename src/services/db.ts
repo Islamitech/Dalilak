@@ -496,30 +496,55 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 // =============================================================================
 
 export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
+  // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        return data.map(mapDbToLead);
-      }
-
       const res = await supabaseRestFetch('leads?select=*&order=created_at.desc');
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          return restData.map(mapDbToLead);
+          const freshList = restData.map(mapDbToLead);
+          try {
+            localStorage.setItem('dalelak_cached_leads', JSON.stringify(freshList));
+          } catch {}
+          return freshList;
         }
       }
     } catch (err) {
-      console.error('Supabase fetch leads error:', err);
+      console.warn('Supabase fetch leads REST error:', err);
+    }
+
+    try {
+      const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        const freshList = data.map(mapDbToLead);
+        try {
+          localStorage.setItem('dalelak_cached_leads', JSON.stringify(freshList));
+        } catch {}
+        return freshList;
+      }
+    } catch (err) {
+      console.warn('Supabase fetch leads SDK error:', err);
     }
   }
 
+  // 2. Offline fallback from local cache
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+    if (Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+  } catch {}
+
+  // 3. Local Server fetch fallback
   try {
     const localRes = await fetch('/api/leads');
     if (localRes.ok) {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
+        try {
+          localStorage.setItem('dalelak_cached_leads', JSON.stringify(localData));
+        } catch {}
         return localData;
       }
     }
@@ -530,20 +555,43 @@ export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
 
 export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead> {
   const dbRecord = mapLeadToDb(lead);
+
+  // 1. Immediate Local Cache update
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+    const map = new Map<string, InterestedLead>();
+    map.set(lead.id, lead);
+    if (Array.isArray(cached)) {
+      cached.forEach((l: InterestedLead) => {
+        if (!map.has(l.id)) map.set(l.id, l);
+      });
+    }
+    localStorage.setItem('dalelak_cached_leads', JSON.stringify(Array.from(map.values())));
+  } catch {}
+
+  // 2. Direct Supabase Cloud Save / Upsert
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('leads').insert([dbRecord]);
-      if (error) {
-        await supabaseRestFetch('leads', {
-          method: 'POST',
-          body: JSON.stringify(dbRecord),
-        });
+      const res = await supabaseRestFetch('leads', {
+        method: 'POST',
+        headers: {
+          'Prefer': 'resolution=merge-duplicates,return=representation',
+        },
+        body: JSON.stringify(dbRecord),
+      });
+
+      if (!res.ok) {
+        const { error } = await supabase.from('leads').upsert([dbRecord]);
+        if (error) {
+          console.warn('Supabase save lead fallback error:', error);
+        }
       }
     } catch (err) {
       console.error('Supabase save lead error:', err);
     }
   }
 
+  // 3. Save to Local Server
   try {
     await fetch('/api/leads', {
       method: 'POST',
@@ -558,20 +606,36 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
 export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLead> {
   const dbUpdates = mapLeadToDb(lead);
   delete dbUpdates.id;
+
+  // 1. Immediate Local Cache update
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+    if (Array.isArray(cached)) {
+      const updated = cached.map((l: InterestedLead) => (l.id === lead.id ? lead : l));
+      localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+    }
+  } catch {}
+
+  // 2. Direct Supabase Cloud Update
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('leads').update(dbUpdates).eq('id', lead.id);
-      if (error) {
-        await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(lead.id)}`, {
-          method: 'PATCH',
-          body: JSON.stringify(dbUpdates),
-        });
+      const res = await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(lead.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(dbUpdates),
+      });
+
+      if (!res.ok) {
+        const { error } = await supabase.from('leads').update(dbUpdates).eq('id', lead.id);
+        if (error) {
+          console.warn('Supabase update lead fallback error:', error);
+        }
       }
     } catch (err) {
       console.error('Supabase update lead error:', err);
     }
   }
 
+  // 3. Update in Local Server
   try {
     await fetch(`/api/leads/${encodeURIComponent(lead.id)}`, {
       method: 'PUT',
@@ -584,19 +648,31 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
 }
 
 export async function deleteLeadFromDb(id: string): Promise<void> {
+  // 1. Immediate Local Cache remove
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+    if (Array.isArray(cached)) {
+      const filtered = cached.filter((l: InterestedLead) => l.id !== id);
+      localStorage.setItem('dalelak_cached_leads', JSON.stringify(filtered));
+    }
+  } catch {}
+
+  // 2. Direct Supabase Cloud Delete
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('leads').delete().eq('id', id);
-      if (error) {
-        await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-        });
+      const res = await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        await supabase.from('leads').delete().eq('id', id);
       }
     } catch (err) {
       console.error('Supabase delete lead error:', err);
     }
   }
 
+  // 3. Delete from Local Server
   try {
     await fetch(`/api/leads/${encodeURIComponent(id)}`, {
       method: 'DELETE',

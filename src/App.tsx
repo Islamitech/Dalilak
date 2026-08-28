@@ -214,7 +214,13 @@ export default function App() {
   const [showAdminProfileModal, setShowAdminProfileModal] = useState<boolean>(false);
 
   // Interested Leads State & Conversion
-  const [leads, setLeads] = useState<InterestedLead[]>([]);
+  const [leads, setLeads] = useState<InterestedLead[]>(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) return cached;
+    } catch {}
+    return [];
+  });
   const [convertingLead, setConvertingLead] = useState<InterestedLead | null>(null);
 
   // Home Feed Search & Modern Directory Filters
@@ -743,20 +749,68 @@ export default function App() {
   // INTERESTED LEADS (CRM) HANDLERS
   // ---------------------------------------------------------------------------
   const handleCreateLead = async (newLead: InterestedLead) => {
-    setLeads((prev) => [newLead, ...prev]);
+    setLeads((prev) => {
+      const updated = [newLead, ...prev.filter((l) => l.id !== newLead.id)];
+      try {
+        localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     await saveLeadToDb(newLead);
+
+    try {
+      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SYNC_DATA', leadId: newLead.id });
+        syncChannel.close();
+      }
+    } catch {}
+
     addNotification(`✨ تم حفظ بيانات العميل المهتم "${newLead.clientName}" بنجاح!`, 'success');
   };
 
   const handleUpdateLead = async (updatedLead: InterestedLead) => {
-    setLeads((prev) => prev.map((l) => (l.id === updatedLead.id ? updatedLead : l)));
+    setLeads((prev) => {
+      const updated = prev.map((l) => (l.id === updatedLead.id ? updatedLead : l));
+      try {
+        localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     await updateLeadInDb(updatedLead);
+
+    try {
+      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SYNC_DATA', leadId: updatedLead.id });
+        syncChannel.close();
+      }
+    } catch {}
+
     addNotification(`تم تحديث بيانات ومتابعة العميل "${updatedLead.clientName}".`, 'info');
   };
 
   const handleDeleteLead = async (leadId: string) => {
-    setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    setLeads((prev) => {
+      const updated = prev.filter((l) => l.id !== leadId);
+      try {
+        localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     await deleteLeadFromDb(leadId);
+
+    try {
+      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SYNC_DATA', deletedLeadId: leadId });
+        syncChannel.close();
+      }
+    } catch {}
+
     addNotification('تم حذف العميل من سجل المتابعات.', 'info');
   };
 
