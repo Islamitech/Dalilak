@@ -1,4 +1,4 @@
-import { supabase, supabaseRestFetch } from '../lib/supabase';
+import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from '../types';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES } from '../data/mockData';
 
@@ -13,6 +13,7 @@ import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES } from '../data/mockData';
 
 // Helper to ensure all remote database records are permanently standardized to 250 EGP
 async function reconcileLegacyBusinessesTo250(records: any[]): Promise<void> {
+  if (!isSupabaseConfigured()) return;
   for (const item of records) {
     const isPaid = item.payment_status === 'fully_paid' || (Number(item.amount_paid || 0) > 0);
     const expectedAmountPaid = isPaid ? 250 : 0;
@@ -67,10 +68,13 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     }
   } catch {}
 
-  // 2. Fetch in parallel from Local Server API and Supabase (with 1.5s timeout protection)
+  // 2. Local Server API fetch (ultra-fast local Express endpoint)
   const localFetchPromise = (async () => {
     try {
-      const localRes = await fetch('/api/businesses');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+      const localRes = await fetch('/api/businesses', { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (localRes.ok) {
         const localData = await localRes.json();
         if (Array.isArray(localData) && localData.length > 0) {
@@ -82,10 +86,12 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     } catch {}
   })();
 
+  // 3. Supabase Cloud fetch (only if configured, with fast non-blocking timeout)
   const supabaseFetchPromise = (async () => {
+    if (!isSupabaseConfigured()) return;
     try {
       const timeoutPromise = new Promise<{ data: null; error: string }>((resolve) =>
-        setTimeout(() => resolve({ data: null, error: 'timeout' }), 1500)
+        setTimeout(() => resolve({ data: null, error: 'timeout' }), 600)
       );
 
       const queryPromise = supabase.from('businesses').select('*').order('created_at', { ascending: false });
@@ -100,7 +106,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     } catch {}
   })();
 
-  // Wait for both without blocking if one is slow
+  // Parallel resolution
   await Promise.allSettled([localFetchPromise, supabaseFetchPromise]);
 
   const result = Array.from(mergedMap.values());
@@ -421,21 +427,23 @@ export async function updateRepSessionInDb(_id: string, _sessionId?: string, _ti
 // 3. PAYOUT & REMITTANCE REQUESTS (طلبات الصرف والتوريد)
 // ============================================
 export async function fetchPayoutRequestsFromDb(): Promise<PayoutRequest[]> {
-  try {
-    const { data, error } = await supabase.from('payout_requests').select('*').order('request_date', { ascending: false });
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      return data.map(mapDbToPayout);
-    }
-
-    const res = await supabaseRestFetch('payout_requests?select=*&order=request_date.desc');
-    if (res.ok) {
-      const restData = await res.json();
-      if (Array.isArray(restData) && restData.length > 0) {
-        return restData.map(mapDbToPayout);
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from('payout_requests').select('*').order('request_date', { ascending: false });
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        return data.map(mapDbToPayout);
       }
+
+      const res = await supabaseRestFetch('payout_requests?select=*&order=request_date.desc');
+      if (res.ok) {
+        const restData = await res.json();
+        if (Array.isArray(restData) && restData.length > 0) {
+          return restData.map(mapDbToPayout);
+        }
+      }
+    } catch (err) {
+      console.error('Supabase fetch payout requests error:', err);
     }
-  } catch (err) {
-    console.error('Supabase fetch payout requests error:', err);
   }
 
   try {
@@ -453,16 +461,18 @@ export async function fetchPayoutRequestsFromDb(): Promise<PayoutRequest[]> {
 
 export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<PayoutRequest> {
   const dbRecord = mapPayoutToDb(payout);
-  try {
-    const { error } = await supabase.from('payout_requests').insert([dbRecord]);
-    if (error) {
-      await supabaseRestFetch('payout_requests', {
-        method: 'POST',
-        body: JSON.stringify(dbRecord),
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('payout_requests').insert([dbRecord]);
+      if (error) {
+        await supabaseRestFetch('payout_requests', {
+          method: 'POST',
+          body: JSON.stringify(dbRecord),
+        });
+      }
+    } catch (err) {
+      console.error('Supabase create payout request error:', err);
     }
-  } catch (err) {
-    console.error('Supabase create payout request error:', err);
   }
 
   try {
@@ -479,16 +489,18 @@ export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<PayoutRequest> {
   const dbUpdates = mapPayoutToDb(payout);
   delete dbUpdates.id;
-  try {
-    const { error } = await supabase.from('payout_requests').update(dbUpdates).eq('id', payout.id);
-    if (error) {
-      await supabaseRestFetch(`payout_requests?id=eq.${encodeURIComponent(payout.id)}`, {
-        method: 'PATCH',
-        body: JSON.stringify(dbUpdates),
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('payout_requests').update(dbUpdates).eq('id', payout.id);
+      if (error) {
+        await supabaseRestFetch(`payout_requests?id=eq.${encodeURIComponent(payout.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(dbUpdates),
+        });
+      }
+    } catch (err) {
+      console.error('Supabase update payout request error:', err);
     }
-  } catch (err) {
-    console.error('Supabase update payout request error:', err);
   }
 
   try {
@@ -506,21 +518,23 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 // 4. INTERESTED LEADS (العملاء المحتملين)
 // ============================================
 export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
-  try {
-    const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      return data.map(mapDbToLead);
-    }
-
-    const res = await supabaseRestFetch('leads?select=*&order=created_at.desc');
-    if (res.ok) {
-      const restData = await res.json();
-      if (Array.isArray(restData) && restData.length > 0) {
-        return restData.map(mapDbToLead);
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        return data.map(mapDbToLead);
       }
+
+      const res = await supabaseRestFetch('leads?select=*&order=created_at.desc');
+      if (res.ok) {
+        const restData = await res.json();
+        if (Array.isArray(restData) && restData.length > 0) {
+          return restData.map(mapDbToLead);
+        }
+      }
+    } catch (err) {
+      console.error('Supabase fetch leads error:', err);
     }
-  } catch (err) {
-    console.error('Supabase fetch leads error:', err);
   }
 
   try {
@@ -538,16 +552,18 @@ export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
 
 export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead> {
   const dbRecord = mapLeadToDb(lead);
-  try {
-    const { error } = await supabase.from('leads').insert([dbRecord]);
-    if (error) {
-      await supabaseRestFetch('leads', {
-        method: 'POST',
-        body: JSON.stringify(dbRecord),
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('leads').insert([dbRecord]);
+      if (error) {
+        await supabaseRestFetch('leads', {
+          method: 'POST',
+          body: JSON.stringify(dbRecord),
+        });
+      }
+    } catch (err) {
+      console.error('Supabase save lead error:', err);
     }
-  } catch (err) {
-    console.error('Supabase save lead error:', err);
   }
 
   try {
@@ -564,16 +580,18 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
 export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLead> {
   const dbUpdates = mapLeadToDb(lead);
   delete dbUpdates.id;
-  try {
-    const { error } = await supabase.from('leads').update(dbUpdates).eq('id', lead.id);
-    if (error) {
-      await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(lead.id)}`, {
-        method: 'PATCH',
-        body: JSON.stringify(dbUpdates),
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('leads').update(dbUpdates).eq('id', lead.id);
+      if (error) {
+        await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(lead.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(dbUpdates),
+        });
+      }
+    } catch (err) {
+      console.error('Supabase update lead error:', err);
     }
-  } catch (err) {
-    console.error('Supabase update lead error:', err);
   }
 
   try {
@@ -588,15 +606,17 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
 }
 
 export async function deleteLeadFromDb(id: string): Promise<void> {
-  try {
-    const { error } = await supabase.from('leads').delete().eq('id', id);
-    if (error) {
-      await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('leads').delete().eq('id', id);
+      if (error) {
+        await supabaseRestFetch(`leads?id=eq.${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+      }
+    } catch (err) {
+      console.error('Supabase delete lead error:', err);
     }
-  } catch (err) {
-    console.error('Supabase delete lead error:', err);
   }
 
   try {
@@ -610,19 +630,21 @@ export async function deleteLeadFromDb(id: string): Promise<void> {
 // 5. PAYMENT GATEWAY CONFIG (إعدادات الدفع والمحافظ)
 // ============================================
 export async function fetchPaymentConfigFromDb(): Promise<PaymentGatewayConfig | null> {
-  try {
-    const { data, error } = await supabase.from('payment_config').select('*').limit(1).maybeSingle();
-    if (!error && data) {
-      return {
-        vodafoneCashNumber: data.vodafone_cash_number || data.voda_number || '01143888355',
-        vodafoneCashNumber2: data.vodafone_cash_number_2 || data.voda_number_2 || undefined,
-        fawryMerchantCode: data.fawry_merchant_code || undefined,
-        instaPayHandle: data.insta_pay_handle || '@daz31181',
-        cardGatewayActive: data.card_gateway_active ?? true,
-      };
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from('payment_config').select('*').limit(1).maybeSingle();
+      if (!error && data) {
+        return {
+          vodafoneCashNumber: data.vodafone_cash_number || data.voda_number || '01143888355',
+          vodafoneCashNumber2: data.vodafone_cash_number_2 || data.voda_number_2 || undefined,
+          fawryMerchantCode: data.fawry_merchant_code || undefined,
+          instaPayHandle: data.insta_pay_handle || '@daz31181',
+          cardGatewayActive: data.card_gateway_active ?? true,
+        };
+      }
+    } catch (err) {
+      console.error('Supabase fetch payment config error:', err);
     }
-  } catch (err) {
-    console.error('Supabase fetch payment config error:', err);
   }
 
   try {
