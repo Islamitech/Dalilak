@@ -178,7 +178,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null); // For accordion details toggle
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('fully_paid');
   const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[0].price);
-  const [paymentMethod, setPaymentMethod] = useState<'cash_by_rep' | 'gateway_online'>('cash_by_rep');
+  const [paymentMethod, setPaymentMethod] = useState<Business['paymentMethod']>('cash_by_rep');
   const [notes, setNotes] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
 
