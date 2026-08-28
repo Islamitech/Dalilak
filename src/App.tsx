@@ -217,70 +217,15 @@ export default function App() {
   };
 
   // Persistent System Notifications for Bell Notification Center
-  const INITIAL_SYSTEM_NOTIFICATIONS: SystemNotification[] = useMemo(
-    () => [
-      {
-        id: 'sys_init_1',
-        title: 'مرحباً بك في منصة دليلك 🚀',
-        message: 'تفعيل كامل لمنظومة الإشعارات والمستجدات الميدانية لمتابعة الأنشطة والحسابات والتحصيلات في مصر.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-        type: 'info',
-        category: 'system',
-        targetRole: 'all',
-        read: false,
-      },
-      {
-        id: 'sys_init_2',
-        title: 'حساب جديد معلق بانتظار التفعيل 👤',
-        message: 'طلب تسجيل حساب جديد للمندوب (Ahmed Ezalden - محافظة الجيزة)، الحساب معلق بانتظار مراجعته وتفعيله.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-        type: 'warning',
-        category: 'account',
-        targetRole: 'admin',
-        entityId: 'rep_ahmed_ezalden',
-        entityType: 'rep',
-        read: false,
-        linkTab: 'admin',
-      },
-      {
-        id: 'sys_init_3',
-        title: 'تأكيد توثيق نشاط تجاري 📌',
-        message: 'تم تفعيل التوثيق الميداني والظهور الرسمي لنشاط "مطعم أبو طارق للكشري" على خرائط جوجل بنجاح.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-        type: 'success',
-        category: 'business',
-        targetRole: 'admin',
-        entityId: 'biz_101',
-        entityType: 'business',
-        read: true,
-        linkTab: 'home',
-      },
-      {
-        id: 'sys_init_4',
-        title: 'تسجيل تحصيل فاتورة 💳',
-        message: 'تم استلام وتوثيق تحصيل سداد بقيمة 1,500 ج.م للباقة VIP (فاتورة رقم INV-2026-001).',
-        timestamp: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-        type: 'success',
-        category: 'payment',
-        targetRole: 'admin',
-        entityId: 'biz_101',
-        entityType: 'invoice',
-        read: true,
-        linkTab: 'invoices',
-      },
-    ],
-    []
-  );
-
   const [systemNotifications, setSystemNotifications] = useState<SystemNotification[]>(() => {
     const saved = localStorage.getItem('dalelak_system_notifications');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {}
     }
-    return INITIAL_SYSTEM_NOTIFICATIONS;
+    return [];
   });
 
   useEffect(() => {
@@ -318,15 +263,30 @@ export default function App() {
   };
 
   const handleMarkAllNotificationsAsRead = () => {
-    setSystemNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setSystemNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      try {
+        localStorage.setItem('dalelak_system_notifications', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const handleMarkNotificationAsRead = (id: string) => {
-    setSystemNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setSystemNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      try {
+        localStorage.setItem('dalelak_system_notifications', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const handleClearNotifications = () => {
     setSystemNotifications([]);
+    try {
+      localStorage.setItem('dalelak_system_notifications', JSON.stringify([]));
+    } catch {}
   };
 
   // Direct navigation handler for Notification preview clicks
@@ -350,89 +310,12 @@ export default function App() {
     }
   };
 
-  // Dynamically merge system notifications with all active business and account activities (No duplicates!)
+  // Real System Notifications (Sorted newest first by timestamp)
   const allNotifications = useMemo(() => {
-    const list: SystemNotification[] = [...systemNotifications];
-
-    // Auto-generate notifications for all businesses in the system (detailed notification for admin)
-    businesses.forEach((biz) => {
-      const exists = list.some(
-        (n) => n.category === 'business' && (n.entityId === biz.id || n.message.includes(biz.nameAr))
-      );
-      if (!exists) {
-        list.push({
-          id: `biz_notif_${biz.id}`,
-          title: `إضافة نشاط تجاري جديد: ${biz.nameAr} 🏪`,
-          message: `قام المندوب "${biz.repName}" بتسجيل نشاط جديد "${biz.nameAr}" في ${biz.governorate} (${biz.city || ''}) — التصنيف: ${biz.category} — الباقة: ${biz.packageName} (${biz.packagePrice} ج.م) — هاتف المالك: ${biz.ownerPhone || 'غير محدد'}.`,
-          timestamp: biz.createdDate ? new Date(biz.createdDate).toISOString() : new Date().toISOString(),
-          type: 'info',
-          category: 'business',
-          targetRole: 'admin',
-          entityId: biz.id,
-          entityType: 'business',
-          read: false,
-          linkTab: 'admin',
-        });
-      }
-    });
-
-    // Auto-generate notifications for all suspended accounts
-    representatives.forEach((rep) => {
-      if (rep.status === 'suspended') {
-        const existsSuspended = list.some(
-          (n) => n.category === 'account' && (n.entityId === rep.id || n.message.includes(rep.name))
-        );
-        if (!existsSuspended) {
-          list.push({
-            id: `rep_suspended_notif_${rep.id}`,
-            title: `حساب جديد معلق بانتظار التفعيل 👤`,
-            message: `طلب تسجيل حساب مندوب جديد "${rep.name}" (${rep.governorate})، الحساب معلق بانتظار مراجعته وتفعيله.`,
-            timestamp: new Date().toISOString(),
-            type: 'warning',
-            category: 'account',
-            targetRole: 'admin',
-            entityId: rep.id,
-            entityType: 'rep',
-            read: false,
-            linkTab: 'admin',
-          });
-        }
-      }
-
-      if (rep.avatarStatus === 'pending_approval') {
-        const existsAvatar = list.some(
-          (n) => n.category === 'avatar' && (n.entityId === rep.id || n.message.includes(rep.name))
-        );
-        if (!existsAvatar) {
-          list.push({
-            id: `rep_avatar_notif_${rep.id}`,
-            title: `صورة شخصية جديدة للمراجعة 📸`,
-            message: `قام المندوب "${rep.name}" برفع صورة شخصية جديدة للمراجعة والاعتماد.`,
-            timestamp: new Date().toISOString(),
-            type: 'info',
-            category: 'avatar',
-            targetRole: 'admin',
-            entityId: rep.id,
-            entityType: 'rep',
-            read: false,
-            linkTab: 'admin',
-          });
-        }
-      }
-    });
-
-    // Deduplicate by title & entityId
-    const uniqueMap = new Map<string, SystemNotification>();
-    list.forEach((n) => {
-      const key = `${n.title}_${n.entityId || n.message.substring(0, 20)}`;
-      if (!uniqueMap.has(key)) {
-        uniqueMap.set(key, n);
-      }
-    });
-
-    // Sort newest first by timestamp
-    return Array.from(uniqueMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [systemNotifications, businesses, representatives]);
+    return [...systemNotifications].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }, [systemNotifications]);
 
   // Parse URL for deep linking (QR codes)
   useEffect(() => {
