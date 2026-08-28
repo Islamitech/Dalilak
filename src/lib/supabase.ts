@@ -37,11 +37,12 @@ export async function supabaseRestFetch(endpoint: string, options: RequestInit =
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
   const url = `${SUPABASE_REST_URL}${cleanEndpoint}`;
   
+  const isJwt = SUPABASE_ANON_KEY.startsWith('eyJ');
   const headers: Record<string, string> = {
     'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation',
+    ...(isJwt ? { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } : {}),
     ...(options.headers as Record<string, string> || {}),
   };
 

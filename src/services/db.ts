@@ -13,80 +13,80 @@ import { MOCK_REPRESENTATIVES } from '../data/mockData';
 // =============================================================================
 
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
-  const mergedMap = new Map<string, Business>();
-
-  // 1. Instant: Load from LocalStorage cache (0ms instant render)
-  try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-    if (Array.isArray(cached) && cached.length > 0) {
-      cached.forEach((b: Business) => {
-        if (b && b.id) {
-          mergedMap.set(b.id, b);
-        }
-      });
-    }
-  } catch {}
-
-  // 2. Local Server API fetch (ultra-fast local Express endpoint)
-  const localFetchPromise = (async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 800);
-      const localRes = await fetch('/api/businesses', { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (localRes.ok) {
-        const localData = await localRes.json();
-        if (Array.isArray(localData) && localData.length > 0) {
-          localData.forEach((b: Business) => {
-            if (b && b.id) mergedMap.set(b.id, b);
-          });
-        }
-      }
-    } catch {}
-  })();
-
-  // 3. Supabase Cloud fetch (REST first with SDK fallback)
-  const supabaseFetchPromise = (async () => {
-    if (!isSupabaseConfigured()) return;
+  // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
+  if (isSupabaseConfigured()) {
     try {
       const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          restData.map(mapDbToBusiness).forEach((b) => {
-            if (b && b.id) mergedMap.set(b.id, b);
-          });
-          return;
+          const freshList = restData.map(mapDbToBusiness);
+          try {
+            localStorage.setItem('dalelak_cached_businesses', JSON.stringify(freshList));
+          } catch {}
+          return freshList;
         }
       }
+    } catch (err) {
+      console.warn('Supabase fetch businesses REST error, trying fallback:', err);
+    }
 
+    try {
       const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
       if (!error && data && Array.isArray(data) && data.length > 0) {
-        data.map(mapDbToBusiness).forEach((b) => {
-          if (b && b.id) mergedMap.set(b.id, b);
-        });
+        const freshList = data.map(mapDbToBusiness);
+        try {
+          localStorage.setItem('dalelak_cached_businesses', JSON.stringify(freshList));
+        } catch {}
+        return freshList;
       }
     } catch (err) {
-      console.error('Supabase fetch businesses error:', err);
+      console.warn('Supabase fetch businesses SDK error:', err);
     }
-  })();
-
-  // Parallel resolution
-  await Promise.allSettled([supabaseFetchPromise, localFetchPromise]);
-
-  const result = Array.from(mergedMap.values());
-  if (result.length > 0) {
-    try {
-      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(result));
-    } catch {}
   }
-  return result;
+
+  // 2. LocalStorage cache fallback (instant offline render)
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    if (Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+  } catch {}
+
+  // 3. Local Server API fetch fallback
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const localRes = await fetch('/api/businesses', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (Array.isArray(localData) && localData.length > 0) {
+        return localData;
+      }
+    }
+  } catch {}
+
+  return [];
 }
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
   const dbRecord = mapBusinessToDb(biz);
 
-  // 1. Direct PostgREST Cloud Upsert with Self-Healing Fallback
+  // 1. Immediate LocalStorage cache update
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    const map = new Map<string, Business>();
+    map.set(biz.id, biz);
+    if (Array.isArray(cached)) {
+      cached.forEach((b: Business) => {
+        if (!map.has(b.id)) map.set(b.id, b);
+      });
+    }
+    localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
+  } catch {}
+
+  // 2. Direct PostgREST Cloud Upsert with Self-Healing Fallback
   if (isSupabaseConfigured()) {
     try {
       const res = await supabaseRestFetch('businesses', {
@@ -101,7 +101,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
         const errJson = await res.json().catch(() => ({}));
         const errMsg = errJson?.message || '';
         
-        // If schema mismatch (column does not exist on older DB), retry with core minimal schema
+        // If schema mismatch on older DB, retry with core minimal schema
         if (errMsg.includes('column') || res.status === 400 || res.status === 404) {
           const safeCoreRecord = getSafeCoreBusinessDbRecord(biz);
           await supabaseRestFetch('businesses', {
@@ -110,28 +110,27 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
             body: JSON.stringify(safeCoreRecord),
           }).catch(() => {});
         } else {
-          // Fallback: If conflict, update via PATCH
+          // If conflict or update needed, try direct PATCH
           await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
             method: 'PATCH',
             body: JSON.stringify(dbRecord),
-          });
+          }).catch(() => {});
         }
       }
     } catch (err) {
       console.warn('Supabase save business REST warning, attempting safe fallback:', err);
       try {
         const safeCoreRecord = getSafeCoreBusinessDbRecord(biz);
-        await supabase.from('businesses').upsert([safeCoreRecord]);
+        await supabaseRestFetch('businesses', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates' },
+          body: JSON.stringify(safeCoreRecord),
+        });
       } catch {}
     }
-
-    // 2. Also try Supabase SDK
-    try {
-      await supabase.from('businesses').upsert([dbRecord]);
-    } catch {}
   }
 
-  // 3. Always sync to local server
+  // 3. Sync to local server
   try {
     await fetch('/api/businesses', {
       method: 'POST',
@@ -139,23 +138,10 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       body: JSON.stringify(biz),
     });
   } catch {}
-
-  // 4. Cache in LocalStorage
-  try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-    const map = new Map<string, Business>();
-    map.set(biz.id, biz);
-    if (Array.isArray(cached)) {
-      cached.forEach((b: Business) => {
-        if (!map.has(b.id)) map.set(b.id, b);
-      });
-    }
-    localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
-  } catch {}
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
-  // 1. Immediately update LocalStorage cache (0ms instant persistence)
+  // 1. Immediately update LocalStorage cache
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     const map = new Map<string, Business>();
@@ -193,27 +179,14 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
             method: 'PATCH',
             body: JSON.stringify(safeUpdates),
           });
-        } else {
-          const fullDbRecord = mapBusinessToDb(updates as Business);
-          fullDbRecord.id = id;
-          await supabaseRestFetch('businesses', {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates' },
-            body: JSON.stringify(fullDbRecord),
-          });
         }
       }
     } catch (err) {
       console.warn('Supabase update business warning:', err);
     }
-
-    // 3. Also try Supabase SDK
-    try {
-      await supabase.from('businesses').update(dbUpdates).eq('id', id);
-    } catch {}
   }
 
-  // 4. Always sync to local server API
+  // 3. Sync to local server API
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -233,15 +206,12 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
     }
   } catch {}
 
-  // 2. Delete from Supabase SDK & REST
+  // 2. Delete from Supabase REST
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('businesses').delete().eq('id', id);
-      if (error) {
-        await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-        });
-      }
+      await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
     } catch (err) {
       console.error('Supabase delete business error:', err);
     }
@@ -846,73 +816,35 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.street !== undefined) record.street = biz.street;
   if (biz.landmark !== undefined) record.landmark = biz.landmark;
   if (biz.phone !== undefined) record.phone = biz.phone;
+  if (biz.secondaryPhone !== undefined) record.secondary_phone = biz.secondaryPhone;
   if (biz.workingHours !== undefined) record.working_hours = biz.workingHours;
   if (biz.description !== undefined) record.description = biz.description;
   if (biz.lat !== undefined) record.lat = Number(biz.lat) || 0;
   if (biz.lng !== undefined) record.lng = Number(biz.lng) || 0;
   if (biz.ownerName !== undefined) record.owner_name = biz.ownerName;
   if (biz.ownerPhone !== undefined) record.owner_phone = biz.ownerPhone;
+  if (biz.ownerEmail !== undefined) record.owner_email = biz.ownerEmail;
+  if (biz.nationalId !== undefined) record.national_id = biz.nationalId;
   if (biz.photos !== undefined) {
     record.photos = Array.isArray(biz.photos) ? biz.photos : [];
   }
-  if (biz.repId !== undefined) record.rep_id = biz.repId;
-  if (biz.repName !== undefined) record.rep_name = biz.repName;
+  if (biz.packageId !== undefined) record.package_id = biz.packageId;
+  if (biz.packageName !== undefined) record.package_name = biz.packageName;
+  if (biz.packagePrice !== undefined) record.package_price = Number(biz.packagePrice) || 250;
+  if (biz.amountPaid !== undefined) record.amount_paid = Number(biz.amountPaid) || 0;
   if (biz.paymentStatus !== undefined) record.payment_status = biz.paymentStatus;
   if (biz.verificationStatus !== undefined) record.verification_status = biz.verificationStatus;
-  if (biz.googleMapsUrl !== undefined) record.google_maps_url = biz.googleMapsUrl;
+  if (biz.repId !== undefined) record.rep_id = biz.repId;
+  if (biz.repName !== undefined) record.rep_name = biz.repName;
+  if (biz.invoiceNumber !== undefined) record.invoice_number = biz.invoiceNumber;
+  if (biz.invoiceDate !== undefined) record.invoice_date = biz.invoiceDate;
   if (biz.createdDate !== undefined) record.created_at = biz.createdDate;
   if (biz.notes !== undefined) record.notes = biz.notes;
   return record;
 }
 
 function mapBusinessToDb(biz: Partial<Business>): any {
-  const dbRecord: any = {};
-  
-  if (biz.id !== undefined) dbRecord.id = biz.id;
-  if (biz.nameAr !== undefined) dbRecord.name_ar = biz.nameAr;
-  if (biz.nameEn !== undefined) dbRecord.name_en = biz.nameEn;
-  if (biz.category !== undefined) dbRecord.category = biz.category;
-  if (biz.governorate !== undefined) dbRecord.governorate = biz.governorate;
-  if (biz.city !== undefined) dbRecord.city = biz.city;
-  if (biz.street !== undefined) dbRecord.street = biz.street;
-  if (biz.landmark !== undefined) dbRecord.landmark = biz.landmark;
-  if (biz.phone !== undefined) dbRecord.phone = biz.phone;
-  if (biz.secondaryPhone !== undefined) dbRecord.secondary_phone = biz.secondaryPhone;
-  if (biz.workingHours !== undefined) dbRecord.working_hours = biz.workingHours;
-  if (biz.description !== undefined) dbRecord.description = biz.description;
-  if (biz.lat !== undefined) dbRecord.lat = Number(biz.lat) || 0;
-  if (biz.lng !== undefined) dbRecord.lng = Number(biz.lng) || 0;
-  if (biz.ownerName !== undefined) dbRecord.owner_name = biz.ownerName;
-  if (biz.ownerPhone !== undefined) dbRecord.owner_phone = biz.ownerPhone;
-  if (biz.ownerEmail !== undefined) dbRecord.owner_email = biz.ownerEmail;
-  if (biz.nationalId !== undefined) dbRecord.national_id = biz.nationalId;
-  if (biz.photos !== undefined) {
-    dbRecord.photos = Array.isArray(biz.photos) ? biz.photos : [];
-  }
-  if (biz.repId !== undefined) dbRecord.rep_id = biz.repId;
-  if (biz.repName !== undefined) dbRecord.rep_name = biz.repName;
-  if (biz.repCommissionRate !== undefined) dbRecord.rep_commission_rate = Number(biz.repCommissionRate) || 0;
-  
-  if (biz.packageId !== undefined) dbRecord.package_id = biz.packageId;
-  if (biz.packageName !== undefined) dbRecord.package_name = biz.packageName;
-  if (biz.packagePrice !== undefined) dbRecord.package_price = Number(biz.packagePrice) || 250;
-  
-  if (biz.amountPaid !== undefined) dbRecord.amount_paid = Number(biz.amountPaid) || 0;
-  if (biz.paymentMethod !== undefined) dbRecord.payment_method = biz.paymentMethod;
-  if (biz.cashCollectedByRep !== undefined) dbRecord.cash_collected_by_rep = Number(biz.cashCollectedByRep) || 0;
-  if (biz.paymentStatus !== undefined) dbRecord.payment_status = biz.paymentStatus;
-  
-  if (biz.verificationStatus !== undefined) dbRecord.verification_status = biz.verificationStatus;
-  if (biz.googleMapsUrl !== undefined) dbRecord.google_maps_url = biz.googleMapsUrl;
-  if (biz.googlePlaceId !== undefined) dbRecord.google_place_id = biz.googlePlaceId;
-  if (biz.googleSyncStatus !== undefined) dbRecord.google_sync_status = biz.googleSyncStatus;
-  if (biz.googleSyncDate !== undefined) dbRecord.google_sync_date = biz.googleSyncDate;
-  if (biz.invoiceNumber !== undefined) dbRecord.invoice_number = biz.invoiceNumber;
-  if (biz.invoiceDate !== undefined) dbRecord.invoice_date = biz.invoiceDate;
-  if (biz.createdDate !== undefined) dbRecord.created_at = biz.createdDate;
-  if (biz.notes !== undefined) dbRecord.notes = biz.notes;
-
-  return dbRecord;
+  return getSafeCoreBusinessDbRecord(biz);
 }
 
 function mapDbToRep(item: any): Representative {
