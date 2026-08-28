@@ -652,28 +652,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* Tab Selector Navigation - 5 Core Operational Tabs */}
-        <div className="flex items-center gap-1.5 bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--border-color)] text-xs shadow-inner">
+        <div className="w-full lg:w-auto flex items-center gap-1 sm:gap-1.5 bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--border-color)] text-xs shadow-inner overflow-x-auto scrollbar-none max-w-full">
           <button
             onClick={() => setActiveAdminTab('overview')}
-            className={`px-4 py-2 rounded-xl font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 sm:px-4 py-2 rounded-xl font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               activeAdminTab === 'overview'
                 ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <BarChart3 className="w-4 h-4" />
+            <BarChart3 className="w-4 h-4 shrink-0" />
             <span>الإحصائيات</span>
           </button>
           
           <button
             onClick={() => setActiveAdminTab('businesses')}
-            className={`px-4 py-2 rounded-xl font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 sm:px-4 py-2 rounded-xl font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               activeAdminTab === 'businesses'
                 ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <Store className="w-4 h-4" />
+            <Store className="w-4 h-4 shrink-0" />
             <span>الأنشطة ({businesses.length})</span>
             {notSubmittedCount > 0 && (
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
@@ -682,13 +682,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <button
             onClick={() => setActiveAdminTab('reps')}
-            className={`px-4 py-2 rounded-xl font-black transition-all relative cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 sm:px-4 py-2 rounded-xl font-black transition-all relative cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               activeAdminTab === 'reps'
                 ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <Users className="w-4 h-4" />
+            <Users className="w-4 h-4 shrink-0" />
             <span>الحسابات ({mergedAdminReps.length})</span>
             {mergedAdminReps.some((r) => r.status === 'suspended') && (
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
@@ -697,25 +697,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <button
             onClick={() => setActiveAdminTab('gateways')}
-            className={`px-4 py-2 rounded-xl font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 sm:px-4 py-2 rounded-xl font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               activeAdminTab === 'gateways'
                 ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <CreditCard className="w-4 h-4" />
+            <CreditCard className="w-4 h-4 shrink-0" />
             <span>بوابات الدفع</span>
           </button>
 
           <button
             onClick={() => setActiveAdminTab('payouts')}
-            className={`px-4 py-2 rounded-xl font-black transition-all relative cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 sm:px-4 py-2 rounded-xl font-black transition-all relative cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               activeAdminTab === 'payouts'
                 ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <DollarSign className="w-4 h-4" />
+            <DollarSign className="w-4 h-4 shrink-0" />
             <span>صرف العمولات</span>
             {payoutRequests.filter((p) => p.status === 'pending').length > 0 && (
               <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">

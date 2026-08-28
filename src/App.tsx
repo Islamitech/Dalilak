@@ -1579,7 +1579,7 @@ export default function App() {
       />
 
       {/* Main App Container */}
-      <main className="flex-1 w-full mx-auto max-w-7xl p-3 sm:p-5">
+      <main className="flex-1 w-full mx-auto max-w-7xl p-3 sm:p-5 pb-28 sm:pb-12">
         {/* TAB 1: HOME FEED */}
         {activeTab === 'home' && (
           <div className="space-y-5 pb-20 tab-content-enter">

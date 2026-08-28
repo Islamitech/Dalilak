@@ -812,16 +812,16 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             ======================================================== */}
         <div className="pt-2 border-t-2 border-dashed border-amber-500/30">
           <div className="bg-gradient-to-br from-amber-500/10 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-500/40 rounded-3xl p-4 sm:p-6 space-y-4 shadow-lg">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold shrink-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold shrink-0 mt-0.5 sm:mt-0">
                   <UserCheck className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                <div className="flex-1 text-right">
+                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] leading-tight">
                     ⚡ تسجيل عميل مهتم / زيارة ميدانية (بدون باقة حالياً)
                   </h3>
-                  <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold mt-1 leading-relaxed">
                     قابلت صاحب نشاط مهتم لكنه لم يطلب باقة بعد؟ سجّل رقمه هنا لحفظه وإرسال رسالة تعريفية ومتابعته لاحقاً
                   </p>
                 </div>
@@ -830,7 +830,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               <button
                 type="button"
                 onClick={() => setShowLeadSection(!showLeadSection)}
-                className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="w-full sm:w-auto justify-center bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
               >
                 {showLeadSection ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 <span>{showLeadSection ? 'إخفاء النموذج' : 'فتح نموذج المهتمين'}</span>
