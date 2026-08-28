@@ -21,7 +21,8 @@ import {
   Trash2, 
   Eye, 
   User as UserIcon,
-  FileCheck
+  FileCheck,
+  Building2
 } from 'lucide-react';
 
 interface LoginModalProps {
@@ -32,6 +33,7 @@ interface LoginModalProps {
   isInline?: boolean;
   onOpenAbout?: () => void;
   onOpenTerms?: () => void;
+  onOpenShowcase?: () => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -42,6 +44,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   isInline = false,
   onOpenAbout,
   onOpenTerms,
+  onOpenShowcase,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -798,6 +801,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
         </form>
       )}
+
+      {/* 🌐 Link to Public Showcase & Directory for Business Owners */}
+      <div className="pt-2 border-t border-[var(--border-color)]">
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenShowcase) {
+              onOpenShowcase();
+            } else {
+              const url = new URL(window.location.href);
+              url.searchParams.set('view', 'showcase');
+              window.location.href = url.toString();
+            }
+          }}
+          className="w-full bg-gradient-to-r from-amber-500/15 via-[var(--bg-card)] to-yellow-500/15 hover:from-amber-500/25 hover:to-yellow-500/25 border border-amber-500/40 text-amber-700 dark:text-amber-300 font-black text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+        >
+          <Building2 className="w-4 h-4 text-amber-500" />
+          <span>🏬 صاحب نشاط تجاري؟ استعرض دليل الأنشطة والباقات العامة</span>
+        </button>
+      </div>
 
       {/* Image Preview Modal */}
       {previewImage &&

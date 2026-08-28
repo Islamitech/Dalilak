@@ -20,6 +20,7 @@ import { AboutUsModal } from './components/AboutUsModal';
 import { TermsModal } from './components/TermsModal';
 import { PermissionsModal } from './components/PermissionsModal';
 import { PackagesModal } from './components/PackagesModal';
+import { PublicShowcase } from './components/PublicShowcase';
 import { Logo } from './components/Logo';
 import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel } from './utils/permissions';
 import { 
@@ -230,8 +231,8 @@ export default function App() {
   const [homeVerificationFilter, setHomeVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
   const [homeViewMode, setHomeViewMode] = useState<'grid' | 'list'>('grid');
 
-  // External View State (from QR code scanning)
-  const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
+  // External View State (from QR code scanning & Public Showcase)
+  const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep' | 'showcase', id: string } | null>(null);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
@@ -344,16 +345,26 @@ export default function App() {
     );
   }, [systemNotifications]);
 
-  // Parse URL for deep linking (QR codes)
+  // Parse URL for deep linking (QR codes & Public Showcase)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const view = urlParams.get('view');
     const id = urlParams.get('id');
+    const ref = urlParams.get('ref') || urlParams.get('rep') || '';
 
     if (view === 'invoice' && id) {
       setExternalView({ type: 'invoice', id });
     } else if (view === 'rep' && id) {
       setExternalView({ type: 'rep', id });
+    } else if (
+      view === 'showcase' ||
+      view === 'directory' ||
+      view === 'explore' ||
+      urlParams.get('showcase') === 'true' ||
+      window.location.hash === '#showcase' ||
+      window.location.hash === '#directory'
+    ) {
+      setExternalView({ type: 'showcase', id: ref });
     }
   }, []);
 
@@ -1417,6 +1428,28 @@ export default function App() {
     );
   }
 
+  if (externalView?.type === 'showcase') {
+    if (isLoadingData) return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-5">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-2xl border-[3px] border-amber-500/20 border-t-amber-500 animate-spin" style={{ animation: 'spinGlow 1s linear infinite' }} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-amber-500 font-black text-lg">د</span>
+          </div>
+        </div>
+        <p className="text-sm font-bold text-[var(--text-muted)]" style={{ animation: 'breathe 2s ease-in-out infinite' }}>جاري تحميل دليل ومعرض الأنشطة المعتمدة...</p>
+      </div>
+    );
+
+    return (
+      <PublicShowcase
+        businesses={businesses}
+        referralCode={externalView.id || ''}
+        onOpenInternalApp={() => setExternalView(null)}
+      />
+    );
+  }
+
   // Strict Unauthenticated Protection: If user is not logged in, render ONLY the Login screen
   if (!user) {
     return (
@@ -1427,6 +1460,7 @@ export default function App() {
             onClose={() => {}}
             onOpenAbout={() => setShowAboutModal(true)}
             onOpenTerms={() => setShowTermsModal(true)}
+            onOpenShowcase={() => setExternalView({ type: 'showcase', id: '' })}
             onLoginSuccess={(u) => {
               setUser(u);
               const savedTab = localStorage.getItem('dalelak_active_tab');
