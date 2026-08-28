@@ -864,48 +864,60 @@ export default function App() {
   const handleUpdateUserProfile = async (updatedData: Partial<Representative> & { name?: string; email?: string; avatar?: string }) => {
     if (!user) return;
 
-    const newName = updatedData.name || user.name;
-    const newEmail = updatedData.email || user.email;
-    const newAvatar = updatedData.avatar !== undefined ? updatedData.avatar : user.avatar;
+    const repId = user.repData?.id || user.id;
+    const existingRep = representatives.find((r) => r.id === repId || r.email.toLowerCase() === user.email.toLowerCase()) || user.repData;
+
+    const freshRep: Representative = {
+      id: repId,
+      name: updatedData.name || existingRep?.name || user.name,
+      email: updatedData.email || existingRep?.email || user.email,
+      phone: updatedData.phone || existingRep?.phone || '',
+      pendingPhone: updatedData.pendingPhone !== undefined ? updatedData.pendingPhone : existingRep?.pendingPhone,
+      phoneStatus: updatedData.phoneStatus !== undefined ? updatedData.phoneStatus : existingRep?.phoneStatus,
+      nationalId: updatedData.nationalId !== undefined ? updatedData.nationalId : existingRep?.nationalId,
+      activationFacePhoto: updatedData.activationFacePhoto !== undefined ? updatedData.activationFacePhoto : existingRep?.activationFacePhoto,
+      nationalIdCardPhoto: updatedData.nationalIdCardPhoto !== undefined ? updatedData.nationalIdCardPhoto : existingRep?.nationalIdCardPhoto,
+      nationalIdCardBackPhoto: updatedData.nationalIdCardBackPhoto !== undefined ? updatedData.nationalIdCardBackPhoto : existingRep?.nationalIdCardBackPhoto,
+      role: updatedData.role || existingRep?.role || user.role,
+      roleTitle: updatedData.roleTitle || existingRep?.roleTitle,
+      governorate: updatedData.governorate || existingRep?.governorate || 'القاهرة',
+      targetMonth: Number(updatedData.targetMonth ?? existingRep?.targetMonth) || 25,
+      avatar: updatedData.avatar !== undefined ? updatedData.avatar : (existingRep?.avatar || user.avatar || ''),
+      avatarStatus: 'approved',
+      commissionRate: Number(updatedData.commissionRate ?? existingRep?.commissionRate) || 42.86,
+      status: updatedData.status || existingRep?.status || 'active',
+      password: updatedData.password || existingRep?.password || 'Aa123456',
+      referralCode: updatedData.referralCode || existingRep?.referralCode,
+      referredByCode: updatedData.referredByCode || existingRep?.referredByCode,
+      referralUnlocked: updatedData.referralUnlocked ?? existingRep?.referralUnlocked ?? true,
+      adminBypassReferral: updatedData.adminBypassReferral ?? existingRep?.adminBypassReferral ?? true,
+    };
 
     const updatedUser: User = {
       ...user,
-      name: newName,
-      email: newEmail,
-      avatar: newAvatar,
-      repData: user.repData
-        ? {
-            ...user.repData,
-            name: newName,
-            email: newEmail,
-            phone: updatedData.phone || user.repData.phone,
-            avatar: newAvatar,
-            avatarStatus: 'approved',
-          }
-        : undefined,
+      name: freshRep.name,
+      email: freshRep.email,
+      role: freshRep.role || user.role,
+      avatar: freshRep.avatar,
+      repData: freshRep,
     };
 
     setUser(updatedUser);
     localStorage.setItem('dalelak_user', JSON.stringify(updatedUser));
     localStorage.setItem('dalelak_logged_user', JSON.stringify(updatedUser));
 
-    // Update representative records in state and backend
-    const repId = user.repData?.id || user.id;
-    const existingRep = representatives.find((r) => r.id === repId || r.email.toLowerCase() === user.email.toLowerCase());
-    if (existingRep) {
-      const freshRep: Representative = {
-        ...existingRep,
-        name: newName,
-        email: newEmail,
-        phone: updatedData.phone || existingRep.phone,
-        avatar: newAvatar,
-        avatarStatus: 'approved',
-      };
-      setRepresentatives((prev) => prev.map((r) => (r.id === freshRep.id ? freshRep : r)));
-      await saveRepToDb(freshRep);
-    }
+    setRepresentatives((prev) => {
+      const idx = prev.findIndex((r) => r.id === freshRep.id || r.email.toLowerCase() === freshRep.email.toLowerCase());
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = freshRep;
+        return next;
+      }
+      return [freshRep, ...prev];
+    });
 
-    addNotification('✅ تم تحديث بياناتك وصورة البروفايل بنجاح!', 'success');
+    await saveRepToDb(freshRep);
+    addNotification('✅ تم تحديث بياناتك وملفاتك الرسمية بنجاح على السحابة!', 'success');
   };
 
   const handleDeleteBusiness = async (id: string) => {

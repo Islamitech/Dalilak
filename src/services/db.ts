@@ -274,9 +274,31 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
-  // 1. Update in LocalStorage custom reps
+  const dbRecord = mapRepToDb(rep);
+
+  // 1. Direct Supabase Cloud Save / Upsert
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseRestFetch('representatives', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(dbRecord),
+      });
+
+      if (!res.ok) {
+        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(dbRecord),
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase save rep REST warning:', err);
+    }
+  }
+
+  // 2. Update in LocalStorage cache
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_reps') || '[]');
     const map = new Map<string, Representative>();
     map.set(rep.email.toLowerCase(), rep);
     if (Array.isArray(cached)) {
@@ -284,27 +306,8 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
         if (!map.has(r.email.toLowerCase())) map.set(r.email.toLowerCase(), r);
       });
     }
-    localStorage.setItem('dalelak_custom_reps', JSON.stringify(Array.from(map.values())));
+    localStorage.setItem('dalelak_cached_reps', JSON.stringify(Array.from(map.values())));
   } catch {}
-
-  // 2. Save to Supabase Cloud
-  const dbRecord = mapRepToDb(rep);
-  if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from('representatives').upsert([dbRecord]);
-      if (error) {
-        const { error: updateErr } = await supabase.from('representatives').update(dbRecord).eq('id', rep.id);
-        if (updateErr) {
-          await supabaseRestFetch('representatives', {
-            method: 'POST',
-            body: JSON.stringify(dbRecord),
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Supabase save rep error:', err);
-    }
-  }
 
   // 3. Always sync to local server
   try {
@@ -881,29 +884,31 @@ function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.name !== undefined) record.name = rep.name;
   if (rep.email !== undefined) record.email = rep.email;
   if (rep.phone !== undefined) record.phone = rep.phone;
-  if (rep.pendingPhone !== undefined) record.pending_phone = rep.pendingPhone;
-  if (rep.phoneStatus !== undefined) record.phone_status = rep.phoneStatus;
   if (rep.nationalId !== undefined) record.national_id = rep.nationalId;
-  
-  if (rep.activationFacePhoto !== undefined) record.activation_face_photo = rep.activationFacePhoto;
-  if (rep.nationalIdCardPhoto !== undefined) record.national_id_card_photo = rep.nationalIdCardPhoto;
-  if (rep.nationalIdCardBackPhoto !== undefined) record.national_id_card_back_photo = rep.nationalIdCardBackPhoto;
-  
   if (rep.role !== undefined) record.role = rep.role;
   if (rep.roleTitle !== undefined) record.role_title = rep.roleTitle;
   if (rep.governorate !== undefined) record.governorate = rep.governorate;
   if (rep.targetMonth !== undefined) record.target_month = Number(rep.targetMonth) || 25;
-  if (rep.avatar !== undefined) record.avatar = rep.avatar;
-  if (rep.avatarStatus !== undefined) record.avatar_status = rep.avatarStatus;
+  if (rep.avatarStatus !== undefined) record.avatar_status = rep.avatarStatus || 'approved';
   if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
   if (rep.status !== undefined) record.status = rep.status;
   if (rep.password !== undefined) record.password = rep.password;
-  
-  if (rep.referralCode !== undefined) record.referral_code = rep.referralCode;
-  if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode;
-  if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);
-  if (rep.adminBypassReferral !== undefined) record.admin_bypass_referral = Boolean(rep.adminBypassReferral);
-  if (rep.referralRewardGranted !== undefined) record.referral_reward_granted = Boolean(rep.referralRewardGranted);
+
+  const metaObj = {
+    avatar: rep.avatar || '',
+    referralCode: rep.referralCode,
+    referredByCode: rep.referredByCode,
+    referralUnlocked: rep.referralUnlocked,
+    adminBypassReferral: rep.adminBypassReferral,
+    referralRewardGranted: rep.referralRewardGranted,
+    activationFacePhoto: rep.activationFacePhoto,
+    nationalIdCardPhoto: rep.nationalIdCardPhoto,
+    nationalIdCardBackPhoto: rep.nationalIdCardBackPhoto,
+    pendingPhone: rep.pendingPhone,
+    phoneStatus: rep.phoneStatus,
+  };
+
+  record.avatar = JSON.stringify(metaObj);
 
   return record;
 }
