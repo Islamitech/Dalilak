@@ -1,5 +1,6 @@
 import { supabase, supabaseRestFetch } from '../lib/supabase';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from '../types';
+import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES } from '../data/mockData';
 
 /**
  * Live Supabase Database Service
@@ -54,6 +55,9 @@ async function reconcileLegacyBusinessesTo250(records: any[]): Promise<void> {
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const mergedMap = new Map<string, Business>();
 
+  // Baseline: Always seed with persistent INITIAL_BUSINESSES
+  INITIAL_BUSINESSES.forEach((b) => mergedMap.set(b.id, b));
+
   // 1. Try Supabase SDK
   try {
     const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
@@ -66,7 +70,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   }
 
   // 2. Try Direct Supabase REST API
-  if (mergedMap.size === 0) {
+  if (mergedMap.size <= INITIAL_BUSINESSES.length) {
     try {
       const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
       if (res.ok) {
@@ -86,9 +90,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
         localData.forEach((b: Business) => {
-          if (!mergedMap.has(b.id)) {
-            mergedMap.set(b.id, b);
-          }
+          mergedMap.set(b.id, b);
         });
       }
     }
@@ -99,9 +101,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     if (Array.isArray(cached) && cached.length > 0) {
       cached.forEach((b: Business) => {
-        if (!mergedMap.has(b.id)) {
-          mergedMap.set(b.id, b);
-        }
+        mergedMap.set(b.id, b);
       });
     }
   } catch {}
@@ -224,6 +224,10 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
 // ============================================
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   const mergedMap = new Map<string, Representative>();
+
+  // Baseline: Always seed with persistent MOCK_REPRESENTATIVES
+  MOCK_REPRESENTATIVES.forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
+
   try {
     const { data, error } = await supabase.from('representatives').select('*');
     if (!error && data && Array.isArray(data) && data.length > 0) {
@@ -248,9 +252,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
         localData.forEach((r: Representative) => {
-          if (!mergedMap.has(r.email.toLowerCase())) {
-            mergedMap.set(r.email.toLowerCase(), r);
-          }
+          mergedMap.set(r.email.toLowerCase(), r);
         });
       }
     }
@@ -261,9 +263,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
     if (Array.isArray(cachedCustom) && cachedCustom.length > 0) {
       cachedCustom.forEach((r: Representative) => {
-        if (!mergedMap.has(r.email.toLowerCase())) {
-          mergedMap.set(r.email.toLowerCase(), r);
-        }
+        mergedMap.set(r.email.toLowerCase(), r);
       });
     }
   } catch {}

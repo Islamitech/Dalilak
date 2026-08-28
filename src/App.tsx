@@ -101,8 +101,25 @@ export default function App() {
     }
   }, [user]);
 
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [representatives, setRepresentatives] = useState<Representative[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) return cached;
+    } catch {}
+    return INITIAL_BUSINESSES;
+  });
+
+  const [representatives, setRepresentatives] = useState<Representative[]>(() => {
+    const map = new Map<string, Representative>();
+    MOCK_REPRESENTATIVES.forEach((r) => map.set(r.email.toLowerCase(), r));
+    try {
+      const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+      if (Array.isArray(cached)) {
+        cached.forEach((r) => map.set(r.email.toLowerCase(), { ...map.get(r.email.toLowerCase()), ...r }));
+      }
+    } catch {}
+    return Array.from(map.values());
+  });
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(() => {
     const saved = localStorage.getItem('dalelak_payment_config');
