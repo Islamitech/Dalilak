@@ -27,7 +27,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  if (activeTab === 'add') {
+                    window.dispatchEvent(new CustomEvent('dalelak_submit_business_form'));
+                  } else {
+                    setActiveTab(tab.id);
+                  }
+                }}
                 aria-label={tab.label}
                 className="flex flex-col items-center justify-center -mt-6 group cursor-pointer"
               >

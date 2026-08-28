@@ -269,59 +269,43 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
   };
 
+  // Listen for bottom navigation trigger
+  useEffect(() => {
+    const handleRemoteSubmit = () => {
+      const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+      handleInitiateSubmit(fakeEvent);
+    };
+
+    window.addEventListener('dalelak_submit_business_form', handleRemoteSubmit);
+    return () => {
+      window.removeEventListener('dalelak_submit_business_form', handleRemoteSubmit);
+    };
+  }, [nameAr, nameEn, ownerName, ownerPhone, phone, secondaryPhone, paymentStatus, selectedPackage]);
+
   const handleInitiateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
     if (!nameAr.trim() && !nameEn.trim()) {
-      setErrorMsg('يرجى إدخال اسم النشاط (باللغة العربية أو باللغة الإنجليزية على الأقل)');
+      setErrorMsg('⚠️ يرجى إدخال اسم النشاط التجاري (باللغة العربية أو باللغة الإنجليزية)');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const finalOwner = ownerName.trim() || 'صاحب النشاط';
+    const finalPhone = (ownerPhone.trim() || phone.trim());
+
+    if (!finalPhone) {
+      setErrorMsg('⚠️ يرجى إدخال رقم هاتف الواتساب أو هاتف المحل للتواصل وإصدار الفاتورة');
+      window.scrollTo({ top: 250, behavior: 'smooth' });
       return;
     }
 
     if (!ownerName.trim()) {
-      setErrorMsg('يرجى إدخال اسم صاحب النشاط / المسؤول');
-      return;
+      setOwnerName(finalOwner);
     }
-
-    if (!ownerPhone.trim()) {
-      setErrorMsg('يرجى إدخال رقم هاتف الواتساب لصاحب النشاط');
-      return;
-    }
-
-    // Validate phone number uniqueness
-    const normalizedPhone = (phone || ownerPhone).trim();
-    if (normalizedPhone) {
-      const isDuplicate = businesses.some(
-        (b) => (b.phone && b.phone.trim() === normalizedPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone)
-      );
-      if (isDuplicate) {
-        setErrorMsg('رقم هاتف النشاط مسجل بالفعل لنشاط تجاري آخر!');
-        return;
-      }
-    }
-
-    const normalizedOwnerPhone = ownerPhone.trim();
-    if (normalizedOwnerPhone) {
-      const isDuplicate = businesses.some(
-        (b) => (b.phone && b.phone.trim() === normalizedOwnerPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone)
-      );
-      if (isDuplicate) {
-        setErrorMsg('رقم هاتف مالك النشاط مسجل بالفعل لنشاط تجاري آخر!');
-        return;
-      }
-    }
-
-    const normalizedSecondaryPhone = secondaryPhone.trim();
-    if (normalizedSecondaryPhone) {
-      const isDuplicate = businesses.some(
-        (b) => (b.phone && b.phone.trim() === normalizedSecondaryPhone) ||
-               (b.ownerPhone && b.ownerPhone.trim() === normalizedSecondaryPhone) ||
-               (b.secondaryPhone && b.secondaryPhone.trim() === normalizedSecondaryPhone)
-      );
-      if (isDuplicate) {
-        setErrorMsg('رقم الهاتف الإضافي مسجل بالفعل لنشاط تجاري آخر!');
-        return;
-      }
+    if (!ownerPhone.trim() && phone.trim()) {
+      setOwnerPhone(phone.trim());
     }
 
     // Ensure amountPaid is synced with package if fully_paid
@@ -807,6 +791,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           </div>
         )}
       </div>
+
+      {errorMsg && (
+        <div className="bg-rose-500/15 border-2 border-rose-500/50 text-rose-700 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-black animate-pulse-subtle shadow-md">
+          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       {/* Submit Action Button */}
       <button
