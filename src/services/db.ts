@@ -224,20 +224,41 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
 // ============================================
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   const mergedMap = new Map<string, Representative>();
+  const deletedReps = new Set<string>();
 
-  // Baseline: Always seed with persistent MOCK_REPRESENTATIVES
-  MOCK_REPRESENTATIVES.forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
+  try {
+    const delArr = JSON.parse(localStorage.getItem('dalelak_deleted_rep_ids') || '[]');
+    if (Array.isArray(delArr)) {
+      delArr.forEach((x: string) => deletedReps.add(x.toLowerCase()));
+    }
+  } catch {}
 
+  // 1. Baseline: Seed with persistent MOCK_REPRESENTATIVES (excluding deleted)
+  MOCK_REPRESENTATIVES.forEach((r) => {
+    if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
+      mergedMap.set(r.email.toLowerCase(), r);
+    }
+  });
+
+  // 2. Try Supabase SDK / REST
   try {
     const { data, error } = await supabase.from('representatives').select('*');
     if (!error && data && Array.isArray(data) && data.length > 0) {
-      data.map(mapDbToRep).forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
+      data.map(mapDbToRep).forEach((r) => {
+        if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
+          mergedMap.set(r.email.toLowerCase(), r);
+        }
+      });
     } else {
       const res = await supabaseRestFetch('representatives?select=*');
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          restData.map(mapDbToRep).forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
+          restData.map(mapDbToRep).forEach((r) => {
+            if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
+              mergedMap.set(r.email.toLowerCase(), r);
+            }
+          });
         }
       }
     }
@@ -245,33 +266,55 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     console.error('Supabase fetch reps error:', err);
   }
 
-  // Local server merge
+  // 3. Local server merge
   try {
     const localRes = await fetch('/api/representatives');
     if (localRes.ok) {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
         localData.forEach((r: Representative) => {
-          mergedMap.set(r.email.toLowerCase(), r);
+          if (!deletedReps.has((r.id || '').toLowerCase()) && !deletedReps.has((r.email || '').toLowerCase())) {
+            mergedMap.set(r.email.toLowerCase(), r);
+          }
         });
       }
     }
   } catch {}
 
-  // LocalStorage custom reps merge
+  // 4. LocalStorage custom reps merge
   try {
     const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
     if (Array.isArray(cachedCustom) && cachedCustom.length > 0) {
       cachedCustom.forEach((r: Representative) => {
-        mergedMap.set(r.email.toLowerCase(), r);
+        if (!deletedReps.has((r.id || '').toLowerCase()) && !deletedReps.has((r.email || '').toLowerCase())) {
+          mergedMap.set(r.email.toLowerCase(), r);
+        }
       });
     }
   } catch {}
+
+  // Ensure deleted reps are completely excluded
+  deletedReps.forEach((d) => {
+    mergedMap.delete(d);
+  });
 
   return Array.from(mergedMap.values());
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
+  // Update in LocalStorage custom reps
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    const map = new Map<string, Representative>();
+    map.set(rep.email.toLowerCase(), rep);
+    if (Array.isArray(cached)) {
+      cached.forEach((r: Representative) => {
+        if (!map.has(r.email.toLowerCase())) map.set(r.email.toLowerCase(), r);
+      });
+    }
+    localStorage.setItem('dalelak_custom_reps', JSON.stringify(Array.from(map.values())));
+  } catch {}
+
   const dbRecord = mapRepToDb(rep);
   try {
     const { error } = await supabase.from('representatives').upsert([dbRecord]);
@@ -299,6 +342,15 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
 }
 
 export async function updateRepInDb(id: string, updates: Partial<Representative>): Promise<void> {
+  // Update in LocalStorage
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    if (Array.isArray(cached)) {
+      const updated = cached.map((r: Representative) => (r.id === id ? { ...r, ...updates } : r));
+      localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+    }
+  } catch {}
+
   const dbUpdates = mapRepToDb(updates as Representative);
   delete dbUpdates.id;
   try {
@@ -324,6 +376,24 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
 }
 
 export async function deleteRepFromDb(id: string): Promise<void> {
+  // 1. Blacklist in deleted reps registry
+  try {
+    const delArr = JSON.parse(localStorage.getItem('dalelak_deleted_rep_ids') || '[]');
+    const delSet = new Set(Array.isArray(delArr) ? delArr : []);
+    delSet.add(id.toLowerCase());
+    localStorage.setItem('dalelak_deleted_rep_ids', JSON.stringify(Array.from(delSet)));
+  } catch {}
+
+  // 2. Remove from LocalStorage custom reps
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    if (Array.isArray(cached)) {
+      const filtered = cached.filter((r: Representative) => r.id !== id && r.email?.toLowerCase() !== id.toLowerCase());
+      localStorage.setItem('dalelak_custom_reps', JSON.stringify(filtered));
+    }
+  } catch {}
+
+  // 3. Delete from Supabase
   try {
     const { error } = await supabase.from('representatives').delete().eq('id', id);
     if (error) {
@@ -335,7 +405,7 @@ export async function deleteRepFromDb(id: string): Promise<void> {
     console.error('Supabase delete rep error:', err);
   }
 
-  // Always sync to local server
+  // 4. Delete from Local Server
   try {
     await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
       method: 'DELETE',

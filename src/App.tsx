@@ -1207,14 +1207,31 @@ export default function App() {
 
   const handleDeleteRepresentative = async (id: string) => {
     const rep = representatives.find((r) => r.id === id);
-    setRepresentatives(representatives.filter((r) => r.id !== id));
-    // Delete from Supabase DB via service layer
+
+    setRepresentatives((prev) => {
+      const updated = prev.filter((r) => r.id !== id && (rep?.email ? r.email.toLowerCase() !== rep.email.toLowerCase() : true));
+      try {
+        localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // Delete from DB & blacklist
     await deleteRepFromDb(id);
+
+    try {
+      const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (channel) {
+        channel.postMessage({ type: 'REP_UPDATED', deletedRepId: id });
+        channel.close();
+      }
+    } catch {}
+
     if (rep) {
-      addNotification(`🗑️ تم حذف حساب المندوب "${rep.name}" نهائياً من النظام.`, 'warning');
+      addNotification(`🗑️ تم حذف حساب "${rep.name}" نهائياً من المنظومة.`, 'warning');
       addSystemNotification({
-        title: 'حذف حساب مندوب 🗑️',
-        message: `تم حذف حساب المندوب "${rep.name}" نهائياً من المنظومة.`,
+        title: 'حذف حساب 🗑️',
+        message: `تم حذف حساب "${rep.name}" (${rep.roleTitle || rep.role}) نهائياً من المنظومة.`,
         type: 'warning',
         category: 'account',
         targetRole: 'admin',
