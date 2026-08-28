@@ -183,21 +183,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
       }
 
-      const isDazAdmin =
-        cleanEmail === 'daz31181' ||
-        cleanEmail === '@daz31181' ||
-        cleanEmail === 'daz31181@gmail.com' ||
-        cleanEmail.includes('daz31181');
-
-      const isAdminAccount =
-        isDazAdmin ||
-        cleanEmail === 'dalilaakeg@gmail.com' ||
-        cleanEmail === 'admin@gmail.com' ||
-        cleanEmail.startsWith('admin@') ||
-        (foundRep && foundRep.role === 'admin');
-
-      if (!foundRep && !isAdminAccount) {
-        setErrorMsg(`اسم المستخدم أو البريد الإلكتروني (${cleanEmail}) غير مسجل بالمنظومة. يرجى التأكد من كتابة الحروف بشكل دقيق أو التوجه لتبويب "إنشاء حساب جديد".`);
+      // STRICT: Account MUST exist in the database!
+      if (!foundRep) {
+        setErrorMsg(`⚠️ البريد الإلكتروني أو الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات. لا يُسمح بتسجيل الدخول لأي حساب غير مسجل بالمنظومة.`);
         setIsLoading(false);
         return;
       }
@@ -206,119 +194,56 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
       const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds active session threshold
 
-      if (isAdminAccount) {
-        const storedPassword = foundRep?.password;
-        const validAdminPasswords = ['admin123', 'Aa123456', 'Aa132456', 'admin'];
-        const isPasswordCorrect =
-          validAdminPasswords.includes(cleanPassword) ||
-          (storedPassword && storedPassword !== '••••••••' && storedPassword === cleanPassword);
+      // Verify Password strictly
+      const storedPassword = (foundRep.password || '').trim();
+      const isPasswordCorrect =
+        storedPassword && storedPassword !== '••••••••'
+          ? storedPassword === cleanPassword
+          : (cleanPassword === 'admin' || cleanPassword === 'Aa123456');
 
-        if (!isPasswordCorrect) {
-          setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
-          setIsLoading(false);
-          return;
-        }
-
-        // Real-time concurrent session check for admin
-        if (
-          foundRep?.activeSessionId &&
-          foundRep.lastActiveTimestamp &&
-          now - foundRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS
-        ) {
-          setErrorMsg('⚠️ حساب المدير مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بفتح الحساب في أكثر من مكان بنفس الوقت.');
-          setIsLoading(false);
-          return;
-        }
-
-        const adminData: Representative = foundRep || {
-          id: 'admin_1',
-          name: 'مدير النظام دليلك (@daz31181)',
-          email: 'daz31181@gmail.com',
-          phone: '01000000000',
-          role: 'admin',
-          roleTitle: 'مدير المنظومة الرسمي (@daz31181)',
-          governorate: 'القاهرة (المقرات الرئيسية)',
-          targetMonth: 50,
-          avatar: '',
-          avatarStatus: 'approved',
-          commissionRate: 0,
-          status: 'active',
-          password: cleanPassword,
-          activeSessionId: newSessionId,
-          lastActiveTimestamp: now,
-        };
-
-        adminData.activeSessionId = newSessionId;
-        adminData.lastActiveTimestamp = now;
-
-        await updateRepSessionInDb(adminData.id, newSessionId, now);
-
-        onLoginSuccess({
-          id: adminData.id,
-          name: adminData.name,
-          email: adminData.email,
-          role: 'admin',
-          repData: adminData,
-          activeSessionId: newSessionId,
-          lastActiveTimestamp: now,
-        });
-        onClose();
+      if (!isPasswordCorrect) {
+        setErrorMsg('⚠️ كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور وإعادة المحاولة.');
         setIsLoading(false);
         return;
       }
 
-      // Standard Representative / Supervisor / Accountant Login
-      if (foundRep) {
-        const storedPassword = foundRep.password;
-        const isPassValid =
-          !storedPassword ||
-          storedPassword === '••••••••' ||
-          storedPassword === cleanPassword ||
-          cleanPassword === 'Aa123456' ||
-          cleanPassword === 'Aa132456' ||
-          cleanPassword === 'admin123';
-
-        if (!isPassValid) {
-          setErrorMsg('كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.');
-          setIsLoading(false);
-          return;
-        }
-
-        if (foundRep.status === 'suspended' && foundRep.avatarStatus !== 'rejected') {
+      // Check account review / suspension status
+      if (foundRep.status === 'suspended') {
+        if (foundRep.avatarStatus === 'rejected') {
+          setErrorMsg(`❌ تم إيقاف أو رفض هذا الحساب من قِبل إدارة المنظومة.`);
+        } else {
           setErrorMsg(`⏳ حسابك (${foundRep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`);
-          setIsLoading(false);
-          return;
         }
-
-        // Real-time concurrent session check for representative
-        if (
-          foundRep.activeSessionId &&
-          foundRep.lastActiveTimestamp &&
-          now - foundRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS
-        ) {
-          setErrorMsg('⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من جهاز في نفس الوقت. يرجى تسجيل الخروج من الجهاز الآخر أولاً.');
-          setIsLoading(false);
-          return;
-        }
-
-        foundRep.activeSessionId = newSessionId;
-        foundRep.lastActiveTimestamp = now;
-
-        await updateRepSessionInDb(foundRep.id, newSessionId, now);
-
-        const userRole = foundRep.role || 'rep';
-
-        onLoginSuccess({
-          id: foundRep.id,
-          name: foundRep.name,
-          email: foundRep.email,
-          role: userRole,
-          repData: foundRep,
-          activeSessionId: newSessionId,
-          lastActiveTimestamp: now,
-        });
-        onClose();
+        setIsLoading(false);
+        return;
       }
+
+      // Real-time concurrent session check
+      if (
+        foundRep.activeSessionId &&
+        foundRep.lastActiveTimestamp &&
+        now - foundRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS
+      ) {
+        setErrorMsg('⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان بنفس الوقت.');
+        setIsLoading(false);
+        return;
+      }
+
+      foundRep.activeSessionId = newSessionId;
+      foundRep.lastActiveTimestamp = now;
+
+      await updateRepSessionInDb(foundRep.id, newSessionId, now);
+
+      onLoginSuccess({
+        id: foundRep.id,
+        name: foundRep.name,
+        email: foundRep.email,
+        role: foundRep.role,
+        repData: foundRep,
+        activeSessionId: newSessionId,
+        lastActiveTimestamp: now,
+      });
+      return;
     } catch (err) {
       console.error('Login error:', err);
       setErrorMsg('حدث خطأ أثناء التحقق من الجلسة، يرجى المحاولة لاحقاً.');

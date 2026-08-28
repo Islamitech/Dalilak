@@ -185,52 +185,7 @@ app.post('/api/auth/login', (req, res) => {
   // Always refresh latest reps from disk store before checking login
   representatives = loadStoredReps();
 
-  // Admin Login
-  const isDazLogin =
-    cleanEmail === 'daz31181' ||
-    cleanEmail === '@daz31181' ||
-    cleanEmail === 'daz31181@gmail.com' ||
-    cleanEmail.includes('daz31181');
-
-  if (role === 'admin' || isDazLogin || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') {
-    const validAdminPasswords = ['admin123', 'Aa123456', 'Aa132456', 'admin'];
-    if ((isDazLogin || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') && validAdminPasswords.includes(cleanPassword)) {
-      const adminRep = representatives.find((r) => r.role === 'admin' || (r.email && r.email.toLowerCase().includes('daz31181')) || (r.email && r.email.toLowerCase() === 'dalilaakeg@gmail.com') || (r.email && r.email.toLowerCase() === 'admin@gmail.com'));
-      
-      // Check active concurrent session for admin
-      if (adminRep?.activeSessionId && adminRep.lastActiveTimestamp && (now - adminRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
-        return res.status(409).json({
-          error: '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان في نفس الوقت.',
-          isAlreadyActive: true,
-        });
-      }
-
-      if (adminRep) {
-        adminRep.activeSessionId = newSessionId;
-        adminRep.lastActiveTimestamp = now;
-      }
-
-      persistStoredReps(representatives);
-
-      return res.json({
-        user: {
-          id: adminRep?.id || 'admin_1',
-          name: adminRep?.name || 'مدير النظام دليلك (@daz31181)',
-          email: adminRep?.email || 'daz31181@gmail.com',
-          role: 'admin',
-          repData: adminRep,
-          activeSessionId: newSessionId,
-          lastActiveTimestamp: now,
-        },
-        sessionId: newSessionId,
-        token: 'admin-secret-token-2026',
-      });
-    } else {
-      return res.status(401).json({ error: 'كلمة المرور أو البريد الإلكتروني للمدير غير صحيح' });
-    }
-  }
-
-  // Representative login (with exact and smart normalized matching)
+  // Search for account in registered representatives database (by email, phone, or id)
   let rep = representatives.find((r) => (r.email || '').toLowerCase() === cleanEmail);
   if (!rep && cleanEmail) {
     const cleanPhone = cleanEmail.replace(/\D/g, '');
@@ -247,54 +202,58 @@ app.post('/api/auth/login', (req, res) => {
     });
   }
 
-  if (rep) {
-    const storedPassword = rep.password;
-    const isPassValid =
-      !storedPassword ||
-      storedPassword === '••••••••' ||
-      storedPassword === cleanPassword ||
-      cleanPassword === 'Aa123456' ||
-      cleanPassword === 'Aa132456' ||
-      cleanPassword === 'admin123';
+  // Strictly reject unregistered accounts
+  if (!rep) {
+    return res.status(401).json({ error: `⚠️ الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات. لا يُسمح بتسجيل الدخول لأي حساب غير مسجل.` });
+  }
 
-    if (!isPassValid) {
-      return res.status(401).json({ error: 'كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.' });
-    }
+  // Verify password strictly
+  const storedPassword = (rep.password || '').trim();
+  const isPassValid =
+    storedPassword && storedPassword !== '••••••••'
+      ? storedPassword === cleanPassword
+      : (cleanPassword === 'admin' || cleanPassword === 'Aa123456');
 
-    if (rep.status === 'suspended' && rep.avatarStatus !== 'rejected') {
+  if (!isPassValid) {
+    return res.status(401).json({ error: '⚠️ كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.' });
+  }
+
+  if (rep.status === 'suspended') {
+    if (rep.avatarStatus === 'rejected') {
       return res.status(403).json({
-        error: `⏳ حسابك (${rep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`
+        error: `❌ تم إيقاف أو رفض هذا الحساب من قِبل إدارة المنظومة.`
       });
     }
-
-    // Check active concurrent session for representative
-    if (rep.activeSessionId && rep.lastActiveTimestamp && (now - rep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
-      return res.status(409).json({
-        error: '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان في نفس الوقت.',
-        isAlreadyActive: true,
-      });
-    }
-
-    rep.activeSessionId = newSessionId;
-    rep.lastActiveTimestamp = now;
-    persistStoredReps(representatives);
-
-    return res.json({
-      user: {
-        id: rep.id,
-        name: rep.name,
-        email: rep.email,
-        role: rep.role || 'rep',
-        repData: rep,
-        activeSessionId: newSessionId,
-        lastActiveTimestamp: now,
-      },
-      sessionId: newSessionId,
-      token: `rep-token-${rep.id}`,
+    return res.status(403).json({
+      error: `⏳ حسابك (${rep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`
     });
   }
 
-  return res.status(401).json({ error: `البريد الإلكتروني (${cleanEmail}) غير مسجل بالمنظومة.` });
+  // Check active concurrent session
+  if (rep.activeSessionId && rep.lastActiveTimestamp && (now - rep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
+    return res.status(409).json({
+      error: '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان في نفس الوقت.',
+      isAlreadyActive: true,
+    });
+  }
+
+  rep.activeSessionId = newSessionId;
+  rep.lastActiveTimestamp = now;
+  persistStoredReps(representatives);
+
+  return res.json({
+    user: {
+      id: rep.id,
+      name: rep.name,
+      email: rep.email,
+      role: rep.role,
+      repData: rep,
+      activeSessionId: newSessionId,
+      lastActiveTimestamp: now,
+    },
+    sessionId: newSessionId,
+    token: 'auth-token-' + rep.id,
+  });
 });
 
 // Heartbeat endpoint to maintain active session lock
