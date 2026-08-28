@@ -805,7 +805,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         <button
           type="button"
           onClick={() => {
-            window.open('https://dalilak-directory-fr0x1lt64-harfag.vercel.app/', '_blank');
+            window.open('https://dalilak-directory.vercel.app/', '_blank');
           }}
           className="w-full bg-gradient-to-r from-amber-500/15 via-[var(--bg-card)] to-yellow-500/15 hover:from-amber-500/25 hover:to-yellow-500/25 border border-amber-500/40 text-amber-700 dark:text-amber-300 font-black text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
         >

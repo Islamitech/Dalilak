@@ -67,7 +67,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const amtPaid = activeBusiness.amountPaid || 0;
   const remaining = Math.max(0, pkgPrice - amtPaid);
 
-  const directoryUrl = 'https://dalilak-directory-fr0x1lt64-harfag.vercel.app/';
+  const directoryUrl = 'https://dalilak-directory.vercel.app/';
 
   const invoiceRawText = 
     `*فاتورة توثيق نشاط تجاري - شركة دليلك لخرائط جوجل* 🗺️\n` +

@@ -50,7 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={() => {
                 const repCode = user?.repData?.referralCode || (user?.role === 'rep' ? `DALIL-${user.id.replace(/\D/g, '')}` : '');
-                const url = new URL('https://dalilak-directory-fr0x1lt64-harfag.vercel.app/');
+                const url = new URL('https://dalilak-directory.vercel.app/');
                 if (repCode) url.searchParams.set('ref', repCode);
                 window.open(url.toString(), '_blank');
               }}
