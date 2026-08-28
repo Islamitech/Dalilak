@@ -970,11 +970,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         {/* ── FOOTER ──────────────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[var(--border-color)] bg-[var(--bg-surface)] shrink-0">
           <div className="flex items-center gap-2">
-            {onDeleteBusiness && canEdit && (
+            {onDeleteBusiness && (
               <button type="button"
-                onClick={() => { if (confirm(`حذف "${formData.nameAr || formData.nameEn}" نهائياً؟`)) { onDeleteBusiness(formData.id); onClose(); } }}
-                className="text-xs font-bold px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer flex items-center gap-1.5">
-                <Trash2 className="w-3.5 h-3.5" /> حذف
+                onClick={() => { if (confirm(`هل أنت متأكد من حذف نشاط "${formData.nameAr || formData.nameEn}" نهائياً من المنظومة؟`)) { onDeleteBusiness(formData.id); onClose(); } }}
+                className="text-xs font-bold px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                title="حذف النشاط">
+                <Trash2 className="w-3.5 h-3.5" /> حذف النشاط
               </button>
             )}
             {canEdit && (

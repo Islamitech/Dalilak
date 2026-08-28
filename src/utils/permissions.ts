@@ -139,12 +139,33 @@ export function canUserEditBusiness(user: User | null, business: Business): bool
 }
 
 /**
- * Checks if a user has permission to delete a specific business
+ * Checks if a user has permission to delete a specific business:
+ * 1. Admin and Supervisor can delete any business.
+ * 2. Representative / User can delete their OWN registered business ONLY IF it has NOT been verified or synced on Google Maps yet.
  */
 export function canUserDeleteBusiness(user: User | null, business: Business): boolean {
-  if (!user) return false;
-  // Admin and Supervisor can delete businesses
-  return user.role === 'admin' || user.role === 'supervisor';
+  if (!user || !business) return false;
+
+  // 1. Admin and Supervisor have unrestricted deletion privileges
+  if (user.role === 'admin' || user.role === 'supervisor') return true;
+
+  // 2. Representative or Creator can delete their OWN business if not verified or synced yet
+  const isOwnBusiness =
+    business.repId === user.id ||
+    business.repId === user.repData?.id ||
+    (user.email && business.repId?.toLowerCase() === user.email.toLowerCase()) ||
+    (user.repData?.phone && business.repId === user.repData.phone) ||
+    business.repName === user.name ||
+    (user.repData?.name && business.repName === user.repData.name);
+
+  if (isOwnBusiness) {
+    const isAlreadyVerifiedOrSynced =
+      business.verificationStatus === 'verified' ||
+      business.googleSyncStatus === 'synced';
+    return !isAlreadyVerifiedOrSynced;
+  }
+
+  return false;
 }
 
 /**
