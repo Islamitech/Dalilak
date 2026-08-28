@@ -174,84 +174,47 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         </div>
       </header>
 
-      {/* 🌟 2. HERO PROMOTIONAL BANNER */}
-      <section className="relative overflow-hidden pt-8 pb-14 sm:pt-14 sm:pb-20 border-b border-[var(--border-color)] bg-gradient-to-b from-amber-500/10 via-[var(--bg-primary)] to-[var(--bg-primary)]">
-        {/* Glow Spheres */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none -z-10" />
-        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
-
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center space-y-6">
-          {/* Trust Badge */}
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-[var(--bg-card)] to-yellow-500/20 border border-amber-500/40 px-4 py-1.5 rounded-full shadow-sm text-xs font-black text-amber-700 dark:text-amber-300">
-            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-            <span>🇪🇬 دليل الأنشطة والمحلات والخدمات المعتمدة في مصر</span>
+      {/* 🌟 2. ULTRA-COMPACT SLIM HERO BANNER */}
+      <section className="relative overflow-hidden py-3 sm:py-4 border-b border-[var(--border-color)] bg-gradient-to-r from-amber-500/10 via-[var(--bg-primary)] to-amber-500/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-sm sm:text-base font-black text-[var(--text-primary)] flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
+                <span>دليل المحلات والأنشطة التجارية في</span>
+                <span className="text-amber-500 font-extrabold">الجيزة ومصر 🇪🇬</span>
+              </h1>
+              <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                تصفح المحلات والخدمات المسجلة واكتشف أرقام التواصل ومواقعها المعتمدة
+              </p>
+            </div>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-[var(--text-primary)] leading-tight max-w-4xl mx-auto">
-            دليل الأنشطة والمحلات والخدمات في{' '}
-            <span className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 bg-clip-text text-transparent">
-              الجيزة وكافة المحافظات
-            </span>{' '}
-            • اعثر على ما تبحث عنه بسهولة
-          </h1>
-
-          <p className="text-xs sm:text-base text-[var(--text-secondary)] font-bold max-w-2xl mx-auto leading-relaxed">
-            استكشف العناوين المعتمدة، أرقام الهواتف، مواعيد العمل، ومواقع الأنشطة التجارية والطبية والحرفية على خرائط Google بدقة عالية.
-          </p>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <a
-              href="#explore"
-              className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
-            >
-              <Search className="w-4 h-4 stroke-[2.5]" />
-              <span>استكشف المحلات والأنشطة ({publicBusinesses.length})</span>
-            </a>
+          <div className="flex items-center gap-2">
             <a
               href="#packages"
-              className="bg-[var(--input-bg)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-color)] font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+              className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-black px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <Award className="w-4 h-4 text-amber-500" />
-              <span>أصحاب الأنشطة: باقات التوثيق على Google</span>
+              <Award className="w-3.5 h-3.5 text-amber-500" />
+              <span>أصحاب الأنشطة: باقات التوثيق 💎</span>
             </a>
-          </div>
-
-          {/* Key Metric Counters */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 max-w-4xl mx-auto text-right">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-sm space-y-1">
-              <span className="text-[11px] text-[var(--text-muted)] font-bold block">الأنشطة المسجلة</span>
-              <span className="text-xl sm:text-2xl font-black text-amber-500 font-mono">
-                {publicBusinesses.length > 0 ? publicBusinesses.length : 120}+
-              </span>
-            </div>
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-sm space-y-1">
-              <span className="text-[11px] text-[var(--text-muted)] font-bold block">المحافظات المغطاة</span>
-              <span className="text-xl sm:text-2xl font-black text-emerald-500 font-mono">27 محافظة</span>
-            </div>
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-sm space-y-1">
-              <span className="text-[11px] text-[var(--text-muted)] font-bold block">دقة تحديد الموقع</span>
-              <span className="text-xl sm:text-2xl font-black text-blue-500 font-mono">GPS 100%</span>
-            </div>
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-sm space-y-1">
-              <span className="text-[11px] text-[var(--text-muted)] font-bold block">تحسين الصور</span>
-              <span className="text-xl sm:text-2xl font-black text-purple-500 font-mono">AI Enhanced</span>
-            </div>
           </div>
         </div>
       </section>
 
       {/* 🌟 3. SEARCH & DIRECTORY SHOWCASE SECTION */}
-      <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
+      <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-color)] pb-4">
-          <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] flex items-center gap-2">
-              <Building2 className="w-6 h-6 text-amber-500" />
-              <span>دليل المحلات والأنشطة التجارية والخدمية</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
+          <div className="space-y-0.5">
+            <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)] flex items-center gap-2">
+              <Layers className="w-5 h-5 text-amber-500" />
+              <span>استعراض الأنشطة والخدمات المتاحة</span>
             </h2>
-            <p className="text-xs text-[var(--text-muted)] font-bold">
-              تصفح كافة الأنشطة والمحلات المسجلة مع بيانات التواصل والعنوان الدقيق وموقعها المعتمد على الخريطة
+            <p className="text-[11px] text-[var(--text-muted)] font-bold">
+              تصفح الأنشطة المسجلة مع بيانات التواصل والعنوان الدقيق وموقعها المعتمد على الخريطة
             </p>
           </div>
 
