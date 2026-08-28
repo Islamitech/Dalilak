@@ -1,57 +1,16 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
-import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from '../types';
-import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES } from '../data/mockData';
+import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus } from '../types';
+import { MOCK_REPRESENTATIVES } from '../data/mockData';
 
 /**
- * Live Supabase Database Service
+ * 🏛️ Live Supabase Database Service
  * 100% Cloud-native persistent CRUD operations with automated schema conversion
+ * and multi-layer caching (LocalStorage + Local Server + Supabase Cloud)
  */
 
-// ============================================
-// 1. BUSINESSES OPERATIONS (الأنشطة التجارية)
-// ============================================
-
-// Helper to ensure all remote database records are permanently standardized to 250 EGP
-async function reconcileLegacyBusinessesTo250(records: any[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  for (const item of records) {
-    const isPaid = item.payment_status === 'fully_paid' || (Number(item.amount_paid || 0) > 0);
-    const expectedAmountPaid = isPaid ? 250 : 0;
-    const expectedPaymentStatus = isPaid ? 'fully_paid' : (item.payment_status || 'unpaid');
-    const isCash = (item.payment_method || 'cash_by_rep') === 'cash_by_rep';
-    const expectedCashCollected = isPaid && isCash ? 250 : 0;
-
-    const needsUpdate =
-      Number(item.package_price) !== 250 ||
-      item.package_id !== 'pkg_basic' ||
-      item.package_name !== '1. باقة التوثيق الأساسي' ||
-      Number(item.amount_paid || 0) !== expectedAmountPaid ||
-      item.payment_status !== expectedPaymentStatus;
-
-    if (needsUpdate && item.id) {
-      const updates = {
-        package_id: 'pkg_basic',
-        package_name: '1. باقة التوثيق الأساسي',
-        package_price: 250,
-        amount_paid: expectedAmountPaid,
-        payment_status: expectedPaymentStatus,
-      };
-
-      // Background update in Supabase
-      (async () => {
-        try {
-          const { error } = await supabase.from('businesses').update(updates).eq('id', item.id);
-          if (error) {
-            await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(item.id)}`, {
-              method: 'PATCH',
-              body: JSON.stringify(updates),
-            });
-          }
-        } catch {}
-      })();
-    }
-  }
-}
+// =============================================================================
+// 1. BUSINESSES OPERATIONS (الأنشطة التجارية والمحلات)
+// =============================================================================
 
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const mergedMap = new Map<string, Business>();
@@ -72,7 +31,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const localFetchPromise = (async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600);
+      const timeoutId = setTimeout(() => controller.abort(), 800);
       const localRes = await fetch('/api/businesses', { signal: controller.signal });
       clearTimeout(timeoutId);
       if (localRes.ok) {
@@ -88,12 +47,12 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 
   // 3. Supabase Cloud fetch (REST first with SDK fallback)
   const supabaseFetchPromise = (async () => {
+    if (!isSupabaseConfigured()) return;
     try {
       const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          reconcileLegacyBusinessesTo250(restData).catch(() => {});
           restData.map(mapDbToBusiness).forEach((b) => {
             if (b && b.id) mergedMap.set(b.id, b);
           });
@@ -103,12 +62,13 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 
       const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
       if (!error && data && Array.isArray(data) && data.length > 0) {
-        reconcileLegacyBusinessesTo250(data).catch(() => {});
         data.map(mapDbToBusiness).forEach((b) => {
           if (b && b.id) mergedMap.set(b.id, b);
         });
       }
-    } catch {}
+    } catch (err) {
+      console.error('Supabase fetch businesses error:', err);
+    }
   })();
 
   // Parallel resolution
@@ -126,31 +86,50 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 export async function saveBusinessToDb(biz: Business): Promise<void> {
   const dbRecord = mapBusinessToDb(biz);
 
-  // 1. Direct PostgREST Cloud Upsert (guaranteed multi-device cross-sync)
-  try {
-    const res = await supabaseRestFetch('businesses', {
-      method: 'POST',
-      headers: {
-        'Prefer': 'resolution=merge-duplicates,return=representation',
-      },
-      body: JSON.stringify(dbRecord),
-    });
-
-    if (!res.ok) {
-      // Fallback: If conflict, update via PATCH
-      await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
-        method: 'PATCH',
+  // 1. Direct PostgREST Cloud Upsert with Self-Healing Fallback
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseRestFetch('businesses', {
+        method: 'POST',
+        headers: {
+          'Prefer': 'resolution=merge-duplicates,return=representation',
+        },
         body: JSON.stringify(dbRecord),
       });
-    }
-  } catch (err) {
-    console.error('Supabase save business error:', err);
-  }
 
-  // 2. Also try Supabase SDK
-  try {
-    await supabase.from('businesses').upsert([dbRecord]);
-  } catch {}
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        const errMsg = errJson?.message || '';
+        
+        // If schema mismatch (column does not exist on older DB), retry with core minimal schema
+        if (errMsg.includes('column') || res.status === 400 || res.status === 404) {
+          const safeCoreRecord = getSafeCoreBusinessDbRecord(biz);
+          await supabaseRestFetch('businesses', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates' },
+            body: JSON.stringify(safeCoreRecord),
+          }).catch(() => {});
+        } else {
+          // Fallback: If conflict, update via PATCH
+          await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(dbRecord),
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase save business REST warning, attempting safe fallback:', err);
+      try {
+        const safeCoreRecord = getSafeCoreBusinessDbRecord(biz);
+        await supabase.from('businesses').upsert([safeCoreRecord]);
+      } catch {}
+    }
+
+    // 2. Also try Supabase SDK
+    try {
+      await supabase.from('businesses').upsert([dbRecord]);
+    } catch {}
+  }
 
   // 3. Always sync to local server
   try {
@@ -194,30 +173,45 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
   const dbUpdates = mapBusinessToDb(updates as Business);
   delete dbUpdates.id;
 
-  // 2. Sync to Supabase via Direct REST PATCH (guaranteed delivery)
-  try {
-    const res = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dbUpdates),
-    });
-
-    if (!res.ok) {
-      const fullDbRecord = mapBusinessToDb(updates as Business);
-      fullDbRecord.id = id;
-      await supabaseRestFetch('businesses', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify(fullDbRecord),
+  // 2. Sync to Supabase via Direct REST PATCH with Self-Healing Fallback
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(dbUpdates),
       });
-    }
-  } catch (err) {
-    console.error('Supabase update business error:', err);
-  }
 
-  // 3. Also try Supabase SDK
-  try {
-    await supabase.from('businesses').update(dbUpdates).eq('id', id);
-  } catch {}
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        const errMsg = errJson?.message || '';
+
+        // If older DB is missing some columns, strip and update safe core fields
+        if (errMsg.includes('column') || res.status === 400) {
+          const safeUpdates = getSafeCoreBusinessDbRecord(updates as Business);
+          delete safeUpdates.id;
+          await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(safeUpdates),
+          });
+        } else {
+          const fullDbRecord = mapBusinessToDb(updates as Business);
+          fullDbRecord.id = id;
+          await supabaseRestFetch('businesses', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates' },
+            body: JSON.stringify(fullDbRecord),
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase update business warning:', err);
+    }
+
+    // 3. Also try Supabase SDK
+    try {
+      await supabase.from('businesses').update(dbUpdates).eq('id', id);
+    } catch {}
+  }
 
   // 4. Always sync to local server API
   try {
@@ -240,15 +234,17 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
   } catch {}
 
   // 2. Delete from Supabase SDK & REST
-  try {
-    const { error } = await supabase.from('businesses').delete().eq('id', id);
-    if (error) {
-      await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('businesses').delete().eq('id', id);
+      if (error) {
+        await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+      }
+    } catch (err) {
+      console.error('Supabase delete business error:', err);
     }
-  } catch (err) {
-    console.error('Supabase delete business error:', err);
   }
 
   // 3. Delete from Local Server
@@ -259,9 +255,10 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
   } catch {}
 }
 
-// ============================================
-// 2. REPRESENTATIVES OPERATIONS (المندوبين)
-// ============================================
+// =============================================================================
+// 2. REPRESENTATIVES OPERATIONS (المناديب والمشرفين والإدارة)
+// =============================================================================
+
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   const mergedMap = new Map<string, Representative>();
   const deletedReps = new Set<string>();
@@ -281,29 +278,31 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
   });
 
   // 2. Try Supabase REST / SDK
-  try {
-    const res = await supabaseRestFetch('representatives?select=*');
-    if (res.ok) {
-      const restData = await res.json();
-      if (Array.isArray(restData) && restData.length > 0) {
-        restData.map(mapDbToRep).forEach((r) => {
-          if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
-            mergedMap.set(r.email.toLowerCase(), r);
-          }
-        });
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseRestFetch('representatives?select=*');
+      if (res.ok) {
+        const restData = await res.json();
+        if (Array.isArray(restData) && restData.length > 0) {
+          restData.map(mapDbToRep).forEach((r) => {
+            if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
+              mergedMap.set(r.email.toLowerCase(), r);
+            }
+          });
+        }
+      } else {
+        const { data, error } = await supabase.from('representatives').select('*');
+        if (!error && data && Array.isArray(data) && data.length > 0) {
+          data.map(mapDbToRep).forEach((r) => {
+            if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
+              mergedMap.set(r.email.toLowerCase(), r);
+            }
+          });
+        }
       }
-    } else {
-      const { data, error } = await supabase.from('representatives').select('*');
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        data.map(mapDbToRep).forEach((r) => {
-          if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
-            mergedMap.set(r.email.toLowerCase(), r);
-          }
-        });
-      }
+    } catch (err) {
+      console.error('Supabase fetch reps error:', err);
     }
-  } catch (err) {
-    console.error('Supabase fetch reps error:', err);
   }
 
   // 3. Local server merge
@@ -342,7 +341,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
-  // Update in LocalStorage custom reps
+  // 1. Update in LocalStorage custom reps
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
     const map = new Map<string, Representative>();
@@ -355,23 +354,26 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
     localStorage.setItem('dalelak_custom_reps', JSON.stringify(Array.from(map.values())));
   } catch {}
 
+  // 2. Save to Supabase Cloud
   const dbRecord = mapRepToDb(rep);
-  try {
-    const { error } = await supabase.from('representatives').upsert([dbRecord]);
-    if (error) {
-      const { error: updateErr } = await supabase.from('representatives').update(dbRecord).eq('id', rep.id);
-      if (updateErr) {
-        await supabaseRestFetch('representatives', {
-          method: 'POST',
-          body: JSON.stringify(dbRecord),
-        });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('representatives').upsert([dbRecord]);
+      if (error) {
+        const { error: updateErr } = await supabase.from('representatives').update(dbRecord).eq('id', rep.id);
+        if (updateErr) {
+          await supabaseRestFetch('representatives', {
+            method: 'POST',
+            body: JSON.stringify(dbRecord),
+          });
+        }
       }
+    } catch (err) {
+      console.error('Supabase save rep error:', err);
     }
-  } catch (err) {
-    console.error('Supabase save rep error:', err);
   }
 
-  // Always sync to local server
+  // 3. Always sync to local server
   try {
     await fetch('/api/representatives', {
       method: 'POST',
@@ -382,7 +384,7 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
 }
 
 export async function updateRepInDb(id: string, updates: Partial<Representative>): Promise<void> {
-  // Update in LocalStorage
+  // 1. Update in LocalStorage
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
     if (Array.isArray(cached)) {
@@ -391,21 +393,24 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
     }
   } catch {}
 
+  // 2. Update in Supabase Cloud
   const dbUpdates = mapRepToDb(updates as Representative);
   delete dbUpdates.id;
-  try {
-    const { error } = await supabase.from('representatives').update(dbUpdates).eq('id', id);
-    if (error) {
-      await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
-        method: 'PATCH',
-        body: JSON.stringify(dbUpdates),
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('representatives').update(dbUpdates).eq('id', id);
+      if (error) {
+        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(dbUpdates),
+        });
+      }
+    } catch (err) {
+      console.error('Supabase update rep error:', err);
     }
-  } catch (err) {
-    console.error('Supabase update rep error:', err);
   }
 
-  // Always sync to local server
+  // 3. Always sync to local server
   try {
     await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -433,16 +438,18 @@ export async function deleteRepFromDb(id: string): Promise<void> {
     }
   } catch {}
 
-  // 3. Delete from Supabase
-  try {
-    const { error } = await supabase.from('representatives').delete().eq('id', id);
-    if (error) {
-      await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
+  // 3. Delete from Supabase Cloud
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('representatives').delete().eq('id', id);
+      if (error) {
+        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+      }
+    } catch (err) {
+      console.error('Supabase delete rep error:', err);
     }
-  } catch (err) {
-    console.error('Supabase delete rep error:', err);
   }
 
   // 4. Delete from Local Server
@@ -457,9 +464,10 @@ export async function updateRepSessionInDb(_id: string, _sessionId?: string, _ti
   // Real-time active session synchronization
 }
 
-// ============================================
-// 3. PAYOUT & REMITTANCE REQUESTS (طلبات الصرف والتوريد)
-// ============================================
+// =============================================================================
+// 3. PAYOUT & REMITTANCE REQUESTS (طلبات الصرف والتوريد المالي)
+// =============================================================================
+
 export async function fetchPayoutRequestsFromDb(): Promise<PayoutRequest[]> {
   if (isSupabaseConfigured()) {
     try {
@@ -548,9 +556,10 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
   return payout;
 }
 
-// ============================================
-// 4. INTERESTED LEADS (العملاء المحتملين)
-// ============================================
+// =============================================================================
+// 4. INTERESTED LEADS (العملاء المحتملين والمتابعات Mappings)
+// =============================================================================
+
 export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
   if (isSupabaseConfigured()) {
     try {
@@ -660,9 +669,10 @@ export async function deleteLeadFromDb(id: string): Promise<void> {
   } catch {}
 }
 
-// ============================================
-// 5. PAYMENT GATEWAY CONFIG (إعدادات الدفع والمحافظ)
-// ============================================
+// =============================================================================
+// 5. PAYMENT GATEWAY CONFIG (إعدادات بوابات الدفع والمحافظ)
+// =============================================================================
+
 export async function fetchPaymentConfigFromDb(): Promise<PaymentGatewayConfig | null> {
   if (isSupabaseConfigured()) {
     try {
@@ -705,16 +715,18 @@ export async function savePaymentConfigToDb(config: PaymentGatewayConfig): Promi
     updated_at: new Date().toISOString(),
   };
 
-  try {
-    const { error } = await supabase.from('payment_config').upsert([dbRecord]);
-    if (error) {
-      await supabaseRestFetch('payment_config', {
-        method: 'POST',
-        body: JSON.stringify(dbRecord),
-      });
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('payment_config').upsert([dbRecord]);
+      if (error) {
+        await supabaseRestFetch('payment_config', {
+          method: 'POST',
+          body: JSON.stringify(dbRecord),
+        });
+      }
+    } catch (err) {
+      console.error('Supabase save payment config error:', err);
     }
-  } catch (err) {
-    console.error('Supabase save payment config error:', err);
   }
 
   try {
@@ -726,9 +738,10 @@ export async function savePaymentConfigToDb(config: PaymentGatewayConfig): Promi
   } catch {}
 }
 
-// ============================================
-// 6. SERIALIZATION & DESERIALIZATION MAPPERS
-// ============================================
+// =============================================================================
+// 6. DATA MAPPERS & SANITIZERS (تحويل وتطهير البيانات بين الـ SQL والـ Code)
+// =============================================================================
+
 function parsePhotosArray(item: any): string[] {
   const raw = item.photos || item.photos_urls || item.photosUrls;
   if (!raw) return [];
@@ -742,9 +755,9 @@ function parsePhotosArray(item: any): string[] {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) return parsed;
       if (typeof parsed === 'string' && parsed.trim().length > 0) return [parsed];
-    } catch (e) {
+    } catch {
       if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-        const matches = [...trimmed.matchAll(/"([^"]+)"/g)].map(m => m[1]);
+        const matches = [...trimmed.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
         if (matches.length > 0) return matches;
       }
       if (trimmed.includes(',')) {
@@ -759,22 +772,26 @@ function parsePhotosArray(item: any): string[] {
 }
 
 function mapDbToBusiness(item: any): Business {
-  // Single standardized unified package across all previous & current records: 250 EGP
-  const packagePrice = 250;
-  const packageName = '1. باقة التوثيق الأساسي';
-  const packageId = 'pkg_basic';
+  // Preserve real package price and configuration
+  const packagePrice = Number(item.package_price !== undefined && item.package_price !== null ? item.package_price : (item.packagePrice || 250)) || 250;
+  const packageId = item.package_id || item.packageId || (packagePrice === 750 ? 'pkg_pro' : packagePrice === 2000 ? 'pkg_vip' : 'pkg_basic');
+  const packageName = item.package_name || item.packageName || (packageId === 'pkg_pro' ? '2. عرض التأسيس والربط الذكي' : packageId === 'pkg_vip' ? '3. عرض الدعم الميداني والإدارة الشاملة VIP' : '1. باقة التوثيق الأساسي');
 
-  const rawPaid = Number(item.amount_paid !== undefined && item.amount_paid !== null ? item.amount_paid : (item.amountPaid || 0));
+  const rawPaid = Number(item.amount_paid !== undefined && item.amount_paid !== null ? item.amount_paid : (item.amountPaid || 0)) || 0;
   const rawStatus = item.payment_status || item.paymentStatus;
-  const isPaid = rawStatus === 'fully_paid' || rawPaid > 0;
-  
-  // Standardize paid status to 250 EGP
-  const amountPaid = isPaid ? 250 : 0;
-  const paymentStatus = isPaid ? 'fully_paid' : 'unpaid';
-  const paymentMethod = item.payment_method || item.paymentMethod || (isPaid ? 'cash_by_rep' : undefined);
+  const isFullyPaid = rawStatus === 'fully_paid' || (packagePrice > 0 && rawPaid >= packagePrice);
+  const amountPaid = isFullyPaid ? packagePrice : rawPaid;
+  const paymentStatus: PaymentStatus = isFullyPaid ? 'fully_paid' : amountPaid > 0 ? 'partially_paid' : 'unpaid';
+  const paymentMethod = item.payment_method || item.paymentMethod || (isFullyPaid ? 'cash_by_rep' : undefined);
   
   const isCash = paymentMethod === 'cash_by_rep' || (item.cash_collected_by_rep !== undefined ? Number(item.cash_collected_by_rep) > 0 : false);
-  const cashCollectedByRep = isPaid && isCash ? 250 : 0;
+  const cashCollectedByRep = item.cash_collected_by_rep !== undefined
+    ? Number(item.cash_collected_by_rep) || 0
+    : item.cashCollectedByRep !== undefined
+    ? Number(item.cashCollectedByRep) || 0
+    : isCash
+    ? amountPaid
+    : 0;
 
   return {
     id: item.id || `biz_${Date.now()}`,
@@ -818,6 +835,36 @@ function mapDbToBusiness(item: any): Business {
   };
 }
 
+function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
+  const record: any = {};
+  if (biz.id !== undefined) record.id = biz.id;
+  if (biz.nameAr !== undefined) record.name_ar = biz.nameAr;
+  if (biz.nameEn !== undefined) record.name_en = biz.nameEn;
+  if (biz.category !== undefined) record.category = biz.category;
+  if (biz.governorate !== undefined) record.governorate = biz.governorate;
+  if (biz.city !== undefined) record.city = biz.city;
+  if (biz.street !== undefined) record.street = biz.street;
+  if (biz.landmark !== undefined) record.landmark = biz.landmark;
+  if (biz.phone !== undefined) record.phone = biz.phone;
+  if (biz.workingHours !== undefined) record.working_hours = biz.workingHours;
+  if (biz.description !== undefined) record.description = biz.description;
+  if (biz.lat !== undefined) record.lat = Number(biz.lat) || 0;
+  if (biz.lng !== undefined) record.lng = Number(biz.lng) || 0;
+  if (biz.ownerName !== undefined) record.owner_name = biz.ownerName;
+  if (biz.ownerPhone !== undefined) record.owner_phone = biz.ownerPhone;
+  if (biz.photos !== undefined) {
+    record.photos = Array.isArray(biz.photos) ? biz.photos : [];
+  }
+  if (biz.repId !== undefined) record.rep_id = biz.repId;
+  if (biz.repName !== undefined) record.rep_name = biz.repName;
+  if (biz.paymentStatus !== undefined) record.payment_status = biz.paymentStatus;
+  if (biz.verificationStatus !== undefined) record.verification_status = biz.verificationStatus;
+  if (biz.googleMapsUrl !== undefined) record.google_maps_url = biz.googleMapsUrl;
+  if (biz.createdDate !== undefined) record.created_at = biz.createdDate;
+  if (biz.notes !== undefined) record.notes = biz.notes;
+  return record;
+}
+
 function mapBusinessToDb(biz: Partial<Business>): any {
   const dbRecord: any = {};
   
@@ -833,8 +880,8 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   if (biz.secondaryPhone !== undefined) dbRecord.secondary_phone = biz.secondaryPhone;
   if (biz.workingHours !== undefined) dbRecord.working_hours = biz.workingHours;
   if (biz.description !== undefined) dbRecord.description = biz.description;
-  if (biz.lat !== undefined) dbRecord.lat = biz.lat;
-  if (biz.lng !== undefined) dbRecord.lng = biz.lng;
+  if (biz.lat !== undefined) dbRecord.lat = Number(biz.lat) || 0;
+  if (biz.lng !== undefined) dbRecord.lng = Number(biz.lng) || 0;
   if (biz.ownerName !== undefined) dbRecord.owner_name = biz.ownerName;
   if (biz.ownerPhone !== undefined) dbRecord.owner_phone = biz.ownerPhone;
   if (biz.ownerEmail !== undefined) dbRecord.owner_email = biz.ownerEmail;
@@ -844,23 +891,17 @@ function mapBusinessToDb(biz: Partial<Business>): any {
   }
   if (biz.repId !== undefined) dbRecord.rep_id = biz.repId;
   if (biz.repName !== undefined) dbRecord.rep_name = biz.repName;
-  if (biz.repCommissionRate !== undefined) dbRecord.rep_commission_rate = biz.repCommissionRate;
-  dbRecord.package_id = 'pkg_basic';
-  dbRecord.package_name = '1. باقة التوثيق الأساسي';
-  dbRecord.package_price = 250;
-  if (biz.amountPaid !== undefined) {
-    const isPaid = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'fully_paid';
-    dbRecord.amount_paid = isPaid ? 250 : 0;
-  }
+  if (biz.repCommissionRate !== undefined) dbRecord.rep_commission_rate = Number(biz.repCommissionRate) || 0;
+  
+  if (biz.packageId !== undefined) dbRecord.package_id = biz.packageId;
+  if (biz.packageName !== undefined) dbRecord.package_name = biz.packageName;
+  if (biz.packagePrice !== undefined) dbRecord.package_price = Number(biz.packagePrice) || 250;
+  
+  if (biz.amountPaid !== undefined) dbRecord.amount_paid = Number(biz.amountPaid) || 0;
   if (biz.paymentMethod !== undefined) dbRecord.payment_method = biz.paymentMethod;
-  if (biz.cashCollectedByRep !== undefined) {
-    const isCash = (biz.paymentMethod || 'cash_by_rep') === 'cash_by_rep';
-    const isPaid = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'fully_paid';
-    dbRecord.cash_collected_by_rep = isPaid && isCash ? 250 : 0;
-  }
-  if (biz.paymentStatus !== undefined) {
-    dbRecord.payment_status = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'fully_paid' ? 'fully_paid' : 'unpaid';
-  }
+  if (biz.cashCollectedByRep !== undefined) dbRecord.cash_collected_by_rep = Number(biz.cashCollectedByRep) || 0;
+  if (biz.paymentStatus !== undefined) dbRecord.payment_status = biz.paymentStatus;
+  
   if (biz.verificationStatus !== undefined) dbRecord.verification_status = biz.verificationStatus;
   if (biz.googleMapsUrl !== undefined) dbRecord.google_maps_url = biz.googleMapsUrl;
   if (biz.googlePlaceId !== undefined) dbRecord.google_place_id = biz.googlePlaceId;
@@ -884,22 +925,25 @@ function mapDbToRep(item: any): Representative {
   let metaActivationFacePhoto: string | undefined = item.activation_face_photo || item.activationFacePhoto;
   let metaNationalIdCardPhoto: string | undefined = item.national_id_card_photo || item.nationalIdCardPhoto;
   let metaNationalIdCardBackPhoto: string | undefined = item.national_id_card_back_photo || item.nationalIdCardBackPhoto;
+  let metaPendingPhone: string | undefined = item.pending_phone || item.pendingPhone;
+  let metaPhoneStatus = item.phone_status || item.phoneStatus || 'none';
 
+  // Backward compatibility check for legacy JSON avatar packing
   if (typeof parsedAvatar === 'string' && parsedAvatar.trim().startsWith('{')) {
     try {
       const parsed = JSON.parse(parsedAvatar.trim());
       if (parsed && typeof parsed === 'object') {
         parsedAvatar = parsed.avatar || '';
-        if (parsed.referralCode) metaReferralCode = parsed.referralCode;
-        if (parsed.referredByCode) metaReferredByCode = parsed.referredByCode;
-        if (parsed.referralUnlocked !== undefined) metaReferralUnlocked = parsed.referralUnlocked;
-        if (parsed.adminBypassReferral !== undefined) metaAdminBypassReferral = parsed.adminBypassReferral;
-        if (parsed.referralRewardGranted !== undefined) metaReferralRewardGranted = parsed.referralRewardGranted;
-        if (parsed.activationFacePhoto) metaActivationFacePhoto = parsed.activationFacePhoto;
-        if (parsed.nationalIdCardPhoto) metaNationalIdCardPhoto = parsed.nationalIdCardPhoto;
-        if (parsed.nationalIdCardBackPhoto) metaNationalIdCardBackPhoto = parsed.nationalIdCardBackPhoto;
-        if (parsed.pendingPhone) (item as any).pendingPhone = parsed.pendingPhone;
-        if (parsed.phoneStatus) (item as any).phoneStatus = parsed.phoneStatus;
+        if (parsed.referralCode && !metaReferralCode) metaReferralCode = parsed.referralCode;
+        if (parsed.referredByCode && !metaReferredByCode) metaReferredByCode = parsed.referredByCode;
+        if (parsed.referralUnlocked !== undefined && metaReferralUnlocked === undefined) metaReferralUnlocked = parsed.referralUnlocked;
+        if (parsed.adminBypassReferral !== undefined && metaAdminBypassReferral === undefined) metaAdminBypassReferral = parsed.adminBypassReferral;
+        if (parsed.referralRewardGranted !== undefined && metaReferralRewardGranted === undefined) metaReferralRewardGranted = parsed.referralRewardGranted;
+        if (parsed.activationFacePhoto && !metaActivationFacePhoto) metaActivationFacePhoto = parsed.activationFacePhoto;
+        if (parsed.nationalIdCardPhoto && !metaNationalIdCardPhoto) metaNationalIdCardPhoto = parsed.nationalIdCardPhoto;
+        if (parsed.nationalIdCardBackPhoto && !metaNationalIdCardBackPhoto) metaNationalIdCardBackPhoto = parsed.nationalIdCardBackPhoto;
+        if (parsed.pendingPhone && !metaPendingPhone) metaPendingPhone = parsed.pendingPhone;
+        if (parsed.phoneStatus && metaPhoneStatus === 'none') metaPhoneStatus = parsed.phoneStatus;
       }
     } catch {}
   }
@@ -909,11 +953,11 @@ function mapDbToRep(item: any): Representative {
 
   return {
     id: item.id,
-    name: item.name,
-    email: item.email,
-    phone: item.phone,
-    pendingPhone: (item as any).pendingPhone || undefined,
-    phoneStatus: (item as any).phoneStatus || 'none',
+    name: item.name || 'مندوب معتمد',
+    email: item.email || '',
+    phone: item.phone || '',
+    pendingPhone: metaPendingPhone,
+    phoneStatus: metaPhoneStatus,
     nationalId: item.national_id || item.nationalId,
     activationFacePhoto: metaActivationFacePhoto || '',
     nationalIdCardPhoto: metaNationalIdCardPhoto || '',
@@ -935,40 +979,37 @@ function mapDbToRep(item: any): Representative {
   };
 }
 
-function mapRepToDb(rep: Representative): any {
-  let avatarPayload = rep.avatar || '';
-  const metadata: any = {
-    avatar: rep.avatar || '',
-  };
-  if (rep.referralCode) metadata.referralCode = rep.referralCode;
-  if (rep.referredByCode) metadata.referredByCode = rep.referredByCode;
-  if (rep.referralUnlocked !== undefined) metadata.referralUnlocked = rep.referralUnlocked;
-  if (rep.adminBypassReferral !== undefined) metadata.adminBypassReferral = rep.adminBypassReferral;
-  if (rep.referralRewardGranted !== undefined) metadata.referralRewardGranted = rep.referralRewardGranted;
-  if (rep.activationFacePhoto) metadata.activationFacePhoto = rep.activationFacePhoto;
-  if (rep.nationalIdCardPhoto) metadata.nationalIdCardPhoto = rep.nationalIdCardPhoto;
-  if (rep.nationalIdCardBackPhoto) metadata.nationalIdCardBackPhoto = rep.nationalIdCardBackPhoto;
-  if (rep.pendingPhone) metadata.pendingPhone = rep.pendingPhone;
-  if (rep.phoneStatus) metadata.phoneStatus = rep.phoneStatus;
+function mapRepToDb(rep: Partial<Representative>): any {
+  const record: any = {};
 
-  avatarPayload = JSON.stringify(metadata);
+  if (rep.id !== undefined) record.id = rep.id;
+  if (rep.name !== undefined) record.name = rep.name;
+  if (rep.email !== undefined) record.email = rep.email;
+  if (rep.phone !== undefined) record.phone = rep.phone;
+  if (rep.pendingPhone !== undefined) record.pending_phone = rep.pendingPhone;
+  if (rep.phoneStatus !== undefined) record.phone_status = rep.phoneStatus;
+  if (rep.nationalId !== undefined) record.national_id = rep.nationalId;
+  
+  if (rep.activationFacePhoto !== undefined) record.activation_face_photo = rep.activationFacePhoto;
+  if (rep.nationalIdCardPhoto !== undefined) record.national_id_card_photo = rep.nationalIdCardPhoto;
+  if (rep.nationalIdCardBackPhoto !== undefined) record.national_id_card_back_photo = rep.nationalIdCardBackPhoto;
+  
+  if (rep.role !== undefined) record.role = rep.role;
+  if (rep.roleTitle !== undefined) record.role_title = rep.roleTitle;
+  if (rep.governorate !== undefined) record.governorate = rep.governorate;
+  if (rep.targetMonth !== undefined) record.target_month = Number(rep.targetMonth) || 25;
+  if (rep.avatar !== undefined) record.avatar = rep.avatar;
+  if (rep.avatarStatus !== undefined) record.avatar_status = rep.avatarStatus;
+  if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
+  if (rep.status !== undefined) record.status = rep.status;
+  if (rep.password !== undefined) record.password = rep.password;
+  
+  if (rep.referralCode !== undefined) record.referral_code = rep.referralCode;
+  if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode;
+  if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);
+  if (rep.adminBypassReferral !== undefined) record.admin_bypass_referral = Boolean(rep.adminBypassReferral);
+  if (rep.referralRewardGranted !== undefined) record.referral_reward_granted = Boolean(rep.referralRewardGranted);
 
-  const record: any = {
-    id: rep.id,
-    name: rep.name,
-    email: rep.email,
-    phone: rep.phone,
-    national_id: rep.nationalId || null,
-    role: rep.role || 'rep',
-    role_title: rep.roleTitle || 'مندوب مبيعات ميداني',
-    governorate: rep.governorate || 'القاهرة',
-    target_month: Number(rep.targetMonth) || 25,
-    avatar: avatarPayload,
-    avatar_status: rep.avatarStatus || 'none',
-    commission_rate: Number(rep.commissionRate) || 42.86,
-    status: rep.status || 'suspended',
-    password: rep.password || 'Aa123456',
-  };
   return record;
 }
 
@@ -997,7 +1038,7 @@ function mapPayoutToDb(payout: PayoutRequest): any {
     rep_id: payout.repId,
     rep_name: payout.repName,
     rep_phone: payout.repPhone,
-    amount: payout.amount,
+    amount: Number(payout.amount) || 0,
     method: payout.method,
     account_details: payout.accountDetails,
     status: payout.status,

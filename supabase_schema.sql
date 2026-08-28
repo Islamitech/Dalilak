@@ -1,0 +1,263 @@
+-- =============================================================================
+-- 🏛️ DALELAK DATABASE SCHEMA & SETUP SCRIPT
+-- المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات الميدانية في مصر
+-- Compatible with PostgreSQL 14+ / Supabase
+-- =============================================================================
+
+-- Enable UUID and Cryptographic extensions if needed
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- =============================================================================
+-- 1. TABLE: businesses (الأنشطة التجارية والمحلات)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.businesses (
+    id TEXT PRIMARY KEY,
+    name_ar TEXT NOT NULL,
+    name_en TEXT,
+    category TEXT DEFAULT 'عام',
+    governorate TEXT DEFAULT 'القاهرة',
+    city TEXT DEFAULT 'القاهرة',
+    street TEXT,
+    landmark TEXT,
+    phone TEXT NOT NULL,
+    secondary_phone TEXT,
+    working_hours TEXT DEFAULT '9 ص - 10 م',
+    description TEXT,
+    lat DOUBLE PRECISION NOT NULL DEFAULT 30.0444,
+    lng DOUBLE PRECISION NOT NULL DEFAULT 31.2357,
+    owner_name TEXT DEFAULT 'صاحب النشاط',
+    owner_phone TEXT,
+    owner_email TEXT,
+    national_id TEXT,
+    photos JSONB DEFAULT '[]'::jsonb,
+    rep_id TEXT DEFAULT 'rep_1',
+    rep_name TEXT DEFAULT 'مندوب معتمد',
+    rep_commission_rate NUMERIC,
+    package_id TEXT DEFAULT 'pkg_basic',
+    package_name TEXT DEFAULT '1. باقة التوثيق الأساسي',
+    package_price NUMERIC DEFAULT 250,
+    amount_paid NUMERIC DEFAULT 0,
+    payment_method TEXT,
+    cash_collected_by_rep NUMERIC DEFAULT 0,
+    payment_status TEXT DEFAULT 'unpaid',
+    verification_status TEXT DEFAULT 'verified',
+    google_maps_url TEXT,
+    google_place_id TEXT,
+    google_sync_status TEXT DEFAULT 'pending',
+    google_sync_date TEXT,
+    invoice_number TEXT,
+    invoice_date TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =============================================================================
+-- 2. TABLE: representatives (المناديب والمشرفين والمحاسبين والإدارة)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.representatives (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    phone TEXT NOT NULL,
+    pending_phone TEXT,
+    phone_status TEXT DEFAULT 'none',
+    national_id TEXT,
+    activation_face_photo TEXT,
+    national_id_card_photo TEXT,
+    national_id_card_back_photo TEXT,
+    role TEXT DEFAULT 'rep',
+    role_title TEXT DEFAULT 'مندوب مبيعات ميداني',
+    governorate TEXT DEFAULT 'القاهرة',
+    target_month INTEGER DEFAULT 25,
+    avatar TEXT,
+    avatar_status TEXT DEFAULT 'none',
+    commission_rate NUMERIC DEFAULT 42.86,
+    status TEXT DEFAULT 'suspended',
+    password TEXT DEFAULT 'Aa123456',
+    referral_code TEXT,
+    referred_by_code TEXT,
+    referral_unlocked BOOLEAN DEFAULT false,
+    admin_bypass_referral BOOLEAN DEFAULT false,
+    referral_reward_granted BOOLEAN DEFAULT false,
+    active_session_id TEXT,
+    last_active_timestamp BIGINT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =============================================================================
+-- 3. TABLE: payout_requests (طلبات الصرف والتوريد المالي)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.payout_requests (
+    id TEXT PRIMARY KEY,
+    rep_id TEXT NOT NULL,
+    rep_name TEXT DEFAULT 'مندوب معتمد',
+    rep_phone TEXT,
+    amount NUMERIC NOT NULL DEFAULT 0,
+    method TEXT NOT NULL DEFAULT 'instapay',
+    account_details TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    request_date TIMESTAMPTZ DEFAULT NOW(),
+    processed_date TIMESTAMPTZ,
+    receipt_photo TEXT,
+    transaction_ref TEXT,
+    admin_notes TEXT,
+    type TEXT DEFAULT 'payout',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =============================================================================
+-- 4. TABLE: leads (العملاء المحتملين والمتابعات الميدانية CRM)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.leads (
+    id TEXT PRIMARY KEY,
+    client_name TEXT NOT NULL,
+    business_name TEXT,
+    business_category TEXT,
+    phone TEXT NOT NULL,
+    secondary_phone TEXT,
+    governorate TEXT DEFAULT 'القاهرة',
+    city TEXT DEFAULT 'القاهرة',
+    interest_level TEXT DEFAULT 'medium',
+    notes TEXT,
+    follow_up_date TEXT,
+    rep_id TEXT DEFAULT 'rep_1',
+    rep_name TEXT DEFAULT 'مندوب معتمد',
+    last_contacted_date TEXT,
+    status TEXT DEFAULT 'pending_followup',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =============================================================================
+-- 5. TABLE: payment_config (إعدادات بوابات الدفع والمحافظ الإلكترونية)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.payment_config (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+    vodafone_cash_number TEXT DEFAULT '01143888355',
+    vodafone_cash_number_2 TEXT DEFAULT '01556221141',
+    fawry_merchant_code TEXT,
+    insta_pay_handle TEXT DEFAULT '@daz31181',
+    card_gateway_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =============================================================================
+-- 6. INDEXES FOR ULTRA-FAST LOOKUPS & QUERIES
+-- =============================================================================
+CREATE INDEX IF NOT EXISTS idx_businesses_rep_id ON public.businesses (rep_id);
+CREATE INDEX IF NOT EXISTS idx_businesses_governorate ON public.businesses (governorate);
+CREATE INDEX IF NOT EXISTS idx_businesses_phone ON public.businesses (phone);
+CREATE INDEX IF NOT EXISTS idx_businesses_payment_status ON public.businesses (payment_status);
+CREATE INDEX IF NOT EXISTS idx_businesses_verification_status ON public.businesses (verification_status);
+CREATE INDEX IF NOT EXISTS idx_businesses_created_at ON public.businesses (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_reps_email ON public.representatives (lower(email));
+CREATE INDEX IF NOT EXISTS idx_reps_phone ON public.representatives (phone);
+CREATE INDEX IF NOT EXISTS idx_reps_role ON public.representatives (role);
+CREATE INDEX IF NOT EXISTS idx_reps_status ON public.representatives (status);
+CREATE INDEX IF NOT EXISTS idx_reps_referral_code ON public.representatives (referral_code);
+
+CREATE INDEX IF NOT EXISTS idx_payouts_rep_id ON public.payout_requests (rep_id);
+CREATE INDEX IF NOT EXISTS idx_payouts_status ON public.payout_requests (status);
+CREATE INDEX IF NOT EXISTS idx_payouts_request_date ON public.payout_requests (request_date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_leads_rep_id ON public.leads (rep_id);
+CREATE INDEX IF NOT EXISTS idx_leads_status ON public.leads (status);
+CREATE INDEX IF NOT EXISTS idx_leads_phone ON public.leads (phone);
+
+-- =============================================================================
+-- 7. TRIGGER: AUTO-UPDATE updated_at TIMESTAMP
+-- =============================================================================
+CREATE OR REPLACE FUNCTION update_timestamp_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_update_businesses_timestamp ON public.businesses;
+CREATE TRIGGER trg_update_businesses_timestamp
+    BEFORE UPDATE ON public.businesses
+    FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+DROP TRIGGER IF EXISTS trg_update_reps_timestamp ON public.representatives;
+CREATE TRIGGER trg_update_reps_timestamp
+    BEFORE UPDATE ON public.representatives
+    FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+DROP TRIGGER IF EXISTS trg_update_payouts_timestamp ON public.payout_requests;
+CREATE TRIGGER trg_update_payouts_timestamp
+    BEFORE UPDATE ON public.payout_requests
+    FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+DROP TRIGGER IF EXISTS trg_update_leads_timestamp ON public.leads;
+CREATE TRIGGER trg_update_leads_timestamp
+    BEFORE UPDATE ON public.leads
+    FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+DROP TRIGGER IF EXISTS trg_update_payment_config_timestamp ON public.payment_config;
+CREATE TRIGGER trg_update_payment_config_timestamp
+    BEFORE UPDATE ON public.payment_config
+    FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+-- =============================================================================
+-- 8. ROW LEVEL SECURITY (RLS) POLICIES
+-- Enables seamless cross-device synchronization via public Anon API Key
+-- =============================================================================
+ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.representatives ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_config ENABLE ROW LEVEL SECURITY;
+
+-- Allow full read/write for all application operations
+DROP POLICY IF EXISTS "Public full access to businesses" ON public.businesses;
+CREATE POLICY "Public full access to businesses" ON public.businesses FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access to representatives" ON public.representatives;
+CREATE POLICY "Public full access to representatives" ON public.representatives FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access to payout_requests" ON public.payout_requests;
+CREATE POLICY "Public full access to payout_requests" ON public.payout_requests FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access to leads" ON public.leads;
+CREATE POLICY "Public full access to leads" ON public.leads FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public full access to payment_config" ON public.payment_config;
+CREATE POLICY "Public full access to payment_config" ON public.payment_config FOR ALL USING (true) WITH CHECK (true);
+
+-- =============================================================================
+-- 9. SEED DEFAULT ESSENTIAL CONFIGURATION & ADMIN (Idempotent)
+-- =============================================================================
+INSERT INTO public.payment_config (id, vodafone_cash_number, vodafone_cash_number_2, fawry_merchant_code, insta_pay_handle, card_gateway_active)
+VALUES ('default', '01143888355', '01556221141', '', '@daz31181', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.representatives (
+    id, name, email, phone, role, role_title, governorate, target_month,
+    avatar, avatar_status, commission_rate, status, password, referral_code,
+    referral_unlocked, admin_bypass_referral
+) VALUES (
+    'admin_1',
+    'مدير النظام دليلك',
+    'daz31181@gmail.com',
+    '01143888355',
+    'admin',
+    'مدير النظام',
+    'القاهرة (المقرات الرئيسية)',
+    50,
+    '',
+    'approved',
+    0,
+    'active',
+    'admin',
+    'DALIL-ADMIN',
+    true,
+    true
+) ON CONFLICT (email) DO NOTHING;

@@ -112,29 +112,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       return;
     }
 
-    // Validate phone number uniqueness
-    const normalizedPhone = formData.phone?.trim();
-    if (normalizedPhone) {
-      const isDuplicate = businesses.some(
-        (b) => b.id !== formData.id && ((b.phone && b.phone.trim() === normalizedPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedPhone))
-      );
-      if (isDuplicate) {
-        setErrorMsg('رقم هاتف النشاط هذا مسجل بالفعل لنشاط تجاري آخر!');
-        return;
-      }
-    }
-
-    const normalizedOwnerPhone = formData.ownerPhone?.trim();
-    if (normalizedOwnerPhone) {
-      const isDuplicate = businesses.some(
-        (b) => b.id !== formData.id && ((b.phone && b.phone.trim() === normalizedOwnerPhone) || (b.ownerPhone && b.ownerPhone.trim() === normalizedOwnerPhone))
-      );
-      if (isDuplicate) {
-        setErrorMsg('رقم هاتف مالك النشاط مسجل بالفعل لنشاط تجاري آخر!');
-        return;
-      }
-    }
-
     const updatedFormData: Business = {
       ...formData,
       nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || '',

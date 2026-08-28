@@ -576,33 +576,11 @@ export default function App() {
           fetchPayoutRequestsFromDb(),
         ]);
 
-        if (Array.isArray(freshBiz) && freshBiz.length > 0) {
-          setBusinesses((prev) => {
-            const prevMap = new Map<string, Business>(prev.map((b) => [b.id, b]));
-            const freshMap = new Map<string, Business>();
-
-            freshBiz.forEach((b) => {
-              const current = prevMap.get(b.id);
-              if (current) {
-                freshMap.set(b.id, {
-                  ...b,
-                  ...current,
-                });
-              } else {
-                freshMap.set(b.id, b);
-              }
-            });
-
-            prev.forEach((b) => {
-              if (!freshMap.has(b.id)) freshMap.set(b.id, b);
-            });
-
-            const merged = Array.from(freshMap.values());
-            try {
-              localStorage.setItem('dalelak_cached_businesses', JSON.stringify(merged));
-            } catch {}
-            return merged;
-          });
+        if (Array.isArray(freshBiz)) {
+          setBusinesses(freshBiz);
+          try {
+            localStorage.setItem('dalelak_cached_businesses', JSON.stringify(freshBiz));
+          } catch {}
         }
 
         if (Array.isArray(freshPayouts)) {
@@ -742,7 +720,7 @@ export default function App() {
       } catch {}
       return updated;
     });
-    updateBusinessInDb(normalizedBiz.id, normalizedBiz);
+    await updateBusinessInDb(normalizedBiz.id, normalizedBiz);
     
     // 1. Verification status change notification
     if (prevBiz && prevBiz.verificationStatus !== normalizedBiz.verificationStatus) {

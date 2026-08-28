@@ -88,9 +88,34 @@ function persistStoredPayouts(payoutList: any[]) {
   }
 }
 
+const LEADS_STORE_FILE = path.join(STORE_DIR, 'server_leads_store.json');
+
+function loadStoredLeads(): any[] {
+  try {
+    if (fs.existsSync(LEADS_STORE_FILE)) {
+      const content = fs.readFileSync(LEADS_STORE_FILE, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.error('Error loading stored leads:', err);
+  }
+  return [];
+}
+
+function persistStoredLeads(data: any[]) {
+  try {
+    const dir = path.dirname(LEADS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(LEADS_STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error persisting leads:', err);
+  }
+}
+
 let businesses: Business[] = loadStoredBusinesses();
 let representatives: Representative[] = loadStoredReps();
 let payoutRequests: any[] = loadStoredPayouts();
+let leadsStore: any[] = loadStoredLeads();
 let paymentConfig: PaymentGatewayConfig = { ...DEFAULT_PAYMENT_CONFIG };
 
 // REST API Endpoints
@@ -151,9 +176,9 @@ app.post('/api/test-mode/reset', (_req, res) => {
 const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds heartbeat threshold
 
 app.post('/api/auth/login', (req, res) => {
-  const { email, password, role, forceSession } = req.body;
-  const cleanEmail = email?.trim().toLowerCase();
-  const cleanPassword = password?.trim();
+  const { email, password, role, forceSession } = req.body || {};
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanPassword = (password || '').trim();
   const now = Date.now();
   const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -170,7 +195,7 @@ app.post('/api/auth/login', (req, res) => {
   if (role === 'admin' || isDazLogin || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') {
     const validAdminPasswords = ['admin123', 'Aa123456', 'Aa132456', 'admin'];
     if ((isDazLogin || cleanEmail === 'dalilaakeg@gmail.com' || cleanEmail === 'admin@gmail.com') && validAdminPasswords.includes(cleanPassword)) {
-      const adminRep = representatives.find((r) => r.role === 'admin' || r.email.toLowerCase().includes('daz31181') || r.email.toLowerCase() === 'dalilaakeg@gmail.com' || r.email.toLowerCase() === 'admin@gmail.com');
+      const adminRep = representatives.find((r) => r.role === 'admin' || (r.email && r.email.toLowerCase().includes('daz31181')) || (r.email && r.email.toLowerCase() === 'dalilaakeg@gmail.com') || (r.email && r.email.toLowerCase() === 'admin@gmail.com'));
       
       // Check active concurrent session for admin
       if (adminRep?.activeSessionId && adminRep.lastActiveTimestamp && (now - adminRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS) && !forceSession) {
@@ -206,18 +231,18 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   // Representative login (with exact and smart normalized matching)
-  let rep = representatives.find((r) => r.email.toLowerCase() === cleanEmail);
-  if (!rep) {
+  let rep = representatives.find((r) => (r.email || '').toLowerCase() === cleanEmail);
+  if (!rep && cleanEmail) {
     const cleanPhone = cleanEmail.replace(/\D/g, '');
     const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
     rep = representatives.find((r) => {
-      const normRep = r.email.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normRep = (r.email || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const normPhone = (r.phone || '').replace(/\D/g, '');
       return (
-        normRep === normClean ||
+        (normClean && normRep === normClean) ||
         (cleanPhone.length >= 8 && normPhone && (normPhone === cleanPhone || normPhone.endsWith(cleanPhone) || cleanPhone.endsWith(normPhone))) ||
-        r.phone.trim() === cleanEmail ||
-        r.id.toLowerCase() === cleanEmail
+        (r.phone && r.phone.trim() === cleanEmail) ||
+        (r.id && r.id.toLowerCase() === cleanEmail)
       );
     });
   }
@@ -380,6 +405,8 @@ app.post('/api/representatives', (req, res) => {
     name: repData.name,
     email: repData.email,
     phone: repData.phone,
+    pendingPhone: repData.pendingPhone || undefined,
+    phoneStatus: repData.phoneStatus || 'none',
     nationalId: repData.nationalId || '',
     activationFacePhoto: repData.activationFacePhoto || repData.avatar || '',
     nationalIdCardPhoto: repData.nationalIdCardPhoto || '',
@@ -468,33 +495,7 @@ app.put('/api/payouts/:id', (req, res) => {
   res.json(payoutRequests[idx]);
 });
 
-// 6. Interested Leads API & Store (العملاء المحتملين والمتابعات الميدانية)
-const LEADS_STORE_FILE = path.join(process.cwd(), 'data', 'server_leads_store.json');
-
-function loadStoredLeads(): any[] {
-  try {
-    if (fs.existsSync(LEADS_STORE_FILE)) {
-      const content = fs.readFileSync(LEADS_STORE_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (err) {
-    console.error('Error loading stored leads:', err);
-  }
-  return [];
-}
-
-function persistStoredLeads(data: any[]) {
-  try {
-    const dir = path.dirname(LEADS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(LEADS_STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error persisting leads:', err);
-  }
-}
-
-let leadsStore: any[] = loadStoredLeads();
-
+// 6. Interested Leads API (العملاء المحتملين والمتابعات الميدانية)
 app.get('/api/leads', (_req, res) => {
   leadsStore = loadStoredLeads();
   res.json(leadsStore);
