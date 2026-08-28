@@ -33,7 +33,6 @@ interface LoginModalProps {
   isInline?: boolean;
   onOpenAbout?: () => void;
   onOpenTerms?: () => void;
-  onOpenShowcase?: () => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -44,7 +43,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   isInline = false,
   onOpenAbout,
   onOpenTerms,
-  onOpenShowcase,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -807,13 +805,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         <button
           type="button"
           onClick={() => {
-            if (onOpenShowcase) {
-              onOpenShowcase();
-            } else {
-              const url = new URL(window.location.href);
-              url.searchParams.set('view', 'showcase');
-              window.location.href = url.toString();
-            }
+            window.open('https://dalilak-directory-fr0x1lt64-harfag.vercel.app/', '_blank');
           }}
           className="w-full bg-gradient-to-r from-amber-500/15 via-[var(--bg-card)] to-yellow-500/15 hover:from-amber-500/25 hover:to-yellow-500/25 border border-amber-500/40 text-amber-700 dark:text-amber-300 font-black text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
         >

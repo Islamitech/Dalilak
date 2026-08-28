@@ -43,6 +43,7 @@ export default function App() {
               lat: typeof r.lat === 'number' ? r.lat : 30.0444,
               lng: typeof r.lng === 'number' ? r.lng : 31.2357,
               phone: r.phone || '',
+              secondaryPhone: r.secondary_phone || r.secondaryPhone || '',
               whatsapp: r.whatsapp || '',
               workingHours: r.working_hours || r.workingHours || '',
               description: r.description || '',
@@ -53,7 +54,18 @@ export default function App() {
               verificationStatus: r.verification_status || r.verificationStatus || 'verified',
               googleSyncStatus: r.google_sync_status || r.googleSyncStatus || 'synced',
               createdAt: r.created_at || r.createdAt || new Date().toISOString(),
+              createdDate: r.created_at || r.createdDate || new Date().toISOString(),
               amountPaid: typeof r.amount_paid === 'number' ? r.amount_paid : 0,
+              ownerName: r.owner_name || r.ownerName || '',
+              ownerPhone: r.owner_phone || r.ownerPhone || '',
+              repId: r.rep_id || r.repId || '',
+              repName: r.rep_name || r.repName || '',
+              packageId: r.package_id || r.packageId || 'pkg_basic',
+              packageName: r.package_name || r.packageName || 'باقة التوثيق الأساسي',
+              packagePrice: typeof r.package_price === 'number' ? r.package_price : 250,
+              paymentStatus: r.payment_status || r.paymentStatus || 'fully_paid',
+              invoiceNumber: r.invoice_number || r.invoiceNumber || '',
+              invoiceDate: r.invoice_date || r.invoiceDate || '',
             }));
 
             setBusinesses(mapped);
