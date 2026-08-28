@@ -166,6 +166,11 @@ export default function App() {
     // Always guarantee body scrolling is freely active on tab/page change
     document.body.style.overflow = '';
 
+    // Scroll to the very top of the window on tab transition or page reload
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
     if (activeTab) {
       localStorage.setItem('dalelak_active_tab', activeTab);
       const url = new URL(window.location.href);

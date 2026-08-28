@@ -192,6 +192,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [submittedBusiness, setSubmittedBusiness] = useState<Business | null>(null);
   const [showMapsSyncModal, setShowMapsSyncModal] = useState<boolean>(false);
 
+  // Auto-scroll window to top when submittedBusiness changes or form resets
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [submittedBusiness]);
+
   const resetForm = () => {
     setNameAr('');
     setNameEn('');
@@ -215,6 +222,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setPhotos([]);
     setSubmittedBusiness(null);
     setShowPaymentModal(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   // Package select update helper
@@ -363,6 +371,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setShowPaymentModal(false);
     onSubmitBusiness(newBusiness);
     setSubmittedBusiness(newBusiness);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   };
 
   if (submittedBusiness) {

@@ -612,6 +612,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Scroll to top when switching admin sub-tabs
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [activeAdminTab]);
+
   return (
     <div className="max-w-6xl mx-auto space-y-5 pb-20 font-['Cairo',sans-serif]">
       {/* --------------------------------------------------------------------- */}
