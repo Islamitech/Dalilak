@@ -584,20 +584,13 @@ export default function App() {
             freshBiz.forEach((b) => {
               const current = prevMap.get(b.id);
               if (current) {
-                const isCurrentPaid = current.paymentStatus === 'fully_paid' || (current.amountPaid || 0) > 0;
-                const isFreshPaid = b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) > 0;
-                if (isCurrentPaid && !isFreshPaid) {
-                  freshMap.set(b.id, {
-                    ...b,
-                    amountPaid: current.amountPaid,
-                    paymentStatus: current.paymentStatus,
-                    paymentMethod: current.paymentMethod || b.paymentMethod,
-                    cashCollectedByRep: current.cashCollectedByRep ?? b.cashCollectedByRep,
-                  });
-                  return;
-                }
+                freshMap.set(b.id, {
+                  ...b,
+                  ...current,
+                });
+              } else {
+                freshMap.set(b.id, b);
               }
-              freshMap.set(b.id, b);
             });
 
             prev.forEach((b) => {

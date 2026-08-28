@@ -160,32 +160,40 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
-  // 1. Immediately update LocalStorage cache (0ms persistence)
+  // 1. Immediately update LocalStorage cache (0ms instant persistence)
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    const map = new Map<string, Business>();
     if (Array.isArray(cached)) {
-      const updated = cached.map((b: Business) => (b.id === id ? { ...b, ...updates } : b));
-      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+      cached.forEach((b: Business) => {
+        if (b && b.id) map.set(b.id, b);
+      });
     }
+    const current = map.get(id) || ({} as Business);
+    const mergedObj = { ...current, ...updates, id } as Business;
+    map.set(id, mergedObj);
+    localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
   const dbUpdates = mapBusinessToDb(updates as Business);
   delete dbUpdates.id;
 
-  // 2. Sync to Supabase in background
-  try {
-    const { error } = await supabase.from('businesses').update(dbUpdates).eq('id', id);
-    if (error) {
-      await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
-        method: 'PATCH',
-        body: JSON.stringify(dbUpdates),
-      });
+  // 2. Sync to Supabase in background (if configured)
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('businesses').update(dbUpdates).eq('id', id);
+      if (error) {
+        await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(dbUpdates),
+        });
+      }
+    } catch (err) {
+      console.error('Supabase update business error:', err);
     }
-  } catch (err) {
-    console.error('Supabase update business error:', err);
   }
 
-  // 3. Always sync to local server
+  // 3. Always sync to local server API
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'PUT',

@@ -344,12 +344,13 @@ app.put('/api/businesses/:id', (req, res) => {
   const { id } = req.params;
   const index = businesses.findIndex((b) => b.id === id);
   if (index === -1) {
-    return res.status(404).json({ error: 'النشاط التجاري غير موجود' });
+    businesses.unshift({ ...req.body, id });
+  } else {
+    businesses[index] = { ...businesses[index], ...req.body, id };
   }
-
-  businesses[index] = { ...businesses[index], ...req.body };
   persistStoredBusinesses(businesses);
-  res.json(businesses[index]);
+  const saved = businesses.find((b) => b.id === id) || req.body;
+  res.json(saved);
 });
 
 app.delete('/api/businesses/:id', (req, res) => {
