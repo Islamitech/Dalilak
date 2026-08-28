@@ -19,7 +19,6 @@ import {
   RotateCcw,
   Crosshair,
   Zap,
-  Sparkles,
   Eye,
 } from 'lucide-react';
 

@@ -17,7 +17,6 @@ import {
   AlertCircle,
   Download,
   Eye,
-  Store,
 } from 'lucide-react';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 

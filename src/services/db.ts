@@ -1,6 +1,5 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus } from '../types';
-import { MOCK_REPRESENTATIVES } from '../data/mockData';
 
 /**
  * 🏛️ Live Supabase Database Service

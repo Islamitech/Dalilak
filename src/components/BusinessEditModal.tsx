@@ -34,14 +34,11 @@ import {
   Globe,
   Tag,
   Calendar,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { formatActivityDateTime } from '../utils/dateFormatters';
 import { generateUpgradeOffersWhatsAppMessage, getUpgradeOffersWhatsAppUrl } from '../utils/packageOffers';
-import { getBusinessPaymentLabel } from '../utils/commission';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -52,7 +49,7 @@ interface BusinessEditModalProps {
   onShowInvoice?: (business: Business) => void;
   onCollectPayment?: (business: Business) => void;
   onDeleteBusiness?: (id: string) => void;
-  businesses: Business[];
+  businesses?: Business[];
 }
 
 export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
@@ -64,7 +61,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   onShowInvoice,
   onCollectPayment,
   onDeleteBusiness,
-  businesses,
 }) => {
   useEffect(() => {
     document.body.style.overflow = 'hidden';

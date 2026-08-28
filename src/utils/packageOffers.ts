@@ -1,4 +1,4 @@
-import { Business, PackageOption } from '../types';
+import { Business } from '../types';
 import { PACKAGES } from '../data/mockData';
 
 /**
@@ -16,7 +16,7 @@ export function generateUpgradeOffersWhatsAppMessage(business: Business): string
     `يسعدنا أن نقدم لكم عروض التطوير والتسويق الحصرية لنقل نشاطكم لمستوى أعلى وزيادة مبيعاتكم:\n\n` +
     `-----------------------------------------\n`;
 
-  otherPackages.forEach((pkg, index) => {
+  otherPackages.forEach((pkg) => {
     const isVip = pkg.id === 'pkg_vip';
     const isPro = pkg.id === 'pkg_pro';
     const icon = isVip ? '👑' : isPro ? '🚀' : '✨';

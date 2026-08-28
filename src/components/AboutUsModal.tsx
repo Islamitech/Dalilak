@@ -3,19 +3,13 @@ import { createPortal } from 'react-dom';
 import { Logo } from './Logo';
 import { 
   MapPin, 
-  ShieldCheck, 
   Sparkles, 
   Target, 
   Compass, 
-  Award, 
-  CheckCircle2, 
-  Building2, 
   TrendingUp,
   Cpu,
   Scale,
   Megaphone,
-  Briefcase,
-  Layers,
   ChevronLeft
 } from 'lucide-react';
 

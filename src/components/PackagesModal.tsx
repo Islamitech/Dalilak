@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Logo } from './Logo';
-import { Sparkles, X, Layers } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { PackagesHub } from './PackagesHub';
 
 interface PackagesModalProps {

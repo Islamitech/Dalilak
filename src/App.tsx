@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification, PayoutRequest, InterestedLead } from './types';
-import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG, EGYPT_GOVERNORATES, CATEGORY_GROUPS } from './data/mockData';
-import { calculateTotalRepCommission, getBusinessPaymentLabel } from './utils/commission';
+import { DEFAULT_PAYMENT_CONFIG, EGYPT_GOVERNORATES, CATEGORY_GROUPS } from './data/mockData';
+import { calculateTotalRepCommission } from './utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from './utils/dateFormatters';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
@@ -21,8 +21,26 @@ import { TermsModal } from './components/TermsModal';
 import { PermissionsModal } from './components/PermissionsModal';
 import { PackagesModal } from './components/PackagesModal';
 import { Logo } from './components/Logo';
-import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, canUserManagePayouts } from './utils/permissions';
-import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X, Info, Heart, Smartphone, LayoutGrid, List, MessageCircle, Filter, ArrowUpDown, Check, Store, Tag, Globe, DollarSign, TrendingUp, UserCheck, Calendar, Navigation } from 'lucide-react';
+import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel } from './utils/permissions';
+import { 
+  MapPin, 
+  PlusCircle, 
+  FileText, 
+  Clock, 
+  Phone, 
+  Search, 
+  ShieldCheck, 
+  Sparkles, 
+  Building2, 
+  Eye, 
+  X, 
+  Info, 
+  LayoutGrid, 
+  List, 
+  MessageCircle, 
+  Store, 
+  Navigation 
+} from 'lucide-react';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
 import {
   fetchBusinessesFromDb,
@@ -201,7 +219,6 @@ export default function App() {
 
   // Home Feed Search & Modern Directory Filters
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
-  const [homeStatusFilter, setHomeStatusFilter] = useState<string>('all');
   const [homeGovFilter, setHomeGovFilter] = useState<string>('all');
   const [homeCategoryFilter, setHomeCategoryFilter] = useState<string>('all');
   const [homeVerificationFilter, setHomeVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
@@ -1178,13 +1195,10 @@ export default function App() {
         } else if (homeVerificationFilter === 'unpaid') {
           if (b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) > 0) return false;
         }
-        if (homeStatusFilter !== 'all' && b.paymentStatus !== homeStatusFilter) {
-          return false;
-        }
         return true;
       })
     );
-  }, [scopedBusinesses, homeSearchQuery, homeGovFilter, homeCategoryFilter, homeVerificationFilter, homeStatusFilter]);
+  }, [scopedBusinesses, homeSearchQuery, homeGovFilter, homeCategoryFilter, homeVerificationFilter]);
 
   // Single-Session Active Heartbeat & Cross-Tab Invalidation Listener
   useEffect(() => {
@@ -1290,24 +1304,6 @@ export default function App() {
     url.searchParams.delete('tab');
     window.history.replaceState({}, '', url.toString());
   }, [user]);
-
-  // Handler to reload all data when switching mode or resetting test sandbox
-  const handleReloadAllData = async () => {
-    setIsLoadingData(true);
-    try {
-      const [bizData, dbRepsData] = await Promise.all([
-        fetchBusinessesFromDb(),
-        fetchRepsFromDb(),
-      ]);
-      setBusinesses(bizData && bizData.length > 0 ? bizData : INITIAL_BUSINESSES);
-      setRepresentatives(dbRepsData && dbRepsData.length > 0 ? dbRepsData : MOCK_REPRESENTATIVES);
-      addNotification('🔄 تمت مزامنة وتحديث البيانات التجريبية بنجاح!', 'info');
-    } catch (e) {
-      console.error('Reload data error:', e);
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
 
   // -------------------------------------------------------------
   // EXTERNAL READ-ONLY VIEWS (For QR Codes)

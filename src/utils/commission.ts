@@ -31,7 +31,7 @@ export function getPackageCommission(packagePrice: number, rate: number = DEFAUL
  * Calculates actual earned commission dynamically based on collected amount and percentage rate.
  */
 export function calculateBusinessCommission(
-  packagePrice: number,
+  _packagePrice: number,
   amountPaid: number,
   rate: number = DEFAULT_COMMISSION_RATE
 ): number {

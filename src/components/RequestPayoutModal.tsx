@@ -9,8 +9,7 @@ import {
   AlertCircle, 
   CreditCard, 
   Smartphone, 
-  CheckCircle2, 
-  Info 
+  CheckCircle2 
 } from 'lucide-react';
 
 interface RequestPayoutModalProps {

@@ -9,29 +9,18 @@ import { saveLeadToDb } from '../services/db';
 import {
   Camera,
   MapPin,
-  Tag,
-  DollarSign,
-  Phone,
   FileText,
   User,
   CheckCircle2,
   AlertCircle,
   Clock,
   Sparkles,
-  QrCode,
-  Image as ImageIcon,
-  Building,
   Building2,
   Navigation,
-  Globe,
   Loader2,
   CreditCard,
   X,
   UserCheck,
-  UserPlus,
-  Send,
-  Calendar,
-  Layers,
   ChevronDown,
   ChevronUp,
   CloudUpload,
@@ -39,7 +28,6 @@ import {
   Store,
   EyeOff,
   Map as MapIcon,
-  Check,
   Share2
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
@@ -48,7 +36,7 @@ interface BusinessFormProps {
   currentRep: Representative | null;
   onSubmitBusiness: (business: Business) => void;
   onShowInvoice: (biz: Business) => void;
-  businesses: Business[];
+  businesses?: Business[];
   onSaveLead?: (lead: InterestedLead) => void;
   initialLead?: InterestedLead | null;
   onOpenPackages?: () => void;
@@ -58,10 +46,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   currentRep,
   onSubmitBusiness,
   onShowInvoice,
-  businesses,
   onSaveLead,
   initialLead,
-  onOpenPackages,
 }) => {
   // Form State
   const [nameAr, setNameAr] = useState<string>(initialLead?.businessName || '');
@@ -175,7 +161,6 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   // Package & Payments
   const [selectedPackage, setSelectedPackage] = useState<PackageOption>(PACKAGES[0]); // Default Package 1 (Basic 250 EGP)
-  const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null); // For accordion details toggle
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('fully_paid');
   const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[0].price);
   const [paymentMethod, setPaymentMethod] = useState<Business['paymentMethod']>('cash_by_rep');
@@ -223,18 +208,6 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setSubmittedBusiness(null);
     setShowPaymentModal(false);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  };
-
-  // Package select update helper
-  const handlePackageChange = (pkg: PackageOption) => {
-    setSelectedPackage(pkg);
-    if (paymentStatus === 'fully_paid') {
-      setAmountPaid(pkg.price);
-    } else if (paymentStatus === 'unpaid') {
-      setAmountPaid(0);
-    } else {
-      setAmountPaid(Math.round(pkg.price / 2));
-    }
   };
 
   const handlePaymentStatusChange = (status: PaymentStatus) => {

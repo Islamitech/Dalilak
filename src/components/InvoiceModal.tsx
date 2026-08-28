@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toPng } from 'html-to-image';
 import { Business } from '../types';
-import { calculateBusinessCommission } from '../utils/commission';
 import { Logo } from './Logo';
 import { 
   Printer, 
@@ -11,17 +10,11 @@ import {
   Clock, 
   AlertCircle, 
   MapPin, 
-  ExternalLink, 
-  ShieldCheck, 
-  QrCode, 
   Copy, 
   Check, 
-  CloudUpload, 
-  Sparkles, 
   Zap, 
   Gift,
   Download,
-  Save,
   Loader2
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';

@@ -2,10 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, Representative, PayoutRequest, PayoutMethod } from '../types';
 import { 
-  calculateTotalRepCommission, 
-  calculateRepPendingPayout, 
-  calculateRepTotalPaidOut, 
-  calculateRepAvailableBalance,
   calculateRepSettlement,
   PAYOUT_METHOD_LABELS
 } from '../utils/commission';
@@ -16,7 +12,6 @@ import { compressImageFile } from '../utils/imageCompressor';
 import { 
   PlusCircle, 
   Clock, 
-  AlertCircle, 
   CheckCircle2, 
   Lightbulb, 
   Users, 
@@ -25,17 +20,12 @@ import {
   Check, 
   Lock, 
   Sparkles,
-  TrendingUp,
-  Gift,
-  DollarSign,
   Send,
   CreditCard,
   History,
-  Wallet,
   ArrowDownLeft,
   Calendar,
   Camera,
-  UploadCloud,
   Trash2,
   Loader2,
   FileCheck
@@ -76,7 +66,6 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
   const totalCollected = myBusinesses.reduce((acc, b) => acc + (b.amountPaid || 0), 0);
 
   const repRate = rep.commissionRate || 42.86;
-  const directCommission = calculateTotalRepCommission(myBusinesses, repRate);
 
   // Referral Network & Missions calculation
   const referralSummary = getRepReferralSummary(rep, allReps, businesses);
@@ -91,9 +80,6 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
     referralSummary.totalNetEarnings
   );
 
-  const totalEarnedCommission = settlement.totalEarnedCommission;
-  const pendingPayout = settlement.pendingPayout;
-  const totalPaidOut = settlement.totalPaidOut;
   const availableBalance = settlement.withdrawableBalance;
 
   const myPayouts = payoutRequests.filter((p) => p.repId === rep.id);
@@ -589,7 +575,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
 
           {referralSummary.invitedRepsDetails.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {referralSummary.invitedRepsDetails.map(({ rep: invRep, bizCount, totalRevenue, currentRate, commissionEarned, isMission1Complete, remainingForMission1 }) => {
+              {referralSummary.invitedRepsDetails.map(({ rep: invRep, bizCount, totalRevenue: _totalRevenue, currentRate, commissionEarned, isMission1Complete, remainingForMission1 }) => {
                 const isSuspended = invRep.status === 'suspended';
 
                 return (

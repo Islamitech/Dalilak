@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, PACKAGES, DEFAULT_PAYMENT_CONFIG } from './src/data/mockData.js';
+import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './src/data/mockData.js';
 import { Business, Representative, PaymentGatewayConfig } from './src/types.js';
 
 const app = express();
@@ -176,7 +176,7 @@ app.post('/api/test-mode/reset', (_req, res) => {
 const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds heartbeat threshold
 
 app.post('/api/auth/login', (req, res) => {
-  const { email, password, role, forceSession } = req.body || {};
+  const { email, password, forceSession } = req.body || {};
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPassword = (password || '').trim();
   const now = Date.now();

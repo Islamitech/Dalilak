@@ -3,25 +3,12 @@ import {
   Sparkles, 
   CheckCircle2, 
   MapPin, 
-  Globe, 
-  Share2, 
-  Camera, 
-  TrendingUp, 
   Crown, 
   Zap, 
   Clock, 
-  HelpCircle, 
-  Layers, 
-  Check, 
-  X,
-  FileText,
-  Smartphone,
-  ShieldCheck,
-  Award,
-  Users,
-  Building2
+  Layers,
+  Users
 } from 'lucide-react';
-import { PACKAGES } from '../data/mockData';
 
 export const PackagesHub: React.FC = () => {
   const [selectedPkgId, setSelectedPkgId] = useState<string>('pkg_pro');

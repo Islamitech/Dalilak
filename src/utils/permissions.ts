@@ -1,4 +1,4 @@
-import { User, UserRole, Business, Representative, PayoutRequest } from '../types';
+import { User, UserRole, Business } from '../types';
 
 export interface RolePermissions {
   role: UserRole;

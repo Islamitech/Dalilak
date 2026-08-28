@@ -5,23 +5,10 @@ import {
   Briefcase,
   Calculator,
   CheckCircle2,
-  XCircle,
-  HelpCircle,
   Sparkles,
   Lock,
-  Unlock,
-  Store,
-  Users,
-  DollarSign,
-  MapPin,
-  FileText,
-  CreditCard,
-  UserCheck,
-  Send,
-  Zap,
 } from 'lucide-react';
 import { UserRole } from '../types';
-import { ROLE_DEFINITIONS } from '../utils/permissions';
 
 export const PermissionsHub: React.FC = () => {
   const [selectedRoleTab, setSelectedRoleTab] = useState<UserRole>('admin');

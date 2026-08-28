@@ -1,19 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Representative, User, Business, PayoutRequest, PayoutMethod } from '../types';
 import { 
-  calculateRepPendingPayout, 
-  calculateRepTotalPaidOut, 
-  calculateRepAvailableBalance,
   calculateRepSettlement,
-  calculateBusinessCommission,
-  calculateRepTotalCashCollected,
-  calculatePlatformDueFromRep,
   getBusinessPaymentLabel,
   PAYOUT_METHOD_LABELS
 } from '../utils/commission';
 import { compressImageFile } from '../utils/imageCompressor';
-import { getRepReferralSummary, getRepReferralCode, INVITATION_GIFT_BONUS } from '../utils/referral';
+import { getRepReferralSummary, getRepReferralCode } from '../utils/referral';
 import { DocViewerModal, DocType } from './DocViewerModal';
 import { UserAvatar } from './UserAvatar';
 import { Logo } from './Logo';
@@ -21,47 +15,33 @@ import { RequestPayoutModal } from './RequestPayoutModal';
 import {
   User as UserIcon,
   ShieldCheck,
-  Phone,
-  Mail,
   MapPin,
   FileText,
   CreditCard,
   Lock,
   Download,
   Printer,
-  QrCode,
   CheckCircle2,
-  Award,
-  Key,
   KeyRound,
   LogOut,
   Edit3,
   Save,
-  Briefcase,
   AlertCircle,
   Percent,
-  Upload,
   Camera,
-  UploadCloud,
   Share2,
   Copy,
   Check,
   Sparkles,
   Users,
-  TrendingUp,
   Gift,
   ArrowDownLeft,
-  DollarSign,
   IdCard,
-  BadgeCheck,
   Trash2,
   Loader2,
   FileCheck,
   Send,
-  Clock,
-  HelpCircle,
-  ExternalLink,
-  ChevronDown
+  Clock
 } from 'lucide-react';
 
 interface RepProfileProps {
@@ -83,8 +63,8 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   user,
   rep,
   businessesCount,
-  totalRevenue,
-  totalCommission,
+  totalRevenue: _totalRevenue,
+  totalCommission: _totalCommission,
   allReps = [],
   allBusinesses = [],
   payoutRequests = [],
@@ -221,7 +201,6 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   const [editName, setEditName] = useState<string>(rep.name);
   const [editPhone, setEditPhone] = useState<string>(rep.phone);
   const [editEmail, setEditEmail] = useState<string>(rep.email);
-  const [editNationalId, setEditNationalId] = useState<string>(rep.nationalId || '');
   const [editAvatar, setEditAvatar] = useState<string>(rep.avatar || '');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<boolean>(false);
@@ -334,15 +313,6 @@ export const RepProfile: React.FC<RepProfileProps> = ({
     setTimeout(() => setSavedPayoutNotice(false), 3000);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword) return;
-    onUpdateRep({ ...rep, password: newPassword });
-    setPasswordNotice(true);
-    setNewPassword('');
-    setTimeout(() => setPasswordNotice(false), 3000);
-  };
-
   if (isExternalView) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -444,7 +414,6 @@ export const RepProfile: React.FC<RepProfileProps> = ({
               setEditName(rep.name);
               setEditPhone(rep.phone);
               setEditEmail(rep.email);
-              setEditNationalId(rep.nationalId || '29805120104892');
               setEditAvatar(rep.avatar || '');
               setCurrentPassword('');
               setNewPassword('');

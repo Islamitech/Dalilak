@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Logo } from './Logo';
 import { 
-  FileText, 
   ShieldCheck, 
   Lock, 
   RefreshCw, 

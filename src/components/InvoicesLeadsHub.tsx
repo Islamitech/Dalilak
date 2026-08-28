@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   UserCheck,
@@ -17,7 +17,6 @@ import {
   X,
   MapPin,
   Flame,
-  FileSpreadsheet,
 } from 'lucide-react';
 import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';

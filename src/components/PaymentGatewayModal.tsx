@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, PaymentGatewayConfig } from '../types';
-import { CreditCard, Phone, CheckCircle2, ShieldCheck, Copy, Check, AlertTriangle, Sparkles, Smartphone, Layers, Clock } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Copy, Check, Smartphone, Clock } from 'lucide-react';
 
 interface PaymentGatewayModalProps {
   business: Business;

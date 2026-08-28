@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Representative } from '../types';
-import { MOCK_REPRESENTATIVES, EGYPT_GOVERNORATES } from '../data/mockData';
+import { EGYPT_GOVERNORATES } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { updateRepSessionInDb, fetchRepsFromDb, saveRepToDb } from '../services/db';
 import { compressImageFile } from '../utils/imageCompressor';
@@ -15,17 +15,12 @@ import {
   KeyRound, 
   CheckCircle2, 
   AlertCircle, 
-  Phone, 
   CreditCard, 
   Lock, 
-  Camera, 
-  Image as ImageIcon, 
   UploadCloud, 
   Trash2, 
   Eye, 
   User as UserIcon,
-  ShieldAlert,
-  Check,
   FileCheck
 } from 'lucide-react';
 

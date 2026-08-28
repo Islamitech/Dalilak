@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Representative } from '../types';
 import { Logo } from './Logo';
-import { Printer, Download, ShieldCheck, CheckCircle2, FileText, MapPin, QrCode, Award, Lock, FileSignature } from 'lucide-react';
+import { Printer, Download, ShieldCheck, FileSignature } from 'lucide-react';
 
 export type DocType = 'field_letter' | 'digital_badge' | 'rep_contract';
 

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { DocViewerModal } from './DocViewerModal';
-import { Business, Representative, PaymentGatewayConfig, UserRole, VerificationStatus, PaymentStatus, PayoutRequest, User } from '../types';
-import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES } from '../data/mockData';
-import { calculateTotalRepCommission, calculateRepSettlement, PAYOUT_METHOD_LABELS } from '../utils/commission';
+import { Business, Representative, PaymentGatewayConfig, UserRole, PayoutRequest, User } from '../types';
+import { EGYPT_GOVERNORATES } from '../data/mockData';
+import { calculateRepSettlement, PAYOUT_METHOD_LABELS } from '../utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../utils/dateFormatters';
-import { getRepReferralCode, isReferralSystemUnlocked, calculateReferralCommissionRate, isReferredByInviter } from '../utils/referral';
+import { getRepReferralCode, isReferralSystemUnlocked, isReferredByInviter } from '../utils/referral';
 import { compressImageFile } from '../utils/imageCompressor';
 import { exportBusinessesToCsv, exportRepsToCsv, exportPayoutsToCsv } from '../utils/exportCsv';
 import { canUserDeleteAccount } from '../utils/permissions';
@@ -15,14 +15,12 @@ import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { PermissionsModal } from './PermissionsModal';
 import {
   ShieldCheck,
-  TrendingUp,
   DollarSign,
   CheckCircle2,
   Clock,
   AlertCircle,
   AlertTriangle,
   Zap,
-  Send,
   Users,
   Plus,
   Edit,
@@ -31,39 +29,25 @@ import {
   ChevronRight,
   ChevronLeft,
   Search,
-  ExternalLink,
   Phone,
   FileText,
   FileSignature,
   CreditCard,
   UserCheck,
-  UserX,
   Briefcase,
   Crown,
   Calculator,
-  Camera,
-  Activity,
   Store,
   MapPin,
   Settings,
   X,
-  Save,
   Check,
-  Building2,
   Eye,
   FileCheck,
-  Image as ImageIcon,
-  User as UserIcon,
-  Info,
-  Calendar,
-  Hash,
   Compass,
-  UploadCloud,
   PieChart,
   BarChart3,
   Award,
-  ArrowUpRight,
-  Filter,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -210,7 +194,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [vodaNumber, setVodaNumber] = useState<string>(paymentConfig.vodafoneCashNumber || '01143888355');
   const [vodaNumber2, setVodaNumber2] = useState<string>(paymentConfig.vodafoneCashNumber2 || '01556221141');
-  const [fawryCode, setFawryCode] = useState<string>(paymentConfig.fawryMerchantCode || '');
   const [instaHandle, setInstaHandle] = useState<string>(paymentConfig.instaPayHandle || '@daz31181');
 
   const [previewAvatarRep, setPreviewAvatarRep] = useState<Representative | null>(null);
@@ -224,7 +207,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalContractValue = businesses.reduce((acc, b) => acc + (b.packagePrice || 0), 0);
   const totalDebt = businesses.reduce((acc, b) => acc + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)), 0);
   const collectionRate = totalContractValue > 0 ? ((totalRevenue / totalContractValue) * 100).toFixed(1) : '0';
-  const avgDealValue = businesses.length > 0 ? Math.round(totalContractValue / businesses.length) : 0;
 
   // Verification Pipeline Metrics
   const verifiedCount = businesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
@@ -572,7 +554,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       ...paymentConfig,
       vodafoneCashNumber: vodaNumber.trim() || '01143888355',
       vodafoneCashNumber2: vodaNumber2.trim() || '01556221141',
-      fawryMerchantCode: fawryCode.trim(),
       instaPayHandle: instaHandle.trim() || '@daz31181',
     });
     setShowPaymentModal(false);
@@ -1845,6 +1826,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <div className="flex items-center gap-1.5 font-mono font-bold">
                             <span className="text-[var(--text-muted)]">كود:</span>
                             <span className="text-amber-700 dark:text-amber-300">{repRefCode}</span>
+                            {invitedCount > 0 && (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">دعا {invitedCount}</span>
+                            )}
                             {acc.referredByCode && (
                               <span className="text-[10px] text-[var(--text-muted)]">(دعاه: {acc.referredByCode})</span>
                             )}
@@ -2356,97 +2340,124 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
             <form
               onSubmit={handleSaveAccountModal}
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 max-h-[92vh] overflow-y-auto"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 max-h-[95vh] overflow-y-auto"
             >
-            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-              <h3 className="font-black text-base text-[var(--text-primary)]">
-                {editingAccId ? 'تعديل بيانات وصلاحيات الحساب' : 'إضافة حساب مستخدم جديد'}
-              </h3>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black border border-amber-500/30">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                    {editingAccId ? 'تعديل بيانات وتصاريح الحساب' : 'إضافة حساب مستخدم جديد'}
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                    {editingAccId ? 'مراجعة الهوية الوطنية، الصلاحيات، والمستندات الرسمية' : 'إنشاء حساب جديد وتعيين الصلاحيات والمحافظة'}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowAccountModal(false)}
-                className="bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer"
+                className="bg-[var(--input-bg)] hover:bg-rose-500/15 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-4">
               {editingAccId && (
                 (() => {
                   const editingRep = mergedAdminReps.find((r) => r.id === editingAccId);
                   const bizCount = editingRep ? businesses.filter((b) => b.repId === editingRep.id).length : 0;
                   const target = editingRep?.targetMonth || 20;
+                  const progressPct = target > 0 ? Math.min(100, (bizCount / target) * 100) : 0;
 
                   return (
                     <>
-                      <div className="sm:col-span-2 bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl grid grid-cols-3 gap-2 text-center text-xs font-bold my-1">
-                        <div>
-                          <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">الأنشطة المسجلة:</span>
-                          <span className="text-emerald-700 dark:text-emerald-400 font-black">{bizCount} نشاط</span>
+                      {/* ── KPI PERFORMANCE CARDS ─────────────────────────────────── */}
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 p-3 rounded-2xl">
+                        <div className="text-center bg-[var(--bg-card)]/80 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--border-color)]">
+                          <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-0.5">الأنشطة المسجلة</span>
+                          <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">{bizCount} نشاط</span>
                         </div>
-                        <div>
-                          <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">المستهدف الشهري:</span>
-                          <span className="text-[var(--text-primary)] font-black">{target} نشاط</span>
+                        <div className="text-center bg-[var(--bg-card)]/80 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--border-color)]">
+                          <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-0.5">المستهدف الشهري</span>
+                          <span className="text-sm sm:text-base font-black text-[var(--text-primary)] font-mono">{target} نشاط</span>
                         </div>
-                        <div>
-                          <span className="text-[10px] text-[var(--text-muted)] block mb-0.5">نسبة الإنجاز:</span>
-                          <span className="text-amber-600 dark:text-amber-400 font-black">
-                            {target > 0 ? ((bizCount / target) * 100).toFixed(1) : 0}%
+                        <div className="text-center bg-[var(--bg-card)]/80 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--border-color)]">
+                          <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-0.5">نسبة الإنجاز</span>
+                          <span className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 font-mono">
+                            {progressPct.toFixed(1)}%
                           </span>
                         </div>
                       </div>
 
-                      {/* Avatar Image & National ID Card Review */}
-                      <div className="sm:col-span-2 bg-[var(--bg-surface)] border border-[var(--border-color)] p-3.5 rounded-2xl space-y-3">
-                        <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
-                          <span className="font-extrabold text-[var(--text-primary)] text-xs flex items-center gap-1.5">
+                      {/* ── KYC & IDENTITY DOCUMENTS SHOWCASE (WORLD-CLASS DESIGN) ──── */}
+                      <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] p-3.5 sm:p-4 rounded-3xl space-y-3.5 shadow-xs">
+                        <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
+                          <div className="flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4 text-amber-500" />
-                            <span>مراجعة وثائق الهوية والتحقق الرسمية</span>
+                            <span className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                              مراجعة وثائق الهوية والتحقق الرسمية (KYC)
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                            مطلوب للاعتماد
                           </span>
-                          <span className="text-[10px] text-[var(--text-muted)] font-bold">مطلوب للتفعيل</span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                          {/* 1. Face Activation / Verification Photo */}
-                          <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-1.5 flex flex-col justify-between">
+                        {/* 3 Identity Document Cards Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          
+                          {/* 1. Official Face Verification Photo */}
+                          <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-col justify-between space-y-2.5 hover:border-amber-500/30 transition-all shadow-2xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-black text-[var(--text-primary)]">📸 صورة تفعيل الحساب</span>
-                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded border bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40">
-                                سجلات الإدارة
+                              <span className="text-[11px] font-black text-[var(--text-primary)] flex items-center gap-1">
+                                <span>📸</span>
+                                <span>صورة الوجه الرسمية</span>
+                              </span>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                                editingRep?.activationFacePhoto || editingRep?.avatar
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {editingRep?.activationFacePhoto || editingRep?.avatar ? 'مرفقة ✓' : 'غير مرفقة ✕'}
                               </span>
                             </div>
 
+                            {/* Preview Area */}
                             {(() => {
                               const facePhoto = editingRep?.activationFacePhoto || editingRep?.avatar;
                               return facePhoto ? (
-                                <div className="flex items-center gap-2">
+                                <div className="relative group aspect-square max-h-32 rounded-2xl overflow-hidden bg-[var(--input-bg)] border border-amber-500/30 flex items-center justify-center shadow-xs">
                                   <img
                                     src={facePhoto}
-                                    alt="صورة التفعيل"
-                                    className="w-12 h-12 rounded-xl object-cover border-2 border-amber-500/50 shadow-xs cursor-pointer hover:opacity-90 transition-transform active:scale-95 shrink-0"
-                                    onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: facePhoto })}
-                                    title="اضغط للتكبير"
+                                    alt="صورة الوجه"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                   />
-                                  <div className="space-y-1">
+                                  <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
                                     <button
                                       type="button"
                                       onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: facePhoto })}
-                                      className="text-[10px] bg-amber-500/10 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 font-bold px-2 py-1 rounded-lg block cursor-pointer"
+                                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer shadow-sm"
                                     >
-                                      🔍 تكبير
+                                      <Eye className="w-3 h-3" />
+                                      <span>تكبير</span>
                                     </button>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="py-2 text-center bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-[10px] text-[var(--text-muted)] font-bold">
-                                  غير مرفقة
+                                <div className="aspect-square max-h-32 rounded-2xl border-2 border-dashed border-[var(--border-color)] bg-[var(--input-bg)]/50 flex flex-col items-center justify-center text-[var(--text-muted)] gap-1">
+                                  <UserCheck className="w-6 h-6 opacity-40" />
+                                  <span className="text-[10px] font-bold">لا توجد صورة شخصية</span>
                                 </div>
                               );
                             })()}
 
-                            {/* Direct Admin Upload / Replace */}
-                            <label className="text-[10px] bg-[var(--bg-surface)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold p-1 rounded-lg border border-[var(--border-color)] text-center cursor-pointer block transition-colors">
+                            {/* Upload / Replace Action */}
+                            <label className="text-[10.5px] bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] hover:text-amber-600 font-extrabold py-2 px-2.5 rounded-xl border border-[var(--border-color)] text-center cursor-pointer block transition-colors shadow-2xs">
                               <span>📷 {editingRep?.activationFacePhoto || editingRep?.avatar ? 'استبدال الصورة' : 'إرفاق صورة الوجه'}</span>
                               <input
                                 type="file"
@@ -2470,37 +2481,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
 
                           {/* 2. National ID Card Photo (Front) */}
-                          <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-1.5 flex flex-col justify-between">
+                          <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-col justify-between space-y-2.5 hover:border-blue-500/30 transition-all shadow-2xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-black text-[var(--text-primary)]">🪪 وجه البطاقة</span>
-                              <span className="text-[9px] text-blue-600 dark:text-blue-400 font-bold">أمامي</span>
+                              <span className="text-[11px] font-black text-[var(--text-primary)] flex items-center gap-1">
+                                <span>🪪</span>
+                                <span>بطاقة الرقم القومي (الوجه)</span>
+                              </span>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                                editingRep?.nationalIdCardPhoto
+                                  ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {editingRep?.nationalIdCardPhoto ? 'أمامي ✓' : 'غير مرفق ✕'}
+                              </span>
                             </div>
 
+                            {/* Preview Area */}
                             {editingRep?.nationalIdCardPhoto ? (
-                              <div className="flex items-center gap-2">
+                              <div className="relative group aspect-[16/10] max-h-32 rounded-2xl overflow-hidden bg-[var(--input-bg)] border border-blue-500/30 flex items-center justify-center shadow-xs">
                                 <img
                                   src={editingRep.nationalIdCardPhoto}
                                   alt="وجه البطاقة الأمامي"
-                                  className="w-16 h-11 rounded-xl object-cover border-2 border-blue-500/50 shadow-xs cursor-pointer hover:opacity-90 transition-transform active:scale-95 shrink-0"
-                                  onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: editingRep.nationalIdCardPhoto })}
-                                  title="اضغط للتكبير"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: editingRep.nationalIdCardPhoto })}
-                                  className="text-[10px] bg-blue-500/10 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 font-bold px-2 py-1 rounded-lg block cursor-pointer"
-                                >
-                                  🔍 تكبير
-                                </button>
+                                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: editingRep.nationalIdCardPhoto })}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer shadow-sm"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>تكبير</span>
+                                  </button>
+                                </div>
                               </div>
                             ) : (
-                              <div className="py-2 text-center bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-[10px] text-[var(--text-muted)] font-bold">
-                                غير مرفق
+                              <div className="aspect-[16/10] max-h-32 rounded-2xl border-2 border-dashed border-[var(--border-color)] bg-[var(--input-bg)]/50 flex flex-col items-center justify-center text-[var(--text-muted)] gap-1">
+                                <FileText className="w-6 h-6 opacity-40" />
+                                <span className="text-[10px] font-bold">الوجه الأمامي غير مرفق</span>
                               </div>
                             )}
 
-                            {/* Direct Admin Upload / Replace */}
-                            <label className="text-[10px] bg-[var(--bg-surface)] hover:bg-blue-500/15 text-[var(--text-primary)] font-bold p-1 rounded-lg border border-[var(--border-color)] text-center cursor-pointer block transition-colors">
+                            {/* Upload / Replace Action */}
+                            <label className="text-[10.5px] bg-[var(--input-bg)] hover:bg-blue-500/15 text-[var(--text-primary)] hover:text-blue-600 font-extrabold py-2 px-2.5 rounded-xl border border-[var(--border-color)] text-center cursor-pointer block transition-colors shadow-2xs">
                               <span>📎 {editingRep?.nationalIdCardPhoto ? 'استبدال الوجه' : 'إرفاق وجه البطاقة'}</span>
                               <input
                                 type="file"
@@ -2524,37 +2547,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
 
                           {/* 3. National ID Card Photo (Back) */}
-                          <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-1.5 flex flex-col justify-between">
+                          <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-col justify-between space-y-2.5 hover:border-purple-500/30 transition-all shadow-2xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-black text-[var(--text-primary)]">🔄 ظهر البطاقة</span>
-                              <span className="text-[9px] text-purple-600 dark:text-purple-400 font-bold">خلفي</span>
+                              <span className="text-[11px] font-black text-[var(--text-primary)] flex items-center gap-1">
+                                <span>🔄</span>
+                                <span>بطاقة الرقم القومي (الظهر)</span>
+                              </span>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                                editingRep?.nationalIdCardBackPhoto
+                                  ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
+                                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {editingRep?.nationalIdCardBackPhoto ? 'خلفي ✓' : 'غير مرفق ✕'}
+                              </span>
                             </div>
 
+                            {/* Preview Area */}
                             {editingRep?.nationalIdCardBackPhoto ? (
-                              <div className="flex items-center gap-2">
+                              <div className="relative group aspect-[16/10] max-h-32 rounded-2xl overflow-hidden bg-[var(--input-bg)] border border-purple-500/30 flex items-center justify-center shadow-xs">
                                 <img
                                   src={editingRep.nationalIdCardBackPhoto}
                                   alt="ظهر البطاقة الخلفي"
-                                  className="w-16 h-11 rounded-xl object-cover border-2 border-purple-500/50 shadow-xs cursor-pointer hover:opacity-90 transition-transform active:scale-95 shrink-0"
-                                  onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: editingRep.nationalIdCardBackPhoto })}
-                                  title="اضغط للتكبير"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: editingRep.nationalIdCardBackPhoto })}
-                                  className="text-[10px] bg-purple-500/10 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 font-bold px-2 py-1 rounded-lg block cursor-pointer"
-                                >
-                                  🔍 تكبير
-                                </button>
+                                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewAvatarRep({ ...editingRep, avatar: editingRep.nationalIdCardBackPhoto })}
+                                    className="bg-purple-500 hover:bg-purple-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer shadow-sm"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>تكبير</span>
+                                  </button>
+                                </div>
                               </div>
                             ) : (
-                              <div className="py-2 text-center bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-[10px] text-[var(--text-muted)] font-bold">
-                                غير مرفق
+                              <div className="aspect-[16/10] max-h-32 rounded-2xl border-2 border-dashed border-[var(--border-color)] bg-[var(--input-bg)]/50 flex flex-col items-center justify-center text-[var(--text-muted)] gap-1">
+                                <FileText className="w-6 h-6 opacity-40" />
+                                <span className="text-[10px] font-bold">الظهر الخلفي غير مرفق</span>
                               </div>
                             )}
 
-                            {/* Direct Admin Upload / Replace */}
-                            <label className="text-[10px] bg-[var(--bg-surface)] hover:bg-purple-500/15 text-[var(--text-primary)] font-bold p-1 rounded-lg border border-[var(--border-color)] text-center cursor-pointer block transition-colors">
+                            {/* Upload / Replace Action */}
+                            <label className="text-[10.5px] bg-[var(--input-bg)] hover:bg-purple-500/15 text-[var(--text-primary)] hover:text-purple-600 font-extrabold py-2 px-2.5 rounded-xl border border-[var(--border-color)] text-center cursor-pointer block transition-colors shadow-2xs">
                               <span>📎 {editingRep?.nationalIdCardBackPhoto ? 'استبدال الظهر' : 'إرفاق ظهر البطاقة'}</span>
                               <input
                                 type="file"
@@ -2576,44 +2611,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               />
                             </label>
                           </div>
+
                         </div>
                       </div>
 
-                      {/* Documents Preview Section */}
-                      <div className="sm:col-span-2 bg-[var(--bg-surface)] border border-[var(--border-color)] p-3 rounded-2xl space-y-2">
-                        <label className="block text-[var(--text-primary)] font-extrabold text-[11px] mb-1">
-                          📂 الأوراق الثبوتية والمستندات الرسمية للمندوب
+                      {/* ── OFFICIAL DOCUMENTS & LEGAL CREDENTIALS ─────────────────── */}
+                      <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] p-3.5 rounded-3xl space-y-2.5">
+                        <label className="block text-[var(--text-primary)] font-black text-xs">
+                          📂 الأوراق الثبوتية وتصاريح العمل الرسمية للمندوب
                         </label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <button
                             type="button"
                             onClick={() => {
                               if (editingRep) setSelectedAdminDoc({ type: 'field_letter', rep: editingRep });
                             }}
-                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[10px] py-2 rounded-xl border border-amber-500/20 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                            className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] hover:text-amber-600 font-extrabold text-xs p-3 rounded-2xl border border-[var(--border-color)] hover:border-amber-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-2xs"
                           >
                             <FileText className="w-4 h-4 text-amber-500" />
-                            <span>تصريح الميدان</span>
+                            <span>تصريح العمل الميداني</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => {
                               if (editingRep) setSelectedAdminDoc({ type: 'digital_badge', rep: editingRep });
                             }}
-                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[10px] py-2 rounded-xl border border-amber-500/20 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                            className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] hover:text-amber-600 font-extrabold text-xs p-3 rounded-2xl border border-[var(--border-color)] hover:border-amber-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-2xs"
                           >
                             <UserCheck className="w-4 h-4 text-amber-500" />
-                            <span>بطاقة المندوب</span>
+                            <span>كارنيه الهوية الرقمية</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => {
                               if (editingRep) setSelectedAdminDoc({ type: 'rep_contract', rep: editingRep });
                             }}
-                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[10px] py-2 rounded-xl border border-amber-500/20 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                            className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] hover:text-amber-600 font-extrabold text-xs p-3 rounded-2xl border border-[var(--border-color)] hover:border-amber-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-2xs"
                           >
                             <FileSignature className="w-4 h-4 text-amber-500" />
-                            <span>عقد الانضمام</span>
+                            <span>عقد الانضمام والعمل</span>
                           </button>
                         </div>
                       </div>
@@ -2622,127 +2658,138 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 })()
               )}
 
-              {/* Account Role */}
-              <div className="sm:col-span-2">
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">
-                  نوع وتصنيف الحساب والصلاحية *
-                </label>
-                <select
-                  value={modalRole}
-                  onChange={(e) => setModalRole(e.target.value as UserRole)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                >
-                  <option value="rep">💼 مندوب مبيعات ميداني (تسجيل المحلات والتحصيل)</option>
-                  <option value="supervisor">👑 مشرف إدارة منطقة ومحافظة</option>
-                  <option value="accountant">🧾 محاسب ومحصل فواتير إلكترونية</option>
-                  <option value="admin">🛡️ مدير النظام (أدمن بجميع الصلاحيات)</option>
-                </select>
-              </div>
+              {/* ── ACCOUNT SETTINGS & PERMISSIONS FORM ─────────────────────── */}
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] p-3.5 sm:p-4 rounded-3xl space-y-3 shadow-xs">
+                <div className="border-b border-[var(--border-color)] pb-2">
+                  <span className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                    ⚙️ البيانات الأساسية والصلاحيات
+                  </span>
+                </div>
 
-              {/* Full Name */}
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">الاسم الثلاثي *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="مصطفى علي محمود"
-                  value={modalName}
-                  onChange={(e) => setModalName(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                />
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Account Role */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">
+                      نوع وتصنيف الحساب والصلاحية *
+                    </label>
+                    <select
+                      value={modalRole}
+                      onChange={(e) => setModalRole(e.target.value as UserRole)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-extrabold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    >
+                      <option value="rep">💼 مندوب مبيعات ميداني (تسجيل المحلات والتحصيل)</option>
+                      <option value="supervisor">👑 مشرف إدارة منطقة ومحافظة</option>
+                      <option value="accountant">🧾 محاسب ومحصل فواتير إلكترونية</option>
+                      <option value="admin">🛡️ مدير النظام (أدمن بجميع الصلاحيات)</option>
+                    </select>
+                  </div>
 
-              {/* Phone */}
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">رقم الهاتف للتواصل *</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="010xxxxxxx"
-                  value={modalPhone}
-                  onChange={(e) => setModalPhone(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-xs"
-                />
-              </div>
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">الاسم الثلاثي *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="مصطفى علي محمود"
+                      value={modalName}
+                      onChange={(e) => setModalName(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">البريد الإلكتروني للدخول</label>
-                <input
-                  type="email"
-                  placeholder="user@daleelek.eg"
-                  value={modalEmail}
-                  onChange={(e) => setModalEmail(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                />
-              </div>
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">رقم الهاتف للتواصل *</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="010xxxxxxx"
+                      value={modalPhone}
+                      onChange={(e) => setModalPhone(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-xs"
+                    />
+                  </div>
 
-              {/* Governorate */}
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">المحافظة / النطاق *</label>
-                <select
-                  value={modalGov}
-                  onChange={(e) => setModalGov(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                >
-                  {EGYPT_GOVERNORATES.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+                  {/* Email */}
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">البريد الإلكتروني للدخول</label>
+                    <input
+                      type="email"
+                      placeholder="user@dalelak.eg"
+                      value={modalEmail}
+                      onChange={(e) => setModalEmail(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
 
-              {/* Target & Commission */}
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">المستهدف الشهري (عدد أنشطة)</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={modalTarget}
-                  onChange={(e) => setModalTarget(Number(e.target.value))}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                />
-              </div>
+                  {/* Governorate */}
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">المحافظة / النطاق *</label>
+                    <select
+                      value={modalGov}
+                      onChange={(e) => setModalGov(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    >
+                      {EGYPT_GOVERNORATES.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">نسبة العمولة (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  max={100}
-                  value={modalCommission}
-                  onChange={(e) => setModalCommission(Number(e.target.value))}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                />
-              </div>
+                  {/* Target & Commission */}
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">المستهدف الشهري (عدد أنشطة)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={modalTarget}
+                      onChange={(e) => setModalTarget(Number(e.target.value))}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs font-mono"
+                    />
+                  </div>
 
-              {/* Status */}
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">حالة الحساب *</label>
-                <select
-                  value={modalStatus}
-                  onChange={(e) => setModalStatus(e.target.value as any)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                >
-                  <option value="active">✅ نشط ومصرح له بالعمل</option>
-                  <option value="suspended">⏳ معلق وبانتظار المراجعة</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">نسبة العمولة (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={100}
+                      value={modalCommission}
+                      onChange={(e) => setModalCommission(Number(e.target.value))}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs font-mono"
+                    />
+                  </div>
 
-              {/* Password */}
-              <div>
-                <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور *</label>
-                <input
-                  type="text"
-                  required
-                  value={modalPassword}
-                  onChange={(e) => setModalPassword(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-xs"
-                />
+                  {/* Status */}
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">حالة الحساب *</label>
+                    <select
+                      value={modalStatus}
+                      onChange={(e) => setModalStatus(e.target.value as any)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    >
+                      <option value="active">✅ نشط ومصرح له بالعمل</option>
+                      <option value="suspended">⏳ معلق وبانتظار المراجعة</option>
+                    </select>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">كلمة المرور *</label>
+                    <input
+                      type="text"
+                      required
+                      value={modalPassword}
+                      onChange={(e) => setModalPassword(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Referral Settings Section */}
-              <div className="sm:col-span-2 bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-3">
+              <div className="bg-[var(--bg-surface)] p-3.5 sm:p-4 rounded-3xl border border-[var(--border-color)] space-y-2.5 shadow-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                     <Users className="w-4 h-4" />
