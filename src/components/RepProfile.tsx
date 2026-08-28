@@ -763,71 +763,176 @@ export const RepProfile: React.FC<RepProfileProps> = ({
               )}
             </div>
 
-            {/* Detailed Collapsible Business List Breakdown */}
+            {/* Detailed Collapsible Business & Referral Breakdown */}
             {showBreakdownList && (
-              <div className="border border-[var(--border-color)] rounded-2xl p-3 bg-[var(--input-bg)]/60 space-y-2.5 animate-fade-in text-xs">
-                <div className="flex items-center justify-between font-black text-xs text-[var(--text-primary)] border-b border-[var(--border-color)] pb-2">
-                  <span>كشف تفصيلي بالأنشطة المحصلة والمنتظرة ({repBusinesses.length}):</span>
-                  <span className="text-[10px] text-[var(--text-muted)]">نسبة العمولة: {commissionPercentage}%</span>
+              <div className="border border-[var(--border-color)] rounded-2xl p-3.5 bg-[var(--input-bg)]/80 space-y-4 animate-fade-in text-xs shadow-inner">
+                {/* 1. TOP SUMMARY CARDS (Direct Activities vs Referral Commissions vs Referral Bonuses) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
+                    <span className="text-[10px] text-[var(--text-muted)] font-bold block flex items-center gap-1">
+                      <span>🏢</span> عمولات الأنشطة المباشرة ({commissionPercentage}%):
+                    </span>
+                    <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                      +{Math.round(repBusinesses.reduce((s, b) => s + ((b.amountPaid || 0) * commissionPercentage) / 100, 0))} ج.م
+                    </span>
+                    <span className="text-[9.5px] text-[var(--text-muted)] block">({repBusinesses.length} نشاط مسجل)</span>
+                  </div>
+
+                  <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5">
+                    <span className="text-[10px] text-amber-800 dark:text-amber-300 font-black block flex items-center gap-1">
+                      <span>📈</span> عمولة شبكة الإحالات (3% - 7%):
+                    </span>
+                    <span className="text-sm font-black font-mono text-amber-600 dark:text-amber-400">
+                      +{referralSummary.totalReferralCommission} ج.م
+                    </span>
+                    <span className="text-[9.5px] text-[var(--text-muted)] block">({referralSummary.totalInvitedCount} مندوب في شبكتك)</span>
+                  </div>
+
+                  <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-yellow-500/40 bg-yellow-500/10">
+                    <span className="text-[10px] text-yellow-800 dark:text-yellow-300 font-black block flex items-center gap-1">
+                      <span>🎁</span> مكافآت الإحالة (250 ج/10 أنشطة):
+                    </span>
+                    <span className="text-sm font-black font-mono text-yellow-600 dark:text-yellow-400">
+                      +{referralSummary.totalGiftsEarned} ج.م
+                    </span>
+                    <span className="text-[9.5px] text-[var(--text-muted)] block">({referralSummary.qualifiedRepsCount} مندوب مؤهل للمكافأة)</span>
+                  </div>
                 </div>
 
-                {repBusinesses.length === 0 ? (
-                  <p className="text-[11px] text-[var(--text-muted)] text-center py-2">لا توجد أنشطة مسجلة حتى الآن.</p>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {repBusinesses.map((biz) => {
-                      const isCash = biz.cashCollectedByRep !== undefined
-                        ? (biz.cashCollectedByRep || 0) > 0
-                        : biz.paymentMethod !== 'gateway_online' && (biz.amountPaid || 0) > 0;
-                      const paid = biz.amountPaid || 0;
-                      const isLive = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
-                      const comm = Math.round((paid * commissionPercentage) / 100);
-                      const platShare = paid - comm;
-                      const fullComm = Math.round(((biz.packagePrice || 250) * commissionPercentage) / 100);
+                {/* 2. REFERRAL COMMISSIONS & BONUSES BREAKDOWN SECTION */}
+                <div className="bg-gradient-to-r from-amber-500/10 via-[var(--bg-card)] to-yellow-500/10 border border-amber-500/30 rounded-2xl p-3 space-y-2.5">
+                  <div className="flex items-center justify-between font-black text-xs text-[var(--text-primary)] border-b border-amber-500/20 pb-2">
+                    <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                      <Gift className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>كشف تفصيلي بعمولات ومكافآت الإحالة ({referralSummary.totalNetEarnings} ج.م):</span>
+                    </div>
+                    <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                      كودك: {referralCode}
+                    </span>
+                  </div>
 
-                      return (
-                        <div key={biz.id} className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  {referralSummary.invitedRepsDetails.length === 0 ? (
+                    <div className="text-center py-2 px-3 bg-[var(--bg-card)] rounded-xl border border-dashed border-[var(--border-color)]">
+                      <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                        لم تقم بدعوة مناديب بعد. شارك كود الإحالة الخاص بك (<strong className="font-mono text-amber-500">{referralCode}</strong>) واكسب <strong>250 ج.م مكافأة هدية</strong> فور إكمال المندوب 10 أنشطة + <strong>عمولة مستمرة تصل إلى 7%</strong> من كافة مبيعاته للأبد!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {referralSummary.invitedRepsDetails.map(({ rep: invRep, bizCount, totalRevenue, currentRate, commissionEarned, isMission1Complete, remainingForMission1 }) => (
+                        <div
+                          key={invRep.id}
+                          className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs"
+                        >
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-[var(--text-primary)] block">{biz.nameAr}</span>
-                              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
-                                isLive ? 'badge-success' : 'badge-warning'
-                              }`}>
-                                {isLive ? '✅ موثق' : '⏳ قيد المراجعة'}
-                              </span>
+                              <span className="font-black text-[var(--text-primary)]">{invRep.name}</span>
+                              <span className="text-[9.5px] text-[var(--text-muted)] font-mono">({invRep.phone})</span>
+                              {isMission1Complete ? (
+                                <span className="bg-yellow-500/20 text-yellow-800 dark:text-yellow-300 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-yellow-500/30 flex items-center gap-0.5">
+                                  <span>🎁</span> مكافأة +250 ج.م معتمدة
+                                </span>
+                              ) : (
+                                <span className="bg-slate-500/10 text-[var(--text-muted)] text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                                  ⏳ متبقي {remainingForMission1} أنشطة للمكافأة
+                                </span>
+                              )}
                             </div>
-                            <span className="text-[10px] text-[var(--text-muted)] mt-0.5 block">
-                              باقة {biz.packageName} ({biz.packagePrice} ج.م) • {getBusinessPaymentLabel(biz).shortLabel}
+                            <span className="text-[10px] text-[var(--text-muted)] mt-0.5 block font-bold">
+                              سجل {bizCount} نشاط • إجمالي تحصيله: {totalRevenue.toLocaleString()} ج.م
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-3 font-mono text-[11px]">
+                          <div className="flex items-center gap-3 font-mono text-[11px] shrink-0">
                             <div>
-                              <span className="text-[9px] text-[var(--text-muted)] block font-sans">المحصل:</span>
-                              <span className="font-black text-[var(--text-primary)]">{paid} ج.م</span>
+                              <span className="text-[9px] text-[var(--text-muted)] block font-sans font-bold">نسبة عمولتك:</span>
+                              <span className="font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                                {currentRate}%
+                              </span>
                             </div>
+
                             <div>
                               <span className="text-[9px] text-emerald-600 dark:text-emerald-400 block font-sans font-bold">
-                                {paid > 0 ? `عمولتك (${commissionPercentage}%):` : 'عمولة منتظرة:'}
+                                عمولتك المكتسبة منه:
                               </span>
                               <span className="font-black text-emerald-600 dark:text-emerald-400">
-                                {paid > 0 ? `${comm} ج.م` : `⏳ ${fullComm} ج.م`}
+                                +{commissionEarned} ج.م
                               </span>
                             </div>
-                            {paid > 0 && (
-                              <div>
-                                <span className="text-[9px] text-rose-600 dark:text-rose-400 block font-sans font-bold">
-                                  {isCash ? 'للمنصة (عليك):' : 'للمنصة (مباشر):'}
-                                </span>
-                                <span className="font-black text-rose-600 dark:text-rose-400">{platShare} ج.م</span>
-                              </div>
-                            )}
                           </div>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. DIRECT FIELD BUSINESSES BREAKDOWN SECTION */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between font-black text-xs text-[var(--text-primary)] border-b border-[var(--border-color)] pb-2">
+                    <span>كشف تفصيلي بالأنشطة المحصلة والمنتظرة ({repBusinesses.length}):</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-bold">نسبة عمولة الأنشطة المباشرة: {commissionPercentage}%</span>
                   </div>
-                )}
+
+                  {repBusinesses.length === 0 ? (
+                    <p className="text-[11px] text-[var(--text-muted)] text-center py-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)]">
+                      لا توجد أنشطة تجارية مسجلة حتى الآن.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {repBusinesses.map((biz) => {
+                        const isCash = biz.cashCollectedByRep !== undefined
+                          ? (biz.cashCollectedByRep || 0) > 0
+                          : biz.paymentMethod !== 'gateway_online' && (biz.amountPaid || 0) > 0;
+                        const paid = biz.amountPaid || 0;
+                        const isLive = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                        const comm = Math.round((paid * commissionPercentage) / 100);
+                        const platShare = paid - comm;
+                        const fullComm = Math.round(((biz.packagePrice || 250) * commissionPercentage) / 100);
+
+                        return (
+                          <div key={biz.id} className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-[var(--text-primary)] block">{biz.nameAr}</span>
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
+                                  isLive ? 'badge-success' : 'badge-warning'
+                                }`}>
+                                  {isLive ? '✅ موثق' : '⏳ قيد المراجعة'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-[var(--text-muted)] mt-0.5 block font-bold">
+                                باقة {biz.packageName} ({biz.packagePrice} ج.م) • {getBusinessPaymentLabel(biz).shortLabel}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-3 font-mono text-[11px] shrink-0">
+                              <div>
+                                <span className="text-[9px] text-[var(--text-muted)] block font-sans">المحصل:</span>
+                                <span className="font-black text-[var(--text-primary)]">{paid} ج.م</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 block font-sans font-bold">
+                                  {paid > 0 ? `عمولتك (${commissionPercentage}%):` : 'عمولة منتظرة:'}
+                                </span>
+                                <span className="font-black text-emerald-600 dark:text-emerald-400">
+                                  {paid > 0 ? `${comm} ج.م` : `⏳ ${fullComm} ج.م`}
+                                </span>
+                              </div>
+                              {paid > 0 && (
+                                <div>
+                                  <span className="text-[9px] text-rose-600 dark:text-rose-400 block font-sans font-bold">
+                                    {isCash ? 'للمنصة (عليك):' : 'للمنصة (مباشر):'}
+                                  </span>
+                                  <span className="font-black text-rose-600 dark:text-rose-400">{platShare} ج.م</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
