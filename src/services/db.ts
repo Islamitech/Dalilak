@@ -54,88 +54,61 @@ async function reconcileLegacyBusinessesTo250(records: any[]): Promise<void> {
 
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const mergedMap = new Map<string, Business>();
-  const deletedIds = new Set<string>();
-  try {
-    const deletedArr = JSON.parse(localStorage.getItem('dalelak_deleted_business_ids') || '[]');
-    if (Array.isArray(deletedArr)) {
-      deletedArr.forEach((id: string) => deletedIds.add(id));
-    }
-  } catch {}
 
-  // Baseline: Always seed with persistent INITIAL_BUSINESSES (excluding deleted)
-  INITIAL_BUSINESSES.forEach((b) => {
-    if (!deletedIds.has(b.id)) {
-      mergedMap.set(b.id, b);
-    }
-  });
-
-  // 1. Try Supabase SDK
-  try {
-    const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      reconcileLegacyBusinessesTo250(data).catch(() => {});
-      data.map(mapDbToBusiness).forEach((b) => {
-        if (!deletedIds.has(b.id)) {
-          mergedMap.set(b.id, b);
-        }
-      });
-    }
-  } catch (err) {
-    console.error('Supabase fetch businesses error:', err);
-  }
-
-  // 2. Try Direct Supabase REST API
-  if (mergedMap.size <= INITIAL_BUSINESSES.length) {
-    try {
-      const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
-      if (res.ok) {
-        const restData = await res.json();
-        if (Array.isArray(restData) && restData.length > 0) {
-          reconcileLegacyBusinessesTo250(restData).catch(() => {});
-          restData.map(mapDbToBusiness).forEach((b) => {
-            if (!deletedIds.has(b.id)) {
-              mergedMap.set(b.id, b);
-            }
-          });
-        }
-      }
-    } catch {}
-  }
-
-  // 3. Always merge with Local Server (/api/businesses)
-  try {
-    const localRes = await fetch('/api/businesses');
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (Array.isArray(localData) && localData.length > 0) {
-        localData.forEach((b: Business) => {
-          if (!deletedIds.has(b.id)) {
-            mergedMap.set(b.id, b);
-          }
-        });
-      }
-    }
-  } catch {}
-
-  // 4. Always merge with LocalStorage cache
+  // 1. Instant: Load from LocalStorage cache (0ms instant render)
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     if (Array.isArray(cached) && cached.length > 0) {
       cached.forEach((b: Business) => {
-        if (!deletedIds.has(b.id)) {
+        if (b && b.id) {
           mergedMap.set(b.id, b);
         }
       });
     }
   } catch {}
 
-  // Ensure any deleted IDs are strictly excluded
-  deletedIds.forEach((delId) => mergedMap.delete(delId));
+  // 2. Fetch in parallel from Local Server API and Supabase (with 1.5s timeout protection)
+  const localFetchPromise = (async () => {
+    try {
+      const localRes = await fetch('/api/businesses');
+      if (localRes.ok) {
+        const localData = await localRes.json();
+        if (Array.isArray(localData) && localData.length > 0) {
+          localData.forEach((b: Business) => {
+            if (b && b.id) mergedMap.set(b.id, b);
+          });
+        }
+      }
+    } catch {}
+  })();
+
+  const supabaseFetchPromise = (async () => {
+    try {
+      const timeoutPromise = new Promise<{ data: null; error: string }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: 'timeout' }), 1500)
+      );
+
+      const queryPromise = supabase.from('businesses').select('*').order('created_at', { ascending: false });
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        reconcileLegacyBusinessesTo250(data).catch(() => {});
+        data.map(mapDbToBusiness).forEach((b) => {
+          if (b && b.id) mergedMap.set(b.id, b);
+        });
+      }
+    } catch {}
+  })();
+
+  // Wait for both without blocking if one is slow
+  await Promise.allSettled([localFetchPromise, supabaseFetchPromise]);
 
   const result = Array.from(mergedMap.values());
-  try {
-    localStorage.setItem('dalelak_cached_businesses', JSON.stringify(result));
-  } catch {}
+  if (result.length > 0) {
+    try {
+      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(result));
+    } catch {}
+  }
   return result;
 }
 
@@ -215,12 +188,13 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
 }
 
 export async function deleteBusinessFromDb(id: string): Promise<void> {
-  // 1. Permanently blacklist in deleted IDs registry
+  // 1. Delete from LocalStorage cache immediately
   try {
-    const deletedArr = JSON.parse(localStorage.getItem('dalelak_deleted_business_ids') || '[]');
-    const deletedSet = new Set(Array.isArray(deletedArr) ? deletedArr : []);
-    deletedSet.add(id);
-    localStorage.setItem('dalelak_deleted_business_ids', JSON.stringify(Array.from(deletedSet)));
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    if (Array.isArray(cached)) {
+      const filtered = cached.filter((b: Business) => b.id !== id);
+      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(filtered));
+    }
   } catch {}
 
   // 2. Delete from Supabase SDK & REST
@@ -240,15 +214,6 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
-  } catch {}
-
-  // 4. Delete from LocalStorage cache
-  try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-    if (Array.isArray(cached)) {
-      const filtered = cached.filter((b: Business) => b.id !== id);
-      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(filtered));
-    }
   } catch {}
 }
 
