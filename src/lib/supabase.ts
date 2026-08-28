@@ -29,13 +29,16 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
  */
 export async function supabaseRestFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${SUPABASE_REST_URL}${endpoint}`;
-  const headers = {
+  const headers: Record<string, string> = {
     'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation',
-    ...(options.headers || {}),
+    ...(options.headers as any || {}),
   };
+
+  if (SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.startsWith('eyJ')) {
+    headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
+  }
 
   const response = await fetch(url, { ...options, headers });
   return response;

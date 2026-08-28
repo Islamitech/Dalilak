@@ -86,27 +86,27 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     } catch {}
   })();
 
-  // 3. Supabase Cloud fetch with REST fallback
+  // 3. Supabase Cloud fetch (REST first with SDK fallback)
   const supabaseFetchPromise = (async () => {
     try {
-      const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
+      const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
+      if (res.ok) {
+        const restData = await res.json();
+        if (Array.isArray(restData) && restData.length > 0) {
+          reconcileLegacyBusinessesTo250(restData).catch(() => {});
+          restData.map(mapDbToBusiness).forEach((b) => {
+            if (b && b.id) mergedMap.set(b.id, b);
+          });
+          return;
+        }
+      }
 
+      const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
       if (!error && data && Array.isArray(data) && data.length > 0) {
         reconcileLegacyBusinessesTo250(data).catch(() => {});
         data.map(mapDbToBusiness).forEach((b) => {
           if (b && b.id) mergedMap.set(b.id, b);
         });
-      } else {
-        const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
-        if (res.ok) {
-          const restData = await res.json();
-          if (Array.isArray(restData) && restData.length > 0) {
-            reconcileLegacyBusinessesTo250(restData).catch(() => {});
-            restData.map(mapDbToBusiness).forEach((b) => {
-              if (b && b.id) mergedMap.set(b.id, b);
-            });
-          }
-        }
       }
     } catch {}
   })();
@@ -259,26 +259,26 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     }
   });
 
-  // 2. Try Supabase SDK / REST
+  // 2. Try Supabase REST / SDK
   try {
-    const { data, error } = await supabase.from('representatives').select('*');
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      data.map(mapDbToRep).forEach((r) => {
-        if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
-          mergedMap.set(r.email.toLowerCase(), r);
-        }
-      });
+    const res = await supabaseRestFetch('representatives?select=*');
+    if (res.ok) {
+      const restData = await res.json();
+      if (Array.isArray(restData) && restData.length > 0) {
+        restData.map(mapDbToRep).forEach((r) => {
+          if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
+            mergedMap.set(r.email.toLowerCase(), r);
+          }
+        });
+      }
     } else {
-      const res = await supabaseRestFetch('representatives?select=*');
-      if (res.ok) {
-        const restData = await res.json();
-        if (Array.isArray(restData) && restData.length > 0) {
-          restData.map(mapDbToRep).forEach((r) => {
-            if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
-              mergedMap.set(r.email.toLowerCase(), r);
-            }
-          });
-        }
+      const { data, error } = await supabase.from('representatives').select('*');
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        data.map(mapDbToRep).forEach((r) => {
+          if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
+            mergedMap.set(r.email.toLowerCase(), r);
+          }
+        });
       }
     }
   } catch (err) {
