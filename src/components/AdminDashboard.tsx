@@ -236,15 +236,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ).length;
   const verificationRate = businesses.length > 0 ? ((verifiedCount / businesses.length) * 100).toFixed(1) : '0';
 
-  // Overdue Google Verification Detection (> 48 hours without approval)
+  // Overdue Google Verification Detection: ONLY for businesses submitted for Google review (in_progress) and NOT verified, and > 48 hours passed
   const overdueReviewBusinesses = useMemo(() => {
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const now = Date.now();
     return businesses.filter((b) => {
-      const isInProgress = (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress') && b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced';
+      // 1. If already verified, NEVER trigger overdue alert!
+      const isVerified = b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
+      if (isVerified) return false;
+
+      // 2. Must be actively submitted and pending in Google review
+      const isInProgress = (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress');
       if (!isInProgress) return false;
-      const createdTime = b.createdDate ? new Date(b.createdDate).getTime() : 0;
-      return !createdTime || (now - createdTime > TWO_DAYS_MS);
+
+      // 3. Check time elapsed since review submission
+      const submitTime = b.googleSyncDate
+        ? new Date(b.googleSyncDate).getTime()
+        : b.createdDate
+        ? new Date(b.createdDate).getTime()
+        : 0;
+
+      return submitTime > 0 && (now - submitTime > TWO_DAYS_MS);
     });
   }, [businesses]);
 
