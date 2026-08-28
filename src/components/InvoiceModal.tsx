@@ -67,6 +67,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const amtPaid = activeBusiness.amountPaid || 0;
   const remaining = Math.max(0, pkgPrice - amtPaid);
 
+  const directoryUrl = 'https://dalilak-directory-fr0x1lt64-harfag.vercel.app/';
+
   const invoiceRawText = 
     `*فاتورة توثيق نشاط تجاري - شركة دليلك لخرائط جوجل* 🗺️\n` +
     `-----------------------------------------\n` +
@@ -86,8 +88,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         ? 'مدفوع جزء منها (متبقي ' + remaining + ' ج.م) ⏳'
         : 'لم يتم الدفع نهائياً ❌'
     }\n\n` +
+    `🌟 *تهانينا! تم إدراج ونشر نشاطكم مباشرة في دليل الأنشطة والخدمات المعتمد في مصر:* ✨\n` +
+    `🌐 *رابط دليل الأنشطة المباشر:* ${directoryUrl}\n` +
     `📍 *رابط الخريطة المباشر:* ${activeBusiness.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${activeBusiness.lat || 0},${activeBusiness.lng || 0}`}\n\n` +
-    `*ملاحظة:* سيتم متابعة مراجعة وتوثيق النشاط حتى ظهوره رسمياً على خرائط جوجل. شكرًا لثقتكم بشركة دليلك!`;
+    `*ملاحظة:* تم رفع وتثبيت بيانات نشاطكم بنجاح وهو متاح الآن للعملاء على المنظومة، وتتم متابعة مراجعة وتوثيق النشاط حتى اعتماده على خرائط Google. شكرًا لثقتكم بشركة دليلك!`;
 
   // WhatsApp formatted Arabic message text
   const waMessage = encodeURIComponent(invoiceRawText);
@@ -274,8 +278,19 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-500 bg-amber-50 border border-amber-200 p-2 rounded-lg text-center font-medium">
-            سيتم مراجعة وتدقيق البيانات وتوثيق النشاط ليظهر رسمياً على خرائط جوجل فور استكمال المراجعة.
+          <div className="text-[10px] text-slate-600 dark:text-slate-300 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2">
+            <div className="text-right">
+              <span className="font-bold text-amber-700 dark:text-amber-300 block text-[11px]">✨ نشاطكم منشور ومتاح الآن في دليل الأنشطة المعتمد في مصر:</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">يمكن للعملاء استعراض نشاطكم وبيانات التواصل وموقعكم GPS</span>
+            </div>
+            <a
+              href={directoryUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10.5px] font-black px-2.5 py-1 rounded-lg shrink-0 transition-all shadow-xs"
+            >
+              فتح الدليل ↗
+            </a>
           </div>
         </div>
 
