@@ -23,6 +23,7 @@ import { PackagesModal } from './components/PackagesModal';
 import { Logo } from './components/Logo';
 import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, canUserManagePayouts } from './utils/permissions';
 import { MapPin, PlusCircle, FileText, CheckCircle2, Clock, AlertCircle, Phone, Share2, Search, ExternalLink, ShieldCheck, Sparkles, Building2, Database, Eye, X, Info, Heart, Smartphone } from 'lucide-react';
+import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
 import {
   fetchBusinessesFromDb,
   saveBusinessToDb,
@@ -51,9 +52,9 @@ const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 export default function App() {
   // Application State - Default to null (Guest visitor) or restore valid unexpired user session
   const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('dalelak_logged_user');
-    const sessionExpiresAt = localStorage.getItem('dalelak_session_expires_at');
-    const lastInteraction = localStorage.getItem('dalelak_last_interaction');
+    const savedUser = safeGetLocalStorageItem('dalelak_logged_user');
+    const sessionExpiresAt = safeGetLocalStorageItem('dalelak_session_expires_at');
+    const lastInteraction = safeGetLocalStorageItem('dalelak_last_interaction');
     const now = Date.now();
 
     if (savedUser && sessionExpiresAt) {
@@ -78,26 +79,26 @@ export default function App() {
     }
 
     // Clean expired or idle session from storage
-    localStorage.removeItem('dalelak_logged_user');
-    localStorage.removeItem('dalelak_session_expires_at');
-    localStorage.removeItem('dalelak_last_interaction');
+    safeRemoveLocalStorageItem('dalelak_logged_user');
+    safeRemoveLocalStorageItem('dalelak_session_expires_at');
+    safeRemoveLocalStorageItem('dalelak_last_interaction');
     return null; // Guest visitor by default
   });
 
-  // Sync user state and session timestamps with localStorage
+  // Sync user state and session timestamps with safe storage
   useEffect(() => {
     if (user) {
-      localStorage.setItem('dalelak_logged_user', JSON.stringify(user));
-      if (!localStorage.getItem('dalelak_session_expires_at')) {
-        localStorage.setItem('dalelak_session_expires_at', String(Date.now() + SESSION_MAX_DURATION_MS));
+      safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(user)));
+      if (!safeGetLocalStorageItem('dalelak_session_expires_at')) {
+        safeSetLocalStorageItem('dalelak_session_expires_at', String(Date.now() + SESSION_MAX_DURATION_MS));
       }
-      if (!localStorage.getItem('dalelak_last_interaction')) {
-        localStorage.setItem('dalelak_last_interaction', String(Date.now()));
+      if (!safeGetLocalStorageItem('dalelak_last_interaction')) {
+        safeSetLocalStorageItem('dalelak_last_interaction', String(Date.now()));
       }
     } else {
-      localStorage.removeItem('dalelak_logged_user');
-      localStorage.removeItem('dalelak_session_expires_at');
-      localStorage.removeItem('dalelak_last_interaction');
+      safeRemoveLocalStorageItem('dalelak_logged_user');
+      safeRemoveLocalStorageItem('dalelak_session_expires_at');
+      safeRemoveLocalStorageItem('dalelak_last_interaction');
     }
   }, [user]);
 
@@ -511,13 +512,12 @@ export default function App() {
               (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
             );
             if (freshUserRep) {
-              setUser((prev) => (prev ? { ...prev, repData: freshUserRep } : prev));
-              try {
-                localStorage.setItem(
-                  'dalelak_logged_user',
-                  JSON.stringify({ ...user, repData: freshUserRep })
-                );
-              } catch {}
+              const updatedUser = { ...user, repData: freshUserRep };
+              setUser(updatedUser);
+              safeSetLocalStorageItem(
+                'dalelak_logged_user',
+                JSON.stringify(getSafeUserForStorage(updatedUser))
+              );
             }
           }
         }
@@ -570,13 +570,12 @@ export default function App() {
               (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
             );
             if (myFreshRep) {
-              setUser((prev) => (prev ? { ...prev, repData: myFreshRep } : prev));
-              try {
-                localStorage.setItem(
-                  'dalelak_logged_user',
-                  JSON.stringify({ ...user, repData: myFreshRep })
-                );
-              } catch {}
+              const updatedUser = { ...user, repData: myFreshRep };
+              setUser(updatedUser);
+              safeSetLocalStorageItem(
+                'dalelak_logged_user',
+                JSON.stringify(getSafeUserForStorage(updatedUser))
+              );
             }
           }
         }
@@ -908,8 +907,8 @@ export default function App() {
     };
 
     setUser(updatedUser);
-    localStorage.setItem('dalelak_user', JSON.stringify(updatedUser));
-    localStorage.setItem('dalelak_logged_user', JSON.stringify(updatedUser));
+    safeSetLocalStorageItem('dalelak_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
+    safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
 
     setRepresentatives((prev) => {
       const idx = prev.findIndex((r) => r.id === freshRep.id || r.email.toLowerCase() === freshRep.email.toLowerCase());
@@ -1068,11 +1067,7 @@ export default function App() {
     if (user && (user.id === updatedRep.id || user.repData?.id === updatedRep.id || user.email.toLowerCase() === updatedRep.email.toLowerCase())) {
       const updatedUser = { ...user, repData: updatedRep, name: updatedRep.name, email: updatedRep.email };
       setUser(updatedUser);
-      try {
-        localStorage.setItem('dalelak_logged_user', JSON.stringify(updatedUser));
-      } catch {
-        // silent
-      }
+      safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
     }
 
     if (prevRep && prevRep.status !== updatedRep.status) {
@@ -1368,9 +1363,9 @@ export default function App() {
     }
 
     setUser(null);
-    localStorage.removeItem('dalelak_logged_user');
-    localStorage.removeItem('dalelak_session_expires_at');
-    localStorage.removeItem('dalelak_active_tab');
+    safeRemoveLocalStorageItem('dalelak_logged_user');
+    safeRemoveLocalStorageItem('dalelak_session_expires_at');
+    safeRemoveLocalStorageItem('dalelak_active_tab');
     setActiveTab('home');
     const url = new URL(window.location.href);
     url.searchParams.delete('tab');

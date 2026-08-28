@@ -63,8 +63,14 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             </p>
             <button
               onClick={() => {
-                localStorage.removeItem('dalelak_logged_user');
-                window.location.href = '/';
+                try {
+                  localStorage.removeItem('dalelak_logged_user');
+                  localStorage.removeItem('dalelak_cached_businesses');
+                  localStorage.removeItem('dalelak_cached_reps');
+                  localStorage.removeItem('dalelak_custom_reps');
+                  sessionStorage.clear();
+                } catch {}
+                window.location.reload();
               }}
               className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer"
             >
