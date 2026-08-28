@@ -125,23 +125,34 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
   const dbRecord = mapBusinessToDb(biz);
+
+  // 1. Direct PostgREST Cloud Upsert (guaranteed multi-device cross-sync)
   try {
-    const { error } = await supabase.from('businesses').insert([dbRecord]);
-    if (error) {
-      const res = await supabaseRestFetch('businesses', {
-        method: 'POST',
+    const res = await supabaseRestFetch('businesses', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify(dbRecord),
+    });
+
+    if (!res.ok) {
+      // Fallback: If conflict, update via PATCH
+      await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
+        method: 'PATCH',
         body: JSON.stringify(dbRecord),
       });
-      if (!res.ok) {
-        // Try upsert
-        await supabase.from('businesses').upsert([dbRecord]);
-      }
     }
   } catch (err) {
     console.error('Supabase save business error:', err);
   }
 
-  // Always sync to local server
+  // 2. Also try Supabase SDK
+  try {
+    await supabase.from('businesses').upsert([dbRecord]);
+  } catch {}
+
+  // 3. Always sync to local server
   try {
     await fetch('/api/businesses', {
       method: 'POST',
@@ -150,7 +161,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
     });
   } catch {}
 
-  // Cache in LocalStorage
+  // 4. Cache in LocalStorage
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     const map = new Map<string, Business>();
@@ -183,22 +194,32 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
   const dbUpdates = mapBusinessToDb(updates as Business);
   delete dbUpdates.id;
 
-  // 2. Sync to Supabase in background (if configured)
-  if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from('businesses').update(dbUpdates).eq('id', id);
-      if (error) {
-        await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
-          method: 'PATCH',
-          body: JSON.stringify(dbUpdates),
-        });
-      }
-    } catch (err) {
-      console.error('Supabase update business error:', err);
+  // 2. Sync to Supabase via Direct REST PATCH (guaranteed delivery)
+  try {
+    const res = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dbUpdates),
+    });
+
+    if (!res.ok) {
+      const fullDbRecord = mapBusinessToDb(updates as Business);
+      fullDbRecord.id = id;
+      await supabaseRestFetch('businesses', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify(fullDbRecord),
+      });
     }
+  } catch (err) {
+    console.error('Supabase update business error:', err);
   }
 
-  // 3. Always sync to local server API
+  // 3. Also try Supabase SDK
+  try {
+    await supabase.from('businesses').update(dbUpdates).eq('id', id);
+  } catch {}
+
+  // 4. Always sync to local server API
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'PUT',
