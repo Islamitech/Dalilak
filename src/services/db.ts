@@ -86,28 +86,33 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     } catch {}
   })();
 
-  // 3. Supabase Cloud fetch (only if configured, with fast non-blocking timeout)
+  // 3. Supabase Cloud fetch with REST fallback
   const supabaseFetchPromise = (async () => {
-    if (!isSupabaseConfigured()) return;
     try {
-      const timeoutPromise = new Promise<{ data: null; error: string }>((resolve) =>
-        setTimeout(() => resolve({ data: null, error: 'timeout' }), 600)
-      );
-
-      const queryPromise = supabase.from('businesses').select('*').order('created_at', { ascending: false });
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+      const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
 
       if (!error && data && Array.isArray(data) && data.length > 0) {
         reconcileLegacyBusinessesTo250(data).catch(() => {});
         data.map(mapDbToBusiness).forEach((b) => {
           if (b && b.id) mergedMap.set(b.id, b);
         });
+      } else {
+        const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
+        if (res.ok) {
+          const restData = await res.json();
+          if (Array.isArray(restData) && restData.length > 0) {
+            reconcileLegacyBusinessesTo250(restData).catch(() => {});
+            restData.map(mapDbToBusiness).forEach((b) => {
+              if (b && b.id) mergedMap.set(b.id, b);
+            });
+          }
+        }
       }
     } catch {}
   })();
 
   // Parallel resolution
-  await Promise.allSettled([localFetchPromise, supabaseFetchPromise]);
+  await Promise.allSettled([supabaseFetchPromise, localFetchPromise]);
 
   const result = Array.from(mergedMap.values());
   if (result.length > 0) {
