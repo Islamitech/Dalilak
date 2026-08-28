@@ -354,9 +354,16 @@ app.put('/api/businesses/:id', (req, res) => {
 
 app.delete('/api/businesses/:id', (req, res) => {
   const { id } = req.params;
+  const targetBiz = businesses.find((b) => b.id === id);
   businesses = businesses.filter((b) => b.id !== id);
   persistStoredBusinesses(businesses);
-  res.json({ success: true, message: 'تم حذف النشاط بنجاح' });
+
+  if (targetBiz) {
+    leadsStore = leadsStore.filter((l) => l.id !== id && (!targetBiz.phone || l.phone !== targetBiz.phone));
+    persistStoredLeads(leadsStore);
+  }
+
+  res.json({ success: true, message: 'تم حذف النشاط وكافة بياناته نهائياً بنجاح' });
 });
 
 // 4. Representatives API

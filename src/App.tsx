@@ -948,13 +948,58 @@ export default function App() {
 
   const handleDeleteBusiness = async (id: string) => {
     const biz = businesses.find((b) => b.id === id);
-    setBusinesses(businesses.filter((b) => b.id !== id));
+
+    // 1. Immediately remove from businesses state and update cache
+    setBusinesses((prev) => {
+      const updated = prev.filter((b) => b.id !== id);
+      try {
+        localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // 2. Clean up any open modals or selected references
+    if (editingBusiness?.id === id) setEditingBusiness(null);
+    if (selectedInvoiceBiz?.id === id) setSelectedInvoiceBiz(null);
+    if (selectedPayBiz?.id === id) setSelectedPayBiz(null);
+
+    // 3. Delete associated system notifications
+    setSystemNotifications((prev) =>
+      prev.filter(
+        (n) =>
+          n.entityId !== id &&
+          (!biz?.nameAr || !n.message.includes(biz.nameAr)) &&
+          (!biz?.invoiceNumber || !n.message.includes(biz.invoiceNumber))
+      )
+    );
+
+    // 4. Delete associated leads
+    setLeads((prev) =>
+      prev.filter(
+        (l) =>
+          l.id !== id &&
+          (!biz?.phone || l.phone !== biz.phone) &&
+          (!biz?.nameAr || l.businessName !== biz.nameAr)
+      )
+    );
+
+    // 5. Delete from backend database / Supabase / local server
     await deleteBusinessFromDb(id);
+
+    // 6. Broadcast deletion across open tabs
+    try {
+      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SYNC_DATA', deletedBizId: id });
+        syncChannel.close();
+      }
+    } catch {}
+
     if (biz) {
-      addNotification(`🗑️ تم حذف النشاط التجاري "${biz.nameAr}" من النظام.`, 'warning');
+      addNotification(`🗑️ تم حذف النشاط "${biz.nameAr}" وكافة سجلاته نهائياً من المنظومة.`, 'warning');
       addSystemNotification({
         title: 'حذف نشاط تجاري 🗑️',
-        message: `تم حذف النشاط التجاري "${biz.nameAr}" من المنظومة.`,
+        message: `تم حذف النشاط التجاري "${biz.nameAr}" وكافة بياناته نهائياً من المنظومة وقاعدة البيانات.`,
         type: 'warning',
         category: 'business',
         targetRole: 'admin',
