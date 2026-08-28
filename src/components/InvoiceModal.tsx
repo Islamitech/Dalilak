@@ -35,6 +35,7 @@ interface InvoiceModalProps {
   userRole?: string;
   isAdmin?: boolean;
   onUpdateBusiness?: (updatedBusiness: Business) => void;
+  onCollectPayment?: (business: Business) => void;
 }
 
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({ 
@@ -44,6 +45,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   userRole,
   isAdmin = false,
   onUpdateBusiness,
+  onCollectPayment,
 }) => {
   const isPrivilegedUser = isAdmin || userRole === 'admin' || userRole === 'supervisor' || userRole === 'accountant';
   const [copied, setCopied] = useState<boolean>(false);
@@ -283,6 +285,34 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             سيتم مراجعة وتدقيق البيانات وتوثيق النشاط ليظهر رسمياً على خرائط جوجل فور استكمال المراجعة.
           </div>
         </div>
+
+        {/* Direct Payment Collection Action for Debt */}
+        {isPrivilegedUser && remaining > 0 && onCollectPayment && (
+          <div className="no-print">
+            <button
+              type="button"
+              onClick={() => onCollectPayment(activeBusiness)}
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg hover:shadow-emerald-500/20 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer border border-emerald-400/30"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5">
+                    <span>تحصيل الفاتورة وسداد المبلغ المتبقي</span>
+                    <span className="bg-white/25 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">فوري 💳</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-100 font-normal">تسجيل التحصيل عبر المحافظ الإلكترونية وإنستاباي وتحديث الفاتورة</p>
+                </div>
+              </div>
+
+              <div className="bg-white/20 px-3 py-1.5 rounded-xl text-xs font-black">
+                {remaining} ج.م
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Google Maps Auto-Sync & Place ID Button (Admins only) */}
         {isPrivilegedUser && (

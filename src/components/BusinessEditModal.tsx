@@ -519,7 +519,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setActiveSection('payment')}
+                onClick={() => {
+                  if (onCollectPayment) {
+                    onCollectPayment(formData);
+                  } else {
+                    setActiveSection('payment');
+                  }
+                }}
                 className="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black px-3 py-1.5 rounded-lg shrink-0 cursor-pointer"
               >
                 تسجيل السداد 💰

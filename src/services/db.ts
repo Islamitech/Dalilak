@@ -54,7 +54,7 @@ async function reconcileLegacyBusinessesTo250(records: any[]): Promise<void> {
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   try {
     const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
-    if (!error && data && Array.isArray(data)) {
+    if (!error && data && Array.isArray(data) && data.length > 0) {
       // Reconcile in background
       reconcileLegacyBusinessesTo250(data).catch(() => {});
       return data.map(mapDbToBusiness);
@@ -64,7 +64,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
     if (res.ok) {
       const restData = await res.json();
-      if (Array.isArray(restData)) {
+      if (Array.isArray(restData) && restData.length > 0) {
         reconcileLegacyBusinessesTo250(restData).catch(() => {});
         return restData.map(mapDbToBusiness);
       }
@@ -72,6 +72,17 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   } catch (err) {
     console.error('Supabase fetch businesses error:', err);
   }
+
+  // Local server fallback
+  try {
+    const localRes = await fetch('/api/businesses');
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (Array.isArray(localData) && localData.length > 0) {
+        return localData;
+      }
+    }
+  } catch {}
 
   return [];
 }
@@ -93,6 +104,15 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
   } catch (err) {
     console.error('Supabase save business error:', err);
   }
+
+  // Always sync to local server
+  try {
+    await fetch('/api/businesses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(biz),
+    });
+  } catch {}
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
@@ -109,6 +129,15 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
   } catch (err) {
     console.error('Supabase update business error:', err);
   }
+
+  // Always sync to local server
+  try {
+    await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+  } catch {}
 }
 
 export async function deleteBusinessFromDb(id: string): Promise<void> {
@@ -122,6 +151,13 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
   } catch (err) {
     console.error('Supabase delete business error:', err);
   }
+
+  // Always sync to local server
+  try {
+    await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  } catch {}
 }
 
 // ============================================
@@ -131,19 +167,31 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
   const mergedMap = new Map<string, Representative>();
   try {
     const { data, error } = await supabase.from('representatives').select('*');
-    if (!error && data && Array.isArray(data)) {
+    if (!error && data && Array.isArray(data) && data.length > 0) {
       data.map(mapDbToRep).forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
     } else {
       const res = await supabaseRestFetch('representatives?select=*');
       if (res.ok) {
         const restData = await res.json();
-        if (Array.isArray(restData)) {
+        if (Array.isArray(restData) && restData.length > 0) {
           restData.map(mapDbToRep).forEach((r) => mergedMap.set(r.email.toLowerCase(), r));
         }
       }
     }
   } catch (err) {
     console.error('Supabase fetch reps error:', err);
+  }
+
+  if (mergedMap.size === 0) {
+    try {
+      const localRes = await fetch('/api/representatives');
+      if (localRes.ok) {
+        const localData = await localRes.json();
+        if (Array.isArray(localData) && localData.length > 0) {
+          localData.forEach((r: Representative) => mergedMap.set(r.email.toLowerCase(), r));
+        }
+      }
+    } catch {}
   }
 
   return Array.from(mergedMap.values());
@@ -165,6 +213,15 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
   } catch (err) {
     console.error('Supabase save rep error:', err);
   }
+
+  // Always sync to local server
+  try {
+    await fetch('/api/representatives', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rep),
+    });
+  } catch {}
 }
 
 export async function updateRepInDb(id: string, updates: Partial<Representative>): Promise<void> {
@@ -181,6 +238,15 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
   } catch (err) {
     console.error('Supabase update rep error:', err);
   }
+
+  // Always sync to local server
+  try {
+    await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+  } catch {}
 }
 
 export async function deleteRepFromDb(id: string): Promise<void> {
@@ -194,6 +260,13 @@ export async function deleteRepFromDb(id: string): Promise<void> {
   } catch (err) {
     console.error('Supabase delete rep error:', err);
   }
+
+  // Always sync to local server
+  try {
+    await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  } catch {}
 }
 
 export async function updateRepSessionInDb(_id: string, _sessionId?: string, _timestamp?: number): Promise<void> {
@@ -206,20 +279,30 @@ export async function updateRepSessionInDb(_id: string, _sessionId?: string, _ti
 export async function fetchPayoutRequestsFromDb(): Promise<PayoutRequest[]> {
   try {
     const { data, error } = await supabase.from('payout_requests').select('*').order('request_date', { ascending: false });
-    if (!error && data && Array.isArray(data)) {
+    if (!error && data && Array.isArray(data) && data.length > 0) {
       return data.map(mapDbToPayout);
     }
 
     const res = await supabaseRestFetch('payout_requests?select=*&order=request_date.desc');
     if (res.ok) {
       const restData = await res.json();
-      if (Array.isArray(restData)) {
+      if (Array.isArray(restData) && restData.length > 0) {
         return restData.map(mapDbToPayout);
       }
     }
   } catch (err) {
     console.error('Supabase fetch payout requests error:', err);
   }
+
+  try {
+    const localRes = await fetch('/api/payouts');
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (Array.isArray(localData) && localData.length > 0) {
+        return localData;
+      }
+    }
+  } catch {}
 
   return [];
 }
@@ -237,6 +320,14 @@ export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<Pa
   } catch (err) {
     console.error('Supabase create payout request error:', err);
   }
+
+  try {
+    await fetch('/api/payouts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payout),
+    });
+  } catch {}
 
   return payout;
 }
@@ -256,6 +347,14 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
     console.error('Supabase update payout request error:', err);
   }
 
+  try {
+    await fetch(`/api/payouts/${encodeURIComponent(payout.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payout),
+    });
+  } catch {}
+
   return payout;
 }
 
@@ -265,20 +364,30 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
   try {
     const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
-    if (!error && data && Array.isArray(data)) {
+    if (!error && data && Array.isArray(data) && data.length > 0) {
       return data.map(mapDbToLead);
     }
 
     const res = await supabaseRestFetch('leads?select=*&order=created_at.desc');
     if (res.ok) {
       const restData = await res.json();
-      if (Array.isArray(restData)) {
+      if (Array.isArray(restData) && restData.length > 0) {
         return restData.map(mapDbToLead);
       }
     }
   } catch (err) {
     console.error('Supabase fetch leads error:', err);
   }
+
+  try {
+    const localRes = await fetch('/api/leads');
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (Array.isArray(localData) && localData.length > 0) {
+        return localData;
+      }
+    }
+  } catch {}
 
   return [];
 }
@@ -296,6 +405,14 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
   } catch (err) {
     console.error('Supabase save lead error:', err);
   }
+
+  try {
+    await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lead),
+    });
+  } catch {}
 
   return lead;
 }
@@ -315,6 +432,14 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
     console.error('Supabase update lead error:', err);
   }
 
+  try {
+    await fetch(`/api/leads/${encodeURIComponent(lead.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lead),
+    });
+  } catch {}
+
   return lead;
 }
 
@@ -329,6 +454,12 @@ export async function deleteLeadFromDb(id: string): Promise<void> {
   } catch (err) {
     console.error('Supabase delete lead error:', err);
   }
+
+  try {
+    await fetch(`/api/leads/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  } catch {}
 }
 
 // ============================================
@@ -349,6 +480,17 @@ export async function fetchPaymentConfigFromDb(): Promise<PaymentGatewayConfig |
   } catch (err) {
     console.error('Supabase fetch payment config error:', err);
   }
+
+  try {
+    const localRes = await fetch('/api/payment-config');
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (localData && typeof localData === 'object') {
+        return localData;
+      }
+    }
+  } catch {}
+
   return null;
 }
 
@@ -374,6 +516,14 @@ export async function savePaymentConfigToDb(config: PaymentGatewayConfig): Promi
   } catch (err) {
     console.error('Supabase save payment config error:', err);
   }
+
+  try {
+    await fetch('/api/payment-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+  } catch {}
 }
 
 // ============================================

@@ -177,6 +177,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // ---------------------------------------------------------------------------
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
 
+  // Keep editingBusiness in sync with businesses array updates (such as payment updates)
+  useEffect(() => {
+    if (editingBusiness) {
+      const refreshed = businesses.find((b) => b.id === editingBusiness.id);
+      if (
+        refreshed &&
+        (refreshed.amountPaid !== editingBusiness.amountPaid ||
+          refreshed.paymentStatus !== editingBusiness.paymentStatus ||
+          refreshed.verificationStatus !== editingBusiness.verificationStatus)
+      ) {
+        setEditingBusiness(refreshed);
+      }
+    }
+  }, [businesses]);
+
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
   const [editingAccId, setEditingAccId] = useState<string | null>(null);
   const [modalRole, setModalRole] = useState<UserRole>('rep');
@@ -1297,7 +1312,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                             <button
                               type="button"
-                              onClick={() => setEditingBusiness(biz)}
+                              onClick={() => {
+                                if (onCollectPayment) {
+                                  onCollectPayment(biz);
+                                } else {
+                                  setEditingBusiness(biz);
+                                }
+                              }}
                               className="bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] px-2.5 py-1 rounded-lg shadow-xs cursor-pointer shrink-0"
                             >
                               تحصيل الآن 💰
@@ -1526,6 +1547,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1.5">
+                                {!isPaid && onCollectPayment && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onCollectPayment(biz)}
+                                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-[10px] px-2.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                                    title="تحصيل الفاتورة والمبلغ المتبقي فوراً"
+                                  >
+                                    <DollarSign className="w-3 h-3" />
+                                    <span>تحصيل ({Math.max(0, (biz.packagePrice || 250) - (biz.amountPaid || 0))} ج)</span>
+                                  </button>
+                                )}
+
                                 {!isLiveVerified && (
                                   <button
                                     type="button"

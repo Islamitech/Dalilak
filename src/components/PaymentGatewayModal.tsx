@@ -7,7 +7,7 @@ interface PaymentGatewayModalProps {
   business: Business;
   config: PaymentGatewayConfig;
   onClose: () => void;
-  onPaymentSuccess: (amountPaid: number, method?: 'gateway_online' | 'platform_collected') => void;
+  onPaymentSuccess: (amountPaid: number, method?: Business['paymentMethod']) => void;
 }
 
 export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
@@ -45,13 +45,30 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  const getMethodName = () => {
+    switch (selectedMethod) {
+      case 'instapay':
+        return 'إنستاباي';
+      case 'fawry':
+        return 'فوري';
+      case 'card':
+        return 'البطاقة البنكية';
+      case 'aman':
+        return 'أمان';
+      default:
+        return 'فودافون كاش';
+    }
+  };
+
   const handleConfirmSimulatedPayment = () => {
+    if (simulatedPayAmount <= 0) return;
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
-      onPaymentSuccess(amtPaid + Number(simulatedPayAmount), 'gateway_online');
+      const method: Business['paymentMethod'] = selectedMethod === 'instapay' ? 'platform_collected' : 'gateway_online';
+      onPaymentSuccess(amtPaid + Number(simulatedPayAmount), method);
       onClose();
-    }, 1200);
+    }, 600);
   };
 
   return createPortal(
@@ -380,7 +397,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           {/* Amount to register payment */}
           <div className="pt-2 border-t border-[var(--border-color)] space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="block font-bold text-[var(--text-secondary)]">أدخل المبلغ المحول عبر فودافون كاش (ج.م):</label>
+              <label className="block font-bold text-[var(--text-secondary)]">أدخل المبلغ المحول عبر {getMethodName()} (ج.م):</label>
               {remaining === 0 && (
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-full">
                   مسددة بالكامل
@@ -393,6 +410,12 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               max={remaining > 0 ? remaining : pkgPrice}
               value={simulatedPayAmount}
               disabled={remaining === 0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleConfirmSimulatedPayment();
+                }
+              }}
               onChange={(e) => setSimulatedPayAmount(Math.max(0, Number(e.target.value)))}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-600 dark:text-emerald-400 font-black rounded-xl p-2.5 text-sm focus:outline-none focus:border-emerald-500 disabled:opacity-50 shadow-inner"
             />
@@ -414,7 +437,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                 ? 'جاري تأكيد التحويل وتحديث الفاتورة...'
                 : remaining === 0
                 ? 'الفاتورة مسددة بالكامل'
-                : `تأكيد استلام تحويل ${simulatedPayAmount} ج.م عبر فودافون كاش`}
+                : `تأكيد استلام تحويل ${simulatedPayAmount} ج.م عبر ${getMethodName()}`}
             </span>
           </button>
         </div>

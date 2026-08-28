@@ -682,6 +682,11 @@ export default function App() {
 
     // 2. Automated Payment lifecycle interaction & Commission Unlock notification for Rep
     if (prevBiz && (prevBiz.amountPaid !== normalizedBiz.amountPaid || prevBiz.paymentStatus !== normalizedBiz.paymentStatus)) {
+      const addedAmt = (normalizedBiz.amountPaid || 0) - (prevBiz.amountPaid || 0);
+      if (addedAmt > 0) {
+        addNotification(`💰 تم تحصيل وتأكيد سداد مبلغ ${addedAmt} ج.م لنشاط "${normalizedBiz.nameAr}" بنجاح! (${normalizedBiz.paymentStatus === 'fully_paid' ? 'مسدد بالكامل ✅' : 'مسدد جزئياً ⏳'})`, 'success');
+      }
+
       addSystemNotification({
         title: 'تحديث تحصيل سداد 💳',
         message: `تم تحديث مدفوعات نشاط "${normalizedBiz.nameAr}" (المبلغ المدفوع: ${normalizedBiz.amountPaid} ج.م - الحالة: ${normalizedBiz.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل ✅' : 'مدفوع جزئياً ⏳'}).`,
@@ -1965,6 +1970,13 @@ export default function App() {
           business={selectedInvoiceBiz}
           onClose={() => setSelectedInvoiceBiz(null)}
           onUpdateBusiness={handleUpdateBusiness}
+          onCollectPayment={
+            user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
+              ? (b) => {
+                  setSelectedPayBiz(b);
+                }
+              : undefined
+          }
           userRole={user?.role}
           isAdmin={user?.role === 'admin' || user?.role === 'supervisor'}
         />
@@ -1978,14 +1990,23 @@ export default function App() {
           onClose={() => setSelectedPayBiz(null)}
           onPaymentSuccess={(newPaid, method = 'gateway_online') => {
             if (selectedPayBiz) {
-              const status = newPaid >= selectedPayBiz.packagePrice ? 'fully_paid' : 'partially_paid';
-              handleUpdateBusiness({
+              const status = newPaid >= (selectedPayBiz.packagePrice || 250) ? 'fully_paid' : 'partially_paid';
+              const updatedBiz: Business = {
                 ...selectedPayBiz,
                 amountPaid: newPaid,
                 paymentStatus: status,
                 paymentMethod: method,
-                cashCollectedByRep: 0, // Received directly via platform payment gateway / wallets
-              });
+                cashCollectedByRep: method === 'cash_by_rep' ? newPaid : 0, // Received directly via platform payment gateway / wallets
+              };
+              handleUpdateBusiness(updatedBiz);
+
+              // Keep open modals in sync with the payment update
+              if (editingBusiness && editingBusiness.id === updatedBiz.id) {
+                setEditingBusiness(updatedBiz);
+              }
+              if (selectedInvoiceBiz && selectedInvoiceBiz.id === updatedBiz.id) {
+                setSelectedInvoiceBiz(updatedBiz);
+              }
             }
           }}
         />
