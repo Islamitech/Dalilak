@@ -230,84 +230,47 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
 // =============================================================================
 
 export async function fetchRepsFromDb(): Promise<Representative[]> {
-  const mergedMap = new Map<string, Representative>();
-  const deletedReps = new Set<string>();
-
-  try {
-    const delArr = JSON.parse(localStorage.getItem('dalelak_deleted_rep_ids') || '[]');
-    if (Array.isArray(delArr)) {
-      delArr.forEach((x: string) => deletedReps.add(x.toLowerCase()));
-    }
-  } catch {}
-
-  // 1. Baseline: Seed with persistent MOCK_REPRESENTATIVES (excluding deleted)
-  MOCK_REPRESENTATIVES.forEach((r) => {
-    if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
-      mergedMap.set(r.email.toLowerCase(), r);
-    }
-  });
-
-  // 2. Try Supabase REST / SDK
+  // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
   if (isSupabaseConfigured()) {
     try {
-      const res = await supabaseRestFetch('representatives?select=*');
+      const res = await supabaseRestFetch('representatives?select=*&order=created_at.desc');
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          restData.map(mapDbToRep).forEach((r) => {
-            if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
-              mergedMap.set(r.email.toLowerCase(), r);
-            }
-          });
-        }
-      } else {
-        const { data, error } = await supabase.from('representatives').select('*');
-        if (!error && data && Array.isArray(data) && data.length > 0) {
-          data.map(mapDbToRep).forEach((r) => {
-            if (!deletedReps.has(r.id.toLowerCase()) && !deletedReps.has(r.email.toLowerCase())) {
-              mergedMap.set(r.email.toLowerCase(), r);
-            }
-          });
+          const freshList = restData.map(mapDbToRep);
+          try {
+            localStorage.setItem('dalelak_cached_reps', JSON.stringify(freshList));
+          } catch {}
+          return freshList;
         }
       }
     } catch (err) {
-      console.error('Supabase fetch reps error:', err);
+      console.warn('Supabase fetch reps REST error:', err);
+    }
+
+    try {
+      const { data, error } = await supabase.from('representatives').select('*').order('created_at', { ascending: false });
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        const freshList = data.map(mapDbToRep);
+        try {
+          localStorage.setItem('dalelak_cached_reps', JSON.stringify(freshList));
+        } catch {}
+        return freshList;
+      }
+    } catch (err) {
+      console.warn('Supabase fetch reps SDK error:', err);
     }
   }
 
-  // 3. Local server merge
+  // 2. Offline fallback from local cache
   try {
-    const localRes = await fetch('/api/representatives');
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (Array.isArray(localData) && localData.length > 0) {
-        localData.forEach((r: Representative) => {
-          if (!deletedReps.has((r.id || '').toLowerCase()) && !deletedReps.has((r.email || '').toLowerCase())) {
-            mergedMap.set(r.email.toLowerCase(), r);
-          }
-        });
-      }
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_reps') || '[]');
+    if (Array.isArray(cached) && cached.length > 0) {
+      return cached;
     }
   } catch {}
 
-  // 4. LocalStorage custom reps merge
-  try {
-    const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
-    if (Array.isArray(cachedCustom) && cachedCustom.length > 0) {
-      cachedCustom.forEach((r: Representative) => {
-        if (!deletedReps.has((r.id || '').toLowerCase()) && !deletedReps.has((r.email || '').toLowerCase())) {
-          mergedMap.set(r.email.toLowerCase(), r);
-        }
-      });
-    }
-  } catch {}
-
-  // Ensure deleted reps are completely excluded
-  deletedReps.forEach((d) => {
-    mergedMap.delete(d);
-  });
-
-  return Array.from(mergedMap.values());
+  return [];
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {

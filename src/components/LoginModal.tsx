@@ -159,17 +159,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         console.log('Server login fallback to Supabase real-time database');
       }
 
-      // Step 2: Fresh Database & LocalStorage Validation (Fresh DB is strictly authoritative!)
+      // Step 2: Fresh Cloud Supabase Validation (Cloud DB is strictly authoritative!)
       const freshDbReps = await fetchRepsFromDb();
       const allRepsMap = new Map<string, Representative>();
-      MOCK_REPRESENTATIVES.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
-      try {
-        const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
-        if (Array.isArray(cachedCustom)) {
-          cachedCustom.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
-        }
-      } catch {}
-      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
+      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
       freshDbReps.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
 
       let foundRep = allRepsMap.get(cleanEmail);

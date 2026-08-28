@@ -106,19 +106,15 @@ export default function App() {
       const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
       if (Array.isArray(cached) && cached.length > 0) return cached;
     } catch {}
-    return INITIAL_BUSINESSES;
+    return [];
   });
 
   const [representatives, setRepresentatives] = useState<Representative[]>(() => {
-    const map = new Map<string, Representative>();
-    MOCK_REPRESENTATIVES.forEach((r) => map.set(r.email.toLowerCase(), r));
     try {
-      const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
-      if (Array.isArray(cached)) {
-        cached.forEach((r) => map.set(r.email.toLowerCase(), { ...map.get(r.email.toLowerCase()), ...r }));
-      }
+      const cached = JSON.parse(localStorage.getItem('dalelak_cached_reps') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) return cached;
     } catch {}
-    return Array.from(map.values());
+    return [];
   });
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(() => {
@@ -488,19 +484,12 @@ export default function App() {
     };
   }, [user]);
 
-  // Fetch initial data from Supabase Database & Local Backend
+  // Fetch initial data exclusively from Supabase Cloud
   useEffect(() => {
     Promise.all([fetchBusinessesFromDb(), fetchRepsFromDb(), fetchPayoutRequestsFromDb(), fetchLeadsFromDb()])
       .then(([dbBizData, dbRepsData, dbPayouts, dbLeads]) => {
-        if (Array.isArray(dbBizData) && dbBizData.length > 0) {
+        if (Array.isArray(dbBizData)) {
           setBusinesses(dbBizData);
-        } else {
-          try {
-            const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-            if (Array.isArray(cached) && cached.length > 0) {
-              setBusinesses(cached);
-            }
-          } catch {}
         }
         if (Array.isArray(dbPayouts)) {
           setPayoutRequests(dbPayouts);
@@ -508,52 +497,30 @@ export default function App() {
         if (Array.isArray(dbLeads)) {
           setLeads(dbLeads);
         }
+        if (Array.isArray(dbRepsData)) {
+          setRepresentatives(dbRepsData);
 
-        const repMap = new Map<string, Representative>();
-        MOCK_REPRESENTATIVES.forEach((r) => repMap.set(r.email.toLowerCase(), r));
-        try {
-          const cachedCustom = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
-          if (Array.isArray(cachedCustom)) {
-            cachedCustom.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
-          }
-        } catch {}
-        if (Array.isArray(dbRepsData) && dbRepsData.length > 0) {
-          dbRepsData.forEach((r) => repMap.set(r.email.toLowerCase(), { ...repMap.get(r.email.toLowerCase()), ...r }));
-        }
-
-        const mergedReps = Array.from(repMap.values());
-        setRepresentatives(mergedReps);
-
-        // Instant user state sync if logged-in representative data changed
-        if (user) {
-          const freshUserRep = mergedReps.find(
-            (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
-          );
-          if (freshUserRep) {
-            setUser((prev) => (prev ? { ...prev, repData: freshUserRep } : prev));
-            try {
-              localStorage.setItem(
-                'dalelak_logged_user',
-                JSON.stringify({ ...user, repData: freshUserRep })
-              );
-            } catch {}
+          // Instant user state sync if logged-in representative data changed
+          if (user) {
+            const freshUserRep = dbRepsData.find(
+              (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
+            );
+            if (freshUserRep) {
+              setUser((prev) => (prev ? { ...prev, repData: freshUserRep } : prev));
+              try {
+                localStorage.setItem(
+                  'dalelak_logged_user',
+                  JSON.stringify({ ...user, repData: freshUserRep })
+                );
+              } catch {}
+            }
           }
         }
 
         setIsLoadingData(false);
       })
       .catch((err) => {
-        console.error('Error fetching initial database data, using defaults:', err);
-        try {
-          const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-          if (Array.isArray(cached) && cached.length > 0) {
-            setBusinesses(cached);
-          } else {
-            setBusinesses(INITIAL_BUSINESSES);
-          }
-        } catch {
-          setBusinesses(INITIAL_BUSINESSES);
-        }
+        console.error('Error fetching initial database data from Supabase Cloud:', err);
         setIsLoadingData(false);
       });
 
@@ -564,36 +531,33 @@ export default function App() {
       .catch((err) => console.log('Payment config load notice:', err));
   }, []);
 
-  // Live Real-Time Poller & Cross-Tab Syncer (Reflects Admin changes instantaneously)
+  // Live Real-Time Poller & Cross-Tab Syncer (Reflects Admin changes instantaneously from Cloud)
   useEffect(() => {
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
 
     const refreshLiveData = async () => {
       try {
-        const [freshBiz, freshReps, freshPayouts] = await Promise.all([
+        const [freshBiz, freshReps, freshPayouts, freshLeads] = await Promise.all([
           fetchBusinessesFromDb(),
           fetchRepsFromDb(),
           fetchPayoutRequestsFromDb(),
+          fetchLeadsFromDb(),
         ]);
 
         if (Array.isArray(freshBiz)) {
           setBusinesses(freshBiz);
-          try {
-            localStorage.setItem('dalelak_cached_businesses', JSON.stringify(freshBiz));
-          } catch {}
         }
 
         if (Array.isArray(freshPayouts)) {
           setPayoutRequests(freshPayouts);
         }
 
-        if (Array.isArray(freshReps) && freshReps.length > 0) {
-          setRepresentatives((prev) => {
-            const map = new Map<string, Representative>();
-            prev.forEach((r) => map.set(r.email.toLowerCase(), r));
-            freshReps.forEach((r) => map.set(r.email.toLowerCase(), { ...map.get(r.email.toLowerCase()), ...r }));
-            return Array.from(map.values());
-          });
+        if (Array.isArray(freshLeads)) {
+          setLeads(freshLeads);
+        }
+
+        if (Array.isArray(freshReps)) {
+          setRepresentatives(freshReps);
 
           // Sync current logged-in user in real time
           if (user) {
