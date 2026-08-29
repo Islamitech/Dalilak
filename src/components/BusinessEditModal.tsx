@@ -117,8 +117,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
     const updatedFormData: Business = {
       ...formData,
-      nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || '',
+      nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || 'نشاط تجاري',
       nameEn: formData.nameEn?.trim() || undefined,
+      ownerName: (formData.ownerName && formData.ownerName.trim()) || 'صاحب النشاط',
+      phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
+      ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
+      photos: Array.isArray(formData.photos) ? formData.photos : [],
+      videos: Array.isArray(formData.videos) ? formData.videos : [],
     };
 
     onSave(updatedFormData);

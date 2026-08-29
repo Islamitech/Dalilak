@@ -893,37 +893,35 @@ function mapDbToBusiness(item: any): Business {
 function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   const record: any = {};
   if (biz.id !== undefined) record.id = biz.id;
-  if (biz.nameAr !== undefined) record.name_ar = biz.nameAr;
-  if (biz.nameEn !== undefined) record.name_en = biz.nameEn || null;
-  if (biz.category !== undefined) record.category = biz.category;
-  if (biz.governorate !== undefined) record.governorate = biz.governorate;
-  if (biz.city !== undefined) record.city = biz.city;
-  if (biz.street !== undefined) record.street = biz.street;
-  if (biz.landmark !== undefined) record.landmark = biz.landmark || null;
-  if (biz.phone !== undefined) record.phone = biz.phone;
-  if (biz.secondaryPhone !== undefined) record.secondary_phone = biz.secondaryPhone || null;
-  if (biz.workingHours !== undefined) record.working_hours = biz.workingHours;
-  if (biz.description !== undefined) record.description = biz.description;
-  if (biz.lat !== undefined) record.lat = Number(biz.lat) || 0;
-  if (biz.lng !== undefined) record.lng = Number(biz.lng) || 0;
-  if (biz.ownerName !== undefined) record.owner_name = biz.ownerName;
-  if (biz.ownerPhone !== undefined) record.owner_phone = biz.ownerPhone;
-  if (biz.ownerEmail !== undefined) record.owner_email = biz.ownerEmail || null;
-  if (biz.nationalId !== undefined) record.national_id = biz.nationalId || null;
-  if (biz.photos !== undefined) {
-    record.photos = Array.isArray(biz.photos) ? biz.photos : [];
-  }
-  if (biz.packageId !== undefined) record.package_id = biz.packageId;
-  if (biz.packageName !== undefined) record.package_name = biz.packageName;
-  if (biz.packagePrice !== undefined) record.package_price = Number(biz.packagePrice) || 250;
-  if (biz.amountPaid !== undefined) record.amount_paid = Number(biz.amountPaid) || 0;
-  if (biz.paymentStatus !== undefined) record.payment_status = biz.paymentStatus;
-  if (biz.verificationStatus !== undefined) record.verification_status = biz.verificationStatus;
-  if (biz.repId !== undefined) record.rep_id = biz.repId;
-  if (biz.repName !== undefined) record.rep_name = biz.repName;
-  if (biz.invoiceNumber !== undefined) record.invoice_number = biz.invoiceNumber;
-  if (biz.invoiceDate !== undefined) record.invoice_date = biz.invoiceDate;
-  if (biz.createdDate !== undefined) record.created_at = biz.createdDate;
+  record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'نشاط تجاري';
+  if (biz.nameEn !== undefined) record.name_en = biz.nameEn?.trim() || null;
+  record.category = biz.category || 'عام';
+  record.governorate = biz.governorate || 'القاهرة';
+  record.city = biz.city || record.governorate || 'القاهرة';
+  record.street = biz.street || 'الموقع الجغرافي المسجل على الخريطة';
+  record.landmark = biz.landmark?.trim() || null;
+  record.phone = (biz.phone && biz.phone.trim()) || (biz.ownerPhone && biz.ownerPhone.trim()) || '01000000000';
+  record.secondary_phone = biz.secondaryPhone?.trim() || null;
+  record.working_hours = biz.workingHours || 'يومياً من 9:00 صباحاً حتى 11:00 مساءً';
+  record.description = biz.description || `نشاط ${record.name_ar} في ${record.governorate}`;
+  record.lat = Number(biz.lat) || 30.0444;
+  record.lng = Number(biz.lng) || 31.2357;
+  record.owner_name = (biz.ownerName && biz.ownerName.trim()) || 'صاحب النشاط';
+  record.owner_phone = (biz.ownerPhone && biz.ownerPhone.trim()) || (biz.phone && biz.phone.trim()) || record.phone || '01000000000';
+  record.owner_email = biz.ownerEmail?.trim() || null;
+  record.national_id = biz.nationalId?.trim() || null;
+  record.photos = Array.isArray(biz.photos) ? biz.photos : [];
+  record.package_id = biz.packageId || 'pkg_basic';
+  record.package_name = biz.packageName || '1. باقة التوثيق الأساسي';
+  record.package_price = Number(biz.packagePrice) || 250;
+  record.amount_paid = Number(biz.amountPaid) || 0;
+  record.payment_status = biz.paymentStatus || 'unpaid';
+  record.verification_status = biz.verificationStatus || 'pending';
+  record.rep_id = biz.repId || 'rep_1';
+  record.rep_name = biz.repName || 'مندوب معتمد';
+  record.invoice_number = biz.invoiceNumber || `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
+  record.invoice_date = biz.invoiceDate || new Date().toISOString().split('T')[0];
+  record.created_at = biz.createdDate || new Date().toISOString();
 
   // Safely preserve financial, sync, and video metadata in notes JSON
   const metaObj = {
@@ -934,7 +932,7 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,
     googleMapsUrl: biz.googleMapsUrl,
-    videos: biz.videos,
+    videos: Array.isArray(biz.videos) ? biz.videos : [],
     userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
   };
   record.notes = JSON.stringify(metaObj);

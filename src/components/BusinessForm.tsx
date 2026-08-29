@@ -379,36 +379,39 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   const handleFinalConfirmPayment = () => {
     const timestamp = Date.now();
-    const finalNameAr = nameAr.trim() || nameEn.trim();
-    const finalNameEn = nameEn.trim() || undefined;
+    const finalNameAr = (nameAr && nameAr.trim()) || (nameEn && nameEn.trim()) || 'نشاط تجاري جديد';
+    const finalNameEn = nameEn?.trim() || undefined;
+    const finalOwnerName = (ownerName && ownerName.trim()) || 'صاحب النشاط';
+    const finalPhone = (phone && phone.trim()) || (ownerPhone && ownerPhone.trim()) || '01000000000';
+    const finalOwnerPhone = (ownerPhone && ownerPhone.trim()) || (phone && phone.trim()) || finalPhone;
 
     const newBusiness: Business = {
       id: `biz_${timestamp}`,
       nameAr: finalNameAr,
       nameEn: finalNameEn,
-      category,
-      governorate,
-      city: city || governorate,
-      street: street || 'الموقع الجغرافي المسجل على الخريطة',
-      landmark: landmark || undefined,
-      phone: phone || ownerPhone,
-      secondaryPhone: secondaryPhone || undefined,
-      workingHours: workingHours || 'يومياً',
-      description: description || `نشاط ${finalNameAr} في ${governorate}`,
+      category: category || 'عام',
+      governorate: governorate || 'القاهرة',
+      city: city?.trim() || governorate || 'القاهرة',
+      street: street?.trim() || 'الموقع الجغرافي المسجل على الخريطة',
+      landmark: landmark?.trim() || undefined,
+      phone: finalPhone,
+      secondaryPhone: secondaryPhone?.trim() || undefined,
+      workingHours: workingHours || 'يومياً من 9:00 صباحاً حتى 11:00 مساءً',
+      description: description?.trim() || `نشاط ${finalNameAr} في ${governorate}`,
       lat,
       lng,
-      ownerName,
-      ownerPhone,
-      ownerEmail: ownerEmail || undefined,
-      nationalId: nationalId || undefined,
-      photos: photos,
-      videos: videos,
+      ownerName: finalOwnerName,
+      ownerPhone: finalOwnerPhone,
+      ownerEmail: ownerEmail?.trim() || undefined,
+      nationalId: nationalId?.trim() || undefined,
+      photos: Array.isArray(photos) ? photos : [],
+      videos: Array.isArray(videos) ? videos : [],
       repId: currentRep?.id || 'rep_1',
       repName: currentRep?.name || 'مندوب معتمد',
       packageId: selectedPackage.id,
       packageName: selectedPackage.title,
       packagePrice: selectedPackage.price,
-      amountPaid: Number(amountPaid),
+      amountPaid: Number(amountPaid) || 0,
       // Set payment method and cash in hand accurately:
       paymentMethod: paymentStatus === 'unpaid' ? 'platform_collected' : paymentMethod,
       cashCollectedByRep: paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
