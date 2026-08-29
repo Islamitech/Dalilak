@@ -197,21 +197,19 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
         </div>
 
         {/* Integrated Subtle Field Work Target Badge */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-2.5 px-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2 text-amber-300 font-bold">
-            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>توصية الميدان: استهداف 25 زيارة يومياً يحقق أعلى تدفق تسجيلات وعمولات مستمرة.</span>
-          </div>
-          <span className="text-[11px] text-slate-300 font-mono">
-            إنجاز الشهر: <strong className="text-amber-400 font-black">{myBusinesses.length} / {rep.targetMonth} نشاط</strong>
+        {/* Integrated Subtle Field Work Target Badge */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-2.5 px-3.5 flex items-center gap-2 text-xs">
+          <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="text-amber-300 font-bold">
+            توصية الميدان: استهداف 25 زيارة يومياً يحقق أعلى تدفق تسجيلات وعمولات مستمرة.
           </span>
         </div>
       </div>
 
       {/* ========================================================
-          SINGLE MASTER WALLET BOX (مربع الرصيد المالي الموحد)
+          SINGLE MASTER WALLET & MILESTONE BOX (مربع الرصيد المالي والأهداف الموحد)
           ======================================================== */}
-      <div className={`border-2 rounded-3xl p-4 sm:p-5 shadow-xl transition-all duration-300 space-y-3.5 ${
+      <div className={`border-2 rounded-3xl p-4 sm:p-5 shadow-xl transition-all duration-300 space-y-4 ${
         settlement.isDebtToPlatform
           ? 'bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-950/20 border-amber-500/50'
           : settlement.withdrawableBalance > 0
@@ -231,7 +229,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
               {settlement.isDebtToPlatform ? '⚠️' : settlement.withdrawableBalance > 0 ? '💵' : '⚖️'}
             </div>
             <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] flex items-center gap-2">
-              <span>رصيد الحساب</span>
+              <span>رصيد الحساب والعمولات</span>
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border ${
                 settlement.isDebtToPlatform
                   ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15 border-amber-500/30'
@@ -239,7 +237,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                   ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
                   : 'text-[var(--text-muted)] bg-[var(--input-bg)] border-[var(--border-color)]'
               }`}>
-                {settlement.isDebtToPlatform ? 'مستحق للمنصة' : settlement.withdrawableBalance > 0 ? 'أرباح متاحة' : 'مصفى'}
+                {settlement.isDebtToPlatform ? 'مستحق للمنصة' : settlement.withdrawableBalance > 0 ? 'أرباح متاحة للسحب' : 'مصفى'}
               </span>
             </h3>
           </div>
@@ -302,6 +300,88 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
           </div>
         </div>
 
+        {/* Integrated Target Milestones: Weekly Target & Referral Unlock */}
+        <div className="pt-3 border-t border-[var(--border-color)]/60 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* 1. Weekly Target: 10 businesses */}
+            <div className={`p-3 rounded-2xl border transition-all ${
+              isMission1Complete
+                ? 'bg-emerald-500/10 border-emerald-500/30'
+                : 'bg-[var(--input-bg)]/80 border-[var(--border-color)]'
+            }`}>
+              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
+                  {isMission1Complete ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-600 text-[10px] flex items-center justify-center font-black">🎯</span>
+                  )}
+                  <span>الهدف الأسبوعي (تسجيل 10 أنشطة)</span>
+                </span>
+                <span className={`font-mono font-black ${isMission1Complete ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
+                  {Math.min(10, myBusinesses.length)} / 10
+                </span>
+              </div>
+              <div className="w-full bg-[var(--bg-card)] h-2 rounded-full overflow-hidden border border-[var(--border-color)]/40">
+                <div
+                  className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (myBusinesses.length / 10) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1">
+                {isMission1Complete
+                  ? 'تم تفعيل الحساب الميداني المستقل بنجاح ✅'
+                  : `متبقي ${Math.max(0, 10 - myBusinesses.length)} أنشطة لتأكيد الحساب الميداني المستقل`}
+              </p>
+            </div>
+
+            {/* 2. Referral Unlock Target: 25 businesses */}
+            <div className={`p-3 rounded-2xl border transition-all ${
+              referralSummary.isUnlocked
+                ? 'bg-blue-500/10 border-blue-500/30'
+                : 'bg-[var(--input-bg)]/80 border-[var(--border-color)]'
+            }`}>
+              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
+                  {referralSummary.isUnlocked ? (
+                    <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                  ) : (
+                    <span className="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 text-[10px] flex items-center justify-center font-black">🚀</span>
+                  )}
+                  <span>هدف فتح كود الإحالة (25 نشاط)</span>
+                </span>
+                <span className={`font-mono font-black ${referralSummary.isUnlocked ? 'text-blue-600 dark:text-blue-400' : 'text-blue-600'}`}>
+                  {referralSummary.isUnlocked ? 'مفعل ✨' : `${Math.min(25, myBusinesses.length)} / 25`}
+                </span>
+              </div>
+              <div className="w-full bg-[var(--bg-card)] h-2 rounded-full overflow-hidden border border-[var(--border-color)]/40">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (myBusinesses.length / 25) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1">
+                {referralSummary.isUnlocked
+                  ? 'تم فتح كود الدعوة وبناء فريق المبيعات بنجاح 🚀'
+                  : `متبقي ${Math.max(0, 25 - myBusinesses.length)} نشاط لفتح كود الدعوة والعمولات الإضافية`}
+              </p>
+            </div>
+          </div>
+
+          {/* Motivational Promo Card for New Reps without referral code */}
+          {!referralSummary.isUnlocked && (
+            <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 border border-amber-500/30 p-3.5 rounded-2xl flex items-center gap-3 text-xs shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 text-lg">
+                🎁
+              </div>
+              <div className="min-w-0 flex-1 text-[11px] text-[var(--text-secondary)] font-bold leading-relaxed">
+                <strong className="text-amber-600 dark:text-amber-400 block text-xs">مكافآت برنامج الإحالة الميداني:</strong>
+                سارع بتسجيل أنشطتك التجارية الأولى لتفعيل كود الإحالة الخاص بك تلقائياً ودعوة أصدقائك المناديب للحصول على مكافآت وعمولات إضافية مستمرة!
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Subtle Pending Verification Commission note if any */}
         {settlement.pendingVerificationCommission > 0 && (
           <div className="bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-200 p-2.5 px-3.5 rounded-2xl text-xs font-bold flex flex-wrap items-center justify-between gap-2">
@@ -315,194 +395,30 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
         )}
       </div>
 
-      {/* Target & Commission Progress Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Monthly Target Progress */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-3xl shadow-md space-y-2 transition-colors duration-300">
-          <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-bold">
-            <span>الهدف الشهري للتسجيل</span>
-            <span className="text-amber-500 font-black">{myBusinesses.length} / {rep.targetMonth} نشاط</span>
-          </div>
-
-          <div className="w-full bg-[var(--input-bg)] h-2.5 rounded-full overflow-hidden border border-[var(--border-color)]">
-            <div
-              className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full transition-all duration-500 rounded-full"
-              style={{ width: `${targetProgress}%` }}
-            />
-          </div>
-
-          <p className="text-[10px] text-[var(--text-muted)] font-bold">متبقي {Math.max(0, rep.targetMonth - myBusinesses.length)} نشاط لتحقيق تارجت الشهر</p>
-        </div>
-
-        {/* Total Collected */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-3xl shadow-md space-y-1 transition-colors duration-300">
-          <span className="text-xs text-[var(--text-muted)] font-bold block">إجمالي تحصيلاتك الميدانية</span>
-          <p className="text-xl font-black text-emerald-500">{totalCollected.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span></p>
-          <p className="text-[10px] text-[var(--text-muted)]">مبالغ مستلمة نقداً أو إلكترونياً من العملاء</p>
-        </div>
-      </div>
-
-      {/* Payout Requests History List (If any) */}
-      {myPayouts.length > 0 && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3 shadow-md">
-          <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
-            <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-[var(--text-primary)]">
-              <History className="w-4 h-4 text-emerald-500" />
-              <span>سجل طلبات سحب الأرباح والتحويلات</span>
-            </div>
-            <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
-              {myPayouts.length} طلبات
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {myPayouts.map((payout) => (
-              <div
-                key={payout.id}
-                className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-sm text-[var(--text-primary)]">
-                      {payout.amount.toLocaleString()} ج.م
-                    </span>
-                    <span className="text-[10px] font-bold text-[var(--text-muted)]">
-                      عبر {PAYOUT_METHOD_LABELS[payout.method]}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[var(--text-secondary)] font-medium">
-                    الحساب: <span className="font-mono font-bold text-amber-700 dark:text-amber-300">{payout.accountDetails}</span>
-                  </p>
-                  {payout.transactionRef && (
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                      رقم المعاملة / الحوالة: {payout.transactionRef}
-                    </p>
-                  )}
-                  {payout.adminNotes && (
-                    <p className="text-[10px] text-[var(--text-muted)] italic">
-                      ملاحظة الإدارة: {payout.adminNotes}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 mr-auto sm:mr-0">
-                  <span className="text-[10px] text-[var(--text-muted)] font-mono flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(payout.requestDate).toLocaleDateString('ar-EG')}
-                  </span>
-
-                  <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black ${
-                    payout.status === 'approved'
-                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                      : payout.status === 'rejected'
-                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                      : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse-subtle'
-                  }`}>
-                    {payout.status === 'approved'
-                      ? 'تم التحويل والصرف ✅'
-                      : payout.status === 'rejected'
-                      ? 'تم الرفض ❌'
-                      : 'قيد المراجعة ⏳'}
-                  </span>
-                </div>
+      {/* Referral System Box (ONLY SHOWN IF UNLOCKED) */}
+      {referralSummary.isUnlocked && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                <Sparkles className="w-4 h-4" />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <div>
+                <h3 className="font-black text-sm text-[var(--text-primary)]">
+                  برنامج الإحالة وبناء فريق المبيعات
+                </h3>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                  دعوة المناديب والحصول على مكافآت وعمولات إضافية (3% - 7%)
+                </p>
+              </div>
+            </div>
 
-      {/* Inviter Association Banner (If invited by another representative) */}
-      {referralSummary.inviterInfo && (
-        <div className="bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/30 rounded-2xl p-3 flex items-center justify-between text-xs shadow-xs">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-500 shrink-0" />
-            <span className="text-[var(--text-primary)]">
-              أنت مسجل ضمن شبكة دعوة المندوب: <strong className="text-amber-700 dark:text-amber-300">{referralSummary.inviterInfo.rep.name}</strong> (كود: <span className="font-mono font-black">{referralSummary.inviterInfo.code}</span>)
+            <span className="text-[11px] font-black px-3 py-1 rounded-full badge-success">
+              ✨ كود الإحالة مفعل ومفتوح
             </span>
           </div>
-          <span className="text-[10px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
-            إحالة معتمدة
-          </span>
-        </div>
-      )}
 
-      {/* MILESTONES & REFERRAL SYSTEM CARD */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-black text-sm text-[var(--text-primary)]">
-                مهام التميز وبرنامج الإحالة الميداني
-              </h3>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                توسيع شبكة المناديب والحصول على مكافآت وعمولات إضافية (3% - 7%)
-              </p>
-            </div>
-          </div>
-
-          <span className={`text-[11px] font-black px-3 py-1 rounded-full ${
-            referralSummary.isUnlocked ? 'badge-success' : 'badge-warning'
-          }`}>
-            {referralSummary.isUnlocked ? '✨ كود الإحالة مفعل ومفتوح' : '🔒 كود الإحالة قيد الفتح'}
-          </span>
-        </div>
-
-        {/* Milestone Steps Breakdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Mission 1 */}
-          <div className={`p-3.5 rounded-2xl border transition-all ${
-            isMission1Complete
-              ? 'bg-emerald-500/5 border-emerald-500/30'
-              : 'bg-[var(--bg-surface)] border-[var(--border-color)]'
-          }`}>
-            <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-              <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                {isMission1Complete ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                ) : (
-                  <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-600 text-[10px] flex items-center justify-center font-black">1</span>
-                )}
-                <span>المهمة الأولى (10 أنشطة مسجلة)</span>
-              </span>
-              <span className={`font-mono ${isMission1Complete ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
-                {Math.min(10, myBusinesses.length)} / 10
-              </span>
-            </div>
-            <p className="text-[11px] text-[var(--text-muted)]">
-              تسجيل أول 10 أنشطة تجارية وتفعيل الحساب الميداني المستقل.
-            </p>
-          </div>
-
-          {/* Mission 2 */}
-          <div className={`p-3.5 rounded-2xl border transition-all ${
-            isMission2Complete
-              ? 'bg-emerald-500/5 border-emerald-500/30'
-              : 'bg-[var(--bg-surface)] border-[var(--border-color)]'
-          }`}>
-            <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-              <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                {isMission2Complete ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                ) : (
-                  <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-600 text-[10px] flex items-center justify-center font-black">2</span>
-                )}
-                <span>المهمة الثانية (فتح برنامج الدعوة والعمولات)</span>
-              </span>
-              <span className={`font-mono ${isMission2Complete ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
-                {referralSummary.isUnlocked ? 'مكتمل ✅' : `${myBusinesses.length} / 25`}
-              </span>
-            </div>
-            <p className="text-[11px] text-[var(--text-muted)]">
-              الوصول لـ 25 نشاطاً لفتح كود الإحالة التلقائي والبدء في بناء فريق المبيعات.
-            </p>
-          </div>
-        </div>
-
-        {/* Referral Active Box */}
-        {referralSummary.isUnlocked ? (
+          {/* Referral Active Box */}
           <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 rounded-2xl p-4 space-y-3">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div>
@@ -552,96 +468,89 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
               </div>
             </div>
           </div>
-        ) : (
-          <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] text-xs text-[var(--text-secondary)] font-medium flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>متبقي تسجيل <strong>{Math.max(0, 25 - myBusinesses.length)}</strong> نشاط لفتح كود الإحالة وبدء جني عمولات الفريق، أو يمكن اعتماده مباشرة بواسطة إدارة المنظومة.</span>
-            </span>
-          </div>
-        )}
 
-        {/* DETAILED INVITED REPRESENTATIVES LIST & PROGRESS */}
-        <div className="pt-2 border-t border-[var(--border-color)] space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h4 className="font-black text-xs text-[var(--text-primary)] flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-amber-500" />
-              <span>أعضاء شبكة المبيعات المنضمين عبر كودك ({referralSummary.totalInvitedCount})</span>
-            </h4>
-            <span className="text-[10px] text-[var(--text-muted)] font-bold">
-              عمولة مستمرة (3% إلى 7%)
-            </span>
-          </div>
+          {/* DETAILED INVITED REPRESENTATIVES LIST */}
+          <div className="pt-2 border-t border-[var(--border-color)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <h4 className="font-black text-xs text-[var(--text-primary)] flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-amber-500" />
+                <span>أعضاء شبكة المبيعات المنضمين عبر كودك ({referralSummary.totalInvitedCount})</span>
+              </h4>
+              <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                عمولة مستمرة (3% إلى 7%)
+              </span>
+            </div>
 
-          {referralSummary.invitedRepsDetails.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {referralSummary.invitedRepsDetails.map(({ rep: invRep, bizCount, totalRevenue: _totalRevenue, currentRate, commissionEarned, isMission1Complete, remainingForMission1 }) => {
-                const isSuspended = invRep.status === 'suspended';
+            {referralSummary.invitedRepsDetails.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {referralSummary.invitedRepsDetails.map(({ rep: invRep, bizCount, totalRevenue: _totalRevenue, currentRate, commissionEarned, isMission1Complete, remainingForMission1 }) => {
+                  const isSuspended = invRep.status === 'suspended';
 
-                return (
-                  <div
-                    key={invRep.id}
-                    className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] space-y-2 hover:border-amber-500/40 transition-all shadow-xs"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <UserAvatar avatar={invRep.avatar} name={invRep.name} role={invRep.role} avatarStatus={invRep.avatarStatus} size="sm" />
+                  return (
+                    <div
+                      key={invRep.id}
+                      className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)] space-y-2 hover:border-amber-500/40 transition-all shadow-xs"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar avatar={invRep.avatar} name={invRep.name} role={invRep.role} avatarStatus={invRep.avatarStatus} size="sm" />
+                          <div>
+                            <h5 className="font-bold text-xs text-[var(--text-primary)]">{invRep.name}</h5>
+                            <p className="text-[10px] text-[var(--text-muted)]">مندوب {invRep.governorate}</p>
+                          </div>
+                        </div>
+
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                          isSuspended ? 'badge-warning' : 'badge-success'
+                        }`}>
+                          {isSuspended ? '⏳ قيد التفعيل الإداري' : '🟢 نشط ومصرح'}
+                        </span>
+                      </div>
+
+                      <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)] grid grid-cols-3 gap-1 text-center text-[10px]">
                         <div>
-                          <h5 className="font-bold text-xs text-[var(--text-primary)]">{invRep.name}</h5>
-                          <p className="text-[10px] text-[var(--text-muted)]">مندوب {invRep.governorate}</p>
+                          <span className="text-[var(--text-muted)] block">الأنشطة</span>
+                          <span className="font-black text-xs text-[var(--text-primary)]">{bizCount}</span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-muted)] block">نسبة العمولة</span>
+                          <span className="font-black text-xs text-amber-700 dark:text-amber-300">{currentRate}%</span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-muted)] block">أرباحك منه</span>
+                          <span className="font-black text-xs text-emerald-600 dark:text-emerald-400">+{commissionEarned} ج.م</span>
                         </div>
                       </div>
 
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
-                        isSuspended ? 'badge-warning' : 'badge-success'
-                      }`}>
-                        {isSuspended ? '⏳ قيد التفعيل الإداري' : '🟢 نشط ومصرح'}
-                      </span>
-                    </div>
-
-                    <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)] grid grid-cols-3 gap-1 text-center text-[10px]">
-                      <div>
-                        <span className="text-[var(--text-muted)] block">الأنشطة</span>
-                        <span className="font-black text-xs text-[var(--text-primary)]">{bizCount}</span>
-                      </div>
-                      <div>
-                        <span className="text-[var(--text-muted)] block">نسبة العمولة</span>
-                        <span className="font-black text-xs text-amber-700 dark:text-amber-300">{currentRate}%</span>
-                      </div>
-                      <div>
-                        <span className="text-[var(--text-muted)] block">أرباحك منه</span>
-                        <span className="font-black text-xs text-emerald-600 dark:text-emerald-400">+{commissionEarned} ج.م</span>
+                      {/* Mission 1 Progress Badge */}
+                      <div className="text-[10px] font-bold flex items-center justify-between pt-1">
+                        {isMission1Complete ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>أتم 10 أنشطة (استحقت مكافأة {INVITATION_GIFT_BONUS} ج.م)</span>
+                          </span>
+                        ) : (
+                          <span className="text-[var(--text-muted)]">
+                            متبقي <strong className="text-amber-600">{remainingForMission1}</strong> أنشطة لتفعيل مكافأة الدعوة ({INVITATION_GIFT_BONUS} ج.م)
+                          </span>
+                        )}
                       </div>
                     </div>
-
-                    {/* Mission 1 Progress Badge */}
-                    <div className="text-[10px] font-bold flex items-center justify-between pt-1">
-                      {isMission1Complete ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>أتم 10 أنشطة (استحقت مكافأة {INVITATION_GIFT_BONUS} ج.م)</span>
-                        </span>
-                      ) : (
-                        <span className="text-[var(--text-muted)]">
-                          متبقي <strong className="text-amber-600">{remainingForMission1}</strong> أنشطة لتفعيل مكافأة الدعوة ({INVITATION_GIFT_BONUS} ج.م)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] text-center space-y-1.5 shadow-xs">
-              <Users className="w-8 h-8 text-amber-500/50 mx-auto" />
-              <p className="text-xs font-bold text-[var(--text-primary)]">لم ينضم أي مندوب عبر كودك حتى الآن</p>
-              <p className="text-[11px] text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
-                شارك كود الدعوة الخاص بك <strong className="text-amber-700 dark:text-amber-300 font-mono">({referralCode})</strong> مع زملائك عند تسجيل حساباتهم، وستظهر بياناتهم ونشاطهم وعمولاتك التراكمية هنا فوراً.
-              </p>
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] text-center space-y-1.5 shadow-xs">
+                <Users className="w-8 h-8 text-amber-500/50 mx-auto" />
+                <p className="text-xs font-bold text-[var(--text-primary)]">لم ينضم أي مندوب عبر كودك حتى الآن</p>
+                <p className="text-[11px] text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+                  شارك كود الدعوة الخاص بك <strong className="text-amber-700 dark:text-amber-300 font-mono">({referralCode})</strong> مع زملائك عند تسجيل حساباتهم، وستظهر بياناتهم ونشاطهم وعمولاتك التراكمية هنا فوراً.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Payout Request Modal */}
       {onRequestPayout && (

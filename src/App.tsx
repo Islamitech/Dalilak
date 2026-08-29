@@ -1848,27 +1848,47 @@ export default function App() {
 
               {/* ── 2. EMPTY STATE (Only shown when NOT loading & 0 results) ─────── */}
               {!isLoadingData && filteredHomeBusinesses.length === 0 && (
-                <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3 shadow-sm">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
-                    <Building2 className="w-7 h-7 stroke-[1.5]" />
+                <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3.5 shadow-sm">
+                  <div className="w-16 h-16 rounded-3xl bg-amber-500/15 text-amber-500 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    🏪
                   </div>
-                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
-                    لا توجد أنشطة تجارية مطابقة للبحث أو التصفية الحالية
-                  </h3>
-                  <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
-                    جرب تغيير خيارات التصفية أو البحث، أو اضغط على "تسجيل نشاط جديد" للبدء في توثيق المحلات.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setHomeSearchQuery('');
-                      setHomeGovFilter('all');
-                      setHomeCategoryFilter('all');
-                      setHomeVerificationFilter('all');
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
-                  >
-                    إعادة ضبط الفلاتر 🔄
-                  </button>
+                  {user?.role === 'rep' && scopedBusinesses.length === 0 ? (
+                    <>
+                      <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
+                        لم تقم بتسجيل أي نشاط تجاري حتى الآن
+                      </h3>
+                      <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+                        هذه المساحة مخصصة لعرض وإدارة الأنشطة والزيارات الميدانية الخاصة بك. ابدأ الآن بتوثيق أول محل تجاري لتفعيل حسابك وكسب عمولتك فوراً!
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('add')}
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer mt-1"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        <span>تسجيل أول نشاط تجاري الآن ➕</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                        لا توجد أنشطة تجارية مطابقة للبحث أو التصفية الحالية
+                      </h3>
+                      <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
+                        جرب تغيير خيارات التصفية أو البحث، أو اضغط على "تسجيل نشاط جديد" للبدء في توثيق المحلات.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setHomeSearchQuery('');
+                          setHomeGovFilter('all');
+                          setHomeCategoryFilter('all');
+                          setHomeVerificationFilter('all');
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                      >
+                        إعادة ضبط الفلاتر 🔄
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 
