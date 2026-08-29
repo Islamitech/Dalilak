@@ -36,13 +36,29 @@ interface PublicShowcaseProps {
   businesses: Business[];
   onOpenInternalApp?: () => void;
   referralCode?: string;
+  loading?: boolean;
 }
 
 export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   businesses,
   referralCode,
+  loading = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const [localLoading, setLocalLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (businesses && businesses.length > 0) {
+      setLocalLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setLocalLoading(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [businesses]);
+
+  const isActuallyLoading = loading || (localLoading && businesses.length === 0);
 
   // Search and Filters (Default to 'all' to show all verified businesses across Egypt)
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -304,12 +320,19 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] font-bold">
-            <span>
-              عرض <span className="text-amber-500 font-black">{filteredBusinesses.length}</span> من إجمالي{' '}
-              <span className="font-mono">{publicBusinesses.length}</span> نشاط ومحل مسجل
-            </span>
-            {(searchQuery || govFilter !== 'all' || categoryFilter !== 'all') && (
+          <div className="flex items-center justify-between text-xs px-1 pt-2 border-t border-[var(--border-color)]">
+            {isActuallyLoading ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500 font-bold animate-pulse">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>جاري جلب وتحديث الأنشطة والدليل الميداني...</span>
+              </span>
+            ) : (
+              <span className="text-[11px] text-[var(--text-muted)] font-bold">
+                عرض <strong className="text-amber-500 font-mono">{filteredBusinesses.length}</strong> من إجمالي{' '}
+                <strong className="text-[var(--text-primary)] font-mono">{publicBusinesses.length}</strong> نشاط ومحل مسجل
+              </span>
+            )}
+            {!isActuallyLoading && (searchQuery || govFilter !== 'all' || categoryFilter !== 'all') && (
               <button
                 onClick={() => {
                   setSearchQuery('');
@@ -339,7 +362,41 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         {/* SHOWCASE VIEW 2: BUSINESSES GRID */}
         {activeView === 'grid' && (
           <div className="space-y-6">
-            {filteredBusinesses.length === 0 ? (
+            {/* 1. SKELETON LOADING STATE */}
+            {isActuallyLoading && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
+                  <span>جاري جلب وتحديث الأنشطة التجارية والدليل الميداني...</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={`portal-skel-${i}`}
+                      className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col justify-between animate-pulse"
+                    >
+                      <div className="relative h-44 bg-slate-200 dark:bg-slate-800" />
+                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
+                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
+                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-2/3" />
+                        </div>
+                        <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
+                          <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl flex-1" />
+                          <div className="h-8 w-8 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+                          <div className="h-8 w-8 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 2. EMPTY STATE (When NOT loading & 0 results) */}
+            {!isActuallyLoading && filteredBusinesses.length === 0 && (
               <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-3">
                 <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">
                   🔍
@@ -348,8 +405,21 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 <p className="text-xs text-[var(--text-muted)] font-bold">
                   جرب تغيير خيارات البحث أو اختيار محافظة أخرى
                 </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setGovFilter('all');
+                    setCategoryFilter('all');
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                >
+                  إعادة ضبط خيارات البحث 🔄
+                </button>
               </div>
-            ) : (
+            )}
+
+            {/* 3. BUSINESSES GRID (When NOT loading & > 0 results) */}
+            {!isActuallyLoading && filteredBusinesses.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredBusinesses.map((biz) => {
                   const mainPhoto =

@@ -43,7 +43,8 @@ import {
   Navigation,
   Play,
   Film,
-  Video
+  Video,
+  Loader2
 } from 'lucide-react';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
 import {
@@ -1635,9 +1636,13 @@ export default function App() {
                   <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
                     <Store className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي الأنشطة</div>
-                    <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.total}</div>
+                    {isLoadingData ? (
+                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                    ) : (
+                      <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.total}</div>
+                    )}
                   </div>
                 </div>
 
@@ -1645,9 +1650,13 @@ export default function App() {
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">موثقة على Maps</div>
-                    <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.verified}</div>
+                    {isLoadingData ? (
+                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                    ) : (
+                      <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.verified}</div>
+                    )}
                   </div>
                 </div>
 
@@ -1655,9 +1664,13 @@ export default function App() {
                   <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
                     <Clock className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">قيد التوثيق</div>
-                    <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.inProgress}</div>
+                    {isLoadingData ? (
+                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                    ) : (
+                      <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.inProgress}</div>
+                    )}
                   </div>
                 </div>
 
@@ -1665,9 +1678,13 @@ export default function App() {
                   <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
                     <MapPin className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
-                    <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
+                    {isLoadingData ? (
+                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                    ) : (
+                      <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1757,11 +1774,15 @@ export default function App() {
                       }`}
                     >
                       <span>{tab.label}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
-                        homeVerificationFilter === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
-                      }`}>
-                        {tab.count}
-                      </span>
+                      {isLoadingData ? (
+                        <span className="w-3.5 h-3 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-full" />
+                      ) : (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
+                          homeVerificationFilter === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
+                        }`}>
+                          {tab.count}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1795,8 +1816,38 @@ export default function App() {
                 </div>
               </div>
 
-              {/* ── EMPTY STATE ────────────────────────────────────────────── */}
-              {filteredHomeBusinesses.length === 0 && (
+              {/* ── 1. LOADING SKELETON STATE (Shown while loading) ───────────────── */}
+              {isLoadingData && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
+                    <span>جاري جلب وتحديث الأنشطة التجارية والبيانات من السحابة...</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={`skel-${i}`}
+                        className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col justify-between animate-pulse"
+                      >
+                        <div className="relative aspect-[16/8.5] bg-slate-200 dark:bg-slate-800" />
+                        <div className="p-4 space-y-3">
+                          <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
+                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
+                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-2/3" />
+                          <div className="pt-3 border-t border-[var(--border-color)] flex items-center justify-between">
+                            <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                            <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded-xl w-24" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── 2. EMPTY STATE (Only shown when NOT loading & 0 results) ─────── */}
+              {!isLoadingData && filteredHomeBusinesses.length === 0 && (
                 <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3 shadow-sm">
                   <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
                     <Building2 className="w-7 h-7 stroke-[1.5]" />
@@ -1821,8 +1872,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* ── GRID MODE (WORLD-CLASS DIRECTORY CARDS) ─────────────────── */}
-              {homeViewMode === 'grid' && filteredHomeBusinesses.length > 0 && (
+              {/* ── 3. GRID MODE (WORLD-CLASS DIRECTORY CARDS) ─────────────────── */}
+              {!isLoadingData && homeViewMode === 'grid' && filteredHomeBusinesses.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
                   {filteredHomeBusinesses.map((biz) => {
                     const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));

@@ -152,7 +152,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <PublicShowcase businesses={businesses} referralCode={refCode} />
+      <PublicShowcase businesses={businesses} referralCode={refCode} loading={loading} />
     </ThemeProvider>
   );
 }
