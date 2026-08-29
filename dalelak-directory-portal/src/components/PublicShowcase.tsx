@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Business, PackageOption } from '../types';
 import { EGYPT_GOVERNORATES, CATEGORY_GROUPS, PACKAGES } from '../data/mockData';
 import { Logo } from './Logo';
@@ -27,6 +27,7 @@ import {
   Video,
   Film,
   Play,
+  Loader2,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
