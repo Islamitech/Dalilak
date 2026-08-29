@@ -102,8 +102,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // High precision controls & Layer switcher
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-hybrid');
+  // High precision controls & Layer switcher (Default: Google Streets)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -596,18 +596,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div className="flex items-center bg-[var(--input-bg)] p-0.5 rounded-xl border border-[var(--border-color)] text-[11px] font-bold">
               <button
                 type="button"
-                onClick={() => switchTileLayer('google-hybrid')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                  tileLayer === 'google-hybrid'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                title="عرض القمر الصناعي المباشر من جوجل (Satellite + Labels)"
-              >
-                <span>🛰️ قمر صناعي</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => switchTileLayer('google-streets')}
                 className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                   tileLayer === 'google-streets'
@@ -617,6 +605,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 title="عرض خريطة شوارع جوجل الرسمية (Google Streets)"
               >
                 <span>🗺️ شوارع جوجل</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTileLayer('google-hybrid')}
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                  tileLayer === 'google-hybrid'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+                title="عرض القمر الصناعي المباشر من جوجل (Satellite + Labels)"
+              >
+                <span>🛰️ قمر صناعي</span>
               </button>
             </div>
 
