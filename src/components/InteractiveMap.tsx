@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Business } from '../types';
-import { fetchLocationAddress, LocationAddressData } from '../utils/geocoding';
+import {
+  fetchLocationAddress,
+  searchPlacesInEgypt,
+  parseLocationQuery,
+  LocationAddressData,
+  PlaceSearchResult,
+} from '../utils/geocoding';
 import {
   MapPin,
   Navigation,
@@ -20,6 +26,13 @@ import {
   Crosshair,
   Zap,
   Eye,
+  Search,
+  Layers,
+  Loader2,
+  CheckCircle2,
+  X,
+  Target,
+  Sparkles,
 } from 'lucide-react';
 
 declare global {
@@ -27,6 +40,8 @@ declare global {
     L: any;
   }
 }
+
+export type MapTileLayerType = 'google-hybrid' | 'google-streets' | 'cartodb';
 
 interface InteractiveMapProps {
   mode?: 'picker' | 'view';
@@ -76,34 +91,119 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   businesses = [],
   onSelectBusiness,
   onEditBusiness,
-  heightClass = 'h-[360px]',
+  heightClass = 'h-[380px]',
 }) => {
   const [currentLat, setCurrentLat] = useState<number>(lat);
   const [currentLng, setCurrentLng] = useState<number>(lng);
-  const [zoomLevel, setZoomLevel] = useState<number>(15);
+  const [zoomLevel, setZoomLevel] = useState<number>(16);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
+  // High precision controls & Layer switcher
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-hybrid');
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
+  const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<any>(null);
+  const tileLayerRef = useRef<any>(null);
   const markersGroupRef = useRef<any>(null);
+  const pickerMarkerRef = useRef<any>(null);
+  const accuracyCircleRef = useRef<any>(null);
+  const searchTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     setCurrentLat(lat);
     setCurrentLng(lng);
   }, [lat, lng]);
 
-  // Ensure Leaflet is loaded and initialize ultra-fast interactive map
+  // Tile layer URL resolver
+  const getTileLayerConfig = (type: MapTileLayerType) => {
+    switch (type) {
+      case 'google-hybrid':
+        return {
+          url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: 'Imagery © Google',
+        };
+      case 'google-streets':
+        return {
+          url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: 'Map data © Google',
+        };
+      case 'cartodb':
+      default:
+        return {
+          url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          maxZoom: 19,
+          subdomains: 'abcd',
+          attribution: '© CartoDB / OpenStreetMap',
+        };
+    }
+  };
+
+  // Switch Tile Layer
+  const switchTileLayer = (newType: MapTileLayerType) => {
+    setTileLayer(newType);
+    if (!leafletMapRef.current || !window.L) return;
+
+    if (tileLayerRef.current) {
+      leafletMapRef.current.removeLayer(tileLayerRef.current);
+    }
+
+    const cfg = getTileLayerConfig(newType);
+    const newLayer = window.L.tileLayer(cfg.url, {
+      maxZoom: cfg.maxZoom,
+      subdomains: cfg.subdomains,
+      attribution: cfg.attribution,
+    });
+
+    newLayer.addTo(leafletMapRef.current);
+    tileLayerRef.current = newLayer;
+  };
+
+  // Move marker and trigger callback safely without shaking viewport
+  const updateSelectedPosition = useCallback(
+    async (newLat: number, newLng: number, flyTo: boolean = false, customZoom?: number) => {
+      const precisionLat = Number(newLat.toFixed(6));
+      const precisionLng = Number(newLng.toFixed(6));
+
+      setCurrentLat(precisionLat);
+      setCurrentLng(precisionLng);
+
+      if (leafletMapRef.current && flyTo) {
+        leafletMapRef.current.flyTo([precisionLat, precisionLng], customZoom || 17, { duration: 1.0 });
+      }
+
+      if (pickerMarkerRef.current) {
+        pickerMarkerRef.current.setLatLng([precisionLat, precisionLng]);
+      }
+
+      if (onLocationSelect) {
+        const addrDetails = await fetchLocationAddress(precisionLat, precisionLng);
+        onLocationSelect(precisionLat, precisionLng, addrDetails);
+      }
+    },
+    [onLocationSelect]
+  );
+
+  // Initialize Map
   useEffect(() => {
     let isSubscribed = true;
 
     const initMap = () => {
       if (!containerRef.current || !window.L || leafletMapRef.current) return;
 
-      // Create Leaflet Map instance with hardware accelerated WebGL/Canvas rendering
       const map = window.L.map(containerRef.current, {
         center: [currentLat, currentLng],
         zoom: zoomLevel,
@@ -111,53 +211,29 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         attributionControl: false,
       });
 
-      // Add high-performance sleek CartoDB Voyager tiles
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
+      const cfg = getTileLayerConfig(tileLayer);
+      const layer = window.L.tileLayer(cfg.url, {
+        maxZoom: cfg.maxZoom,
+        subdomains: cfg.subdomains,
       }).addTo(map);
 
-      // Group for markers
-      const markersGroup = window.L.layerGroup().addTo(map);
-      markersGroupRef.current = markersGroup;
+      tileLayerRef.current = layer;
+      markersGroupRef.current = window.L.layerGroup().addTo(map);
       leafletMapRef.current = map;
 
-      // Handle map movement end (when user finishes drag or pan)
-      map.on('moveend', async () => {
+      // Update zoom state on user zoom
+      map.on('zoomend', () => {
         if (!isSubscribed) return;
-        const center = map.getCenter();
-        const newLat = Number(center.lat.toFixed(6));
-        const newLng = Number(center.lng.toFixed(6));
-        const newZoom = map.getZoom();
-
-        setCurrentLat(newLat);
-        setCurrentLng(newLng);
-        setZoomLevel(newZoom);
-
-        if (mode === 'picker' && onLocationSelect) {
-          const addrDetails = await fetchLocationAddress(newLat, newLng);
-          onLocationSelect(newLat, newLng, addrDetails);
-        }
+        setZoomLevel(map.getZoom());
       });
 
-      // Handle direct map click in picker mode
-      map.on('click', async (e: any) => {
+      // Handle map click in picker mode (places pin directly on clicked pixel)
+      map.on('click', (e: any) => {
         if (mode !== 'picker') return;
-        const newLat = Number(e.latlng.lat.toFixed(6));
-        const newLng = Number(e.latlng.lng.toFixed(6));
-
-        map.panTo([newLat, newLng], { animate: true, duration: 0.4 });
-        setCurrentLat(newLat);
-        setCurrentLng(newLng);
-
-        if (onLocationSelect) {
-          const addrDetails = await fetchLocationAddress(newLat, newLng);
-          onLocationSelect(newLat, newLng, addrDetails);
-        }
+        updateSelectedPosition(e.latlng.lat, e.latlng.lng, false);
       });
     };
 
-    // Load Leaflet dynamically if not loaded yet
     if (window.L) {
       initMap();
     } else {
@@ -178,7 +254,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     };
   }, [mode]);
 
-  // Update Markers dynamically when business list, filters, or mode changes
+  // Update Markers dynamically when business list, mode, or position changes
   useEffect(() => {
     const map = leafletMapRef.current;
     const markersGroup = markersGroupRef.current;
@@ -188,47 +264,61 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     markersGroup.clearLayers();
 
     if (mode === 'picker') {
-      // Create glowing Picker Marker at current center
+      // 🌟 Precision Needle Pin (Direct Anchor at the tip of the needle: [18, 46])
       const pickerIcon = window.L.divIcon({
         className: 'custom-picker-pin',
         html: `
-          <div style="position: relative; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
-            <div style="background: #f59e0b; color: #020617; font-weight: 900; font-size: 10px; padding: 2px 8px; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); white-space: nowrap; margin-bottom: 4px;">
-              الموقع المحدد للنشاط
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: grab; user-select: none;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #020617; font-weight: 900; font-size: 11px; padding: 3px 10px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); white-space: nowrap; border: 1.5px solid #fef08a; margin-bottom: 2px;">
+              📍 موقع النشاط المحدد
             </div>
-            <div style="width: 36px; height: 36px; background: rgba(245, 158, 11, 0.3); border-radius: 9999px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#f59e0b" stroke="#fef08a" stroke-width="2">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-                <circle cx="12" cy="9" r="2.5" fill="#0f172a"/>
+            <div style="position: relative; width: 36px; height: 46px; display: flex; justify-content: center;">
+              <svg width="36" height="46" viewBox="0 0 36 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));">
+                <path d="M18 0C8.05887 0 0 8.05887 0 18C0 30.5 18 46 18 46C18 46 36 30.5 36 18C36 8.05887 27.9411 0 18 0Z" fill="#F59E0B"/>
+                <path d="M18 2C9.16344 2 2 9.16344 2 18C2 29.2 18 43.5 18 43.5C18 43.5 34 29.2 34 18C34 9.16344 26.8366 2 18 2Z" stroke="#FEF08A" stroke-width="1.5"/>
+                <circle cx="18" cy="18" r="8" fill="#0F172A"/>
+                <circle cx="18" cy="18" r="4" fill="#F59E0B"/>
+                <circle cx="18" cy="18" r="1.5" fill="#FFFFFF"/>
               </svg>
             </div>
           </div>
         `,
-        iconSize: [36, 48],
-        iconAnchor: [18, 48],
+        iconSize: [36, 68],
+        iconAnchor: [18, 68],
       });
 
       const marker = window.L.marker([currentLat, currentLng], {
         icon: pickerIcon,
         draggable: true,
+        autoPan: true,
       });
 
-      marker.on('dragend', async (e: any) => {
+      marker.on('dragend', (e: any) => {
         const ll = e.target.getLatLng();
-        const newLat = Number(ll.lat.toFixed(6));
-        const newLng = Number(ll.lng.toFixed(6));
-        setCurrentLat(newLat);
-        setCurrentLng(newLng);
-
-        if (onLocationSelect) {
-          const addrDetails = await fetchLocationAddress(newLat, newLng);
-          onLocationSelect(newLat, newLng, addrDetails);
-        }
+        updateSelectedPosition(ll.lat, ll.lng, false);
       });
 
       markersGroup.addLayer(marker);
+      pickerMarkerRef.current = marker;
+
+      // Draw live GPS Accuracy Circle if GPS was used
+      if (gpsAccuracy && gpsAccuracy < 500) {
+        if (accuracyCircleRef.current) {
+          markersGroup.removeLayer(accuracyCircleRef.current);
+        }
+        const circle = window.L.circle([currentLat, currentLng], {
+          radius: gpsAccuracy,
+          color: '#38bdf8',
+          fillColor: '#38bdf8',
+          fillOpacity: 0.15,
+          weight: 1.5,
+          dashArray: '4, 4',
+        });
+        markersGroup.addLayer(circle);
+        accuracyCircleRef.current = circle;
+      }
     } else {
-      // View Mode: Render all Businesses as native 60fps Leaflet markers
+      // View Mode: Render all Businesses as native Leaflet markers
       const filteredBusinesses = businesses.filter((b) => {
         if (selectedGovFilter !== 'all' && !b.governorate.includes(selectedGovFilter)) {
           return false;
@@ -259,16 +349,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
         marker.on('click', () => {
           setSelectedBiz(biz);
-          map.flyTo([biz.lat, biz.lng], 16, { duration: 0.8 });
+          map.flyTo([biz.lat, biz.lng], 17, { duration: 0.8 });
           if (onSelectBusiness) onSelectBusiness(biz);
         });
 
         markersGroup.addLayer(marker);
       });
     }
-  }, [mode, businesses, selectedGovFilter, currentLat, currentLng]);
+  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy]);
 
-  // Map Invalidations on Resize, Fullscreen Toggle, or Container Dimension Changes
+  // Handle Resize & Fullscreen Invalidation
   useEffect(() => {
     const handleResize = () => {
       if (leafletMapRef.current) {
@@ -287,7 +377,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       resizeObserver.observe(containerRef.current);
     }
 
-    const timer = setTimeout(handleResize, 250);
+    const timer = setTimeout(handleResize, 200);
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -297,65 +387,132 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     };
   }, [isExpanded]);
 
-  // GPS Geolocation Handler
+  // 🎯 Ultra-Precision Satellite GPS Locator (Multi-Sample Convergence)
   const handleGetLocation = () => {
     setIsLocating(true);
+    setGpsAccuracy(null);
 
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const userLat = Number(position.coords.latitude.toFixed(6));
-          const userLng = Number(position.coords.longitude.toFixed(6));
-
-          setCurrentLat(userLat);
-          setCurrentLng(userLng);
-          setIsLocating(false);
-
-          if (leafletMapRef.current) {
-            leafletMapRef.current.flyTo([userLat, userLng], 16, { duration: 1.2 });
-          }
-
-          if (onLocationSelect) {
-            const addrDetails = await fetchLocationAddress(userLat, userLng);
-            onLocationSelect(userLat, userLng, addrDetails);
-          }
-        },
-        async (error) => {
-          console.warn('Geolocation fallback to Cairo:', error);
-          const randLat = Number((30.0444 + (Math.random() - 0.5) * 0.01).toFixed(6));
-          const randLng = Number((31.2357 + (Math.random() - 0.5) * 0.01).toFixed(6));
-          setCurrentLat(randLat);
-          setCurrentLng(randLng);
-          setIsLocating(false);
-
-          if (leafletMapRef.current) {
-            leafletMapRef.current.flyTo([randLat, randLng], 16, { duration: 1.2 });
-          }
-
-          if (onLocationSelect) {
-            const addrDetails = await fetchLocationAddress(randLat, randLng);
-            onLocationSelect(randLat, randLng, addrDetails);
-          }
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    } else {
+    if (!('geolocation' in navigator)) {
       setIsLocating(false);
-      alert('خدمة GPS غير مدعومة على متصفحك.');
+      alert('خدمة تحديد الموقع GPS غير مدعومة على هذا المتصفح.');
+      return;
     }
+
+    let bestPosition: GeolocationPosition | null = null;
+    let watchId: number | null = null;
+    let sampleCount = 0;
+
+    const finalizePosition = (pos: GeolocationPosition) => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      setIsLocating(false);
+
+      const uLat = Number(pos.coords.latitude.toFixed(6));
+      const uLng = Number(pos.coords.longitude.toFixed(6));
+      const acc = Math.round(pos.coords.accuracy);
+
+      setGpsAccuracy(acc);
+      updateSelectedPosition(uLat, uLng, true, 18);
+    };
+
+    // Watch Position convergence over up to 3.5 seconds
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        sampleCount++;
+        if (!bestPosition || position.coords.accuracy < bestPosition.coords.accuracy) {
+          bestPosition = position;
+        }
+
+        // If satellite lock achieved high precision (< 10 meters) or sampled enough
+        if (position.coords.accuracy <= 8 || sampleCount >= 4) {
+          finalizePosition(bestPosition || position);
+        }
+      },
+      (error) => {
+        console.warn('High precision GPS error, falling back:', error);
+        if (bestPosition) {
+          finalizePosition(bestPosition);
+        } else {
+          // Last single attempt
+          navigator.geolocation.getCurrentPosition(
+            (pos) => finalizePosition(pos),
+            () => {
+              setIsLocating(false);
+              alert('تعذر الوصول إلى إشارة GPS دقيقة. يرجى تفعيل خدمة الموقع على جهازك أو التحديد يدوياً على الخريطة.');
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 12000,
+      }
+    );
+
+    // Timeout safety to lock the best reading obtained within 4 seconds
+    setTimeout(() => {
+      if (isLocating && bestPosition) {
+        finalizePosition(bestPosition);
+      } else if (isLocating) {
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        setIsLocating(false);
+      }
+    }, 4500);
+  };
+
+  // Pin current center of map viewport
+  const handlePinCenterOfMap = () => {
+    if (!leafletMapRef.current) return;
+    const center = leafletMapRef.current.getCenter();
+    updateSelectedPosition(center.lat, center.lng, false);
+  };
+
+  // Search input handler with debounce
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    // Check if direct coordinate or Google Maps link was pasted
+    const parsed = parseLocationQuery(text);
+    if (parsed) {
+      updateSelectedPosition(parsed.lat, parsed.lng, true, 18);
+      setShowSearchResults(false);
+      return;
+    }
+
+    if (text.trim().length >= 2) {
+      setIsSearching(true);
+      setShowSearchResults(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        const results = await searchPlacesInEgypt(text);
+        setSearchResults(results);
+        setIsSearching(false);
+      }, 400);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectSearchResult = (res: PlaceSearchResult) => {
+    updateSelectedPosition(res.lat, res.lng, true, 18);
+    setSearchQuery(res.displayName.split(',')[0]);
+    setShowSearchResults(false);
   };
 
   // Directional Pan Controls
   const handlePan = (direction: 'up' | 'down' | 'left' | 'right') => {
     if (!leafletMapRef.current) return;
-    const offset = 150;
+    const offset = 140;
     const panMap: Record<string, [number, number]> = {
       up: [0, -offset],
       down: [0, offset],
       left: [-offset, 0],
       right: [offset, 0],
     };
-    leafletMapRef.current.panBy(panMap[direction], { animate: true, duration: 0.3 });
+    leafletMapRef.current.panBy(panMap[direction], { animate: true, duration: 0.25 });
   };
 
   // Zoom Controls
@@ -365,26 +522,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   // Reset Position to default Cairo
   const handleResetPosition = () => {
     if (leafletMapRef.current) {
-      leafletMapRef.current.flyTo([lat, lng], 15, { duration: 1.0 });
+      leafletMapRef.current.flyTo([lat, lng], 16, { duration: 0.8 });
     }
   };
 
   // Governorate Select & Smooth FlyTo
-  const handleGovChange = async (govName: string) => {
+  const handleGovChange = (govName: string) => {
     setSelectedGovFilter(govName);
     if (govName !== 'all' && GOVERNORATE_COORDS[govName]) {
       const coords = GOVERNORATE_COORDS[govName];
-      setCurrentLat(coords.lat);
-      setCurrentLng(coords.lng);
-
-      if (leafletMapRef.current) {
-        leafletMapRef.current.flyTo([coords.lat, coords.lng], 13, { duration: 1.2 });
-      }
-
-      if (mode === 'picker' && onLocationSelect) {
-        const addrDetails = await fetchLocationAddress(coords.lat, coords.lng);
-        onLocationSelect(coords.lat, coords.lng, { ...addrDetails, governorate: govName });
-      }
+      updateSelectedPosition(coords.lat, coords.lng, true, 14);
     }
   };
 
@@ -398,10 +545,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
 
   const containerClasses = isExpanded
-    ? 'fixed inset-2 sm:inset-6 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
+    ? 'fixed inset-2 sm:inset-5 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
     : 'bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
 
-  const mapHeight = isExpanded ? 'flex-1 h-full min-h-[450px]' : heightClass;
+  const mapHeight = isExpanded ? 'flex-1 h-full min-h-[480px]' : heightClass;
 
   const filteredBusinessesCount = businesses.filter((b) => {
     if (selectedGovFilter !== 'all' && !b.governorate.includes(selectedGovFilter)) {
@@ -416,35 +563,63 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {isExpanded && (
         <div
           onClick={() => setIsExpanded(false)}
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40"
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-40"
         />
       )}
 
       <div className={containerClasses}>
         {/* Map Header Bar */}
-        <div className="bg-[var(--map-header-bg)] p-3 border-b border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 z-20">
+        <div className="bg-[var(--map-header-bg)] p-2.5 sm:p-3 border-b border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 z-20">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow">
               <MapPin className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
               <h4 className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1.5">
-                <span>{mode === 'picker' ? 'تحديد وتوجيه موقع النشاط على الخريطة' : 'خريطة الأنشطة والتوثيق الميداني المباشر'}</span>
+                <span>{mode === 'picker' ? 'تحديد وتوجيه موقع النشاط بدقة خريطة جوجل' : 'خريطة الأنشطة والتوثيق الميداني المباشر'}</span>
                 <span className="bg-emerald-500/15 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-emerald-400 fill-emerald-400" />
-                  <span>تفاعل خارق وسريع 60 FPS</span>
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  <span>دقة قمر صناعي 100%</span>
                 </span>
               </h4>
               <p className="text-[10px] text-amber-400 font-medium">
                 {mode === 'picker'
-                  ? 'اسحب الخريطة أو الدبوس مباشرة بأي اتجاه للتحديد الفوري دون أي تأخير'
-                  : `إجمالي ${filteredBusinessesCount} نشاط تجاري على الخريطة التفاعلية`}
+                  ? 'انقر على أي نقطة، أو اسحب الدبوس بدقة، أو ابحث باسم الشارع / الصق رابط جوجل ماب'
+                  : `إجمالي ${filteredBusinessesCount} نشاط تجاري موثق على الخريطة`}
               </p>
             </div>
           </div>
 
           {/* Controls Bar Right Side */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Tile Layer Switcher Pills */}
+            <div className="flex items-center bg-[var(--input-bg)] p-0.5 rounded-xl border border-[var(--border-color)] text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => switchTileLayer('google-hybrid')}
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                  tileLayer === 'google-hybrid'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+                title="عرض القمر الصناعي المباشر من جوجل (Satellite + Labels)"
+              >
+                <span>🛰️ قمر صناعي</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTileLayer('google-streets')}
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                  tileLayer === 'google-streets'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+                title="عرض خريطة شوارع جوجل الرسمية (Google Streets)"
+              >
+                <span>🗺️ شوارع جوجل</span>
+              </button>
+            </div>
+
             {/* Governorate Switcher Dropdown */}
             <select
               value={selectedGovFilter}
@@ -452,10 +627,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               className="bg-[var(--input-bg)] hover:bg-amber-500/10 border border-[var(--border-color)] text-amber-600 dark:text-amber-300 font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
               title="الانتقال المباشر للمحافظة"
             >
-              <option value="all">كل المحافظات (التنقل السريع)</option>
+              <option value="all">كل المحافظات</option>
               {Object.keys(GOVERNORATE_COORDS).map((g) => (
                 <option key={g} value={g}>
-                  📍 محافظة {g}
+                  📍 {g}
                 </option>
               ))}
             </select>
@@ -466,10 +641,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 type="button"
                 onClick={handleGetLocation}
                 disabled={isLocating}
-                className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-xl shadow transition-all active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-black px-3 py-1.5 rounded-xl shadow transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                title="تحديد موقعي الحالي بأعلى دقة قمر صناعي GPS"
               >
-                <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-                <span>{isLocating ? 'جاري التحديد...' : 'موقعي الحالي'}</span>
+                {isLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5 fill-slate-950" />}
+                <span>{isLocating ? 'جاري التحديد...' : 'موقعي الفعلي'}</span>
               </button>
             )}
 
@@ -489,15 +665,85 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           </div>
         </div>
 
+        {/* 🔍 Search & Quick Jump / Paste Box */}
+        {mode === 'picker' && (
+          <div className="relative bg-[var(--map-header-bg)] px-3 py-2 border-b border-[var(--map-header-border)] z-30">
+            <div className="relative flex items-center">
+              <Search className="absolute right-3 w-4 h-4 text-amber-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onFocus={() => {
+                  if (searchResults.length > 0) setShowSearchResults(true);
+                }}
+                placeholder="🔍 ابحث عن اسم شارع أو ميدان، أو الصق إحداثيات أو رابط جوجل ماب مباشرة..."
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-xl pr-9 pl-8 py-2 focus:outline-none focus:border-amber-500 shadow-inner"
+              />
+              {isSearching && (
+                <Loader2 className="absolute left-8 w-4 h-4 text-amber-500 animate-spin" />
+              )}
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setShowSearchResults(false);
+                  }}
+                  className="absolute left-2.5 text-slate-400 hover:text-white p-0.5"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Search Suggestions Dropdown */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute top-full right-3 left-3 mt-1 bg-slate-950/95 border border-amber-500/40 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden z-40 max-h-60 overflow-y-auto divide-y divide-slate-800">
+                {searchResults.map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectSearchResult(item)}
+                    className="w-full text-right p-3 hover:bg-amber-500/20 text-xs text-white transition-colors flex items-start gap-2 cursor-pointer"
+                  >
+                    <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-amber-300">{item.displayName.split(',')[0]}</div>
+                      <div className="text-[11px] text-slate-300 line-clamp-1">{item.displayName}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* High-Performance Canvas Container */}
         <div className="relative w-full overflow-hidden flex-1">
           <div
             ref={containerRef}
-            className={`w-full ${mapHeight} z-10 cursor-grab active:cursor-grabbing`}
+            className={`w-full ${mapHeight} z-10 cursor-crosshair`}
           />
 
+          {/* 🎯 Precision Center Reticle Crosshair (Overlay in center of screen) */}
+          {centerReticleActive && mode === 'picker' && (
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
+              <div className="relative flex items-center justify-center">
+                {/* Outer Crosshair Ring */}
+                <div className="w-16 h-16 rounded-full border-2 border-amber-400/80 border-dashed animate-spin-slow flex items-center justify-center shadow-2xl bg-amber-500/10" />
+                {/* Center Cross lines */}
+                <div className="absolute w-24 h-0.5 bg-amber-400/90" />
+                <div className="absolute h-24 w-0.5 bg-amber-400/90" />
+                {/* Center Dot */}
+                <div className="absolute w-3 h-3 rounded-full bg-amber-400 border-2 border-slate-950 shadow-lg" />
+              </div>
+            </div>
+          )}
+
           {/* FLOATING CONTROLS TOOLBAR OVER MAP */}
-          {/* 1. Zoom & Reset Controls (Top Right Overlay) */}
+          {/* 1. Zoom, Center Pin, & Reset Controls (Top Right Overlay) */}
           <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
             <button
               type="button"
@@ -517,6 +763,32 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <ZoomOut className="w-4 h-4 stroke-[2.5]" />
             </button>
 
+            {mode === 'picker' && (
+              <button
+                type="button"
+                onClick={handlePinCenterOfMap}
+                className="bg-[var(--map-control-bg)] hover:bg-amber-500 text-amber-500 hover:text-slate-950 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer"
+                title="تثبيت الدبوس في منتصف شاشة الخريطة الحالية"
+              >
+                <Target className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            )}
+
+            {mode === 'picker' && (
+              <button
+                type="button"
+                onClick={() => setCenterReticleActive(!centerReticleActive)}
+                className={`p-2 rounded-xl border shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer ${
+                  centerReticleActive
+                    ? 'bg-amber-500 text-slate-950 border-amber-400'
+                    : 'bg-[var(--map-control-bg)] hover:bg-amber-500/20 text-amber-500 border-[var(--map-control-border)]'
+                }`}
+                title="تفعيل/إلغاء علامة التصويب الدقيقة (Crosshair Target)"
+              >
+                <Crosshair className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleResetPosition}
@@ -529,7 +801,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           {/* 2. D-PAD Directional Pan Movement Controls (Top Left Overlay) */}
           <div className="absolute top-3 left-3 bg-[var(--map-control-bg)] border border-[var(--map-control-border)] p-1.5 rounded-2xl shadow-2xl backdrop-blur-md z-20 flex flex-col items-center gap-1">
-            <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">تحريك مباشر</span>
+            <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">تحريك دقيق</span>
 
             <button
               type="button"
@@ -649,19 +921,28 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
 
         {/* GPS Coordinates & Footer Toolbar */}
-        <div className="bg-[var(--map-footer-bg)] p-3 border-t border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 text-xs z-20">
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--text-muted)] font-medium">الإحداثيات الحالية:</span>
-            <span className="font-mono bg-[var(--map-coord-bg)] px-2.5 py-1 rounded-xl border border-[var(--border-color)] text-[var(--map-coord-text)] font-bold tracking-wide dir-ltr">
-              {currentLat.toFixed(6)}, {currentLng.toFixed(6)} (مستوى التكبير: {zoomLevel}x)
+        <div className="bg-[var(--map-footer-bg)] p-2.5 sm:p-3 border-t border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 text-xs z-20">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[var(--text-muted)] font-bold text-[11px]">الإحداثيات الحالية:</span>
+            <span className="font-mono bg-[var(--map-coord-bg)] px-2.5 py-1 rounded-xl border border-[var(--border-color)] text-[var(--map-coord-text)] font-black tracking-wide dir-ltr text-xs">
+              {currentLat.toFixed(6)}, {currentLng.toFixed(6)}
             </span>
+            <span className="text-[10px] text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md">
+              تكبير: {zoomLevel}x
+            </span>
+            {gpsAccuracy !== null && (
+              <span className="text-[10px] font-black text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>دقة GPS: ±{gpsAccuracy}متر</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleCopyCoords}
-              className="flex items-center gap-1 bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] transition-all font-medium text-[11px] cursor-pointer"
+              className="flex items-center gap-1 bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] transition-all font-bold text-[11px] cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
               <span>{copied ? 'تم النسخ!' : 'نسخ الإحداثيات'}</span>
@@ -671,9 +952,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               href={googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-amber-400 hover:text-amber-300 hover:underline font-bold text-[11px] bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30"
+              className="flex items-center gap-1.5 text-slate-950 font-black text-[11px] bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 px-3 py-1.5 rounded-xl shadow transition-transform active:scale-95"
             >
-              <span>فتح مباشر في جوجل ماب</span>
+              <span>مطابقة وفتح في جوجل ماب</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>

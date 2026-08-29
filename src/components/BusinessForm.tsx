@@ -128,31 +128,62 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const handleGetLocation = () => {
     setIsLocating(true);
     if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const userLat = Number(position.coords.latitude.toFixed(6));
-          const userLng = Number(position.coords.longitude.toFixed(6));
-          setLat(userLat);
-          setLng(userLng);
-          setIsLocating(false);
+      let bestPosition: GeolocationPosition | null = null;
+      let watchId: number | null = null;
+      let sampleCount = 0;
 
-          const addrDetails = await fetchLocationAddress(userLat, userLng);
-          if (addrDetails.governorate) setGovernorate(addrDetails.governorate);
-          if (addrDetails.city) setCity(addrDetails.city);
-          if (addrDetails.street) setStreet(addrDetails.street);
-          if (addrDetails.landmark) setLandmark(addrDetails.landmark);
+      const finalizePosition = async (pos: GeolocationPosition) => {
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        setIsLocating(false);
 
-          setAutoFillNotice(`✨ تم تحديد موقعك الجغرافي بنجاح (${userLat}, ${userLng})`);
-          setTimeout(() => setAutoFillNotice(null), 5000);
+        const userLat = Number(pos.coords.latitude.toFixed(6));
+        const userLng = Number(pos.coords.longitude.toFixed(6));
+        const acc = Math.round(pos.coords.accuracy);
+
+        setLat(userLat);
+        setLng(userLng);
+
+        const addrDetails = await fetchLocationAddress(userLat, userLng);
+        if (addrDetails.governorate) setGovernorate(addrDetails.governorate);
+        if (addrDetails.city) setCity(addrDetails.city);
+        if (addrDetails.street) setStreet(addrDetails.street);
+        if (addrDetails.landmark) setLandmark(addrDetails.landmark);
+
+        setAutoFillNotice(`🎯 تم تحديد الموقع بدقة قمر صناعي عالية (±${acc}م) - الإحداثيات: ${userLat}, ${userLng}`);
+        setTimeout(() => setAutoFillNotice(null), 6000);
+      };
+
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          sampleCount++;
+          if (!bestPosition || position.coords.accuracy < bestPosition.coords.accuracy) {
+            bestPosition = position;
+          }
+          if (position.coords.accuracy <= 8 || sampleCount >= 4) {
+            finalizePosition(bestPosition || position);
+          }
         },
-        async (error) => {
+        (error) => {
           console.warn('Geolocation error / fallback:', error);
-          setIsLocating(false);
-          setAutoFillNotice('⚠️ تعذر جلب GPS تلقائياً، يمكنك إظهار الخريطة لتحديد الموقع يدوياً.');
-          setTimeout(() => setAutoFillNotice(null), 5000);
+          if (bestPosition) {
+            finalizePosition(bestPosition);
+          } else {
+            setIsLocating(false);
+            setAutoFillNotice('⚠️ تعذر جلب GPS تلقائياً، يمكنك فتح الخريطة لتحديد الموقع يدوياً.');
+            setTimeout(() => setAutoFillNotice(null), 5000);
+          }
         },
-        { enableHighAccuracy: true, timeout: 8000 }
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
       );
+
+      setTimeout(() => {
+        if (isLocating && bestPosition) {
+          finalizePosition(bestPosition);
+        } else if (isLocating) {
+          if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+          setIsLocating(false);
+        }
+      }, 4500);
     } else {
       setIsLocating(false);
       alert('خدمة GPS غير مدعومة على متصفحك.');
