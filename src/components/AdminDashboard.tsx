@@ -3527,6 +3527,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           document.body
         )}
 
+      {/* GOOGLE MAPS DIRECT SYNC MODAL */}
+      {syncModalBiz && (
+        <GoogleMapsSyncModal
+          business={syncModalBiz}
+          isOpen={Boolean(syncModalBiz)}
+          onClose={() => setSyncModalBiz(null)}
+          onUpdateBusiness={(updated) => {
+            onUpdateBusiness(updated);
+            setSyncModalBiz(updated);
+          }}
+        />
+      )}
+
       {/* PERMISSIONS MATRIX & ROLES GUIDE MODAL */}
       {showPermissionsModal && (
         <PermissionsModal onClose={() => setShowPermissionsModal(false)} />

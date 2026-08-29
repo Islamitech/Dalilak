@@ -141,6 +141,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
   // 1. Immediately update LocalStorage cache
+  let mergedObj: Business = { id } as Business;
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     const map = new Map<string, Business>();
@@ -150,15 +151,16 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
       });
     }
     const current = map.get(id) || ({} as Business);
-    const mergedObj = { ...current, ...updates, id } as Business;
+    mergedObj = { ...current, ...updates, id } as Business;
     map.set(id, mergedObj);
     localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
   const dbUpdates = mapBusinessToDb(updates as Business);
   delete dbUpdates.id;
+  const fullRecord = getSafeCoreBusinessDbRecord(mergedObj);
 
-  // 2. Sync to Supabase via Direct REST PATCH with Self-Healing Fallback
+  // 2. Sync to Supabase via Direct REST PATCH + UPSERT Fallback
   if (isSupabaseConfigured()) {
     try {
       const res = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
@@ -166,22 +168,30 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
         body: JSON.stringify(dbUpdates),
       });
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const errMsg = errJson?.message || '';
+      const restData = res.ok ? await res.json().catch(() => null) : null;
+      const patchedCount = Array.isArray(restData) ? restData.length : 0;
 
-        // If older DB is missing some columns, strip and update safe core fields
-        if (errMsg.includes('column') || res.status === 400) {
-          const safeUpdates = getSafeCoreBusinessDbRecord(updates as Business);
-          delete safeUpdates.id;
-          await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
-            method: 'PATCH',
-            body: JSON.stringify(safeUpdates),
-          });
-        }
+      // If PATCH updated 0 rows (record not in Supabase yet or conflict), perform an upsert
+      if (!res.ok || patchedCount === 0) {
+        await supabaseRestFetch('businesses', {
+          method: 'POST',
+          headers: {
+            'Prefer': 'resolution=merge-duplicates,return=representation',
+          },
+          body: JSON.stringify(fullRecord),
+        }).catch(() => {});
+
+        // SDK fallback upsert
+        await supabase.from('businesses').upsert(fullRecord).catch(() => {});
+      } else {
+        // Fire SDK update as secondary assurance
+        supabase.from('businesses').update(dbUpdates).eq('id', id).then(() => {}).catch(() => {});
       }
     } catch (err) {
       console.warn('Supabase update business warning:', err);
+      try {
+        await supabase.from('businesses').upsert(fullRecord);
+      } catch {}
     }
   }
 
@@ -190,7 +200,7 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
+      body: JSON.stringify(mergedObj),
     });
   } catch {}
 }
@@ -894,11 +904,11 @@ function mapDbToBusiness(item: any): Business {
     paymentMethod,
     cashCollectedByRep,
     paymentStatus,
-    verificationStatus: item.verification_status || item.verificationStatus || 'verified',
-    googleMapsUrl: metaGoogleMapsUrl || (item.lat && item.lng ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}` : ''),
-    googlePlaceId: metaGooglePlaceId,
-    googleSyncStatus: metaGoogleSyncStatus,
-    googleSyncDate: metaGoogleSyncDate,
+    verificationStatus: item.verification_status || item.verificationStatus || 'pending',
+    googleMapsUrl: item.google_maps_url || item.googleMapsUrl || metaGoogleMapsUrl || (item.lat && item.lng ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}` : ''),
+    googlePlaceId: item.google_place_id || item.googlePlaceId || metaGooglePlaceId,
+    googleSyncStatus: item.google_sync_status || item.googleSyncStatus || metaGoogleSyncStatus || 'not_synced',
+    googleSyncDate: item.google_sync_date || item.googleSyncDate || metaGoogleSyncDate,
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: pureNotes,
@@ -938,6 +948,13 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.amountPaid !== undefined) record.amount_paid = Number(biz.amountPaid) || 0;
   if (biz.paymentStatus !== undefined) record.payment_status = biz.paymentStatus;
   if (biz.verificationStatus !== undefined) record.verification_status = biz.verificationStatus;
+  if (biz.googleSyncStatus !== undefined) record.google_sync_status = biz.googleSyncStatus;
+  if (biz.googlePlaceId !== undefined) record.google_place_id = biz.googlePlaceId;
+  if (biz.googleSyncDate !== undefined) record.google_sync_date = biz.googleSyncDate;
+  if (biz.googleMapsUrl !== undefined) record.google_maps_url = biz.googleMapsUrl;
+  if (biz.paymentMethod !== undefined) record.payment_method = biz.paymentMethod;
+  if (biz.cashCollectedByRep !== undefined) record.cash_collected_by_rep = Number(biz.cashCollectedByRep) || 0;
+  if (biz.repCommissionRate !== undefined) record.rep_commission_rate = Number(biz.repCommissionRate) || 42.86;
   if (biz.repId !== undefined) record.rep_id = biz.repId;
   if (biz.repName !== undefined) record.rep_name = biz.repName;
   if (biz.invoiceNumber !== undefined) record.invoice_number = biz.invoiceNumber;
