@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
+import { VideoPlayerModal } from './VideoPlayerModal';
 
 interface PublicShowcaseProps {
   businesses: Business[];
@@ -51,6 +52,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   // Selected Business for Detail Modal
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
+  const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
 
   // Quick Consultation Form State (Default to 'الجيزة')
   const [formBizName, setFormBizName] = useState<string>('');
@@ -364,8 +366,23 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
 
+                        {/* Center Play Button Overlay for Videos */}
+                        {biz.videos && biz.videos.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVideoBiz(biz);
+                            }}
+                            className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-slate-950/75 hover:bg-amber-500 text-amber-400 hover:text-slate-950 flex items-center justify-center backdrop-blur-md border border-amber-500/60 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer group-hover:scale-105"
+                            title="تشغيل فيديو النشاط الموثق (30 ثانية)"
+                          >
+                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                          </button>
+                        )}
+
                         {/* Top Badges */}
-                        <div className="absolute top-3 right-3 left-3 flex items-center justify-between">
+                        <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
                           {biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced' ? (
                             <span className="bg-emerald-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm">
                               <CheckCircle2 className="w-3 h-3" />
@@ -379,10 +396,18 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           )}
 
                           {biz.videos && biz.videos.length > 0 && (
-                            <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                              <Film className="w-3 h-3" />
-                              <span>فيديو قصير 🎬</span>
-                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedVideoBiz(biz);
+                              }}
+                              className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
+                              title="مشاهدة فيديو النشاط"
+                            >
+                              <Play className="w-2.5 h-2.5 fill-slate-950" />
+                              <span>فيديو 30ث</span>
+                            </button>
                           )}
 
                           <span className="bg-slate-950/70 text-amber-400 text-[10.5px] font-bold px-2 py-0.5 rounded-lg border border-amber-500/30 backdrop-blur-md">
@@ -871,6 +896,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           </div>
         </div>
       </footer>
+
+      {/* 🌟 9. ON-DEMAND SHORT VIDEO PLAYER MODAL */}
+      {selectedVideoBiz && (
+        <VideoPlayerModal
+          business={selectedVideoBiz}
+          onClose={() => setSelectedVideoBiz(null)}
+        />
+      )}
     </div>
   );
 };

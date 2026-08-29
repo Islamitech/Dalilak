@@ -173,6 +173,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       setIsUploadingVideo(true);
       const newVideos: string[] = [];
 
+      let capturedThumbnail: string | null = null;
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
@@ -180,6 +182,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           if (!validation.valid) {
             setVideoError(validation.error || 'الملف غير صالح أو يتجاوز 30 ثانية.');
             continue;
+          }
+
+          if (validation.thumbnail && !capturedThumbnail) {
+            capturedThumbnail = validation.thumbnail;
           }
 
           const videoDataUrl = await convertVideoToDataUrl(file);
@@ -192,9 +198,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
       if (newVideos.length > 0) {
         const currentVideos = formData.videos || [];
+        const currentPhotos = formData.photos || [];
         setFormData({
           ...formData,
           videos: [...currentVideos, ...newVideos],
+          photos: currentPhotos.length === 0 && capturedThumbnail ? [capturedThumbnail] : currentPhotos,
         });
       }
 

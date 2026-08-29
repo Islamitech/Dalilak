@@ -298,6 +298,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     if (files && files.length > 0) {
       setIsUploadingVideo(true);
       const newVideos: string[] = [];
+      let capturedThumbnail: string | null = null;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -306,6 +307,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           if (!validation.valid) {
             setVideoError(validation.error || 'الملف غير صالح أو يتجاوز 30 ثانية.');
             continue;
+          }
+
+          if (validation.thumbnail && !capturedThumbnail) {
+            capturedThumbnail = validation.thumbnail;
           }
 
           const videoDataUrl = await convertVideoToDataUrl(file);
@@ -318,6 +323,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
       if (newVideos.length > 0) {
         setVideos((prev) => [...prev, ...newVideos]);
+        // Auto-assign the video's watermarked thumbnail snapshot as cover photo if photos is empty
+        if (capturedThumbnail) {
+          setPhotos((prev) => (prev.length === 0 ? [capturedThumbnail!] : prev));
+        }
       }
 
       e.target.value = '';

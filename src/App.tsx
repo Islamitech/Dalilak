@@ -20,6 +20,7 @@ import { AboutUsModal } from './components/AboutUsModal';
 import { TermsModal } from './components/TermsModal';
 import { PermissionsModal } from './components/PermissionsModal';
 import { PackagesModal } from './components/PackagesModal';
+import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { Logo } from './components/Logo';
 import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel } from './utils/permissions';
 import { 
@@ -39,7 +40,10 @@ import {
   List, 
   MessageCircle, 
   Store, 
-  Navigation 
+  Navigation,
+  Play,
+  Film,
+  Video
 } from 'lucide-react';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
 import {
@@ -212,6 +216,7 @@ export default function App() {
   const [showPermissionsModal, setShowPermissionsModal] = useState<boolean>(false);
   const [showPackagesModal, setShowPackagesModal] = useState<boolean>(false);
   const [showAdminProfileModal, setShowAdminProfileModal] = useState<boolean>(false);
+  const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
 
   // Interested Leads State & Conversion
   const [leads, setLeads] = useState<InterestedLead[]>(() => {
@@ -1810,6 +1815,7 @@ export default function App() {
                     const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
                     const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
                     const hasPhotos = biz.photos && biz.photos.length > 0;
+                    const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
                     const coverPhoto = hasPhotos ? biz.photos[0] : null;
 
                     return (
@@ -1834,8 +1840,23 @@ export default function App() {
 
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
 
-                          {/* Floating Verified & Status Badges */}
-                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                          {/* Center Play Button Overlay for Videos */}
+                          {hasVideos && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedVideoBiz(biz);
+                              }}
+                              className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-slate-950/75 hover:bg-amber-500 text-amber-400 hover:text-slate-950 flex items-center justify-center backdrop-blur-md border border-amber-500/60 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer group-hover:scale-105"
+                              title="تشغيل فيديو النشاط (30 ثانية)"
+                            >
+                              <Play className="w-5 h-5 fill-current ml-0.5" />
+                            </button>
+                          )}
+
+                          {/* Floating Verified & Video Badges */}
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
                             <span
                               className={`text-[9.5px] font-black px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm border ${
                                 isVerified
@@ -1845,6 +1866,21 @@ export default function App() {
                             >
                               {isVerified ? '✓ موثق رسمي' : '⏳ قيد التوثيق'}
                             </span>
+
+                            {hasVideos && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedVideoBiz(biz);
+                                }}
+                                className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-black shadow-md hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
+                                title="مشاهدة فيديو النشاط الميداني"
+                              >
+                                <Play className="w-2.5 h-2.5 fill-slate-950" />
+                                <span>فيديو 30ث</span>
+                              </button>
+                            )}
                           </div>
 
                           <div className="absolute top-2.5 left-2.5 flex items-center gap-1">
@@ -2402,6 +2438,14 @@ export default function App() {
           user={user}
           onClose={() => setShowAdminProfileModal(false)}
           onUpdateProfile={handleUpdateUserProfile}
+        />
+      )}
+
+      {/* MODAL: SHORT VIDEO PLAYER */}
+      {selectedVideoBiz && (
+        <VideoPlayerModal
+          business={selectedVideoBiz}
+          onClose={() => setSelectedVideoBiz(null)}
         />
       )}
     </div>
