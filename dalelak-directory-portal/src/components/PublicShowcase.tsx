@@ -509,20 +509,20 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                             <span className="line-clamp-2">
                               {(() => {
-                                const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                                const hasVerifiedUrl = Boolean(biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http'));
                                 const rawStreet = (biz.street || '').trim();
                                 const isGenericPlaceholder = !rawStreet || rawStreet.includes('الموقع الجغرافي المسجل') || rawStreet.includes('الموقع المسجل');
 
                                 if (isGenericPlaceholder) {
                                   const parts = [biz.city, biz.governorate].filter(Boolean);
                                   const base = parts.length > 0 ? parts.join('، ') : biz.governorate;
-                                  return isVerified || biz.googleMapsUrl ? `${base} (موقع معتمد على Google Maps 📍)` : base;
+                                  return hasVerifiedUrl ? `${base} (موثق على Google Maps ✅)` : `${base} (قيد مراجعة التوثيق ⏳)`;
                                 }
 
                                 const parts = [rawStreet, biz.city, biz.governorate].filter(Boolean);
                                 let full = parts.join('، ');
                                 if (biz.landmark) full += ` (بجوار ${biz.landmark})`;
-                                return full;
+                                return hasVerifiedUrl ? full : `${full} (قيد التوثيق ⏳)`;
                               })()}
                             </span>
                           </div>
@@ -555,20 +555,30 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             </a>
                           )}
 
-                          {/* Direct Verified Google Maps link */}
-                          <a
-                            href={
-                              (biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http'))
-                                ? biz.googleMapsUrl
-                                : `https://www.google.com/maps/search/?api=1&query=${biz.lat || 30.0444},${biz.lng || 31.2357}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-8 h-8 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-600 hover:text-slate-950 flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
-                            title={biz.googleMapsUrl ? "فتح الموقع الموثق النهائي على خرائط Google" : "فتح الموقع على الخريطة"}
-                          >
-                            <Navigation className="w-4 h-4" />
-                          </a>
+                          {/* Map Navigation: Only active if verified final Google Maps URL is present */}
+                          {biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') ? (
+                            <a
+                              href={biz.googleMapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-8 h-8 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
+                              title="الموقع موثق رسمياً: فتح على خرائط Google 🗺️"
+                            >
+                              <Navigation className="w-4 h-4" />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(`📍 نشاط "${biz.nameAr}" مسجل وجاري مراجعته وتوثيقه رسمياً على خرائط Google.\n\nسيتوفر رابط التوجيه والموقع المباشر فور اعتماد التوثيق النهائي من قبل إدارة المنظومة ⏳`);
+                              }}
+                              className="w-8 h-8 rounded-xl bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-muted)] hover:text-amber-600 border border-[var(--border-color)] flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
+                              title="الموقع قيد مراجعة التوثيق على خرائط Google ⏳"
+                            >
+                              <Clock className="w-4 h-4 text-amber-500/80" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -952,18 +962,22 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   <span>اتصال هاتفياً</span>
                 </a>
               )}
-              <a
-                href={
-                  selectedBiz.googleMapsUrl ||
-                  `https://www.google.com/maps/search/?api=1&query=${selectedBiz.lat || 30.0444},${selectedBiz.lng || 31.2357}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-md"
-              >
-                <Navigation className="w-4 h-4" />
-                <span>فتح على خرائط Google 🗺️</span>
-              </a>
+              {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.startsWith('http') ? (
+                <a
+                  href={selectedBiz.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-md"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span>فتح على خرائط Google 🗺️</span>
+                </a>
+              ) : (
+                <div className="bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 text-xs">
+                  <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>الموقع قيد مراجعة التوثيق على خرائط Google ⏳</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
