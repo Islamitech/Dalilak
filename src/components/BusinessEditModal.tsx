@@ -43,6 +43,7 @@ import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { formatActivityDateTime } from '../utils/dateFormatters';
 import { generateUpgradeOffersWhatsAppMessage, getUpgradeOffersWhatsAppUrl } from '../utils/packageOffers';
+import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -1065,6 +1066,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                           preload="metadata"
                           className="w-full h-40 object-cover bg-black"
                         />
+                        <VideoWatermarkBadge position="bottom-right" />
                         <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
                           <span className="bg-slate-950/80 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-md border border-amber-500/30">
                             🎬 فيديو {idx + 1}

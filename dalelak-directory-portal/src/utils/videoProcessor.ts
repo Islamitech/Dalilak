@@ -1,9 +1,4 @@
-/**
- * 🎬 Short Video Processor & Validator Utility
- * - Strict 30-second maximum duration validation
- * - Automatic frame snapshot thumbnail generation
- * - Lightweight video compression & Data URL encoding
- */
+import { drawDaleelekWatermark, WatermarkOptions } from './imageCompressor';
 
 export interface VideoValidationResult {
   valid: boolean;
@@ -14,10 +9,12 @@ export interface VideoValidationResult {
 
 /**
  * Validates that an uploaded video is strictly within the 30-second limit
+ * and creates a watermarked thumbnail frame snapshot
  */
 export async function validateAndProcessShortVideo(
   file: File,
-  maxDurationSeconds = 30.5
+  maxDurationSeconds = 30.5,
+  watermarkOptions?: WatermarkOptions
 ): Promise<VideoValidationResult> {
   return new Promise((resolve) => {
     // 1. Check MIME type
@@ -96,7 +93,14 @@ export async function validateAndProcessShortVideo(
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+
+          // Stamp Daleelek official watermark on video thumbnail snapshot
+          drawDaleelekWatermark(ctx, canvas.width, canvas.height, {
+            position: watermarkOptions?.position || 'bottom-right',
+            opacity: 0.92,
+          });
+
+          const thumbnail = canvas.toDataURL('image/jpeg', 0.85);
           const duration = video.duration;
           URL.revokeObjectURL(videoUrl);
 

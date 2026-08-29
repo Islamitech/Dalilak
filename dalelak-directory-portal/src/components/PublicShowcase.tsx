@@ -29,6 +29,7 @@ import {
   Play,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 
 interface PublicShowcaseProps {
   businesses: Business[];
@@ -736,7 +737,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {selectedBiz.videos.map((vid, idx) => (
-                      <div key={idx} className="rounded-2xl overflow-hidden bg-slate-950 border border-[var(--border-color)] shadow-md">
+                      <div key={idx} className="relative rounded-2xl overflow-hidden bg-slate-950 border border-[var(--border-color)] shadow-md">
                         <video
                           src={vid}
                           controls
@@ -744,6 +745,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           preload="metadata"
                           className="w-full h-44 object-cover bg-black"
                         />
+                        <VideoWatermarkBadge position="bottom-right" />
                       </div>
                     ))}
                   </div>

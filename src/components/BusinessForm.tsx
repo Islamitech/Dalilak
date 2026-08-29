@@ -35,6 +35,7 @@ import {
   Share2
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
+import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 
 interface BusinessFormProps {
   currentRep: Representative | null;
@@ -914,6 +915,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
                   preload="metadata"
                   className="w-full h-44 object-cover bg-black"
                 />
+                <VideoWatermarkBadge position="bottom-right" />
                 <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
                   <span className="bg-slate-950/80 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-md border border-amber-500/30">
                     🎬 فيديو {idx + 1}
