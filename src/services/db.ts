@@ -97,35 +97,15 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       });
 
       if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const errMsg = errJson?.message || '';
-        
-        // If schema mismatch on older DB, retry with core minimal schema
-        if (errMsg.includes('column') || res.status === 400 || res.status === 404) {
-          const safeCoreRecord = getSafeCoreBusinessDbRecord(biz);
-          await supabaseRestFetch('businesses', {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates' },
-            body: JSON.stringify(safeCoreRecord),
-          }).catch(() => {});
-        } else {
-          // If conflict or update needed, try direct PATCH
-          await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
-            method: 'PATCH',
-            body: JSON.stringify(dbRecord),
-          }).catch(() => {});
-        }
+        // If conflict or update needed, try direct PATCH
+        await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(dbRecord),
+        }).catch(() => {});
       }
     } catch (err) {
-      console.warn('Supabase save business REST warning, attempting safe fallback:', err);
-      try {
-        const safeCoreRecord = getSafeCoreBusinessDbRecord(biz);
-        await supabaseRestFetch('businesses', {
-          method: 'POST',
-          headers: { 'Prefer': 'resolution=merge-duplicates' },
-          body: JSON.stringify(safeCoreRecord),
-        });
-      } catch {}
+      console.warn('Supabase save business REST warning:', err);
     }
   }
 
@@ -156,22 +136,25 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
-  const dbUpdates = mapBusinessToDb(updates as Business);
-  delete dbUpdates.id;
   const fullRecord = getSafeCoreBusinessDbRecord(mergedObj);
+  const dbUpdates = { ...fullRecord };
+  delete dbUpdates.id;
 
   // 2. Sync to Supabase via Direct REST PATCH + UPSERT Fallback
   if (isSupabaseConfigured()) {
     try {
       const res = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
         method: 'PATCH',
+        headers: {
+          'Prefer': 'return=representation',
+        },
         body: JSON.stringify(dbUpdates),
       });
 
       const restData = res.ok ? await res.json().catch(() => null) : null;
       const patchedCount = Array.isArray(restData) ? restData.length : 0;
 
-      // If PATCH updated 0 rows (record not in Supabase yet or conflict), perform an upsert
+      // If PATCH updated 0 rows (record not in Supabase yet), perform an upsert
       if (!res.ok || patchedCount === 0) {
         await supabaseRestFetch('businesses', {
           method: 'POST',
@@ -180,18 +163,9 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
           },
           body: JSON.stringify(fullRecord),
         }).catch(() => {});
-
-        // SDK fallback upsert
-        await supabase.from('businesses').upsert(fullRecord).catch(() => {});
-      } else {
-        // Fire SDK update as secondary assurance
-        supabase.from('businesses').update(dbUpdates).eq('id', id).then(() => {}).catch(() => {});
       }
     } catch (err) {
       console.warn('Supabase update business warning:', err);
-      try {
-        await supabase.from('businesses').upsert(fullRecord);
-      } catch {}
     }
   }
 
@@ -920,27 +894,24 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   const record: any = {};
   if (biz.id !== undefined) record.id = biz.id;
   if (biz.nameAr !== undefined) record.name_ar = biz.nameAr;
-  if (biz.nameEn !== undefined) record.name_en = biz.nameEn;
+  if (biz.nameEn !== undefined) record.name_en = biz.nameEn || null;
   if (biz.category !== undefined) record.category = biz.category;
   if (biz.governorate !== undefined) record.governorate = biz.governorate;
   if (biz.city !== undefined) record.city = biz.city;
   if (biz.street !== undefined) record.street = biz.street;
-  if (biz.landmark !== undefined) record.landmark = biz.landmark;
+  if (biz.landmark !== undefined) record.landmark = biz.landmark || null;
   if (biz.phone !== undefined) record.phone = biz.phone;
-  if (biz.secondaryPhone !== undefined) record.secondary_phone = biz.secondaryPhone;
+  if (biz.secondaryPhone !== undefined) record.secondary_phone = biz.secondaryPhone || null;
   if (biz.workingHours !== undefined) record.working_hours = biz.workingHours;
   if (biz.description !== undefined) record.description = biz.description;
   if (biz.lat !== undefined) record.lat = Number(biz.lat) || 0;
   if (biz.lng !== undefined) record.lng = Number(biz.lng) || 0;
   if (biz.ownerName !== undefined) record.owner_name = biz.ownerName;
   if (biz.ownerPhone !== undefined) record.owner_phone = biz.ownerPhone;
-  if (biz.ownerEmail !== undefined) record.owner_email = biz.ownerEmail;
-  if (biz.nationalId !== undefined) record.national_id = biz.nationalId;
+  if (biz.ownerEmail !== undefined) record.owner_email = biz.ownerEmail || null;
+  if (biz.nationalId !== undefined) record.national_id = biz.nationalId || null;
   if (biz.photos !== undefined) {
     record.photos = Array.isArray(biz.photos) ? biz.photos : [];
-  }
-  if (biz.videos !== undefined) {
-    record.videos = Array.isArray(biz.videos) ? biz.videos : [];
   }
   if (biz.packageId !== undefined) record.package_id = biz.packageId;
   if (biz.packageName !== undefined) record.package_name = biz.packageName;
@@ -948,13 +919,6 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.amountPaid !== undefined) record.amount_paid = Number(biz.amountPaid) || 0;
   if (biz.paymentStatus !== undefined) record.payment_status = biz.paymentStatus;
   if (biz.verificationStatus !== undefined) record.verification_status = biz.verificationStatus;
-  if (biz.googleSyncStatus !== undefined) record.google_sync_status = biz.googleSyncStatus;
-  if (biz.googlePlaceId !== undefined) record.google_place_id = biz.googlePlaceId;
-  if (biz.googleSyncDate !== undefined) record.google_sync_date = biz.googleSyncDate;
-  if (biz.googleMapsUrl !== undefined) record.google_maps_url = biz.googleMapsUrl;
-  if (biz.paymentMethod !== undefined) record.payment_method = biz.paymentMethod;
-  if (biz.cashCollectedByRep !== undefined) record.cash_collected_by_rep = Number(biz.cashCollectedByRep) || 0;
-  if (biz.repCommissionRate !== undefined) record.rep_commission_rate = Number(biz.repCommissionRate) || 42.86;
   if (biz.repId !== undefined) record.rep_id = biz.repId;
   if (biz.repName !== undefined) record.rep_name = biz.repName;
   if (biz.invoiceNumber !== undefined) record.invoice_number = biz.invoiceNumber;
