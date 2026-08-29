@@ -1,4 +1,5 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
+import { uploadMultipleMediaToStorage } from './storage';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus } from '../types';
 
 /**
@@ -70,13 +71,30 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 }
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
-  const dbRecord = mapBusinessToDb(biz);
+  // Convert any remaining raw Base64 photos/videos into clean storage URLs
+  let safePhotos = biz.photos || [];
+  let safeVideos = biz.videos || [];
+
+  try {
+    const hasBase64Photos = safePhotos.some(p => p.startsWith('data:image/'));
+    const hasBase64Videos = safeVideos.some(v => v.startsWith('data:video/'));
+
+    if (hasBase64Photos) {
+      safePhotos = await uploadMultipleMediaToStorage(safePhotos, 'photos');
+    }
+    if (hasBase64Videos) {
+      safeVideos = await uploadMultipleMediaToStorage(safeVideos, 'videos');
+    }
+  } catch {}
+
+  const cleanBiz: Business = { ...biz, photos: safePhotos, videos: safeVideos };
+  const dbRecord = mapBusinessToDb(cleanBiz);
 
   // 1. Immediate LocalStorage cache update
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     const map = new Map<string, Business>();
-    map.set(biz.id, biz);
+    map.set(cleanBiz.id, cleanBiz);
     if (Array.isArray(cached)) {
       cached.forEach((b: Business) => {
         if (!map.has(b.id)) map.set(b.id, b);

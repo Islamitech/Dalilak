@@ -4,6 +4,7 @@ import { Business, VerificationStatus, PaymentStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
+import { uploadMediaToSupabaseStorage } from '../services/storage';
 import {
   Store,
   User,
@@ -141,7 +142,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             applyWatermark: enableWatermark,
             position: watermarkPosition,
           });
-          newCompressed.push(compressed);
+          const publicUrl = await uploadMediaToSupabaseStorage(compressed, 'photos');
+          newCompressed.push(publicUrl);
         } catch (err) {
           console.warn('Image upload compression error:', err);
         }
@@ -172,8 +174,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     if (files && files.length > 0) {
       setIsUploadingVideo(true);
       const newVideos: string[] = [];
-
-      let capturedThumbnail: string | null = null;
+      let capturedThumbnailUrl: string | null = null;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -184,12 +185,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             continue;
           }
 
-          if (validation.thumbnail && !capturedThumbnail) {
-            capturedThumbnail = validation.thumbnail;
+          if (validation.thumbnail && !capturedThumbnailUrl) {
+            const thumbUrl = await uploadMediaToSupabaseStorage(validation.thumbnail, 'photos');
+            capturedThumbnailUrl = thumbUrl;
           }
 
           const videoDataUrl = await convertVideoToDataUrl(file);
-          newVideos.push(videoDataUrl);
+          const publicVideoUrl = await uploadMediaToSupabaseStorage(videoDataUrl, 'videos');
+          newVideos.push(publicVideoUrl);
         } catch (err) {
           console.warn('Video upload error in edit modal:', err);
           setVideoError('تعذر معالجة ملف الفيديو. يرجى التأكد من تشغيل الصيغة.');
@@ -202,7 +205,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         setFormData({
           ...formData,
           videos: [...currentVideos, ...newVideos],
-          photos: currentPhotos.length === 0 && capturedThumbnail ? [capturedThumbnail] : currentPhotos,
+          photos: currentPhotos.length === 0 && capturedThumbnailUrl ? [capturedThumbnailUrl] : currentPhotos,
         });
       }
 

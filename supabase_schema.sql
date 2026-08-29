@@ -265,3 +265,36 @@ INSERT INTO public.representatives (
     true,
     true
 ) ON CONFLICT (email) DO NOTHING;
+
+-- =============================================================================
+-- 10. SUPABASE STORAGE: BUCKET 'business-media' (مساحة تخزين صور وفيديوهات الأنشطة)
+-- =============================================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'business-media',
+    'business-media',
+    true,
+    52428800, -- 50MB max file size limit
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = true,
+    file_size_limit = 52428800;
+
+-- Storage Policies for 'business-media'
+DROP POLICY IF EXISTS "Public Access to business-media" ON storage.objects;
+CREATE POLICY "Public Access to business-media" ON storage.objects
+FOR SELECT USING (bucket_id = 'business-media');
+
+DROP POLICY IF EXISTS "Allow uploads to business-media" ON storage.objects;
+CREATE POLICY "Allow uploads to business-media" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'business-media');
+
+DROP POLICY IF EXISTS "Allow updates to business-media" ON storage.objects;
+CREATE POLICY "Allow updates to business-media" ON storage.objects
+FOR UPDATE USING (bucket_id = 'business-media');
+
+DROP POLICY IF EXISTS "Allow deletes to business-media" ON storage.objects;
+CREATE POLICY "Allow deletes to business-media" ON storage.objects
+FOR DELETE USING (bucket_id = 'business-media');
+

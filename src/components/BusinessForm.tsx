@@ -7,6 +7,7 @@ import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import { fetchLocationAddress } from '../utils/geocoding';
 import { saveLeadToDb } from '../services/db';
+import { uploadMediaToSupabaseStorage, uploadMultipleMediaToStorage } from '../services/storage';
 import {
   Camera,
   Video,
@@ -278,9 +279,11 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             applyWatermark: enableWatermark,
             position: watermarkPosition,
           });
-          newCompressedPhotos.push(compressed);
+          // Upload directly to Supabase Storage 'business-media' bucket
+          const publicUrl = await uploadMediaToSupabaseStorage(compressed, 'photos');
+          newCompressedPhotos.push(publicUrl);
         } catch (err) {
-          console.warn('Image compression error:', err);
+          console.warn('Image compression/upload error:', err);
         }
       }
       if (newCompressedPhotos.length > 0) {
@@ -298,7 +301,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     if (files && files.length > 0) {
       setIsUploadingVideo(true);
       const newVideos: string[] = [];
-      let capturedThumbnail: string | null = null;
+      let capturedThumbnailUrl: string | null = null;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -309,12 +312,15 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             continue;
           }
 
-          if (validation.thumbnail && !capturedThumbnail) {
-            capturedThumbnail = validation.thumbnail;
+          if (validation.thumbnail && !capturedThumbnailUrl) {
+            const thumbUrl = await uploadMediaToSupabaseStorage(validation.thumbnail, 'photos');
+            capturedThumbnailUrl = thumbUrl;
           }
 
           const videoDataUrl = await convertVideoToDataUrl(file);
-          newVideos.push(videoDataUrl);
+          // Upload directly to Supabase Storage 'business-media' bucket
+          const publicVideoUrl = await uploadMediaToSupabaseStorage(videoDataUrl, 'videos');
+          newVideos.push(publicVideoUrl);
         } catch (err) {
           console.warn('Video upload error:', err);
           setVideoError('تعذر معالجة ملف الفيديو. يرجى التأكد من تشغيل الصيغة.');
@@ -324,8 +330,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       if (newVideos.length > 0) {
         setVideos((prev) => [...prev, ...newVideos]);
         // Auto-assign the video's watermarked thumbnail snapshot as cover photo if photos is empty
-        if (capturedThumbnail) {
-          setPhotos((prev) => (prev.length === 0 ? [capturedThumbnail!] : prev));
+        if (capturedThumbnailUrl) {
+          setPhotos((prev) => (prev.length === 0 ? [capturedThumbnailUrl!] : prev));
         }
       }
 
