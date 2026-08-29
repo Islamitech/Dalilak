@@ -508,10 +508,22 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           <div className="flex items-start gap-2 text-[var(--text-secondary)] font-bold leading-tight">
                             <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                             <span className="line-clamp-2">
-                              {biz.street ? `${biz.street}، ` : ''}
-                              {biz.city ? `${biz.city}، ` : ''}
-                              {biz.governorate}
-                              {biz.landmark ? ` (بجوار ${biz.landmark})` : ''}
+                              {(() => {
+                                const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                                const rawStreet = (biz.street || '').trim();
+                                const isGenericPlaceholder = !rawStreet || rawStreet.includes('الموقع الجغرافي المسجل') || rawStreet.includes('الموقع المسجل');
+
+                                if (isGenericPlaceholder) {
+                                  const parts = [biz.city, biz.governorate].filter(Boolean);
+                                  const base = parts.length > 0 ? parts.join('، ') : biz.governorate;
+                                  return isVerified || biz.googleMapsUrl ? `${base} (موقع معتمد على Google Maps 📍)` : base;
+                                }
+
+                                const parts = [rawStreet, biz.city, biz.governorate].filter(Boolean);
+                                let full = parts.join('، ');
+                                if (biz.landmark) full += ` (بجوار ${biz.landmark})`;
+                                return full;
+                              })()}
                             </span>
                           </div>
 
@@ -543,16 +555,17 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             </a>
                           )}
 
-                          {/* Direct Google Maps link */}
+                          {/* Direct Verified Google Maps link */}
                           <a
                             href={
-                              biz.googleMapsUrl ||
-                              `https://www.google.com/maps/search/?api=1&query=${biz.lat || 30.0444},${biz.lng || 31.2357}`
+                              (biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http'))
+                                ? biz.googleMapsUrl
+                                : `https://www.google.com/maps/search/?api=1&query=${biz.lat || 30.0444},${biz.lng || 31.2357}`
                             }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-8 h-8 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-600 hover:text-slate-950 flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
-                            title="فتح على خرائط Google"
+                            title={biz.googleMapsUrl ? "فتح الموقع الموثق النهائي على خرائط Google" : "فتح الموقع على الخريطة"}
                           >
                             <Navigation className="w-4 h-4" />
                           </a>
@@ -853,6 +866,27 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 </div>
               )}
 
+              {/* Verified Google Maps Direct Badge */}
+              {(selectedBiz.googleMapsUrl || selectedBiz.verificationStatus === 'verified' || selectedBiz.googleSyncStatus === 'synced') && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-2xl flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-black text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>الموقع الموثق والمعتمد رسمياً على خرائط Google 🗺️</span>
+                  </div>
+                  {selectedBiz.googleMapsUrl && (
+                    <a
+                      href={selectedBiz.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] px-3 py-1 rounded-xl shadow-xs flex items-center gap-1 transition-transform active:scale-95 cursor-pointer"
+                    >
+                      <Navigation className="w-3.5 h-3.5" />
+                      <span>فتح في Google Maps 🌐</span>
+                    </a>
+                  )}
+                </div>
+              )}
+
               {/* Information Grid */}
               <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2.5">
                 <div className="flex justify-between items-center">
@@ -866,7 +900,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     {selectedBiz.governorate}
                   </span>
                 </div>
-                {selectedBiz.street && (
+                {selectedBiz.street && !selectedBiz.street.includes('الموقع الجغرافي المسجل') && (
                   <div className="flex justify-between items-center">
                     <span className="text-[var(--text-muted)] font-bold">العنوان التفصيلي:</span>
                     <span className="font-bold text-[var(--text-primary)]">{selectedBiz.street}</span>

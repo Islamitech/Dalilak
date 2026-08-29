@@ -41,6 +41,11 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     business.googlePlaceId || `ChIJ_${Math.random().toString(36).substring(2, 9).toUpperCase()}_${Date.now().toString(36).toUpperCase()}`
   );
   const [finalMapUrl, setFinalMapUrl] = useState<string>(business.googleMapsUrl || '');
+  const [verifiedAddress, setVerifiedAddress] = useState<string>(
+    (business.street && !business.street.includes('الموقع الجغرافي المسجل')) ? business.street : ''
+  );
+  const [verifiedLat, setVerifiedLat] = useState<number | undefined>(business.lat);
+  const [verifiedLng, setVerifiedLng] = useState<number | undefined>(business.lng);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
@@ -51,6 +56,9 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     if (isOpen) {
       setCurrentStatus(business.verificationStatus || 'pending');
       setFinalMapUrl(business.googleMapsUrl || '');
+      setVerifiedAddress((business.street && !business.street.includes('الموقع الجغرافي المسجل')) ? business.street : '');
+      setVerifiedLat(business.lat);
+      setVerifiedLng(business.lng);
       if (business.googleSyncStatus === 'synced') {
         setPlaceId(business.googlePlaceId || placeId);
       }
@@ -239,13 +247,13 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             </div>
           )}
 
-          {/* 🔗 FINAL GOOGLE MAPS LIVE URL INPUT (رابط خرائط جوجل النهائي المباشر) */}
-          <div className="bg-gradient-to-r from-blue-500/10 via-[var(--bg-card)] to-amber-500/10 p-3 sm:p-3.5 rounded-2xl border-2 border-blue-500/30 space-y-2 text-xs">
+          {/* 🔗 FINAL GOOGLE MAPS LIVE URL & VERIFIED ADDRESS (الموقع والعنوان النهائي المعتمد من جوجل ماب) */}
+          <div className="bg-gradient-to-r from-blue-500/10 via-[var(--bg-card)] to-amber-500/10 p-3.5 sm:p-4 rounded-2xl border-2 border-blue-500/30 space-y-3 text-xs">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
                 <span className="font-black text-[var(--text-primary)]">
-                  رابط النشاط المباشر على خرائط جوجل (Google Maps URL):
+                  بيانات الموقع والتوثيق النهائي الصادر من خرائط Google:
                 </span>
               </div>
               {finalMapUrl && (
@@ -261,32 +269,61 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               )}
             </div>
 
-            <div className="flex gap-2 items-center">
-              <input
-                type="url"
-                dir="ltr"
-                placeholder="مثال: https://maps.app.goo.gl/... أو https://goo.gl/maps/..."
-                value={finalMapUrl}
-                onChange={(e) => setFinalMapUrl(e.target.value)}
-                className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none focus:border-blue-500 shadow-xs font-bold text-left"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <label className="text-[10.5px] font-bold text-[var(--text-muted)] block">
+                  رابط النشاط المباشر على خرائط Google *
+                </label>
+                <input
+                  type="url"
+                  dir="ltr"
+                  placeholder="https://maps.app.goo.gl/... أو https://goo.gl/maps/..."
+                  value={finalMapUrl}
+                  onChange={(e) => setFinalMapUrl(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-xl p-2.5 focus:outline-none focus:border-blue-500 shadow-xs font-bold text-left"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10.5px] font-bold text-[var(--text-muted)] block">
+                  العنوان المعتمد النهائي الصادر من الخريطة (الشارع / الحي)
+                </label>
+                <input
+                  type="text"
+                  placeholder="مثال: 15 شارع النصر، المعادي..."
+                  value={verifiedAddress}
+                  onChange={(e) => setVerifiedAddress(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl p-2.5 focus:outline-none focus:border-blue-500 shadow-xs font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
               <button
                 type="button"
                 onClick={() => {
-                  if (!finalMapUrl.trim()) return;
+                  if (!finalMapUrl.trim() && !verifiedAddress.trim()) {
+                    alert('يرجى إدخال رابط خرائط Google أو العنوان المعتمد للحفظ');
+                    return;
+                  }
                   const updated: Business = {
                     ...business,
-                    googleMapsUrl: finalMapUrl.trim(),
+                    googleMapsUrl: finalMapUrl.trim() || business.googleMapsUrl,
+                    street: verifiedAddress.trim() || business.street,
+                    lat: verifiedLat || business.lat,
+                    lng: verifiedLng || business.lng,
                     verificationStatus: 'verified',
                     googleSyncStatus: 'synced',
+                    googleSyncDate: business.googleSyncDate || new Date().toISOString().split('T')[0],
                   };
                   if (onUpdateBusiness) onUpdateBusiness(updated);
-                  setStatusFeedback('✅ تم حفظ وتثبيت رابط جوجل ماب المباشر للنشاط بنجاح!');
+                  setStatusFeedback('✅ تم حفظ وتثبيت الموقع الموثق النهائي للنشاط بنجاح!');
                   setTimeout(() => setStatusFeedback(null), 3000);
                 }}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow cursor-pointer transition-transform active:scale-95 shrink-0"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-md cursor-pointer transition-transform active:scale-95 flex items-center gap-1.5"
               >
-                حفظ الرابط 💾
+                <CheckCircle2 className="w-4 h-4" />
+                <span>حفظ وتثبيت الموقع الموثق النهائي 💾</span>
               </button>
             </div>
           </div>
