@@ -98,11 +98,28 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 
       if (!res.ok) {
         // If conflict or update needed, try direct PATCH
-        await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
+        const patchRes = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
           method: 'PATCH',
           headers: { 'Prefer': 'return=representation' },
           body: JSON.stringify(dbRecord),
-        }).catch(() => {});
+        }).catch(() => null);
+
+        // If payload was too large (413) or failed, retry with lightweight media fallback
+        if (!patchRes || !patchRes.ok) {
+          const lightRecord = { ...dbRecord };
+          try {
+            const lightMeta = {
+              ...JSON.parse(dbRecord.notes || '{}'),
+              videos: (biz.videos || []).slice(0, 1),
+            };
+            lightRecord.notes = JSON.stringify(lightMeta);
+          } catch {}
+          await supabaseRestFetch('businesses', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify(lightRecord),
+          }).catch(() => {});
+        }
       }
     } catch (err) {
       console.warn('Supabase save business REST warning:', err);

@@ -531,31 +531,32 @@ export default function App() {
       paymentStatus: autoPaymentStatus,
     };
 
+    // ⚡ 1. INSTANT OPTIMISTIC STATE & MULTI-TIER CACHE (0ms - Instantly visible)
     setBusinesses((prev) => {
-      const map = new Map<string, Business>();
-      map.set(normalizedBiz.id, normalizedBiz);
-      prev.forEach((b) => {
-        if (!map.has(b.id)) map.set(b.id, b);
-      });
-      const updated = Array.from(map.values());
+      const filtered = prev.filter((b) => b.id !== normalizedBiz.id);
+      const updated = [normalizedBiz, ...filtered];
       try {
         localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
       } catch {}
       return updated;
     });
 
-    await saveBusinessToDb(normalizedBiz);
-    addNotification(`🎉 تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وجاري مراجعته!`, 'success');
+    // Also update directory portal cache in localStorage immediately
+    try {
+      localStorage.setItem('dalelak_directory_cache', JSON.stringify([normalizedBiz, ...businesses.filter((b) => b.id !== normalizedBiz.id)]));
+    } catch {}
 
-    // Broadcast across tabs
+    // ⚡ 2. Instant Cross-Tab Broadcast (Real-Time across all windows)
     try {
       const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
       if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_DATA' });
+        syncChannel.postMessage({ type: 'SYNC_DATA', newBusiness: normalizedBiz });
         syncChannel.close();
       }
     } catch {}
-    
+
+    addNotification(`🎉 تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وهو متاح الآن في الدليل!`, 'success');
+
     // 1. Broadcast notification for Admin
     addSystemNotification({
       title: 'تسجيل نشاط تجاري جديد 🏪',
@@ -579,6 +580,11 @@ export default function App() {
         linkTab: 'home',
       });
     }
+
+    // ⚡ 3. ASYNCHRONOUS DATABASE SYNC (Non-blocking background save to Supabase Cloud)
+    saveBusinessToDb(normalizedBiz).catch((err) => {
+      console.warn('Background Supabase save notice:', err);
+    });
   };
 
   const handleUpdateBusiness = async (updatedBiz: Business) => {
