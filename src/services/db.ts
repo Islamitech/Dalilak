@@ -782,6 +782,35 @@ function parsePhotosArray(item: any): string[] {
   return [];
 }
 
+function parseVideosArray(item: any): string[] {
+  const raw = item.videos || item.videos_urls || item.videosUrls;
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('data:')) {
+      return [trimmed];
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === 'string' && parsed.trim().length > 0) return [parsed];
+    } catch {
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        const matches = [...trimmed.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        if (matches.length > 0) return matches;
+      }
+      if (trimmed.includes(',')) {
+        return trimmed.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+      if (trimmed.startsWith('http') || trimmed.startsWith('/')) {
+        return [trimmed];
+      }
+    }
+  }
+  return [];
+}
+
 function mapDbToBusiness(item: any): Business {
   // Extract packed metadata from notes if present
   let metaPaymentMethod = item.payment_method || item.paymentMethod;
@@ -791,6 +820,7 @@ function mapDbToBusiness(item: any): Business {
   let metaGoogleSyncDate = item.google_sync_date || item.googleSyncDate;
   let metaGoogleMapsUrl = item.google_maps_url || item.googleMapsUrl;
   let metaRepCommissionRate = item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : item.repCommissionRate;
+  let metaVideos: string[] | undefined = undefined;
   let pureNotes = item.notes;
 
   if (typeof item.notes === 'string' && item.notes.trim().startsWith('{')) {
@@ -804,10 +834,14 @@ function mapDbToBusiness(item: any): Business {
         if (parsed.googleSyncDate && !metaGoogleSyncDate) metaGoogleSyncDate = parsed.googleSyncDate;
         if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
+        if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
         pureNotes = parsed.userNotes !== undefined ? parsed.userNotes : undefined;
       }
     } catch {}
   }
+
+  const parsedVideos = parseVideosArray(item);
+  const finalVideos = parsedVideos.length > 0 ? parsedVideos : (metaVideos || []);
 
   // Preserve real package price and configuration
   const packagePrice = Number(item.package_price !== undefined && item.package_price !== null ? item.package_price : (item.packagePrice || 250)) || 250;
@@ -849,6 +883,7 @@ function mapDbToBusiness(item: any): Business {
     ownerEmail: item.owner_email || item.ownerEmail,
     nationalId: item.national_id || item.nationalId,
     photos: parsePhotosArray(item),
+    videos: finalVideos,
     repId: item.rep_id || item.repId || 'rep_1',
     repName: item.rep_name || item.repName || 'مندوب معتمد',
     repCommissionRate: metaRepCommissionRate,
@@ -894,6 +929,9 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.photos !== undefined) {
     record.photos = Array.isArray(biz.photos) ? biz.photos : [];
   }
+  if (biz.videos !== undefined) {
+    record.videos = Array.isArray(biz.videos) ? biz.videos : [];
+  }
   if (biz.packageId !== undefined) record.package_id = biz.packageId;
   if (biz.packageName !== undefined) record.package_name = biz.packageName;
   if (biz.packagePrice !== undefined) record.package_price = Number(biz.packagePrice) || 250;
@@ -906,7 +944,7 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.invoiceDate !== undefined) record.invoice_date = biz.invoiceDate;
   if (biz.createdDate !== undefined) record.created_at = biz.createdDate;
 
-  // Safely preserve financial & sync metadata in notes JSON
+  // Safely preserve financial, sync, and video metadata in notes JSON
   const metaObj = {
     paymentMethod: biz.paymentMethod,
     cashCollectedByRep: biz.cashCollectedByRep,
@@ -915,6 +953,7 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,
     googleMapsUrl: biz.googleMapsUrl,
+    videos: biz.videos,
     userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
   };
   record.notes = JSON.stringify(metaObj);

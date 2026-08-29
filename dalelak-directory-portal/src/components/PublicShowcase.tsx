@@ -24,6 +24,9 @@ import {
   Map as MapIcon,
   Sun,
   Moon,
+  Video,
+  Film,
+  Play,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -374,6 +377,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             </span>
                           )}
 
+                          {biz.videos && biz.videos.length > 0 && (
+                            <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                              <Film className="w-3 h-3" />
+                              <span>فيديو قصير 🎬</span>
+                            </span>
+                          )}
+
                           <span className="bg-slate-950/70 text-amber-400 text-[10.5px] font-bold px-2 py-0.5 rounded-lg border border-amber-500/30 backdrop-blur-md">
                             {biz.governorate}
                           </span>
@@ -417,7 +427,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             onClick={() => setSelectedBiz(biz)}
                             className="flex-1 bg-[var(--input-bg)] hover:bg-amber-500 hover:text-slate-950 text-[var(--text-primary)] font-black text-xs py-2 rounded-xl border border-[var(--border-color)] transition-all cursor-pointer text-center"
                           >
-                            التفاصيل والصور 📸
+                            {biz.videos && biz.videos.length > 0 ? 'التفاصيل والفيديو 🎬' : 'التفاصيل والصور 📸'}
                           </button>
 
                           {/* Direct Phone / Call */}
@@ -714,6 +724,29 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       <img src={ph} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover" />
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Video Gallery (Short Videos - 30s) */}
+              {selectedBiz.videos && selectedBiz.videos.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-amber-500 font-black text-xs">
+                    <Video className="w-4 h-4" />
+                    <span>فيديو ترويجي للنشاط (Short Video) 🎬</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedBiz.videos.map((vid, idx) => (
+                      <div key={idx} className="rounded-2xl overflow-hidden bg-slate-950 border border-[var(--border-color)] shadow-md">
+                        <video
+                          src={vid}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="w-full h-44 object-cover bg-black"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

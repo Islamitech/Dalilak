@@ -3,12 +3,16 @@ import { createPortal } from 'react-dom';
 import { Business, VerificationStatus, PaymentStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
+import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import {
   Store,
   User,
   MapPin,
   DollarSign,
   Image as ImageIcon,
+  Video,
+  Film,
+  Play,
   UploadCloud,
   Save,
   Trash2,
@@ -73,6 +77,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [formData, setFormData] = useState<Business | null>(null);
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [enableWatermark, setEnableWatermark] = useState<boolean>(true);
   const [watermarkPosition, setWatermarkPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -151,6 +157,51 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     setFormData({
       ...formData,
       photos: currentPhotos.filter((_, idx) => idx !== indexToRemove),
+    });
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    setVideoError(null);
+    if (files && files.length > 0) {
+      setIsUploadingVideo(true);
+      const newVideos: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const validation = await validateAndProcessShortVideo(file, 30.5);
+          if (!validation.valid) {
+            setVideoError(validation.error || 'الملف غير صالح أو يتجاوز 30 ثانية.');
+            continue;
+          }
+
+          const videoDataUrl = await convertVideoToDataUrl(file);
+          newVideos.push(videoDataUrl);
+        } catch (err) {
+          console.warn('Video upload error in edit modal:', err);
+          setVideoError('تعذر معالجة ملف الفيديو. يرجى التأكد من تشغيل الصيغة.');
+        }
+      }
+
+      if (newVideos.length > 0) {
+        const currentVideos = formData.videos || [];
+        setFormData({
+          ...formData,
+          videos: [...currentVideos, ...newVideos],
+        });
+      }
+
+      e.target.value = '';
+      setIsUploadingVideo(false);
+    }
+  };
+
+  const handleRemoveVideo = (indexToRemove: number) => {
+    const currentVideos = formData.videos || [];
+    setFormData({
+      ...formData,
+      videos: currentVideos.filter((_, idx) => idx !== indexToRemove),
     });
   };
 
@@ -359,12 +410,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     count?: number;
   }
 
+  const totalMediaCount = (formData.photos?.length || 0) + (formData.videos?.length || 0);
+
   const TABS: TabItem[] = [
     { key: 'info', label: 'النشاط', icon: <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
     { key: 'owner', label: 'المالك', icon: <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
     { key: 'location', label: 'الموقع', icon: <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
     { key: 'payment', label: 'الدفع', icon: <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> },
-    { key: 'photos', label: 'الصور', icon: <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />, count: formData.photos?.length || 0 },
+    { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />, count: totalMediaCount },
   ];
 
   const verificationBadge = formData.verificationStatus === 'verified' || formData.googleSyncStatus === 'synced'
@@ -889,74 +942,154 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           )}
 
           {/* ── TAB 5: الصور ──────────────────────────────── */}
+          {/* ── TAB 5: الوسائط (الصور والفيديوهات) ───────── */}
           {activeSection === 'photos' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[var(--text-muted)]">{formData.photos?.length || 0} صورة مرفوعة</span>
-                <div className="flex items-center gap-2">
-                  {formData.photos && formData.photos.length > 0 && (
-                    <button type="button" onClick={() => downloadAllBusinessPhotos(formData.photos, formData.nameAr)}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors">
-                      <Download className="w-3.5 h-3.5" /> تنزيل الكل
-                    </button>
-                  )}
-                  {canEdit && (
-                    <label className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors">
-                      <UploadCloud className="w-3.5 h-3.5" /> إضافة صور
-                      <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
-                    </label>
-                  )}
+            <div className="space-y-6">
+              {videoError && (
+                <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-400 p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span>{videoError}</span>
                 </div>
+              )}
+
+              {/* 1. قسم الصور */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-black text-[var(--text-primary)]">
+                      صور النشاط ({formData.photos?.length || 0})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {formData.photos && formData.photos.length > 0 && (
+                      <button type="button" onClick={() => downloadAllBusinessPhotos(formData.photos, formData.nameAr)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs">
+                        <Download className="w-3.5 h-3.5" /> تنزيل الصور
+                      </button>
+                    )}
+                    {canEdit && (
+                      <label className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs">
+                        <UploadCloud className="w-3.5 h-3.5" /> إضافة صور
+                        <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {canEdit && (
+                  <div className="bg-[var(--input-bg)] border border-amber-500/20 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-[11px] font-black text-[var(--text-primary)]">ختم دليلك على الصور</span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${enableWatermark ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' : 'bg-slate-500/15 text-slate-400'}`}>{enableWatermark ? 'مفعل' : 'معطل'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {enableWatermark && (
+                        <div className="flex items-center bg-[var(--bg-card)] rounded-lg p-0.5 border border-[var(--border-color)] text-[10px] font-bold">
+                          <button type="button" onClick={() => setWatermarkPosition('bottom-right')} className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${watermarkPosition === 'bottom-right' ? 'bg-amber-500 text-slate-950' : 'text-[var(--text-muted)]'}`}>يمين</button>
+                          <button type="button" onClick={() => setWatermarkPosition('bottom-left')} className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${watermarkPosition === 'bottom-left' ? 'bg-amber-500 text-slate-950' : 'text-[var(--text-muted)]'}`}>يسار</button>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => setEnableWatermark(!enableWatermark)}
+                        className={`text-[10px] font-black px-2 py-1 rounded-lg border transition-all cursor-pointer ${enableWatermark ? 'bg-amber-500/15 text-amber-600 border-amber-500/30' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                        {enableWatermark ? 'تعطيل' : 'تفعيل'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {isUploading && (
+                  <div className="text-center py-4 text-xs text-[var(--text-muted)] font-bold animate-pulse">⏳ جاري رفع ومعالجة الصور...</div>
+                )}
+
+                {formData.photos && formData.photos.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {formData.photos.map((photo, idx) => (
+                      <div key={`photo_${idx}`} className="relative group rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--input-bg)] aspect-video shadow-sm">
+                        <img src={photo} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer" onClick={() => setSelectedPhotoPreview(photo)} />
+                        {canEdit && (
+                          <button type="button" onClick={() => handleRemovePhoto(idx)}
+                            className="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 text-white w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shadow cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity z-10">✕</button>
+                        )}
+                        <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                          <button type="button" onClick={() => setSelectedPhotoPreview(photo)} className="bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-lg cursor-pointer" title="معاينة">🔍</button>
+                          <button type="button" onClick={() => downloadSinglePhoto(photo, `${formData.nameAr}-${idx + 1}`)} className="bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded-lg cursor-pointer" title="تحميل"><Download className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] border-dashed text-xs text-[var(--text-muted)] font-bold space-y-1">
+                    <ImageIcon className="w-6 h-6 mx-auto text-[var(--text-muted)] opacity-40" />
+                    <p>لم يتم إرفاق صور لهذا النشاط بعد</p>
+                  </div>
+                )}
               </div>
 
-              {canEdit && (
-                <div className="bg-[var(--input-bg)] border border-amber-500/20 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="text-[11px] font-black text-[var(--text-primary)]">ختم دليلك على الصور</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${enableWatermark ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' : 'bg-slate-500/15 text-slate-400'}`}>{enableWatermark ? 'مفعل' : 'معطل'}</span>
+              {/* 2. قسم الفيديوهات القصيرة (Short Video - حتى 30 ثانية) */}
+              <div className="space-y-3 pt-3 border-t border-[var(--border-color)]">
+                <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+                  <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-black text-[var(--text-primary)]">
+                      فيديوهات النشاط القصيرة ({formData.videos?.length || 0})
+                    </span>
+                    <span className="bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                      ⚡ حتى 30 ثانية
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    {enableWatermark && (
-                      <div className="flex items-center bg-[var(--bg-card)] rounded-lg p-0.5 border border-[var(--border-color)] text-[10px] font-bold">
-                        <button type="button" onClick={() => setWatermarkPosition('bottom-right')} className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${watermarkPosition === 'bottom-right' ? 'bg-amber-500 text-slate-950' : 'text-[var(--text-muted)]'}`}>يمين</button>
-                        <button type="button" onClick={() => setWatermarkPosition('bottom-left')} className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${watermarkPosition === 'bottom-left' ? 'bg-amber-500 text-slate-950' : 'text-[var(--text-muted)]'}`}>يسار</button>
-                      </div>
-                    )}
-                    <button type="button" onClick={() => setEnableWatermark(!enableWatermark)}
-                      className={`text-[10px] font-black px-2 py-1 rounded-lg border transition-all cursor-pointer ${enableWatermark ? 'bg-amber-500/15 text-amber-600 border-amber-500/30' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
-                      {enableWatermark ? 'تعطيل' : 'تفعيل'}
-                    </button>
-                  </div>
-                </div>
-              )}
 
-              {isUploading && (
-                <div className="text-center py-4 text-xs text-[var(--text-muted)] font-bold animate-pulse">⏳ جاري رفع ومعالجة الصور...</div>
-              )}
-
-              {formData.photos && formData.photos.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {formData.photos.map((photo, idx) => (
-                    <div key={`photo_${idx}`} className="relative group rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--input-bg)] aspect-video shadow-sm">
-                      <img src={photo} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer" onClick={() => setSelectedPhotoPreview(photo)} />
-                      {canEdit && (
-                        <button type="button" onClick={() => handleRemovePhoto(idx)}
-                          className="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 text-white w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shadow cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity z-10">✕</button>
-                      )}
-                      <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
-                        <button type="button" onClick={() => setSelectedPhotoPreview(photo)} className="bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-lg cursor-pointer" title="معاينة">🔍</button>
-                        <button type="button" onClick={() => downloadSinglePhoto(photo, `${formData.nameAr}-${idx + 1}`)} className="bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded-lg cursor-pointer" title="تحميل"><Download className="w-3 h-3" /></button>
-                      </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <label className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-transform active:scale-95 shadow-xs">
+                        {isUploadingVideo ? 'جاري الفحص...' : '🎬 إضافة فيديو (30 ثانية)'}
+                        <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/*" multiple onChange={handleVideoUpload} className="hidden" />
+                      </label>
                     </div>
-                  ))}
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-10 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] border-dashed text-xs text-[var(--text-muted)] font-bold space-y-2">
-                  <ImageIcon className="w-8 h-8 mx-auto text-[var(--text-muted)] opacity-40" />
-                  <p>لم يتم إرفاق صور لهذا النشاط بعد</p>
-                </div>
-              )}
+
+                {isUploadingVideo && (
+                  <div className="text-center py-4 text-xs text-[var(--text-muted)] font-bold animate-pulse">⏳ جاري فحص ومعالجة الفيديو (التحقق من مدة 30 ثانية)...</div>
+                )}
+
+                {formData.videos && formData.videos.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {formData.videos.map((vid, idx) => (
+                      <div key={`video_${idx}`} className="relative group rounded-xl overflow-hidden border border-[var(--border-color)] bg-slate-950 shadow-sm">
+                        <video
+                          src={vid}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="w-full h-40 object-cover bg-black"
+                        />
+                        <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                          <span className="bg-slate-950/80 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-md border border-amber-500/30">
+                            🎬 فيديو {idx + 1}
+                          </span>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVideo(idx)}
+                              className="bg-rose-600 hover:bg-rose-700 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow cursor-pointer transition-transform active:scale-95"
+                              title="حذف الفيديو"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] border-dashed text-xs text-[var(--text-muted)] font-bold space-y-1">
+                    <Film className="w-6 h-6 mx-auto text-[var(--text-muted)] opacity-40" />
+                    <p>لم يتم إرفاق فيديوهات قصيرة لهذا النشاط بعد (اختياري)</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

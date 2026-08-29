@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     owner_email TEXT,
     national_id TEXT,
     photos JSONB DEFAULT '[]'::jsonb,
+    videos JSONB DEFAULT '[]'::jsonb,
     rep_id TEXT DEFAULT 'rep_1',
     rep_name TEXT DEFAULT 'مندوب معتمد',
     rep_commission_rate NUMERIC,
@@ -52,6 +53,9 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Idempotent column check for existing databases
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS videos JSONB DEFAULT '[]'::jsonb;
 
 -- =============================================================================
 -- 2. TABLE: representatives (المناديب والمشرفين والمحاسبين والإدارة)

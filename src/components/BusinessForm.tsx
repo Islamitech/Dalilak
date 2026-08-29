@@ -4,10 +4,14 @@ import { Business, PackageOption, PaymentStatus, Representative, InterestedLead,
 import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory, PACKAGES } from '../data/mockData';
 import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
+import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import { fetchLocationAddress } from '../utils/geocoding';
 import { saveLeadToDb } from '../services/db';
 import {
   Camera,
+  Video,
+  Film,
+  Play,
   MapPin,
   FileText,
   User,
@@ -198,8 +202,11 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
 
-  // Photos attached
+  // Photos & Short Videos attached
   const [photos, setPhotos] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
+  const [isUploadingVideo, setIsUploadingVideo] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   // Auto fill status notice
   const [autoFillNotice, setAutoFillNotice] = useState<string | null>(null);
@@ -236,6 +243,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setAmountPaid(PACKAGES[0].price);
     setNotes('');
     setPhotos([]);
+    setVideos([]);
+    setVideoError(null);
     setSubmittedBusiness(null);
     setShowPaymentModal(false);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -279,6 +288,44 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       e.target.value = '';
       setIsUploadingPhoto(false);
     }
+  };
+
+  // Short Video upload handler with strict 30-second duration validation
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    setVideoError(null);
+    if (files && files.length > 0) {
+      setIsUploadingVideo(true);
+      const newVideos: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const validation = await validateAndProcessShortVideo(file, 30.5);
+          if (!validation.valid) {
+            setVideoError(validation.error || 'الملف غير صالح أو يتجاوز 30 ثانية.');
+            continue;
+          }
+
+          const videoDataUrl = await convertVideoToDataUrl(file);
+          newVideos.push(videoDataUrl);
+        } catch (err) {
+          console.warn('Video upload error:', err);
+          setVideoError('تعذر معالجة ملف الفيديو. يرجى التأكد من تشغيل الصيغة.');
+        }
+      }
+
+      if (newVideos.length > 0) {
+        setVideos((prev) => [...prev, ...newVideos]);
+      }
+
+      e.target.value = '';
+      setIsUploadingVideo(false);
+    }
+  };
+
+  const handleRemoveVideo = (indexToRemove: number) => {
+    setVideos((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   // Listen for bottom navigation trigger
@@ -354,6 +401,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       ownerEmail: ownerEmail || undefined,
       nationalId: nationalId || undefined,
       photos: photos,
+      videos: videos,
       repId: currentRep?.id || 'rep_1',
       repName: currentRep?.name || 'مندوب معتمد',
       packageId: selectedPackage.id,
@@ -800,6 +848,85 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
                 >
                   ✕
                 </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 5. فيديوهات النشاط القصيرة (Short Video - 30 ثانية كحد أقصى) */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-color)]">
+          <div className="flex items-center gap-2 text-amber-500">
+            <Video className="w-5 h-5" />
+            <div>
+              <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <span>5. فيديو ترويجي قصير للنشاط (Reels / Short Video)</span>
+                <span className="bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                  ⚡ حتى 30 ثانية
+                </span>
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Direct Video Record */}
+            <label className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md">
+              {isUploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4 stroke-[2.5]" />}
+              <span>{isUploadingVideo ? 'جاري فحص الفيديو...' : '🎬 تسجيل فيديو فوري'}</span>
+              <input type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
+            </label>
+
+            {/* Gallery Video Upload */}
+            <label className="flex-1 sm:flex-none bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+              <UploadCloud className="w-4 h-4 text-amber-500" />
+              <span>📁 فيديو من المعرض</span>
+              <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/*" multiple onChange={handleVideoUpload} className="hidden" />
+            </label>
+          </div>
+        </div>
+
+        {videoError && (
+          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-400 p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>{videoError}</span>
+          </div>
+        )}
+
+        {videos.length === 0 ? (
+          <div className="border-2 border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center space-y-2 bg-[var(--input-bg)]/50">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+              <Film className="w-6 h-6" />
+            </div>
+            <h4 className="font-black text-sm text-[var(--text-primary)]">لم يتم رفع فيديوهات ترويجية للنشاط بعد (اختياري)</h4>
+            <p className="text-xs text-[var(--text-secondary)] font-bold max-w-md mx-auto">
+              يمكنك تصوير جولة سريعة داخل المحل أو عرض للمنتجات بحد أقصى <strong className="text-amber-600 dark:text-amber-400">30 ثانية</strong> لزيادة ثقة العملاء وتفاعلهم!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {videos.map((vid, idx) => (
+              <div key={idx} className="relative group rounded-2xl overflow-hidden border border-[var(--border-color)] bg-slate-950 shadow-md">
+                <video
+                  src={vid}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-44 object-cover bg-black"
+                />
+                <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                  <span className="bg-slate-950/80 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-md border border-amber-500/30">
+                    🎬 فيديو {idx + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveVideo(idx)}
+                    className="bg-rose-600 hover:bg-rose-700 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow cursor-pointer transition-transform active:scale-95"
+                    title="حذف الفيديو"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             ))}
           </div>

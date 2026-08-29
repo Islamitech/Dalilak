@@ -22,6 +22,7 @@ export interface Business {
   ownerEmail?: string;
   nationalId?: string;
   photos: string[];
+  videos?: string[];
   repId: string;
   repName: string;
   packageId: string;
