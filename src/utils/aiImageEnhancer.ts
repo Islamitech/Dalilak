@@ -1,24 +1,24 @@
 /**
  * 🌟 Smart On-Device AI Image Enhancer (Client-Side / 100% Free & Unlimited)
- * Automatically elevates phone camera captures into commercial-grade, luxury photos:
- * - Dynamic Range & Shadow Recovery (HDR tonemapping) without highlight blowouts
- * - Safe S-Curve Tone Mapping (zero NaN / overflow / inversion artifacts)
- * - Natural Color Vibrance & Subtle Warmth Balance
- * - Micro-Texture Enhancement with halo & noise suppression
+ * Automatically elevates phone camera captures into clean, natural, commercial-grade photos:
+ * - Gentle Shadow Recovery (natural clarity without crushing blacks or blowing highlights)
+ * - True-to-Life Color Fidelity (preserves original natural hues without oversaturation)
+ * - Natural White Balance (no artificial tints or color casts)
+ * - Crisp Text & Signage Definition (gentle micro-detail enhancement without harsh halos)
  */
 
 export interface EnhancementOptions {
-  clarity?: number;          // 0 to 1 (default: 0.20)
-  vibrance?: number;         // 0 to 1 (default: 0.18)
-  shadowsLift?: number;      // 0 to 1 (default: 0.18)
-  highlightControl?: number; // 0 to 1 (default: 0.15)
-  warmth?: number;           // -0.5 to 0.5 (default: 0.03)
-  sharpen?: number;          // 0 to 1 (default: 0.15)
+  clarity?: number;          // 0 to 1 (default: 0.05 - subtle natural clarity)
+  vibrance?: number;         // 0 to 1 (default: 0.03 - true-to-life natural colors)
+  shadowsLift?: number;      // 0 to 1 (default: 0.10 - gentle shadow lift)
+  highlightControl?: number; // 0 to 1 (default: 0)
+  warmth?: number;           // -0.5 to 0.5 (default: 0 - neutral true white balance)
+  sharpen?: number;          // 0 to 1 (default: 0.08 - clean banner/text crispness)
 }
 
 /**
- * Automatically enhances canvas pixels with luxury commercial photography algorithms
- * Guaranteed artifact-free with full safety bounds on tone curves and color math.
+ * Automatically enhances canvas pixels with a balanced, natural photography algorithm
+ * Guaranteed artifact-free, non-destructive, and natural.
  */
 export function applyLuxuryAIEnhancement(
   ctx: CanvasRenderingContext2D,
@@ -28,11 +28,11 @@ export function applyLuxuryAIEnhancement(
 ): void {
   try {
     const {
-      clarity = 0.20,
-      vibrance = 0.18,
-      shadowsLift = 0.18,
-      warmth = 0.03,
-      sharpen = 0.15,
+      clarity = 0.05,
+      vibrance = 0.03,
+      shadowsLift = 0.10,
+      warmth = 0.0,
+      sharpen = 0.08,
     } = options;
 
     if (width <= 0 || height <= 0) return;
@@ -56,51 +56,45 @@ export function applyLuxuryAIEnhancement(
     }
 
     const avgLum = sampleCount > 0 ? sumLum / sampleCount : 128;
-    const isDark = avgLum < 105;
+    const isDark = avgLum < 100;
 
-    // Smooth shadow recovery factor (gentle lift for dark scenes without blowing bright lights/signs)
-    const shadowBoostFactor = isDark ? Math.min(0.25, (105 - avgLum) / 450) : 0.08;
-
-    // STEP 2: Tone Curve Look-Up Table (Strictly monotonic, bounded in [0, 255], zero NaN)
+    // STEP 2: Balanced Natural Tone Curve (Zero contrast-crushing, gentle dark recovery)
     const toneLUT = new Uint8Array(256);
     for (let i = 0; i < 256; i++) {
       let v = i / 255.0; // 0.0 to 1.0
 
-      // 1. Shadows Lift (Quadratic falloff ensures 0 boost at highlights v=1)
-      if (shadowsLift > 0) {
-        const shadowMask = (1 - v) * (1 - v); // 1.0 at black, 0.0 at white
-        v += shadowMask * shadowsLift * shadowBoostFactor;
+      // Gentle shadow recovery for dark scenes (cubic falloff ensures midtones & highlights remain authentic)
+      if (shadowsLift > 0 && isDark) {
+        const shadowMask = Math.pow(1 - v, 3); // 1.0 at black, 0.0 at midtones/highlights
+        v += shadowMask * shadowsLift * 0.12;
       }
 
-      // Clamp safely before curve
-      v = Math.max(0, Math.min(1, v));
-
-      // 2. Smooth S-Curve Contrast (Softstep / smoothstep blending)
+      // Very subtle clarity blending (preserves natural lighting atmosphere without crushing blacks)
       if (clarity > 0) {
         const smoothV = v * v * (3 - 2 * v);
-        const contrastWeight = clarity * 0.22;
-        v = v * (1 - contrastWeight) + smoothV * contrastWeight;
+        const w = clarity * 0.06;
+        v = v * (1 - w) + smoothV * w;
       }
 
-      // Ensure strict clamp to [0, 255]
+      // Strict clamp
       v = Math.max(0, Math.min(1, v));
       toneLUT[i] = Math.round(v * 255);
     }
 
-    // STEP 3: Apply Tone Mapping, Vibrance & Warmth Balance
+    // STEP 3: Apply Tone Mapping & True-to-Life Color Balance
     for (let i = 0; i < len; i += 4) {
       let r = toneLUT[data[i]];
       let g = toneLUT[data[i + 1]];
       let b = toneLUT[data[i + 2]];
 
-      // Safe vibrance calculation
+      // Safe subtle vibrance: only slightly lifts dull/washed-out pixels, never oversaturates signs/colors
       if (vibrance > 0) {
         const maxC = Math.max(r, g, b);
         const minC = Math.min(r, g, b);
         const sat = maxC === 0 ? 0 : (maxC - minC) / maxC;
 
-        if (sat < 0.85) {
-          const vibFactor = (1 - sat) * vibrance * 0.6;
+        if (sat < 0.45) {
+          const vibFactor = (0.45 - sat) * vibrance * 0.25;
           const avg = (r + g + b) / 3;
           r += (r - avg) * vibFactor;
           g += (g - avg) * vibFactor;
@@ -108,11 +102,10 @@ export function applyLuxuryAIEnhancement(
         }
       }
 
-      // Safe subtle warmth
+      // Subtle warmth (default 0 preserves original true camera color balance)
       if (warmth !== 0) {
-        r *= (1 + warmth * 0.6);
-        g *= (1 + warmth * 0.2);
-        b *= (1 - warmth * 0.4);
+        r *= (1 + warmth * 0.3);
+        b *= (1 - warmth * 0.3);
       }
 
       data[i] = Math.max(0, Math.min(255, Math.round(r)));
@@ -120,11 +113,11 @@ export function applyLuxuryAIEnhancement(
       data[i + 2] = Math.max(0, Math.min(255, Math.round(b)));
     }
 
-    // STEP 4: High-Pass Unsharp Sharpening with Halo & Noise Clamping
+    // STEP 4: Gentle Micro-Sharpening (Enhances shop signage/banner readability without noise or halos)
     if (sharpen > 0 && width > 60 && height > 60) {
       const srcCopy = new Uint8ClampedArray(data);
       const w4 = width * 4;
-      const shFactor = sharpen * 0.20; // Safe subtle sharpening
+      const shFactor = sharpen * 0.10;
 
       for (let y = 1; y < height - 1; y++) {
         const rowIdx = y * w4;
@@ -140,8 +133,8 @@ export function applyLuxuryAIEnhancement(
 
             const laplacian = (center * 4) - (up + down + left + right);
 
-            // Hard clamp edge delta to prevent dark/light ringing around text and lights
-            const delta = Math.max(-14, Math.min(14, laplacian * shFactor));
+            // Safe tight clamp: max +/- 8 delta ensures soft, natural edges
+            const delta = Math.max(-8, Math.min(8, laplacian * shFactor));
             const val = center + delta;
 
             data[idx + c] = val < 0 ? 0 : (val > 255 ? 255 : (val | 0));
