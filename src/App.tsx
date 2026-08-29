@@ -405,19 +405,21 @@ export default function App() {
     };
   }, [user]);
 
-  // Fetch initial data exclusively from Supabase Cloud
+  // Fetch initial data with fast independent parallel fetches
   useEffect(() => {
-    Promise.all([fetchBusinessesFromDb(), fetchRepsFromDb(), fetchPayoutRequestsFromDb(), fetchLeadsFromDb()])
-      .then(([dbBizData, dbRepsData, dbPayouts, dbLeads]) => {
-        if (Array.isArray(dbBizData)) {
-          setBusinesses(dbBizData);
+    // 1. Fetch businesses immediately
+    fetchBusinessesFromDb()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setBusinesses(data);
         }
-        if (Array.isArray(dbPayouts)) {
-          setPayoutRequests(dbPayouts);
-        }
-        if (Array.isArray(dbLeads)) {
-          setLeads(dbLeads);
-        }
+        setIsLoadingData(false);
+      })
+      .catch(() => setIsLoadingData(false));
+
+    // 2. Fetch representatives in parallel
+    fetchRepsFromDb()
+      .then((dbRepsData) => {
         if (Array.isArray(dbRepsData)) {
           setRepresentatives(dbRepsData);
 
@@ -436,19 +438,27 @@ export default function App() {
             }
           }
         }
-
-        setIsLoadingData(false);
       })
-      .catch((err) => {
-        console.error('Error fetching initial database data from Supabase Cloud:', err);
-        setIsLoadingData(false);
-      });
+      .catch(() => {});
+
+    // 3. Fetch payouts & leads in parallel
+    fetchPayoutRequestsFromDb()
+      .then((dbPayouts) => {
+        if (Array.isArray(dbPayouts)) setPayoutRequests(dbPayouts);
+      })
+      .catch(() => {});
+
+    fetchLeadsFromDb()
+      .then((dbLeads) => {
+        if (Array.isArray(dbLeads)) setLeads(dbLeads);
+      })
+      .catch(() => {});
 
     fetchPaymentConfigFromDb()
       .then((cfg) => {
         if (cfg) setPaymentConfig(cfg);
       })
-      .catch((err) => console.log('Payment config load notice:', err));
+      .catch(() => {});
   }, []);
 
   // Live Real-Time Poller & Cross-Tab Syncer (Reflects Admin changes instantaneously from Cloud)
@@ -457,43 +467,38 @@ export default function App() {
 
     const refreshLiveData = async () => {
       try {
-        const [freshBiz, freshReps, freshPayouts, freshLeads] = await Promise.all([
-          fetchBusinessesFromDb(),
-          fetchRepsFromDb(),
-          fetchPayoutRequestsFromDb(),
-          fetchLeadsFromDb(),
-        ]);
+        fetchBusinessesFromDb().then((freshBiz) => {
+          if (Array.isArray(freshBiz) && freshBiz.length > 0) {
+            setBusinesses(freshBiz);
+          }
+        }).catch(() => {});
 
-        if (Array.isArray(freshBiz)) {
-          setBusinesses(freshBiz);
-        }
-
-        if (Array.isArray(freshPayouts)) {
-          setPayoutRequests(freshPayouts);
-        }
-
-        if (Array.isArray(freshLeads)) {
-          setLeads(freshLeads);
-        }
-
-        if (Array.isArray(freshReps)) {
-          setRepresentatives(freshReps);
-
-          // Sync current logged-in user in real time
-          if (user) {
-            const myFreshRep = freshReps.find(
-              (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
-            );
-            if (myFreshRep) {
-              const updatedUser = { ...user, repData: myFreshRep };
-              setUser(updatedUser);
-              safeSetLocalStorageItem(
-                'dalelak_logged_user',
-                JSON.stringify(getSafeUserForStorage(updatedUser))
+        fetchRepsFromDb().then((freshReps) => {
+          if (Array.isArray(freshReps) && freshReps.length > 0) {
+            setRepresentatives(freshReps);
+            if (user) {
+              const myFreshRep = freshReps.find(
+                (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
               );
+              if (myFreshRep) {
+                const updatedUser = { ...user, repData: myFreshRep };
+                setUser(updatedUser);
+                safeSetLocalStorageItem(
+                  'dalelak_logged_user',
+                  JSON.stringify(getSafeUserForStorage(updatedUser))
+                );
+              }
             }
           }
-        }
+        }).catch(() => {});
+
+        fetchPayoutRequestsFromDb().then((freshPayouts) => {
+          if (Array.isArray(freshPayouts)) setPayoutRequests(freshPayouts);
+        }).catch(() => {});
+
+        fetchLeadsFromDb().then((freshLeads) => {
+          if (Array.isArray(freshLeads)) setLeads(freshLeads);
+        }).catch(() => {});
       } catch (err) {
         // silent
       }

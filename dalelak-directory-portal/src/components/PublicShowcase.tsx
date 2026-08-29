@@ -44,9 +44,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
 
-  // Search and Filters (Default to 'الجيزة' as requested)
+  // Search and Filters (Default to 'all' to show all verified businesses across Egypt)
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [govFilter, setGovFilter] = useState<string>('الجيزة');
+  const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeView, setActiveView] = useState<'grid' | 'map'>('grid');
 
@@ -70,6 +70,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   // Filtered Businesses
   const filteredBusinesses = useMemo(() => {
     return publicBusinesses.filter((b) => {
+      if (!b) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase().trim();
         const matchName = (b.nameAr || '').toLowerCase().includes(q) || (b.nameEn || '').toLowerCase().includes(q);
@@ -77,8 +78,12 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         const matchCat = (b.category || '').toLowerCase().includes(q);
         if (!matchName && !matchCity && !matchCat) return false;
       }
-      if (govFilter !== 'all' && !b.governorate.includes(govFilter)) {
-        return false;
+      if (govFilter !== 'all') {
+        const safeGov = (b.governorate || '').toLowerCase().trim();
+        const safeTarget = govFilter.toLowerCase().trim();
+        if (!safeGov.includes(safeTarget) && !safeTarget.includes(safeGov)) {
+          return false;
+        }
       }
       if (categoryFilter !== 'all') {
         const grp = CATEGORY_GROUPS.find((g) => g.group === categoryFilter);
