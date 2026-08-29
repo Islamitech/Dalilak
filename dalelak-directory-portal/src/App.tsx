@@ -24,13 +24,19 @@ export default function App() {
     let isMounted = true;
 
     async function loadBusinesses() {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
       try {
         const res = await fetch(SUPABASE_REST_URL, {
+          signal: controller.signal,
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           },
         });
+        clearTimeout(timeoutId);
+
         if (res.ok) {
           const raw = await res.json();
           if (Array.isArray(raw) && raw.length > 0 && isMounted) {
@@ -103,6 +109,7 @@ export default function App() {
       } catch (e) {
         console.warn('Failed to fetch from live Supabase DB:', e);
       } finally {
+        clearTimeout(timeoutId);
         if (isMounted) setLoading(false);
       }
     }
@@ -142,15 +149,6 @@ export default function App() {
   // Parse referral code if present in URL
   const urlParams = new URLSearchParams(window.location.search);
   const refCode = urlParams.get('ref') || urlParams.get('rep') || '';
-
-  if (loading && businesses.length === 0) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4 text-slate-200">
-        <div className="w-14 h-14 rounded-2xl border-4 border-amber-500/20 border-t-amber-500 animate-spin" />
-        <p className="text-xs font-black text-amber-400">جاري تحميل دليل الأنشطة والخدمات في مصر...</p>
-      </div>
-    );
-  }
 
   return (
     <ThemeProvider>

@@ -137,7 +137,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       const newCompressed: string[] = [];
       for (let i = 0; i < files.length; i++) {
         try {
-          const compressed = await compressImageFile(files[i], 1200, 1200, 0.8, {
+          const compressed = await compressImageFile(files[i], 1000, 1000, 0.72, {
             applyWatermark: enableWatermark,
             position: watermarkPosition,
           });

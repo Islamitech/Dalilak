@@ -85,8 +85,21 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
     localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
-  // 2. Direct PostgREST Cloud Upsert with Self-Healing Fallback
+  // 2. Direct Supabase Cloud Save using SDK with upsert().select() + REST fallback
   if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .upsert(dbRecord, { onConflict: 'id' })
+        .select();
+
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        return;
+      }
+    } catch (sdkErr) {
+      console.warn('Supabase SDK upsert notice:', sdkErr);
+    }
+
     try {
       const res = await supabaseRestFetch('businesses', {
         method: 'POST',
