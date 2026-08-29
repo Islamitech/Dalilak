@@ -843,7 +843,15 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             جميع الحقوق محفوظة © {new Date().getFullYear()} - منصة "دليلك" لتوثيق الأنشطة والخدمات الميدانية في مصر 🇪🇬
           </p>
 
-          <div className="flex items-center gap-3 font-bold text-[11px]">
+          <div className="flex flex-wrap items-center justify-center gap-3 font-bold text-[11px]">
+            <a href="https://www.dalilaak.com/" className="text-amber-600 dark:text-amber-400 hover:underline">
+              https://www.dalilaak.com/
+            </a>
+            <span>•</span>
+            <a href="mailto:info@dalilaak.com" className="text-blue-600 dark:text-blue-400 hover:underline">
+              info@dalilaak.com
+            </a>
+            <span>•</span>
             <a href="#explore" className="hover:text-amber-500 transition-colors">
               معرض الأنشطة
             </a>

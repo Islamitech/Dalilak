@@ -188,8 +188,10 @@ export const RepProfile: React.FC<RepProfileProps> = ({
     setTimeout(() => setCopiedCode(false), 2500);
   };
 
+  const platformDomain = typeof window !== 'undefined' && window.location.origin.includes('localhost') ? window.location.origin : 'https://www.dalilaak.com';
+
   const inviteMessage = encodeURIComponent(
-    `انضم الآن لمنظومة دليلك وسجل حسابك الميداني باستخدام كود الدعوة المعتمد: ${referralCode}\nرابط المنصة: ${window.location.origin}`
+    `انضم الآن لمنظومة دليلك وسجل حسابك الميداني باستخدام كود الدعوة المعتمد: ${referralCode}\nرابط المنصة: https://www.dalilaak.com/`
   );
   const whatsappInviteUrl = `https://wa.me/?text=${inviteMessage}`;
   
@@ -208,7 +210,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   const repCode = `REP-2026-${rep.id.replace(/\D/g, '') || '084'}`;
   
   // Dynamic QR Code URL for the digital ID card
-  const qrUrl = `${window.location.origin}/?view=rep&id=${rep.id}`;
+  const qrUrl = `${platformDomain}/?view=rep&id=${rep.id}`;
   const qrData = encodeURIComponent(qrUrl);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 

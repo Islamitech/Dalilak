@@ -177,7 +177,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300 bg-blue-500/10 border border-blue-500/20 py-0.5 px-3 rounded-full w-fit mx-auto font-mono">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
             <span>الحساب المعتمد:</span>
-            <span className="font-bold underline">@daz31181 (daz31181@gmail.com)</span>
+            <span className="font-bold underline">info@dalilaak.com</span>
           </div>
         </div>
 
@@ -516,10 +516,10 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-4 text-right space-y-2 text-xs">
                   <p className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-blue-600" />
-                    <span>المزامنة عبر حساب المنصة الرسمي (@daz31181):</span>
+                    <span>المزامنة عبر حساب المنصة الرسمي (info@dalilaak.com):</span>
                   </p>
                   <ul className="space-y-1.5 text-blue-800 dark:text-blue-400 text-[11px] pr-2">
-                    <li>• يتم رفع وتوثيق النشاط التجاري رسمياً من خلال حساب المنصة <strong>@daz31181 (daz31181@gmail.com)</strong>.</li>
+                    <li>• يتم رفع وتوثيق النشاط التجاري رسمياً من خلال حساب المنصة <strong>info@dalilaak.com</strong>.</li>
                     <li>• إرسال وتعبئة البيانات (الاسم، التصنيف، العنوان، الإحداثيات) لخوادم Google Business Profile.</li>
                     <li>• توليد معرّف النشاط الرقمي الرسمي (Google Place ID) كإثبات تسجيل معتمد.</li>
                   </ul>
@@ -598,7 +598,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
                   <div className="bg-blue-500/5 border border-blue-500/20 p-2 rounded-xl text-[11px] flex items-center justify-between">
                     <span className="text-[var(--text-secondary)] font-bold">الحساب الإداري الموثق:</span>
-                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">@daz31181 (daz31181@gmail.com)</span>
+                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">info@dalilaak.com</span>
                   </div>
                 </div>
 

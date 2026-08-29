@@ -67,7 +67,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const amtPaid = activeBusiness.amountPaid || 0;
   const remaining = Math.max(0, pkgPrice - amtPaid);
 
-  const directoryUrl = 'https://dalilak-directory.vercel.app/';
+  const directoryUrl = 'https://www.dalilaak.com/';
 
   const invoiceRawText = 
     `*فاتورة توثيق نشاط تجاري - شركة دليلك لخرائط جوجل* 🗺️\n` +
@@ -106,7 +106,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   // Dynamic QR Code URL to open the invoice online
-  const qrUrl = `${window.location.origin}/?view=invoice&id=${activeBusiness.id}`;
+  const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('localhost') ? window.location.origin : 'https://www.dalilaak.com';
+  const qrUrl = `${baseUrl}/?view=invoice&id=${activeBusiness.id}`;
   const qrData = encodeURIComponent(qrUrl);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 

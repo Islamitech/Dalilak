@@ -86,9 +86,9 @@ export default function App() {
         try {
           const parsed = JSON.parse(savedUser);
           if (parsed && parsed.id && parsed.name) {
-            if (parsed.role === 'admin' && (parsed.email === 'dalilaakeg@gmail.com' || !parsed.email)) {
-              parsed.email = 'daz31181@gmail.com';
-              if (parsed.repData) parsed.repData.email = 'daz31181@gmail.com';
+            if (parsed.role === 'admin' && (parsed.email === 'dalilaakeg@gmail.com' || parsed.email === 'daz31181@gmail.com' || !parsed.email)) {
+              parsed.email = 'info@dalilaak.com';
+              if (parsed.repData) parsed.repData.email = 'info@dalilaak.com';
             }
             return parsed;
           }

@@ -128,6 +128,17 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
               تحتفظ إدارة المنصة بالحق في تحديث وتطوير بنود هذه الاتفاقية لتواكب التطورات التكنولوجية والتنظيمية، وتصبح التحديثات سارية فور نشرها على المنصة.
             </p>
           </div>
+
+          {/* Section 8: Official Contact & Legal Inquiries */}
+          <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/30 space-y-2">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-sm">
+              <span>✉️</span>
+              <h3>8. قنوات التواصل والاستفسارات القانونية والدعم</h3>
+            </div>
+            <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
+              لأي استفسارات بخصوص شروط الاستخدام، أو طلبات الدعم والتعديل، يرجى التواصل عبر البريد الرسمي المعتمد: <a href="mailto:info@dalilaak.com" className="font-bold text-amber-600 dark:text-amber-400 underline font-mono">info@dalilaak.com</a> أو زيارة الموقع الرسمي: <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="font-bold text-amber-600 dark:text-amber-400 underline font-mono">https://www.dalilaak.com/</a>.
+            </p>
+          </div>
         </div>
 
         {/* Bottom Actions */}

@@ -162,7 +162,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
   };
 
   const inviteMessage = encodeURIComponent(
-    `انضم الآن لفريق عمل منظومة دليلك لتوثيق الأنشطة التجارية في مصر وسجل حسابك باستخدام كود الدعوة المعتمد: ${referralCode}\nرابط المنصة: ${window.location.origin}`
+    `انضم الآن لفريق عمل منظومة دليلك لتوثيق الأنشطة التجارية في مصر وسجل حسابك باستخدام كود الدعوة المعتمد: ${referralCode}\nرابط المنصة: https://www.dalilaak.com/`
   );
   const whatsappInviteUrl = `https://wa.me/?text=${inviteMessage}`;
 

@@ -250,7 +250,7 @@ INSERT INTO public.representatives (
 ) VALUES (
     'admin_1',
     'مدير النظام دليلك',
-    'daz31181@gmail.com',
+    'info@dalilaak.com',
     '01143888355',
     'admin',
     'مدير النظام',

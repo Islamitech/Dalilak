@@ -48,7 +48,7 @@ export const PermissionsHub: React.FC = () => {
       supervisor: true,
       accountant: true,
       rep: false,
-      note: 'ربط النشاط بحساب @daz31181 الرسمي واعتماد التوثيق',
+      note: 'ربط النشاط بحساب info@dalilaak.com الرسمي واعتماد التوثيق',
     },
     {
       capability: 'إدارة الحسابات وإضافة وتعديل المناديب',
@@ -292,7 +292,7 @@ export const PermissionsHub: React.FC = () => {
                 <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed">
                   <li>✅ <strong>لوحة التحكم المركزية:</strong> الاطلاع على كافة الأرقام والإيرادات ونسب التحصيل.</li>
                   <li>✅ <strong>إدارة وحذف الحسابات:</strong> إضافة/تعديل/تجميد/حذف أي حساب وترقية الموظفين وتعيين نسب العمولات.</li>
-                  <li>✅ <strong>التوثيق والمزامنة:</strong> الربط المباشر مع حساب جوجل @daz31181 واعتماد توثيق الأنشطة.</li>
+                  <li>✅ <strong>التوثيق والمزامنة:</strong> الربط المباشر مع حساب المنصة الرسمي info@dalilaak.com واعتماد توثيق الأنشطة.</li>
                   <li>✅ <strong>بوابات الدفع:</strong> تعديل أرقام فودافون كاش وانستاباي وفوري.</li>
                   <li>✅ <strong>صرف العمولات:</strong> قبول ورفض طلبات سحب الأرباح للمناديب.</li>
                   <li>✅ <strong>الحذف والتعديل الشامل:</strong> تعديل أو حذف أي نشاط أو حساب في المنظومة.</li>

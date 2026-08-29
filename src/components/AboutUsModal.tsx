@@ -152,6 +152,33 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
               تقديم استشارات إدارية وتسويقية متخصصة لمساعدة الأنشطة على التوسع الجغرافي، رفع العائد على الاستثمار، وتحليل الفرص السوقية والمنافسين لتحقيق نمو مستدام ومتسارع.
             </p>
           </div>
+
+          {/* Official Communication & Support Channel */}
+          <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-right">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-black shrink-0">
+                🌐
+              </div>
+              <div>
+                <div className="font-black text-[var(--text-primary)] text-xs">الموقع الرسمي والدليل المعتمد:</div>
+                <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
+                  https://www.dalilaak.com/
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-right">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center font-black shrink-0">
+                ✉️
+              </div>
+              <div>
+                <div className="font-black text-[var(--text-primary)] text-xs">البريد الإلكتروني والتواصل الرسمي:</div>
+                <a href="mailto:info@dalilaak.com" className="text-blue-600 dark:text-blue-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
+                  info@dalilaak.com
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Bottom Actions */}

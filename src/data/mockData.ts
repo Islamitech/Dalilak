@@ -250,7 +250,7 @@ export const MOCK_REPRESENTATIVES: Representative[] = [
   {
     id: 'rep_ahmed_ezalden',
     name: 'Ahmed Ezalden',
-    email: 'ahmedhufne@gmail.com',
+    email: 'info@dalilaak.com',
     phone: '01143888355',
     role: 'admin',
     roleTitle: 'مدير النظام',

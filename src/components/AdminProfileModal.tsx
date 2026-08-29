@@ -51,7 +51,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
   const [name, setName] = useState<string>(user.name || rep?.name || 'مدير النظام دليلك');
   const [phone, setPhone] = useState<string>(rep?.phone || '01143888355');
   const [pendingPhone, setPendingPhone] = useState<string>(rep?.pendingPhone || '');
-  const [email, setEmail] = useState<string>(user.email || rep?.email || 'daz31181@gmail.com');
+  const [email, setEmail] = useState<string>(user.email || rep?.email || 'info@dalilaak.com');
   const [governorate, setGovernorate] = useState<string>(rep?.governorate || 'القاهرة');
   const [nationalId, setNationalId] = useState<string>(rep?.nationalId || '');
 
@@ -510,7 +510,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="daz31181@gmail.com"
+                      placeholder="info@dalilaak.com"
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 font-mono dir-ltr text-right focus:outline-none focus:border-amber-500 shadow-xs"
                     />
                   </div>
