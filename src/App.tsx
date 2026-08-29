@@ -536,20 +536,22 @@ export default function App() {
       paymentStatus: autoPaymentStatus,
     };
 
-    // ⚡ 1. INSTANT OPTIMISTIC STATE & MULTI-TIER CACHE (0ms - Instantly visible)
-    setBusinesses((prev) => {
-      const filtered = prev.filter((b) => b.id !== normalizedBiz.id);
-      const updated = [normalizedBiz, ...filtered];
-      try {
-        localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    // ⚡ 1. INSTANT OPTIMISTIC STATE & MULTI-TIER CACHE (0ms - Instantly visible at top)
+    setBusinesses((prev) => [normalizedBiz, ...prev.filter((b) => b.id !== normalizedBiz.id)]);
 
     // Also update directory portal cache in localStorage immediately
     try {
-      localStorage.setItem('dalelak_directory_cache', JSON.stringify([normalizedBiz, ...businesses.filter((b) => b.id !== normalizedBiz.id)]));
+      const allUpdated = [normalizedBiz, ...businesses.filter((b) => b.id !== normalizedBiz.id)];
+      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(allUpdated));
+      localStorage.setItem('dalelak_directory_cache', JSON.stringify(allUpdated));
     } catch {}
+
+    // Reset filters to ensure the newly added business is 100% visible immediately
+    setHomeSearchQuery('');
+    setHomeGovFilter('all');
+    setHomeCategoryFilter('all');
+    setHomeVerificationFilter('all');
+    setActiveTab('home');
 
     // ⚡ 2. Instant Cross-Tab Broadcast (Real-Time across all windows)
     try {
@@ -560,7 +562,7 @@ export default function App() {
       }
     } catch {}
 
-    addNotification(`🎉 تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وهو متاح الآن في الدليل!`, 'success');
+    addNotification(`🎉 تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وهو متاح الآن في قائمتك والدليل!`, 'success');
 
     // 1. Broadcast notification for Admin
     addSystemNotification({
@@ -586,7 +588,7 @@ export default function App() {
       });
     }
 
-    // ⚡ 3. ASYNCHRONOUS DATABASE SYNC (Non-blocking background save to Supabase Cloud)
+    // ⚡ 3. ASYNCHRONOUS DATABASE SYNC (Non-blocking background save to Supabase Cloud - Zero Refetch)
     saveBusinessToDb(normalizedBiz).catch((err) => {
       console.warn('Background Supabase save notice:', err);
     });
