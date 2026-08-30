@@ -242,6 +242,7 @@ export default function App() {
     // If cached businesses exist or app was initialized before, render instantly in 0ms without skeleton flicker!
     return cached.length === 0 && !isAppInitialized;
   });
+  const [hasInitialCloudSynced, setHasInitialCloudSynced] = useState<boolean>(() => getCachedBusinesses().length > 0);
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
   const addNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
@@ -421,10 +422,12 @@ export default function App() {
         if (user?.id) {
           safeSetLocalStorageItem(`dalelak_user_initialized_${user.id}`, 'true');
         }
+        setHasInitialCloudSynced(true);
         setIsLoadingData(false);
       })
       .catch(() => {
         safeSetLocalStorageItem('dalelak_app_initialized', 'true');
+        setHasInitialCloudSynced(true);
         setIsLoadingData(false);
       });
 
@@ -1906,8 +1909,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* ── 2. EMPTY STATE (Only shown when NOT loading & 0 results) ─────── */}
-              {(!isLoadingData || businesses.length > 0) && filteredHomeBusinesses.length === 0 && (
+              {/* ── 2. EMPTY STATE (Only shown when initial cloud check is completed & 0 results) ─────── */}
+              {hasInitialCloudSynced && filteredHomeBusinesses.length === 0 && (
                 <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3.5 shadow-sm">
                   <div className="w-16 h-16 rounded-3xl bg-amber-500/15 text-amber-500 flex items-center justify-center mx-auto text-2xl shadow-inner">
                     🏪

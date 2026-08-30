@@ -1,7 +1,7 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { uploadMultipleMediaToStorage } from './storage';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus } from '../types';
-import { safeSetLocalStorageItem } from '../utils/storage';
+import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeBusinessesForStorage } from '../utils/storage';
 
 /**
  * 🏛️ Live Supabase Database Service
@@ -15,9 +15,12 @@ import { safeSetLocalStorageItem } from '../utils/storage';
 
 export function getCachedBusinesses(): Business[] {
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-    if (Array.isArray(cached) && cached.length > 0) {
-      return cached;
+    const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
+    if (raw) {
+      const cached = JSON.parse(raw);
+      if (Array.isArray(cached) && cached.length > 0) {
+        return cached;
+      }
     }
   } catch {}
   return [];
@@ -39,8 +42,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
         if (Array.isArray(restData) && restData.length > 0) {
           const freshList = restData.map(mapDbToBusiness);
           try {
-            safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(freshList));
-            safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(freshList));
+            const safePayload = JSON.stringify(getSafeBusinessesForStorage(freshList));
+            safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
+            safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
             safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
           return freshList;
@@ -55,8 +59,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToBusiness);
         try {
-          safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(freshList));
-          safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(freshList));
+          const safePayload = JSON.stringify(getSafeBusinessesForStorage(freshList));
+          safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
+          safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
           safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
         } catch {}
         return freshList;

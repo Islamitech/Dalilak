@@ -28,6 +28,24 @@ export function getSafeUserForStorage(user: User | null): User | null {
 }
 
 /**
+ * Strips bulky Base64 image payloads (>100KB) from businesses before saving to cache
+ * to ensure offline cache remains under 50KB and never triggers QuotaExceededError.
+ */
+export function getSafeBusinessesForStorage(businesses: any[]): any[] {
+  if (!Array.isArray(businesses)) return [];
+  return businesses.map((b) => {
+    const cleanPhotos = Array.isArray(b.photos)
+      ? b.photos.map((p: string) => (typeof p === 'string' && p.startsWith('data:') && p.length > 80000 ? '' : p)).filter(Boolean)
+      : [];
+    return {
+      ...b,
+      photos: cleanPhotos,
+      videos: Array.isArray(b.videos) ? b.videos.slice(0, 2) : [],
+    };
+  });
+}
+
+/**
  * Safely sets an item in localStorage with quota overflow handling.
  * Automatically evicts non-critical caches if quota is exceeded.
  */
@@ -36,14 +54,14 @@ export function safeSetLocalStorageItem(key: string, value: string): boolean {
     localStorage.setItem(key, value);
     return true;
   } catch (err: any) {
-    console.warn(`localStorage.setItem failed for key "${key}", attempting cache eviction...`, err);
+    console.warn(`localStorage.setItem failed for key "${key}", attempting non-critical cache eviction...`, err);
 
     // Evict non-essential bulky caches to free space
     try {
-      localStorage.removeItem('dalelak_cached_businesses');
+      localStorage.removeItem('dalelak_server_sync_cache');
+      localStorage.removeItem('dalelak_system_notifications');
       localStorage.removeItem('dalelak_cached_reps');
       localStorage.removeItem('dalelak_custom_reps');
-      localStorage.removeItem('dalelak_server_sync_cache');
       localStorage.setItem(key, value);
       return true;
     } catch (retryErr) {

@@ -397,7 +397,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             )}
 
             {/* 2. EMPTY STATE (When NOT loading & 0 results) */}
-            {(!isActuallyLoading || businesses.length > 0) && filteredBusinesses.length === 0 && (
+            {!isActuallyLoading && !loading && filteredBusinesses.length === 0 && (
               <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-3">
                 <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">
                   🔍
