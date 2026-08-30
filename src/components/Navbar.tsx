@@ -130,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={onOpenProfile}
                 title="الملف الشخصي وتعديل الصورة"
-                className="flex items-center gap-1.5 sm:gap-2 bg-[var(--bg-card)] hover:bg-amber-500/10 border border-[var(--border-color)] hover:border-amber-500/40 rounded-full py-1 px-2 sm:px-3 shadow-sm transition-all duration-300 cursor-pointer group"
+                className="flex items-center gap-1 sm:gap-2 bg-[var(--bg-card)] hover:bg-amber-500/10 border border-[var(--border-color)] hover:border-amber-500/40 rounded-full py-1 px-1.5 sm:px-3 shadow-xs transition-all duration-300 cursor-pointer group shrink-0"
               >
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-400/60 shrink-0 flex items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-xs shadow-xs">
                   {user.repData?.avatar || user.avatar ? (
@@ -144,7 +144,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] sm:text-xs font-bold text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[70px] sm:max-w-[140px] leading-tight">
+                  <p className="text-[10.5px] sm:text-xs font-bold text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[55px] xs:max-w-[85px] sm:max-w-[150px] leading-tight">
                     {user.name}
                   </p>
                   <p className="hidden sm:block text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5">

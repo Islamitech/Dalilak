@@ -524,7 +524,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleInitiateSubmit} className="max-w-3xl mx-auto space-y-6 pb-20">
+    <form onSubmit={handleInitiateSubmit} className="max-w-3xl mx-auto space-y-6 pb-36 sm:pb-24">
       {errorMsg && (
         <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-bold animate-pulse-subtle">
           <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />

@@ -261,8 +261,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         </div>
 
         {/* Search & Multi-Filters Toolbar */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 shadow-md space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 shadow-md space-y-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
             {/* Search input */}
             <div className="relative">
               <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
@@ -275,36 +275,39 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               />
             </div>
 
-            {/* Governorate selector */}
-            <div>
-              <select
-                value={govFilter}
-                onChange={(e) => setGovFilter(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors shadow-xs cursor-pointer"
-              >
-                <option value="all">📍 جميع المحافظات ({EGYPT_GOVERNORATES.length})</option>
-                {EGYPT_GOVERNORATES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Sub-grid for Gov and Category: 2 columns on mobile */}
+            <div className="grid grid-cols-2 gap-2 md:col-span-2">
+              {/* Governorate selector */}
+              <div>
+                <select
+                  value={govFilter}
+                  onChange={(e) => setGovFilter(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-2.5 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors shadow-xs cursor-pointer"
+                >
+                  <option value="all">📍 المحافظات ({EGYPT_GOVERNORATES.length})</option>
+                  {EGYPT_GOVERNORATES.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Category selector */}
-            <div>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors shadow-xs cursor-pointer"
-              >
-                <option value="all">🏷️ جميع التصنيفات والقطاعات</option>
-                {CATEGORY_GROUPS.map((grp) => (
-                  <option key={grp.group} value={grp.group}>
-                    {grp.icon} {grp.group}
-                  </option>
-                ))}
-              </select>
+              {/* Category selector */}
+              <div>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-2.5 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors shadow-xs cursor-pointer"
+                >
+                  <option value="all">🏷️ كل التصنيفات</option>
+                  {CATEGORY_GROUPS.map((grp) => (
+                    <option key={grp.group} value={grp.group}>
+                      {grp.icon} {grp.group}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
