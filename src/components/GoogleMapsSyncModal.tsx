@@ -107,21 +107,44 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   };
 
   const remainingBalance = Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0));
+  const isFullyPaid = business.paymentStatus === 'fully_paid' || remainingBalance === 0;
+  const activeGoogleMapsUrl = finalMapUrl.trim() || business.googleMapsUrl || directMapUrl;
+  const directoryUrl = 'https://www.dalilaak.com/';
+  const targetAddress = verifiedAddress.trim() || business.street || (business.city ? `${business.city} (${business.governorate})` : business.governorate);
 
   const allDetailsText = 
     `اسم النشاط: ${business.nameAr}\n` +
     `التصنيف: ${business.category}\n` +
-    `العنوان: ${business.governorate} - ${business.city} - ${business.street || ''} ${business.landmark ? `(علامة مميزة: ${business.landmark})` : ''}\n` +
+    `العنوان: ${targetAddress}\n` +
     `أوقات العمل: ${business.workingHours || 'يومياً'}\n` +
     `الهاتف: ${business.phone} ${business.secondaryPhone ? `| ${business.secondaryPhone}` : ''}\n` +
     `الإحداثيات: ${business.lat}, ${business.lng}\n` +
-    `رابط الخريطة: ${directMapUrl}`;
+    `رابط الخريطة: ${activeGoogleMapsUrl}`;
 
-  const whatsappMessage = encodeURIComponent(
-    `مرحباً بك أستاذ ${business.ownerName || 'صاحب النشاط'}، نشاطك التجاري (${business.nameAr}) في ${business.governorate} منشور ومتاح في دليل الأنشطة والخدمات المعتمدة في مصر 🛡️.\n\n` +
-    `🌐 رابط دليل الأنشطة المباشر:\nhttps://www.dalilaak.com/\n\n` +
-    `📄 رقم الفاتورة الإلكترونية: ${business.invoiceNumber || 'INV-' + business.id.substring(0, 6)}\n` +
-    `شكراً لاختيارك منظومة دليلك!`
+  const cleanOwnerPhone = (business.ownerPhone || business.phone || '').replace(/\D/g, '').replace(/^0/, '');
+  const targetWaPhone = cleanOwnerPhone.startsWith('20') ? cleanOwnerPhone : `20${cleanOwnerPhone}`;
+
+  const verificationWhatsAppMessage = encodeURIComponent(
+    `*إشعار اعتماد وتوثيق رسمي على خرائط Google* 🗺️✨\n` +
+    `-----------------------------------------\n` +
+    `مرحباً بك أستاذ *${business.ownerName || 'صاحب النشاط'}* 👋\n` +
+    `يسر فريق منظومة "دليلك" إبلاغكم بأنه تم *اعتماد وتفعيل نشاطكم التجاري رسمياً على خرائط Google Maps* بنجاح! 🟢🎉\n\n` +
+    `📋 *بيانات النشاط المعتمد:*\n` +
+    `🏢 *الاسم:* ${business.nameAr}\n` +
+    `📍 *العنوان المعتمد:* ${targetAddress}\n` +
+    `📦 *الباقة:* ${business.packageName || 'باقة التوثيق الأساسي'}\n` +
+    `🧾 *رقم الفاتورة:* ${business.invoiceNumber || `INV-${business.id.substring(0, 6).toUpperCase()}`}\n\n` +
+    `💳 *الموقف المالي وحالة السداد:*\n` +
+    (isFullyPaid
+      ? `✅ *الحالة:* مسدد بالكامل (${business.packagePrice || business.amountPaid || 0} ج.م) — لا توجد أي مستحقات متبقية.\n\n`
+      : `⏳ *إجمالي قيمة الباقة:* ${business.packagePrice || 0} ج.م\n` +
+        `💵 *المبلغ المسدد:* ${business.amountPaid || 0} ج.م\n` +
+        `⚠️ *المبلغ المتبقي للتحصيل:* ${remainingBalance} ج.م (يرجى تسوية المبلغ المتبقي مع المندوب المسؤول أو عبر حسابات المنصة)\n\n`) +
+    `🔗 *الموقع المفعل المباشر على خرائط Google:* 📍\n` +
+    `${activeGoogleMapsUrl}\n\n` +
+    `🌐 *رابط نشاطكم في دليل الأنشطة والخدمات المعتمد:*\n` +
+    `${directoryUrl}\n\n` +
+    `نشكركم لثقتكم الغالية في منظومة دليلك ونتمنى لكم دوام التوفيق والازدهار! 🤝✨`
   );
 
   return createPortal(
@@ -482,6 +505,19 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               <span>حفظ وتثبيت التوثيق في المنظومة 💾</span>
             </button>
 
+            {/* Direct WhatsApp Verification Message Dispatch Button */}
+            {currentStatus === 'verified' && (
+              <a
+                href={`https://wa.me/${targetWaPhone}?text=${verificationWhatsAppMessage}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>إرسال رسالة التوثيق والموقع المفعل للعميل عبر WhatsApp 💬</span>
+              </a>
+            )}
+
             {/* Warning when verified but unpaid balance remains */}
             {currentStatus === 'verified' && remainingBalance > 0 && (
               <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex items-center gap-2.5 text-xs text-amber-700 dark:text-amber-300">
@@ -533,7 +569,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             {/* Direct Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <a
-                href={`https://wa.me/${business.ownerPhone || business.phone}?text=${whatsappMessage}`}
+                href={`https://wa.me/${targetWaPhone}?text=${verificationWhatsAppMessage}`}
                 target="_blank"
                 rel="noreferrer"
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 text-center"
