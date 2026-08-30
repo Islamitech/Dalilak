@@ -104,3 +104,36 @@ export function safeRemoveLocalStorageItem(key: string): void {
     sessionStorage.removeItem(key);
   } catch {}
 }
+
+/**
+ * Safely sets an item in sessionStorage (per-tab/browser lifetime, automatically wiped on close)
+ */
+export function safeSetSessionItem(key: string, value: string): boolean {
+  try {
+    sessionStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.warn(`sessionStorage.setItem failed for key "${key}"`, err);
+    return false;
+  }
+}
+
+/**
+ * Safely gets an item from sessionStorage
+ */
+export function safeGetSessionItem(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safely removes an item from sessionStorage
+ */
+export function safeRemoveSessionItem(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {}
+}

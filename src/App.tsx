@@ -46,7 +46,15 @@ import {
   Video,
   Loader2
 } from 'lucide-react';
-import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
+import { 
+  safeSetLocalStorageItem, 
+  safeGetLocalStorageItem, 
+  safeRemoveLocalStorageItem, 
+  safeSetSessionItem, 
+  safeGetSessionItem, 
+  safeRemoveSessionItem, 
+  getSafeUserForStorage 
+} from './utils/storage';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import {
   getCachedBusinesses,
@@ -70,62 +78,71 @@ import {
   savePaymentConfigToDb,
 } from './services/db';
 
-// Fixed Session Duration (12 hours maximum lifetime)
-const SESSION_MAX_DURATION_MS = 12 * 60 * 60 * 1000;
-// Inactivity Idle Duration (60 minutes of inactivity auto-logout)
-const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
+// Strict Non-Permanent Session: 30 minutes of idle inactivity auto-logout
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
 
 export default function App() {
-  // Application State - Default to null (Guest visitor) or restore valid unexpired user session
+  // Application State - Strictly non-permanent session (SessionStorage only - wiped when browser/tab closes)
   const [user, setUser] = useState<User | null>(() => {
-    const savedUser = safeGetLocalStorageItem('dalelak_logged_user');
-    const sessionExpiresAt = safeGetLocalStorageItem('dalelak_session_expires_at');
-    const lastInteraction = safeGetLocalStorageItem('dalelak_last_interaction');
+    // 1. Purge legacy permanent localStorage login keys to guarantee accounts do not stay logged in permanently
+    safeRemoveLocalStorageItem('dalelak_logged_user');
+    safeRemoveLocalStorageItem('dalelak_session_expires_at');
+    safeRemoveLocalStorageItem('dalelak_last_interaction');
+
+    // 2. Read strictly from active tab sessionStorage
+    const savedSessionUser = safeGetSessionItem('dalelak_active_user');
+    const lastActive = safeGetSessionItem('dalelak_session_last_active');
     const now = Date.now();
 
-    if (savedUser && sessionExpiresAt) {
-      const expiresTimestamp = Number(sessionExpiresAt);
-      const lastInteractionTimestamp = Number(lastInteraction) || now;
+    if (savedSessionUser) {
+      const lastActiveTimestamp = Number(lastActive) || now;
+      const isNotIdle = (now - lastActiveTimestamp) < INACTIVITY_TIMEOUT_MS;
 
-      const isSessionValid = !isNaN(expiresTimestamp) && now < expiresTimestamp;
-      const isNotIdle = (now - lastInteractionTimestamp) < INACTIVITY_TIMEOUT_MS;
-
-      if (isSessionValid && isNotIdle) {
+      if (isNotIdle) {
         try {
-          const parsed = JSON.parse(savedUser);
+          const parsed = JSON.parse(savedSessionUser);
           if (parsed && parsed.id && parsed.name) {
-            if (parsed.role === 'admin' && (parsed.email === 'dalilaakeg@gmail.com' || parsed.email === 'daz31181@gmail.com' || !parsed.email)) {
-              parsed.email = 'info@dalilaak.com';
-              if (parsed.repData) parsed.repData.email = 'info@dalilaak.com';
-            }
             return parsed;
           }
         } catch (e) {}
       }
     }
 
-    // Clean expired or idle session from storage
-    safeRemoveLocalStorageItem('dalelak_logged_user');
-    safeRemoveLocalStorageItem('dalelak_session_expires_at');
-    safeRemoveLocalStorageItem('dalelak_last_interaction');
-    return null; // Guest visitor by default
+    // Clean expired or closed session
+    safeRemoveSessionItem('dalelak_active_user');
+    safeRemoveSessionItem('dalelak_session_last_active');
+    return null; // Guest visitor / Login prompt by default
   });
 
-  // Sync user state and session timestamps with safe storage
+  // Sync user state with sessionStorage (NOT permanent localStorage)
   useEffect(() => {
     if (user) {
-      safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(user)));
-      if (!safeGetLocalStorageItem('dalelak_session_expires_at')) {
-        safeSetLocalStorageItem('dalelak_session_expires_at', String(Date.now() + SESSION_MAX_DURATION_MS));
-      }
-      if (!safeGetLocalStorageItem('dalelak_last_interaction')) {
-        safeSetLocalStorageItem('dalelak_last_interaction', String(Date.now()));
-      }
+      safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(user)));
+      safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
     } else {
+      safeRemoveSessionItem('dalelak_active_user');
+      safeRemoveSessionItem('dalelak_session_last_active');
       safeRemoveLocalStorageItem('dalelak_logged_user');
-      safeRemoveLocalStorageItem('dalelak_session_expires_at');
-      safeRemoveLocalStorageItem('dalelak_last_interaction');
     }
+  }, [user]);
+
+  // Keep track of user interactions to maintain active session activity
+  useEffect(() => {
+    if (!user) return;
+
+    const handleUserActivity = () => {
+      safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
+    };
+
+    window.addEventListener('mousedown', handleUserActivity, { passive: true });
+    window.addEventListener('keydown', handleUserActivity, { passive: true });
+    window.addEventListener('touchstart', handleUserActivity, { passive: true });
+
+    return () => {
+      window.removeEventListener('mousedown', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+    };
   }, [user]);
 
   const [showSyncBadge, setShowSyncBadge] = useState<boolean>(false);
@@ -1415,7 +1432,7 @@ export default function App() {
     };
   }, [user]);
 
-  // Remove current user from local storage & release single-session lock
+  // Remove current user from session storage & release single-session lock
   const handleLogout = useCallback(() => {
     if (user?.id) {
       // Release DB session lock
@@ -1439,6 +1456,8 @@ export default function App() {
     }
 
     setUser(null);
+    safeRemoveSessionItem('dalelak_active_user');
+    safeRemoveSessionItem('dalelak_session_last_active');
     safeRemoveLocalStorageItem('dalelak_logged_user');
     safeRemoveLocalStorageItem('dalelak_session_expires_at');
     safeRemoveLocalStorageItem('dalelak_last_interaction');
@@ -1448,6 +1467,8 @@ export default function App() {
     url.searchParams.delete('tab');
     window.history.replaceState({}, '', url.toString());
 
+    addNotification('🔒 تم تسجيل الخروج بنجاح من الحساب.', 'info');
+
     // Refresh full cloud database list on logout so public view shows all businesses immediately
     fetchBusinessesFromDb().then((freshData) => {
       if (Array.isArray(freshData) && freshData.length > 0) {
@@ -1455,6 +1476,31 @@ export default function App() {
       }
     }).catch(() => {});
   }, [user]);
+
+  // Unified Clean Login Handler with Role Specification
+  const handleLoginUser = useCallback((u: User) => {
+    setUser(u);
+    safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(u)));
+    safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
+
+    const roleLabels: Record<string, string> = {
+      admin: 'مدير النظام (صلاحيات كاملة) 🛡️',
+      supervisor: 'مشرف الإدارة ⚡',
+      accountant: 'محاسب ومحصل 💳',
+      rep: 'مندوب ميداني معتمد 💼',
+    };
+    const roleTitle = roleLabels[u.role] || u.role;
+    addNotification(`🟢 مرحباً بك يا أستاذ ${u.name} — تم تسجيل الدخول بصلاحية: ${roleTitle}`, 'success');
+
+    const savedTab = localStorage.getItem('dalelak_active_tab');
+    if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
+      setActiveTab(savedTab);
+    } else if (u.role === 'admin' || u.role === 'supervisor') {
+      setActiveTab('admin');
+    } else {
+      setActiveTab('home');
+    }
+  }, []);
 
   // -------------------------------------------------------------
   // EXTERNAL READ-ONLY VIEWS (For QR Codes)
@@ -1524,17 +1570,7 @@ export default function App() {
             onClose={() => {}}
             onOpenAbout={() => setShowAboutModal(true)}
             onOpenTerms={() => setShowTermsModal(true)}
-            onLoginSuccess={(u) => {
-              setUser(u);
-              const savedTab = localStorage.getItem('dalelak_active_tab');
-              if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
-                setActiveTab(savedTab);
-              } else if (u.role === 'admin') {
-                setActiveTab('admin');
-              } else {
-                setActiveTab('home');
-              }
-            }}
+            onLoginSuccess={handleLoginUser}
             representatives={representatives}
             onAddRepresentative={handleAddRepresentative}
           />
@@ -2585,21 +2621,7 @@ export default function App() {
           onClose={() => setShowLoginModal(false)}
           onOpenAbout={() => setShowAboutModal(true)}
           onOpenTerms={() => setShowTermsModal(true)}
-          onLoginSuccess={(u) => {
-            setUser(u);
-            const isUserInitialized = Boolean(safeGetLocalStorageItem(`dalelak_user_initialized_${u.id}`));
-            if (!isUserInitialized && getCachedBusinesses().length === 0) {
-              setIsLoadingData(true);
-            }
-            const savedTab = localStorage.getItem('dalelak_active_tab');
-            if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
-              setActiveTab(savedTab);
-            } else if (u.role === 'admin') {
-              setActiveTab('admin');
-            } else {
-              setActiveTab('home');
-            }
-          }}
+          onLoginSuccess={handleLoginUser}
           representatives={representatives}
           onAddRepresentative={handleAddRepresentative}
         />

@@ -143,19 +143,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>{user.name ? user.name.trim().charAt(0) : 'م'}</span>
                   )}
                 </div>
-                <div className="text-right">
-                  <p className="text-[10.5px] sm:text-xs font-bold text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[55px] xs:max-w-[85px] sm:max-w-[150px] leading-tight">
+                <div className="text-right flex flex-col">
+                  <p className="text-[11px] sm:text-xs font-black text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[70px] xs:max-w-[100px] sm:max-w-[150px] leading-tight">
                     {user.name}
                   </p>
-                  <p className="hidden sm:block text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5">
+                  <span className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5">
                     {user.role === 'admin'
-                      ? 'مدير النظام'
+                      ? 'مدير النظام 🛡️'
                       : user.role === 'supervisor'
-                      ? 'مشرف الإدارة'
+                      ? 'مشرف الإدارة ⚡'
                       : user.role === 'accountant'
-                      ? 'محاسب ومحصل'
-                      : 'مندوب معتمد'}
-                  </p>
+                      ? 'محاسب ومحصل 💳'
+                      : 'مندوب ميداني 💼'}
+                  </span>
                 </div>
               </button>
 
