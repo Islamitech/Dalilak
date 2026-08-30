@@ -28,6 +28,10 @@ import {
   Film,
   Play,
   Loader2,
+  Globe,
+  ExternalLink,
+  Maximize,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
@@ -57,6 +61,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   // Selected Business for Detail Modal
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
 
   // Quick Consultation Form State (Default to 'الجيزة')
   const [formBizName, setFormBizName] = useState<string>('');
@@ -832,15 +837,42 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {/* Modal Scrollable Body */}
             <div className="p-5 space-y-5 overflow-y-auto">
               {/* Photo Gallery */}
-              {selectedBiz.photos && selectedBiz.photos.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {selectedBiz.photos.map((ph, idx) => (
-                    <div key={idx} className="h-28 rounded-xl overflow-hidden bg-slate-950 border border-[var(--border-color)]">
-                      <img src={ph} alt={`صورة ${idx + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-amber-500 font-black text-xs">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>صور النشاط الميدانية {selectedBiz.photos && selectedBiz.photos.length > 0 ? `(${selectedBiz.photos.length} صور)` : ''} 📸</span>
+                  </div>
                 </div>
-              )}
+                {selectedBiz.photos && selectedBiz.photos.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {selectedBiz.photos.map((ph, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPreviewPhotoUrl(ph)}
+                        className="group relative h-28 rounded-xl overflow-hidden bg-slate-950 border border-[var(--border-color)] hover:border-amber-500 transition-all cursor-pointer shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        title="انقر لتكبير الصورة"
+                      >
+                        <img
+                          src={ph}
+                          alt={`صورة ${idx + 1} - ${selectedBiz.nameAr}`}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Maximize className="w-5 h-5 text-white drop-shadow-md" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl text-center text-xs text-[var(--text-muted)] font-bold">
+                    لا توجد صور إضافية ملحقة بهذا النشاط حالياً
+                  </div>
+                )}
+              </div>
 
               {/* Video Gallery (Short Videos - 30s) */}
               {selectedBiz.videos && selectedBiz.videos.length > 0 && (
@@ -1077,6 +1109,34 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           business={selectedVideoBiz}
           onClose={() => setSelectedVideoBiz(null)}
         />
+      )}
+
+      {/* 🌟 10. PHOTO PREVIEW LIGHTBOX MODAL */}
+      {previewPhotoUrl && (
+        <div
+          className="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 animate-fade-in"
+          onClick={() => setPreviewPhotoUrl(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center animate-fade-in-scale"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setPreviewPhotoUrl(null)}
+              className="absolute -top-12 left-0 sm:left-auto sm:-right-2 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer shadow-lg z-10"
+              title="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black max-h-[82vh] max-w-full flex items-center justify-center">
+              <img
+                src={previewPhotoUrl}
+                alt="معاينة صورة النشاط"
+                className="max-h-[80vh] max-w-full w-auto h-auto object-contain"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

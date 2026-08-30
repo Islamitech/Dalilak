@@ -283,8 +283,8 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                 : 'text-[var(--text-primary)]'
             }`}>
               {settlement.isDebtToPlatform
-                ? `-${settlement.debtToPlatformAmount.toLocaleString()}`
-                : `+${settlement.withdrawableBalance.toLocaleString()}`}
+                ? `-${Math.abs(settlement.debtToPlatformAmount).toLocaleString()}`
+                : `+${Math.abs(settlement.withdrawableBalance).toLocaleString()}`}
             </span>
             <span className="text-xs font-sans font-extrabold text-[var(--text-muted)]">ج.م</span>
           </div>

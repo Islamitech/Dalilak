@@ -207,12 +207,13 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: `⚠️ الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات. لا يُسمح بتسجيل الدخول لأي حساب غير مسجل.` });
   }
 
-  // Verify password strictly
+  // Verify password strictly based on role
   const storedPassword = (rep.password || '').trim();
+  const isAdminUser = rep.role === 'admin' || rep.email.toLowerCase() === 'info@dalilaak.com';
   const isPassValid =
     storedPassword && storedPassword !== '••••••••'
       ? storedPassword === cleanPassword
-      : (cleanPassword === 'admin' || cleanPassword === 'Aa123456');
+      : (isAdminUser ? cleanPassword === 'admin' : cleanPassword === 'Aa123456');
 
   if (!isPassValid) {
     return res.status(401).json({ error: '⚠️ كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.' });

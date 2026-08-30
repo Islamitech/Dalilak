@@ -188,8 +188,8 @@ export default function App() {
       return savedTab;
     }
 
-    // 4. Default fallback check for logged user role
-    const savedUserStr = localStorage.getItem('dalelak_logged_user');
+    // 4. Default fallback check for logged user role in active session
+    const savedUserStr = safeGetSessionItem('dalelak_active_user');
     if (savedUserStr) {
       try {
         const parsed = JSON.parse(savedUserStr);
@@ -974,8 +974,10 @@ export default function App() {
     };
 
     setUser(updatedUser);
-    safeSetLocalStorageItem('dalelak_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
-    safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
+    safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
+    safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
+    safeRemoveLocalStorageItem('dalelak_logged_user');
+    safeRemoveLocalStorageItem('dalelak_user');
 
     setRepresentatives((prev) => {
       const idx = prev.findIndex((r) => r.id === freshRep.id || r.email.toLowerCase() === freshRep.email.toLowerCase());

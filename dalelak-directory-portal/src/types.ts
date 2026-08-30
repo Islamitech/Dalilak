@@ -13,6 +13,7 @@ export interface Business {
   landmark?: string;
   phone: string;
   secondaryPhone?: string;
+  whatsapp?: string;
   workingHours: string;
   description: string;
   lat: number;
@@ -23,6 +24,8 @@ export interface Business {
   nationalId?: string;
   photos: string[];
   videos?: string[];
+  logo?: string;
+  createdAt?: string;
   repId: string;
   repName: string;
   packageId: string;

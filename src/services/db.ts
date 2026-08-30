@@ -1156,7 +1156,7 @@ function mapDbToRep(item: any): Representative {
     avatarStatus: item.avatar_status || item.avatarStatus || 'none',
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: item.status || 'active',
-    password: item.password || 'Aa123456',
+    password: item.password || (item.role === 'admin' ? 'admin' : 'Aa123456'),
     activeSessionId: item.active_session_id || item.activeSessionId,
     lastActiveTimestamp: item.last_active_timestamp ? Number(item.last_active_timestamp) : (item.lastActiveTimestamp ? Number(item.lastActiveTimestamp) : undefined),
     referralCode: metaReferralCode || defaultRefCode,

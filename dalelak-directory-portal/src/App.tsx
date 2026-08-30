@@ -176,7 +176,7 @@ export default function App() {
     // 3. Tab Visibility Change Listener: catch up when user opens tab
     const handleVisibilityChange = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        loadBusinesses(true, true);
+        loadBusinesses(true);
       }
     };
     if (typeof document !== 'undefined') {
@@ -184,7 +184,7 @@ export default function App() {
     }
 
     // 4. Lightweight Background Delta Poll Interval every 60 seconds
-    const intervalId = setInterval(() => loadBusinesses(true, false), 60000);
+    const intervalId = setInterval(() => loadBusinesses(true), 60000);
 
     return () => {
       isMounted = false;
