@@ -999,29 +999,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             </div>
 
             {leadSuccessMsg && (
-              <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3 rounded-2xl font-bold text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 animate-fade-in">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>{leadSuccessMsg}</span>
-                </div>
-                {savedLeadForWhatsApp && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const cleanP = savedLeadForWhatsApp.phone.replace(/\D/g, '');
-                      const intP = cleanP.startsWith('0') ? `2${cleanP}` : cleanP;
-                      const msg = `السلام عليكم ورحمة الله وبركاته يا فندم 👋
-مع حضرتك ${currentRep?.name || 'فريق دليلك'} من منصة "دليلك" لتوثيق الأنشطة التجارية على خرائط جوجل 🗺️✨
-يسعدنا تواصلنا مع حضراتكم لمساعدتكم في توثيق نشاطكم التجاري وظهوره لعملاء منطقتكم على Google Maps.
-باقة التوثيق تبدأ من 250 جنيه فقط لتوثيق دائم للأبد بدون اشتراكات شهرية! 🤝`;
-                      window.open(`https://wa.me/${intP}?text=${encodeURIComponent(msg)}`, '_blank');
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow cursor-pointer self-stretch sm:self-auto justify-center"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>مراسلة العميل عبر واتساب فوراً 🚀</span>
-                  </button>
-                )}
+              <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>{leadSuccessMsg} (تم حفظ العميل للمتابعة الإدارية)</span>
               </div>
             )}
 

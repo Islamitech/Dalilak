@@ -400,10 +400,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 sm:py-3 px-3 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 sm:py-3 px-3 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer text-center"
               >
                 <Share2 className="w-4 h-4" />
-                <span>إرسال بالواتساب</span>
+                <span>إرسال فاتورة الدليل للعميل عبر WhatsApp 💬</span>
               </a>
 
               <button

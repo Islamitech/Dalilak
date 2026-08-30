@@ -29,6 +29,7 @@ import {
   Check,
   CheckCircle2,
   MessageSquare,
+  MessageCircle,
   Pencil,
   ExternalLink,
   Phone,
@@ -632,9 +633,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               })}
               {renderInfoItem('ownerPhone', 'هاتف المالك (واتساب)', formData.ownerPhone, {
                 required: true, type: 'tel', dir: 'ltr', icon: <Phone className="w-3.5 h-3.5 text-emerald-500" />,
-                helperAction: formData.ownerPhone ? (
+                helperAction: (formData.ownerPhone && isAdminOrFinancial) ? (
                   <a href={`https://wa.me/2${formData.ownerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                    className="p-1 rounded-lg bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/30 transition-colors" title="واتساب">
+                    className="p-1 rounded-lg bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/30 transition-colors" title="واتساب الإدارة">
                     <MessageSquare className="w-3 h-3" />
                   </a>
                 ) : null,
@@ -661,6 +662,57 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 type: 'email', dir: 'ltr', placeholder: 'owner@example.com', icon: <Mail className="w-3.5 h-3.5 text-rose-400" />,
                 displayFormat: (v) => <span className="font-mono font-bold text-xs text-[var(--text-secondary)]" dir="ltr">{v || <span className="text-[var(--text-muted)] italic font-normal">لا يوجد</span>}</span>,
               })}
+
+              {/* 🌟 Dedicated WhatsApp Center for Admin Only */}
+              {isAdminOrFinancial && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3.5 space-y-2.5 col-span-1 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>مركز مراسلات الواتساب الرسمية (خاص بالإدارة)</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                      إرسال مباشر للعميل 🚀
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {/* Message 1: Initial Invoice & Directory Link */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onShowInvoice) onShowInvoice(formData);
+                      }}
+                      className="bg-[var(--bg-card)] hover:bg-amber-500/15 border border-[var(--border-color)] hover:border-amber-500 text-[var(--text-primary)] font-bold text-xs p-2.5 rounded-xl flex items-center justify-between gap-2 transition-all cursor-pointer shadow-xs text-right"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div>
+                          <span className="block font-black text-xs">1. إرسال فاتورة الدليل 📄</span>
+                          <span className="block text-[10px] text-[var(--text-muted)] font-normal">الفاتورة + رابط دليل دليلك فقط</span>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                    </button>
+
+                    {/* Message 2: Live Google Maps Verification Link */}
+                    <button
+                      type="button"
+                      onClick={() => setShowMapsSyncModal(true)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-between gap-2 transition-all cursor-pointer shadow-sm active:scale-98 text-right"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CloudUpload className="w-4 h-4 text-white shrink-0" />
+                        <div>
+                          <span className="block font-black text-xs text-white">2. إرسال إشعار تفعيل Google Maps 🗺️</span>
+                          <span className="block text-[10px] text-emerald-100 font-normal">الموقع المفعل + حالة وطرق السداد</span>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
