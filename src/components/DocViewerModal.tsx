@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { toPng } from 'html-to-image';
 import { Representative } from '../types';
 import { Logo } from './Logo';
-import { Printer, Download, ShieldCheck, FileSignature } from 'lucide-react';
+import { Printer, Download, ShieldCheck, FileSignature, Loader2 } from 'lucide-react';
+import { downloadSinglePhoto } from '../utils/photoDownloader';
 
 export type DocType = 'field_letter' | 'digital_badge' | 'rep_contract';
 
@@ -13,6 +15,9 @@ interface DocViewerModalProps {
 }
 
 export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, onClose }) => {
+  const docRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+
   useEffect(() => {
     if (!docType) return;
     document.body.style.overflow = 'hidden';
@@ -28,6 +33,30 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
   const qrData = encodeURIComponent(`DALEELEK-OFFICIAL-CONTRACT-${rep.name}-${nationalId}-${repCode}`);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
 
+  const handleDownloadDocument = async () => {
+    if (!docRef.current) return;
+    try {
+      setIsDownloading(true);
+      const dataUrl = await toPng(docRef.current, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: '#ffffff',
+      });
+      const docName =
+        docType === 'field_letter'
+          ? 'خطاب-تكليف-ميداني'
+          : docType === 'digital_badge'
+          ? 'بطاقة-هوية-رقمية'
+          : 'عقد-مندوب-معتمد';
+      await downloadSinglePhoto(dataUrl, `${docName}-${rep.name || 'مندوب'}-${repCode}.png`);
+    } catch (err) {
+      console.warn('Document capture notice, falling back to print:', err);
+      window.print();
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-colors duration-300">
@@ -40,7 +69,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
         </button>
 
         {/* Printable Official Document Container */}
-        <div className="bg-white text-slate-900 p-5 sm:p-6 rounded-2xl shadow-inner border border-slate-200 space-y-5">
+        <div ref={docRef} className="bg-white text-slate-900 p-5 sm:p-6 rounded-2xl shadow-inner border border-slate-200 space-y-5">
           {/* Official Letterhead Header */}
           <div className="flex items-center justify-between border-b-2 border-amber-500 pb-4">
             <div className="flex items-center gap-3">
@@ -268,11 +297,12 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
           </button>
 
           <button
-            onClick={() => alert('جاري تحميل نسخة الوثيقة الرسمية بصيغة PDF بنجاح...')}
-            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-3 px-4 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            onClick={handleDownloadDocument}
+            disabled={isDownloading}
+            className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-3 px-4 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
           >
-            <Download className="w-4 h-4" />
-            <span>تحميل نسخة</span>
+            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin text-amber-500" /> : <Download className="w-4 h-4" />}
+            <span>{isDownloading ? 'جاري التحميل...' : 'تحميل نسخة'}</span>
           </button>
         </div>
       </div>

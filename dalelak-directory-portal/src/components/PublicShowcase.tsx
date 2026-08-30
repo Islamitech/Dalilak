@@ -46,7 +46,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   loading = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const [localLoading, setLocalLoading] = useState<boolean>(true);
+  const [localLoading, setLocalLoading] = useState<boolean>(() => businesses.length === 0);
 
   useEffect(() => {
     if (businesses && businesses.length > 0) {
@@ -55,11 +55,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
     const timer = setTimeout(() => {
       setLocalLoading(false);
-    }, 2500);
+    }, 1500);
     return () => clearTimeout(timer);
   }, [businesses]);
 
-  const isActuallyLoading = loading || (localLoading && businesses.length === 0);
+  const isActuallyLoading = (loading || localLoading) && businesses.length === 0;
 
   // Search and Filters (Default to 'all' to show all verified businesses across Egypt)
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -364,7 +364,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         {activeView === 'grid' && (
           <div className="space-y-6">
             {/* 1. SKELETON LOADING STATE */}
-            {isActuallyLoading && (
+            {isActuallyLoading && businesses.length === 0 && (
               <div className="space-y-6">
                 <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
                   <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
@@ -397,7 +397,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             )}
 
             {/* 2. EMPTY STATE (When NOT loading & 0 results) */}
-            {!isActuallyLoading && filteredBusinesses.length === 0 && (
+            {(!isActuallyLoading || businesses.length > 0) && filteredBusinesses.length === 0 && (
               <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-3">
                 <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">
                   🔍
@@ -419,8 +419,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               </div>
             )}
 
-            {/* 3. BUSINESSES GRID (When NOT loading & > 0 results) */}
-            {!isActuallyLoading && filteredBusinesses.length > 0 && (
+            {/* 3. BUSINESSES GRID (Instant 0ms Cache-First Render) */}
+            {(!isActuallyLoading || businesses.length > 0) && filteredBusinesses.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredBusinesses.map((biz) => {
                   const mainPhoto =

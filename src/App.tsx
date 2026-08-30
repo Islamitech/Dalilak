@@ -48,7 +48,9 @@ import {
 } from 'lucide-react';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
 import {
+  getCachedBusinesses,
   fetchBusinessesFromDb,
+  syncDeltaBusinessesFromDb,
   saveBusinessToDb,
   updateBusinessInDb,
   deleteBusinessFromDb,
@@ -125,13 +127,8 @@ export default function App() {
     }
   }, [user]);
 
-  const [businesses, setBusinesses] = useState<Business[]>(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-      if (Array.isArray(cached) && cached.length > 0) return cached;
-    } catch {}
-    return [];
-  });
+  const [showSyncBadge, setShowSyncBadge] = useState<boolean>(false);
+  const [businesses, setBusinesses] = useState<Business[]>(() => getCachedBusinesses());
 
   const [representatives, setRepresentatives] = useState<Representative[]>(() => {
     try {
@@ -238,7 +235,7 @@ export default function App() {
 
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(() => getCachedBusinesses().length === 0);
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
   const addNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
@@ -468,9 +465,11 @@ export default function App() {
 
     const refreshLiveData = async () => {
       try {
-        fetchBusinessesFromDb().then((freshBiz) => {
-          if (Array.isArray(freshBiz) && freshBiz.length > 0) {
-            setBusinesses(freshBiz);
+        syncDeltaBusinessesFromDb().then((res) => {
+          if (res.updated && res.count > 0) {
+            setBusinesses(res.businesses);
+            setShowSyncBadge(true);
+            setTimeout(() => setShowSyncBadge(false), 3200);
           }
         }).catch(() => {});
 
@@ -543,8 +542,8 @@ export default function App() {
     // Also update directory portal cache in localStorage immediately
     try {
       const allUpdated = [normalizedBiz, ...businesses.filter((b) => b.id !== normalizedBiz.id)];
-      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(allUpdated));
-      localStorage.setItem('dalelak_directory_cache', JSON.stringify(allUpdated));
+      safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(allUpdated));
+      safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(allUpdated));
     } catch {}
 
     // Reset filters to ensure the newly added business is 100% visible immediately
@@ -613,7 +612,8 @@ export default function App() {
     setBusinesses((prev) => {
       const updated = prev.map((b) => (b.id === normalizedBiz.id ? normalizedBiz : b));
       try {
-        localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -771,7 +771,7 @@ export default function App() {
     setLeads((prev) => {
       const updated = [newLead, ...prev.filter((l) => l.id !== newLead.id)];
       try {
-        localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -793,7 +793,7 @@ export default function App() {
     setLeads((prev) => {
       const updated = prev.map((l) => (l.id === updatedLead.id ? updatedLead : l));
       try {
-        localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -815,7 +815,7 @@ export default function App() {
     setLeads((prev) => {
       const updated = prev.filter((l) => l.id !== leadId);
       try {
-        localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -910,7 +910,8 @@ export default function App() {
     setBusinesses((prev) => {
       const updated = prev.filter((b) => b.id !== id);
       try {
-        localStorage.setItem('dalelak_cached_businesses', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -924,68 +925,52 @@ export default function App() {
     setSystemNotifications((prev) =>
       prev.filter(
         (n) =>
-          n.entityId !== id &&
-          (!biz?.nameAr || !n.message.includes(biz.nameAr)) &&
-          (!biz?.invoiceNumber || !n.message.includes(biz.invoiceNumber))
+          !(
+            (n.category === 'business' || n.category === 'payment') &&
+            ((n.entityId && n.entityId === id) || (biz && n.message && n.message.includes(biz.nameAr)))
+          )
       )
     );
 
-    // 4. Delete associated leads
-    setLeads((prev) =>
-      prev.filter(
-        (l) =>
-          l.id !== id &&
-          (!biz?.phone || l.phone !== biz.phone) &&
-          (!biz?.nameAr || l.businessName !== biz.nameAr)
-      )
-    );
-
-    // 5. Delete from backend database / Supabase / local server
+    // 4. Delete from Supabase Database and local server API
     await deleteBusinessFromDb(id);
 
-    // 6. Broadcast deletion across open tabs
+    // 5. Broadcast deletion to other open browser tabs
     try {
       const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
       if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_DATA', deletedBizId: id });
+        syncChannel.postMessage({ type: 'DELETE_BUSINESS', deletedId: id });
         syncChannel.close();
       }
     } catch {}
 
-    if (biz) {
-      addNotification(`🗑️ تم حذف النشاط "${biz.nameAr}" وكافة سجلاته نهائياً من المنظومة.`, 'warning');
-      addSystemNotification({
-        title: 'حذف نشاط تجاري 🗑️',
-        message: `تم حذف النشاط التجاري "${biz.nameAr}" وكافة بياناته نهائياً من المنظومة وقاعدة البيانات.`,
-        type: 'warning',
-        category: 'business',
-        targetRole: 'admin',
-      });
-    }
+    // 6. User Feedback
+    addNotification(`🗑️ تم حذف نشاط "${biz?.nameAr || 'المحدد'}" نهائياً من المنظومة.`, 'warning');
   };
 
   const handleAddRepresentative = async (repData: Partial<Representative>) => {
-    const timestamp = Date.now();
     const newRep: Representative = {
-      id: repData.id || `acc_${timestamp}`,
-      name: repData.name || 'حساب جديد',
-      email: repData.email || 'user@daleelek.eg',
-      phone: repData.phone || '01000000000',
-      nationalId: repData.nationalId || '',
-      activationFacePhoto: repData.activationFacePhoto || '',
-      nationalIdCardPhoto: repData.nationalIdCardPhoto || '',
-      nationalIdCardBackPhoto: repData.nationalIdCardBackPhoto || '',
+      id: repData.id || `rep_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      name: repData.name || 'مندوب جديد',
+      email: repData.email || '',
+      phone: repData.phone || '',
+      nationalId: repData.nationalId,
+      activationFacePhoto: repData.activationFacePhoto,
+      nationalIdCardPhoto: repData.nationalIdCardPhoto,
+      nationalIdCardBackPhoto: repData.nationalIdCardBackPhoto,
+      pendingPhone: repData.pendingPhone,
+      phoneStatus: repData.phoneStatus || 'none',
       role: repData.role || 'rep',
       roleTitle: repData.roleTitle || 'مندوب مبيعات ميداني',
       governorate: repData.governorate || 'القاهرة',
       targetMonth: repData.targetMonth || 25,
       avatar: repData.avatar || '',
-      avatarStatus: repData.avatarStatus || 'none',
+      avatarStatus: repData.avatarStatus || 'approved',
       commissionRate: repData.commissionRate || 42.86,
       status: repData.status || 'active',
       password: repData.password || 'Aa123456',
-      referralCode: repData.referralCode || `DALIL-${timestamp.toString().slice(-4)}`,
-      referredByCode: repData.referredByCode || undefined,
+      referralCode: repData.referralCode || `DALIL-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      referredByCode: repData.referredByCode,
       referralUnlocked: repData.referralUnlocked ?? false,
       adminBypassReferral: repData.adminBypassReferral ?? false,
       referralRewardGranted: repData.referralRewardGranted ?? false,
@@ -995,7 +980,7 @@ export default function App() {
       const filtered = prev.filter((r) => r.id !== newRep.id && r.email.toLowerCase() !== newRep.email.toLowerCase());
       const updated = [newRep, ...filtered];
       try {
-        localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -1049,7 +1034,7 @@ export default function App() {
     setRepresentatives((prev) => {
       const updated = prev.map((r) => (r.id === secureRep.id ? secureRep : r));
       try {
-        localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -1149,7 +1134,7 @@ export default function App() {
     setRepresentatives((prev) => {
       const updated = prev.filter((r) => r.id !== id && (rep?.email ? r.email.toLowerCase() !== rep.email.toLowerCase() : true));
       try {
-        localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -1385,11 +1370,19 @@ export default function App() {
     setUser(null);
     safeRemoveLocalStorageItem('dalelak_logged_user');
     safeRemoveLocalStorageItem('dalelak_session_expires_at');
+    safeRemoveLocalStorageItem('dalelak_last_interaction');
     safeRemoveLocalStorageItem('dalelak_active_tab');
     setActiveTab('home');
     const url = new URL(window.location.href);
     url.searchParams.delete('tab');
     window.history.replaceState({}, '', url.toString());
+
+    // Refresh full cloud database list on logout so public view shows all businesses immediately
+    fetchBusinessesFromDb().then((freshData) => {
+      if (Array.isArray(freshData) && freshData.length > 0) {
+        setBusinesses(freshData);
+      }
+    }).catch(() => {});
   }, [user]);
 
   // -------------------------------------------------------------
@@ -1502,13 +1495,22 @@ export default function App() {
 
   return (
     <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>
-      {/* ===================== PROFESSIONAL TOAST NOTIFICATIONS ===================== */}
+      {/* ===================== PROFESSIONAL TOAST NOTIFICATIONS & LIVE SYNC BADGE ===================== */}
       <div
         className="fixed right-0 left-0 z-[9999] flex flex-col items-center gap-2 pointer-events-none px-2.5 sm:px-4"
         style={{ top: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
         aria-live="polite"
         aria-atomic="false"
       >
+        {showSyncBadge && (
+          <div
+            className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 dark:bg-emerald-950/90 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 backdrop-blur-xl text-xs font-black shadow-xl animate-fade-in transition-all"
+            style={{ direction: 'rtl' }}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span>تم تحديث البيانات للتو 🔄</span>
+          </div>
+        )}
         {notifications.map((n: any) => {
           const icons: Record<string, string> = {
             success: '✅',
@@ -1638,7 +1640,7 @@ export default function App() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي الأنشطة</div>
-                    {isLoadingData ? (
+                    {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
                       <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.total}</div>
@@ -1652,7 +1654,7 @@ export default function App() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">موثقة على Maps</div>
-                    {isLoadingData ? (
+                    {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
                       <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.verified}</div>
@@ -1666,7 +1668,7 @@ export default function App() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">قيد التوثيق</div>
-                    {isLoadingData ? (
+                    {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
                       <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.inProgress}</div>
@@ -1680,7 +1682,7 @@ export default function App() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
-                    {isLoadingData ? (
+                    {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
                       <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
@@ -1774,7 +1776,7 @@ export default function App() {
                       }`}
                     >
                       <span>{tab.label}</span>
-                      {isLoadingData ? (
+                      {isLoadingData && businesses.length === 0 ? (
                         <span className="w-3.5 h-3 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-full" />
                       ) : (
                         <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
@@ -1816,8 +1818,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* ── 1. LOADING SKELETON STATE (Shown while loading) ───────────────── */}
-              {isLoadingData && (
+              {/* ── 1. LOADING SKELETON STATE (Shown ONLY on first cold visit with empty cache) ───────────────── */}
+              {isLoadingData && businesses.length === 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
                     <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
@@ -1847,7 +1849,7 @@ export default function App() {
               )}
 
               {/* ── 2. EMPTY STATE (Only shown when NOT loading & 0 results) ─────── */}
-              {!isLoadingData && filteredHomeBusinesses.length === 0 && (
+              {(!isLoadingData || businesses.length > 0) && filteredHomeBusinesses.length === 0 && (
                 <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3.5 shadow-sm">
                   <div className="w-16 h-16 rounded-3xl bg-amber-500/15 text-amber-500 flex items-center justify-center mx-auto text-2xl shadow-inner">
                     🏪
@@ -1892,8 +1894,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* ── 3. GRID MODE (WORLD-CLASS DIRECTORY CARDS) ─────────────────── */}
-              {!isLoadingData && homeViewMode === 'grid' && filteredHomeBusinesses.length > 0 && (
+              {/* ── 3. GRID MODE (WORLD-CLASS DIRECTORY CARDS - Instant 0ms Render) ─────────────────── */}
+              {(!isLoadingData || businesses.length > 0) && homeViewMode === 'grid' && filteredHomeBusinesses.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
                   {filteredHomeBusinesses.map((biz) => {
                     const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
@@ -2092,8 +2094,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* ── LIST / TABLE MODE (HIGH DENSITY PRODUCTIVITY VIEW) ─────────── */}
-              {homeViewMode === 'list' && filteredHomeBusinesses.length > 0 && (
+              {/* ── LIST / TABLE MODE (HIGH DENSITY PRODUCTIVITY VIEW - Instant 0ms Render) ─────────── */}
+              {(!isLoadingData || businesses.length > 0) && homeViewMode === 'list' && filteredHomeBusinesses.length > 0 && (
                 <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-right text-xs">

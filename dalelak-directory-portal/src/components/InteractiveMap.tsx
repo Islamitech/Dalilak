@@ -204,6 +204,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     const initMap = () => {
       if (!containerRef.current || !window.L || leafletMapRef.current) return;
 
+      // Ensure container is clean
+      try {
+        if ((containerRef.current as any)._leaflet_id) {
+          (containerRef.current as any)._leaflet_id = null;
+        }
+      } catch {}
+
       const map = window.L.map(containerRef.current, {
         center: [currentLat, currentLng],
         zoom: zoomLevel,
@@ -237,12 +244,19 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     if (window.L) {
       initMap();
     } else {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => {
-        if (isSubscribed) initMap();
-      };
-      document.head.appendChild(script);
+      const existingScript = document.querySelector('script[src*="leaflet.js"]');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => {
+          if (isSubscribed) initMap();
+        });
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => {
+          if (isSubscribed) initMap();
+        };
+        document.head.appendChild(script);
+      }
     }
 
     return () => {

@@ -123,15 +123,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
+          body: JSON.stringify({ email: cleanEmail, password: cleanPassword, forceSession: true }),
         });
-
-        if (res.status === 409) {
-          const data = await res.json();
-          setErrorMsg(data.error || '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان في نفس الوقت.');
-          setIsLoading(false);
-          return;
-        }
 
         if (res.status === 403) {
           const data = await res.json();

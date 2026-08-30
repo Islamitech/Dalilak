@@ -54,20 +54,38 @@ export function calculateTotalRepCommission(
 }
 
 /**
- * Calculates total amount of payouts currently pending approval for a rep.
+ * Calculates total amount of payouts (withdrawals to rep) currently pending approval.
  */
 export function calculateRepPendingPayout(repId: string, payouts: PayoutRequest[] = []): number {
   return payouts
-    .filter((p) => p.repId === repId && p.status === 'pending')
+    .filter((p) => p.repId === repId && p.status === 'pending' && p.type !== 'remittance')
     .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 }
 
 /**
- * Calculates total amount of payouts already approved and disbursed to a rep.
+ * Calculates total amount of payouts (withdrawals to rep) already approved and disbursed.
  */
 export function calculateRepTotalPaidOut(repId: string, payouts: PayoutRequest[] = []): number {
   return payouts
-    .filter((p) => p.repId === repId && p.status === 'approved')
+    .filter((p) => p.repId === repId && p.status === 'approved' && p.type !== 'remittance')
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+}
+
+/**
+ * Calculates total cash remittances paid by the representative to the platform and approved.
+ */
+export function calculateRepTotalRemitted(repId: string, payouts: PayoutRequest[] = []): number {
+  return payouts
+    .filter((p) => p.repId === repId && p.status === 'approved' && p.type === 'remittance')
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+}
+
+/**
+ * Calculates total cash remittances currently pending review by admin.
+ */
+export function calculateRepPendingRemittance(repId: string, payouts: PayoutRequest[] = []): number {
+  return payouts
+    .filter((p) => p.repId === repId && p.status === 'pending' && p.type === 'remittance')
     .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 }
 
@@ -133,18 +151,20 @@ export function calculatePlatformDueFromRep(
 
 /**
  * Comprehensive financial settlement for a representative:
- * Balances total earnings vs cash already in hand.
+ * Balances total earnings vs cash already in hand and approved remittances.
  */
 export interface RepSettlementSummary {
   totalEarnedCommission: number;    // All earned commission on paid amounts (Cash + Gateway + Referral)
   totalCashInHand: number;          // Cash collected directly by rep
   repShareFromCash: number;         // Rep's earned commission on cash collected
-  platformShareFromCash: number;    // Platform's share on cash collected
+  platformShareFromCash: number;    // Platform's gross share on cash collected
+  totalRemittedToPlatform: number;  // Approved cash remittances submitted by rep to platform
+  remainingCashDebt: number;        // Net cash owed by rep to platform after subtracting remittances
   onlineCollectedAmount: number;    // Payments made directly to platform
   repShareFromOnline: number;       // Rep's commission on online payments
   netBalance: number;               // Final net balance (+ for withdrawable credit, - for debt to platform)
-  isDebtToPlatform: boolean;        // true if rep owes platform money
-  debtToPlatformAmount: number;     // Amount rep must remit to platform
+  isDebtToPlatform: boolean;        // true if rep owes platform net money
+  debtToPlatformAmount: number;     // Net amount rep must remit to platform
   withdrawableBalance: number;      // Amount rep can withdraw from platform
   pendingPayout: number;
   totalPaidOut: number;
@@ -176,7 +196,11 @@ export function calculateRepSettlement(
   
   const totalCashInHand = calculateRepTotalCashCollected(businesses);
   const repShareFromCash = calculateRepCommissionFromCash(businesses, commissionRate);
-  const platformShareFromCash = Math.max(0, totalCashInHand - repShareFromCash);
+  const grossPlatformShareFromCash = Math.max(0, totalCashInHand - repShareFromCash);
+
+  // Remittances approved: cash rep transferred to platform
+  const totalRemittedToPlatform = calculateRepTotalRemitted(repId, payouts);
+  const remainingCashDebt = Math.max(0, grossPlatformShareFromCash - totalRemittedToPlatform);
 
   const totalPaidAll = businesses.reduce((s, b) => s + (Number(b.amountPaid) || 0), 0);
   const onlineCollectedAmount = Math.max(0, totalPaidAll - totalCashInHand);
@@ -206,12 +230,13 @@ export function calculateRepSettlement(
   const remainingOnlineCredit = Math.max(0, (referralEarnings + repShareFromOnline) - totalPaidOut);
 
   // 2. Physical Cash Remittance Due to Platform:
-  // Debt to platform ONLY exists if the rep collected physical cash in hand from customers
-  const isDebtToPlatform = platformShareFromCash > 0;
-  const debtToPlatformAmount = platformShareFromCash;
+  // Debt to platform ONLY exists if remaining cash debt exceeds remaining online credit
+  const isDebtToPlatform = remainingCashDebt > remainingOnlineCredit;
+  const debtToPlatformAmount = isDebtToPlatform ? remainingCashDebt - remainingOnlineCredit : 0;
 
   // 3. Withdrawable balance for new payout requests:
-  const withdrawableBalance = Math.max(0, remainingOnlineCredit - pendingPayout);
+  const rawWithdrawable = Math.max(0, remainingOnlineCredit - remainingCashDebt);
+  const withdrawableBalance = Math.max(0, rawWithdrawable - pendingPayout);
 
   const finalNetBalance = isDebtToPlatform ? -debtToPlatformAmount : withdrawableBalance;
 
@@ -219,12 +244,14 @@ export function calculateRepSettlement(
     totalEarnedCommission,
     totalCashInHand,
     repShareFromCash,
-    platformShareFromCash,
+    platformShareFromCash: grossPlatformShareFromCash,
+    totalRemittedToPlatform,
+    remainingCashDebt,
     onlineCollectedAmount,
     repShareFromOnline,
     netBalance: finalNetBalance,
     isDebtToPlatform,
-    debtToPlatformAmount,
+    debtToPlatformAmount: remainingCashDebt, // Amount rep should physically remit if cash in hand
     withdrawableBalance,
     pendingPayout,
     totalPaidOut,

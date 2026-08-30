@@ -1,6 +1,7 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { uploadMultipleMediaToStorage } from './storage';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus } from '../types';
+import { safeSetLocalStorageItem } from '../utils/storage';
 
 /**
  * 🏛️ Live Supabase Database Service
@@ -12,7 +13,23 @@ import { Business, Representative, PaymentGatewayConfig, PayoutRequest, Interest
 // 1. BUSINESSES OPERATIONS (الأنشطة التجارية والمحلات)
 // =============================================================================
 
+export function getCachedBusinesses(): Business[] {
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    if (Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+  } catch {}
+  return [];
+}
+
+/**
+ * ⚡ Stale-While-Revalidate Full Cloud Fetch
+ * Returns fresh data and updates offline cache with delta sync timestamp
+ */
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
+  const cached = getCachedBusinesses();
+
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
   if (isSupabaseConfigured()) {
     try {
@@ -22,7 +39,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
         if (Array.isArray(restData) && restData.length > 0) {
           const freshList = restData.map(mapDbToBusiness);
           try {
-            localStorage.setItem('dalelak_cached_businesses', JSON.stringify(freshList));
+            safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(freshList));
+            safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(freshList));
+            safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
           return freshList;
         }
@@ -36,7 +55,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToBusiness);
         try {
-          localStorage.setItem('dalelak_cached_businesses', JSON.stringify(freshList));
+          safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(freshList));
+          safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(freshList));
+          safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
         } catch {}
         return freshList;
       }
@@ -46,12 +67,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   }
 
   // 2. LocalStorage cache fallback (instant offline render)
-  try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
-    if (Array.isArray(cached) && cached.length > 0) {
-      return cached;
-    }
-  } catch {}
+  if (cached.length > 0) {
+    return cached;
+  }
 
   // 3. Local Server API fetch fallback
   try {
@@ -68,6 +86,63 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   } catch {}
 
   return [];
+}
+
+/**
+ * ⚡ Background Delta Sync (المزامنة الفروقية الذكية)
+ * Only fetches rows modified/created after lastSyncTime to save bandwidth
+ */
+export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; businesses: Business[]; count: number }> {
+  const cached = getCachedBusinesses();
+  const lastSync = localStorage.getItem('dalelak_last_sync_timestamp');
+
+  // If no previous sync timestamp or empty cache, perform full sync
+  if (!lastSync || cached.length === 0) {
+    const fresh = await fetchBusinessesFromDb();
+    return { updated: fresh.length > 0, businesses: fresh, count: fresh.length };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return { updated: false, businesses: cached, count: 0 };
+  }
+
+  try {
+    const query = `businesses?select=*&created_at=gte.${encodeURIComponent(lastSync)}&order=created_at.desc`;
+    const res = await supabaseRestFetch(query);
+
+    if (res.ok) {
+      const deltaData = await res.json();
+      if (Array.isArray(deltaData) && deltaData.length > 0) {
+        const freshDeltaList = deltaData.map(mapDbToBusiness);
+        
+        // Merge delta updates with cached map (New/modified items override old)
+        const map = new Map<string, Business>();
+        cached.forEach((b) => map.set(b.id, b));
+        freshDeltaList.forEach((b) => map.set(b.id, b));
+
+        const merged = Array.from(map.values()).sort(
+          (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
+        );
+
+        try {
+          safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(merged));
+          safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(merged));
+          safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
+        } catch {}
+
+        return { updated: true, businesses: merged, count: freshDeltaList.length };
+      }
+    }
+  } catch (err) {
+    console.warn('Delta sync error:', err);
+  }
+
+  // Update sync timestamp heartbeat even if no new items
+  try {
+    safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
+  } catch {}
+
+  return { updated: false, businesses: cached, count: 0 };
 }
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
@@ -100,7 +175,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
         if (!map.has(b.id)) map.set(b.id, b);
       });
     }
-    localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
   // 2. Direct Supabase Cloud Save using SDK with upsert().select() + REST fallback
@@ -181,7 +256,7 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     const current = map.get(id) || ({} as Business);
     mergedObj = { ...current, ...updates, id } as Business;
     map.set(id, mergedObj);
-    localStorage.setItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
   const fullRecord = getSafeCoreBusinessDbRecord(mergedObj);
@@ -233,7 +308,7 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     if (Array.isArray(cached)) {
       const filtered = cached.filter((b: Business) => b.id !== id);
-      localStorage.setItem('dalelak_cached_businesses', JSON.stringify(filtered));
+      safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(filtered));
     }
   } catch {}
 
@@ -248,7 +323,7 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
     }
   }
 
-  // 3. Delete from Local Server
+  // 3. Delete from local server
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -270,7 +345,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
         if (Array.isArray(restData) && restData.length > 0) {
           const freshList = restData.map(mapDbToRep);
           try {
-            localStorage.setItem('dalelak_cached_reps', JSON.stringify(freshList));
+            safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(freshList));
           } catch {}
           return freshList;
         }
@@ -284,7 +359,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToRep);
         try {
-          localStorage.setItem('dalelak_cached_reps', JSON.stringify(freshList));
+          safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(freshList));
         } catch {}
         return freshList;
       }
@@ -337,7 +412,7 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
         if (!map.has(r.email.toLowerCase())) map.set(r.email.toLowerCase(), r);
       });
     }
-    localStorage.setItem('dalelak_cached_reps', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(Array.from(map.values())));
   } catch {}
 
   // 3. Always sync to local server
@@ -356,7 +431,7 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
     const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
     if (Array.isArray(cached)) {
       const updated = cached.map((r: Representative) => (r.id === id ? { ...r, ...updates } : r));
-      localStorage.setItem('dalelak_custom_reps', JSON.stringify(updated));
+      safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
     }
   } catch {}
 
@@ -393,7 +468,7 @@ export async function deleteRepFromDb(id: string): Promise<void> {
     const delArr = JSON.parse(localStorage.getItem('dalelak_deleted_rep_ids') || '[]');
     const delSet = new Set(Array.isArray(delArr) ? delArr : []);
     delSet.add(id.toLowerCase());
-    localStorage.setItem('dalelak_deleted_rep_ids', JSON.stringify(Array.from(delSet)));
+    safeSetLocalStorageItem('dalelak_deleted_rep_ids', JSON.stringify(Array.from(delSet)));
   } catch {}
 
   // 2. Remove from LocalStorage custom reps
@@ -401,7 +476,7 @@ export async function deleteRepFromDb(id: string): Promise<void> {
     const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
     if (Array.isArray(cached)) {
       const filtered = cached.filter((r: Representative) => r.id !== id && r.email?.toLowerCase() !== id.toLowerCase());
-      localStorage.setItem('dalelak_custom_reps', JSON.stringify(filtered));
+      safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(filtered));
     }
   } catch {}
 
@@ -427,8 +502,35 @@ export async function deleteRepFromDb(id: string): Promise<void> {
   } catch {}
 }
 
-export async function updateRepSessionInDb(_id: string, _sessionId?: string, _timestamp?: number): Promise<void> {
-  // Real-time active session synchronization
+export async function updateRepSessionInDb(id: string, sessionId?: string, timestamp?: number): Promise<void> {
+  const updates: any = {
+    active_session_id: sessionId || null,
+    last_active_timestamp: timestamp || null,
+  };
+
+  // 1. Real-time active session synchronization to Supabase Cloud
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('representatives').update(updates).eq('id', id);
+      if (error) {
+        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updates),
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase update session warning:', err);
+    }
+  }
+
+  // 2. Real-time active session synchronization to local Express backend if present
+  try {
+    await fetch('/api/auth/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: id, sessionId, timestamp }),
+    });
+  } catch {}
 }
 
 // =============================================================================
@@ -537,7 +639,7 @@ export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
         if (Array.isArray(restData) && restData.length > 0) {
           const freshList = restData.map(mapDbToLead);
           try {
-            localStorage.setItem('dalelak_cached_leads', JSON.stringify(freshList));
+            safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(freshList));
           } catch {}
           return freshList;
         }
@@ -551,7 +653,7 @@ export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToLead);
         try {
-          localStorage.setItem('dalelak_cached_leads', JSON.stringify(freshList));
+          safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(freshList));
         } catch {}
         return freshList;
       }
@@ -575,7 +677,7 @@ export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
         try {
-          localStorage.setItem('dalelak_cached_leads', JSON.stringify(localData));
+          safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(localData));
         } catch {}
         return localData;
       }
@@ -598,7 +700,7 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
         if (!map.has(l.id)) map.set(l.id, l);
       });
     }
-    localStorage.setItem('dalelak_cached_leads', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(Array.from(map.values())));
   } catch {}
 
   // 2. Direct Supabase Cloud Save / Upsert
@@ -644,7 +746,7 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
     if (Array.isArray(cached)) {
       const updated = cached.map((l: InterestedLead) => (l.id === lead.id ? lead : l));
-      localStorage.setItem('dalelak_cached_leads', JSON.stringify(updated));
+      safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
     }
   } catch {}
 
@@ -685,7 +787,7 @@ export async function deleteLeadFromDb(id: string): Promise<void> {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
     if (Array.isArray(cached)) {
       const filtered = cached.filter((l: InterestedLead) => l.id !== id);
-      localStorage.setItem('dalelak_cached_leads', JSON.stringify(filtered));
+      safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(filtered));
     }
   } catch {}
 
@@ -1048,6 +1150,8 @@ function mapDbToRep(item: any): Representative {
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: item.status || 'active',
     password: item.password || 'Aa123456',
+    activeSessionId: item.active_session_id || item.activeSessionId,
+    lastActiveTimestamp: typeof item.last_active_timestamp === 'number' ? item.last_active_timestamp : item.lastActiveTimestamp,
     referralCode: metaReferralCode || defaultRefCode,
     referredByCode: metaReferredByCode || undefined,
     referralUnlocked: Boolean(metaReferralUnlocked),
@@ -1063,31 +1167,28 @@ function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.name !== undefined) record.name = rep.name;
   if (rep.email !== undefined) record.email = rep.email;
   if (rep.phone !== undefined) record.phone = rep.phone;
-  if (rep.nationalId !== undefined) record.national_id = rep.nationalId;
+  if (rep.pendingPhone !== undefined) record.pending_phone = rep.pendingPhone || null;
+  if (rep.phoneStatus !== undefined) record.phone_status = rep.phoneStatus || 'none';
+  if (rep.nationalId !== undefined) record.national_id = rep.nationalId || null;
+  if (rep.activationFacePhoto !== undefined) record.activation_face_photo = rep.activationFacePhoto || null;
+  if (rep.nationalIdCardPhoto !== undefined) record.national_id_card_photo = rep.nationalIdCardPhoto || null;
+  if (rep.nationalIdCardBackPhoto !== undefined) record.national_id_card_back_photo = rep.nationalIdCardBackPhoto || null;
   if (rep.role !== undefined) record.role = rep.role;
   if (rep.roleTitle !== undefined) record.role_title = rep.roleTitle;
   if (rep.governorate !== undefined) record.governorate = rep.governorate;
   if (rep.targetMonth !== undefined) record.target_month = Number(rep.targetMonth) || 25;
+  if (rep.avatar !== undefined) record.avatar = rep.avatar || null;
   if (rep.avatarStatus !== undefined) record.avatar_status = rep.avatarStatus || 'approved';
   if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
   if (rep.status !== undefined) record.status = rep.status;
   if (rep.password !== undefined) record.password = rep.password;
-
-  const metaObj = {
-    avatar: rep.avatar || '',
-    referralCode: rep.referralCode,
-    referredByCode: rep.referredByCode,
-    referralUnlocked: rep.referralUnlocked,
-    adminBypassReferral: rep.adminBypassReferral,
-    referralRewardGranted: rep.referralRewardGranted,
-    activationFacePhoto: rep.activationFacePhoto,
-    nationalIdCardPhoto: rep.nationalIdCardPhoto,
-    nationalIdCardBackPhoto: rep.nationalIdCardBackPhoto,
-    pendingPhone: rep.pendingPhone,
-    phoneStatus: rep.phoneStatus,
-  };
-
-  record.avatar = JSON.stringify(metaObj);
+  if (rep.activeSessionId !== undefined) record.active_session_id = rep.activeSessionId || null;
+  if (rep.lastActiveTimestamp !== undefined) record.last_active_timestamp = rep.lastActiveTimestamp || null;
+  if (rep.referralCode !== undefined) record.referral_code = rep.referralCode || null;
+  if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode || null;
+  if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);
+  if (rep.adminBypassReferral !== undefined) record.admin_bypass_referral = Boolean(rep.adminBypassReferral);
+  if (rep.referralRewardGranted !== undefined) record.referral_reward_granted = Boolean(rep.referralRewardGranted);
 
   return record;
 }
