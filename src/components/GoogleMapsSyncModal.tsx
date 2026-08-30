@@ -136,8 +136,6 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
         `• إنستاباي: daz31181@instapay\n\n`) +
     `📍 *رابط موقعك المباشر المفعل على Google Maps:*\n` +
     `${activeGoogleMapsUrl}\n\n` +
-    `🌐 *رابط نشاطك على دليل دليلك:*\n` +
-    `${directoryUrl}\n\n` +
     `شكراً لاختيارك منصة دليلك! 🤝`
   );
 
