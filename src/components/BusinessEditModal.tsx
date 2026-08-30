@@ -198,7 +198,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
           const videoDataUrl = await convertVideoToDataUrl(file);
           const publicVideoUrl = await uploadMediaToSupabaseStorage(videoDataUrl, 'videos');
-          newVideos.push(publicVideoUrl);
+          if (publicVideoUrl && (publicVideoUrl.startsWith('http://') || publicVideoUrl.startsWith('https://'))) {
+            newVideos.push(publicVideoUrl);
+          } else {
+            setVideoError('تعذر رفع الفيديو سحابياً لضعف شبكة الإنترنت. يرجى إعادة المحاولة.');
+          }
         } catch (err) {
           console.warn('Video upload error in edit modal:', err);
           setVideoError('تعذر معالجة ملف الفيديو. يرجى التأكد من تشغيل الصيغة.');

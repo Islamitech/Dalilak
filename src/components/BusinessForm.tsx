@@ -6,7 +6,7 @@ import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import { fetchLocationAddress } from '../utils/geocoding';
-import { saveLeadToDb } from '../services/db';
+import { saveLeadToDb, updateBusinessInDb } from '../services/db';
 import { uploadMediaToSupabaseStorage, uploadMultipleMediaToStorage } from '../services/storage';
 import {
   Camera,
@@ -294,14 +294,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
   };
 
-  // Short Video upload handler with strict 30-second duration validation
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Post-Registration Short Video upload handler (Direct Supabase Storage Stream)
+  const handlePostRegistrationVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!submittedBusiness) return;
     const files = e.target.files;
     setVideoError(null);
     if (files && files.length > 0) {
       setIsUploadingVideo(true);
       const newVideos: string[] = [];
-      let capturedThumbnailUrl: string | null = null;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -312,27 +312,26 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             continue;
           }
 
-          if (validation.thumbnail && !capturedThumbnailUrl) {
-            const thumbUrl = await uploadMediaToSupabaseStorage(validation.thumbnail, 'photos');
-            capturedThumbnailUrl = thumbUrl;
-          }
-
           const videoDataUrl = await convertVideoToDataUrl(file);
-          // Upload directly to Supabase Storage 'business-media' bucket
           const publicVideoUrl = await uploadMediaToSupabaseStorage(videoDataUrl, 'videos');
-          newVideos.push(publicVideoUrl);
+          if (publicVideoUrl && (publicVideoUrl.startsWith('http://') || publicVideoUrl.startsWith('https://'))) {
+            newVideos.push(publicVideoUrl);
+          } else {
+            setVideoError('تعذر رفع الفيديو سحابياً لضعف شبكة الإنترنت. يرجى إعادة المحاولة.');
+          }
         } catch (err) {
-          console.warn('Video upload error:', err);
-          setVideoError('تعذر معالجة ملف الفيديو. يرجى التأكد من تشغيل الصيغة.');
+          console.warn('Post-registration video upload error:', err);
+          setVideoError('تعذر معالجة ملف الفيديو.');
         }
       }
 
       if (newVideos.length > 0) {
-        setVideos((prev) => [...prev, ...newVideos]);
-        // Auto-assign the video's watermarked thumbnail snapshot as cover photo if photos is empty
-        if (capturedThumbnailUrl) {
-          setPhotos((prev) => (prev.length === 0 ? [capturedThumbnailUrl!] : prev));
-        }
+        const currentVideos = Array.isArray(submittedBusiness.videos) ? submittedBusiness.videos : [];
+        const updatedVideos = [...currentVideos, ...newVideos];
+        const updatedBusiness: Business = { ...submittedBusiness, videos: updatedVideos };
+        setSubmittedBusiness(updatedBusiness);
+        onSubmitBusiness(updatedBusiness);
+        await updateBusinessInDb(submittedBusiness.id, { videos: updatedVideos });
       }
 
       e.target.value = '';
@@ -340,8 +339,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
   };
 
-  const handleRemoveVideo = (indexToRemove: number) => {
-    setVideos((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  const handleRemoveSubmittedVideo = async (indexToRemove: number) => {
+    if (!submittedBusiness) return;
+    const currentVideos = Array.isArray(submittedBusiness.videos) ? submittedBusiness.videos : [];
+    const updatedVideos = currentVideos.filter((_, idx) => idx !== indexToRemove);
+    const updatedBusiness: Business = { ...submittedBusiness, videos: updatedVideos };
+    setSubmittedBusiness(updatedBusiness);
+    onSubmitBusiness(updatedBusiness);
+    await updateBusinessInDb(submittedBusiness.id, { videos: updatedVideos });
   };
 
   // Listen for bottom navigation trigger
@@ -420,7 +425,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       ownerEmail: ownerEmail?.trim() || undefined,
       nationalId: nationalId?.trim() || undefined,
       photos: Array.isArray(photos) ? photos : [],
-      videos: Array.isArray(videos) ? videos : [],
+      videos: [],
       repId: currentRep?.id || 'rep_1',
       repName: currentRep?.name || 'مندوب معتمد',
       packageId: selectedPackage.id,
@@ -449,24 +454,89 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   if (submittedBusiness) {
     return (
-      <div className="max-w-xl mx-auto mt-10 bg-[var(--bg-card)] border border-emerald-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl text-center space-y-6 animate-fade-in-up">
-        <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner border border-emerald-200">
-          <CheckCircle2 className="w-10 h-10" />
+      <div className="max-w-xl mx-auto mt-6 sm:mt-10 bg-[var(--bg-card)] border border-emerald-500/30 rounded-3xl p-5 sm:p-8 shadow-2xl text-center space-y-5 animate-fade-in-up">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner border border-emerald-300 dark:border-emerald-700/50">
+          <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" />
         </div>
         
         <div>
-          <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] mb-3">تم تسجيل النشاط بنجاح!</h2>
-          <p className="text-[var(--text-secondary)] text-sm sm:text-base leading-relaxed">
-            تم حفظ بيانات نشاط <span className="font-bold text-[var(--text-primary)] px-1">{submittedBusiness.nameAr}</span> بنجاح. سيتم مراجعة البيانات وتوثيقها على خرائط جوجل قريباً.
+          <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mb-2">تم تسجيل وحفظ النشاط بنجاح! 🎉</h2>
+          <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+            تم حفظ بيانات نشاط <span className="font-bold text-[var(--text-primary)] px-1">{submittedBusiness.nameAr}</span> بأمان في المنظومة وإصدار الفاتورة الإلكترونية المعتمدة.
           </p>
         </div>
         
-        <div className="bg-[var(--input-bg)] rounded-2xl p-5 border border-[var(--border-color)] flex justify-between items-center text-sm font-bold shadow-sm">
-          <span className="text-[var(--text-secondary)]">حالة النشاط الحالي:</span>
-          <span className="bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-xs flex items-center gap-1.5 border border-amber-200 shadow-sm">
-            <Clock className="w-4 h-4" />
-            <span>قيد المراجعة</span>
+        <div className="bg-[var(--input-bg)] rounded-2xl p-3.5 border border-[var(--border-color)] flex justify-between items-center text-xs font-bold shadow-xs">
+          <span className="text-[var(--text-secondary)]">حالة النشاط في المنظومة:</span>
+          <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-amber-500/30">
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <span>مسجل ومتاح للعملاء (قيد المراجعة)</span>
           </span>
+        </div>
+
+        {/* 🎬 Optional Post-Registration Short Video Card */}
+        <div className="bg-[var(--input-bg)] border border-amber-500/35 rounded-2xl p-4 space-y-3 text-right shadow-xs">
+          <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
+            <div className="flex items-center gap-2 text-amber-500">
+              <Film className="w-5 h-5 shrink-0" />
+              <div>
+                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                  خطوة إضافية: فيديو ترويجي للنشاط (Reels / Shorts)
+                </h4>
+                <p className="text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
+                  اختياري • تصوير جولة سريعة داخل المحل أو للمنتجات حتى 30 ثانية
+                </p>
+              </div>
+            </div>
+            <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/25">
+              {(submittedBusiness.videos?.length || 0)} فيديو
+            </span>
+          </div>
+
+          {videoError && (
+            <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-400 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{videoError}</span>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <label className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 text-xs font-black py-2.5 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm">
+              {isUploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4 stroke-[2.5]" />}
+              <span>{isUploadingVideo ? 'جاري رفع الفيديو سحابياً...' : '🎬 تسجيل فيديو فوري بالكاميرا'}</span>
+              <input type="file" accept="video/*" capture="environment" onChange={handlePostRegistrationVideoUpload} className="hidden" disabled={isUploadingVideo} />
+            </label>
+
+            <label className="flex-1 bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-xs">
+              <UploadCloud className="w-4 h-4 text-amber-500" />
+              <span>📁 اختيار فيديو من المعرض</span>
+              <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/*" multiple onChange={handlePostRegistrationVideoUpload} className="hidden" disabled={isUploadingVideo} />
+            </label>
+          </div>
+
+          {submittedBusiness.videos && submittedBusiness.videos.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              {submittedBusiness.videos.map((vid, idx) => (
+                <div key={idx} className="relative rounded-xl overflow-hidden border border-[var(--border-color)] bg-slate-950 shadow-md">
+                  <video src={vid} controls playsInline preload="metadata" className="w-full h-36 object-cover bg-black" />
+                  <VideoWatermarkBadge position="bottom-right" />
+                  <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                    <span className="bg-slate-950/80 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-md border border-amber-500/30">
+                      🎬 فيديو {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSubmittedVideo(idx)}
+                      className="bg-rose-600 hover:bg-rose-700 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow cursor-pointer transition-transform active:scale-95"
+                      title="حذف الفيديو"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 pt-2">
@@ -866,86 +936,6 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
                 >
                   ✕
                 </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 5. فيديوهات النشاط القصيرة (Short Video - 30 ثانية كحد أقصى) */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-amber-500">
-            <Video className="w-5 h-5" />
-            <div>
-              <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-                <span>5. فيديو ترويجي قصير للنشاط (Reels / Short Video)</span>
-                <span className="bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
-                  ⚡ حتى 30 ثانية
-                </span>
-              </h3>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {/* Direct Video Record */}
-            <label className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md">
-              {isUploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4 stroke-[2.5]" />}
-              <span>{isUploadingVideo ? 'جاري فحص الفيديو...' : '🎬 تسجيل فيديو فوري'}</span>
-              <input type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
-            </label>
-
-            {/* Gallery Video Upload */}
-            <label className="flex-1 sm:flex-none bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-sm">
-              <UploadCloud className="w-4 h-4 text-amber-500" />
-              <span>📁 فيديو من المعرض</span>
-              <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/*" multiple onChange={handleVideoUpload} className="hidden" />
-            </label>
-          </div>
-        </div>
-
-        {videoError && (
-          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-400 p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in">
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{videoError}</span>
-          </div>
-        )}
-
-        {videos.length === 0 ? (
-          <div className="border-2 border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center space-y-2 bg-[var(--input-bg)]/50">
-            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
-              <Film className="w-6 h-6" />
-            </div>
-            <h4 className="font-black text-sm text-[var(--text-primary)]">لم يتم رفع فيديوهات ترويجية للنشاط بعد (اختياري)</h4>
-            <p className="text-xs text-[var(--text-secondary)] font-bold max-w-md mx-auto">
-              يمكنك تصوير جولة سريعة داخل المحل أو عرض للمنتجات بحد أقصى <strong className="text-amber-600 dark:text-amber-400">30 ثانية</strong> لزيادة ثقة العملاء وتفاعلهم!
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {videos.map((vid, idx) => (
-              <div key={idx} className="relative group rounded-2xl overflow-hidden border border-[var(--border-color)] bg-slate-950 shadow-md">
-                <video
-                  src={vid}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="w-full h-44 object-cover bg-black"
-                />
-                <VideoWatermarkBadge position="bottom-right" />
-                <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
-                  <span className="bg-slate-950/80 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-md border border-amber-500/30">
-                    🎬 فيديو {idx + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveVideo(idx)}
-                    className="bg-rose-600 hover:bg-rose-700 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow cursor-pointer transition-transform active:scale-95"
-                    title="حذف الفيديو"
-                  >
-                    ✕
-                  </button>
-                </div>
               </div>
             ))}
           </div>

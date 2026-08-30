@@ -151,19 +151,15 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
 }
 
 export async function saveBusinessToDb(biz: Business): Promise<void> {
-  // Convert any remaining raw Base64 photos/videos into clean storage URLs
+  // Convert any remaining raw Base64 photos into clean storage URLs
   let safePhotos = biz.photos || [];
-  let safeVideos = biz.videos || [];
+  // Strictly filter videos to valid hosted URLs only (no giant base64 payloads)
+  let safeVideos = (biz.videos || []).filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')));
 
   try {
     const hasBase64Photos = safePhotos.some(p => p.startsWith('data:image/'));
-    const hasBase64Videos = safeVideos.some(v => v.startsWith('data:video/'));
-
     if (hasBase64Photos) {
       safePhotos = await uploadMultipleMediaToStorage(safePhotos, 'photos');
-    }
-    if (hasBase64Videos) {
-      safeVideos = await uploadMultipleMediaToStorage(safeVideos, 'videos');
     }
   } catch {}
 
@@ -1089,7 +1085,9 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,
     googleMapsUrl: biz.googleMapsUrl,
-    videos: Array.isArray(biz.videos) ? biz.videos : [],
+    videos: Array.isArray(biz.videos)
+      ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))
+      : [],
     userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
   };
   record.notes = JSON.stringify(metaObj);
