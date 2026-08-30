@@ -66,8 +66,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     return initialLead?.businessCategory || CATEGORY_GROUPS[0].items[0];
   });
   const [errorMsg, setErrorMsg] = useState<string>('');
-  const [governorate, setGovernorate] = useState<string>(initialLead?.governorate || 'القاهرة');
-  const [city, setCity] = useState<string>(initialLead?.city || '');
+  const [governorate, setGovernorate] = useState<string>(initialLead?.governorate || 'الجيزة');
+  const [city, setCity] = useState<string>(initialLead?.city || 'حدائق الأهرام');
   const [street, setStreet] = useState<string>('');
   const [landmark, setLandmark] = useState<string>('');
   const [phone, setPhone] = useState<string>(initialLead?.phone || '');
@@ -125,9 +125,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [leadSuccessMsg, setLeadSuccessMsg] = useState<string | null>(null);
   const [savedLeadForWhatsApp, setSavedLeadForWhatsApp] = useState<InterestedLead | null>(null);
 
-  // GPS Coordinates & Map display state
-  const [lat, setLat] = useState<number>(30.0444);
-  const [lng, setLng] = useState<number>(31.2357);
+  // GPS Coordinates & Map  // Location Coordinates (Default: حدائق الأهرام - الجيزة)
+  const [lat, setLat] = useState<number>(29.9753);
+  const [lng, setLng] = useState<number>(31.1120);
   const [showMap, setShowMap] = useState<boolean>(false);
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
@@ -708,9 +708,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
                 if (details) {
                   if (details.governorate) setGovernorate(details.governorate);
                   if (details.city) setCity(details.city);
-                  if (details.street) setStreet(details.street);
                   if (details.landmark) setLandmark(details.landmark);
-                  setAutoFillNotice('✨ تم تحديد إحداثيات الموقع على الخريطة بنجاح!');
+                  setAutoFillNotice(`✨ تم تحديد النطاق الجغرافي: ${details.governorate || 'الجيزة'} - ${details.city || 'حدائق الأهرام'}`);
                   setTimeout(() => setAutoFillNotice(null), 5000);
                 }
               }}

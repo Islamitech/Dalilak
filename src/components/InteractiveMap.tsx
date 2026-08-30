@@ -54,10 +54,10 @@ interface InteractiveMapProps {
   heightClass?: string;
 }
 
-// Egyptian governorate approximate coordinates map
+// Egyptian governorate approximate coordinates map (Hadayek Al-Ahram Giza Focus)
 const GOVERNORATE_COORDS: Record<string, { lat: number; lng: number }> = {
+  'الجيزة': { lat: 29.9753, lng: 31.1120 }, // حدائق الأهرام - الجيزة
   'القاهرة': { lat: 30.0444, lng: 31.2357 },
-  'الجيزة': { lat: 30.0131, lng: 31.2089 },
   'الإسكندرية': { lat: 31.2001, lng: 29.9187 },
   'الدقهلية (المنصورة)': { lat: 31.0409, lng: 31.3785 },
   'الغربية (طنطا)': { lat: 30.7865, lng: 31.0004 },
@@ -85,8 +85,8 @@ const GOVERNORATE_COORDS: Record<string, { lat: number; lng: number }> = {
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   mode = 'view',
-  lat = 30.0444,
-  lng = 31.2357,
+  lat = 29.9753, // حدائق الأهرام
+  lng = 31.1120, // حدائق الأهرام
   onLocationSelect,
   businesses = [],
   onSelectBusiness,

@@ -199,10 +199,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             <div>
               <h1 className="text-sm sm:text-base font-black text-[var(--text-primary)] flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
                 <span>دليل المحلات والأنشطة التجارية في</span>
-                <span className="text-amber-500 font-extrabold">الجيزة ومصر 🇪🇬</span>
+                <span className="text-amber-500 font-extrabold">الجيزة - حدائق الأهرام 📍</span>
               </h1>
               <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                تصفح المحلات والخدمات المسجلة واكتشف أرقام التواصل ومواقعها المعتمدة
+                تصفح المحلات والخدمات المسجلة في حدائق الأهرام والجيزة واكتشف أرقام التواصل ومواقعها المعتمدة
               </p>
             </div>
           </div>
