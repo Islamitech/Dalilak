@@ -17,7 +17,12 @@ export default function App() {
     } catch {}
     return [];
   });
-  const [loading, setLoading] = useState<boolean>(businesses.length === 0);
+  const [loading, setLoading] = useState<boolean>(() => {
+    const isPortalInitialized = localStorage.getItem('dalelak_portal_initialized') === 'true';
+    const hasCachedData = Boolean(localStorage.getItem('dalelak_directory_cache') || localStorage.getItem('dalelak_cached_businesses'));
+    // If directory cache exists or portal was visited before, render instantly in 0ms without skeleton flicker!
+    return !isPortalInitialized && !hasCachedData;
+  });
   const [showSyncBadge, setShowSyncBadge] = useState<boolean>(false);
 
   function mapRawToBusiness(r: any): Business {
@@ -144,6 +149,9 @@ export default function App() {
         console.warn('Failed to fetch from live Supabase DB:', e);
       } finally {
         clearTimeout(timeoutId);
+        try {
+          localStorage.setItem('dalelak_portal_initialized', 'true');
+        } catch {}
         if (isMounted) setLoading(false);
       }
     }

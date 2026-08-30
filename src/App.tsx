@@ -236,7 +236,12 @@ export default function App() {
 
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState<boolean>(() => getCachedBusinesses().length === 0);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(() => {
+    const cached = getCachedBusinesses();
+    const isAppInitialized = Boolean(safeGetLocalStorageItem('dalelak_app_initialized'));
+    // If cached businesses exist or app was initialized before, render instantly in 0ms without skeleton flicker!
+    return cached.length === 0 && !isAppInitialized;
+  });
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
   const addNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
@@ -412,9 +417,16 @@ export default function App() {
         if (Array.isArray(data) && data.length > 0) {
           setBusinesses(data);
         }
+        safeSetLocalStorageItem('dalelak_app_initialized', 'true');
+        if (user?.id) {
+          safeSetLocalStorageItem(`dalelak_user_initialized_${user.id}`, 'true');
+        }
         setIsLoadingData(false);
       })
-      .catch(() => setIsLoadingData(false));
+      .catch(() => {
+        safeSetLocalStorageItem('dalelak_app_initialized', 'true');
+        setIsLoadingData(false);
+      });
 
     // 2. Fetch representatives in parallel
     fetchRepsFromDb()
@@ -2550,6 +2562,10 @@ export default function App() {
           onOpenTerms={() => setShowTermsModal(true)}
           onLoginSuccess={(u) => {
             setUser(u);
+            const isUserInitialized = Boolean(safeGetLocalStorageItem(`dalelak_user_initialized_${u.id}`));
+            if (!isUserInitialized && getCachedBusinesses().length === 0) {
+              setIsLoadingData(true);
+            }
             const savedTab = localStorage.getItem('dalelak_active_tab');
             if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
               setActiveTab(savedTab);
