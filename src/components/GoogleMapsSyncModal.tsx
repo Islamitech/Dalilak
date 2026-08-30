@@ -133,7 +133,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
       : `*حالة السداد:* متبقي سداد (*${remainingBalance} ج.م*)\n\n` +
         `*طرق الدفع المعتمدة للتسوية:*\n` +
         `- فودافون كاش: 01143888355 أو 01556221141\n` +
-        `- إنستاباي: daz31181@instapay\n\n`) +
+        `- إنستاباي (InstaPay): @daz31181\n\n` +
+        `*(يرجى إرسال صورة إيصال التحويل بعد الدفع لتأكيد التسوية)*\n\n`) +
     `*رابط موقعكم المباشر على Google Maps:*\n` +
     `${activeGoogleMapsUrl}\n\n` +
     `شكراً لاختياركم منصة دليلك!`
