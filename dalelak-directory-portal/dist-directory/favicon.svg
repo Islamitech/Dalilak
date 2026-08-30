@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="dalelakGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="30%" stop-color="#F59E0B" />
+      <stop offset="70%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="dalelakPlatinum" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#F1F5F9" />
+      <stop offset="100%" stop-color="#94A3B8" />
+    </linearGradient>
+    <linearGradient id="dalelakDarkBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="124" fill="url(#dalelakDarkBase)" />
+  <rect x="16" y="16" width="480" height="480" rx="124" fill="none" stroke="url(#dalelakGold)" stroke-width="18" />
+
+  <!-- Pin -->
+  <path
+    d="M256 74 C166 74 102 138 102 226 C102 304 196 394 256 450 C316 394 410 304 410 226 C410 138 346 74 256 74 Z"
+    fill="url(#dalelakGold)"
+  />
+  <circle cx="256" cy="214" r="92" fill="#030712" />
+
+  <!-- Skyline -->
+  <path d="M188 266 C224 252 288 252 324 266 L324 278 C288 264 224 264 188 278 Z" fill="url(#dalelakPlatinum)" />
+  <path d="M198 260 L198 214 L224 196 L224 253 Z" fill="url(#dalelakPlatinum)" opacity="0.85" />
+  <path d="M232 251 L232 164 L260 142 L280 154 L280 252 Z" fill="url(#dalelakPlatinum)" />
+  <line x1="256" y1="160" x2="256" y2="249" stroke="#030712" stroke-width="4" />
+  <path d="M288 253 L288 212 L314 220 L314 261 Z" fill="url(#dalelakPlatinum)" opacity="0.85" />
+</svg>
