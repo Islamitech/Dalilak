@@ -125,26 +125,20 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const targetWaPhone = cleanOwnerPhone.startsWith('20') ? cleanOwnerPhone : `20${cleanOwnerPhone}`;
 
   const verificationWhatsAppMessage = encodeURIComponent(
-    `*إشعار اعتماد وتوثيق رسمي على خرائط Google* 🗺️✨\n` +
-    `-----------------------------------------\n` +
-    `مرحباً بك أستاذ *${business.ownerName || 'صاحب النشاط'}* 👋\n` +
-    `يسر فريق منظومة "دليلك" إبلاغكم بأنه تم *اعتماد وتفعيل نشاطكم التجاري رسمياً على خرائط Google Maps* بنجاح! 🟢🎉\n\n` +
-    `📋 *بيانات النشاط المعتمد:*\n` +
-    `🏢 *الاسم:* ${business.nameAr}\n` +
-    `📍 *العنوان المعتمد:* ${targetAddress}\n` +
-    `📦 *الباقة:* ${business.packageName || 'باقة التوثيق الأساسي'}\n` +
-    `🧾 *رقم الفاتورة:* ${business.invoiceNumber || `INV-${business.id.substring(0, 6).toUpperCase()}`}\n\n` +
-    `💳 *الموقف المالي وحالة السداد:*\n` +
+    `*تم توثيق نشاطك بنجاح على خرائط Google* 🗺️✨\n\n` +
+    `أهلاً بحضرتك أستاذ *${business.ownerName || 'صاحب النشاط'}* 👋\n` +
+    `تم تفعيل ونشر نشاطكم *(${business.nameAr})* رسمياً على خرائط Google.\n\n` +
     (isFullyPaid
-      ? `✅ *الحالة:* مسدد بالكامل (${business.packagePrice || business.amountPaid || 0} ج.م) — لا توجد أي مستحقات متبقية.\n\n`
-      : `⏳ *إجمالي قيمة الباقة:* ${business.packagePrice || 0} ج.م\n` +
-        `💵 *المبلغ المسدد:* ${business.amountPaid || 0} ج.م\n` +
-        `⚠️ *المبلغ المتبقي للتحصيل:* ${remainingBalance} ج.م (يرجى تسوية المبلغ المتبقي مع المندوب المسؤول أو عبر حسابات المنصة)\n\n`) +
-    `🔗 *الموقع المفعل المباشر على خرائط Google:* 📍\n` +
+      ? `✅ *حالة الدفع:* مسدد بالكامل (${business.packagePrice || business.amountPaid || 0} ج.م)\n\n`
+      : `⏳ *حالة الدفع:* متبقي سداد (*${remainingBalance} ج.م*)\n` +
+        `💳 *طرق الدفع المعتمدة للتسوية:*\n` +
+        `• فودافون كاش: 01143888355 أو 01556221141\n` +
+        `• إنستاباي: daz31181@instapay\n\n`) +
+    `📍 *رابط موقعك المباشر المفعل على Google Maps:*\n` +
     `${activeGoogleMapsUrl}\n\n` +
-    `🌐 *رابط نشاطكم في دليل الأنشطة والخدمات المعتمد:*\n` +
+    `🌐 *رابط نشاطك على دليل دليلك:*\n` +
     `${directoryUrl}\n\n` +
-    `نشكركم لثقتكم الغالية في منظومة دليلك ونتمنى لكم دوام التوفيق والازدهار! 🤝✨`
+    `شكراً لاختيارك منصة دليلك! 🤝`
   );
 
   return createPortal(
