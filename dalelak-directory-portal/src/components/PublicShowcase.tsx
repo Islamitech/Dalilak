@@ -48,9 +48,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const { theme, toggleTheme } = useTheme();
   const isActuallyLoading = loading && businesses.length === 0;
 
-  // Search and Filters (Default to 'all' to show all verified businesses across Egypt)
+  // Search and Filters (Default to 'الجيزة' for targeted launch)
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [govFilter, setGovFilter] = useState<string>('all');
+  const [govFilter, setGovFilter] = useState<string>('الجيزة');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeView, setActiveView] = useState<'grid' | 'map'>('grid');
 
@@ -198,7 +198,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             </div>
             <div>
               <h1 className="text-sm sm:text-base font-black text-[var(--text-primary)] flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
-                <span>دليل المحلات والأنشطة التجارية والخدمات المعتمدة 📍</span>
+                <span>دليل المحلات والأنشطة التجارية والخدمات المعتمدة</span>
               </h1>
               <p className="text-[11px] text-[var(--text-muted)] font-bold">
                 تصفح المحلات والخدمات المسجلة واكتشف أرقام التواصل ومواقعها المعتمدة
