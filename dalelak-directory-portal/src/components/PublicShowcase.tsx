@@ -549,10 +549,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             </a>
                           )}
 
-                          {/* Map Navigation: Only active if verified final Google Maps URL is present, otherwise flat muted disabled button */}
-                          {biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') && (biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced') ? (
+                          {/* Map Navigation: Active whenever verified final Google Maps URL is present */}
+                          {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') ? (
                             <a
-                              href={biz.googleMapsUrl}
+                              href={biz.googleMapsUrl.trim()}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="w-8 h-8 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
@@ -871,7 +871,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               <div className="space-y-3">
                 {/* 1. Official Google Maps Verified Link (or empty pending field) */}
                 <div className={`p-4 rounded-2xl border ${
-                  selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.startsWith('http') && (selectedBiz.verificationStatus === 'verified' || selectedBiz.googleSyncStatus === 'synced')
+                  selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http')
                     ? 'bg-emerald-500/10 border-emerald-500/30'
                     : 'bg-slate-900/60 border-amber-500/30'
                 } space-y-2`}>
@@ -882,7 +882,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         رابط النشاط المعتمد النهائي على Google Maps (الموقع المباشر) 🌐
                       </span>
                     </div>
-                    {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.startsWith('http') && (selectedBiz.verificationStatus === 'verified' || selectedBiz.googleSyncStatus === 'synced') ? (
+                    {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
                       <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
                         موثق رسمي ✅
                       </span>
@@ -893,13 +893,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     )}
                   </div>
 
-                  {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.startsWith('http') && (selectedBiz.verificationStatus === 'verified' || selectedBiz.googleSyncStatus === 'synced') ? (
+                  {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1">
                       <div className="font-mono text-xs text-emerald-600 dark:text-emerald-300 truncate max-w-md dir-ltr text-right">
                         {selectedBiz.googleMapsUrl}
                       </div>
                       <a
-                        href={selectedBiz.googleMapsUrl}
+                        href={selectedBiz.googleMapsUrl.trim()}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shrink-0"

@@ -117,6 +117,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       return;
     }
 
+    const hasMapUrl = Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().startsWith('http'));
     const updatedFormData: Business = {
       ...formData,
       nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || 'نشاط تجاري',
@@ -124,6 +125,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       ownerName: (formData.ownerName && formData.ownerName.trim()) || 'صاحب النشاط',
       phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
       ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
+      googleMapsUrl: formData.googleMapsUrl?.trim() || undefined,
+      verificationStatus: hasMapUrl ? 'verified' : formData.verificationStatus,
+      googleSyncStatus: hasMapUrl ? 'synced' : formData.googleSyncStatus,
+      googleSyncDate: hasMapUrl ? (formData.googleSyncDate || new Date().toISOString().split('T')[0]) : formData.googleSyncDate,
       photos: Array.isArray(formData.photos) ? formData.photos : [],
       videos: Array.isArray(formData.videos) ? formData.videos : [],
     };

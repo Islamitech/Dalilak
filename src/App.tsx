@@ -2125,10 +2125,10 @@ export default function App() {
                                 <span>واتساب</span>
                               </a>
 
-                              {/* Google Maps: Only active if official verified googleMapsUrl is present */}
-                              {biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') && (biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced') ? (
+                              {/* Google Maps: Active if official live googleMapsUrl is present */}
+                              {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') ? (
                                 <a
-                                  href={biz.googleMapsUrl}
+                                  href={biz.googleMapsUrl.trim()}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
