@@ -595,8 +595,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PACKAGES.map((pkg) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-6 sm:gap-8">
+            {PACKAGES.filter((p) => p.price !== 250).map((pkg) => (
               <div
                 key={pkg.id}
                 className={`relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between space-y-6 transition-all duration-300 ${
@@ -789,7 +789,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 onChange={(e) => setFormSelectedPackage(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl p-3 focus:outline-none focus:border-amber-500 font-bold text-amber-600 dark:text-amber-400 text-xs shadow-xs cursor-pointer"
               >
-                {PACKAGES.map((p) => (
+                {PACKAGES.filter((p) => p.price !== 250).map((p) => (
                   <option key={p.id} value={p.title}>
                     {p.title} ({p.price} ج.م)
                   </option>
