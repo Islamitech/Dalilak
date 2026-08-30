@@ -682,38 +682,64 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   colSpan: 'sm:col-span-3', icon: <Building className="w-3.5 h-3.5 text-amber-500" />, placeholder: 'أقرب معلم...',
                   displayFormat: (v) => <span className="font-bold text-[var(--text-secondary)]">{v || <span className="text-[var(--text-muted)] italic font-normal">لا توجد علامة</span>}</span>,
                 })}
-                {renderInfoItem('lat', 'خط العرض', formData.lat, {
+                {renderInfoItem('lat', 'خط العرض (موقع المندوب)', formData.lat, {
                   type: 'number', dir: 'ltr', icon: <MapPin className="w-3.5 h-3.5 text-rose-500" />,
                   displayFormat: (v) => <span className="font-mono text-xs text-[var(--text-secondary)]">{v ?? '—'}</span>,
                 })}
-                {renderInfoItem('lng', 'خط الطول', formData.lng, {
+                {renderInfoItem('lng', 'خط الطول (موقع المندوب)', formData.lng, {
                   type: 'number', dir: 'ltr', icon: <MapPin className="w-3.5 h-3.5 text-emerald-500" />,
                   displayFormat: (v) => <span className="font-mono text-xs text-[var(--text-secondary)]">{v ?? '—'}</span>,
                 })}
               </div>
 
-              {/* Google Maps URL */}
-              <div className="bg-[var(--bg-card)] border border-blue-500/25 rounded-xl p-3.5 space-y-2">
+              {/* 1. Official Verified Google Maps Link Box */}
+              <div className={`border rounded-2xl p-4 space-y-2.5 ${
+                formData.googleMapsUrl && formData.googleMapsUrl.startsWith('http') && (formData.verificationStatus === 'verified' || formData.googleSyncStatus === 'synced')
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : 'bg-[var(--bg-card)] border-amber-500/30'
+              }`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-blue-500" />
-                    <span className="text-xs font-black text-[var(--text-primary)]">رابط خرائط جوجل المباشر</span>
+                    <Globe className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs font-black text-[var(--text-primary)]">الرابط المعتمد النهائي على Google Maps (الموقع المباشر) 🌐</span>
                   </div>
-                  {formData.googleMapsUrl && (
+                  {formData.googleMapsUrl && formData.googleMapsUrl.startsWith('http') ? (
                     <a href={formData.googleMapsUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" /> فتح
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-2xs">
+                      <ExternalLink className="w-3 h-3" /> فتح الرابط المعتمد
                     </a>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                      قيد المراجعة (فارغ) ⏳
+                    </span>
                   )}
                 </div>
                 <div className="relative">
-                  <input type="url" dir="ltr" placeholder="https://maps.app.goo.gl/..."
+                  <input type="url" dir="ltr" placeholder="https://maps.app.goo.gl/... (اتركه فارغاً إذا كان قيد المراجعة)"
                     value={formData.googleMapsUrl || ''}
                     onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
-                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-lg p-2.5 pr-9 focus:outline-none focus:border-blue-500 shadow-xs"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-xl p-2.5 pr-9 focus:outline-none focus:border-amber-500 shadow-xs"
                   />
-                  <Globe className="w-3.5 h-3.5 text-blue-500 absolute right-2.5 top-3" />
+                  <Globe className="w-3.5 h-3.5 text-amber-500 absolute right-2.5 top-3" />
                 </div>
+              </div>
+
+              {/* 2. Rep Field Visit Coordinates Link */}
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)]">
+                  <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>الموقع الميداني المرفوع من المندوب: {formData.lat ? `${Number(formData.lat).toFixed(4)}, ${Number(formData.lng).toFixed(4)}` : '—'}</span>
+                </div>
+                {formData.lat && formData.lng && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${formData.lat},${formData.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10.5px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 shrink-0"
+                  >
+                    <ExternalLink className="w-3 h-3" /> فتح إحداثيات المندوب
+                  </a>
+                )}
               </div>
             </div>
           )}
