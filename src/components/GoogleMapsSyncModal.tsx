@@ -125,18 +125,18 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const targetWaPhone = cleanOwnerPhone.startsWith('20') ? cleanOwnerPhone : `20${cleanOwnerPhone}`;
 
   const verificationWhatsAppMessage = encodeURIComponent(
-    `*تم توثيق نشاطك بنجاح على خرائط Google* 🗺️✨\n\n` +
-    `أهلاً بحضرتك أستاذ *${business.ownerName || 'صاحب النشاط'}* 👋\n` +
+    `*توثيق واعتماد رسمي على خرائط Google*\n\n` +
+    `أهلاً بحضرتك أستاذ *${business.ownerName || 'صاحب النشاط'}*\n` +
     `تم تفعيل ونشر نشاطكم *(${business.nameAr})* رسمياً على خرائط Google.\n\n` +
     (isFullyPaid
-      ? `✅ *حالة الدفع:* مسدد بالكامل (${business.packagePrice || business.amountPaid || 0} ج.م)\n\n`
-      : `⏳ *حالة الدفع:* متبقي سداد (*${remainingBalance} ج.م*)\n` +
-        `💳 *طرق الدفع المعتمدة للتسوية:*\n` +
-        `• فودافون كاش: 01143888355 أو 01556221141\n` +
-        `• إنستاباي: daz31181@instapay\n\n`) +
-    `📍 *رابط موقعك المباشر المفعل على Google Maps:*\n` +
+      ? `*حالة السداد:* مسدد بالكامل (${business.packagePrice || business.amountPaid || 0} ج.م) ✓\n\n`
+      : `*حالة السداد:* متبقي سداد (*${remainingBalance} ج.م*)\n\n` +
+        `*طرق الدفع المعتمدة للتسوية:*\n` +
+        `- فودافون كاش: 01143888355 أو 01556221141\n` +
+        `- إنستاباي: daz31181@instapay\n\n`) +
+    `*رابط موقعكم المباشر على Google Maps:*\n` +
     `${activeGoogleMapsUrl}\n\n` +
-    `شكراً لاختيارك منصة دليلك! 🤝`
+    `شكراً لاختياركم منصة دليلك!`
   );
 
   return createPortal(
