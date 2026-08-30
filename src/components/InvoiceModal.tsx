@@ -89,8 +89,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         : 'لم يتم الدفع نهائياً ❌'
     }\n\n` +
     `🌟 *تهانينا! تم إدراج ونشر نشاطكم مباشرة في دليل الأنشطة والخدمات المعتمد في مصر:* ✨\n` +
-    `🌐 *رابط دليل الأنشطة المباشر:* ${directoryUrl}\n` +
-    `📍 *رابط الخريطة المباشر:* ${activeBusiness.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${activeBusiness.lat || 0},${activeBusiness.lng || 0}`}\n\n` +
+    `🌐 *رابط دليل الأنشطة المباشر:* ${directoryUrl}\n\n` +
     `*ملاحظة:* تم رفع وتثبيت بيانات نشاطكم بنجاح وهو متاح الآن للعملاء على المنظومة، وتتم متابعة مراجعة وتوثيق النشاط حتى اعتماده على خرائط Google. شكرًا لثقتكم بشركة دليلك!`;
 
   // WhatsApp formatted Arabic message text

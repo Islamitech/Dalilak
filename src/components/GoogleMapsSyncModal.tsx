@@ -118,8 +118,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     `رابط الخريطة: ${directMapUrl}`;
 
   const whatsappMessage = encodeURIComponent(
-    `مرحباً بك أستاذ ${business.ownerName || 'صاحب النشاط'}، نشاطك التجاري (${business.nameAr}) في ${business.governorate} أصبح الآن موثقاً رسمياً عبر منظومة دليلك المعتمدة 🛡️.\n\n` +
-    `📍 رابط النشاط على خرائط Google:\n${directMapUrl}\n\n` +
+    `مرحباً بك أستاذ ${business.ownerName || 'صاحب النشاط'}، نشاطك التجاري (${business.nameAr}) في ${business.governorate} منشور ومتاح في دليل الأنشطة والخدمات المعتمدة في مصر 🛡️.\n\n` +
+    `🌐 رابط دليل الأنشطة المباشر:\nhttps://www.dalilaak.com/\n\n` +
     `📄 رقم الفاتورة الإلكترونية: ${business.invoiceNumber || 'INV-' + business.id.substring(0, 6)}\n` +
     `شكراً لاختيارك منظومة دليلك!`
   );
