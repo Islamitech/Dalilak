@@ -46,20 +46,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   loading = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const [localLoading, setLocalLoading] = useState<boolean>(() => businesses.length === 0);
-
-  useEffect(() => {
-    if (businesses && businesses.length > 0) {
-      setLocalLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setLocalLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [businesses]);
-
-  const isActuallyLoading = (loading || localLoading) && businesses.length === 0;
+  const isActuallyLoading = loading && businesses.length === 0;
 
   // Search and Filters (Default to 'all' to show all verified businesses across Egypt)
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -396,26 +383,30 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               </div>
             )}
 
-            {/* 2. EMPTY STATE (When NOT loading & 0 results) */}
-            {!isActuallyLoading && !loading && filteredBusinesses.length === 0 && (
+            {/* 2. EMPTY STATE (When NOT loading & search/filter produces 0 results) */}
+            {!isActuallyLoading && !loading && (businesses.length > 0 ? filteredBusinesses.length === 0 : true) && (
               <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-3">
                 <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">
                   🔍
                 </div>
-                <h3 className="font-black text-base text-[var(--text-primary)]">لا توجد نتائج مطابقة لبحثك</h3>
+                <h3 className="font-black text-base text-[var(--text-primary)]">
+                  {businesses.length === 0 ? 'لا توجد أنشطة تجارية مسجلة حالياً' : 'لا توجد نتائج مطابقة لبحثك'}
+                </h3>
                 <p className="text-xs text-[var(--text-muted)] font-bold">
-                  جرب تغيير خيارات البحث أو اختيار محافظة أخرى
+                  {businesses.length === 0 ? 'سيتم إدراج الأنشطة فور اعتمادها من المنظومة' : 'جرب تغيير خيارات البحث أو اختيار محافظة أخرى'}
                 </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setGovFilter('all');
-                    setCategoryFilter('all');
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
-                >
-                  إعادة ضبط خيارات البحث 🔄
-                </button>
+                {businesses.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setGovFilter('all');
+                      setCategoryFilter('all');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                  >
+                    إعادة ضبط خيارات البحث 🔄
+                  </button>
+                )}
               </div>
             )}
 
