@@ -102,8 +102,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // High precision controls & Layer switcher (Default: Google Streets)
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
+  // High precision controls & Layer switcher (Default: Lightweight CartoDB Data-Saver)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('cartodb');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);

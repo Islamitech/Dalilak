@@ -637,6 +637,8 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                           <img
                             src={pendingRemittance.receiptPhoto}
                             alt="صورة الإيصال"
+                            loading="lazy"
+                            decoding="async"
                             className="w-14 h-14 object-cover rounded-lg border border-slate-700"
                           />
                           <div>
@@ -767,6 +769,8 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                           <img
                             src={remitReceiptPhoto}
                             alt="Receipt preview"
+                            loading="lazy"
+                            decoding="async"
                             className="w-16 h-16 object-cover rounded-xl border border-slate-700 bg-slate-900"
                           />
                           <div>

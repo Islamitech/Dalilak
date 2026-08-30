@@ -537,15 +537,22 @@ export async function updateRepSessionInDb(id: string, sessionId?: string, times
 // 3. PAYOUT & REMITTANCE REQUESTS (طلبات الصرف والتوريد المالي)
 // =============================================================================
 
-export async function fetchPayoutRequestsFromDb(): Promise<PayoutRequest[]> {
+export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutRequest[]> {
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.from('payout_requests').select('*').order('request_date', { ascending: false });
+      let query = supabase.from('payout_requests').select('*').order('request_date', { ascending: false });
+      if (repId) {
+        query = query.eq('rep_id', repId);
+      }
+      const { data, error } = await query;
       if (!error && data && Array.isArray(data) && data.length > 0) {
         return data.map(mapDbToPayout);
       }
 
-      const res = await supabaseRestFetch('payout_requests?select=*&order=request_date.desc');
+      const restEndpoint = repId
+        ? `payout_requests?rep_id=eq.${encodeURIComponent(repId)}&select=*&order=request_date.desc`
+        : 'payout_requests?select=*&order=request_date.desc';
+      const res = await supabaseRestFetch(restEndpoint);
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
@@ -562,7 +569,7 @@ export async function fetchPayoutRequestsFromDb(): Promise<PayoutRequest[]> {
     if (localRes.ok) {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
-        return localData;
+        return repId ? localData.filter((p: any) => p.repId === repId) : localData;
       }
     }
   } catch {}
@@ -629,11 +636,14 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 // 4. INTERESTED LEADS (العملاء المحتملين والمتابعات Mappings)
 // =============================================================================
 
-export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
+export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]> {
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
   if (isSupabaseConfigured()) {
     try {
-      const res = await supabaseRestFetch('leads?select=*&order=created_at.desc');
+      const restEndpoint = repId
+        ? `leads?rep_id=eq.${encodeURIComponent(repId)}&select=*&order=created_at.desc`
+        : 'leads?select=*&order=created_at.desc';
+      const res = await supabaseRestFetch(restEndpoint);
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
@@ -649,7 +659,9 @@ export async function fetchLeadsFromDb(): Promise<InterestedLead[]> {
     }
 
     try {
-      const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+      let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
+      if (repId) query = query.eq('rep_id', repId);
+      const { data, error } = await query;
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToLead);
         try {

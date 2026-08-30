@@ -438,6 +438,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         <img
                           src={mainPhoto}
                           alt={biz.nameAr}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
@@ -846,7 +848,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {selectedBiz.photos.map((ph, idx) => (
                     <div key={idx} className="h-28 rounded-xl overflow-hidden bg-slate-950 border border-[var(--border-color)]">
-                      <img src={ph} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={ph} alt={`صورة ${idx + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>

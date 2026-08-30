@@ -77,6 +77,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         <img
           src={avatar}
           alt={name}
+          loading="lazy"
+          decoding="async"
           onError={() => setImageError(true)}
           className={imgClasses}
         />

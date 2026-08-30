@@ -2435,6 +2435,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <img
                                     src={facePhoto}
                                     alt="صورة الوجه"
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                   />
                                   <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
@@ -2502,6 +2504,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <img
                                   src={editingRep.nationalIdCardPhoto}
                                   alt="وجه البطاقة الأمامي"
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                                 <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
@@ -2568,6 +2572,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <img
                                   src={editingRep.nationalIdCardBackPhoto}
                                   alt="ظهر البطاقة الخلفي"
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                                 <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
@@ -3051,6 +3057,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <img
                                   src={payout.receiptPhoto}
                                   alt="صورة إيصال التحويل"
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-12 h-12 object-cover rounded-lg border border-slate-600 bg-slate-900 cursor-pointer hover:opacity-80 transition-opacity"
                                   onClick={() => setSelectedReceiptPhoto(payout.receiptPhoto!)}
                                 />
@@ -3240,6 +3248,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <img
                     src={previewAvatarRep.avatar}
                     alt={previewAvatarRep.name}
+                    loading="lazy"
+                    decoding="async"
                     className="max-w-full max-h-[60vh] object-contain rounded-2xl border-2 border-amber-500 shadow-xl"
                   />
                 ) : (
@@ -3375,6 +3385,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <img
                         src={activePayoutModal.payout.receiptPhoto}
                         alt="إيصال السداد"
+                        loading="lazy"
+                        decoding="async"
                         className="max-h-36 object-contain rounded-lg group-hover:opacity-80 transition-opacity"
                       />
                       <span className="absolute bottom-2 bg-slate-900/90 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-500/40 flex items-center gap-1">
@@ -3506,6 +3518,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <img
                   src={selectedReceiptPhoto}
                   alt="صورة الإيصال بالحجم الكامل"
+                  loading="lazy"
+                  decoding="async"
                   className="max-w-full max-h-[68vh] object-contain rounded-xl shadow-xl"
                 />
               </div>

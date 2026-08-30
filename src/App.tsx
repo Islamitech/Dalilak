@@ -47,6 +47,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeRemoveLocalStorageItem, getSafeUserForStorage } from './utils/storage';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import {
   getCachedBusinesses,
   fetchBusinessesFromDb,
@@ -439,14 +440,15 @@ export default function App() {
       })
       .catch(() => {});
 
-    // 3. Fetch payouts & leads in parallel
-    fetchPayoutRequestsFromDb()
+    // 3. Fetch payouts & leads in parallel (Scoped to current rep if not admin)
+    const targetRepId = user?.role === 'admin' ? undefined : user?.id;
+    fetchPayoutRequestsFromDb(targetRepId)
       .then((dbPayouts) => {
         if (Array.isArray(dbPayouts)) setPayoutRequests(dbPayouts);
       })
       .catch(() => {});
 
-    fetchLeadsFromDb()
+    fetchLeadsFromDb(targetRepId)
       .then((dbLeads) => {
         if (Array.isArray(dbLeads)) setLeads(dbLeads);
       })
@@ -457,13 +459,21 @@ export default function App() {
         if (cfg) setPaymentConfig(cfg);
       })
       .catch(() => {});
-  }, []);
+  }, [user?.id, user?.role]);
 
-  // Live Real-Time Poller & Cross-Tab Syncer (Reflects Admin changes instantaneously from Cloud)
+  // Ultra-Efficient Data-Saver Real-Time Syncer:
+  // 1. Supabase WebSockets (Realtime) listens to changes with 0 KB idle overhead
+  // 2. Cross-Tab BroadcastChannel for instant local syncing
+  // 3. Smart Background Fallback Polling (60s interval, pauses 100% when screen/tab is hidden)
   useEffect(() => {
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
 
-    const refreshLiveData = async () => {
+    const refreshLiveData = async (force: boolean = false) => {
+      // 🛑 Data-Saver Guard: If phone screen is locked or tab is hidden, consume ZERO data!
+      if (!force && typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
+
       try {
         syncDeltaBusinessesFromDb().then((res) => {
           if (res.updated && res.count > 0) {
@@ -492,11 +502,12 @@ export default function App() {
           }
         }).catch(() => {});
 
-        fetchPayoutRequestsFromDb().then((freshPayouts) => {
+        const currentTargetRepId = user?.role === 'admin' ? undefined : user?.id;
+        fetchPayoutRequestsFromDb(currentTargetRepId).then((freshPayouts) => {
           if (Array.isArray(freshPayouts)) setPayoutRequests(freshPayouts);
         }).catch(() => {});
 
-        fetchLeadsFromDb().then((freshLeads) => {
+        fetchLeadsFromDb(currentTargetRepId).then((freshLeads) => {
           if (Array.isArray(freshLeads)) setLeads(freshLeads);
         }).catch(() => {});
       } catch (err) {
@@ -504,21 +515,55 @@ export default function App() {
       }
     };
 
+    // 1. Instant Cross-Tab Sync Listener
     if (syncChannel) {
       syncChannel.onmessage = (event) => {
         if (event.data?.type === 'SYNC_DATA' || event.data?.type === 'REP_UPDATED') {
-          refreshLiveData();
+          refreshLiveData(true);
         }
       };
     }
 
-    const interval = setInterval(refreshLiveData, 8000);
+    // 2. Supabase Realtime WebSocket Subscription (Zero network polling overhead)
+    let realtimeChannel: any = null;
+    if (isSupabaseConfigured()) {
+      try {
+        realtimeChannel = supabase
+          .channel('dalelak_realtime_db_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => refreshLiveData(true))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'representatives' }, () => refreshLiveData(true))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'payout_requests' }, () => refreshLiveData(true))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => refreshLiveData(true))
+          .subscribe();
+      } catch (err) {
+        console.warn('Realtime subscription fallback:', err);
+      }
+    }
+
+    // 3. Tab Visibility Change Listener: catch up instantly when returning to app
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        refreshLiveData(true);
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    // 4. Lightweight Fallback Heartbeat Poll (Runs every 60 seconds only when tab is active)
+    const interval = setInterval(() => refreshLiveData(false), 60000);
 
     return () => {
       clearInterval(interval);
       if (syncChannel) syncChannel.close();
+      if (realtimeChannel && typeof realtimeChannel.unsubscribe === 'function') {
+        realtimeChannel.unsubscribe();
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
     };
-  }, [user?.id, user?.email]);
+  }, [user?.id, user?.email, user?.role]);
 
   // Handlers synced with Supabase Database & Real-Time Lifecycle
   const handleAddBusiness = async (newBiz: Business) => {
@@ -1278,8 +1323,9 @@ export default function App() {
 
     const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_single_session_channel') : null;
 
-    // Send periodic heartbeat every 20 seconds
+    // Send periodic heartbeat every 60 seconds (Only when tab is actively visible)
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       const now = Date.now();
       
       // Update local rep active timestamp in state
@@ -1308,7 +1354,7 @@ export default function App() {
           }
         })
         .catch(() => {});
-    }, 20000);
+    }, 60000);
 
     // Cross-tab broadcast listener (Prevent simultaneous tabs on same device)
     if (channel) {

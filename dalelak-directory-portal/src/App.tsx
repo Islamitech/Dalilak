@@ -84,7 +84,9 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadBusinesses(isDelta: boolean = false) {
+    async function loadBusinesses(isDelta: boolean = false, force: boolean = false) {
+      if (!force && typeof document !== 'undefined' && document.hidden) return;
+
       const lastSync = localStorage.getItem('dalelak_directory_last_sync');
       const fetchUrl = isDelta && lastSync
         ? `https://xdqpbajymacpdccorjcj.supabase.co/rest/v1/businesses?select=*&created_at=gte.${encodeURIComponent(lastSync)}&order=created_at.desc`
@@ -147,7 +149,7 @@ export default function App() {
     }
 
     // 1. Initial Load (Full sync if needed)
-    loadBusinesses(false);
+    loadBusinesses(false, true);
 
     // 2. Real-Time Cross-Tab Instant Sync Listener
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
@@ -164,18 +166,31 @@ export default function App() {
               return updated;
             });
           }
-          loadBusinesses(true);
+          loadBusinesses(true, true);
         }
       };
     }
 
-    // 3. Lightweight Background Delta Poll Interval every 10 seconds
-    const intervalId = setInterval(() => loadBusinesses(true), 10000);
+    // 3. Tab Visibility Change Listener: catch up when user opens tab
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadBusinesses(true, true);
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    // 4. Lightweight Background Delta Poll Interval every 60 seconds
+    const intervalId = setInterval(() => loadBusinesses(true, false), 60000);
 
     return () => {
       isMounted = false;
       clearInterval(intervalId);
       if (syncChannel) syncChannel.close();
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
     };
   }, []);
 
