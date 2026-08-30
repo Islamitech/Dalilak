@@ -456,14 +456,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         {/* Top Badges */}
                         <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
                           {biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced' ? (
-                            <span className="bg-emerald-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm">
+                            <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm border border-emerald-400/40">
                               <CheckCircle2 className="w-3 h-3" />
-                              <span>موثق رسمياً</span>
+                              <span>موثق رسمياً ✅</span>
                             </span>
                           ) : (
-                            <span className="bg-amber-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm">
-                              <Sparkles className="w-3 h-3" />
-                              <span>نشاط مسجل</span>
+                            <span className="bg-slate-950/90 text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm border border-amber-500/40">
+                              <Clock className="w-3 h-3" />
+                              <span>غير موثق (قيد المراجعة ⏳)</span>
                             </span>
                           )}
 
@@ -505,7 +505,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                             <span className="line-clamp-2">
                               {(() => {
-                                const hasVerifiedUrl = Boolean(biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http'));
+                                const hasVerifiedUrl = Boolean(biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') && (biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced'));
                                 const rawStreet = (biz.street || '').trim();
                                 const isGenericPlaceholder = !rawStreet || rawStreet.includes('الموقع الجغرافي المسجل') || rawStreet.includes('الموقع المسجل');
 
@@ -518,7 +518,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                                 const parts = [rawStreet, biz.city, biz.governorate].filter(Boolean);
                                 let full = parts.join('، ');
                                 if (biz.landmark) full += ` (بجوار ${biz.landmark})`;
-                                return hasVerifiedUrl ? full : `${full} (قيد التوثيق ⏳)`;
+                                return hasVerifiedUrl ? full : `${full} (غير موثق بعد ⏳)`;
                               })()}
                             </span>
                           </div>
@@ -551,8 +551,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             </a>
                           )}
 
-                          {/* Map Navigation: Only active if verified final Google Maps URL is present */}
-                          {biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') ? (
+                          {/* Map Navigation: Only active if verified final Google Maps URL is present, otherwise flat muted disabled button */}
+                          {biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') && (biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced') ? (
                             <a
                               href={biz.googleMapsUrl}
                               target="_blank"
@@ -565,14 +565,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           ) : (
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(`📍 نشاط "${biz.nameAr}" مسجل وجاري مراجعته وتوثيقه رسمياً على خرائط Google.\n\nسيتوفر رابط التوجيه والموقع المباشر فور اعتماد التوثيق النهائي من قبل إدارة المنظومة ⏳`);
-                              }}
-                              className="w-8 h-8 rounded-xl bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-muted)] hover:text-amber-600 border border-[var(--border-color)] flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
-                              title="الموقع قيد مراجعة التوثيق على خرائط Google ⏳"
+                              disabled
+                              className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-700/80 flex items-center justify-center shrink-0 cursor-not-allowed opacity-60 shadow-none"
+                              title="الموقع غير مدرج بعد على خرائط Google (قيد مراجعة وتوثيق الإدارة ⏳)"
                             >
-                              <Clock className="w-4 h-4 text-amber-500/80" />
+                              <Navigation className="w-4 h-4 opacity-40" />
                             </button>
                           )}
                         </div>

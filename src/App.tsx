@@ -2115,17 +2115,29 @@ export default function App() {
                                 <span>واتساب</span>
                               </a>
 
-                              {/* Google Maps */}
-                              <a
-                                href={biz.googleMapsUrl || `https://www.google.com/maps/?q=${biz.lat},${biz.lng}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-blue-500/15 text-[var(--text-secondary)] hover:text-blue-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                                title="فتح الموقع على الخريطة"
-                              >
-                                <Navigation className="w-3.5 h-3.5 text-blue-500" />
-                                <span>الخريطة</span>
-                              </a>
+                              {/* Google Maps: Only active if official verified googleMapsUrl is present */}
+                              {biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') && (biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced') ? (
+                                <a
+                                  href={biz.googleMapsUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+                                  title="الموقع موثق رسمياً: فتح على خرائط Google"
+                                >
+                                  <Navigation className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>الخريطة</span>
+                                </a>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 dark:border-slate-700/80 cursor-not-allowed opacity-60"
+                                  title="النشاط غير موثق بعد (قيد مراجعة واعتماد خرائط Google)"
+                                >
+                                  <Navigation className="w-3.5 h-3.5 opacity-40" />
+                                  <span>غير مدرج</span>
+                                </button>
+                              )}
 
                               {/* Invoice Preview */}
                               <button
