@@ -505,20 +505,18 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                             <span className="line-clamp-2">
                               {(() => {
-                                const hasVerifiedUrl = Boolean(biz.googleMapsUrl && biz.googleMapsUrl.startsWith('http') && (biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced'));
                                 const rawStreet = (biz.street || '').trim();
                                 const isGenericPlaceholder = !rawStreet || rawStreet.includes('الموقع الجغرافي المسجل') || rawStreet.includes('الموقع المسجل');
 
                                 if (isGenericPlaceholder) {
                                   const parts = [biz.city, biz.governorate].filter(Boolean);
-                                  const base = parts.length > 0 ? parts.join('، ') : biz.governorate;
-                                  return hasVerifiedUrl ? `${base} (موثق على Google Maps ✅)` : `${base} (قيد مراجعة التوثيق ⏳)`;
+                                  return parts.length > 0 ? parts.join('، ') : biz.governorate;
                                 }
 
                                 const parts = [rawStreet, biz.city, biz.governorate].filter(Boolean);
                                 let full = parts.join('، ');
                                 if (biz.landmark) full += ` (بجوار ${biz.landmark})`;
-                                return hasVerifiedUrl ? full : `${full} (غير موثق بعد ⏳)`;
+                                return full;
                               })()}
                             </span>
                           </div>

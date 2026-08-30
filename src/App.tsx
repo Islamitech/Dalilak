@@ -677,6 +677,16 @@ export default function App() {
       } catch {}
       return updated;
     });
+
+    // Instant Cross-Tab Broadcast to Directory Portal
+    try {
+      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SYNC_DATA', newBusiness: normalizedBiz });
+        syncChannel.close();
+      }
+    } catch {}
+
     await updateBusinessInDb(normalizedBiz.id, normalizedBiz);
     
     // 1. Verification status change notification

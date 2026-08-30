@@ -89,19 +89,14 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadBusinesses(isDelta: boolean = false, force: boolean = false) {
+    async function loadBusinesses(force: boolean = false) {
       if (!force && typeof document !== 'undefined' && document.hidden) return;
-
-      const lastSync = localStorage.getItem('dalelak_directory_last_sync');
-      const fetchUrl = isDelta && lastSync
-        ? `https://xdqpbajymacpdccorjcj.supabase.co/rest/v1/businesses?select=*&created_at=gte.${encodeURIComponent(lastSync)}&order=created_at.desc`
-        : SUPABASE_REST_URL;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       try {
-        const res = await fetch(fetchUrl, {
+        const res = await fetch(SUPABASE_REST_URL, {
           signal: controller.signal,
           headers: {
             apikey: SUPABASE_ANON_KEY,
@@ -112,37 +107,21 @@ export default function App() {
 
         if (res.ok) {
           const raw = await res.json();
-          if (Array.isArray(raw) && isMounted) {
-            if (raw.length > 0) {
-              const mapped: Business[] = raw.map(mapRawToBusiness);
+          if (Array.isArray(raw) && isMounted && raw.length > 0) {
+            const mapped: Business[] = raw.map(mapRawToBusiness);
 
-              setBusinesses((prev) => {
-                const map = new Map<string, Business>();
-                if (isDelta) {
-                  prev.forEach((b) => map.set(b.id, b));
-                }
-                mapped.forEach((b) => map.set(b.id, b));
+            setBusinesses(() => {
+              const updated = mapped.sort(
+                (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
+              );
 
-                const updated = Array.from(map.values()).sort(
-                  (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
-                );
+              try {
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+                localStorage.setItem('dalelak_directory_last_sync', new Date().toISOString());
+              } catch {}
 
-                try {
-                  localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
-                } catch {}
-
-                if (isDelta && raw.length > 0) {
-                  setShowSyncBadge(true);
-                  setTimeout(() => setShowSyncBadge(false), 3200);
-                }
-
-                return updated;
-              });
-            }
-
-            try {
-              localStorage.setItem('dalelak_directory_last_sync', new Date().toISOString());
-            } catch {}
+              return updated;
+            });
           }
         }
       } catch (e) {
@@ -156,10 +135,10 @@ export default function App() {
       }
     }
 
-    // 1. Initial Load (Full sync if needed)
-    loadBusinesses(false, true);
+    // 1. Initial Load
+    loadBusinesses(true);
 
-    // 2. Real-Time Cross-Tab Instant Sync Listener
+    // 2. Real-Time Cross-Tab Instant Sync Listener via BroadcastChannel
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
     if (syncChannel) {
       syncChannel.onmessage = (event) => {
@@ -174,10 +153,25 @@ export default function App() {
               return updated;
             });
           }
-          loadBusinesses(true, true);
+          loadBusinesses(true);
         }
       };
     }
+
+    // 3. Storage Event Listener for Instant Cross-Tab Sync
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dalelak_directory_cache' || e.key === 'dalelak_cached_businesses') {
+        try {
+          if (e.newValue) {
+            const parsed = JSON.parse(e.newValue);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setBusinesses(parsed);
+            }
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
 
     // 3. Tab Visibility Change Listener: catch up when user opens tab
     const handleVisibilityChange = () => {
