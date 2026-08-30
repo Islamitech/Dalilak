@@ -328,16 +328,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const target = rep.targetMonth || 25;
         const achievement = target > 0 ? ((repBiz.length / target) * 100).toFixed(1) : '0';
         
-        // Presence status: Online if last activity was within 59 minutes
+        // Presence status: Online if last activity was within 59 minutes or if currently active user
+        const isCurrentActiveUser = Boolean(
+          currentUser && (currentUser.id === rep.id || (currentUser.email && rep.email && currentUser.email.toLowerCase() === rep.email.toLowerCase()) || currentUser.name === rep.name)
+        );
+        const effectiveTimestamp = isCurrentActiveUser ? now : (rep.lastActiveTimestamp ? Number(rep.lastActiveTimestamp) : 0);
         const isOnline = Boolean(
-          rep.lastActiveTimestamp && (now - rep.lastActiveTimestamp < FIFTY_NINE_MINS_MS)
+          isCurrentActiveUser || (effectiveTimestamp > 0 && (now - effectiveTimestamp < FIFTY_NINE_MINS_MS))
         );
 
         let lastActiveText = 'غير متصل';
-        if (rep.lastActiveTimestamp) {
-          const diffMinutes = Math.floor((now - rep.lastActiveTimestamp) / 60000);
+        if (isCurrentActiveUser) {
+          lastActiveText = 'نشط الآن 🟢';
+        } else if (effectiveTimestamp > 0) {
+          const diffMinutes = Math.floor((now - effectiveTimestamp) / 60000);
           if (diffMinutes <= 1) {
-            lastActiveText = 'نشط الآن';
+            lastActiveText = 'نشط الآن 🟢';
           } else if (diffMinutes < 60) {
             lastActiveText = `نشط منذ ${diffMinutes} د`;
           } else {
@@ -1733,8 +1739,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {pagedAccounts.map((acc) => {
               const role = acc.role || 'rep';
               const isSuspended = acc.status === 'suspended';
+              const isCurrentActiveUser = Boolean(
+                currentUser && (currentUser.id === acc.id || (currentUser.email && acc.email && currentUser.email.toLowerCase() === acc.email.toLowerCase()) || currentUser.name === acc.name)
+              );
+              const effectiveTimestamp = isCurrentActiveUser ? Date.now() : (acc.lastActiveTimestamp ? Number(acc.lastActiveTimestamp) : 0);
               const isOnline = Boolean(
-                acc.lastActiveTimestamp && (Date.now() - acc.lastActiveTimestamp < 59 * 60 * 1000)
+                isCurrentActiveUser || (effectiveTimestamp > 0 && (Date.now() - effectiveTimestamp < 59 * 60 * 1000))
               );
 
               return (

@@ -462,8 +462,8 @@ export default function App() {
             if (freshUserRep) {
               const updatedUser = { ...user, repData: freshUserRep };
               setUser(updatedUser);
-              safeSetLocalStorageItem(
-                'dalelak_logged_user',
+              safeSetSessionItem(
+                'dalelak_active_user',
                 JSON.stringify(getSafeUserForStorage(updatedUser))
               );
             }
@@ -472,7 +472,7 @@ export default function App() {
       })
       .catch(() => {});
 
-    // 3. Fetch payouts & leads in parallel (Scoped to current rep if not admin)
+    // 3. Fetch payouts & leads in parallel
     const targetRepId = user?.role === 'admin' ? undefined : user?.id;
     fetchPayoutRequestsFromDb(targetRepId)
       .then((dbPayouts) => {
@@ -480,7 +480,8 @@ export default function App() {
       })
       .catch(() => {});
 
-    fetchLeadsFromDb(targetRepId)
+    // Always fetch full leads list; InvoicesLeadsHub handles role scoping cleanly
+    fetchLeadsFromDb()
       .then((dbLeads) => {
         if (Array.isArray(dbLeads)) setLeads(dbLeads);
       })
@@ -525,8 +526,8 @@ export default function App() {
               if (myFreshRep) {
                 const updatedUser = { ...user, repData: myFreshRep };
                 setUser(updatedUser);
-                safeSetLocalStorageItem(
-                  'dalelak_logged_user',
+                safeSetSessionItem(
+                  'dalelak_active_user',
                   JSON.stringify(getSafeUserForStorage(updatedUser))
                 );
               }

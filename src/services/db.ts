@@ -642,6 +642,14 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 // =============================================================================
 
 export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]> {
+  const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+  const leadMap = new Map<string, InterestedLead>();
+  if (Array.isArray(cached)) {
+    cached.forEach((l: InterestedLead) => {
+      if (l && l.id) leadMap.set(l.id, l);
+    });
+  }
+
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
   if (isSupabaseConfigured()) {
     try {
@@ -651,12 +659,11 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
       const res = await supabaseRestFetch(restEndpoint);
       if (res.ok) {
         const restData = await res.json();
-        if (Array.isArray(restData) && restData.length > 0) {
-          const freshList = restData.map(mapDbToLead);
-          try {
-            safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(freshList));
-          } catch {}
-          return freshList;
+        if (Array.isArray(restData)) {
+          restData.forEach((item: any) => {
+            const mapped = mapDbToLead(item);
+            leadMap.set(mapped.id, mapped);
+          });
         }
       }
     } catch (err) {
@@ -667,41 +674,24 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
       let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
       if (repId) query = query.eq('rep_id', repId);
       const { data, error } = await query;
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        const freshList = data.map(mapDbToLead);
-        try {
-          safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(freshList));
-        } catch {}
-        return freshList;
+      if (!error && data && Array.isArray(data)) {
+        data.forEach((item: any) => {
+          const mapped = mapDbToLead(item);
+          leadMap.set(mapped.id, mapped);
+        });
       }
     } catch (err) {
       console.warn('Supabase fetch leads SDK error:', err);
     }
   }
 
-  // 2. Offline fallback from local cache
+  const combined = Array.from(leadMap.values()).sort(
+    (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
+  );
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
-    if (Array.isArray(cached) && cached.length > 0) {
-      return cached;
-    }
+    safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(combined));
   } catch {}
-
-  // 3. Local Server fetch fallback
-  try {
-    const localRes = await fetch('/api/leads');
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (Array.isArray(localData) && localData.length > 0) {
-        try {
-          safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(localData));
-        } catch {}
-        return localData;
-      }
-    }
-  } catch {}
-
-  return [];
+  return combined;
 }
 
 export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead> {
@@ -1168,7 +1158,7 @@ function mapDbToRep(item: any): Representative {
     status: item.status || 'active',
     password: item.password || 'Aa123456',
     activeSessionId: item.active_session_id || item.activeSessionId,
-    lastActiveTimestamp: typeof item.last_active_timestamp === 'number' ? item.last_active_timestamp : item.lastActiveTimestamp,
+    lastActiveTimestamp: item.last_active_timestamp ? Number(item.last_active_timestamp) : (item.lastActiveTimestamp ? Number(item.lastActiveTimestamp) : undefined),
     referralCode: metaReferralCode || defaultRefCode,
     referredByCode: metaReferredByCode || undefined,
     referralUnlocked: Boolean(metaReferralUnlocked),
