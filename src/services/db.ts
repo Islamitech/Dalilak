@@ -2,6 +2,17 @@ import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supaba
 import { uploadMultipleMediaToStorage } from './storage';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus } from '../types';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeBusinessesForStorage } from '../utils/storage';
+import {
+  saveOfflineBusiness,
+  getOfflineBusinesses,
+  removeOfflineBusiness,
+  saveOfflineLead,
+  getOfflineLeads,
+  removeOfflineLead,
+  saveOfflinePayout,
+  getOfflinePayouts,
+  removeOfflinePayout,
+} from './offlineSync';
 
 /**
  * 🏛️ Live Supabase Database Service
@@ -28,69 +39,83 @@ export function getCachedBusinesses(): Business[] {
 
 /**
  * ⚡ Stale-While-Revalidate Full Cloud Fetch
- * Returns fresh data and updates offline cache with delta sync timestamp
+ * Returns fresh data and updates offline cache
  */
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const cached = getCachedBusinesses();
+  let resultList: Business[] = [];
 
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
     try {
       const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          const freshList = restData.map(mapDbToBusiness);
+          resultList = restData.map(mapDbToBusiness);
           try {
-            const safePayload = JSON.stringify(getSafeBusinessesForStorage(freshList));
+            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
             safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
             safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
-          return freshList;
         }
       }
     } catch (err) {
       console.warn('Supabase fetch businesses REST error, trying fallback:', err);
     }
 
-    try {
-      const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        const freshList = data.map(mapDbToBusiness);
-        try {
-          const safePayload = JSON.stringify(getSafeBusinessesForStorage(freshList));
-          safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-          safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
-          safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
-        } catch {}
-        return freshList;
+    if (resultList.length === 0) {
+      try {
+        const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
+        if (!error && data && Array.isArray(data) && data.length > 0) {
+          resultList = data.map(mapDbToBusiness);
+          try {
+            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
+            safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
+            safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
+            safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('Supabase fetch businesses SDK error:', err);
       }
-    } catch (err) {
-      console.warn('Supabase fetch businesses SDK error:', err);
     }
   }
 
-  // 2. LocalStorage cache fallback (instant offline render)
-  if (cached.length > 0) {
-    return cached;
+  // 2. LocalStorage cache fallback
+  if (resultList.length === 0 && cached.length > 0) {
+    resultList = cached;
   }
 
   // 3. Local Server API fetch fallback
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
-    const localRes = await fetch('/api/businesses', { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (Array.isArray(localData) && localData.length > 0) {
-        return localData;
+  if (resultList.length === 0) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const localRes = await fetch('/api/businesses', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (localRes.ok) {
+        const localData = await localRes.json();
+        if (Array.isArray(localData) && localData.length > 0) {
+          resultList = localData;
+        }
       }
+    } catch {}
+  }
+
+  // ⚡ 4. Guaranteed Merge with IndexedDB Offline Businesses (Always visible, never vanish)
+  try {
+    const offlineList = await getOfflineBusinesses();
+    if (offlineList && offlineList.length > 0) {
+      const map = new Map<string, Business>();
+      resultList.forEach((b) => map.set(b.id, b));
+      offlineList.forEach((b) => map.set(b.id, b));
+      resultList = Array.from(map.values());
     }
   } catch {}
 
-  return [];
+  return resultList;
 }
 
 /**
@@ -107,7 +132,7 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     return { updated: fresh.length > 0, businesses: fresh, count: fresh.length };
   }
 
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
     return { updated: false, businesses: cached, count: 0 };
   }
 
@@ -124,6 +149,12 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
         const map = new Map<string, Business>();
         cached.forEach((b) => map.set(b.id, b));
         freshDeltaList.forEach((b) => map.set(b.id, b));
+
+        // Also merge pending offline businesses
+        try {
+          const offlineList = await getOfflineBusinesses();
+          offlineList.forEach((b) => map.set(b.id, b));
+        } catch {}
 
         const merged = Array.from(map.values()).sort(
           (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
@@ -156,17 +187,24 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
   // Strictly filter videos to valid hosted URLs only (no giant base64 payloads)
   let safeVideos = (biz.videos || []).filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')));
 
-  try {
-    const hasBase64Photos = safePhotos.some(p => p.startsWith('data:image/'));
-    if (hasBase64Photos) {
-      safePhotos = await uploadMultipleMediaToStorage(safePhotos, 'photos');
-    }
-  } catch {}
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+  if (isOnline) {
+    try {
+      const hasBase64Photos = safePhotos.some(p => p.startsWith('data:image/'));
+      if (hasBase64Photos) {
+        safePhotos = await uploadMultipleMediaToStorage(safePhotos, 'photos');
+      }
+    } catch {}
+  }
 
   const cleanBiz: Business = { ...biz, photos: safePhotos, videos: safeVideos };
   const dbRecord = mapBusinessToDb(cleanBiz);
 
-  // 1. Immediate LocalStorage cache update
+  // 1. 🗄️ Guaranteed IndexedDB local persistence (Zero Data Loss even when offline)
+  await saveOfflineBusiness(cleanBiz);
+
+  // 2. Immediate LocalStorage cache update
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     const map = new Map<string, Business>();
@@ -179,8 +217,8 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
     safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
-  // 2. Direct Supabase Cloud Save using SDK with upsert().select() + REST fallback
-  if (isSupabaseConfigured()) {
+  // 3. Direct Supabase Cloud Save if Online
+  if (isOnline && isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('businesses')
@@ -188,6 +226,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
         .select();
 
       if (!error && data && Array.isArray(data) && data.length > 0) {
+        await removeOfflineBusiness(cleanBiz.id);
         return;
       }
     } catch (sdkErr) {
@@ -203,42 +242,21 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
         body: JSON.stringify(dbRecord),
       });
 
-      if (!res.ok) {
-        // If conflict or update needed, try direct PATCH
-        const patchRes = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(biz.id)}`, {
-          method: 'PATCH',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(dbRecord),
-        }).catch(() => null);
-
-        // If payload was too large (413) or failed, retry with lightweight media fallback
-        if (!patchRes || !patchRes.ok) {
-          const lightRecord = { ...dbRecord };
-          try {
-            const lightMeta = {
-              ...JSON.parse(dbRecord.notes || '{}'),
-              videos: (biz.videos || []).slice(0, 1),
-            };
-            lightRecord.notes = JSON.stringify(lightMeta);
-          } catch {}
-          await supabaseRestFetch('businesses', {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-            body: JSON.stringify(lightRecord),
-          }).catch(() => {});
-        }
+      if (res.ok) {
+        await removeOfflineBusiness(cleanBiz.id);
+        return;
       }
     } catch (err) {
-      console.warn('Supabase save business REST warning:', err);
+      console.warn('Supabase REST save notice (saved offline):', err);
     }
   }
 
-  // 3. Sync to local server
+  // 4. Local Server API fetch fallback
   try {
     await fetch('/api/businesses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(biz),
+      body: JSON.stringify(cleanBiz),
     });
   } catch {}
 }
@@ -580,14 +598,24 @@ export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutR
 
 export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<PayoutRequest> {
   const dbRecord = mapPayoutToDb(payout);
-  if (isSupabaseConfigured()) {
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+  // 1. IndexedDB persistence
+  await saveOfflinePayout(payout);
+
+  if (isOnline && isSupabaseConfigured()) {
     try {
       const { error } = await supabase.from('payout_requests').insert([dbRecord]);
-      if (error) {
-        await supabaseRestFetch('payout_requests', {
+      if (!error) {
+        await removeOfflinePayout(payout.id);
+      } else {
+        const res = await supabaseRestFetch('payout_requests', {
           method: 'POST',
           body: JSON.stringify(dbRecord),
         });
+        if (res.ok) {
+          await removeOfflinePayout(payout.id);
+        }
       }
     } catch (err) {
       console.error('Supabase create payout request error:', err);
@@ -692,8 +720,12 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
 
 export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead> {
   const dbRecord = mapLeadToDb(lead);
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
-  // 1. Immediate Local Cache update
+  // 1. Guaranteed IndexedDB local persistence
+  await saveOfflineLead(lead);
+
+  // 2. Immediate Local Cache update
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
     const map = new Map<string, InterestedLead>();
@@ -706,8 +738,8 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
     safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(Array.from(map.values())));
   } catch {}
 
-  // 2. Direct Supabase Cloud Save / Upsert
-  if (isSupabaseConfigured()) {
+  // 3. Direct Supabase Cloud Save / Upsert
+  if (isOnline && isSupabaseConfigured()) {
     try {
       const res = await supabaseRestFetch('leads', {
         method: 'POST',
@@ -717,14 +749,16 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
         body: JSON.stringify(dbRecord),
       });
 
-      if (!res.ok) {
+      if (res.ok) {
+        await removeOfflineLead(lead.id);
+      } else {
         const { error } = await supabase.from('leads').upsert([dbRecord]);
-        if (error) {
-          console.warn('Supabase save lead fallback error:', error);
+        if (!error) {
+          await removeOfflineLead(lead.id);
         }
       }
     } catch (err) {
-      console.error('Supabase save lead error:', err);
+      console.warn('Supabase save lead notice (saved offline):', err);
     }
   }
 
