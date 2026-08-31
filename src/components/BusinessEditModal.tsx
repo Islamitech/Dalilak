@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Business, VerificationStatus, PaymentStatus } from '../types';
-import { EGYPT_GOVERNORATES, PACKAGES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
+import { Business, VerificationStatus } from '../types';
+import { EGYPT_GOVERNORATES, PACKAGES, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import { uploadMediaToSupabaseStorage } from '../services/storage';
@@ -11,9 +11,7 @@ import {
   MapPin,
   DollarSign,
   Image as ImageIcon,
-  Video,
   Film,
-  Play,
   UploadCloud,
   Save,
   Trash2,
@@ -24,32 +22,24 @@ import {
   AlertTriangle,
   CloudUpload,
   Download,
-  Zap,
   Gift,
   Check,
   CheckCircle2,
-  MessageSquare,
   MessageCircle,
   Pencil,
   ExternalLink,
   Phone,
   Mail,
-  CreditCard,
   Building,
   Navigation,
   Globe,
   Tag,
-  Calendar,
   Copy,
-  ChevronLeft,
   X,
-  Share2,
-  ShieldCheck,
   Send,
   TrendingUp,
 } from 'lucide-react';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
-import { formatActivityDateTime } from '../utils/dateFormatters';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 import {
   getInvoiceWhatsAppUrl,
@@ -58,8 +48,6 @@ import {
   generateGoogleMapsVerifiedWhatsAppMessage,
   getPaymentReceiptWhatsAppUrl,
   generatePaymentReceiptWhatsAppMessage,
-  getUpgradeOffersWhatsAppUrl,
-  generateUpgradeOffersWhatsAppMessage,
   getFreeQrGiftWhatsAppUrl,
   generateFreeQrGiftWhatsAppMessage,
   getVisualConsultingWhatsAppUrl,
@@ -106,8 +94,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState<boolean>(false);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [enableWatermark, setEnableWatermark] = useState<boolean>(true);
-  const [watermarkPosition, setWatermarkPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isDownloadingPhotos, setIsDownloadingPhotos] = useState<boolean>(false);
@@ -133,9 +119,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   };
 
   /**
-   * CRITICAL BUG FIX:
-   * Verification status is strictly controlled by explicit user/admin actions.
-   * Simply having a googleMapsUrl does NOT auto-verify a business!
+   * Safe Submit with Explicit Validation
    */
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -157,7 +141,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
       ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
       googleMapsUrl: formData.googleMapsUrl?.trim() || undefined,
-      // Keep existing verificationStatus without auto-verifying!
       verificationStatus: formData.verificationStatus || 'pending',
       googleSyncStatus: formData.googleSyncStatus || (formData.verificationStatus === 'verified' ? 'synced' : 'not_synced'),
       photos: Array.isArray(formData.photos) ? formData.photos : [],
@@ -223,8 +206,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       for (let i = 0; i < files.length; i++) {
         try {
           const compressed = await compressImageFile(files[i], 1000, 1000, 0.72, {
-            applyWatermark: enableWatermark,
-            position: watermarkPosition,
+            applyWatermark: true,
+            position: 'bottom-right',
           });
           const publicUrl = await uploadMediaToSupabaseStorage(compressed, 'photos');
           newCompressed.push(publicUrl);
@@ -321,77 +304,80 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   }
 
   const TABS: TabItem[] = [
-    { key: 'info', label: 'بيانات النشاط', icon: <Store className="w-4 h-4" /> },
-    { key: 'owner', label: 'المالك والتواصل', icon: <User className="w-4 h-4" /> },
+    { key: 'info', label: 'البيانات', icon: <Store className="w-4 h-4" /> },
+    { key: 'owner', label: 'المالك', icon: <User className="w-4 h-4" /> },
     { key: 'location', label: 'الموقع والخرائط', icon: <MapPin className="w-4 h-4" /> },
-    { key: 'payment', label: 'الباقة والمالية', icon: <DollarSign className="w-4 h-4" /> },
+    { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4" /> },
     { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
-    { key: 'whatsapp', label: 'رسائل الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> },
+    { key: 'whatsapp', label: 'الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> },
   ];
 
   const verificationBadge = formData.verificationStatus === 'verified'
-    ? { label: 'موثق على الخرائط ✓', cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' }
+    ? { label: 'موثق على الخرائط ✓', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
     : formData.verificationStatus === 'in_progress'
-    ? { label: 'قيد المراجعة ⏳', cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' }
+    ? { label: 'قيد المراجعة ⏳', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
     : formData.verificationStatus === 'rejected'
-    ? { label: 'مرفوض 🔴', cls: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30' }
-    : { label: 'بانتظار المراجعة', cls: 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/30' };
+    ? { label: 'مرفوض 🔴', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
+    : { label: 'بانتظار المراجعة', cls: 'bg-slate-700/50 text-slate-300 border-slate-600' };
 
   const paymentBadge = formData.paymentStatus === 'fully_paid'
-    ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' }
+    ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
     : formData.paymentStatus === 'partially_paid'
-    ? { label: `متبقي دين (${remainingDebt} ج)`, cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' }
-    : { label: `غير مسدد (${formData.packagePrice || 250} ج)`, cls: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30' };
+    ? { label: `متبقي دين (${remainingDebt} ج)`, cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
+    : { label: `غير مسدد (${formData.packagePrice || 250} ج)`, cls: 'bg-rose-500/30 text-rose-200 border-rose-500/50 font-black shadow-xs' };
 
   const primaryPhone = formData.phone || formData.ownerPhone || '';
   const cleanPhone = primaryPhone.replace(/\D/g, '');
   const mapsUrl = formData.googleMapsUrl || (formData.lat && formData.lng ? `https://www.google.com/maps/?q=${formData.lat},${formData.lng}` : '');
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-t-3xl sm:rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[94vh] sm:max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
+      <div className="bg-[var(--bg-card)] border-t sm:border border-[var(--border-color)] rounded-t-[28px] sm:rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh] sm:max-h-[90vh] transition-all">
         
-        {/* ── 1. PREMIUM PROFILE HEADER ───────────────────────────────── */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-start justify-between gap-3 border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 flex items-center justify-center font-black text-xl shadow-lg shrink-0 border border-amber-400/40">
-              <Store className="w-6 h-6 stroke-[2.5]" />
+        {/* ── 0. MOBILE DRAG HANDLE ───────────────────────────────────── */}
+        <div className="w-12 h-1 bg-slate-700/80 rounded-full mx-auto mt-2 sm:hidden shrink-0" />
+
+        {/* ── 1. COMPACT & HIGH-CONTRAST HEADER ───────────────────────── */}
+        <div className="p-3.5 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-start justify-between gap-2.5 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 flex items-center justify-center font-black text-lg sm:text-xl shadow-md shrink-0 border border-amber-400/40">
+              <Store className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
             </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-black text-base sm:text-lg text-white truncate">
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-black text-sm sm:text-base text-white truncate max-w-[200px] sm:max-w-none">
                   {formData.nameAr || formData.nameEn || 'تفاصيل النشاط'}
                 </h3>
-                <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">
+                <span className="text-[10px] font-mono text-slate-300 bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-700">
                   {formData.invoiceNumber}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap mt-1.5 text-xs text-slate-300">
+              <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-300">
                 <span className="flex items-center gap-1 font-bold">
-                  <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{formData.governorate} - {formData.city}</span>
+                  <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="truncate">{formData.governorate} - {formData.city}</span>
                 </span>
-                <span className="text-slate-600">•</span>
+                <span className="text-slate-600 hidden xs:inline">•</span>
                 <span className="flex items-center gap-1 font-bold">
-                  <Tag className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{formData.category}</span>
+                  <Tag className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="truncate">{formData.category}</span>
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${verificationBadge.cls}`}>
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                <span className={`text-[9.5px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${verificationBadge.cls}`}>
                   {verificationBadge.label}
                 </span>
-                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${paymentBadge.cls}`}>
+                <span className={`text-[9.5px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${paymentBadge.cls}`}>
                   {paymentBadge.label}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
             {canEdit && (
               <button
                 type="button"
@@ -402,13 +388,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     setIsEditMode(true);
                   }
                 }}
-                className={`text-xs font-black px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                className={`text-xs font-black px-3 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 ${
                   isEditMode
                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/50'
                     : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
                 }`}
               >
-                {isEditMode ? <Check className="w-4 h-4 stroke-[3]" /> : <Pencil className="w-4 h-4 stroke-[2.5]" />}
+                {isEditMode ? <Check className="w-4 h-4 stroke-[3]" /> : <Pencil className="w-3.5 h-3.5 stroke-[2.5]" />}
                 <span>{isEditMode ? 'حفظ' : 'تعديل'}</span>
               </button>
             )}
@@ -416,45 +402,34 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
               title="إغلاق النافذة"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
-        {/* ── 2. ONE-TAP QUICK ACTIONS BAR ───────────────────────────── */}
-        <div className="px-3 sm:px-5 py-2.5 bg-[var(--input-bg)]/80 border-b border-[var(--border-color)] flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+        {/* ── 2. STREAMLINED QUICK ACTIONS STRIP ──────────────────────── */}
+        <div className="px-3 sm:px-5 py-2 bg-[var(--input-bg)]/90 border-b border-[var(--border-color)] flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
           {cleanPhone && (
             <a
               href={`tel:${cleanPhone}`}
-              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 shadow-2xs"
+              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
             >
-              <Phone className="w-3.5 h-3.5" />
-              <span>اتصال فوري</span>
+              <Phone className="w-3 h-3" />
+              <span>اتصال</span>
             </a>
-          )}
-
-          {cleanPhone && (
-            <button
-              type="button"
-              onClick={() => setActiveSection('whatsapp')}
-              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
-            >
-              <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-              <span>رسائل الواتساب 💬</span>
-            </button>
           )}
 
           {onShowInvoice && (
             <button
               type="button"
               onClick={() => onShowInvoice(formData)}
-              className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold px-3 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
+              className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
             >
-              <FileText className="w-3.5 h-3.5 text-amber-500" />
-              <span>الفاتورة الإلكترونية</span>
+              <FileText className="w-3 h-3 text-amber-500" />
+              <span>الفاتورة</span>
             </button>
           )}
 
@@ -463,9 +438,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               href={mapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold px-3 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 shadow-2xs"
+              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
             >
-              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
+              <ExternalLink className="w-3 h-3 text-blue-500" />
               <span>Google Maps</span>
             </a>
           )}
@@ -480,22 +455,22 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   setActiveSection('payment');
                 }
               }}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer mr-auto"
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-[11px] px-3 py-1.5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer mr-auto"
             >
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>تسجيل سداد ({remainingDebt} ج)</span>
+              <DollarSign className="w-3 h-3" />
+              <span>تحصيل ({remainingDebt} ج)</span>
             </button>
           )}
         </div>
 
-        {/* ── 3. SEGMENTED PILL NAVIGATION TABS ───────────────────────── */}
-        <div className="flex items-center gap-1.5 px-3 sm:px-5 py-2.5 border-b border-[var(--border-color)] bg-[var(--bg-card)]/50 overflow-x-auto no-scrollbar shrink-0">
+        {/* ── 3. CLEAN SINGLE-ROW SEGMENTED NAVIGATION TABS ─────────── */}
+        <div className="flex items-center gap-1.5 px-3 sm:px-5 py-2 border-b border-[var(--border-color)] bg-[var(--bg-card)]/70 overflow-x-auto no-scrollbar shrink-0 snap-x">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveSection(tab.key)}
-              className={`flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 snap-start ${
                 activeSection === tab.key
                   ? 'bg-amber-500 text-slate-950 shadow-sm font-black'
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
@@ -514,8 +489,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           ))}
         </div>
 
-        {/* ── 4. BODY CONTENT ────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        {/* ── 4. SCROLLABLE BODY CONTENT ─────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3.5 overscroll-contain">
           
           {statusNotification && (
             <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-2xl text-xs font-black flex items-center gap-2 animate-fade-in shadow-sm">
@@ -524,18 +499,18 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* Urgent Financial Alert Card (High Contrast) */}
+          {/* Urgent Financial Alert Card */}
           {(formData.amountPaid || 0) === 0 && (
-            <div className="bg-gradient-to-r from-rose-500/20 via-orange-500/15 to-rose-500/20 border-2 border-rose-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm text-right">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md">
-                  <AlertTriangle className="w-5 h-5 stroke-[2.5]" />
+            <div className="bg-gradient-to-r from-rose-500/20 via-orange-500/15 to-rose-500/20 border-2 border-rose-500/40 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm text-right">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                  <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
                   <h4 className="font-black text-xs sm:text-sm text-rose-800 dark:text-rose-200">
                     تنبيه مالي: النشاط غير مسدد ({formData.packagePrice || 250} ج.م)
                   </h4>
-                  <p className="text-[11px] text-rose-700 dark:text-rose-300 font-bold mt-0.5">
+                  <p className="text-[10.5px] text-rose-700 dark:text-rose-300 font-bold mt-0.5">
                     يرجى تحصيل قيمة الاشتراك المعتمدة وتسجيل عملية السداد لتأكيد وتفعيل خدمات النشاط.
                   </p>
                 </div>
@@ -565,12 +540,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* ── TAB 1: تفاصيل النشاط ─────────────────────────────────── */}
+          {/* ── TAB 1: تفاصيل وبيانات النشاط ──────────────────────────── */}
           {activeSection === 'info' && (
-            <div className="space-y-4 text-right">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="space-y-3 text-right">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* اسم النشاط عربي */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Store className="w-3.5 h-3.5 text-amber-500" />
                     <span>اسم النشاط (عربي) *</span>
@@ -584,7 +559,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       placeholder="أدخل اسم المحل بالعربي"
                     />
                   ) : (
-                    <div className="flex items-center justify-between gap-2 pt-1">
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
                       <span className="font-black text-sm text-[var(--text-primary)]">{formData.nameAr || 'غير مسجل'}</span>
                       <button
                         type="button"
@@ -599,7 +574,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {/* اسم النشاط إنجليزي */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Globe className="w-3.5 h-3.5 text-blue-500" />
                     <span>اسم النشاط (English)</span>
@@ -614,14 +589,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       placeholder="Business Name in English"
                     />
                   ) : (
-                    <div className="pt-1 font-bold text-sm text-[var(--text-primary)]" dir="ltr">
+                    <div className="pt-0.5 font-bold text-sm text-[var(--text-primary)]" dir="ltr">
                       {formData.nameEn || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
                     </div>
                   )}
                 </div>
 
                 {/* التصنيف والفئة */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Tag className="w-3.5 h-3.5 text-amber-500" />
                     <span>التصنيف والفئة التجارية</span>
@@ -658,7 +633,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       </select>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <div className="flex items-center gap-2 pt-0.5 flex-wrap">
                       <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-black px-3 py-1 rounded-xl border border-amber-500/30">
                         🏷️ {formData.category}
                       </span>
@@ -667,7 +642,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {/* مواعيد العمل */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-amber-500" />
                     <span>مواعيد وساعات العمل</span>
@@ -681,14 +656,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       placeholder="مثال: يومياً من 9:00 صباحاً حتى 11:00 مساءً"
                     />
                   ) : (
-                    <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-1">
+                    <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5">
                       {formData.workingHours || 'يومياً'}
                     </div>
                   )}
                 </div>
 
                 {/* وصف الخدمات */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5 text-amber-500" />
                     <span>وصف الأنشطة والخدمات</span>
@@ -702,7 +677,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       placeholder="وصف تفصيلي للأنشطة والمنتجات والعروض"
                     />
                   ) : (
-                    <p className="text-xs sm:text-sm font-bold text-[var(--text-secondary)] leading-relaxed pt-1 whitespace-pre-line">
+                    <p className="text-xs sm:text-sm font-bold text-[var(--text-secondary)] leading-relaxed pt-0.5 whitespace-pre-line">
                       {formData.description || 'لم يتم تسجيل وصف تفصيلي للنشاط.'}
                     </p>
                   )}
@@ -713,9 +688,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
           {/* ── TAB 2: المالك والتواصل ────────────────────────────────── */}
           {activeSection === 'owner' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-right">
               {/* اسم صاحب النشاط */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                 <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-amber-500" />
                   <span>اسم صاحب النشاط / المسؤول</span>
@@ -729,14 +704,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     placeholder="اسم المسؤول"
                   />
                 ) : (
-                  <div className="font-black text-sm text-[var(--text-primary)] pt-1">
+                  <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">
                     {formData.ownerName || 'صاحب النشاط'}
                   </div>
                 )}
               </div>
 
               {/* رقم الهاتف الأساسي */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                 <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-emerald-500" />
                   <span>رقم الهاتف الأساسي (واتساب)</span>
@@ -751,7 +726,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     placeholder="01xxxxxxxxx"
                   />
                 ) : (
-                  <div className="flex items-center justify-between gap-2 pt-1">
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
                     <span className="font-black text-sm text-[var(--text-primary)] font-mono" dir="ltr">
                       {formData.phone || 'غير مسجل'}
                     </span>
@@ -775,7 +750,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
 
               {/* هاتف إضافي */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                 <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-blue-500" />
                   <span>هاتف إضافي / أرضي</span>
@@ -790,14 +765,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     placeholder="رقم آخر (اختياري)"
                   />
                 ) : (
-                  <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-1 font-mono" dir="ltr">
+                  <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5 font-mono" dir="ltr">
                     {formData.secondaryPhone || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
                   </div>
                 )}
               </div>
 
               {/* البريد الإلكتروني */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                 <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                   <Mail className="w-3.5 h-3.5 text-purple-500" />
                   <span>البريد الإلكتروني</span>
@@ -812,7 +787,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     placeholder="example@mail.com"
                   />
                 ) : (
-                  <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-1" dir="ltr">
+                  <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5" dir="ltr">
                     {formData.ownerEmail || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
                   </div>
                 )}
@@ -820,15 +795,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* ── TAB 3: الموقع والخرائط (مع لوحة المزامنة الذكية المدمجة) ── */}
+          {/* ── TAB 3: الموقع والخرائط ─────────────────────────────────── */}
           {activeSection === 'location' && (
-            <div className="space-y-4 text-right">
+            <div className="space-y-3.5 text-right">
               
               {/* Google Maps Smart Verification & Sync Hub */}
-              <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-blue-950/40 border border-blue-500/40 rounded-2xl p-4 space-y-3 shadow-sm">
+              <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-blue-950/40 border border-blue-500/40 rounded-2xl p-3.5 space-y-3 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-black">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-black shrink-0">
                       <CloudUpload className="w-4 h-4" />
                     </div>
                     <div>
@@ -836,17 +811,17 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                         مركز اعتماد وتوثيق خرائط Google Maps
                       </h4>
                       <p className="text-[10px] text-slate-400 font-bold">
-                        أدوات سريعة لإرسال البيانات إلى Google Business Profile واعتماد التوثيق
+                        أدوات إرسال البيانات إلى Google Business Profile واعتماد التوثيق
                       </p>
                     </div>
                   </div>
 
-                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${verificationBadge.cls}`}>
+                  <span className={`text-[9.5px] font-black px-2.5 py-1 rounded-full border ${verificationBadge.cls}`}>
                     {verificationBadge.label}
                   </span>
                 </div>
 
-                {/* Fast Action Tools for Admin */}
+                {/* Fast Action Tools */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <button
                     type="button"
@@ -868,17 +843,17 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </button>
                 </div>
 
-                {/* Explicit Admin Verification Control Buttons */}
+                {/* Admin Status Controls */}
                 {isAdminOrFinancial && (
                   <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
                     <label className="text-[11px] font-black text-slate-300 block">
                       تحديد واعتماد حالة التوثيق يدوياً:
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => handleSetVerificationStatus('in_progress')}
-                        className={`p-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                        className={`p-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer ${
                           formData.verificationStatus === 'in_progress'
                             ? 'bg-amber-500 text-slate-950 border-amber-400 shadow'
                             : 'bg-slate-800/80 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
@@ -890,7 +865,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleSetVerificationStatus('verified')}
-                        className={`p-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                        className={`p-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer ${
                           formData.verificationStatus === 'verified'
                             ? 'bg-emerald-500 text-white border-emerald-400 shadow'
                             : 'bg-slate-800/80 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
@@ -902,7 +877,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleSetVerificationStatus('rejected')}
-                        className={`p-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                        className={`p-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer ${
                           formData.verificationStatus === 'rejected'
                             ? 'bg-rose-600 text-white border-rose-400 shadow'
                             : 'bg-slate-800/80 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
@@ -916,9 +891,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
 
               {/* Location Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* المحافظة */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-amber-500" />
                     <span>المحافظة</span>
@@ -936,12 +911,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       ))}
                     </select>
                   ) : (
-                    <div className="font-black text-sm text-[var(--text-primary)] pt-1">{formData.governorate}</div>
+                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">{formData.governorate}</div>
                   )}
                 </div>
 
                 {/* المدينة / الحي */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Building className="w-3.5 h-3.5 text-amber-500" />
                     <span>المدينة / المركز / الحي</span>
@@ -954,12 +929,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1"
                     />
                   ) : (
-                    <div className="font-black text-sm text-[var(--text-primary)] pt-1">{formData.city || formData.governorate}</div>
+                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">{formData.city || formData.governorate}</div>
                   )}
                 </div>
 
                 {/* الشارع والعنوان بالتفصيل */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Navigation className="w-3.5 h-3.5 text-blue-500" />
                     <span>الشارع والعنوان التفصيلي</span>
@@ -973,14 +948,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       placeholder="اسم الشارع ورقم العقار"
                     />
                   ) : (
-                    <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-1">
+                    <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5">
                       {formData.street || 'الموقع الجغرافي المسجل على الخريطة'}
                     </div>
                   )}
                 </div>
 
                 {/* رابط الخرائط */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5 text-emerald-500" />
                     <span>رابط الموقع على خرائط Google Maps الرسمي</span>
@@ -995,7 +970,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       placeholder="https://maps.google.com/..."
                     />
                   ) : (
-                    <div className="pt-1">
+                    <div className="pt-0.5">
                       {formData.googleMapsUrl ? (
                         <a
                           href={formData.googleMapsUrl}
@@ -1018,10 +993,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
           {/* ── TAB 4: الباقة والمالية ─────────────────────────────────── */}
           {activeSection === 'payment' && (
-            <div className="space-y-4 text-right">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="space-y-3 text-right">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* الباقة المختارة */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     <span>باقة التوثيق والخدمات</span>
@@ -1049,23 +1024,23 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       ))}
                     </select>
                   ) : (
-                    <div className="font-black text-sm text-[var(--text-primary)] pt-1">{formData.packageName}</div>
+                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">{formData.packageName}</div>
                   )}
                 </div>
 
                 {/* سعر الباقة */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
                     <span>إجمالي قيمة الباقة</span>
                   </span>
-                  <div className="font-black text-base text-[var(--text-primary)] pt-1">
+                  <div className="font-black text-base text-[var(--text-primary)] pt-0.5">
                     {formData.packagePrice || 250} ج.م
                   </div>
                 </div>
 
                 {/* المبلغ المسدد */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                     <span>المبلغ المسدد فعلياً</span>
@@ -1087,19 +1062,19 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       className="w-full bg-[var(--bg-card)] border-2 border-emerald-500 text-emerald-600 font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1"
                     />
                   ) : (
-                    <div className="font-black text-base text-emerald-600 dark:text-emerald-400 pt-1">
+                    <div className="font-black text-base text-emerald-600 dark:text-emerald-400 pt-0.5">
                       {formData.amountPaid || 0} ج.م
                     </div>
                   )}
                 </div>
 
-                {/* المبلغ المتبقي (المديونية) */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
+                {/* المبلغ المتبقي */}
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-amber-500" />
                     <span>المبلغ المتبقي للتحصيل</span>
                   </span>
-                  <div className={`font-black text-base pt-1 ${remainingDebt > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
+                  <div className={`font-black text-base pt-0.5 ${remainingDebt > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
                     {remainingDebt} ج.م
                   </div>
                 </div>
@@ -1109,9 +1084,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
           {/* ── TAB 5: المعرض والوسائط ────────────────────────────────── */}
           {activeSection === 'photos' && (
-            <div className="space-y-4 text-right">
-              {/* Controls */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border-color)]">
+            <div className="space-y-3.5 text-right">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
                 <div>
                   <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
                     معرض صور وفيديوهات النشاط ({totalMediaCount})
@@ -1138,9 +1112,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
               {/* Photos Grid */}
               {formData.photos && formData.photos.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {formData.photos.map((photo, idx) => (
-                    <div key={idx} className="relative group rounded-2xl overflow-hidden border border-[var(--border-color)] bg-slate-950 h-32 shadow-sm">
+                    <div key={idx} className="relative group rounded-2xl overflow-hidden border border-[var(--border-color)] bg-slate-950 h-28 sm:h-32 shadow-sm">
                       <img
                         src={photo}
                         alt={`صورة ${idx + 1}`}
@@ -1190,29 +1164,29 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
           {/* ── TAB 6: مركز رسائل وإشعارات الواتساب الموحد ───────────── */}
           {activeSection === 'whatsapp' && (
-            <div className="space-y-3.5 text-right">
+            <div className="space-y-3 text-right">
               <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-black">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-black shrink-0">
                     <MessageCircle className="w-4 h-4" />
                   </div>
                   <div>
                     <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
                       مركز رسائل وإشعارات WhatsApp المعتمدة
                     </h4>
-                    <p className="text-[10.5px] text-[var(--text-muted)] font-bold">
+                    <p className="text-[10px] text-[var(--text-muted)] font-bold">
                       أزرار إرسال فورية ومنظمة بحسب الحدث وحالة النشاط
                     </p>
                   </div>
                 </div>
 
-                <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20" dir="ltr">
+                <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20" dir="ltr">
                   {formData.phone || formData.ownerPhone || 'لا يوجد هاتف'}
                 </span>
               </div>
 
               {/* Message 1: Initial Invoice */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3 space-y-2 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
                     <FileText className="w-4 h-4 text-amber-500" />
@@ -1222,10 +1196,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     عند التسجيل
                   </span>
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
                   تتضمن تفاصيل الباقة، المبلغ المدفوع، المتبقي، ورابط الدليل الرسمي مع إشعار جارِ مراجعة التوثيق.
                 </p>
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center gap-2 pt-0.5">
                   <a
                     href={getInvoiceWhatsAppUrl(formData)}
                     target="_blank"
@@ -1241,13 +1215,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
                     title="نسخ نص الفاتورة"
                   >
-                    {copiedField === 'wa_inv' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                    {copiedField === 'wa_inv' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
                   </button>
                 </div>
               </div>
 
               {/* Message 2: Google Maps Verification */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-3 space-y-2 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
                     <MapPin className="w-4 h-4 text-blue-500" />
@@ -1257,10 +1231,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     بعد التوثيق
                   </span>
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
                   تهنئة العميل مع رابط الخريطة المعتمد المباشر، رابط الدليل، وحالة السداد وطرق الدفع للتسوية.
                 </p>
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center gap-2 pt-0.5">
                   <a
                     href={getGoogleMapsVerifiedWhatsAppUrl(formData)}
                     target="_blank"
@@ -1282,7 +1256,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
 
               {/* Message 3: Payment Receipt */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-3 space-y-2 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
                     <DollarSign className="w-4 h-4 text-emerald-500" />
@@ -1292,10 +1266,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     عند السداد الكامل
                   </span>
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
                   تأكيد سداد المبلغ كاملاً وتصفية الحساب (0 ج.م متبقي) وإصدار الإيصال المعتمد للعميل.
                 </p>
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center gap-2 pt-0.5">
                   <a
                     href={getPaymentReceiptWhatsAppUrl(formData)}
                     target="_blank"
@@ -1334,7 +1308,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </div>
 
                   {/* Campaign 1: Free QR Stand & 100 EGP Print Delivery */}
-                  <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-2">
+                  <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/30 rounded-2xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
                         <Gift className="w-4 h-4 text-amber-500" />
@@ -1347,7 +1321,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
                       إرسال تصميم الـ QR مجاناً + عرض خدمة الطباعة الفاخرة والتوصيل لموقع المحل في نفس اليوم بتكلفة 100 ج.
                     </p>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-0.5">
                       <a
                         href={getFreeQrGiftWhatsAppUrl(formData)}
                         target="_blank"
@@ -1369,7 +1343,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </div>
 
                   {/* Campaign 2: Visual Merchandising & Free Consultation */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3 space-y-2 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
                         <Sparkles className="w-4 h-4 text-amber-500" />
@@ -1382,7 +1356,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
                       نصيحة أول 3 ثوانٍ للمشتري + دعوة لإرسال صورة المحل للحصول على تقرير واقتراحات تنسيق مجاناً وبكل سخاء.
                     </p>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-0.5">
                       <a
                         href={getVisualConsultingWhatsAppUrl(formData)}
                         target="_blank"
@@ -1404,7 +1378,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </div>
 
                   {/* Campaign 3: Business Checkup & Working Hours Update */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3 space-y-2 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
                         <Clock className="w-4 h-4 text-blue-500" />
@@ -1417,7 +1391,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
                       متابعة مبيعات العميل والاطمئنان عليه وعرض تحديث أرقامه ومواعيد عمله على الخرائط مجاناً.
                     </p>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-0.5">
                       <a
                         href={getBusinessCheckupWhatsAppUrl(formData)}
                         target="_blank"
@@ -1439,7 +1413,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </div>
 
                   {/* Campaign 4: Social Proof & VIP Upgrade */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-purple-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-purple-500/40 rounded-2xl p-3 space-y-2 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
                         <TrendingUp className="w-4 h-4 text-purple-500" />
@@ -1452,7 +1426,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
                       قصة نجاح زيادة 40% وعرض فيديو ريلز إعلاني + حملة إعلانات جغرافية مستهدفة لمنطقة المحل.
                     </p>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-0.5">
                       <a
                         href={getSocialProofUpgradeWhatsAppUrl(formData)}
                         target="_blank"
@@ -1478,8 +1452,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           )}
         </div>
 
-        {/* ── 5. CLEAN & FOCUSED FOOTER ──────────────────────────────── */}
-        <div className="p-3.5 sm:p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex items-center justify-between gap-2 shrink-0">
+        {/* ── 5. CLEAN & ERGONOMIC BOTTOM SHEET FOOTER ────────────────── */}
+        <div className="p-3 sm:p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex items-center justify-between gap-2 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div>
             {onDeleteBusiness && (userRole === 'admin' || userRole === 'supervisor') && (
               <button
@@ -1490,7 +1464,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     onClose();
                   }
                 }}
-                className="text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 text-xs font-bold px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>حذف النشاط</span>
@@ -1502,7 +1476,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-[var(--bg-card)] hover:bg-slate-500/10 text-[var(--text-secondary)] border border-[var(--border-color)] text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer"
+              className="bg-[var(--bg-card)] hover:bg-slate-500/10 text-[var(--text-secondary)] border border-[var(--border-color)] text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer active:scale-95"
             >
               إغلاق
             </button>
