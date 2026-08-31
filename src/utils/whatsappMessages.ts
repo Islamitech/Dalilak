@@ -1,6 +1,7 @@
 import { Business } from '../types';
 
-const DIRECTORY_URL = 'https://www.dalilaak.com/';
+// Using a cache-busting parameter forces WhatsApp servers to crawl and fetch the new 3D OpenGraph image immediately
+const DIRECTORY_URL = 'https://www.dalilaak.com/?ref=app';
 
 export function formatWhatsAppPhone(phone?: string): string {
   if (!phone) return '';
@@ -10,12 +11,30 @@ export function formatWhatsAppPhone(phone?: string): string {
 
 /**
  * Strips any invisible zero-width characters or problematic variation selectors
- * that can cause replacement characters () in WhatsApp URL decoders.
+ * that can cause replacement characters in WhatsApp decoders.
  */
 export function cleanWhatsAppText(text: string): string {
   return text
-    .replace(/[\uFE00-\uFE0F\u200B-\u200D\uFFFD]/g, '')
+    .replace(/[\uFE00-\uFE0F\u200B-\u200D\uFFFD\u00A0]/g, ' ')
+    .replace(/\r\n/g, '\n')
     .trim();
+}
+
+/**
+ * Standard encodeURIComponent leaves *, !, (, ), ', ~ unencoded (RFC 3986 unreserved).
+ * When WhatsApp Web parses unencoded asterisks alongside UTF-8 percent-encoded Arabic bytes,
+ * it inserts a replacement character () before each asterisk.
+ * Fully percent-encoding these characters guarantees 100% clean rendering across all platforms.
+ */
+export function safeWhatsAppEncode(text: string): string {
+  const cleaned = cleanWhatsAppText(text);
+  return encodeURIComponent(cleaned)
+    .replace(/\*/g, '%2A')
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/~/g, '%7E');
 }
 
 // -----------------------------------------------------------------------------
@@ -58,7 +77,7 @@ export function generateInvoiceWhatsAppMessage(biz: Business): string {
 
 export function getInvoiceWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generateInvoiceWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generateInvoiceWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
@@ -94,7 +113,7 @@ export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string
 
 export function getGoogleMapsVerifiedWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generateGoogleMapsVerifiedWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generateGoogleMapsVerifiedWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
@@ -123,7 +142,7 @@ export function generatePaymentReceiptWhatsAppMessage(biz: Business): string {
 
 export function getPaymentReceiptWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generatePaymentReceiptWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generatePaymentReceiptWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
@@ -153,7 +172,7 @@ export function generateUpgradeOffersWhatsAppMessage(biz: Business): string {
 
 export function getUpgradeOffersWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generateUpgradeOffersWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generateUpgradeOffersWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
@@ -181,7 +200,7 @@ export function generateFreeQrGiftWhatsAppMessage(biz: Business): string {
 
 export function getFreeQrGiftWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generateFreeQrGiftWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generateFreeQrGiftWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
@@ -208,7 +227,7 @@ export function generateVisualConsultingWhatsAppMessage(biz: Business): string {
 
 export function getVisualConsultingWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generateVisualConsultingWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generateVisualConsultingWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
@@ -234,7 +253,7 @@ export function generateBusinessCheckupWhatsAppMessage(biz: Business): string {
 
 export function getBusinessCheckupWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generateBusinessCheckupWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generateBusinessCheckupWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
@@ -261,6 +280,6 @@ export function generateSocialProofUpgradeWhatsAppMessage(biz: Business): string
 
 export function getSocialProofUpgradeWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = encodeURIComponent(generateSocialProofUpgradeWhatsAppMessage(biz));
+  const text = safeWhatsAppEncode(generateSocialProofUpgradeWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
