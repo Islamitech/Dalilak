@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Logo } from './Logo';
 import { 
@@ -7,10 +7,14 @@ import {
   Target, 
   Compass, 
   TrendingUp,
-  Cpu,
-  Scale,
-  Megaphone,
-  ChevronLeft
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Building,
+  Users,
+  Briefcase,
+  Coffee,
+  Calendar
 } from 'lucide-react';
 
 interface AboutUsModalProps {
@@ -18,7 +22,48 @@ interface AboutUsModalProps {
   onOpenTerms?: () => void;
 }
 
+const HQ_PHOTOS = [
+  {
+    id: 'building',
+    src: '/images/hq/hq-building.jpg',
+    title: 'المبنى الرئيسي والواجهة المعتمدة',
+    desc: 'مقر الإدارة الرئيسي لمنظومة دليلك (الفرع 145) في جمهورية مصر العربية.',
+    icon: <Building className="w-3.5 h-3.5" />
+  },
+  {
+    id: 'workspace',
+    src: '/images/hq/hq-workspace.jpg',
+    title: 'بيئة العمل وغرفة العمليات',
+    desc: 'فريق الدعم الفني والميداني لخدمة المناديب والعملاء على مدار الساعة.',
+    icon: <Users className="w-3.5 h-3.5" />
+  },
+  {
+    id: 'executive',
+    src: '/images/hq/hq-executive.jpg',
+    title: 'مكتب الإدارة التنفيذية',
+    desc: 'إدارة الاستراتيجيات وتطوير الأعمال ومتابعة خطط التوسع والنمو.',
+    icon: <Briefcase className="w-3.5 h-3.5" />
+  },
+  {
+    id: 'lounge',
+    src: '/images/hq/hq-lounge.jpg',
+    title: 'ردهة الاستقبال وكافيه الضيافة',
+    desc: 'استقبال الشركاء، أصحاب الأعمال، والمناديب في بيئة عصرية ومريحة.',
+    icon: <Coffee className="w-3.5 h-3.5" />
+  },
+  {
+    id: 'meeting',
+    src: '/images/hq/hq-meeting.jpg',
+    title: 'قاعة الاجتماعات والمؤتمرات',
+    desc: 'عقد الصفقات الكبرى، تدريب فرق العمل الميدانية، والاجتماعات الدورية.',
+    icon: <Calendar className="w-3.5 h-3.5" />
+  },
+];
+
 export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms }) => {
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -26,13 +71,24 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
     };
   }, []);
 
+  const handleNextPhoto = () => {
+    setActivePhotoIdx((prev) => (prev + 1) % HQ_PHOTOS.length);
+  };
+
+  const handlePrevPhoto = () => {
+    setActivePhotoIdx((prev) => (prev - 1 + HQ_PHOTOS.length) % HQ_PHOTOS.length);
+  };
+
+  const currentPhoto = HQ_PHOTOS[activePhotoIdx];
+
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay">
-      <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
+    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay" dir="rtl">
+      <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-3xl w-full p-4 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
+        
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm"
+          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm z-10"
           aria-label="إغلاق"
         >
           ✕
@@ -74,133 +130,120 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
           </div>
         </div>
 
-        {/* Core Pillars / Services of Dalelak */}
-        <div className="space-y-3.5">
+        {/* ── INTERACTIVE HEADQUARTERS & OFFICE TOUR GALLERY ───────────── */}
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>محاور وخدمات منظومة دليلك المتكاملة:</span>
+            <h3 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
+              <Building className="w-4 h-4 text-amber-500" />
+              <span>جولة داخل المقر الرئيسي لمنظومة دليلك 🏢</span>
             </h3>
-            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-              حلول 360° متكاملة
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+              {activePhotoIdx + 1} من {HQ_PHOTOS.length}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            {/* Pillar 1: Documentation & Maps */}
-            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">1. التوثيقات الرسمية والتواجد الجغرافي</h4>
-              </div>
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                توثيق وتثبيت الأنشطة على خرائط Google Maps والمنصات الجغرافية العالمية بإحداثيات GPS الدقيقة، لضمان وصول العملاء إلى موقعك بسهولة وموثوقية تامة.
-              </p>
-            </div>
-
-            {/* Pillar 2: Digital Marketing */}
-            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <Megaphone className="w-4 h-4" />
-                </div>
-                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">2. التسويق الرقمي وإدارة الهوية</h4>
-              </div>
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                تحسين محركات البحث المحلية (Local SEO)، تصدر الكلمات المفتاحية في منطقتك، وبناء حضور رقمي قوي يجلب المزيد من الاتصالات والزيارات الميدانية.
-              </p>
-            </div>
-
-            {/* Pillar 3: Technology Solutions */}
-            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">3. الخدمات التكنولوجية والبرمجية</h4>
-              </div>
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                إصدار الفواتير الإلكترونية المعتمدة مع رموز QR الذكية، الربط البرمجي السحابي، وإدارة بيانات الأعمال عبر لوحات تحكم متطورة ومحمية.
-              </p>
-            </div>
-
-            {/* Pillar 4: Legal & IP Protection */}
-            <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 hover:border-amber-500/30 transition-colors">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                  <Scale className="w-4 h-4" />
-                </div>
-                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">4. الخدمات القانونية والحماية الفكرية</h4>
-              </div>
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                حماية الهوية والعلامات التجارية والأسماء المسجلة من الانتحال أو التعدي الرقمي، مع استشارات الامتثال للمعايير والسياسات الرسمية المعمول بها.
-              </p>
-            </div>
-          </div>
-
-          {/* Pillar 5: Business Growth & Consulting Full Width */}
-          <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-yellow-500/15 p-4 rounded-2xl border border-amber-500/30 space-y-1.5 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black">
-                <TrendingUp className="w-4 h-4" />
-              </div>
-              <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">5. استشارات نمو وتنمية الأنشطة التجارية (Business Growth & Consulting)</h4>
-            </div>
-            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-medium">
-              تقديم استشارات إدارية وتسويقية متخصصة لمساعدة الأنشطة على التوسع الجغرافي، رفع العائد على الاستثمار، وتحليل الفرص السوقية والمنافسين لتحقيق نمو مستدام ومتسارع.
-            </p>
-          </div>
-
-          {/* Dalilaak Headquarters Building Showcase */}
-          <div className="rounded-2xl overflow-hidden border border-amber-500/30 bg-slate-900 shadow-md relative group">
+          {/* Main Showcase Image */}
+          <div className="relative rounded-2xl overflow-hidden border-2 border-amber-500/30 bg-slate-950 shadow-lg group">
             <img
-              src="/dalilaak-hq.jpg"
-              alt="مقر الإدارة الرئيسي لمنظومة دليلك"
-              className="w-full h-44 sm:h-52 object-cover object-center"
+              src={currentPhoto.src}
+              alt={currentPhoto.title}
+              onClick={() => setLightboxPhoto(currentPhoto.src)}
+              className="w-full h-56 sm:h-72 object-cover object-center cursor-pointer transition-transform duration-500 group-hover:scale-102"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent flex items-end p-3.5 sm:p-4">
-              <div className="flex items-center justify-between gap-2 w-full text-white">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs">
-                    📍
-                  </div>
-                  <span className="font-black text-xs sm:text-sm text-amber-300">
-                    مقر الإدارة الرئيسي — منظومة دليلك لرقمنة الأنشطة التجارية
-                  </span>
-                </div>
-                <span className="text-[10px] bg-white/15 backdrop-blur-xs px-2.5 py-1 rounded-full border border-white/20 font-bold hidden sm:inline-block">
-                  الفرع الرئيسي 145
+
+            {/* Overlay Caption */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-transparent flex flex-col justify-between p-3.5 sm:p-4 pointer-events-none">
+              <div className="flex items-center justify-between">
+                <span className="bg-slate-950/80 backdrop-blur-xs text-amber-400 border border-amber-500/40 text-[10px] sm:text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow">
+                  {currentPhoto.icon}
+                  <span>{currentPhoto.title}</span>
                 </span>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxPhoto(currentPhoto.src);
+                  }}
+                  className="pointer-events-auto bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-xl backdrop-blur-xs transition-colors cursor-pointer"
+                  title="تكبير الصورة"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
               </div>
+
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-white drop-shadow-md">
+                  {currentPhoto.desc}
+                </p>
+                <div className="flex items-center gap-1 mt-1 text-[10px] text-amber-300 font-medium">
+                  <MapPin className="w-3 h-3" />
+                  <span>المقر الرئيسي — القاهرة، جمهورية مصر العربية</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Slider Navigation Arrows */}
+            <button
+              type="button"
+              onClick={handlePrevPhoto}
+              className="absolute top-1/2 right-2 -translate-y-1/2 bg-slate-950/70 hover:bg-amber-500 hover:text-slate-950 text-white w-8 h-8 rounded-full flex items-center justify-center border border-white/20 backdrop-blur-xs transition-all cursor-pointer shadow-lg"
+              title="السابق"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextPhoto}
+              className="absolute top-1/2 left-2 -translate-y-1/2 bg-slate-950/70 hover:bg-amber-500 hover:text-slate-950 text-white w-8 h-8 rounded-full flex items-center justify-center border border-white/20 backdrop-blur-xs transition-all cursor-pointer shadow-lg"
+              title="التالي"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Thumbnail Bar */}
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+            {HQ_PHOTOS.map((photo, idx) => (
+              <button
+                key={photo.id}
+                type="button"
+                onClick={() => setActivePhotoIdx(idx)}
+                className={`relative rounded-xl overflow-hidden border-2 transition-all cursor-pointer h-12 sm:h-16 ${
+                  activePhotoIdx === idx
+                    ? 'border-amber-500 ring-2 ring-amber-500/40 scale-102'
+                    : 'border-[var(--border-color)] opacity-60 hover:opacity-100'
+                }`}
+              >
+                <img src={photo.src} alt={photo.title} className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Official Communication & Support Channel */}
+        <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-right">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-black shrink-0">
+              🌐
+            </div>
+            <div>
+              <div className="font-black text-[var(--text-primary)] text-xs">الموقع الرسمي والدليل المعتمد:</div>
+              <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
+                https://www.dalilaak.com/
+              </a>
             </div>
           </div>
 
-          {/* Official Communication & Support Channel */}
-          <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-right">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-black shrink-0">
-                🌐
-              </div>
-              <div>
-                <div className="font-black text-[var(--text-primary)] text-xs">الموقع الرسمي والدليل المعتمد:</div>
-                <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
-                  https://www.dalilaak.com/
-                </a>
-              </div>
+          <div className="flex items-center gap-2 text-right">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center font-black shrink-0">
+              ✉️
             </div>
-
-            <div className="flex items-center gap-2 text-right">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center font-black shrink-0">
-                ✉️
-              </div>
-              <div>
-                <div className="font-black text-[var(--text-primary)] text-xs">البريد الإلكتروني والتواصل الرسمي:</div>
-                <a href="mailto:info@dalilaak.com" className="text-blue-600 dark:text-blue-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
-                  info@dalilaak.com
-                </a>
-              </div>
+            <div>
+              <div className="font-black text-[var(--text-primary)] text-xs">البريد الإلكتروني والتواصل الرسمي:</div>
+              <a href="mailto:info@dalilaak.com" className="text-blue-600 dark:text-blue-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
+                info@dalilaak.com
+              </a>
             </div>
           </div>
         </div>
@@ -230,6 +273,28 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
           </button>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-[10050] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute -top-10 left-0 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center font-black cursor-pointer text-sm"
+            >
+              ✕
+            </button>
+            <img
+              src={lightboxPhoto}
+              alt="معاينة المقر"
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl border-2 border-amber-500/50 shadow-2xl mx-auto"
+            />
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );
