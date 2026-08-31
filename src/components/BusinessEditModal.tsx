@@ -46,6 +46,7 @@ import {
   Share2,
   ShieldCheck,
   Send,
+  TrendingUp,
 } from 'lucide-react';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { formatActivityDateTime } from '../utils/dateFormatters';
@@ -59,6 +60,14 @@ import {
   generatePaymentReceiptWhatsAppMessage,
   getUpgradeOffersWhatsAppUrl,
   generateUpgradeOffersWhatsAppMessage,
+  getFreeQrGiftWhatsAppUrl,
+  generateFreeQrGiftWhatsAppMessage,
+  getVisualConsultingWhatsAppUrl,
+  generateVisualConsultingWhatsAppMessage,
+  getBusinessCheckupWhatsAppUrl,
+  generateBusinessCheckupWhatsAppMessage,
+  getSocialProofUpgradeWhatsAppUrl,
+  generateSocialProofUpgradeWhatsAppMessage,
 } from '../utils/whatsappMessages';
 
 interface BusinessEditModalProps {
@@ -1307,40 +1316,164 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
               </div>
 
-              {/* Message 4: Upgrade Offers */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                    <Gift className="w-4 h-4 text-amber-500" />
-                    <span>4. رسالة عروض الترقية والتطوير الحصرية 🚀</span>
+              {/* ── STRICT ADMIN/SUPERVISOR ONLY: MONTHLY NURTURING CAMPAIGNS ── */}
+              {isAdminOrFinancial && (
+                <div className="pt-3 border-t border-[var(--border-color)] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center font-black text-xs">
+                        🎁
+                      </div>
+                      <h5 className="font-black text-xs text-amber-700 dark:text-amber-300">
+                        حملات الرعاية والمتابعة الشهرية لتنمية الأنشطة (خاص بالإدارة والمشرفين)
+                      </h5>
+                    </div>
+                    <span className="text-[9px] bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
+                      أدوات تسويقية ورعاية 4x
+                    </span>
                   </div>
-                  <span className="text-[9.5px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">
-                    فرص مبيعات
-                  </span>
+
+                  {/* Campaign 1: Free QR Stand & 100 EGP Print Delivery */}
+                  <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                        <Gift className="w-4 h-4 text-amber-500" />
+                        <span>الحملة 1: 🎁 هدية باركود التقييمات + خدمة الطباعة (100 ج)</span>
+                      </div>
+                      <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
+                        هدية ومبيعات
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
+                      إرسال تصميم الـ QR مجاناً + عرض خدمة الطباعة الفاخرة والتوصيل لموقع المحل في نفس اليوم بتكلفة 100 ج.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <a
+                        href={getFreeQrGiftWhatsAppUrl(formData)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-slate-950 font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>إرسال هدية الـ QR وعرض الطباعة (100 ج)</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(generateFreeQrGiftWhatsAppMessage(formData), 'wa_qr_gift')}
+                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        title="نسخ نص الرسالة"
+                      >
+                        {copiedField === 'wa_qr_gift' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Campaign 2: Visual Merchandising & Free Consultation */}
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>الحملة 2: 💡 نصيحة ذهبية واستشارة العرض البصري المجانية</span>
+                      </div>
+                      <span className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
+                        استشارة مجانية
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
+                      نصيحة أول 3 ثوانٍ للمشتري + دعوة لإرسال صورة المحل للحصول على تقرير واقتراحات تنسيق مجاناً وبكل سخاء.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <a
+                        href={getVisualConsultingWhatsAppUrl(formData)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-2 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                      >
+                        <Send className="w-3.5 h-3.5 text-amber-400" />
+                        <span>إرسال استشارة العرض والتنسيق</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(generateVisualConsultingWhatsAppMessage(formData), 'wa_visual')}
+                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        title="نسخ نص الرسالة"
+                      >
+                        {copiedField === 'wa_visual' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Campaign 3: Business Checkup & Working Hours Update */}
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                        <Clock className="w-4 h-4 text-blue-500" />
+                        <span>الحملة 3: ☕ فحص نبض النشاط وتحديث المواعيد مجاناً</span>
+                      </div>
+                      <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                        اطمئنان ودعم
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
+                      متابعة مبيعات العميل والاطمئنان عليه وعرض تحديث أرقامه ومواعيد عمله على الخرائط مجاناً.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <a
+                        href={getBusinessCheckupWhatsAppUrl(formData)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-2 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                      >
+                        <Send className="w-3.5 h-3.5 text-blue-400" />
+                        <span>إرسال رسالة الاطمئنان والمتابعة</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(generateBusinessCheckupWhatsAppMessage(formData), 'wa_checkup')}
+                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        title="نسخ نص الرسالة"
+                      >
+                        {copiedField === 'wa_checkup' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Campaign 4: Social Proof & VIP Upgrade */}
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-purple-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                        <TrendingUp className="w-4 h-4 text-purple-500" />
+                        <span>الحملة 4: 📈 قصة نجاح وترقية باقة التسويق VIP 🚀</span>
+                      </div>
+                      <span className="text-[9px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">
+                        ترقية باقات
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
+                      قصة نجاح زيادة 40% وعرض فيديو ريلز إعلاني + حملة إعلانات جغرافية مستهدفة لمنطقة المحل.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <a
+                        href={getSocialProofUpgradeWhatsAppUrl(formData)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>إرسال قصة النجاح وعرض باقة VIP</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(generateSocialProofUpgradeWhatsAppMessage(formData), 'wa_social')}
+                        className="bg-[var(--bg-card)] hover:bg-purple-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        title="نسخ نص الرسالة"
+                      >
+                        {copiedField === 'wa_social' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-purple-500" />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                  عرض التأسيس والربط الذكي وباقات التسويق الميداني VIP لمضاعفة انتشار العميل.
-                </p>
-                <div className="flex items-center gap-2 pt-1">
-                  <a
-                    href={getUpgradeOffersWhatsAppUrl(formData)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-slate-950 font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>إرسال عروض الترقية والتطوير</span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyText(generateUpgradeOffersWhatsAppMessage(formData), 'wa_upg')}
-                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
-                    title="نسخ نص العروض"
-                  >
-                    {copiedField === 'wa_upg' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>

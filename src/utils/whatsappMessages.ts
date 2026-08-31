@@ -8,6 +8,10 @@ export function formatWhatsAppPhone(phone?: string): string {
   return clean.startsWith('20') ? clean : `20${clean}`;
 }
 
+// -----------------------------------------------------------------------------
+// OPERATIONAL EVENTS (Invoices & Receipts)
+// -----------------------------------------------------------------------------
+
 /**
  * Event 1: Initial Registration & Official Invoice Message
  */
@@ -136,5 +140,107 @@ export function generateUpgradeOffersWhatsAppMessage(biz: Business): string {
 export function getUpgradeOffersWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
   const text = encodeURIComponent(generateUpgradeOffersWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+// -----------------------------------------------------------------------------
+// MONTHLY CLIENT NURTURING & VALUE-DRIVEN CAMPAIGNS (ADMIN / SUPERVISOR ONLY)
+// -----------------------------------------------------------------------------
+
+/**
+ * Monthly Campaign 1: Free QR Stand Design & Print Delivery Upsell (100 EGP)
+ */
+export function generateFreeQrGiftWhatsAppMessage(biz: Business): string {
+  return (
+    `🎁 *هدية خاصة من شركة دليلك لنشاطكم (${biz.nameAr})* 🗺️\n` +
+    `-----------------------------------------\n` +
+    `أهلاً بحضرتك أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
+    `✨ *التصاميم المرفقة مع الرسالة دي هدية مجانية تماماً ليك من منظومة دليلك!*\n` +
+    `كل اللي عليك تطبعها وتحطها في محلك، عشان الزباين يصوروا الـ QR Code بالموبايل ويقيموا مكانك على الخريطة بكل سهولة وبسرعة ويساعدوك تظهر أول نتيجة بحث.\n\n` +
+    `🚚 *خدمة الطباعة الفاخرة والتوصيل:* \n` +
+    `لو تحب نطبعها لك بجودة عالية وفاخرة ونوصلها لغاية عندك في نفس اليوم، التكلفة *100 جنيه بس* (شاملة كل شيء).\n\n` +
+    `💬 رد علينا بكلمة *(اطبعلي)* وسيقوم فريقنا بتجهيزها وإرسالها فوراً لموقعكم!\n` +
+    `🌐 منصة دليلك: ${DIRECTORY_URL}`
+  );
+}
+
+export function getFreeQrGiftWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = encodeURIComponent(generateFreeQrGiftWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Monthly Campaign 2: Visual Merchandising & Free Store Layout Consultation
+ */
+export function generateVisualConsultingWhatsAppMessage(biz: Business): string {
+  return (
+    `💡 *نصيحة ذهبية واستشارة مجانية لتنمية نشاط (${biz.nameAr})* 🌟\n` +
+    `-----------------------------------------\n` +
+    `تحية طيبة أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
+    `دراسات مبيعات التجزئة تؤكد أن *أول 3 ثوانٍ* يدخل فيها الزبون محلك تحدد بنسبة 70% قراره بالشراء والشعور بالراحة!\n\n` +
+    `📌 *نصائحنا السريعة لك هذا الشهر:*\n` +
+    `1. الاهتمام بنظافة مدخل المحل والواجهة الخارجية لجذب المارة.\n` +
+    `2. تركيز الإضاءة القوية على المنتجات الأكثر مبيعاً والأعلى ربحية.\n` +
+    `3. جعل ممرات الحركة واسعة ومريحة لسهولة تصفح المحل.\n\n` +
+    `📸 *خدمة استشارية مجانية تماماً ليك:* \n` +
+    `صور لنا واجهة محلك أو طريقة عرض المنتجات وأرسلها هنا، وسيقوم مستشارو الديكور والتسويق لدينا بتقديم *تقرير واقتراحات تنسيق وتطوير مجانية وبكل سخاء!* 🤝\n\n` +
+    `نجاحك وتألق محلك هو فخرنا الدائم في دليلك 🚀`
+  );
+}
+
+export function getVisualConsultingWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = encodeURIComponent(generateVisualConsultingWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Monthly Campaign 3: Business Pulse Checkup & Free Working Hours Update
+ */
+export function generateBusinessCheckupWhatsAppMessage(biz: Business): string {
+  return (
+    `👋 *متابعة دورية واطمئنان على نشاط (${biz.nameAr})* ☕\n` +
+    `-----------------------------------------\n` +
+    `أهلاً بك أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
+    `فريق عمل «دليلك» يطمئن على حركة المبيعات والزبائن لديكم هذا الشهر!\n\n` +
+    `🛠️ *نحب نذكرك بأن خدمات الدعم الفني في دليلك تحت أمرك مجاناً:*\n` +
+    `- هل ترغب في تحديث مواعيد وساعات العمل للموسم؟\n` +
+    `- هل تم تغيير أرقام الهواتف أو إضافة خدمات جديدة للمحل؟\n` +
+    `- هل تواجه أي استفسار حول ظهور مكانك على الخرائط؟\n\n` +
+    `📲 أرسل لنا أي تعديل وسنقوم بتحديثه فوراً على الخرائط والمنظومة لتظل دائماً في صدارة نتائج البحث.\n\n` +
+    `دائماً في خدمتكم بكل سرور!\n` +
+    `🌐 ${DIRECTORY_URL}`
+  );
+}
+
+export function getBusinessCheckupWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = encodeURIComponent(generateBusinessCheckupWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Monthly Campaign 4: Social Proof Success Story & Targeted VIP Ads Pitch
+ */
+export function generateSocialProofUpgradeWhatsAppMessage(biz: Business): string {
+  return (
+    `📈 *كيف تضاعف عدد الزبائن القادمين من منطقتك الجغرافية؟* 🚀\n` +
+    `-----------------------------------------\n` +
+    `أهلاً أستاذ *${biz.ownerName || 'صاحب النشاط'}* في *(${biz.nameAr})*،\n\n` +
+    `الشهر الماضي، أحد الأنشطة الشريكة معنا حقق قفزة بنسبة 40% في الزيارات والطلبات بفضل تفعيل *«باقة التسويق الميداني والربط الذكي VIP»*:\n\n` +
+    `🎯 *ماذا تتضمن الباقة؟*\n` +
+    `1. تصوير ومونتاج فيديو ريلز إعلاني قصير احترافي لمحلكم.\n` +
+    `2. إطلاق حملة إعلانات ممولة جغرافية تستهدف سكان منطقتك المحيطة بمحلك بدقة.\n` +
+    `3. إدارة احترافية لتقييمات Google Maps لرفع تصنيف محلك إلى 5 نجوم.\n\n` +
+    `⚡ *إذا كنت جاهزاً للقفزة القادمة في مبيعات نشاطكم:* \n` +
+    `تواصل معنا اليوم لحجز جلسة التطوير وتفعيل الباقة بخصم خاص لشركاء دليلك!\n\n` +
+    `فريق النمو والتطوير — منظومة دليلك 🤝`
+  );
+}
+
+export function getSocialProofUpgradeWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = encodeURIComponent(generateSocialProofUpgradeWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
