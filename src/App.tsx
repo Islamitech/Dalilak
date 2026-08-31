@@ -670,6 +670,9 @@ export default function App() {
     setHomeVerificationFilter('all');
     setActiveTab('home');
 
+    // ⚡ Open the invoice immediately so the representative and client can view and photograph it
+    setSelectedInvoiceBiz(normalizedBiz);
+
     // ⚡ 2. Instant Cross-Tab Broadcast (Real-Time across all windows)
     try {
       const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
