@@ -437,6 +437,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       cashCollectedByRep: paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
       paymentStatus,
       verificationStatus: 'pending', // Default: new registration, not submitted to Google yet
+      repLocationUrl: `https://www.google.com/maps?q=${lat},${lng}`,
+      googleMapsUrl: undefined, // Strictly verified by Admin only
       googleSyncStatus: 'not_synced',
       invoiceNumber: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
       invoiceDate: new Date().toISOString().split('T')[0],

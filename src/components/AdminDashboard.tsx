@@ -1338,6 +1338,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span className="text-[9px] text-[var(--text-muted)] block font-bold">الموقع والمندوب:</span>
                             <span className="font-bold text-[var(--text-primary)] block truncate">{biz.governorate} ({biz.city})</span>
                             <span className="text-[10px] text-[var(--text-secondary)] block truncate">مندوب: {biz.repName}</span>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              <a
+                                href={biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline"
+                                title="موقع المندوب الميداني (غير موثق)"
+                              >
+                                📍 موقع المندوب
+                              </a>
+                              {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && (
+                                <a
+                                  href={biz.googleMapsUrl.trim()}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                                  title="الموقع المعتمد على خرائط Google"
+                                >
+                                  • ✅ الخريطة الموثقة
+                                </a>
+                              )}
+                            </div>
                           </div>
                           <div className="min-w-0">
                             <span className="text-[9px] text-[var(--text-muted)] block font-bold">تاريخ الإضافة:</span>
@@ -1462,6 +1484,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <td className="p-3">
                               <p className="font-bold text-[var(--text-primary)]">{biz.governorate} ({biz.city})</p>
                               <p className="text-[11px] text-[var(--text-secondary)] font-bold">المندوب: {biz.repName}</p>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <a
+                                  href={biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[9.5px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold px-2 py-0.5 rounded-md border border-amber-500/30 inline-flex items-center gap-1"
+                                  title="فتح موقع المعاينة الميدانية المرسل من المندوب (غير موثق)"
+                                >
+                                  <MapPin className="w-2.5 h-2.5 text-amber-500" />
+                                  <span>موقع المندوب (غير موثق) ↗</span>
+                                </a>
+                                {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && (
+                                  <a
+                                    href={biz.googleMapsUrl.trim()}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[9.5px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-md border border-emerald-500/30 inline-flex items-center gap-1"
+                                    title="فتح الموقع المعتمد رسمياً على خرائط Google"
+                                  >
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                                    <span>خريطة Google الموثقة 🗺️</span>
+                                  </a>
+                                )}
+                              </div>
                             </td>
 
                             <td className="p-3">

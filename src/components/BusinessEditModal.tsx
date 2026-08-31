@@ -140,7 +140,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       ownerName: (formData.ownerName && formData.ownerName.trim()) || 'صاحب النشاط',
       phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
       ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
-      googleMapsUrl: formData.googleMapsUrl?.trim() || undefined,
+      repLocationUrl: formData.repLocationUrl?.trim() || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : undefined),
+      googleMapsUrl: (formData.googleMapsUrl && formData.googleMapsUrl.trim().startsWith('http')) ? formData.googleMapsUrl.trim() : undefined,
       verificationStatus: formData.verificationStatus || 'pending',
       googleSyncStatus: formData.googleSyncStatus || (formData.verificationStatus === 'verified' ? 'synced' : 'not_synced'),
       photos: Array.isArray(formData.photos) ? formData.photos : [],
@@ -184,6 +185,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   };
 
   const handleCopyGoogleDetails = () => {
+    const repMapUrl = formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '');
+    const verifiedUrl = formData.googleMapsUrl || 'لم يُضف بعد (قيد المراجعة)';
+
     const fullText = 
       `اسم النشاط: ${formData.nameAr}\n` +
       `الاسم بالإنجليزية: ${formData.nameEn || ''}\n` +
@@ -193,7 +197,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       `أوقات العمل: ${formData.workingHours || 'يومياً'}\n` +
       `الهاتف: ${formData.phone} ${formData.secondaryPhone ? `| ${formData.secondaryPhone}` : ''}\n` +
       `الإحداثيات: ${formData.lat}, ${formData.lng}\n` +
-      `رابط الخريطة: ${formData.googleMapsUrl || `https://www.google.com/maps/?q=${formData.lat},${formData.lng}`}`;
+      `📍 رابط المعاينة الميدانية (المندوب - غير موثق): ${repMapUrl}\n` +
+      `✅ رابط خرائط Google الموثق (الإدارة): ${verifiedUrl}`;
 
     handleCopyText(fullText, 'google_details');
   };
@@ -954,35 +959,97 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   )}
                 </div>
 
-                {/* رابط الخرائط */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
-                  <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-                    <ExternalLink className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>رابط الموقع على خرائط Google Maps الرسمي</span>
-                  </span>
+                {/* 1. رابط الموقع الميداني (من المندوب - غير موثق) */}
+                <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-3.5 space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-amber-500" />
+                      <span>1. رابط الموقع الميداني (من المندوب - غير موثق)</span>
+                    </span>
+                    <span className="text-[9.5px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
+                      للمراجعة الإدارية فقط
+                    </span>
+                  </div>
+
+                  {isEditMode ? (
+                    <input
+                      type="url"
+                      dir="ltr"
+                      value={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '')}
+                      onChange={(e) => setFormData({ ...formData, repLocationUrl: e.target.value })}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
+                      placeholder="https://maps.google.com/?q=lat,lng"
+                    />
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <a
+                          href={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '#')}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-transform active:scale-95"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>🗺️ فتح موقع المعاينة الميدانية للإدارة (غير موثق)</span>
+                        </a>
+                        <span className="font-mono text-[10px] text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-1 rounded-lg border border-[var(--border-color)]">
+                          {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] font-medium leading-relaxed">
+                        ⚠️ هذا الرابط مخصص حصرياً للمراجعة الإدارية ولرفع بيانات النشاط، ولا يُعتبر توثيقاً رسمياً ولا يظهر في الدليل العام للجمهور.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. رابط خرائط Google المعتمد والموثق (تضيفه الإدارة بعد النشر) */}
+                <div className="bg-emerald-500/5 border border-emerald-500/30 rounded-2xl p-3.5 space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>2. رابط خرائط Google الرسمي الموثق (تضيفه الإدارة بعد التوثيق والظهور)</span>
+                    </span>
+                    <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${formData.googleMapsUrl ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40' : 'bg-slate-500/15 text-slate-400 border-slate-500/30'}`}>
+                      {formData.googleMapsUrl ? 'مفعل على الدليل ✅' : 'معطل بانتظار التوثيق ⏳'}
+                    </span>
+                  </div>
+
                   {isEditMode ? (
                     <input
                       type="url"
                       dir="ltr"
                       value={formData.googleMapsUrl || ''}
                       onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
-                      placeholder="https://maps.google.com/..."
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-emerald-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
+                      placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..."
                     />
                   ) : (
-                    <div className="pt-0.5">
+                    <div className="space-y-1.5">
                       {formData.googleMapsUrl ? (
-                        <a
-                          href={formData.googleMapsUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 dark:text-blue-400 font-bold text-xs hover:underline flex items-center gap-1.5"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>فتح الموقع المعتمد على خرائط Google 🗺️</span>
-                        </a>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <a
+                            href={formData.googleMapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3.5 py-1.5 rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-transform active:scale-95"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>فتح المكان المعتمد على خرائط Google 🗺️</span>
+                          </a>
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                            متاح للجمهور والزوار على الدليل
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-[var(--text-muted)] font-normal italic text-xs">لم يتم ربط رابط خرائط مباشر بعد</span>
+                        <div className="p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-xs text-[var(--text-muted)] space-y-1">
+                          <span className="font-bold text-amber-600 dark:text-amber-400 block">
+                            ⏳ لم يتم إدخال رابط خرائط Google الموثق بعد.
+                          </span>
+                          <span className="text-[10.5px] block leading-relaxed">
+                            🔒 لا يتم تفعيل عرض موقع النشاط على الدليل العام للجمهور إلا بعد إدخال هذا الرابط المعتمد بعد توثيق النشاط وظهوره في خرائط Google.
+                          </span>
+                        </div>
                       )}
                     </div>
                   )}

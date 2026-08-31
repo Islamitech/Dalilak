@@ -28,6 +28,7 @@ export default function App() {
   function mapRawToBusiness(r: any): Business {
     let metaVideos: string[] = [];
     let metaGoogleSyncStatus = r.google_sync_status;
+    let metaRepLocationUrl = r.rep_location_url;
     let metaGoogleMapsUrl = r.google_maps_url;
     let metaGooglePlaceId = r.google_place_id;
 
@@ -37,6 +38,7 @@ export default function App() {
         if (parsed && typeof parsed === 'object') {
           if (Array.isArray(parsed.videos)) metaVideos = parsed.videos;
           if (parsed.googleSyncStatus) metaGoogleSyncStatus = parsed.googleSyncStatus;
+          if (parsed.repLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
           if (parsed.googleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
           if (parsed.googlePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
         }
@@ -45,6 +47,20 @@ export default function App() {
 
     const rawPhotos = Array.isArray(r.photos) ? r.photos : [];
     const rawVideos = Array.isArray(r.videos) && r.videos.length > 0 ? r.videos : metaVideos;
+
+    const lat = typeof r.lat === 'number' ? r.lat : 30.0444;
+    const lng = typeof r.lng === 'number' ? r.lng : 31.2357;
+
+    // 1. Rep unverified field location
+    const repLocationUrl = metaRepLocationUrl || r.rep_location_url || r.repLocationUrl || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined);
+
+    // 2. Verified official Google Maps URL (Only valid HTTP URL, strictly not synthetic search query)
+    let rawGoogleMapsUrl = metaGoogleMapsUrl || r.google_maps_url || r.googleMapsUrl || '';
+    if (typeof rawGoogleMapsUrl === 'string') rawGoogleMapsUrl = rawGoogleMapsUrl.trim();
+    else rawGoogleMapsUrl = '';
+    const cleanGoogleMapsUrl = (rawGoogleMapsUrl && rawGoogleMapsUrl.startsWith('http') && !rawGoogleMapsUrl.includes('search/?api=1&query='))
+      ? rawGoogleMapsUrl
+      : undefined;
 
     return {
       id: r.id,
@@ -55,8 +71,8 @@ export default function App() {
       city: r.city || '',
       street: r.street || '',
       landmark: r.landmark || '',
-      lat: typeof r.lat === 'number' ? r.lat : 30.0444,
-      lng: typeof r.lng === 'number' ? r.lng : 31.2357,
+      lat,
+      lng,
       phone: r.phone || '',
       secondaryPhone: r.secondary_phone || r.secondaryPhone || '',
       whatsapp: r.whatsapp || '',
@@ -65,10 +81,11 @@ export default function App() {
       photos: rawPhotos,
       videos: rawVideos,
       logo: r.logo || '',
+      repLocationUrl,
       googlePlaceId: metaGooglePlaceId || r.google_place_id || r.googlePlaceId || '',
-      googleMapsUrl: metaGoogleMapsUrl || r.google_maps_url || r.googleMapsUrl || '',
-      verificationStatus: r.verification_status || r.verificationStatus || 'verified',
-      googleSyncStatus: metaGoogleSyncStatus || r.google_sync_status || r.googleSyncStatus || 'synced',
+      googleMapsUrl: cleanGoogleMapsUrl,
+      verificationStatus: r.verification_status || r.verificationStatus || 'pending',
+      googleSyncStatus: metaGoogleSyncStatus || r.google_sync_status || r.googleSyncStatus || 'not_synced',
       createdAt: r.created_at || r.createdAt || new Date().toISOString(),
       createdDate: r.created_at || r.createdDate || new Date().toISOString(),
       amountPaid: typeof r.amount_paid === 'number' ? r.amount_paid : 0,

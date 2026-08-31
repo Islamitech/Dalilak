@@ -60,7 +60,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
   if (!isOpen) return null;
 
-  const directMapUrl = finalMapUrl.trim() || `https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}`;
+  const repFieldMapUrl = business.repLocationUrl || (business.lat && business.lng ? `https://www.google.com/maps?q=${business.lat},${business.lng}` : '');
 
   const copyToClipboard = (text: string, key: string) => {
     if (!text) return;
@@ -84,9 +84,12 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     else if (newStatus === 'pending') gStatus = 'not_synced';
     else if (newStatus === 'rejected') gStatus = 'failed';
 
+    const cleanVerifiedUrl = (finalMapUrl.trim().startsWith('http') && !finalMapUrl.includes('search/?api=1&query=')) ? finalMapUrl.trim() : (newStatus === 'verified' && finalMapUrl.trim().startsWith('http') ? finalMapUrl.trim() : undefined);
+
     const updated: Business = {
       ...business,
-      googleMapsUrl: finalMapUrl.trim() || business.googleMapsUrl,
+      repLocationUrl: business.repLocationUrl || repFieldMapUrl || undefined,
+      googleMapsUrl: cleanVerifiedUrl || (newStatus === 'verified' ? business.googleMapsUrl : undefined),
       street: verifiedAddress.trim() || business.street,
       verificationStatus: newStatus,
       googleSyncStatus: gStatus,
@@ -109,7 +112,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
   const remainingBalance = Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0));
   const isFullyPaid = business.paymentStatus === 'fully_paid' || remainingBalance === 0;
-  const activeGoogleMapsUrl = finalMapUrl.trim() || business.googleMapsUrl || directMapUrl;
+  const verifiedMapUrlDisplay = finalMapUrl.trim() || business.googleMapsUrl || 'لم يوثق بعد (بانتظار الاعتماد)';
   const directoryUrl = 'https://www.dalilaak.com/';
   const targetAddress = verifiedAddress.trim() || business.street || (business.city ? `${business.city} (${business.governorate})` : business.governorate);
 
@@ -120,7 +123,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     `أوقات العمل: ${business.workingHours || 'يومياً'}\n` +
     `الهاتف: ${business.phone} ${business.secondaryPhone ? `| ${business.secondaryPhone}` : ''}\n` +
     `الإحداثيات: ${business.lat}, ${business.lng}\n` +
-    `رابط الخريطة: ${activeGoogleMapsUrl}`;
+    `📍 رابط موقع المعاينة الميدانية (المندوب - غير موثق): ${repFieldMapUrl}\n` +
+    `✅ رابط خرائط Google الموثق (الإدارة): ${verifiedMapUrlDisplay}`;
 
   const cleanOwnerPhone = (business.ownerPhone || business.phone || '').replace(/\D/g, '').replace(/^0/, '');
   const targetWaPhone = cleanOwnerPhone.startsWith('20') ? cleanOwnerPhone : `20${cleanOwnerPhone}`;
@@ -369,16 +373,21 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               )}
             </div>
 
-            {/* Direct Open in Google Maps Link */}
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer text-center"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>فتح إحداثيات المكان على Google Maps لإضافة النشاط ورفع الصور 🗺️</span>
-            </a>
+            {/* Rep Unverified Field Location Link for Admin Upload/Review */}
+            <div className="space-y-1.5 pt-1">
+              <a
+                href={repFieldMapUrl || `https://www.google.com/maps?q=${business.lat},${business.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer text-center"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>🗺️ فتح موقع المعاينة الميدانية للإدارة (رابط المندوب - غير موثق)</span>
+              </a>
+              <p className="text-[10.5px] text-[var(--text-muted)] text-center font-medium">
+                ⚠️ هذا الرابط مخصص حصرياً للمراجعة الإدارية ورفع النشاط للخرائط، ولا يُعتبر توثيقاً رسمياً ولا يظهر للجمهور.
+              </p>
+            </div>
           </div>
         )}
 

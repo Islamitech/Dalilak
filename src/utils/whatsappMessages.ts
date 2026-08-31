@@ -89,7 +89,7 @@ export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string
   const amtPaid = biz.amountPaid || 0;
   const remaining = Math.max(0, pkgPrice - amtPaid);
   const isFullyPaid = biz.paymentStatus === 'fully_paid' || remaining === 0;
-  const activeMapUrl = biz.googleMapsUrl || (biz.lat && biz.lng ? `https://www.google.com/maps/?q=${biz.lat},${biz.lng}` : DIRECTORY_URL);
+  const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
 
   const raw = 
     `*تهانينا! تم توثيق واعتماد نشاطكم رسمياً على خرائط Google*\n\n` +

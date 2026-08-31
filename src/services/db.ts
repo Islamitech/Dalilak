@@ -989,6 +989,7 @@ function mapDbToBusiness(item: any): Business {
   let metaGoogleSyncStatus = item.google_sync_status || item.googleSyncStatus;
   let metaGooglePlaceId = item.google_place_id || item.googlePlaceId;
   let metaGoogleSyncDate = item.google_sync_date || item.googleSyncDate;
+  let metaRepLocationUrl = item.rep_location_url || item.repLocationUrl;
   let metaGoogleMapsUrl = item.google_maps_url || item.googleMapsUrl;
   let metaRepCommissionRate = item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : item.repCommissionRate;
   let metaVideos: string[] | undefined = undefined;
@@ -1003,6 +1004,7 @@ function mapDbToBusiness(item: any): Business {
         if (parsed.googleSyncStatus && !metaGoogleSyncStatus) metaGoogleSyncStatus = parsed.googleSyncStatus;
         if (parsed.googlePlaceId && !metaGooglePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
         if (parsed.googleSyncDate && !metaGoogleSyncDate) metaGoogleSyncDate = parsed.googleSyncDate;
+        if (parsed.repLocationUrl && !metaRepLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
         if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
@@ -1034,6 +1036,23 @@ function mapDbToBusiness(item: any): Business {
     ? amountPaid
     : 0;
 
+  const lat = Number(item.lat) || 30.0444;
+  const lng = Number(item.lng) || 31.2357;
+
+  // 1. Rep Field Location URL (Unverified - for Admin Review/Upload use only)
+  const repLocationUrl = metaRepLocationUrl || item.rep_location_url || item.repLocationUrl || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined);
+
+  // 2. Official Verified Google Maps URL (Added by Admin only - strictly verified URLs, never synthetic coordinates fallback)
+  let rawGoogleMapsUrl = metaGoogleMapsUrl || item.google_maps_url || item.googleMapsUrl || '';
+  if (typeof rawGoogleMapsUrl === 'string') {
+    rawGoogleMapsUrl = rawGoogleMapsUrl.trim();
+  } else {
+    rawGoogleMapsUrl = '';
+  }
+  const cleanGoogleMapsUrl = (rawGoogleMapsUrl && rawGoogleMapsUrl.startsWith('http') && !rawGoogleMapsUrl.includes('search/?api=1&query='))
+    ? rawGoogleMapsUrl
+    : undefined;
+
   return {
     id: item.id || `biz_${Date.now()}`,
     nameAr: item.name_ar || item.nameAr || 'نشاط تجاري',
@@ -1047,8 +1066,8 @@ function mapDbToBusiness(item: any): Business {
     secondaryPhone: item.secondary_phone || item.secondaryPhone,
     workingHours: item.working_hours || item.workingHours || '9 ص - 10 م',
     description: item.description || '',
-    lat: Number(item.lat) || 30.0444,
-    lng: Number(item.lng) || 31.2357,
+    lat,
+    lng,
     ownerName: item.owner_name || item.ownerName || 'صاحب النشاط',
     ownerPhone: item.owner_phone || item.ownerPhone || '',
     ownerEmail: item.owner_email || item.ownerEmail,
@@ -1066,7 +1085,8 @@ function mapDbToBusiness(item: any): Business {
     cashCollectedByRep,
     paymentStatus,
     verificationStatus: item.verification_status || item.verificationStatus || 'pending',
-    googleMapsUrl: item.google_maps_url || item.googleMapsUrl || metaGoogleMapsUrl || (item.lat && item.lng ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}` : ''),
+    repLocationUrl,
+    googleMapsUrl: cleanGoogleMapsUrl,
     googlePlaceId: item.google_place_id || item.googlePlaceId || metaGooglePlaceId,
     googleSyncStatus: item.google_sync_status || item.googleSyncStatus || metaGoogleSyncStatus || 'not_synced',
     googleSyncDate: item.google_sync_date || item.googleSyncDate || metaGoogleSyncDate,
@@ -1106,6 +1126,8 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.verification_status = biz.verificationStatus || 'pending';
   record.rep_id = biz.repId || 'rep_1';
   record.rep_name = biz.repName || 'مندوب معتمد';
+  record.rep_location_url = biz.repLocationUrl || (biz.lat && biz.lng ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}` : null);
+  record.google_maps_url = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=')) ? biz.googleMapsUrl.trim() : null;
   record.invoice_number = biz.invoiceNumber || `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
   record.invoice_date = biz.invoiceDate || new Date().toISOString().split('T')[0];
   record.created_at = biz.createdDate || new Date().toISOString();
@@ -1118,7 +1140,8 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googleSyncStatus: biz.googleSyncStatus,
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,
-    googleMapsUrl: biz.googleMapsUrl,
+    repLocationUrl: record.rep_location_url,
+    googleMapsUrl: record.google_maps_url,
     videos: Array.isArray(biz.videos)
       ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))
       : [],

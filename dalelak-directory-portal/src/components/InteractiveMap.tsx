@@ -919,15 +919,26 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                       واتساب
                     </a>
                   )}
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${selectedBiz.lat},${selectedBiz.lng}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 border border-slate-700 transition-colors"
-                  >
-                    <span>جوجل ماب</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  {/* Google Maps Verified Link: Only active when official verified URL exists */}
+                  {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
+                    <a
+                      href={selectedBiz.googleMapsUrl.trim()}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow transition-colors"
+                      title="الموقع موثق رسمياً: فتح على خرائط Google"
+                    >
+                      <span>الخريطة الموثقة 🗺️</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <span
+                      className="flex-1 sm:flex-none bg-slate-800/90 text-amber-400 text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1 border border-amber-500/30 cursor-default"
+                      title="الموقع غير مدرج بعد على خرائط Google (قيد مراجعة وتوثيق الإدارة ⏳)"
+                    >
+                      <span>قيد التوثيق ⏳</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

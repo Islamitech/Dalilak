@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     cash_collected_by_rep NUMERIC DEFAULT 0,
     payment_status TEXT DEFAULT 'unpaid',
     verification_status TEXT DEFAULT 'verified',
+    rep_location_url TEXT,
     google_maps_url TEXT,
     google_place_id TEXT,
     google_sync_status TEXT DEFAULT 'pending',
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 
 -- Idempotent column check for existing databases
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS videos JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS rep_location_url TEXT;
 
 -- =============================================================================
 -- 2. TABLE: representatives (المناديب والمشرفين والمحاسبين والإدارة)

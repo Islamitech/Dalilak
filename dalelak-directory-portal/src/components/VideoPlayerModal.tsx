@@ -165,15 +165,28 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
               <span>واتساب</span>
             </a>
 
-            <a
-              href={business.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${business.lat || 30.0444},${business.lng || 31.2357}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-md"
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>الخريطة</span>
-            </a>
+            {business.googleMapsUrl && business.googleMapsUrl.trim().startsWith('http') ? (
+              <a
+                href={business.googleMapsUrl.trim()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-md"
+                title="الموقع موثق رسمياً: فتح على خرائط Google"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>الخريطة 🗺️</span>
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="bg-slate-800 text-slate-500 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 cursor-not-allowed opacity-60"
+                title="الموقع غير مدرج بعد على خرائط Google (قيد مراجعة وتوثيق الإدارة ⏳)"
+              >
+                <Navigation className="w-3.5 h-3.5 opacity-40" />
+                <span>قيد التوثيق ⏳</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
