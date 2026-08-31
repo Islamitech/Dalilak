@@ -314,7 +314,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     { key: 'location', label: 'الموقع والخرائط', icon: <MapPin className="w-4 h-4" /> },
     { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4" /> },
     { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
-    { key: 'whatsapp', label: 'الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> },
+    ...(isAdminOrFinancial
+      ? [{ key: 'whatsapp', label: 'الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> } as TabItem]
+      : []),
   ];
 
   const verificationBadge = formData.verificationStatus === 'verified'
@@ -740,14 +742,16 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                         <a href={`tel:${formData.phone}`} className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg" title="اتصال">
                           <Phone className="w-3.5 h-3.5" />
                         </a>
-                        <button
-                          type="button"
-                          onClick={() => setActiveSection('whatsapp')}
-                          className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg cursor-pointer"
-                          title="فتح رسائل الواتساب"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                        </button>
+                        {isAdminOrFinancial && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveSection('whatsapp')}
+                            className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg cursor-pointer"
+                            title="فتح رسائل الواتساب"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -964,22 +968,72 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                       <MapPin className="w-4 h-4 text-amber-500" />
-                      <span>1. رابط الموقع الميداني (من المندوب - غير موثق)</span>
+                      <span>1. الموقع الميداني المسجل (من المندوب - غير موثق)</span>
                     </span>
                     <span className="text-[9.5px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
-                      للمراجعة الإدارية فقط
+                      {isEditMode ? 'قابل للتعديل للمندوب' : 'للمراجعة الإدارية فقط'}
                     </span>
                   </div>
 
                   {isEditMode ? (
-                    <input
-                      type="url"
-                      dir="ltr"
-                      value={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '')}
-                      onChange={(e) => setFormData({ ...formData, repLocationUrl: e.target.value })}
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
-                      placeholder="https://maps.google.com/?q=lat,lng"
-                    />
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2" dir="ltr">
+                        <div>
+                          <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1 text-right">
+                            خط العرض (Lat)
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={formData.lat || ''}
+                            onChange={(e) => {
+                              const newLat = parseFloat(e.target.value) || 0;
+                              setFormData({
+                                ...formData,
+                                lat: newLat,
+                                repLocationUrl: `https://www.google.com/maps?q=${newLat},${formData.lng}`,
+                              });
+                            }}
+                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-left"
+                            placeholder="29.xxxxxx"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1 text-right">
+                            خط الطول (Lng)
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={formData.lng || ''}
+                            onChange={(e) => {
+                              const newLng = parseFloat(e.target.value) || 0;
+                              setFormData({
+                                ...formData,
+                                lng: newLng,
+                                repLocationUrl: `https://www.google.com/maps?q=${formData.lat},${newLng}`,
+                              });
+                            }}
+                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-left"
+                            placeholder="31.xxxxxx"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1">
+                          رابط المعاينة الميدانية (Google Maps Coordinates Link)
+                        </label>
+                        <input
+                          type="url"
+                          dir="ltr"
+                          value={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '')}
+                          onChange={(e) => setFormData({ ...formData, repLocationUrl: e.target.value })}
+                          className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
+                          placeholder="https://maps.google.com/?q=lat,lng"
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1016,14 +1070,28 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </div>
 
                   {isEditMode ? (
-                    <input
-                      type="url"
-                      dir="ltr"
-                      value={formData.googleMapsUrl || ''}
-                      onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-emerald-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
-                      placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..."
-                    />
+                    isAdminOrFinancial ? (
+                      <input
+                        type="url"
+                        dir="ltr"
+                        value={formData.googleMapsUrl || ''}
+                        onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-emerald-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
+                        placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..."
+                      />
+                    ) : (
+                      <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-xs text-[var(--text-muted)] space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-[var(--text-primary)]">رابط خرائط Google المعتمد:</span>
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 font-black">
+                            🔒 تعديل الرابط مقتصر على الإدارة فقط
+                          </span>
+                        </div>
+                        <div className="font-mono text-xs text-[var(--text-secondary)] pt-0.5 truncate" dir="ltr">
+                          {formData.googleMapsUrl || 'لم يُضف رابط رسمي بعد (قيد اعتماد الإدارة)'}
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className="space-y-1.5">
                       {formData.googleMapsUrl ? (
@@ -1230,7 +1298,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           )}
 
           {/* ── TAB 6: مركز رسائل وإشعارات الواتساب الموحد ───────────── */}
-          {activeSection === 'whatsapp' && (
+          {activeSection === 'whatsapp' && isAdminOrFinancial && (
             <div className="space-y-3 text-right">
               <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
                 <div className="flex items-center gap-2">
