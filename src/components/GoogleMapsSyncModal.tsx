@@ -22,6 +22,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
+import { getGoogleMapsVerifiedWhatsAppUrl, generateGoogleMapsVerifiedWhatsAppMessage } from '../utils/whatsappMessages';
 
 interface GoogleMapsSyncModalProps {
   business: Business;
@@ -124,21 +125,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const cleanOwnerPhone = (business.ownerPhone || business.phone || '').replace(/\D/g, '').replace(/^0/, '');
   const targetWaPhone = cleanOwnerPhone.startsWith('20') ? cleanOwnerPhone : `20${cleanOwnerPhone}`;
 
-  const verificationWhatsAppMessage = encodeURIComponent(
-    `*توثيق واعتماد رسمي على خرائط Google*\n\n` +
-    `أهلاً بحضرتك أستاذ *${business.ownerName || 'صاحب النشاط'}*\n` +
-    `تم تفعيل ونشر نشاطكم *(${business.nameAr})* رسمياً على خرائط Google.\n\n` +
-    (isFullyPaid
-      ? `*حالة السداد:* مسدد بالكامل (${business.packagePrice || business.amountPaid || 0} ج.م) ✓\n\n`
-      : `*حالة السداد:* متبقي سداد (*${remainingBalance} ج.م*)\n\n` +
-        `*طرق الدفع المعتمدة للتسوية:*\n` +
-        `- فودافون كاش: 01143888355 أو 01556221141\n` +
-        `- إنستاباي (InstaPay): @daz31181\n\n` +
-        `*(يرجى إرسال صورة إيصال التحويل بعد الدفع لتأكيد التسوية)*\n\n`) +
-    `*رابط موقعكم المباشر على Google Maps:*\n` +
-    `${activeGoogleMapsUrl}\n\n` +
-    `شكراً لاختياركم منصة دليلك!`
-  );
+  const verificationWhatsAppMessage = encodeURIComponent(generateGoogleMapsVerifiedWhatsAppMessage(business));
+  const verificationWhatsAppUrl = getGoogleMapsVerifiedWhatsAppUrl(business);
 
   return createPortal(
     <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">

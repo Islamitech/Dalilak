@@ -44,12 +44,22 @@ import {
   ChevronLeft,
   X,
   Share2,
+  ShieldCheck,
+  Send,
 } from 'lucide-react';
-import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { formatActivityDateTime } from '../utils/dateFormatters';
-import { generateUpgradeOffersWhatsAppMessage, getUpgradeOffersWhatsAppUrl } from '../utils/packageOffers';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
+import {
+  getInvoiceWhatsAppUrl,
+  generateInvoiceWhatsAppMessage,
+  getGoogleMapsVerifiedWhatsAppUrl,
+  generateGoogleMapsVerifiedWhatsAppMessage,
+  getPaymentReceiptWhatsAppUrl,
+  generatePaymentReceiptWhatsAppMessage,
+  getUpgradeOffersWhatsAppUrl,
+  generateUpgradeOffersWhatsAppMessage,
+} from '../utils/whatsappMessages';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -91,12 +101,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [watermarkPosition, setWatermarkPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [showMapsSyncModal, setShowMapsSyncModal] = useState<boolean>(false);
-  const [copiedOffers, setCopiedOffers] = useState<boolean>(false);
-  const [upgradeNotice, setUpgradeNotice] = useState<string | null>(null);
+  const [isDownloadingPhotos, setIsDownloadingPhotos] = useState<boolean>(false);
+  const [statusNotification, setStatusNotification] = useState<string | null>(null);
 
   // Tab navigation
-  const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos'>('info');
+  const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp'>('info');
 
   // Keep internal formData in sync when parent business prop changes
   useEffect(() => {
@@ -114,6 +123,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  /**
+   * CRITICAL BUG FIX:
+   * Verification status is strictly controlled by explicit user/admin actions.
+   * Simply having a googleMapsUrl does NOT auto-verify a business!
+   */
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrorMsg('');
@@ -126,7 +140,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       return;
     }
 
-    const hasMapUrl = Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().startsWith('http'));
     const updatedFormData: Business = {
       ...formData,
       nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || 'نشاط تجاري',
@@ -135,15 +148,62 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
       ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
       googleMapsUrl: formData.googleMapsUrl?.trim() || undefined,
-      verificationStatus: hasMapUrl ? 'verified' : formData.verificationStatus,
-      googleSyncStatus: hasMapUrl ? 'synced' : formData.googleSyncStatus,
-      googleSyncDate: hasMapUrl ? (formData.googleSyncDate || new Date().toISOString().split('T')[0]) : formData.googleSyncDate,
+      // Keep existing verificationStatus without auto-verifying!
+      verificationStatus: formData.verificationStatus || 'pending',
+      googleSyncStatus: formData.googleSyncStatus || (formData.verificationStatus === 'verified' ? 'synced' : 'not_synced'),
       photos: Array.isArray(formData.photos) ? formData.photos : [],
       videos: Array.isArray(formData.videos) ? formData.videos : [],
     };
 
     onSave(updatedFormData);
     setIsEditMode(false);
+  };
+
+  const handleSetVerificationStatus = (newStatus: VerificationStatus) => {
+    const newGoogleSyncStatus = newStatus === 'verified' ? 'synced' : newStatus === 'in_progress' ? 'in_progress' : 'not_synced';
+    const updated: Business = {
+      ...formData,
+      verificationStatus: newStatus,
+      googleSyncStatus: newGoogleSyncStatus,
+      googleSyncDate: newStatus === 'verified' ? (formData.googleSyncDate || new Date().toISOString().split('T')[0]) : formData.googleSyncDate,
+    };
+    setFormData(updated);
+    onSave(updated);
+
+    const labels: Record<VerificationStatus, string> = {
+      verified: 'تم اعتماد وتوثيق النشاط على خرائط Google بنجاح 🟢',
+      in_progress: 'تم تغيير حالة النشاط إلى: قيد المراجعة ⏳',
+      pending: 'تم تغيير حالة النشاط إلى: بانتظار الإرسال 📋',
+      rejected: 'تم تغيير حالة النشاط إلى: مرفوض 🔴',
+      needs_action: 'تم تغيير حالة النشاط إلى: يتطلب إجراء ⚠️',
+    };
+    setStatusNotification(labels[newStatus] || 'تم تحديث الحالة بنجاح');
+    setTimeout(() => setStatusNotification(null), 3000);
+  };
+
+  const handleDownloadAllPhotos = async () => {
+    if (!formData.photos || formData.photos.length === 0) return;
+    try {
+      setIsDownloadingPhotos(true);
+      await downloadAllBusinessPhotos(formData.photos, formData.nameAr);
+    } finally {
+      setIsDownloadingPhotos(false);
+    }
+  };
+
+  const handleCopyGoogleDetails = () => {
+    const fullText = 
+      `اسم النشاط: ${formData.nameAr}\n` +
+      `الاسم بالإنجليزية: ${formData.nameEn || ''}\n` +
+      `التصنيف: ${formData.category}\n` +
+      `المحافظة والمدينة: ${formData.governorate} - ${formData.city}\n` +
+      `العنوان: ${formData.street || 'الموقع الجغرافي المسجل'}\n` +
+      `أوقات العمل: ${formData.workingHours || 'يومياً'}\n` +
+      `الهاتف: ${formData.phone} ${formData.secondaryPhone ? `| ${formData.secondaryPhone}` : ''}\n` +
+      `الإحداثيات: ${formData.lat}, ${formData.lng}\n` +
+      `رابط الخريطة: ${formData.googleMapsUrl || `https://www.google.com/maps/?q=${formData.lat},${formData.lng}`}`;
+
+    handleCopyText(fullText, 'google_details');
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,7 +305,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const totalMediaCount = (formData.photos?.length || 0) + (formData.videos?.length || 0);
 
   interface TabItem {
-    key: 'info' | 'owner' | 'location' | 'payment' | 'photos';
+    key: 'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp';
     label: string;
     icon: React.ReactNode;
     count?: number;
@@ -254,16 +314,19 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const TABS: TabItem[] = [
     { key: 'info', label: 'بيانات النشاط', icon: <Store className="w-4 h-4" /> },
     { key: 'owner', label: 'المالك والتواصل', icon: <User className="w-4 h-4" /> },
-    { key: 'location', label: 'الموقع والعنوان', icon: <MapPin className="w-4 h-4" /> },
+    { key: 'location', label: 'الموقع والخرائط', icon: <MapPin className="w-4 h-4" /> },
     { key: 'payment', label: 'الباقة والمالية', icon: <DollarSign className="w-4 h-4" /> },
-    { key: 'photos', label: 'المعرض والوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
+    { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
+    { key: 'whatsapp', label: 'رسائل الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> },
   ];
 
-  const verificationBadge = formData.verificationStatus === 'verified' || formData.googleSyncStatus === 'synced'
+  const verificationBadge = formData.verificationStatus === 'verified'
     ? { label: 'موثق على الخرائط ✓', cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' }
     : formData.verificationStatus === 'in_progress'
-    ? { label: 'قيد التوثيق ⏳', cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' }
-    : { label: 'بانتظار التوثيق', cls: 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/30' };
+    ? { label: 'قيد المراجعة ⏳', cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' }
+    : formData.verificationStatus === 'rejected'
+    ? { label: 'مرفوض 🔴', cls: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30' }
+    : { label: 'بانتظار المراجعة', cls: 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/30' };
 
   const paymentBadge = formData.paymentStatus === 'fully_paid'
     ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' }
@@ -365,15 +428,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           )}
 
           {cleanPhone && (
-            <a
-              href={`https://wa.me/2${cleanPhone}`}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 shadow-2xs"
+            <button
+              type="button"
+              onClick={() => setActiveSection('whatsapp')}
+              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
             >
               <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-              <span>محادثة واتساب</span>
-            </a>
+              <span>رسائل الواتساب 💬</span>
+            </button>
           )}
 
           {onShowInvoice && (
@@ -395,7 +457,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold px-3 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1.5 shrink-0 shadow-2xs"
             >
               <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
-              <span>فتح Google Maps</span>
+              <span>Google Maps</span>
             </a>
           )}
 
@@ -446,9 +508,16 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         {/* ── 4. BODY CONTENT ────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           
+          {statusNotification && (
+            <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-2xl text-xs font-black flex items-center gap-2 animate-fade-in shadow-sm">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>{statusNotification}</span>
+            </div>
+          )}
+
           {/* Urgent Financial Alert Card (High Contrast) */}
           {(formData.amountPaid || 0) === 0 && (
-            <div className="bg-gradient-to-r from-rose-500/20 via-orange-500/15 to-rose-500/20 border-2 border-rose-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm text-right animate-pulse-subtle">
+            <div className="bg-gradient-to-r from-rose-500/20 via-orange-500/15 to-rose-500/20 border-2 border-rose-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm text-right">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md">
                   <AlertTriangle className="w-5 h-5 stroke-[2.5]" />
@@ -489,11 +558,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
           {/* ── TAB 1: تفاصيل النشاط ─────────────────────────────────── */}
           {activeSection === 'info' && (
-            <div className="space-y-4">
+            <div className="space-y-4 text-right">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                
                 {/* اسم النشاط عربي */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 text-right">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Store className="w-3.5 h-3.5 text-amber-500" />
                     <span>اسم النشاط (عربي) *</span>
@@ -522,7 +590,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {/* اسم النشاط إنجليزي */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 text-right">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Globe className="w-3.5 h-3.5 text-blue-500" />
                     <span>اسم النشاط (English)</span>
@@ -544,7 +612,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {/* التصنيف والفئة */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 text-right sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Tag className="w-3.5 h-3.5 text-amber-500" />
                     <span>التصنيف والفئة التجارية</span>
@@ -590,7 +658,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {/* مواعيد العمل */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 text-right sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-amber-500" />
                     <span>مواعيد وساعات العمل</span>
@@ -611,7 +679,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {/* وصف الخدمات */}
-                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 text-right sm:col-span-2">
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5 text-amber-500" />
                     <span>وصف الأنشطة والخدمات</span>
@@ -683,9 +751,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                         <a href={`tel:${formData.phone}`} className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg" title="اتصال">
                           <Phone className="w-3.5 h-3.5" />
                         </a>
-                        <a href={`https://wa.me/2${formData.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg" title="واتساب">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSection('whatsapp')}
+                          className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg cursor-pointer"
+                          title="فتح رسائل الواتساب"
+                        >
                           <MessageCircle className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -738,9 +811,102 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* ── TAB 3: الموقع والعنوان ─────────────────────────────────── */}
+          {/* ── TAB 3: الموقع والخرائط (مع لوحة المزامنة الذكية المدمجة) ── */}
           {activeSection === 'location' && (
-            <div className="space-y-3.5 text-right">
+            <div className="space-y-4 text-right">
+              
+              {/* Google Maps Smart Verification & Sync Hub */}
+              <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-blue-950/40 border border-blue-500/40 rounded-2xl p-4 space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-black">
+                      <CloudUpload className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-xs sm:text-sm text-blue-300">
+                        مركز اعتماد وتوثيق خرائط Google Maps
+                      </h4>
+                      <p className="text-[10px] text-slate-400 font-bold">
+                        أدوات سريعة لإرسال البيانات إلى Google Business Profile واعتماد التوثيق
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${verificationBadge.cls}`}>
+                    {verificationBadge.label}
+                  </span>
+                </div>
+
+                {/* Fast Action Tools for Admin */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCopyGoogleDetails}
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs p-2.5 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {copiedField === 'google_details' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-blue-400" />}
+                    <span>{copiedField === 'google_details' ? 'تم نسخ البيانات كاملة!' : 'نسخ بيانات النشاط لخرائط Google 📋'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadAllPhotos}
+                    disabled={isDownloadingPhotos || !formData.photos || formData.photos.length === 0}
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs p-2.5 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{isDownloadingPhotos ? 'جاري تنزيل الصور...' : `تحميل حزمة صور النشاط (${formData.photos?.length || 0}) 📥`}</span>
+                  </button>
+                </div>
+
+                {/* Explicit Admin Verification Control Buttons */}
+                {isAdminOrFinancial && (
+                  <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-300 block">
+                      تحديد واعتماد حالة التوثيق يدوياً:
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSetVerificationStatus('in_progress')}
+                        className={`p-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                          formData.verificationStatus === 'in_progress'
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow'
+                            : 'bg-slate-800/80 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                        }`}
+                      >
+                        ⏳ قيد المراجعة
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSetVerificationStatus('verified')}
+                        className={`p-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                          formData.verificationStatus === 'verified'
+                            ? 'bg-emerald-500 text-white border-emerald-400 shadow'
+                            : 'bg-slate-800/80 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
+                        }`}
+                      >
+                        🟢 اعتماد وتوثيق
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSetVerificationStatus('rejected')}
+                        className={`p-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                          formData.verificationStatus === 'rejected'
+                            ? 'bg-rose-600 text-white border-rose-400 shadow'
+                            : 'bg-slate-800/80 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
+                        }`}
+                      >
+                        🔴 رفض
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Location Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {/* المحافظة */}
                 <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1">
@@ -808,7 +974,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>رابط الموقع على خرائط Google Maps</span>
+                    <span>رابط الموقع على خرائط Google Maps الرسمي</span>
                   </span>
                   {isEditMode ? (
                     <input
@@ -1012,6 +1178,171 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               )}
             </div>
           )}
+
+          {/* ── TAB 6: مركز رسائل وإشعارات الواتساب الموحد ───────────── */}
+          {activeSection === 'whatsapp' && (
+            <div className="space-y-3.5 text-right">
+              <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-black">
+                    <MessageCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                      مركز رسائل وإشعارات WhatsApp المعتمدة
+                    </h4>
+                    <p className="text-[10.5px] text-[var(--text-muted)] font-bold">
+                      أزرار إرسال فورية ومنظمة بحسب الحدث وحالة النشاط
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20" dir="ltr">
+                  {formData.phone || formData.ownerPhone || 'لا يوجد هاتف'}
+                </span>
+              </div>
+
+              {/* Message 1: Initial Invoice */}
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                    <FileText className="w-4 h-4 text-amber-500" />
+                    <span>1. رسالة الفاتورة الإلكترونية الأولية وتأكيد التسجيل</span>
+                  </div>
+                  <span className="text-[9.5px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
+                    عند التسجيل
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                  تتضمن تفاصيل الباقة، المبلغ المدفوع، المتبقي، ورابط الدليل الرسمي مع إشعار جارِ مراجعة التوثيق.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <a
+                    href={getInvoiceWhatsAppUrl(formData)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>إرسال الفاتورة عبر WhatsApp</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(generateInvoiceWhatsAppMessage(formData), 'wa_inv')}
+                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                    title="نسخ نص الفاتورة"
+                  >
+                    {copiedField === 'wa_inv' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Message 2: Google Maps Verification */}
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                    <MapPin className="w-4 h-4 text-blue-500" />
+                    <span>2. رسالة إشعار التوثيق والاعتماد على خرائط Google 🗺️</span>
+                  </div>
+                  <span className="text-[9.5px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
+                    بعد التوثيق
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                  تهنئة العميل مع رابط الخريطة المعتمد المباشر، رابط الدليل، وحالة السداد وطرق الدفع للتسوية.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <a
+                    href={getGoogleMapsVerifiedWhatsAppUrl(formData)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>إرسال إشعار التوثيق (Google Maps)</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(generateGoogleMapsVerifiedWhatsAppMessage(formData), 'wa_maps')}
+                    className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                    title="نسخ نص الإشعار"
+                  >
+                    {copiedField === 'wa_maps' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Message 3: Payment Receipt */}
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                    <DollarSign className="w-4 h-4 text-emerald-500" />
+                    <span>3. رسالة إيصال السداد المالي والمخالصة النهائية ✅</span>
+                  </div>
+                  <span className="text-[9.5px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                    عند السداد الكامل
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                  تأكيد سداد المبلغ كاملاً وتصفية الحساب (0 ج.م متبقي) وإصدار الإيصال المعتمد للعميل.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <a
+                    href={getPaymentReceiptWhatsAppUrl(formData)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>إرسال إيصال السداد للعميل</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(generatePaymentReceiptWhatsAppMessage(formData), 'wa_pay')}
+                    className="bg-[var(--bg-card)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                    title="نسخ نص الإيصال"
+                  >
+                    {copiedField === 'wa_pay' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-emerald-500" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Message 4: Upgrade Offers */}
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                    <Gift className="w-4 h-4 text-amber-500" />
+                    <span>4. رسالة عروض الترقية والتطوير الحصرية 🚀</span>
+                  </div>
+                  <span className="text-[9.5px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">
+                    فرص مبيعات
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                  عرض التأسيس والربط الذكي وباقات التسويق الميداني VIP لمضاعفة انتشار العميل.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <a
+                    href={getUpgradeOffersWhatsAppUrl(formData)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-slate-950 font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>إرسال عروض الترقية والتطوير</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(generateUpgradeOffersWhatsAppMessage(formData), 'wa_upg')}
+                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                    title="نسخ نص العروض"
+                  >
+                    {copiedField === 'wa_upg' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── 5. CLEAN & FOCUSED FOOTER ──────────────────────────────── */}
@@ -1072,19 +1403,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           </div>
         </div>
-      )}
-
-      {/* Google Maps Sync Modal */}
-      {formData && (
-        <GoogleMapsSyncModal
-          business={formData}
-          isOpen={showMapsSyncModal}
-          onClose={() => setShowMapsSyncModal(false)}
-          onUpdateBusiness={(updated) => {
-            setFormData(updated);
-            onSave(updated);
-          }}
-        />
       )}
     </div>,
     document.body

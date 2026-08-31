@@ -15,11 +15,17 @@ import {
   Zap, 
   Gift,
   Download,
-  Loader2
+  DollarSign,
+  Send,
+  ExternalLink,
 } from 'lucide-react';
-import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
-import { generateUpgradeOffersWhatsAppMessage, getUpgradeOffersWhatsAppUrl } from '../utils/packageOffers';
 import { downloadSinglePhoto } from '../utils/photoDownloader';
+import {
+  getInvoiceWhatsAppUrl,
+  generateInvoiceWhatsAppMessage,
+  getUpgradeOffersWhatsAppUrl,
+  generateUpgradeOffersWhatsAppMessage,
+} from '../utils/whatsappMessages';
 
 interface InvoiceModalProps {
   business: Business | null;
@@ -43,7 +49,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const isPrivilegedUser = isAdmin || userRole === 'admin' || userRole === 'supervisor' || userRole === 'accountant';
   const [copied, setCopied] = useState<boolean>(false);
   const [copiedOffers, setCopiedOffers] = useState<boolean>(false);
-  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
   const [currentBiz, setCurrentBiz] = useState<Business | null>(business);
   const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -63,43 +68,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const activeBusiness = business || currentBiz;
   if (!activeBusiness) return null;
 
-  const pkgPrice = activeBusiness.packagePrice || 0;
+  const pkgPrice = activeBusiness.packagePrice || 250;
   const amtPaid = activeBusiness.amountPaid || 0;
   const remaining = Math.max(0, pkgPrice - amtPaid);
-
   const directoryUrl = 'https://www.dalilaak.com/';
 
-  const invoiceRawText = 
-    `*فاتورة توثيق نشاط تجاري - شركة دليلك لخرائط جوجل* 🗺️\n` +
-    `-----------------------------------------\n` +
-    `📋 *اسم النشاط:* ${activeBusiness.nameAr || ''}\n` +
-    `👤 *صاحب النشاط:* ${activeBusiness.ownerName || ''}\n` +
-    `📍 *الموقع:* ${activeBusiness.governorate || ''} - ${activeBusiness.city || ''}\n` +
-    `🧾 *رقم الفاتورة:* ${activeBusiness.invoiceNumber || ''}\n` +
-    `📅 *تاريخ الإصدار:* ${activeBusiness.invoiceDate || ''}\n\n` +
-    `📦 *الباقة المختارة:* ${activeBusiness.packageName || ''}\n` +
-    `💰 *إجمالي قيمة الباقة:* ${pkgPrice} ج.م\n` +
-    `✅ *المبلغ المدفوع:* ${amtPaid} ج.م\n` +
-    `⏳ *المبلغ المتبقي:* ${remaining} ج.م\n` +
-    `📌 *حالة الدفع:* ${
-      activeBusiness.paymentStatus === 'fully_paid'
-        ? 'مدفوعة بالكامل ✅'
-        : activeBusiness.paymentStatus === 'partially_paid'
-        ? 'مدفوع جزء منها (متبقي ' + remaining + ' ج.م) ⏳'
-        : 'لم يتم الدفع نهائياً ❌'
-    }\n\n` +
-    `🌟 *تهانينا! تم إدراج ونشر نشاطكم مباشرة في دليل الأنشطة والخدمات المعتمد في مصر:* ✨\n` +
-    `🌐 *رابط دليل الأنشطة المباشر:* ${directoryUrl}\n\n` +
-    `*ملاحظة:* تم رفع وتثبيت بيانات نشاطكم بنجاح وهو متاح الآن للعملاء على المنظومة، وتتم متابعة مراجعة وتوثيق النشاط حتى اعتماده على خرائط Google. شكرًا لثقتكم بشركة دليلك!`;
-
-  // WhatsApp formatted Arabic message text
-  const waMessage = encodeURIComponent(invoiceRawText);
-
-  const formattedPhone = (activeBusiness.ownerPhone || '').replace(/^0/, '');
-  const whatsappUrl = `https://wa.me/20${formattedPhone}?text=${waMessage}`;
-
   const handleCopyInvoice = () => {
-    navigator.clipboard.writeText(invoiceRawText);
+    navigator.clipboard.writeText(generateInvoiceWhatsAppMessage(activeBusiness));
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -133,324 +108,205 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto" dir="rtl">
       <div 
-        className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300 overflow-y-auto"
-        style={{ maxHeight: '92vh' }}
+        className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300 overflow-y-auto max-h-[94vh]"
       >
-        {/* Top Header Bar: Close Button + Simple Actions */}
-        <div className="flex items-center justify-between no-print mb-1">
-          {!isExternalView ? (
-            <button
-              onClick={onClose}
-              className="bg-[var(--input-bg)] hover:bg-rose-500/10 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold border border-[var(--border-color)] cursor-pointer"
-              title="إغلاق"
-            >
-              ✕
-            </button>
-          ) : <div />}
-
-          {/* Simple Top Actions (Save / Print) */}
+        {/* Header Action Bar */}
+        <div className="flex items-center justify-between no-print border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleSaveInvoiceImage}
-              disabled={isSavingImage}
-              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] hover:text-amber-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors border border-[var(--border-color)] cursor-pointer shadow-xs disabled:opacity-50"
-              title="حفظ الفاتورة كصورة"
-            >
-              {isSavingImage ? (
-                <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4 text-amber-500" />
-              )}
-            </button>
-
-            <button
-              type="button"
               onClick={() => window.print()}
-              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] hover:text-amber-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors border border-[var(--border-color)] cursor-pointer shadow-xs"
+              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold border border-[var(--border-color)] cursor-pointer"
               title="طباعة الفاتورة"
             >
               <Printer className="w-4 h-4 text-amber-500" />
             </button>
+            <button
+              type="button"
+              onClick={handleSaveInvoiceImage}
+              disabled={isSavingImage}
+              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold border border-[var(--border-color)] cursor-pointer"
+              title="حفظ الفاتورة كصورة"
+            >
+              <Download className="w-4 h-4 text-amber-500" />
+            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-[var(--input-bg)] hover:bg-rose-500/15 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold border border-[var(--border-color)] cursor-pointer"
+            aria-label="إغلاق"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Printable Invoice Container */}
-        <div ref={invoiceRef} className="space-y-4 bg-white text-slate-900 p-5 rounded-2xl shadow-inner border border-slate-200">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-            <Logo size="sm" />
-
-            <div className="text-left">
-              <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300 inline-block">
+        {/* ── PRINTABLE INVOICE CARD CONTAINER ────────────────────────── */}
+        <div 
+          ref={invoiceRef}
+          className="bg-white text-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5 print:border-none print:shadow-none print:p-0"
+        >
+          {/* Top Header */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="text-right">
+              <span className="bg-amber-500/15 text-amber-800 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
                 فاتورة إلكترونية معتمدة
               </span>
-              <p className="text-xs font-mono font-bold text-slate-700 mt-1">{activeBusiness.invoiceNumber}</p>
-              <p className="text-[10px] text-slate-500">{activeBusiness.invoiceDate}</p>
+              <div className="text-xs font-mono font-bold text-slate-500 mt-1">
+                {activeBusiness.invoiceNumber}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">
+                {activeBusiness.invoiceDate || new Date().toISOString().split('T')[0]}
+              </div>
+            </div>
+
+            <div className="text-left flex items-center gap-2">
+              <div>
+                <div className="font-black text-base text-slate-950 flex items-center gap-1">
+                  <span>دليلك</span>
+                  <span className="text-[10px] bg-amber-500 text-slate-950 px-1 rounded font-black">EG</span>
+                </div>
+                <div className="text-[9.5px] text-slate-500 font-bold">المنصة الشاملة لإدارة وتوثيق الأنشطة الميدانية</div>
+              </div>
+              <Logo size="md" />
             </div>
           </div>
 
-          {/* Business & Owner Info */}
-          <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <div>
-              <p className="text-[10px] text-slate-500 font-bold">النشاط التجاري:</p>
-              <p className="font-black text-slate-900">{activeBusiness.nameAr}</p>
-              <p className="text-[11px] text-slate-600">{activeBusiness.category}</p>
-              <p className="text-[10px] text-slate-500 mt-1">
-                {activeBusiness.governorate} - {activeBusiness.city}
-              </p>
+          {/* Client & Business Info */}
+          <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs">
+            <div className="text-right space-y-0.5">
+              <span className="text-[10px] text-slate-400 font-bold block">النشاط التجاري:</span>
+              <span className="font-black text-slate-900 block truncate">{activeBusiness.nameAr}</span>
+              <span className="text-[10px] text-slate-500 block truncate">{activeBusiness.category}</span>
+              <span className="text-[10px] text-slate-500 block">{activeBusiness.governorate} - {activeBusiness.city}</span>
             </div>
 
-            <div>
-              <p className="text-[10px] text-slate-500 font-bold">صاحب النشاط / العميل:</p>
-              <p className="font-bold text-slate-900">{activeBusiness.ownerName}</p>
-              <p className="text-[11px] text-slate-700 dir-ltr text-right">{activeBusiness.ownerPhone}</p>
-              <p className="text-[10px] text-slate-500 mt-1">المندوب: {activeBusiness.repName}</p>
+            <div className="text-right space-y-0.5 border-r border-slate-200 pr-3">
+              <span className="text-[10px] text-slate-400 font-bold block">صاحب النشاط / العميل:</span>
+              <span className="font-black text-slate-900 block truncate">{activeBusiness.ownerName || 'صاحب النشاط'}</span>
+              <span className="text-[10px] text-slate-600 font-mono block" dir="ltr">{activeBusiness.ownerPhone || activeBusiness.phone}</span>
+              <span className="text-[10px] text-slate-500 block truncate">المندوب: {activeBusiness.repName || 'مندوب معتمد'}</span>
             </div>
           </div>
 
-          {/* Invoice Table */}
-          <table className="w-full text-xs text-right border-collapse">
-            <thead>
-              <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-                <th className="p-2 font-bold">الخدمة / الباقة</th>
-                <th className="p-2 font-bold text-center">القيمة</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-slate-100">
-                <td className="p-2">
-                  <span className="font-bold text-slate-900">{activeBusiness.packageName}</span>
-                  <p className="text-[10px] text-slate-500">توثيق واستخراج الإحداثيات على خرائط جوجل</p>
-                </td>
-                <td className="p-2 font-black text-slate-900 text-center">{pkgPrice} ج.م</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Financial Totals */}
-          <div className="bg-slate-100 text-slate-900 p-3 rounded-xl space-y-1.5 text-xs border border-slate-200">
-            <div className="flex justify-between font-bold">
-              <span className="text-slate-600">إجمالي الباقة:</span>
-              <span>{pkgPrice} جنيه مصري</span>
+          {/* Package Details Table */}
+          <div className="border border-slate-100 rounded-xl overflow-hidden text-xs">
+            <div className="bg-slate-100 px-3 py-2 flex items-center justify-between font-bold text-slate-600 text-[11px]">
+              <span>الخدمة / الباقة</span>
+              <span>القيمة</span>
             </div>
-            <div className="flex justify-between text-emerald-700 font-bold pt-1 border-t border-slate-200">
+            <div className="p-3 flex items-center justify-between bg-white border-b border-slate-50">
+              <div>
+                <span className="font-black text-slate-900 block">{activeBusiness.packageName || 'باقة التوثيق الأساسي'}</span>
+                <span className="text-[10px] text-slate-500">توثيق واستخراج الإحداثيات على خرائط جوجل والدليل</span>
+              </div>
+              <span className="font-black text-slate-900 font-mono">{pkgPrice} ج.م</span>
+            </div>
+          </div>
+
+          {/* Financial Summary */}
+          <div className="space-y-1.5 bg-slate-50/80 p-3 rounded-xl border border-slate-100 text-xs font-bold">
+            <div className="flex items-center justify-between text-slate-600">
+              <span>إجمالي الباقة:</span>
+              <span className="font-mono">{pkgPrice} جنيه مصري</span>
+            </div>
+            <div className="flex items-center justify-between text-emerald-700 font-black">
               <span>المبلغ المدفوع:</span>
-              <span>{amtPaid} جنيه مصري</span>
+              <span className="font-mono">{amtPaid} جنيه مصري</span>
             </div>
-            <div className="flex justify-between text-rose-600 font-black pt-1 border-t border-slate-200">
+            <div className={`flex items-center justify-between font-black ${remaining > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
               <span>المبلغ المتبقي:</span>
-              <span>{remaining} جنيه مصري</span>
+              <span className="font-mono">{remaining} جنيه مصري</span>
             </div>
           </div>
 
-          {/* Payment Status & Follow Up note */}
-          <div className="flex items-center justify-between gap-3 pt-2">
+          {/* QR Code and Status */}
+          <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">حالة الفاتورة:</span>
-              {activeBusiness.paymentStatus === 'fully_paid' && (
-                <span className="bg-emerald-100 text-emerald-800 text-[11px] font-black px-3 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>مدفوعة بالكامل</span>
-                </span>
-              )}
-
-              {activeBusiness.paymentStatus === 'partially_paid' && (
-                <span className="bg-amber-100 text-amber-800 text-[11px] font-black px-3 py-1 rounded-full border border-amber-300 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-amber-600" />
-                  <span>مدفوع جزء منها</span>
-                </span>
-              )}
-
-              {activeBusiness.paymentStatus === 'unpaid' && (
-                <span className="bg-rose-100 text-rose-800 text-[11px] font-black px-3 py-1 rounded-full border border-rose-300 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                  <span>لم يتم الدفع نهائياً</span>
-                </span>
-              )}
+              <span className="text-xs font-bold text-slate-500">حالة الفاتورة:</span>
+              <span className={`text-xs font-black px-3 py-1 rounded-xl border flex items-center gap-1 ${
+                activeBusiness.paymentStatus === 'fully_paid'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : activeBusiness.paymentStatus === 'partially_paid'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+              }`}>
+                {activeBusiness.paymentStatus === 'fully_paid' ? 'مدفوعة بالكامل ✓' : activeBusiness.paymentStatus === 'partially_paid' ? `متبقي ${remaining} ج` : 'غير مسددة'}
+              </span>
             </div>
 
-            {/* Electronic QR Code */}
-            <div className="flex items-center gap-2">
-              <img src={qrImageUrl} crossOrigin="anonymous" alt="QR Code" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-slate-300 p-1 bg-white" />
-            </div>
+            <img src={qrImageUrl} alt="QR Code" className="w-16 h-16 rounded-lg border border-slate-200 shadow-2xs" />
           </div>
 
-          <div className="text-[10px] text-slate-600 dark:text-slate-300 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2">
-            <div className="text-right">
-              <span className="font-bold text-amber-700 dark:text-amber-300 block text-[11px]">✨ نشاطكم منشور ومتاح الآن في دليل الأنشطة المعتمد في مصر:</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">يمكن للعملاء استعراض نشاطكم وبيانات التواصل وموقعكم GPS</span>
-            </div>
-            <a
-              href={directoryUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10.5px] font-black px-2.5 py-1 rounded-lg shrink-0 transition-all shadow-xs"
-            >
-              فتح الدليل ↗
+          {/* Directory Portal Link Notice */}
+          <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-2.5 text-center text-[10.5px] text-amber-900 font-bold">
+            <span>✨ نشاطكم منشور ومتاح الآن في دليل الأنشطة المعتمد في مصر: </span>
+            <a href={directoryUrl} target="_blank" rel="noreferrer" className="text-amber-700 underline font-mono">
+              {directoryUrl}
             </a>
           </div>
         </div>
 
-        {/* Direct Payment Collection Action for Debt */}
-        {isPrivilegedUser && remaining > 0 && onCollectPayment && (
-          <div className="no-print">
+        {/* ── WHATSAPP ACTION CENTER FOR INVOICE ──────────────────────── */}
+        <div className="no-print space-y-2 pt-1">
+          <a
+            href={getInvoiceWhatsAppUrl(activeBusiness)}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 text-center cursor-pointer"
+          >
+            <Send className="w-4 h-4" />
+            <span>إرسال الفاتورة الرسمية للعميل عبر WhatsApp 💬</span>
+          </a>
+
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => onCollectPayment(activeBusiness)}
-              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg hover:shadow-emerald-500/20 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer border border-emerald-400/30"
+              onClick={handleCopyInvoice}
+              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1.5">
-                    <span>تحصيل الفاتورة وسداد المبلغ المتبقي</span>
-                    <span className="bg-white/25 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">فوري 💳</span>
-                  </div>
-                  <p className="text-[10px] text-emerald-100 font-normal">تسجيل التحصيل عبر المحافظ الإلكترونية وإنستاباي وتحديث الفاتورة</p>
-                </div>
-              </div>
-
-              <div className="bg-white/20 px-3 py-1.5 rounded-xl text-xs font-black">
-                {remaining} ج.م
-              </div>
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+              <span>{copied ? 'تم النسخ!' : 'نسخ نص الفاتورة'}</span>
             </button>
-          </div>
-        )}
 
-        {/* Google Maps Auto-Sync & Place ID Button (Admins only) */}
-        {isPrivilegedUser && (
-          <div className="no-print">
-            <button
-              onClick={() => setShowSyncModal(true)}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg hover:shadow-blue-500/20 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer border border-blue-400/30"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-white" />
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1.5">
-                    <span>مزامنة وتوثيق على خرائط جوجل</span>
-                    <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">API</span>
-                  </div>
-                  <p className="text-[10px] text-blue-100 font-normal">إرسال البيانات والصور وتوليد معرّف Place ID الرسمي</p>
-                </div>
-              </div>
-
-              <div className="bg-white/20 px-2.5 py-1 rounded-xl text-[11px] font-bold">
-                {activeBusiness.googleSyncStatus === 'synced' ? 'مُوثق ومعتمد ✅' : 'مزامنة الآن ⚡'}
-              </div>
-            </button>
-          </div>
-        )}
-
-        {/* Package Upgrade Offers Box (Admins only) */}
-        {isPrivilegedUser && (
-          <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 p-3 rounded-2xl border border-amber-500/30 no-print space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-black text-amber-800 dark:text-amber-300">
-                <Gift className="w-4 h-4 text-amber-500" />
-                <span>عروض الترقية والتطوير الحصرية للعميل</span>
-              </div>
-              <span className="text-[10px] bg-amber-500/20 text-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
-                فرص مبيعات إضافية 🚀
-              </span>
-            </div>
-            <p className="text-[11px] text-[var(--text-muted)] font-medium">
-              يمكنك إرسال تفاصيل ومميزات الباقات الأخرى (عرض التأسيس والربط الذكي أو باقة الدعم الميداني VIP) مباشرة لصاحب النشاط عبر واتساب.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-              <a
-                href={getUpgradeOffersWhatsAppUrl(activeBusiness)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs py-2.5 px-3.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>إرسال عروض الترقية (واتساب)</span>
-              </a>
-
+            {remaining > 0 && onCollectPayment && (
               <button
                 type="button"
                 onClick={() => {
-                  navigator.clipboard.writeText(generateUpgradeOffersWhatsAppMessage(activeBusiness));
-                  setCopiedOffers(true);
-                  setTimeout(() => setCopiedOffers(false), 2500);
+                  onClose();
+                  onCollectPayment(activeBusiness);
                 }}
-                className="w-full sm:w-auto bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
               >
-                {copiedOffers ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
-                <span>{copiedOffers ? 'تم نسخ العروض!' : 'نسخ نص العروض'}</span>
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>تحصيل ({remaining} ج)</span>
               </button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Action Buttons for Admins only (Reps use the clean header icons) */}
+        {/* Upgrade Offers Box */}
         {isPrivilegedUser && (
-          <div className="no-print pt-1">
-            <div className="flex items-center gap-2">
+          <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 p-3 rounded-2xl border border-amber-500/30 no-print space-y-1.5 text-right">
+            <div className="flex items-center justify-between">
+              <span className="font-black text-xs text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                <Gift className="w-3.5 h-3.5 text-amber-500" />
+                <span>عروض الترقية والتطوير (فرص مبيعات إضافية)</span>
+              </span>
               <a
-                href={whatsappUrl}
+                href={getUpgradeOffersWhatsAppUrl(activeBusiness)}
                 target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 sm:py-3 px-3 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer text-center"
+                rel="noreferrer"
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10.5px] px-3 py-1 rounded-lg shadow-xs flex items-center gap-1 cursor-pointer"
               >
-                <Share2 className="w-4 h-4" />
-                <span>إرسال فاتورة الدليل للعميل عبر WhatsApp 💬</span>
+                <Zap className="w-3 h-3" />
+                <span>إرسال العروض</span>
               </a>
-
-              <button
-                type="button"
-                onClick={handleCopyInvoice}
-                className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs py-2.5 sm:py-3 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                title="نسخ نص الفاتورة للحافظة"
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
-                <span className="hidden sm:inline">{copied ? 'تم النسخ!' : 'نسخ'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveInvoiceImage}
-                disabled={isSavingImage}
-                className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-2.5 sm:py-3 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                title="حفظ الفاتورة كصورة"
-              >
-                <Download className="w-4 h-4 text-amber-500" />
-                <span className="hidden sm:inline">حفظ</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-2.5 sm:py-3 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                title="طباعة الفاتورة"
-              >
-                <Printer className="w-4 h-4 text-amber-500" />
-                <span className="hidden sm:inline">طباعة</span>
-              </button>
             </div>
           </div>
-        )}
-
-        {/* Google Maps Sync Modal (Admins only) */}
-        {isPrivilegedUser && (
-          <GoogleMapsSyncModal
-            business={activeBusiness}
-            isOpen={showSyncModal}
-            onClose={() => setShowSyncModal(false)}
-            onUpdateBusiness={(updated) => {
-              setCurrentBiz(updated);
-              if (onUpdateBusiness) onUpdateBusiness(updated);
-            }}
-          />
         )}
       </div>
     </div>,
