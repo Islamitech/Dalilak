@@ -147,106 +147,107 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         {/* ── PRINTABLE INVOICE CARD CONTAINER ────────────────────────── */}
         <div 
           ref={invoiceRef}
-          className="bg-white text-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5 print:border-none print:shadow-none print:p-0"
+          className="bg-white text-slate-900 rounded-3xl p-5 sm:p-6 border-2 border-slate-200 shadow-md space-y-4 print:border-none print:shadow-none print:p-0"
         >
           {/* Top Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div className="text-right">
-              <span className="bg-amber-500/15 text-amber-800 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
+          <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4 gap-3">
+            <div className="flex items-center">
+              <Logo size="md" showSubtitle={true} variant="full" />
+            </div>
+
+            <div className="text-left space-y-1">
+              <span className="inline-block bg-amber-50 text-amber-900 text-[10.5px] font-black px-3 py-1 rounded-full border border-amber-300 shadow-2xs">
                 فاتورة إلكترونية معتمدة
               </span>
-              <div className="text-xs font-mono font-bold text-slate-500 mt-1">
+              <div className="text-xs font-mono font-black text-slate-700" dir="ltr">
                 {activeBusiness.invoiceNumber}
               </div>
-              <div className="text-[10px] text-slate-400 font-medium">
+              <div className="text-[10.5px] font-bold text-slate-400">
                 {activeBusiness.invoiceDate || new Date().toISOString().split('T')[0]}
               </div>
             </div>
-
-            <div className="text-left flex items-center gap-2">
-              <div>
-                <div className="font-black text-base text-slate-950 flex items-center gap-1">
-                  <span>دليلك</span>
-                  <span className="text-[10px] bg-amber-500 text-slate-950 px-1 rounded font-black">EG</span>
-                </div>
-                <div className="text-[9.5px] text-slate-500 font-bold">المنصة الشاملة لإدارة وتوثيق الأنشطة الميدانية</div>
-              </div>
-              <Logo size="md" />
-            </div>
           </div>
 
-          {/* Client & Business Info */}
-          <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs">
-            <div className="text-right space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-bold block">النشاط التجاري:</span>
-              <span className="font-black text-slate-900 block truncate">{activeBusiness.nameAr}</span>
-              <span className="text-[10px] text-slate-500 block truncate">{activeBusiness.category}</span>
-              <span className="text-[10px] text-slate-500 block">{activeBusiness.governorate} - {activeBusiness.city}</span>
+          {/* Client & Business Info Card */}
+          <div className="grid grid-cols-2 gap-3 bg-slate-50/90 p-4 rounded-2xl border border-slate-200 text-xs shadow-2xs">
+            <div className="text-right space-y-1">
+              <span className="text-[10.5px] text-slate-400 font-bold block">النشاط التجاري:</span>
+              <span className="font-black text-slate-900 text-sm block truncate">{activeBusiness.nameAr}</span>
+              <span className="text-[11px] text-amber-700 font-bold block truncate">{activeBusiness.category}</span>
+              <span className="text-[10.5px] text-slate-500 font-medium block">{activeBusiness.governorate} - {activeBusiness.city}</span>
             </div>
 
-            <div className="text-right space-y-0.5 border-r border-slate-200 pr-3">
-              <span className="text-[10px] text-slate-400 font-bold block">صاحب النشاط / العميل:</span>
-              <span className="font-black text-slate-900 block truncate">{activeBusiness.ownerName || 'صاحب النشاط'}</span>
-              <span className="text-[10px] text-slate-600 font-mono block" dir="ltr">{activeBusiness.ownerPhone || activeBusiness.phone}</span>
-              <span className="text-[10px] text-slate-500 block truncate">المندوب: {activeBusiness.repName || 'مندوب معتمد'}</span>
+            <div className="text-right space-y-1 border-r border-slate-200 pr-3">
+              <span className="text-[10.5px] text-slate-400 font-bold block">صاحب النشاط / العميل:</span>
+              <span className="font-black text-slate-900 text-sm block truncate">{activeBusiness.ownerName || 'صاحب النشاط'}</span>
+              <span className="text-xs text-slate-700 font-mono font-bold block" dir="ltr">{activeBusiness.ownerPhone || activeBusiness.phone}</span>
+              <span className="text-[10.5px] text-slate-500 font-bold block truncate">المندوب: {activeBusiness.repName || 'مندوب معتمد'}</span>
             </div>
           </div>
 
           {/* Package Details Table */}
-          <div className="border border-slate-100 rounded-xl overflow-hidden text-xs">
-            <div className="bg-slate-100 px-3 py-2 flex items-center justify-between font-bold text-slate-600 text-[11px]">
-              <span>الخدمة / الباقة</span>
+          <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs shadow-2xs">
+            <div className="bg-slate-100/90 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between font-black text-slate-700 text-[11px]">
+              <span>الخدمة / الباقة المختارة</span>
               <span>القيمة</span>
             </div>
-            <div className="p-3 flex items-center justify-between bg-white border-b border-slate-50">
-              <div>
-                <span className="font-black text-slate-900 block">{activeBusiness.packageName || 'باقة التوثيق الأساسي'}</span>
-                <span className="text-[10px] text-slate-500">توثيق واستخراج الإحداثيات على خرائط جوجل والدليل</span>
+            <div className="p-3.5 flex items-center justify-between bg-white">
+              <div className="space-y-0.5">
+                <span className="font-black text-slate-900 text-xs sm:text-sm block">{activeBusiness.packageName || 'باقة التوثيق الأساسي'}</span>
+                <span className="text-[10.5px] text-slate-500 font-medium block">توثيق واستخراج الإحداثيات والظهور على خرائط Google والدليل</span>
               </div>
-              <span className="font-black text-slate-900 font-mono">{pkgPrice} ج.م</span>
+              <span className="font-black text-slate-950 font-mono text-sm shrink-0 mr-2">{pkgPrice} ج.م</span>
             </div>
           </div>
 
-          {/* Financial Summary */}
-          <div className="space-y-1.5 bg-slate-50/80 p-3 rounded-xl border border-slate-100 text-xs font-bold">
+          {/* Financial Summary Box */}
+          <div className="space-y-2 bg-slate-50/90 p-4 rounded-2xl border border-slate-200 text-xs font-bold shadow-2xs">
             <div className="flex items-center justify-between text-slate-600">
-              <span>إجمالي الباقة:</span>
-              <span className="font-mono">{pkgPrice} جنيه مصري</span>
+              <span>إجمالي قيمة الباقة:</span>
+              <span className="font-mono text-slate-900">{pkgPrice} جنيه مصري</span>
             </div>
             <div className="flex items-center justify-between text-emerald-700 font-black">
-              <span>المبلغ المدفوع:</span>
+              <span>المبلغ المدفوع (المسدد):</span>
               <span className="font-mono">{amtPaid} جنيه مصري</span>
             </div>
-            <div className={`flex items-center justify-between font-black ${remaining > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-              <span>المبلغ المتبقي:</span>
-              <span className="font-mono">{remaining} جنيه مصري</span>
+            <div className="border-t border-slate-200/80 pt-1.5 flex items-center justify-between">
+              <span className={remaining > 0 ? 'text-rose-700 font-black' : 'text-slate-500 font-bold'}>
+                {remaining > 0 ? 'المبلغ المتبقي (دين):' : 'المبلغ المتبقي:'}
+              </span>
+              <span className={`font-mono ${remaining > 0 ? 'text-rose-700 font-black text-sm' : 'text-slate-500'}`}>
+                {remaining} جنيه مصري
+              </span>
             </div>
           </div>
 
-          {/* QR Code and Status */}
-          <div className="flex items-center justify-between pt-1">
+          {/* QR Code and Status Row */}
+          <div className="flex items-center justify-between pt-0.5 gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-500">حالة الفاتورة:</span>
-              <span className={`text-xs font-black px-3 py-1 rounded-xl border flex items-center gap-1 ${
+              <span className={`text-xs font-black px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-2xs ${
                 activeBusiness.paymentStatus === 'fully_paid'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                   : activeBusiness.paymentStatus === 'partially_paid'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                  ? 'bg-amber-50 text-amber-900 border-amber-300'
+                  : 'bg-rose-50 text-rose-800 border-rose-300'
               }`}>
                 {activeBusiness.paymentStatus === 'fully_paid' ? 'مدفوعة بالكامل ✓' : activeBusiness.paymentStatus === 'partially_paid' ? `متبقي ${remaining} ج` : 'غير مسددة'}
               </span>
             </div>
 
-            <img src={qrImageUrl} alt="QR Code" className="w-16 h-16 rounded-lg border border-slate-200 shadow-2xs" />
+            <div className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-2xs shrink-0">
+              <img src={qrImageUrl} alt="QR Code" className="w-14 h-14 rounded-lg block" />
+            </div>
           </div>
 
           {/* Directory Portal Link Notice */}
-          <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-2.5 text-center text-[10.5px] text-amber-900 font-bold">
-            <span>✨ نشاطكم منشور ومتاح الآن في دليل الأنشطة المعتمد في مصر: </span>
-            <a href={directoryUrl} target="_blank" rel="noreferrer" className="text-amber-700 underline font-mono">
-              {directoryUrl}
-            </a>
+          <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border border-amber-300 rounded-2xl p-3 text-center text-[11px] text-amber-950 font-bold shadow-2xs space-y-0.5">
+            <div>✨ نشاطكم التجاري منشور ومتاح في دليل الأنشطة المعتمد في مصر:</div>
+            <div>
+              <a href={directoryUrl} target="_blank" rel="noreferrer" className="text-amber-800 hover:text-amber-900 underline font-mono font-black">
+                {directoryUrl}
+              </a>
+            </div>
           </div>
         </div>
 
