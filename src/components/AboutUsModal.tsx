@@ -153,6 +153,30 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
             </p>
           </div>
 
+          {/* Dalilaak Headquarters Building Showcase */}
+          <div className="rounded-2xl overflow-hidden border border-amber-500/30 bg-slate-900 shadow-md relative group">
+            <img
+              src="/dalilaak-hq.jpg"
+              alt="مقر الإدارة الرئيسي لمنظومة دليلك"
+              className="w-full h-44 sm:h-52 object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent flex items-end p-3.5 sm:p-4">
+              <div className="flex items-center justify-between gap-2 w-full text-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs">
+                    📍
+                  </div>
+                  <span className="font-black text-xs sm:text-sm text-amber-300">
+                    مقر الإدارة الرئيسي — منظومة دليلك لرقمنة الأنشطة التجارية
+                  </span>
+                </div>
+                <span className="text-[10px] bg-white/15 backdrop-blur-xs px-2.5 py-1 rounded-full border border-white/20 font-bold hidden sm:inline-block">
+                  الفرع الرئيسي 145
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Official Communication & Support Channel */}
           <div className="bg-[var(--bg-surface)] p-3.5 rounded-2xl border border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 text-right">
