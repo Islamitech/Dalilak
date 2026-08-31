@@ -264,10 +264,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
-  const [enableWatermark, setEnableWatermark] = useState<boolean>(true);
-  const [watermarkPosition, setWatermarkPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
 
-  // Compressed Photo upload handler with automatic Daleelek Watermark branding
+  // Compressed Photo upload handler with mandatory automatic Daleelek Watermark branding
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -276,8 +274,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       for (let i = 0; i < files.length; i++) {
         try {
           const compressed = await compressImageFile(files[i], 1000, 1000, 0.72, {
-            applyWatermark: enableWatermark,
-            position: watermarkPosition,
+            applyWatermark: true,
+            position: 'bottom-right',
           });
           // Upload directly to Supabase Storage 'business-media' bucket
           const publicUrl = await uploadMediaToSupabaseStorage(compressed, 'photos');
@@ -858,61 +856,6 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               <span>📁 الاستوديو</span>
               <input type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
             </label>
-          </div>
-        </div>
-
-        {/* Watermark Auto-branding Control Bar */}
-        <div className="bg-[var(--input-bg)]/80 border border-amber-500/30 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-inner">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-black text-[var(--text-primary)]">
-                  شعار دليلك التلقائي على الصور 🛡️
-                </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${enableWatermark ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'}`}>
-                  {enableWatermark ? 'مفعل تلقائياً 🟢' : 'معطل ✕'}
-                </span>
-              </div>
-              <span className="text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
-                دمج الشعار الرسمي (دليلك • Daleelek) تلقائياً لحفظ الهوية الرقمية للصور
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mr-auto sm:mr-0">
-            {enableWatermark && (
-              <div className="flex items-center bg-[var(--bg-card)] rounded-xl p-1 border border-[var(--border-color)] text-[10px] font-bold">
-                <button
-                  type="button"
-                  onClick={() => setWatermarkPosition('bottom-right')}
-                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${watermarkPosition === 'bottom-right' ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
-                >
-                  أسفل اليمين
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWatermarkPosition('bottom-left')}
-                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${watermarkPosition === 'bottom-left' ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
-                >
-                  أسفل اليسار
-                </button>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setEnableWatermark(!enableWatermark)}
-              className={`text-xs font-black px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                enableWatermark
-                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              {enableWatermark ? 'تعطيل الختم' : 'تفعيل الختم 🛡️'}
-            </button>
           </div>
         </div>
 

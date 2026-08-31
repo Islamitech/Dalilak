@@ -23,6 +23,7 @@ import { PackagesModal } from './components/PackagesModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { OfflineSyncModal } from './components/OfflineSyncModal';
 import { getOfflineSyncStatus, OfflineSyncStatus } from './services/offlineSync';
+import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';
 import { Logo } from './components/Logo';
 import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel } from './utils/permissions';
 import { 
@@ -2228,11 +2229,11 @@ export default function App() {
 
                               {/* WhatsApp */}
                               <a
-                                href={`https://wa.me/20${(biz.phone || biz.ownerPhone || '').replace(/\D/g, '').replace(/^0/, '')}?text=${encodeURIComponent(`مرحباً بك نشاط "${biz.nameAr}" من منصة دليلك للتوثيق الرقمي.`)}`}
+                                href={getRepFieldIntroWhatsAppUrl(biz, user?.name)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                                title="محادثة واتساب"
+                                title="محادثة واتساب ميدانية"
                               >
                                 <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
                                 <span>واتساب</span>

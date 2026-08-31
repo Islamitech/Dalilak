@@ -283,3 +283,33 @@ export function getSocialProofUpgradeWhatsAppUrl(biz: Business): string {
   const text = safeWhatsAppEncode(generateSocialProofUpgradeWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
+
+// -----------------------------------------------------------------------------
+// FIELD REPRESENTATIVE INTRO MESSAGE (EXCLUSIVE FOR REPS ON ACTIVITY CARD)
+// -----------------------------------------------------------------------------
+
+/**
+ * Event 5: Field Representative Direct Contact Message
+ * Informs the owner that the official platform account handles the invoice and follow-ups
+ */
+export function generateRepFieldIntroWhatsAppMessage(biz: Business, repName?: string): string {
+  const finalRepName = repName || biz.repName || 'المندوب الميداني';
+  const ownerName = biz.ownerName || 'صاحب النشاط';
+  const bizName = biz.nameAr || 'نشاطكم التجاري';
+
+  const raw = 
+    `السلام عليكم أستاذ *${ownerName}* 🤝\n\n` +
+    `معك *${finalRepName}*، المندوب الميداني المعتمد من منصة *«دليلك»*.\n` +
+    `تشرفت بزيارتكم اليوم وتوثيق نشاطكم التجاري *(${bizName})*.\n\n` +
+    `نحيط سيادتكم علماً بأن *حساب المنصة الرسمي* سيقوم بإرسال الفاتورة الإلكترونية المعتمدة لحضرتكم عبر الواتساب، كما أن كافة المتابعات والالتزامات وإجراءات التوثيق تتم مباشرة من خلالهم عبر الواتساب.\n\n` +
+    `سعدت جداً بخدمتكم وتمنياتنا لنشاطكم بدوام التوفيق والازدهار! ✨`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getRepFieldIntroWhatsAppUrl(biz: Business, repName?: string): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateRepFieldIntroWhatsAppMessage(biz, repName));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+

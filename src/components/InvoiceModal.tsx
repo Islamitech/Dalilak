@@ -252,40 +252,53 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
         {/* ── WHATSAPP ACTION CENTER FOR INVOICE ──────────────────────── */}
         <div className="no-print space-y-2 pt-1">
-          <a
-            href={getInvoiceWhatsAppUrl(activeBusiness)}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 text-center cursor-pointer"
-          >
-            <Send className="w-4 h-4" />
-            <span>إرسال الفاتورة الرسمية للعميل عبر WhatsApp 💬</span>
-          </a>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={handleCopyInvoice}
-              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
-              <span>{copied ? 'تم النسخ!' : 'نسخ نص الفاتورة'}</span>
-            </button>
-
-            {remaining > 0 && onCollectPayment && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onCollectPayment(activeBusiness);
-                }}
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+          {isPrivilegedUser ? (
+            <>
+              <a
+                href={getInvoiceWhatsAppUrl(activeBusiness)}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 text-center cursor-pointer"
               >
-                <DollarSign className="w-3.5 h-3.5" />
-                <span>تحصيل ({remaining} ج)</span>
-              </button>
-            )}
-          </div>
+                <Send className="w-4 h-4" />
+                <span>إرسال الفاتورة الرسمية للعميل عبر WhatsApp 💬</span>
+              </a>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyInvoice}
+                  className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs py-2.5 px-3 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+                  <span>{copied ? 'تم النسخ!' : 'نسخ نص الفاتورة'}</span>
+                </button>
+
+                {remaining > 0 && onCollectPayment && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onCollectPayment(activeBusiness);
+                    }}
+                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                  >
+                    <DollarSign className="w-3.5 h-3.5" />
+                    <span>تحصيل ({remaining} ج)</span>
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-center text-xs space-y-1.5 animate-fade-in">
+              <div className="font-black text-amber-800 dark:text-amber-300 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+                <span>📷 يرجى الطلب من صاحب النشاط تصوير شاشة الفاتورة بهاتفه</span>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] font-bold leading-relaxed">
+                يتم إرسال الفاتورة الرسمية وتأكيد التوثيق والمتابعة حصرياً من خلال <strong>حساب المنصة الرسمي عبر الواتساب</strong>.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Upgrade Offers Box */}

@@ -102,8 +102,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // High precision controls & Layer switcher (Default: Lightweight CartoDB Data-Saver)
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('cartodb');
+  // High precision controls & Layer switcher (Default: Official Google Streets)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -134,20 +134,20 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
           attribution: 'Imagery © Google',
         };
-      case 'google-streets':
-        return {
-          url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-          maxZoom: 20,
-          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-          attribution: 'Map data © Google',
-        };
       case 'cartodb':
-      default:
         return {
           url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
           maxZoom: 19,
           subdomains: 'abcd',
           attribution: '© CartoDB / OpenStreetMap',
+        };
+      case 'google-streets':
+      default:
+        return {
+          url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: 'Map data © Google',
         };
     }
   };
