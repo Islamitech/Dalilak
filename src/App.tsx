@@ -1521,6 +1521,7 @@ export default function App() {
   // Unified Clean Login Handler with Role Specification
   const handleLoginUser = useCallback((u: User) => {
     setUser(u);
+    setShowLoginModal(false);
     safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(u)));
     safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
 

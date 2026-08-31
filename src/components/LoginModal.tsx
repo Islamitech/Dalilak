@@ -223,6 +223,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
       await updateRepSessionInDb(foundRep.id, newSessionId, now);
 
+      if (onClose) {
+        onClose();
+      }
+
       onLoginSuccess({
         id: foundRep.id,
         name: foundRep.name,
