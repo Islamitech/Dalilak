@@ -341,6 +341,9 @@ export async function syncAllPendingOfflineData(
         };
 
         // Step C: Save to Supabase Cloud
+        const repLocationUrl = cleanBizToSave.repLocationUrl || (cleanBizToSave.lat && cleanBizToSave.lng ? `https://www.google.com/maps?q=${cleanBizToSave.lat},${cleanBizToSave.lng}` : null);
+        const googleMapsUrl = (cleanBizToSave.googleMapsUrl && cleanBizToSave.googleMapsUrl.trim().startsWith('http') && !cleanBizToSave.googleMapsUrl.includes('search/?api=1&query=')) ? cleanBizToSave.googleMapsUrl.trim() : null;
+
         const dbPayload: any = {
           id: cleanBizToSave.id,
           name_ar: cleanBizToSave.nameAr,
@@ -369,8 +372,6 @@ export async function syncAllPendingOfflineData(
           verification_status: cleanBizToSave.verificationStatus || 'pending',
           rep_id: cleanBizToSave.repId || 'rep_1',
           rep_name: cleanBizToSave.repName || 'مندوب معتمد',
-          rep_location_url: cleanBizToSave.repLocationUrl || (cleanBizToSave.lat && cleanBizToSave.lng ? `https://www.google.com/maps?q=${cleanBizToSave.lat},${cleanBizToSave.lng}` : null),
-          google_maps_url: (cleanBizToSave.googleMapsUrl && cleanBizToSave.googleMapsUrl.trim().startsWith('http') && !cleanBizToSave.googleMapsUrl.includes('search/?api=1&query=')) ? cleanBizToSave.googleMapsUrl.trim() : null,
           invoice_number: cleanBizToSave.invoiceNumber,
           invoice_date: cleanBizToSave.invoiceDate,
           created_at: cleanBizToSave.createdDate || new Date().toISOString(),
@@ -379,20 +380,40 @@ export async function syncAllPendingOfflineData(
             cashCollectedByRep: cleanBizToSave.cashCollectedByRep,
             repCommissionRate: cleanBizToSave.repCommissionRate,
             googleSyncStatus: cleanBizToSave.googleSyncStatus,
-            repLocationUrl: cleanBizToSave.repLocationUrl || (cleanBizToSave.lat && cleanBizToSave.lng ? `https://www.google.com/maps?q=${cleanBizToSave.lat},${cleanBizToSave.lng}` : null),
-            googleMapsUrl: (cleanBizToSave.googleMapsUrl && cleanBizToSave.googleMapsUrl.trim().startsWith('http') && !cleanBizToSave.googleMapsUrl.includes('search/?api=1&query=')) ? cleanBizToSave.googleMapsUrl.trim() : null,
+            googlePlaceId: cleanBizToSave.googlePlaceId,
+            googleSyncDate: cleanBizToSave.googleSyncDate,
+            repLocationUrl,
+            googleMapsUrl,
             videos: cleanVideos,
             userNotes: cleanBizToSave.notes,
           }),
         };
 
-        const res = await supabaseRestFetch('businesses', {
-          method: 'POST',
-          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-          body: JSON.stringify(dbPayload),
-        });
+        let isSaved = false;
 
-        if (res.ok) {
+        // Try Supabase SDK upsert first
+        try {
+          const { error } = await supabase
+            .from('businesses')
+            .upsert(dbPayload, { onConflict: 'id' });
+          if (!error) {
+            isSaved = true;
+          }
+        } catch {}
+
+        // Fallback to Supabase PostgREST Fetch
+        if (!isSaved) {
+          const res = await supabaseRestFetch('businesses', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify(dbPayload),
+          });
+          if (res.ok) {
+            isSaved = true;
+          }
+        }
+
+        if (isSaved) {
           // Successfully stored on Cloud: remove from offline queue
           await removeOfflineBusiness(biz.id);
           syncedCount++;
@@ -429,13 +450,29 @@ export async function syncAllPendingOfflineData(
           status: lead.status || 'pending_followup',
         };
 
-        const res = await supabaseRestFetch('leads', {
-          method: 'POST',
-          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-          body: JSON.stringify(leadPayload),
-        });
+        let leadSaved = false;
 
-        if (res.ok) {
+        try {
+          const res = await supabaseRestFetch('leads', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify(leadPayload),
+          });
+          if (res.ok) leadSaved = true;
+        } catch {}
+
+        if (!leadSaved) {
+          try {
+            const localRes = await fetch('/api/leads', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(lead),
+            });
+            if (localRes.ok) leadSaved = true;
+          } catch {}
+        }
+
+        if (leadSaved) {
           await removeOfflineLead(lead.id);
           syncedCount++;
         } else {
@@ -468,13 +505,29 @@ export async function syncAllPendingOfflineData(
           type: payout.type || 'payout',
         };
 
-        const res = await supabaseRestFetch('payout_requests', {
-          method: 'POST',
-          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-          body: JSON.stringify(payoutPayload),
-        });
+        let payoutSaved = false;
 
-        if (res.ok) {
+        try {
+          const res = await supabaseRestFetch('payout_requests', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify(payoutPayload),
+          });
+          if (res.ok) payoutSaved = true;
+        } catch {}
+
+        if (!payoutSaved) {
+          try {
+            const localRes = await fetch('/api/payouts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payout),
+            });
+            if (localRes.ok) payoutSaved = true;
+          } catch {}
+        }
+
+        if (payoutSaved) {
           await removeOfflinePayout(payout.id);
           syncedCount++;
         } else {

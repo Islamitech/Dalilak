@@ -1133,6 +1133,9 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.created_at = biz.createdDate || new Date().toISOString();
 
   // Safely preserve financial, sync, and video metadata in notes JSON
+  const repLocationUrl = biz.repLocationUrl || (biz.lat && biz.lng ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}` : null);
+  const googleMapsUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=')) ? biz.googleMapsUrl.trim() : null;
+
   const metaObj = {
     paymentMethod: biz.paymentMethod,
     cashCollectedByRep: biz.cashCollectedByRep,
@@ -1140,8 +1143,8 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googleSyncStatus: biz.googleSyncStatus,
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,
-    repLocationUrl: record.rep_location_url,
-    googleMapsUrl: record.google_maps_url,
+    repLocationUrl,
+    googleMapsUrl,
     videos: Array.isArray(biz.videos)
       ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))
       : [],
