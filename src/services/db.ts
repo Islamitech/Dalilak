@@ -1138,9 +1138,19 @@ function mapDbToBusiness(item: any): Business {
     } catch {}
   }
 
-  const isFeeExempt = metaIsFeeExempt !== undefined
+  const isAlreadyOnGoogle = Boolean(
+    metaIsAlreadyOnGoogle ||
+    item.is_already_on_google ||
+    item.isAlreadyOnGoogle ||
+    item.package_id === 'pkg_already_on_google' ||
+    item.packageId === 'pkg_already_on_google' ||
+    item.registration_type === 'already_on_google' ||
+    metaRegistrationType === 'already_on_google'
+  );
+
+  const isFeeExempt = isAlreadyOnGoogle || (metaIsFeeExempt !== undefined
     ? metaIsFeeExempt
-    : Boolean(item.package_price === 0 || item.packagePrice === 0 || item.package_id === 'pkg_exempt');
+    : Boolean(item.package_price === 0 || item.packagePrice === 0 || item.package_id === 'pkg_exempt' || item.package_id === 'pkg_already_on_google'));
   const parsedVideos = parseVideosArray(item);
   const finalVideos = parsedVideos.length > 0 ? parsedVideos : (metaVideos || []);
 
@@ -1151,8 +1161,16 @@ function mapDbToBusiness(item: any): Business {
     ? Number(item.packagePrice)
     : isFeeExempt ? 0 : 250;
   const packagePrice = isFeeExempt ? 0 : (isNaN(rawPkgPrice) ? 250 : rawPkgPrice);
-  const packageId = isFeeExempt ? 'pkg_exempt' : (item.package_id || item.packageId || (packagePrice === 750 ? 'pkg_pro' : packagePrice === 2000 ? 'pkg_vip' : 'pkg_basic'));
-  const packageName = isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (item.package_name || item.packageName || (packageId === 'pkg_pro' ? '2. عرض التأسيس والربط الذكي' : packageId === 'pkg_vip' ? '3. عرض الدعم الميداني والإدارة الشاملة VIP' : '1. باقة التوثيق الأساسي'));
+  const packageId = isAlreadyOnGoogle
+    ? 'pkg_already_on_google'
+    : isFeeExempt
+    ? 'pkg_exempt'
+    : (item.package_id || item.packageId || (packagePrice === 750 ? 'pkg_pro' : packagePrice === 2000 ? 'pkg_vip' : 'pkg_basic'));
+  const packageName = isAlreadyOnGoogle
+    ? 'نشاط مسجل مسبقاً على Google Maps (إدراج مجاني)'
+    : isFeeExempt
+    ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)'
+    : (item.package_name || item.packageName || (packageId === 'pkg_pro' ? '2. عرض التأسيس والربط الذكي' : packageId === 'pkg_vip' ? '3. عرض الدعم الميداني والإدارة الشاملة VIP' : '1. باقة التوثيق الأساسي'));
 
   const rawPaid = Number(item.amount_paid !== undefined && item.amount_paid !== null ? item.amount_paid : (item.amountPaid || 0)) || 0;
   const rawStatus = item.payment_status || item.paymentStatus;
@@ -1176,10 +1194,12 @@ function mapDbToBusiness(item: any): Business {
   const lat = Number(item.lat) || 30.0444;
   const lng = Number(item.lng) || 31.2357;
 
-  // 1. Rep Field Location URL (Unverified - for Admin Review/Upload use only)
-  const repLocationUrl = metaRepLocationUrl || item.rep_location_url || item.repLocationUrl || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined);
+  // 1. Rep Field Location URL (Unverified - for Admin Review/Upload use only - strictly omitted for already on google!)
+  const repLocationUrl = isAlreadyOnGoogle
+    ? undefined
+    : (metaRepLocationUrl || item.rep_location_url || item.repLocationUrl || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined));
 
-  // 2. Official Verified Google Maps URL (Added by Admin only - strictly verified URLs, never synthetic coordinates fallback)
+  // 2. Official Verified Google Maps URL (Added by Admin or Rep on initial registration)
   let rawGoogleMapsUrl = metaGoogleMapsUrl || item.google_maps_url || item.googleMapsUrl || '';
   if (typeof rawGoogleMapsUrl === 'string') {
     rawGoogleMapsUrl = rawGoogleMapsUrl.trim();

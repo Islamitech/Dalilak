@@ -172,9 +172,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         cleanRepUrl = trimmed;
       }
     }
-    if (!cleanRepUrl && formData.lat && formData.lng) {
-      cleanRepUrl = `https://www.google.com/maps?q=${formData.lat},${formData.lng}`;
-    }
+    const isAlreadyOnGoogle = Boolean(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google');
+    const isFeeExempt = Boolean(isAlreadyOnGoogle || formData.isFeeExempt || formData.packagePrice === 0);
 
     const updatedFormData: Business = {
       ...formData,
@@ -183,10 +182,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       ownerName: (formData.ownerName && formData.ownerName.trim()) || 'صاحب النشاط',
       phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
       ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
-      repLocationUrl: cleanRepUrl,
+      repLocationUrl: isAlreadyOnGoogle ? undefined : cleanRepUrl,
       googleMapsUrl: cleanGoogleMapsUrl,
-      verificationStatus: formData.verificationStatus || 'pending',
-      googleSyncStatus: formData.googleSyncStatus || (formData.verificationStatus === 'verified' ? 'synced' : 'not_synced'),
+      packagePrice: isFeeExempt ? 0 : (formData.packagePrice ?? 250),
+      amountPaid: isFeeExempt ? 0 : (formData.amountPaid ?? 0),
+      cashCollectedByRep: isFeeExempt ? 0 : (formData.cashCollectedByRep ?? 0),
+      isFeeExempt,
+      isAlreadyOnGoogle,
+      verificationStatus: isAlreadyOnGoogle ? 'verified' : (formData.verificationStatus || 'pending'),
+      googleSyncStatus: isAlreadyOnGoogle ? 'synced' : (formData.googleSyncStatus || (formData.verificationStatus === 'verified' ? 'synced' : 'not_synced')),
       photos: Array.isArray(formData.photos) ? formData.photos : [],
       videos: Array.isArray(formData.videos) ? formData.videos : [],
     };
@@ -343,7 +347,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     });
   };
 
-  const isFeeExempt = Boolean(formData.isFeeExempt || formData.packagePrice === 0);
+  const isAlreadyOnGoogle = Boolean(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google');
+  const isFeeExempt = Boolean(isAlreadyOnGoogle || formData.isFeeExempt || formData.packagePrice === 0);
   const remainingDebt = isFeeExempt ? 0 : Math.max(0, (formData.packagePrice || 0) - (formData.amountPaid || 0));
   const totalMediaCount = (formData.photos?.length || 0) + (formData.videos?.length || 0);
 
@@ -373,7 +378,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     ? { label: 'مرفوض 🔴', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
     : { label: 'بانتظار المراجعة', cls: 'bg-slate-700/50 text-slate-300 border-slate-600' };
 
-  const isAlreadyOnGoogle = Boolean(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google');
   const paymentBadge = isAlreadyOnGoogle
     ? { label: 'مسجل مسبقاً على Google Maps 📍 (إدراج مجاني 0 ج)', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
     : isFeeExempt
@@ -1016,98 +1020,100 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
 
                 {/* 1. رابط الموقع الميداني (من المندوب - غير موثق) */}
-                <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-3.5 space-y-2 sm:col-span-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-amber-500" />
-                      <span>1. الموقع الميداني المسجل (من المندوب - غير موثق)</span>
-                    </span>
-                    <span className="text-[9.5px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
-                      {isEditMode ? 'قابل للتعديل للمندوب' : 'للمراجعة الإدارية فقط'}
-                    </span>
+                {!formData.isAlreadyOnGoogle && formData.packageId !== 'pkg_already_on_google' && (
+                  <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-3.5 space-y-2 sm:col-span-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-amber-500" />
+                        <span>1. الموقع الميداني المسجل (من المندوب - غير موثق)</span>
+                      </span>
+                      <span className="text-[9.5px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
+                        {isEditMode ? 'قابل للتعديل للمندوب' : 'للمراجعة الإدارية فقط'}
+                      </span>
+                    </div>
+
+                    {isEditMode ? (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2" dir="ltr">
+                          <div>
+                            <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1 text-right">
+                              خط العرض (Lat)
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              value={formData.lat || ''}
+                              onChange={(e) => {
+                                const newLat = parseFloat(e.target.value) || 0;
+                                setFormData({
+                                  ...formData,
+                                  lat: newLat,
+                                  repLocationUrl: `https://www.google.com/maps?q=${newLat},${formData.lng}`,
+                                });
+                              }}
+                              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-left"
+                              placeholder="29.xxxxxx"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1 text-right">
+                              خط الطول (Lng)
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              value={formData.lng || ''}
+                              onChange={(e) => {
+                                const newLng = parseFloat(e.target.value) || 0;
+                                setFormData({
+                                  ...formData,
+                                  lng: newLng,
+                                  repLocationUrl: `https://www.google.com/maps?q=${formData.lat},${newLng}`,
+                                });
+                              }}
+                              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-left"
+                              placeholder="31.xxxxxx"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1">
+                            رابط المعاينة الميدانية (Google Maps Coordinates Link)
+                          </label>
+                          <input
+                            type="url"
+                            dir="ltr"
+                            value={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '')}
+                            onChange={(e) => setFormData({ ...formData, repLocationUrl: e.target.value })}
+                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
+                            placeholder="https://maps.google.com/?q=lat,lng"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <a
+                            href={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '#')}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-transform active:scale-95"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>🗺️ فتح موقع المعاينة الميدانية للإدارة (غير موثق)</span>
+                          </a>
+                          <span className="font-mono text-[10px] text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-1 rounded-lg border border-[var(--border-color)]">
+                            {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[var(--text-muted)] font-medium leading-relaxed">
+                          ⚠️ هذا الرابط مخصص حصرياً للمراجعة الإدارية ولرفع بيانات النشاط، ولا يُعتبر توثيقاً رسمياً ولا يظهر في الدليل العام للجمهور.
+                        </p>
+                      </div>
+                    )}
                   </div>
-
-                  {isEditMode ? (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2" dir="ltr">
-                        <div>
-                          <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1 text-right">
-                            خط العرض (Lat)
-                          </label>
-                          <input
-                            type="number"
-                            step="any"
-                            value={formData.lat || ''}
-                            onChange={(e) => {
-                              const newLat = parseFloat(e.target.value) || 0;
-                              setFormData({
-                                ...formData,
-                                lat: newLat,
-                                repLocationUrl: `https://www.google.com/maps?q=${newLat},${formData.lng}`,
-                              });
-                            }}
-                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-left"
-                            placeholder="29.xxxxxx"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1 text-right">
-                            خط الطول (Lng)
-                          </label>
-                          <input
-                            type="number"
-                            step="any"
-                            value={formData.lng || ''}
-                            onChange={(e) => {
-                              const newLng = parseFloat(e.target.value) || 0;
-                              setFormData({
-                                ...formData,
-                                lng: newLng,
-                                repLocationUrl: `https://www.google.com/maps?q=${formData.lat},${newLng}`,
-                              });
-                            }}
-                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-left"
-                            placeholder="31.xxxxxx"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1">
-                          رابط المعاينة الميدانية (Google Maps Coordinates Link)
-                        </label>
-                        <input
-                          type="url"
-                          dir="ltr"
-                          value={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '')}
-                          onChange={(e) => setFormData({ ...formData, repLocationUrl: e.target.value })}
-                          className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
-                          placeholder="https://maps.google.com/?q=lat,lng"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <a
-                          href={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '#')}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-transform active:scale-95"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>🗺️ فتح موقع المعاينة الميدانية للإدارة (غير موثق)</span>
-                        </a>
-                        <span className="font-mono text-[10px] text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-1 rounded-lg border border-[var(--border-color)]">
-                          {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-[var(--text-muted)] font-medium leading-relaxed">
-                        ⚠️ هذا الرابط مخصص حصرياً للمراجعة الإدارية ولرفع بيانات النشاط، ولا يُعتبر توثيقاً رسمياً ولا يظهر في الدليل العام للجمهور.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {/* 2. رابط خرائط Google المعتمد والموثق (تضيفه الإدارة بعد النشر) */}
                 <div className="bg-emerald-500/5 border border-emerald-500/30 rounded-2xl p-3.5 space-y-2 sm:col-span-2">
