@@ -115,6 +115,7 @@ export interface User {
   email: string;
   phone?: string;
   role: 'admin' | 'rep' | 'supervisor' | 'accountant';
+  roleTitle?: string; // المسمى الوظيفي المعتمد
   avatar?: string;
   avatarStatus?: 'none' | 'pending_approval' | 'approved' | 'rejected';
   repData?: Representative;

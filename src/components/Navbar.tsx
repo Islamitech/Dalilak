@@ -7,6 +7,7 @@ import { LogIn, LogOut, Info, FileText, ShieldCheck, Sparkles, Globe } from 'luc
 
 interface NavbarProps {
   user: User | null;
+  currentRoleTitle?: string;
   onOpenLogin: () => void;
   onLogout: () => void;
   onOpenProfile?: () => void;
@@ -24,6 +25,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   user,
+  currentRoleTitle,
   onOpenLogin,
   onLogout,
   onOpenProfile,
@@ -147,14 +149,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <p className="text-[11px] sm:text-xs font-black text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[70px] xs:max-w-[100px] sm:max-w-[150px] leading-tight">
                     {user.name}
                   </p>
-                  <span className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5">
-                    {user.role === 'admin'
-                      ? 'مدير النظام 🛡️'
-                      : user.role === 'supervisor'
-                      ? 'مشرف الإدارة ⚡'
-                      : user.role === 'accountant'
-                      ? 'محاسب ومحصل 💳'
-                      : 'مندوب ميداني 💼'}
+                  <span className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5 max-w-[160px] truncate" title={currentRoleTitle || user.repData?.roleTitle || user.roleTitle}>
+                    {currentRoleTitle || user.repData?.roleTitle || user.roleTitle || (
+                      user.role === 'admin'
+                        ? 'مدير النظام 🛡️'
+                        : user.role === 'supervisor'
+                        ? 'مشرف الإدارة ⚡'
+                        : user.role === 'accountant'
+                        ? 'محاسب ومحصل 💳'
+                        : 'مندوب ميداني 💼'
+                    )}
                   </span>
                 </div>
               </button>

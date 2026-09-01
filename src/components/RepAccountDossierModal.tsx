@@ -79,6 +79,7 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
   const [bizSearch, setBizSearch] = useState('');
   const [bizFilter, setBizFilter] = useState<'all' | 'verified' | 'pending' | 'cash' | 'online' | 'exempt'>('all');
   const [editingCommRate, setEditingCommRate] = useState<number>(rep.commissionRate || 42.86);
+  const [editingRoleTitle, setEditingRoleTitle] = useState<string>(rep.roleTitle || '');
   const [isSavingRate, setIsSavingRate] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -153,6 +154,7 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
       onUpdateRepresentative({
         ...rep,
         commissionRate: Number(editingCommRate) || 42.86,
+        roleTitle: editingRoleTitle.trim() || undefined,
       });
       showToast('تم حفظ وتحديث نسبة العمولة بنجاح ✅');
     } finally {
@@ -249,8 +251,8 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                 <h3 className="font-black text-base sm:text-lg text-white truncate">
                   {rep.name}
                 </h3>
-                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {rep.role === 'admin' ? '🛡️ مدير نظام' : rep.role === 'supervisor' ? '👔 مشرف منطقة' : rep.role === 'accountant' ? '💼 محاسب' : '🚶 مندوب ميداني'}
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30" title={rep.roleTitle}>
+                  {rep.roleTitle || (rep.role === 'admin' ? '🛡️ مدير نظام' : rep.role === 'supervisor' ? '👔 مشرف منطقة' : rep.role === 'accountant' ? '💼 محاسب' : '🚶 مندوب ميداني')}
                 </span>
                 <span
                   className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
@@ -947,6 +949,29 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                         </button>
                       </div>
                       <p className="text-[10px] text-[var(--text-muted)] mt-1">النسبة الافتراضية للنظام هي 42.86% (107 ج من باقة الـ 250 ج).</p>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-[var(--text-muted)] mb-1">
+                        المسمى الوظيفي المعتمد (يظهر في الهوية وكافة الوثائق):
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="مثال: مشرف منطقة ومحافظة / مدير توثيق ميداني..."
+                          value={editingRoleTitle}
+                          onChange={(e) => setEditingRoleTitle(e.target.value)}
+                          className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none focus:border-amber-500"
+                        />
+                        <button
+                          type="button"
+                          disabled={isSavingRate}
+                          onClick={handleSaveCommissionRate}
+                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2 rounded-xl transition-transform active:scale-95 cursor-pointer text-xs shrink-0"
+                        >
+                          حفظ المسمى
+                        </button>
+                      </div>
                     </div>
 
                     <div>
