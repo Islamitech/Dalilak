@@ -114,6 +114,10 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   const pendingRemittance = payoutRequests?.find(
     (p) => p.repId === rep.id && p.type === 'remittance' && p.status === 'pending'
   );
+  const pendingPayout = payoutRequests?.find(
+    (p) => p.repId === rep.id && p.type !== 'remittance' && p.status === 'pending'
+  );
+  const myPayouts = (payoutRequests || []).filter((p) => p.repId === rep.id);
 
   const [showBreakdownList, setShowBreakdownList] = useState(false);
   const [showRemitInfoModal, setShowRemitInfoModal] = useState(false);
@@ -651,6 +655,15 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                       <span>سداد مستحقات المنصة 📤</span>
                     </button>
                   )
+                ) : pendingPayout ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowPayoutModal(true)}
+                    className="w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/40 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                  >
+                    <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
+                    <span>طلب السحب قيد المراجعة ({pendingPayout.amount.toLocaleString()} ج.م) ⏳</span>
+                  </button>
                 ) : onRequestPayout ? (
                   <button
                     type="button"
@@ -663,6 +676,29 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                   </button>
                 ) : null}
               </div>
+
+              {/* Pending Payout / Remittance Live Banner */}
+              {pendingPayout && (
+                <div className="bg-amber-500/15 border border-amber-500/35 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs animate-fade-in">
+                  <div className="flex items-center gap-2.5">
+                    <Clock className="w-4 h-4 animate-pulse text-amber-500 shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-[var(--text-primary)]">لديك طلب سحب عمولة مقدم قيد المراجعة:</span>
+                        <span className="font-mono font-black text-amber-600 dark:text-amber-400">
+                          {pendingPayout.amount.toLocaleString()} ج.م
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] text-[var(--text-secondary)] mt-0.5">
+                        طريقة التحويل: <strong>{PAYOUT_METHOD_LABELS[pendingPayout.method]}</strong> ({pendingPayout.accountDetails}) • تاريخ الطلب: {new Date(pendingPayout.requestDate).toLocaleString('ar-EG')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="badge-warning text-[10px] font-black px-2.5 py-1 rounded-full shrink-0">
+                    قيد المراجعة ⏳
+                  </span>
+                </div>
+              )}
 
               {/* Master Prominent Display */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pt-0.5">
@@ -954,6 +990,104 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+
+            {/* 📋 Payout & Remittance Requests History Tracker */}
+            <div className="pt-3 border-t border-[var(--border-color)] space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-xs text-[var(--text-primary)] flex items-center gap-1.5">
+                  <History className="w-4 h-4 text-emerald-500" />
+                  <span>سجل ومتابعة طلبات سحب العمولات والتوريد ({myPayouts.length})</span>
+                </h4>
+                <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                  تحديث فوري ومباشر
+                </span>
+              </div>
+
+              {myPayouts.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {myPayouts.map((payout) => {
+                    const isRemit = payout.type === 'remittance';
+                    const isPending = payout.status === 'pending';
+                    const isApproved = payout.status === 'approved';
+                    const isRejected = payout.status === 'rejected';
+
+                    return (
+                      <div
+                        key={payout.id}
+                        className={`p-3 rounded-2xl border transition-all ${
+                          isPending
+                            ? 'bg-amber-500/5 border-amber-500/30'
+                            : isApproved
+                            ? 'bg-emerald-500/5 border-emerald-500/30'
+                            : 'bg-rose-500/5 border-rose-500/30'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
+                              isRemit ? 'bg-blue-500/15 text-blue-600' : 'bg-emerald-500/15 text-emerald-600'
+                            }`}>
+                              {isRemit ? <CreditCard className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-black text-xs text-[var(--text-primary)]">
+                                  {isRemit ? 'إشعار توريد سداد للمنصة' : 'طلب سحب عمولة أرباح'}
+                                </span>
+                                <span className="font-mono font-black text-xs text-[var(--text-primary)]">
+                                  {payout.amount.toLocaleString()} ج.م
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                                {PAYOUT_METHOD_LABELS[payout.method]} • {payout.accountDetails} • {new Date(payout.requestDate).toLocaleString('ar-EG')}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {isPending && (
+                              <span className="badge-warning text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
+                                <Clock className="w-3 h-3 animate-pulse" />
+                                <span>قيد المراجعة ⏳</span>
+                              </span>
+                            )}
+                            {isApproved && (
+                              <div className="text-left sm:text-right">
+                                <span className="badge-success text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>{isRemit ? 'تم اعتماد السداد ✅' : 'تم الصرف والتحويل ✅'}</span>
+                                </span>
+                                {payout.transactionRef && (
+                                  <p className="text-[9px] text-[var(--text-muted)] font-mono mt-0.5">
+                                    رقم المعاملة: {payout.transactionRef}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {isRejected && (
+                              <div className="text-left sm:text-right">
+                                <span className="badge-danger text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
+                                  <span>مرفوض ❌</span>
+                                </span>
+                                {payout.adminNotes && (
+                                  <p className="text-[9px] text-rose-500 font-bold mt-0.5">
+                                    السبب: {payout.adminNotes}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="border border-dashed border-[var(--border-color)] rounded-2xl p-4 text-center text-xs text-[var(--text-muted)] font-bold bg-[var(--input-bg)]/40">
+                  <p className="text-[var(--text-primary)] font-bold">لا توجد طلبات سحب سابقة مسجلة</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

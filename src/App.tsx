@@ -513,7 +513,8 @@ export default function App() {
       .catch(() => {});
 
     // 3. Fetch payouts & leads in parallel
-    const targetRepId = user?.role === 'admin' ? undefined : user?.id;
+    const isManagerial = ['admin', 'supervisor', 'accountant'].includes(user?.role || '');
+    const targetRepId = isManagerial ? undefined : user?.id;
     fetchPayoutRequestsFromDb(targetRepId)
       .then((dbPayouts) => {
         if (Array.isArray(dbPayouts)) setPayoutRequests(dbPayouts);
@@ -575,7 +576,8 @@ export default function App() {
           }
         }).catch(() => {});
 
-        const currentTargetRepId = user?.role === 'admin' ? undefined : user?.id;
+        const isManagerialNow = ['admin', 'supervisor', 'accountant'].includes(user?.role || '');
+        const currentTargetRepId = isManagerialNow ? undefined : user?.id;
         fetchPayoutRequestsFromDb(currentTargetRepId).then((freshPayouts) => {
           if (Array.isArray(freshPayouts)) setPayoutRequests(freshPayouts);
         }).catch(() => {});

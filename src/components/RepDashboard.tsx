@@ -83,7 +83,8 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
   const availableBalance = settlement.withdrawableBalance;
 
   const myPayouts = payoutRequests.filter((p) => p.repId === rep.id);
-  const pendingRemittance = payoutRequests.find(
+  const pendingPayout = myPayouts.find((p) => p.type !== 'remittance' && p.status === 'pending');
+  const pendingRemittance = myPayouts.find(
     (p) => p.repId === rep.id && p.type === 'remittance' && p.status === 'pending'
   );
 
@@ -149,84 +150,68 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
         setRemitAccountDetails('');
       }, 2500);
     } catch (err) {
-      console.error('Failed to submit remittance:', err);
+      console.error('Error submitting remittance:', err);
+      alert('حدث خطأ أثناء إرسال إشعار السداد، يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSubmittingRemit(false);
     }
   };
 
+  const whatsappInviteUrl = `https://wa.me/?text=${encodeURIComponent(
+    `مرحباً، انضم الآن كمنسق ومندوب ميداني معتمد في منصة دليلك عبر كود الدعوة الخاص بي: ${referralCode}\nرابط التسجيل: ${window.location.origin}`
+  )}`;
+
   const handleCopyReferral = () => {
     navigator.clipboard.writeText(referralCode);
     setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2500);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const inviteMessage = encodeURIComponent(
-    `انضم الآن لفريق عمل منظومة دليلك لتوثيق الأنشطة التجارية في مصر وسجل حسابك باستخدام كود الدعوة المعتمد: ${referralCode}\nرابط المنصة: https://www.dalilaak.com/`
-  );
-  const whatsappInviteUrl = `https://wa.me/?text=${inviteMessage}`;
-
   return (
-    <div className="max-w-4xl mx-auto space-y-4 pb-20">
-
-      {/* Executive Rep Dashboard Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-4 sm:p-5 rounded-3xl shadow-xl space-y-3.5 text-white">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5">
-            <UserAvatar avatar={rep.avatar} name={rep.name} role={rep.role} avatarStatus={rep.avatarStatus} size="lg" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black text-white">مرحباً، {rep.name} 👋</h2>
-                <span className="bg-amber-500/20 text-amber-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                  مندوب {rep.governorate}
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5 font-medium">
-                المنصة الميدانية لتوثيق الأنشطة وإصدار الفواتير وتحصيل العمولات فورياً
-              </p>
+    <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12">
+      {/* ── HEADER ─────────────────────────────────────────────────── */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm transition-colors duration-300">
+        <div className="flex items-center gap-3.5">
+          <UserAvatar
+            avatar={rep.avatar}
+            name={rep.name}
+            role={rep.role}
+            avatarStatus={rep.avatarStatus}
+            size="lg"
+          />
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
+                {rep.name}
+              </h2>
+              <span className="text-[10px] bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md border border-amber-500/30">
+                مندوب {rep.governorate}
+              </span>
             </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span>نسبة العمولة المعتمدة:</span>
+              <strong className="text-amber-700 dark:text-amber-300 font-mono text-sm">{repRate}%</strong>
+              <span className="text-[10px] text-[var(--text-muted)]">• عمولة لكل نشاط</span>
+            </p>
           </div>
-
-          <button
-            onClick={onAddNewClick}
-            className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0"
-          >
-            <PlusCircle className="w-5 h-5 stroke-[2.5]" />
-            <span>تسجيل نشاط جديد ➕</span>
-          </button>
         </div>
 
-        {/* Integrated Subtle Field Work Target Badge */}
-        {/* Integrated Subtle Field Work Target Badge */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-2.5 px-3.5 flex items-center gap-2 text-xs">
-          <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="text-amber-300 font-bold">
-            توصية الميدان: استهداف 25 زيارة يومياً يحقق أعلى تدفق تسجيلات وعمولات مستمرة.
-          </span>
-        </div>
+        <button
+          onClick={onAddNewClick}
+          className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs px-5 py-3 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer shrink-0"
+        >
+          <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+          <span>تسجيل وتوثيق نشاط جديد</span>
+        </button>
       </div>
 
-      {/* ========================================================
-          SINGLE MASTER WALLET & MILESTONE BOX (مربع الرصيد المالي والأهداف الموحد)
-          ======================================================== */}
-      <div className={`border-2 rounded-3xl p-4 sm:p-5 shadow-xl transition-all duration-300 space-y-4 ${
-        settlement.isDebtToPlatform
-          ? 'bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-950/20 border-amber-500/50'
-          : settlement.withdrawableBalance > 0
-          ? 'bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-950/20 border-emerald-500/50'
-          : 'bg-[var(--bg-card)] border-[var(--border-color)]'
-      }`}>
-        {/* Header of the Single Box */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)]/60 pb-2.5">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-base ${
-              settlement.isDebtToPlatform
-                ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
-                : settlement.withdrawableBalance > 0
-                ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
-                : 'bg-[var(--input-bg)] text-[var(--text-muted)]'
-            }`}>
-              {settlement.isDebtToPlatform ? '⚠️' : settlement.withdrawableBalance > 0 ? '💵' : '⚖️'}
+      {/* ── SECTION 1: MASTER FINANCIAL & SETTLEMENT ENGINE ────────────── */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-300">
+        {/* Card Header & Controls */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border-b border-[var(--border-color)] pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+              💳
             </div>
             <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] flex items-center gap-2">
               <span>رصيد الحساب والعمولات</span>
@@ -260,6 +245,14 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                 <span>سداد مستحقات المنصة 📤</span>
               </button>
             )
+          ) : pendingPayout ? (
+            <button
+              onClick={() => setShowPayoutModal(true)}
+              className="w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 font-black text-xs px-4 py-2.5 rounded-xl border border-amber-500/40 shadow flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95 shrink-0"
+            >
+              <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
+              <span>طلب السحب قيد المراجعة ({pendingPayout.amount.toLocaleString()} ج.م) ⏳</span>
+            </button>
           ) : (
             <button
               onClick={() => setShowPayoutModal(true)}
@@ -271,6 +264,55 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             </button>
           )}
         </div>
+
+        {/* Pending Payout / Remittance Live Banner */}
+        {pendingPayout && (
+          <div className="bg-amber-500/15 border border-amber-500/35 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/25 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 animate-pulse text-amber-500" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-[var(--text-primary)]">لديك طلب سحب عمولة مقدم قيد المراجعة والتحويل:</span>
+                  <span className="font-mono font-black text-amber-600 dark:text-amber-400 text-sm">
+                    {pendingPayout.amount.toLocaleString()} ج.م
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                  وسيلة التحويل: <strong className="text-[var(--text-primary)]">{PAYOUT_METHOD_LABELS[pendingPayout.method]}</strong> (<span className="font-mono">{pendingPayout.accountDetails}</span>) • تاريخ الطلب: {new Date(pendingPayout.requestDate).toLocaleString('ar-EG')}
+                </p>
+              </div>
+            </div>
+            <span className="badge-warning text-[10px] font-black px-3 py-1 rounded-full shrink-0">
+              قيد المراجعة ⏳
+            </span>
+          </div>
+        )}
+
+        {pendingRemittance && (
+          <div className="bg-blue-500/15 border border-blue-500/35 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/25 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 animate-pulse text-blue-500" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-[var(--text-primary)]">إشعار سداد وتوريد مستحقات المنصة قيد المراجعة:</span>
+                  <span className="font-mono font-black text-blue-600 dark:text-blue-400 text-sm">
+                    {pendingRemittance.amount.toLocaleString()} ج.م
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                  تم إرسال إيصال السداد للإدارة وجاري التدقيق لتصفية حسابك.
+                </p>
+              </div>
+            </div>
+            <span className="bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[10px] font-black px-3 py-1 rounded-full border border-blue-500/30 shrink-0">
+              قيد التدقيق ⏳
+            </span>
+          </div>
+        )}
 
         {/* Master Prominent Amount & Metric Pills */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-0.5">
@@ -300,88 +342,6 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
           </div>
         </div>
 
-        {/* Integrated Target Milestones: Weekly Target & Referral Unlock */}
-        <div className="pt-3 border-t border-[var(--border-color)]/60 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {/* 1. Weekly Target: 10 businesses */}
-            <div className={`p-3 rounded-2xl border transition-all ${
-              isMission1Complete
-                ? 'bg-emerald-500/10 border-emerald-500/30'
-                : 'bg-[var(--input-bg)]/80 border-[var(--border-color)]'
-            }`}>
-              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                  {isMission1Complete ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-600 text-[10px] flex items-center justify-center font-black">🎯</span>
-                  )}
-                  <span>الهدف الأسبوعي (تسجيل 10 أنشطة)</span>
-                </span>
-                <span className={`font-mono font-black ${isMission1Complete ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
-                  {Math.min(10, myBusinesses.length)} / 10
-                </span>
-              </div>
-              <div className="w-full bg-[var(--bg-card)] h-2 rounded-full overflow-hidden border border-[var(--border-color)]/40">
-                <div
-                  className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (myBusinesses.length / 10) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1">
-                {isMission1Complete
-                  ? 'تم تفعيل الحساب الميداني المستقل بنجاح ✅'
-                  : `متبقي ${Math.max(0, 10 - myBusinesses.length)} أنشطة لتأكيد الحساب الميداني المستقل`}
-              </p>
-            </div>
-
-            {/* 2. Referral Unlock Target: 25 businesses */}
-            <div className={`p-3 rounded-2xl border transition-all ${
-              referralSummary.isUnlocked
-                ? 'bg-blue-500/10 border-blue-500/30'
-                : 'bg-[var(--input-bg)]/80 border-[var(--border-color)]'
-            }`}>
-              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                  {referralSummary.isUnlocked ? (
-                    <CheckCircle2 className="w-4 h-4 text-blue-500" />
-                  ) : (
-                    <span className="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 text-[10px] flex items-center justify-center font-black">🚀</span>
-                  )}
-                  <span>هدف فتح كود الإحالة (25 نشاط)</span>
-                </span>
-                <span className={`font-mono font-black ${referralSummary.isUnlocked ? 'text-blue-600 dark:text-blue-400' : 'text-blue-600'}`}>
-                  {referralSummary.isUnlocked ? 'مفعل ✨' : `${Math.min(25, myBusinesses.length)} / 25`}
-                </span>
-              </div>
-              <div className="w-full bg-[var(--bg-card)] h-2 rounded-full overflow-hidden border border-[var(--border-color)]/40">
-                <div
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (myBusinesses.length / 25) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1">
-                {referralSummary.isUnlocked
-                  ? 'تم فتح كود الدعوة وبناء فريق المبيعات بنجاح 🚀'
-                  : `متبقي ${Math.max(0, 25 - myBusinesses.length)} نشاط لفتح كود الدعوة والعمولات الإضافية`}
-              </p>
-            </div>
-          </div>
-
-          {/* Motivational Promo Card for New Reps without referral code */}
-          {!referralSummary.isUnlocked && (
-            <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 border border-amber-500/30 p-3.5 rounded-2xl flex items-center gap-3 text-xs shadow-xs">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 text-lg">
-                🎁
-              </div>
-              <div className="min-w-0 flex-1 text-[11px] text-[var(--text-secondary)] font-bold leading-relaxed">
-                <strong className="text-amber-600 dark:text-amber-400 block text-xs">مكافآت برنامج الإحالة الميداني:</strong>
-                سارع بتسجيل أنشطتك التجارية الأولى لتفعيل كود الإحالة الخاص بك تلقائياً ودعوة أصدقائك المناديب للحصول على مكافآت وعمولات إضافية مستمرة!
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Subtle Pending Verification Commission note if any */}
         {settlement.pendingVerificationCommission > 0 && (
           <div className="bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-200 p-2.5 px-3.5 rounded-2xl text-xs font-bold flex flex-wrap items-center justify-between gap-2">
@@ -391,6 +351,114 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             <span className="text-[10px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-bold">
               تتاح فور اعتماد التوثيق
             </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── SECTION 2: 📋 PAYOUTS & REMITTANCES HISTORY & TRACKER ────── */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-300">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <History className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <span>سجل ومتابعة طلبات سحب العمولات والتوريد</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--input-bg)] text-[var(--text-secondary)] border border-[var(--border-color)]">
+                  {myPayouts.length} عملية
+                </span>
+              </h3>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                متابعة حالة طلبات سحب الأرباح والحوالات المنفذة أو المرفوضة
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {myPayouts.length > 0 ? (
+          <div className="space-y-2.5">
+            {myPayouts.map((payout) => {
+              const isRemit = payout.type === 'remittance';
+              const isPending = payout.status === 'pending';
+              const isApproved = payout.status === 'approved';
+              const isRejected = payout.status === 'rejected';
+
+              return (
+                <div
+                  key={payout.id}
+                  className={`p-3.5 rounded-2xl border transition-all ${
+                    isPending
+                      ? 'bg-amber-500/5 border-amber-500/30'
+                      : isApproved
+                      ? 'bg-emerald-500/5 border-emerald-500/30'
+                      : 'bg-rose-500/5 border-rose-500/30'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
+                        isRemit ? 'bg-blue-500/15 text-blue-600' : 'bg-emerald-500/15 text-emerald-600'
+                      }`}>
+                        {isRemit ? <CreditCard className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-xs text-[var(--text-primary)]">
+                            {isRemit ? 'إشعار توريد وسداد مستحقات المنصة' : 'طلب سحب عمولة أرباح'}
+                          </span>
+                          <span className="font-mono font-black text-xs text-[var(--text-primary)]">
+                            {payout.amount.toLocaleString()} ج.م
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                          {PAYOUT_METHOD_LABELS[payout.method]} • {payout.accountDetails} • {new Date(payout.requestDate).toLocaleString('ar-EG')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isPending && (
+                        <span className="badge-warning text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
+                          <Clock className="w-3 h-3 animate-pulse" />
+                          <span>قيد المراجعة ⏳</span>
+                        </span>
+                      )}
+                      {isApproved && (
+                        <div className="text-left sm:text-right">
+                          <span className="badge-success text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>{isRemit ? 'تم اعتماد السداد ✅' : 'تم الصرف والتحويل ✅'}</span>
+                          </span>
+                          {payout.transactionRef && (
+                            <p className="text-[9px] text-[var(--text-muted)] font-mono mt-0.5">
+                              رقم المعاملة: {payout.transactionRef}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {isRejected && (
+                        <div className="text-left sm:text-right">
+                          <span className="badge-danger text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <span>مرفوض ❌</span>
+                          </span>
+                          {payout.adminNotes && (
+                            <p className="text-[9px] text-rose-500 font-bold mt-0.5">
+                              السبب: {payout.adminNotes}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="border border-dashed border-[var(--border-color)] rounded-2xl p-5 text-center text-xs text-[var(--text-muted)] font-bold bg-[var(--input-bg)]/40 space-y-1">
+            <p className="text-[var(--text-primary)] font-black">لا توجد طلبات سحب سابقة مسجلة</p>
+            <p className="text-[11px]">عندما تقوم بسحب أرباحك أو توريد مستحقات المنصة، سيظهر سجل كامل للطلبات وحالتها وملاحظات الإدارة هنا فورياً.</p>
           </div>
         )}
       </div>

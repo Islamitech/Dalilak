@@ -590,15 +590,25 @@ export async function updateRepSessionInDb(id: string, sessionId?: string, times
 // =============================================================================
 
 export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutRequest[]> {
-  if (isSupabaseConfigured()) {
+  const cachedStr = typeof localStorage !== 'undefined' ? localStorage.getItem('dalelak_cached_payouts') : null;
+  let cached: PayoutRequest[] = [];
+  try {
+    if (cachedStr) cached = JSON.parse(cachedStr);
+  } catch {}
+
+  if (isSupabaseConfigured() && (typeof navigator === 'undefined' || navigator.onLine)) {
     try {
       let query = supabase.from('payout_requests').select('*').order('request_date', { ascending: false });
       if (repId) {
         query = query.eq('rep_id', repId);
       }
       const { data, error } = await query;
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        return data.map(mapDbToPayout);
+      if (!error && data && Array.isArray(data)) {
+        const mapped = data.map(mapDbToPayout);
+        if (!repId && typeof localStorage !== 'undefined') {
+          safeSetLocalStorageItem('dalelak_cached_payouts', JSON.stringify(mapped));
+        }
+        return mapped;
       }
 
       const restEndpoint = repId
@@ -607,13 +617,22 @@ export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutR
       const res = await supabaseRestFetch(restEndpoint);
       if (res.ok) {
         const restData = await res.json();
-        if (Array.isArray(restData) && restData.length > 0) {
-          return restData.map(mapDbToPayout);
+        if (Array.isArray(restData)) {
+          const mapped = restData.map(mapDbToPayout);
+          if (!repId && typeof localStorage !== 'undefined') {
+            safeSetLocalStorageItem('dalelak_cached_payouts', JSON.stringify(mapped));
+          }
+          return mapped;
         }
       }
     } catch (err) {
       console.error('Supabase fetch payout requests error:', err);
     }
+  }
+
+  // Fallback to cache
+  if (Array.isArray(cached) && cached.length > 0) {
+    return repId ? cached.filter((p) => p.repId === repId) : cached;
   }
 
   try {
@@ -633,12 +652,21 @@ export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<Pa
   const dbRecord = mapPayoutToDb(payout);
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
+  // Immediate LocalStorage update
+  try {
+    const cachedStr = localStorage.getItem('dalelak_cached_payouts');
+    let cachedList: PayoutRequest[] = cachedStr ? JSON.parse(cachedStr) : [];
+    cachedList = [payout, ...cachedList.filter((p) => p.id !== payout.id)];
+    safeSetLocalStorageItem('dalelak_cached_payouts', JSON.stringify(cachedList));
+  } catch {}
+
   if (isOnline && isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('payout_requests').insert([dbRecord]);
+      const { error } = await supabase.from('payout_requests').upsert([dbRecord], { onConflict: 'id' });
       if (error) {
         await supabaseRestFetch('payout_requests', {
           method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
           body: JSON.stringify(dbRecord),
         });
       }
@@ -661,6 +689,17 @@ export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<PayoutRequest> {
   const dbUpdates = mapPayoutToDb(payout);
   delete dbUpdates.id;
+
+  // Immediate LocalStorage update
+  try {
+    const cachedStr = localStorage.getItem('dalelak_cached_payouts');
+    if (cachedStr) {
+      const cachedList: PayoutRequest[] = JSON.parse(cachedStr);
+      const updatedList = cachedList.map((p) => (p.id === payout.id ? payout : p));
+      safeSetLocalStorageItem('dalelak_cached_payouts', JSON.stringify(updatedList));
+    }
+  } catch {}
+
   if (isSupabaseConfigured()) {
     try {
       const { error } = await supabase.from('payout_requests').update(dbUpdates).eq('id', payout.id);
