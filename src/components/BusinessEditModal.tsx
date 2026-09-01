@@ -486,9 +486,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${directoryBadge.cls}`} title="حالة الاعتماد للظهور على دليل المنصة">
                   {directoryBadge.label}
                 </span>
-                <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${googleBadge.cls}`} title="حالة التوثيق على خرائط Google">
-                  {googleBadge.label}
-                </span>
                 <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${paymentBadge.cls}`}>
                   {paymentBadge.label}
                 </span>
@@ -552,16 +549,27 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </button>
           )}
 
-          {mapsUrl && (
+          {mapsUrl ? (
             <a
               href={mapsUrl}
               target="_blank"
               rel="noreferrer"
               className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
+              title="فتح موقع النشاط الموثق على خرائط Google"
             >
               <ExternalLink className="w-3 h-3 text-blue-500" />
-              <span>Google Maps</span>
+              <span>📍 Google Maps</span>
             </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="bg-[var(--bg-card)] text-slate-400 border border-slate-700/50 text-[11px] font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 shrink-0 opacity-50 cursor-not-allowed"
+              title="الخريطة غير مفعلة - لم يتم إضافة رابط توثيق Google بعد"
+            >
+              <ExternalLink className="w-3 h-3 text-slate-500" />
+              <span>📍 خريطة غير مفعلة</span>
+            </button>
           )}
 
           {remainingDebt > 0 && (
