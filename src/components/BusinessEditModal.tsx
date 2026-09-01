@@ -45,6 +45,12 @@ import {
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 import {
+  CATEGORY_MOTIVATIONAL_DATA,
+  getMotivationalGroupByBusiness,
+  getCategoryMotivationalWhatsAppUrl,
+  CategoryMotivationalModel,
+} from '../utils/categoryMotivationalMessages';
+import {
   getWelcomeAlreadyOnGoogleWhatsAppUrl,
   generateWelcomeAlreadyOnGoogleWhatsAppMessage,
   getInvoiceWhatsAppUrl,
