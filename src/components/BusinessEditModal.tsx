@@ -512,8 +512,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* Urgent Financial Alert Card */}
-          {(formData.amountPaid || 0) === 0 && (
+          {/* Urgent Financial Alert Card (Strictly non-exempt only) */}
+          {!isFeeExempt && (formData.amountPaid || 0) === 0 && (
             <div className="bg-gradient-to-r from-rose-500/20 via-orange-500/15 to-rose-500/20 border-2 border-rose-500/40 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm text-right">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md">
