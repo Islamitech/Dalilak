@@ -344,7 +344,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
           </div>
 
           <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-xs text-amber-200 text-center font-bold leading-relaxed shadow-sm">
-            يسمح لحامل هذه البطاقة الرسمية بتمثيل شركة دليلك في المعاينات الميدانية وتوثيق الأنشطة وإصدار الفواتير المعتمدة.
+            يسمح لحامل هذه البطاقة الرسمية بتمثيل منصة دليلك في المعاينات الميدانية وتوثيق الأنشطة وإصدار الفواتير المعتمدة.
           </div>
         </div>
       </div>

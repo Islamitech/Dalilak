@@ -943,7 +943,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     <div className="p-3 bg-[var(--input-bg)] border border-dashed border-amber-500/40 rounded-xl space-y-1">
                       <div className="flex items-center gap-2 text-amber-500 font-bold text-xs">
                         <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>[ خانة الرابط المعتمد فارغة — قيد المراجعة والاعتماد من شركة Google ]</span>
+                        <span>[ خانة الرابط المعتمد فارغة — قيد المراجعة والاعتماد من خرائط Google ]</span>
                       </div>
                       <p className="text-[11px] text-[var(--text-muted)] font-medium">
                         لم يصدر الرابط المباشر المعتمد من خرائط Google بعد، وسيتم إدراجه هنا فور اعتماده من إدارة المنظومة.

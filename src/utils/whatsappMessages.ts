@@ -51,7 +51,7 @@ export function generateInvoiceWhatsAppMessage(biz: Business): string {
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
 
   const raw = 
-    `*فاتورة توثيق نشاط تجاري - شركة دليلك*\n` +
+    `*فاتورة توثيق نشاط تجاري - منصة دليلك*\n` +
     `-----------------------------------------\n` +
     `• *اسم النشاط:* ${biz.nameAr || ''}\n` +
     `• *صاحب النشاط:* ${biz.ownerName || ''}\n` +
@@ -75,7 +75,7 @@ export function generateInvoiceWhatsAppMessage(biz: Business): string {
         }\n\n`) +
     `*تهانينا! تم إدراج ونشر نشاطكم مباشرة في دليل الأنشطة والخدمات المعتمد في مصر:*\n` +
     `رابط دليل الأنشطة المباشر: ${DIRECTORY_URL}\n\n` +
-    `*ملاحظة:* تم رفع وتثبيت بيانات نشاطكم بنجاح وهو متاح الآن للعملاء على المنظومة، وتتم متابعة مراجعة وتوثيق النشاط حتى اعتماده على خرائط Google. شكرًا لثقتكم بشركة دليلك!`;
+    `*ملاحظة:* تم رفع وتثبيت بيانات نشاطكم بنجاح وهو متاح الآن للعملاء على المنظومة، وتتم متابعة مراجعة وتوثيق النشاط حتى اعتماده على خرائط Google. شكرًا لثقتكم بمنظومة دليلك!`;
 
   return cleanWhatsAppText(raw);
 }
@@ -100,7 +100,7 @@ export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string
   const raw = 
     `*تهانينا! تم توثيق واعتماد نشاطكم رسمياً على خرائط Google*\n\n` +
     `أهلاً بحضرتك أستاذ *${biz.ownerName || 'صاحب النشاط'}*\n` +
-    `يسر شركة *دليلك* إعلامكم بأنه تم نشر وتفعيل نشاطكم التجاري *(${biz.nameAr})* بنجاح على خرائط Google Maps والمنصات الجغرافية المعتمدة.\n\n` +
+    `تسر منصة *دليلك* إعلامكم بأنه تم نشر وتفعيل نشاطكم التجاري *(${biz.nameAr})* بنجاح على خرائط Google Maps والمنصات الجغرافية المعتمدة.\n\n` +
     `• *رابط موقعكم المباشر على خرائط Google:*\n` +
     `${activeMapUrl}\n\n` +
     `• *رابط صفحتكم على دليل الأنشطة المعتمد:* ${DIRECTORY_URL}\n\n` +
@@ -133,7 +133,7 @@ export function generatePaymentReceiptWhatsAppMessage(biz: Business): string {
   const paid = biz.amountPaid || total;
 
   const raw = 
-    `*إيصال وتأكيد سداد مالي معتمد - شركة دليلك*\n` +
+    `*إيصال وتأكيد سداد مالي معتمد - منصة دليلك*\n` +
     `-----------------------------------------\n` +
     `عزيزي العميل أستاذ / *${biz.ownerName || 'صاحب النشاط'}*\n` +
     `نؤكد استلام واعتماد سداد اشتراك نشاطكم التجاري *(${biz.nameAr})*:\n\n` +
@@ -159,7 +159,7 @@ export function getPaymentReceiptWhatsAppUrl(biz: Business): string {
  */
 export function generateUpgradeOffersWhatsAppMessage(biz: Business): string {
   const raw = 
-    `*عروض الترقية والتطوير الحصرية لنشاطكم - شركة دليلك*\n` +
+    `*عروض الترقية والتطوير الحصرية لنشاطكم - منصة دليلك*\n` +
     `-----------------------------------------\n` +
     `تحية طيبة أستاذ *${biz.ownerName || 'صاحب النشاط'}*، شريك نجاحنا في *(${biz.nameAr})*\n\n` +
     `يسعدنا تقديم باقات الترقية الحصرية المخصصة لمضاعفة مبيعات وانتشار نشاطكم التجاري:\n\n` +
@@ -193,7 +193,7 @@ export function getUpgradeOffersWhatsAppUrl(biz: Business): string {
  */
 export function generateFreeQrGiftWhatsAppMessage(biz: Business): string {
   const raw = 
-    `*هدية خاصة من شركة دليلك لنشاطكم (${biz.nameAr})*\n` +
+    `*هدية خاصة من منصة دليلك لنشاطكم (${biz.nameAr})*\n` +
     `-----------------------------------------\n` +
     `أهلاً بحضرتك أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
     `*التصاميم المرفقة مع الرسالة دي هدية مجانية تماماً ليك من منظومة دليلك!*\n` +

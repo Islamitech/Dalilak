@@ -248,7 +248,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
             />
             <p className="text-[10px] text-[var(--text-muted)] mt-1 font-medium">
               {method === 'cash'
-                ? 'يرجى إبراز بطاقة الرقم القومي الأصلية عند الاستلام من مقر الشركة.'
+                ? 'يرجى إبراز بطاقة الرقم القومي الأصلية عند الاستلام من مقر المنظومة.'
                 : 'تأكد من صحة رقم المحفظة أو معرف إنستاباي لتجنب أي تأخير في التحويل.'}
             </p>
           </div>
