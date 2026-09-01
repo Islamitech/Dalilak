@@ -33,8 +33,10 @@ export function getPackageCommission(packagePrice: number, rate: number = DEFAUL
 export function calculateBusinessCommission(
   _packagePrice: number,
   amountPaid: number,
-  rate: number = DEFAULT_COMMISSION_RATE
+  rate: number = DEFAULT_COMMISSION_RATE,
+  isFeeExempt?: boolean
 ): number {
+  if (isFeeExempt || _packagePrice === 0) return 0;
   const paid = amountPaid || 0;
   const commissionRate = rate || DEFAULT_COMMISSION_RATE;
   return Math.round((paid * commissionRate) / 100);
@@ -44,14 +46,16 @@ export function calculateBusinessCommission(
  * Calculates total earned commission for all business registrations based on percentage rate.
  */
 export function calculateTotalRepCommission(
-  businesses: Array<{ packagePrice: number; amountPaid: number }>,
+  businesses: Array<{ packagePrice: number; amountPaid: number; isFeeExempt?: boolean }>,
   rate: number = DEFAULT_COMMISSION_RATE
 ): number {
   const commissionRate = rate || DEFAULT_COMMISSION_RATE;
   return businesses.reduce((sum, b) => {
-    return sum + calculateBusinessCommission(b.packagePrice, b.amountPaid, commissionRate);
+    if (b.isFeeExempt || b.packagePrice === 0) return sum;
+    return sum + calculateBusinessCommission(b.packagePrice, b.amountPaid, commissionRate, b.isFeeExempt);
   }, 0);
 }
+
 
 /**
  * Calculates total amount of payouts (withdrawals to rep) currently pending approval.
@@ -95,9 +99,10 @@ export function calculateRepPendingRemittance(repId: string, payouts: PayoutRequ
  * Deferred payments settled later via the platform ('platform_collected' / 'gateway_online' / 'bank_transfer') are received by the platform and NOT cash in rep's hand.
  */
 export function calculateRepTotalCashCollected(
-  businesses: Array<{ amountPaid: number; paymentMethod?: string; cashCollectedByRep?: number }>
+  businesses: Array<{ amountPaid: number; paymentMethod?: string; cashCollectedByRep?: number; isFeeExempt?: boolean; packagePrice?: number }>
 ): number {
   return businesses.reduce((sum, b) => {
+    if (b.isFeeExempt || b.packagePrice === 0) return sum;
     const paid = Number(b.amountPaid) || 0;
     if (paid <= 0) return sum;
 
@@ -118,11 +123,12 @@ export function calculateRepTotalCashCollected(
  * Calculates rep's commission earned specifically from the cash he collected.
  */
 export function calculateRepCommissionFromCash(
-  businesses: Array<{ packagePrice: number; amountPaid: number; paymentMethod?: string; cashCollectedByRep?: number }>,
+  businesses: Array<{ packagePrice: number; amountPaid: number; paymentMethod?: string; cashCollectedByRep?: number; isFeeExempt?: boolean }>,
   rate: number = DEFAULT_COMMISSION_RATE
 ): number {
   const commissionRate = rate || DEFAULT_COMMISSION_RATE;
   return businesses.reduce((sum, b) => {
+    if (b.isFeeExempt || b.packagePrice === 0) return sum;
     const paid = Number(b.amountPaid) || 0;
     if (paid <= 0) return sum;
 
@@ -141,7 +147,7 @@ export function calculateRepCommissionFromCash(
  * Calculates platform's due share from cash collected by the representative in hand.
  */
 export function calculatePlatformDueFromRep(
-  businesses: Array<{ packagePrice: number; amountPaid: number; paymentMethod?: string; cashCollectedByRep?: number }>,
+  businesses: Array<{ packagePrice: number; amountPaid: number; paymentMethod?: string; cashCollectedByRep?: number; isFeeExempt?: boolean }>,
   rate: number = DEFAULT_COMMISSION_RATE
 ): number {
   const totalCash = calculateRepTotalCashCollected(businesses);
@@ -151,20 +157,20 @@ export function calculatePlatformDueFromRep(
 
 /**
  * Comprehensive financial settlement for a representative:
- * Balances total earnings vs cash already in hand and approved remittances.
+ * Balances total earnings vs cash already in hand.
  */
 export interface RepSettlementSummary {
   totalEarnedCommission: number;    // All earned commission on paid amounts (Cash + Gateway + Referral)
   totalCashInHand: number;          // Cash collected directly by rep
   repShareFromCash: number;         // Rep's earned commission on cash collected
-  platformShareFromCash: number;    // Platform's gross share on cash collected
-  totalRemittedToPlatform: number;  // Approved cash remittances submitted by rep to platform
-  remainingCashDebt: number;        // Net cash owed by rep to platform after subtracting remittances
+  platformShareFromCash: number;    // Platform's share on cash collected
+  totalRemittedToPlatform: number;  // Approved cash remittances already transferred to platform
+  remainingCashDebt: number;        // Remaining cash debt owed to platform after remittances
   onlineCollectedAmount: number;    // Payments made directly to platform
   repShareFromOnline: number;       // Rep's commission on online payments
   netBalance: number;               // Final net balance (+ for withdrawable credit, - for debt to platform)
-  isDebtToPlatform: boolean;        // true if rep owes platform net money
-  debtToPlatformAmount: number;     // Net amount rep must remit to platform
+  isDebtToPlatform: boolean;        // true if rep owes platform money
+  debtToPlatformAmount: number;     // Amount rep must remit to platform
   withdrawableBalance: number;      // Amount rep can withdraw from platform
   pendingPayout: number;
   totalPaidOut: number;
@@ -183,6 +189,7 @@ export function calculateRepSettlement(
     verificationStatus?: string;
     googleSyncStatus?: string;
     paymentStatus?: string;
+    isFeeExempt?: boolean;
   }>,
   rate: number = DEFAULT_COMMISSION_RATE,
   payouts: PayoutRequest[] = [],
@@ -190,7 +197,7 @@ export function calculateRepSettlement(
 ): RepSettlementSummary {
   const commissionRate = rate || DEFAULT_COMMISSION_RATE;
   
-  // Calculate direct commission strictly from collected/paid amounts
+  // Calculate direct commission strictly from collected/paid amounts (exempt activities automatically yield 0)
   const totalDirectEarned = calculateTotalRepCommission(businesses, commissionRate);
   const totalEarnedCommission = totalDirectEarned + referralEarnings;
   
@@ -202,7 +209,7 @@ export function calculateRepSettlement(
   const totalRemittedToPlatform = calculateRepTotalRemitted(repId, payouts);
   const remainingCashDebt = Math.max(0, grossPlatformShareFromCash - totalRemittedToPlatform);
 
-  const totalPaidAll = businesses.reduce((s, b) => s + (Number(b.amountPaid) || 0), 0);
+  const totalPaidAll = businesses.reduce((s, b) => (b.isFeeExempt || b.packagePrice === 0) ? s : s + (Number(b.amountPaid) || 0), 0);
   const onlineCollectedAmount = Math.max(0, totalPaidAll - totalCashInHand);
   const repShareFromOnline = Math.round((onlineCollectedAmount * commissionRate) / 100);
 
@@ -214,6 +221,9 @@ export function calculateRepSettlement(
   let pendingVerificationCount = 0;
 
   businesses.forEach((b) => {
+    // Strictly ignore free/fee-exempt activities
+    if (b.isFeeExempt || b.packagePrice === 0) return;
+
     const isUnverified = b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced';
     const isUnpaid = (b.amountPaid || 0) === 0 || b.paymentStatus === 'unpaid';
     
@@ -276,14 +286,25 @@ export function calculateRepAvailableBalance(
 
 /**
  * Returns an accurate, human-friendly Arabic label for how an activity was paid.
- * Differentiates between physical cash in rep's hand vs online platform payments.
+ * Differentiates between physical cash in rep's hand vs online platform payments vs free exempt activity.
  */
 export function getBusinessPaymentLabel(biz: {
   amountPaid?: number;
+  packagePrice?: number;
   paymentMethod?: string;
   cashCollectedByRep?: number;
   paymentStatus?: string;
+  isFeeExempt?: boolean;
 }): { label: string; shortLabel: string; isCash: boolean; icon: string } {
+  if (biz.isFeeExempt || biz.packagePrice === 0) {
+    return {
+      label: '🆓 نشاط رائج (إدراج مجاني بدون رسوم)',
+      shortLabel: 'إدراج مجاني (0 ج)',
+      isCash: false,
+      icon: '🆓',
+    };
+  }
+
   const paid = Number(biz.amountPaid) || 0;
   if (paid <= 0 || biz.paymentStatus === 'unpaid') {
     return {

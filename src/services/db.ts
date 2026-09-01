@@ -992,6 +992,8 @@ function mapDbToBusiness(item: any): Business {
   let metaRepLocationUrl = item.rep_location_url || item.repLocationUrl;
   let metaGoogleMapsUrl = item.google_maps_url || item.googleMapsUrl;
   let metaRepCommissionRate = item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : item.repCommissionRate;
+  let metaIsFeeExempt = item.is_fee_exempt ?? item.isFeeExempt;
+  let metaFeeExemptionReason = item.fee_exemption_reason || item.feeExemptionReason;
   let metaVideos: string[] | undefined = undefined;
   let pureNotes = item.notes;
 
@@ -1007,34 +1009,46 @@ function mapDbToBusiness(item: any): Business {
         if (parsed.repLocationUrl && !metaRepLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
         if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
+        if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = parsed.isFeeExempt;
+        if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
         pureNotes = parsed.userNotes !== undefined ? parsed.userNotes : undefined;
       }
     } catch {}
   }
 
+  const isFeeExempt = Boolean(metaIsFeeExempt || item.package_price === 0 || item.packagePrice === 0 || item.package_id === 'pkg_exempt');
   const parsedVideos = parseVideosArray(item);
   const finalVideos = parsedVideos.length > 0 ? parsedVideos : (metaVideos || []);
 
   // Preserve real package price and configuration
-  const packagePrice = Number(item.package_price !== undefined && item.package_price !== null ? item.package_price : (item.packagePrice || 250)) || 250;
-  const packageId = item.package_id || item.packageId || (packagePrice === 750 ? 'pkg_pro' : packagePrice === 2000 ? 'pkg_vip' : 'pkg_basic');
-  const packageName = item.package_name || item.packageName || (packageId === 'pkg_pro' ? '2. عرض التأسيس والربط الذكي' : packageId === 'pkg_vip' ? '3. عرض الدعم الميداني والإدارة الشاملة VIP' : '1. باقة التوثيق الأساسي');
+  const rawPkgPrice = item.package_price !== undefined && item.package_price !== null
+    ? Number(item.package_price)
+    : item.packagePrice !== undefined && item.packagePrice !== null
+    ? Number(item.packagePrice)
+    : isFeeExempt ? 0 : 250;
+  const packagePrice = isFeeExempt ? 0 : (isNaN(rawPkgPrice) ? 250 : rawPkgPrice);
+  const packageId = isFeeExempt ? 'pkg_exempt' : (item.package_id || item.packageId || (packagePrice === 750 ? 'pkg_pro' : packagePrice === 2000 ? 'pkg_vip' : 'pkg_basic'));
+  const packageName = isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (item.package_name || item.packageName || (packageId === 'pkg_pro' ? '2. عرض التأسيس والربط الذكي' : packageId === 'pkg_vip' ? '3. عرض الدعم الميداني والإدارة الشاملة VIP' : '1. باقة التوثيق الأساسي'));
 
   const rawPaid = Number(item.amount_paid !== undefined && item.amount_paid !== null ? item.amount_paid : (item.amountPaid || 0)) || 0;
   const rawStatus = item.payment_status || item.paymentStatus;
-  const isFullyPaid = rawStatus === 'fully_paid' || (packagePrice > 0 && rawPaid >= packagePrice);
-  const amountPaid = isFullyPaid ? packagePrice : rawPaid;
+  const isFullyPaid = isFeeExempt || rawStatus === 'fully_paid' || (packagePrice > 0 && rawPaid >= packagePrice);
+  const amountPaid = isFeeExempt ? 0 : (isFullyPaid ? packagePrice : rawPaid);
   const paymentStatus: PaymentStatus = isFullyPaid ? 'fully_paid' : amountPaid > 0 ? 'partially_paid' : 'unpaid';
 
   // Determine actual payment method (Never blindly default to cash_by_rep!)
-  const paymentMethod: Business['paymentMethod'] = metaPaymentMethod || (amountPaid > 0 ? (metaCashCollectedByRep && metaCashCollectedByRep > 0 ? 'cash_by_rep' : 'platform_collected') : 'platform_collected');
+  const paymentMethod: Business['paymentMethod'] = isFeeExempt
+    ? 'platform_collected'
+    : (metaPaymentMethod || (amountPaid > 0 ? (metaCashCollectedByRep && metaCashCollectedByRep > 0 ? 'cash_by_rep' : 'platform_collected') : 'platform_collected'));
 
-  const cashCollectedByRep = metaCashCollectedByRep !== undefined
+  const cashCollectedByRep = isFeeExempt
+    ? 0
+    : (metaCashCollectedByRep !== undefined
     ? metaCashCollectedByRep
     : paymentMethod === 'cash_by_rep'
     ? amountPaid
-    : 0;
+    : 0);
 
   const lat = Number(item.lat) || 30.0444;
   const lng = Number(item.lng) || 31.2357;
@@ -1094,10 +1108,13 @@ function mapDbToBusiness(item: any): Business {
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: pureNotes,
     createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
+    isFeeExempt,
+    feeExemptionReason: metaFeeExemptionReason,
   };
 }
 
 function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
+  const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
   const record: any = {};
   if (biz.id !== undefined) record.id = biz.id;
   record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'نشاط تجاري';
@@ -1118,11 +1135,11 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.owner_email = biz.ownerEmail?.trim() || null;
   record.national_id = biz.nationalId?.trim() || null;
   record.photos = Array.isArray(biz.photos) ? biz.photos : [];
-  record.package_id = biz.packageId || 'pkg_basic';
-  record.package_name = biz.packageName || '1. باقة التوثيق الأساسي';
-  record.package_price = Number(biz.packagePrice) || 250;
-  record.amount_paid = Number(biz.amountPaid) || 0;
-  record.payment_status = biz.paymentStatus || 'unpaid';
+  record.package_id = isExempt ? 'pkg_exempt' : (biz.packageId || 'pkg_basic');
+  record.package_name = isExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (biz.packageName || '1. باقة التوثيق الأساسي');
+  record.package_price = isExempt ? 0 : (Number(biz.packagePrice) || 250);
+  record.amount_paid = isExempt ? 0 : (Number(biz.amountPaid) || 0);
+  record.payment_status = isExempt ? 'fully_paid' : (biz.paymentStatus || 'unpaid');
   record.verification_status = biz.verificationStatus || 'pending';
   record.rep_id = biz.repId || 'rep_1';
   record.rep_name = biz.repName || 'مندوب معتمد';
@@ -1138,8 +1155,10 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
 
   const metaObj = {
     paymentMethod: biz.paymentMethod,
-    cashCollectedByRep: biz.cashCollectedByRep,
-    repCommissionRate: biz.repCommissionRate,
+    cashCollectedByRep: isExempt ? 0 : biz.cashCollectedByRep,
+    repCommissionRate: isExempt ? 0 : biz.repCommissionRate,
+    isFeeExempt: isExempt,
+    feeExemptionReason: biz.feeExemptionReason,
     googleSyncStatus: biz.googleSyncStatus,
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,

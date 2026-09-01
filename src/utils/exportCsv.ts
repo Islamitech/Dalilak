@@ -44,7 +44,8 @@ export function exportBusinessesToCsv(businesses: Business[]) {
   ];
 
   const rows = businesses.map((b) => {
-    const debt = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
+    const isExempt = Boolean(b.isFeeExempt || b.packagePrice === 0);
+    const debt = isExempt ? 0 : Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
     const mapsLink = b.lat && b.lng ? `https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}` : '';
     
     return [
@@ -59,11 +60,11 @@ export function exportBusinessesToCsv(businesses: Business[]) {
       `"${(b.repName || '').replace(/"/g, '""')}"`,
       `"${(b.invoiceNumber || '').replace(/"/g, '""')}"`,
       `"${(b.createdDate || b.invoiceDate || '').replace(/"/g, '""')}"`,
-      `"${(b.packageName || '').replace(/"/g, '""')}"`,
-      b.packagePrice || 0,
-      b.amountPaid || 0,
+      `"${(b.packageName || (isExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : '')).replace(/"/g, '""')}"`,
+      isExempt ? 0 : (b.packagePrice || 0),
+      isExempt ? 0 : (b.amountPaid || 0),
       debt,
-      `"${b.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل' : b.paymentStatus === 'partially_paid' ? 'مدفوع جزئياً' : 'غير مسدد'}"`,
+      `"${isExempt ? 'معفى من الرسوم (مجاني)' : b.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل' : b.paymentStatus === 'partially_paid' ? 'مدفوع جزئياً' : 'غير مسدد'}"`,
       `"${b.verificationStatus === 'verified' ? 'موثق' : b.verificationStatus === 'in_progress' ? 'قيد المراجعة' : b.verificationStatus === 'rejected' ? 'مرفوض' : 'غير مرسل'}"`,
       `"${b.googleSyncStatus === 'synced' ? 'تمت المزامنة بنجاح' : b.googleSyncStatus === 'in_progress' ? 'قيد المزامنة' : 'لم تتم'}"`,
       b.lat || '',
@@ -88,14 +89,14 @@ export function exportRepsToCsv(reps: Representative[], businesses: Business[]) 
     'نسبة العمولة (%)',
     'المستهدف الشهري',
     'عدد الأنشطة المسجلة',
-    'إجمالي التحصيلات (ج.م)',
-    'كود الدعوة',
-    'كود الداعي',
+    'إجمالي المبالغ المحصلة (ج.م)',
+    'كود الإحالة الخاص به',
+    'مسجل بواسطة كود إحالة',
   ];
 
   const rows = reps.map((r) => {
     const repBiz = businesses.filter((b) => b.repId === r.id || b.repName === r.name);
-    const collected = repBiz.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+    const collected = repBiz.reduce((sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + (b.amountPaid || 0), 0);
 
     return [
       `"${(r.name || '').replace(/"/g, '""')}"`,

@@ -247,6 +247,20 @@ export const PACKAGES: PackageOption[] = [
   }
 ];
 
+export const EXEMPT_PACKAGE: PackageOption = {
+  id: 'pkg_exempt',
+  title: 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)',
+  price: 0,
+  description: 'إدراج وتوثيق النشاط التجاري الرائج بالدليل الجغرافي مجاناً وبدون أي مقابل مالي.',
+  features: [
+    'إدراج رسمي ومجاني كامل للنشاط في دليل الأنشطة والخرائط المعتمدة.',
+    'إثراء الدليل بالأنشطة والمعالم الأكثر رواجاً وزيارة في المنطقة.',
+    'إصدار فاتورة إلكترونية معتمدة مجانية وموثقة برمز QR بقيمة 0 ج.م.',
+    'معفى تماماً من أي رسوم أو تحصيلات مالية.'
+  ]
+};
+
+
 export const MOCK_REPRESENTATIVES: Representative[] = [
   {
     id: 'rep_ahmed_ezalden',

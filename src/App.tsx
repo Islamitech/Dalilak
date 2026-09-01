@@ -640,7 +640,10 @@ export default function App() {
   // Handlers synced with Supabase Database & Real-Time Lifecycle
   const handleAddBusiness = async (newBiz: Business) => {
     // 1. Automatically calculate payment status from amountPaid and packagePrice
-    const autoPaymentStatus = (newBiz.amountPaid || 0) >= (newBiz.packagePrice || 250)
+    const isExempt = Boolean(newBiz.isFeeExempt || newBiz.packagePrice === 0);
+    const autoPaymentStatus = isExempt
+      ? 'fully_paid'
+      : (newBiz.amountPaid || 0) >= (newBiz.packagePrice || 250)
       ? 'fully_paid'
       : (newBiz.amountPaid || 0) > 0
       ? 'partially_paid'
@@ -718,7 +721,10 @@ export default function App() {
     const prevBiz = businesses.find((b) => b.id === updatedBiz.id);
 
     // Automatically recalculate payment status based on amountPaid and packagePrice
-    const autoPaymentStatus = (updatedBiz.amountPaid || 0) >= (updatedBiz.packagePrice || 250)
+    const isExempt = Boolean(updatedBiz.isFeeExempt || updatedBiz.packagePrice === 0);
+    const autoPaymentStatus = isExempt
+      ? 'fully_paid'
+      : (updatedBiz.amountPaid || 0) >= (updatedBiz.packagePrice || 250)
       ? 'fully_paid'
       : (updatedBiz.amountPaid || 0) > 0
       ? 'partially_paid'
@@ -1359,8 +1365,9 @@ export default function App() {
     const verified = scopedBusinesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
     const inProgress = scopedBusinesses.filter((b) => b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced').length;
     const govs = new Set(scopedBusinesses.map((b) => b.governorate).filter(Boolean)).size;
-    const fullyPaid = scopedBusinesses.filter((b) => b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
-    return { total, verified, inProgress, govs, fullyPaid };
+    const fullyPaid = scopedBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
+    const exempt = scopedBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
+    return { total, verified, inProgress, govs, fullyPaid, exempt };
   }, [scopedBusinesses]);
 
   const filteredHomeBusinesses = useMemo(() => {
@@ -1395,9 +1402,9 @@ export default function App() {
         } else if (homeVerificationFilter === 'in_progress') {
           if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') return false;
         } else if (homeVerificationFilter === 'fully_paid') {
-          if (b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
+          if (!b.isFeeExempt && b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
         } else if (homeVerificationFilter === 'unpaid') {
-          if (b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) > 0) return false;
+          if (b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) > 0) return false;
         }
         return true;
       })
@@ -2086,7 +2093,8 @@ export default function App() {
               {(!isLoadingData || businesses.length > 0) && homeViewMode === 'grid' && filteredHomeBusinesses.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
                   {filteredHomeBusinesses.map((biz) => {
-                    const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                    const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                    const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
                     const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
                     const hasPhotos = biz.photos && biz.photos.length > 0;
                     const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
@@ -2198,12 +2206,22 @@ export default function App() {
                             {/* Financial Package & Payment Row */}
                             <div className="flex items-center justify-between text-xs pt-1">
                               <div className="flex items-center gap-1">
-                                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                                  {biz.packagePrice || 250} ج.م
-                                </span>
+                                {isExempt ? (
+                                  <span className="text-[11px] font-black text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-md border border-teal-500/20">
+                                    🆓 نشاط رائج (مجاني 0 ج)
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                    {biz.packagePrice || 250} ج.م
+                                  </span>
+                                )}
                               </div>
                               <div>
-                                {remaining === 0 ? (
+                                {isExempt ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                                    ✓ إدراج مجاني
+                                  </span>
+                                ) : remaining === 0 ? (
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                     ✓ مسدد بالكامل
                                   </span>
@@ -2312,7 +2330,8 @@ export default function App() {
                       </thead>
                       <tbody className="divide-y divide-[var(--border-color)]/60">
                         {filteredHomeBusinesses.map((biz) => {
-                          const remaining = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                          const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                          const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
                           const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
 
                           return (
@@ -2337,9 +2356,15 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="py-3 px-3">
-                                <span className={`text-[10px] font-bold ${remaining === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                  {remaining === 0 ? 'مسدد (250 ج)' : `متبقي ${remaining} ج`}
-                                </span>
+                                {isExempt ? (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                                    🆓 إدراج مجاني
+                                  </span>
+                                ) : (
+                                  <span className={`text-[10px] font-bold ${remaining === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                    {remaining === 0 ? `مسدد (${biz.packagePrice || 250} ج)` : `متبقي ${remaining} ج`}
+                                  </span>
+                                )}
                               </td>
                               <td className="py-3 px-3 text-[11px] text-[var(--text-muted)] font-bold">
                                 {biz.repName || '—'}
@@ -2391,6 +2416,7 @@ export default function App() {
         {/* TAB 3: REGISTER NEW BUSINESS FORM */}
         {activeTab === 'add' && (
           <BusinessForm
+            currentUser={user}
             onSubmitBusiness={(newBiz) => {
               handleAddBusiness(newBiz);
               if (convertingLead) {

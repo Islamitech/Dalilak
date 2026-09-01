@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Business, PackageOption, PaymentStatus, Representative, InterestedLead, LeadInterestLevel } from '../types';
-import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory, PACKAGES } from '../data/mockData';
+import { Business, PackageOption, PaymentStatus, Representative, InterestedLead, LeadInterestLevel, User as UserType } from '../types';
+import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory, PACKAGES, EXEMPT_PACKAGE } from '../data/mockData';
+import { canUserManageFeeExemption } from '../utils/permissions';
 import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
@@ -33,13 +34,15 @@ import {
   Store,
   EyeOff,
   Map as MapIcon,
-  Share2
+  Share2,
+  ShieldCheck
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 
 interface BusinessFormProps {
   currentRep: Representative | null;
+  currentUser?: UserType | null;
   onSubmitBusiness: (business: Business) => void;
   onShowInvoice: (biz: Business) => void;
   businesses?: Business[];
@@ -50,11 +53,13 @@ interface BusinessFormProps {
 
 export const BusinessForm: React.FC<BusinessFormProps> = ({
   currentRep,
+  currentUser,
   onSubmitBusiness,
   onShowInvoice,
   onSaveLead,
   initialLead,
 }) => {
+
   // Form State
   const [nameAr, setNameAr] = useState<string>(initialLead?.businessName || '');
   const [nameEn, setNameEn] = useState<string>('');
@@ -197,6 +202,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   // Package & Payments
+  const canExempt = canUserManageFeeExemption(currentUser || null) || currentRep?.role === 'admin' || currentRep?.role === 'supervisor' || currentRep?.role === 'accountant';
+  const [isFeeExempt, setIsFeeExempt] = useState<boolean>(false);
   const [selectedPackage, setSelectedPackage] = useState<PackageOption>(PACKAGES[0]); // Default Package 1 (Basic 250 EGP)
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('fully_paid');
   const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[0].price);
@@ -240,6 +247,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setOwnerPhone('');
     setOwnerEmail('');
     setNationalId('');
+    setIsFeeExempt(false);
     setSelectedPackage(PACKAGES[0]);
     setPaymentStatus('fully_paid');
     setAmountPaid(PACKAGES[0].price);
@@ -253,6 +261,11 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   const handlePaymentStatusChange = (status: PaymentStatus) => {
+    if (isFeeExempt) {
+      setPaymentStatus('fully_paid');
+      setAmountPaid(0);
+      return;
+    }
     setPaymentStatus(status);
     if (status === 'fully_paid') {
       setAmountPaid(selectedPackage.price);
@@ -426,14 +439,16 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       videos: [],
       repId: currentRep?.id || 'rep_1',
       repName: currentRep?.name || 'مندوب معتمد',
-      packageId: selectedPackage.id,
-      packageName: selectedPackage.title,
-      packagePrice: selectedPackage.price,
-      amountPaid: Number(amountPaid) || 0,
+      packageId: isFeeExempt ? EXEMPT_PACKAGE.id : selectedPackage.id,
+      packageName: isFeeExempt ? EXEMPT_PACKAGE.title : selectedPackage.title,
+      packagePrice: isFeeExempt ? 0 : selectedPackage.price,
+      amountPaid: isFeeExempt ? 0 : (Number(amountPaid) || 0),
+      isFeeExempt: isFeeExempt || undefined,
+      feeExemptionReason: isFeeExempt ? 'نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)' : undefined,
       // Set payment method and cash in hand accurately:
-      paymentMethod: paymentStatus === 'unpaid' ? 'platform_collected' : paymentMethod,
-      cashCollectedByRep: paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
-      paymentStatus,
+      paymentMethod: isFeeExempt ? 'platform_collected' : (paymentStatus === 'unpaid' ? 'platform_collected' : paymentMethod),
+      cashCollectedByRep: !isFeeExempt && paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
+      paymentStatus: isFeeExempt ? 'fully_paid' : paymentStatus,
       verificationStatus: 'pending', // Default: new registration, not submitted to Google yet
       repLocationUrl: `https://www.google.com/maps?q=${lat},${lng}`,
       googleMapsUrl: undefined, // Strictly verified by Admin only
@@ -894,13 +909,67 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         </div>
       )}
 
+      {/* 🌟 Admin/Manager Special Feature: Fee-Exempt Popular Area Landmark/Activity */}
+      {canExempt && (
+        <div className={`p-4 sm:p-5 rounded-3xl border-2 transition-all duration-300 ${
+          isFeeExempt
+            ? 'bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border-emerald-500/60 shadow-lg'
+            : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/30'
+        }`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${
+                isFeeExempt ? 'bg-emerald-500 text-white shadow-md' : 'bg-emerald-500/10 text-emerald-500'
+              }`}>
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                    نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)
+                  </h4>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-black">
+                    خاص بالإدارة
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
+                  الأنشطة ذات الرواج والشهرة العالية في المنطقة لإثراء الدليل مجاناً (فاتورة 0 ج.م - لا تحتسب ضمن الإحصائيات)
+                </p>
+              </div>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={isFeeExempt}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setIsFeeExempt(val);
+                  if (val) {
+                    setSelectedPackage(EXEMPT_PACKAGE);
+                    setAmountPaid(0);
+                    setPaymentStatus('fully_paid');
+                  } else {
+                    setSelectedPackage(PACKAGES[0]);
+                    setAmountPaid(PACKAGES[0].price);
+                    setPaymentStatus('fully_paid');
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 shadow-inner"></div>
+            </label>
+          </div>
+        </div>
+      )}
+
       {/* Submit Action Button */}
       <button
         type="submit"
         className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-sm sm:text-base py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
       >
         <CreditCard className="w-5 h-5 stroke-[2.5]" />
-        <span>حفظ النشاط وتحديد حالة الدفع والفاتورة 💳</span>
+        <span>{isFeeExempt ? 'تأكيد تسجيل النشاط الرائج (إدراج مجاني) 🌟' : 'حفظ النشاط وتحديد حالة الدفع والفاتورة 💳'}</span>
       </button>
 
         {/* ========================================================
@@ -1144,111 +1213,126 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               </div>
             </div>
 
-            {/* Payment Status 3 Big Options */}
-            <div className="space-y-2.5">
-              <label className="block font-black text-xs text-[var(--text-primary)]">
-                اختر حالة السداد المحصلة من العميل:
-              </label>
-
-              <div className="grid grid-cols-1 gap-2.5">
-                {/* 1. Fully Paid */}
-                <div
-                  onClick={() => handlePaymentStatusChange('fully_paid')}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between shadow-sm ${
-                    paymentStatus === 'fully_paid'
-                      ? 'bg-emerald-500/15 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/30'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
-                      paymentStatus === 'fully_paid' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'
-                    }`}>
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="font-black text-xs">مدفوع بالكامل (سداد كلي)</div>
-                      <div className="text-[10px] opacity-80">تم استلام كامل قيمة الباقة من العميل</div>
-                    </div>
-                  </div>
-                  <span className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
-                    {selectedPackage.price} ج.م
-                  </span>
+            {/* Payment Status / Exemption Box */}
+            {isFeeExempt ? (
+              <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border-2 border-emerald-500/40 rounded-2xl p-4 text-center space-y-2.5">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
+                <h4 className="font-black text-sm text-emerald-800 dark:text-emerald-300">
+                  نشاط رائج بالمنطقة (إدراج مجاني معفى من الرسوم - 0 ج.م)
+                </h4>
+                <p className="text-xs text-[var(--text-muted)] font-bold leading-relaxed">
+                  بناءً على قرار الإدارة: هذا النشاط رائج ومعلم رئيسي في المنطقة تم إدراجه لإثراء الدليل مجاناً.
+                  الفاتورة الصادرة ستكون <strong className="text-emerald-600 dark:text-emerald-400">مجانية معتمدة</strong>، ولن يترتب عليها أي مبالغ أو تحصيلات أو تأثير على الإحصائيات المالية.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <label className="block font-black text-xs text-[var(--text-primary)]">
+                  اختر حالة السداد المحصلة من العميل:
+                </label>
 
-                {/* 2. Partially Paid (Deposit) */}
-                <div
-                  onClick={() => handlePaymentStatusChange('partially_paid')}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-2.5 shadow-sm ${
-                    paymentStatus === 'partially_paid'
-                      ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/20 text-amber-800 dark:text-amber-300'
-                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/30'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
+                <div className="grid grid-cols-1 gap-2.5">
+                  {/* 1. Fully Paid */}
+                  <div
+                    onClick={() => handlePaymentStatusChange('fully_paid')}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between shadow-sm ${
+                      paymentStatus === 'fully_paid'
+                        ? 'bg-emerald-500/15 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/30'
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
-                        paymentStatus === 'partially_paid' ? 'bg-amber-500 text-slate-950' : 'bg-amber-500/10 text-amber-500'
+                        paymentStatus === 'fully_paid' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'
                       }`}>
-                        <Clock className="w-5 h-5" />
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="font-black text-xs">مبلغ جزئي (عربون مقدم)</div>
-                        <div className="text-[10px] opacity-80">تم استلام دفعة مقدمة والباقي آجل</div>
+                        <div className="font-black text-xs">مدفوع بالكامل (سداد كلي)</div>
+                        <div className="text-[10px] opacity-80">تم استلام كامل قيمة الباقة من العميل</div>
                       </div>
                     </div>
-                    <span className="font-mono font-black text-sm text-amber-600 dark:text-amber-400">
-                      {amountPaid} ج.م
+                    <span className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                      {selectedPackage.price} ج.م
                     </span>
                   </div>
 
-                  {paymentStatus === 'partially_paid' && (
-                    <div className="pt-2 border-t border-amber-500/30 flex flex-wrap items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
-                        <label className="font-black text-xs">المبلغ المستلم فعلياً:</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={selectedPackage.price}
-                          value={amountPaid}
-                          onChange={(e) => setAmountPaid(Number(e.target.value))}
-                          className="w-24 bg-[var(--bg-card)] border-2 border-amber-500 text-[var(--text-primary)] font-mono font-black rounded-xl px-2.5 py-1.5 text-center focus:outline-none shadow-sm"
-                        />
-                        <span className="font-bold text-xs">ج.م</span>
+                  {/* 2. Partially Paid (Deposit) */}
+                  <div
+                    onClick={() => handlePaymentStatusChange('partially_paid')}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-2.5 shadow-sm ${
+                      paymentStatus === 'partially_paid'
+                        ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/20 text-amber-800 dark:text-amber-300'
+                        : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+                          paymentStatus === 'partially_paid' ? 'bg-amber-500 text-slate-950' : 'bg-amber-500/10 text-amber-500'
+                        }`}>
+                          <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="font-black text-xs">مبلغ جزئي (عربون مقدم)</div>
+                          <div className="text-[10px] opacity-80">تم استلام دفعة مقدمة والباقي آجل</div>
+                        </div>
                       </div>
-                      <span className="bg-rose-500/15 text-rose-600 dark:text-rose-400 px-2.5 py-1 rounded-lg font-black text-xs border border-rose-500/30">
-                        المتبقي: {Math.max(0, selectedPackage.price - amountPaid)} ج.م
+                      <span className="font-mono font-black text-sm text-amber-600 dark:text-amber-400">
+                        {amountPaid} ج.م
                       </span>
                     </div>
-                  )}
-                </div>
 
-                {/* 3. Unpaid (Deferred) */}
-                <div
-                  onClick={() => handlePaymentStatusChange('unpaid')}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between shadow-sm ${
-                    paymentStatus === 'unpaid'
-                      ? 'bg-rose-500/15 border-rose-500 ring-2 ring-rose-500/20 text-rose-700 dark:text-rose-400'
-                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-rose-500/30'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
-                      paymentStatus === 'unpaid' ? 'bg-rose-500 text-white' : 'bg-rose-500/10 text-rose-500'
-                    }`}>
-                      <AlertCircle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="font-black text-xs">غير مدفوع (آجل بالكامل)</div>
-                      <div className="text-[10px] opacity-80">لم يتم تحصيل أي مبالغ حتى الآن</div>
-                    </div>
+                    {paymentStatus === 'partially_paid' && (
+                      <div className="pt-2 border-t border-amber-500/30 flex flex-wrap items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <label className="font-black text-xs">المبلغ المستلم فعلياً:</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={selectedPackage.price}
+                            value={amountPaid}
+                            onChange={(e) => setAmountPaid(Number(e.target.value))}
+                            className="w-24 bg-[var(--bg-card)] border-2 border-amber-500 text-[var(--text-primary)] font-mono font-black rounded-xl px-2.5 py-1.5 text-center focus:outline-none shadow-sm"
+                          />
+                          <span className="font-bold text-xs">ج.م</span>
+                        </div>
+                        <span className="bg-rose-500/15 text-rose-600 dark:text-rose-400 px-2.5 py-1 rounded-lg font-black text-xs border border-rose-500/30">
+                          المتبقي: {Math.max(0, selectedPackage.price - amountPaid)} ج.م
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <span className="font-mono font-black text-sm text-rose-600 dark:text-rose-400">
-                    0 ج.م
-                  </span>
+
+                  {/* 3. Unpaid (Deferred) */}
+                  <div
+                    onClick={() => handlePaymentStatusChange('unpaid')}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between shadow-sm ${
+                      paymentStatus === 'unpaid'
+                        ? 'bg-rose-500/15 border-rose-500 ring-2 ring-rose-500/20 text-rose-700 dark:text-rose-400'
+                        : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-rose-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+                        paymentStatus === 'unpaid' ? 'bg-rose-500 text-white' : 'bg-rose-500/10 text-rose-500'
+                      }`}>
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-black text-xs">غير مدفوع (آجل بالكامل)</div>
+                        <div className="text-[10px] opacity-80">لم يتم تحصيل أي مبالغ حتى الآن</div>
+                      </div>
+                    </div>
+                    <span className="font-mono font-black text-sm text-rose-600 dark:text-rose-400">
+                      0 ج.م
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Collection Method Selector & Financial Breakdown */}
             {paymentStatus !== 'unpaid' && amountPaid > 0 && (

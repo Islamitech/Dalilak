@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, VerificationStatus } from '../types';
-import { EGYPT_GOVERNORATES, PACKAGES, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
+import { EGYPT_GOVERNORATES, PACKAGES, EXEMPT_PACKAGE, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import { uploadMediaToSupabaseStorage } from '../services/storage';
@@ -38,7 +38,9 @@ import {
   X,
   Send,
   TrendingUp,
+  ShieldCheck,
 } from 'lucide-react';
+
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 import {
@@ -298,7 +300,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     });
   };
 
-  const remainingDebt = Math.max(0, (formData.packagePrice || 0) - (formData.amountPaid || 0));
+  const isFeeExempt = Boolean(formData.isFeeExempt || formData.packagePrice === 0);
+  const remainingDebt = isFeeExempt ? 0 : Math.max(0, (formData.packagePrice || 0) - (formData.amountPaid || 0));
   const totalMediaCount = (formData.photos?.length || 0) + (formData.videos?.length || 0);
 
   interface TabItem {
@@ -327,11 +330,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     ? { label: 'مرفوض 🔴', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
     : { label: 'بانتظار المراجعة', cls: 'bg-slate-700/50 text-slate-300 border-slate-600' };
 
-  const paymentBadge = formData.paymentStatus === 'fully_paid'
+  const paymentBadge = isFeeExempt
+    ? { label: 'معفى من الرسوم (مجاني 0 ج)', cls: 'bg-teal-500/20 text-teal-300 border-teal-500/40 font-black' }
+    : formData.paymentStatus === 'fully_paid'
     ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
     : formData.paymentStatus === 'partially_paid'
     ? { label: `متبقي دين (${remainingDebt} ج)`, cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
     : { label: `غير مسدد (${formData.packagePrice || 250} ج)`, cls: 'bg-rose-500/30 text-rose-200 border-rose-500/50 font-black shadow-xs' };
+
 
   const primaryPhone = formData.phone || formData.ownerPhone || '';
   const cleanPhone = primaryPhone.replace(/\D/g, '');
@@ -1128,7 +1134,86 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
           {/* ── TAB 4: الباقة والمالية ─────────────────────────────────── */}
           {activeSection === 'payment' && (
-            <div className="space-y-3 text-right">
+            <div className="space-y-3.5 text-right">
+              {/* 🌟 Special Fee Exemption Box for Responsible Accounts */}
+              {isAdminOrFinancial && (
+                <div className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
+                  formData.isFeeExempt
+                    ? 'bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border-emerald-500/50 shadow-md'
+                    : 'bg-[var(--input-bg)] border-[var(--border-color)]'
+                }`}>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                        formData.isFeeExempt ? 'bg-emerald-500 text-white shadow-sm' : 'bg-emerald-500/10 text-emerald-500'
+                      }`}>
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                            إعفاء النشاط من الرسوم والتحصيل (نشاط رائج ومعلم بالمنطقة)
+                          </h4>
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-black">
+                            صلاحيات الإدارة
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
+                          إزالة التحصيل وتصفير الفاتورة (0 ج.م) واستبعاد النشاط وفواتيره تماماً من الإحصائيات والديون
+                        </p>
+                      </div>
+                    </div>
+
+                    {isEditMode ? (
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(formData.isFeeExempt)}
+                          onChange={(e) => {
+                            const isExempt = e.target.checked;
+                            if (isExempt) {
+                              setFormData({
+                                ...formData,
+                                isFeeExempt: true,
+                                feeExemptionReason: 'نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)',
+                                packageId: EXEMPT_PACKAGE.id,
+                                packageName: EXEMPT_PACKAGE.title,
+                                packagePrice: 0,
+                                amountPaid: 0,
+                                cashCollectedByRep: 0,
+                                paymentStatus: 'fully_paid',
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                isFeeExempt: false,
+                                feeExemptionReason: undefined,
+                                packageId: PACKAGES[0].id,
+                                packageName: PACKAGES[0].title,
+                                packagePrice: PACKAGES[0].price,
+                                amountPaid: 0,
+                                cashCollectedByRep: 0,
+                                paymentStatus: 'unpaid',
+                              });
+                            }
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 shadow-inner"></div>
+                      </label>
+                    ) : (
+                      <span className={`text-xs font-black px-3 py-1.5 rounded-xl border ${
+                        formData.isFeeExempt
+                          ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
+                          : 'bg-slate-700/40 text-slate-400 border-slate-600'
+                      }`}>
+                        {formData.isFeeExempt ? '✓ معفى من التحصيل (مجاني)' : 'نشاط تجاري عادي'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* الباقة المختارة */}
                 <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
@@ -1136,7 +1221,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     <span>باقة التوثيق والخدمات</span>
                   </span>
-                  {isEditMode ? (
+                  {isEditMode && !formData.isFeeExempt ? (
                     <select
                       value={formData.packageId || PACKAGES[0].id}
                       onChange={(e) => {
@@ -1159,7 +1244,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       ))}
                     </select>
                   ) : (
-                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">{formData.packageName}</div>
+                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">{formData.packageName || (formData.isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : '1. باقة التوثيق الأساسي')}</div>
                   )}
                 </div>
 
@@ -1170,7 +1255,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <span>إجمالي قيمة الباقة</span>
                   </span>
                   <div className="font-black text-base text-[var(--text-primary)] pt-0.5">
-                    {formData.packagePrice || 250} ج.م
+                    {formData.isFeeExempt ? '0 ج.م (معفى من الرسوم)' : `${formData.packagePrice ?? 250} ج.م`}
                   </div>
                 </div>
 
@@ -1180,7 +1265,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                     <span>المبلغ المسدد فعلياً</span>
                   </span>
-                  {isEditMode ? (
+                  {isEditMode && !formData.isFeeExempt ? (
                     <input
                       type="number"
                       value={formData.amountPaid ?? 0}
@@ -1198,7 +1283,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     />
                   ) : (
                     <div className="font-black text-base text-emerald-600 dark:text-emerald-400 pt-0.5">
-                      {formData.amountPaid || 0} ج.م
+                      {formData.isFeeExempt ? '0 ج.م (معفى)' : `${formData.amountPaid || 0} ج.م`}
                     </div>
                   )}
                 </div>
@@ -1210,7 +1295,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <span>المبلغ المتبقي للتحصيل</span>
                   </span>
                   <div className={`font-black text-base pt-0.5 ${remainingDebt > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
-                    {remainingDebt} ج.م
+                    {formData.isFeeExempt ? '0 ج.م (لا يوجد دين)' : `${remainingDebt} ج.م`}
                   </div>
                 </div>
               </div>

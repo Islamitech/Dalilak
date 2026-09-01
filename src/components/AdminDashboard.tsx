@@ -201,12 +201,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [syncModalBiz, setSyncModalBiz] = useState<Business | null>(null);
 
   // ---------------------------------------------------------------------------
-  // COMPREHENSIVE STATISTICS CALCULATIONS
+  // COMPREHENSIVE STATISTICS CALCULATIONS (Excluding fee-exempt popular area activities)
   // ---------------------------------------------------------------------------
-  const totalRevenue = businesses.reduce((acc, b) => acc + (b.amountPaid || 0), 0);
-  const totalContractValue = businesses.reduce((acc, b) => acc + (b.packagePrice || 0), 0);
-  const totalDebt = businesses.reduce((acc, b) => acc + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)), 0);
+  const totalRevenue = businesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.amountPaid || 0), 0);
+  const totalContractValue = businesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.packagePrice || 0), 0);
+  const totalDebt = businesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)), 0);
   const collectionRate = totalContractValue > 0 ? ((totalRevenue / totalContractValue) * 100).toFixed(1) : '0';
+  const exemptCount = businesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
 
   // Verification Pipeline Metrics
   const verifiedCount = businesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
@@ -244,9 +245,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const overdueReviewCount = overdueReviewBusinesses.length;
 
-  // Verified Businesses with Unpaid / Remaining Balance
+  // Verified Businesses with Unpaid / Remaining Balance (Excluding fee-exempt activities)
   const verifiedWithDebtBusinesses = useMemo(() => {
     return businesses.filter((b) => {
+      if (b.isFeeExempt || b.packagePrice === 0) return false;
       const isLive = b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
       const remaining = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
       return isLive && remaining > 0;
@@ -255,18 +257,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const verifiedWithDebtCount = verifiedWithDebtBusinesses.length;
   const verifiedWithDebtTotal = verifiedWithDebtBusinesses.reduce(
-    (sum, b) => sum + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)),
+    (sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)),
     0
   );
 
   // Governorate Breakdown
   const governorateStats = useMemo(() => {
-    const govMap = new Map<string, { count: number; revenue: number; verified: number }>();
+    const govMap = new Map<string, { count: number; revenue: number; verified: number; exempt: number }>();
     businesses.forEach((b) => {
       const gov = b.governorate || 'القاهرة';
-      const existing = govMap.get(gov) || { count: 0, revenue: 0, verified: 0 };
+      const existing = govMap.get(gov) || { count: 0, revenue: 0, verified: 0, exempt: 0 };
       existing.count += 1;
-      existing.revenue += (b.amountPaid || 0);
+      if (!b.isFeeExempt && (b.packagePrice || 0) > 0) {
+        existing.revenue += (b.amountPaid || 0);
+      } else {
+        existing.exempt += 1;
+      }
       if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') {
         existing.verified += 1;
       }
@@ -281,10 +287,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const packageStats = useMemo(() => {
     const pkgMap = new Map<string, { count: number; revenue: number }>();
     businesses.forEach((b) => {
-      const pkgTitle = b.packageTitle || 'الباقة الفضية';
+      const isExempt = b.isFeeExempt || b.packagePrice === 0;
+      const pkgTitle = isExempt ? 'أنشطة رائجة بالمنطقة (إدراج مجاني بدون رسوم)' : (b.packageTitle || b.packageName || 'الباقة الأساسية');
       const existing = pkgMap.get(pkgTitle) || { count: 0, revenue: 0 };
       existing.count += 1;
-      existing.revenue += (b.packagePrice || 0);
+      existing.revenue += isExempt ? 0 : (b.packagePrice || 0);
       pkgMap.set(pkgTitle, existing);
     });
     return Array.from(pkgMap.entries())
@@ -323,7 +330,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return mergedAdminReps
       .map((rep) => {
         const repBiz = businesses.filter((b) => b.repId === rep.id || b.repName === rep.name);
-        const collected = repBiz.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+        const collected = repBiz.reduce((sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + (b.amountPaid || 0), 0);
         const verified = repBiz.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
         const target = rep.targetMonth || 25;
         const achievement = target > 0 ? ((repBiz.length / target) * 100).toFixed(1) : '0';
@@ -768,7 +775,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
               <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
                 <span>إجمالي الأنشطة:</span>
-                <span className="font-bold font-sans">{businesses.length} نشاط</span>
+                <span className="font-bold font-sans">
+                  {businesses.length} نشاط {exemptCount > 0 && <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">({exemptCount} رائج معفى)</span>}
+                </span>
               </div>
             </div>
 
@@ -1270,15 +1279,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     const isLiveVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
                     const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isLiveVerified;
                     const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
-                    const debtAmount = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                    const isPaid = (biz.amountPaid || 0) > 0;
-                    const isCash = biz.cashCollectedByRep !== undefined
+                    const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                    const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                    const isPaid = !isExempt && (biz.amountPaid || 0) > 0;
+                    const isCash = !isExempt && (biz.cashCollectedByRep !== undefined
                       ? (biz.cashCollectedByRep || 0) > 0
-                      : biz.paymentMethod !== 'gateway_online' && isPaid;
+                      : biz.paymentMethod !== 'gateway_online' && isPaid);
                     const rate = biz.repCommissionRate || 42.86;
-                    const repComm = Math.round(((biz.amountPaid || 0) * rate) / 100);
-                    const platDue = (biz.amountPaid || 0) - repComm;
-                    const expectedComm = Math.round(((biz.packagePrice || 250) * rate) / 100);
+                    const repComm = isExempt ? 0 : Math.round(((biz.amountPaid || 0) * rate) / 100);
+                    const platDue = isExempt ? 0 : (biz.amountPaid || 0) - repComm;
+                    const expectedComm = isExempt ? 0 : Math.round(((biz.packagePrice || 250) * rate) / 100);
 
                     return (
                       <div key={`m-${biz.id}`} className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl space-y-3 shadow-sm hover:border-amber-500/40 transition-all">
@@ -1287,7 +1297,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <div className="min-w-0 flex-1">
                             <h4 className="font-black text-sm text-[var(--text-primary)] truncate">{biz.nameAr}</h4>
                             {biz.nameEn && <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{biz.nameEn}</p>}
-                            <span className="inline-block text-[11px] text-amber-700 dark:text-amber-400 font-bold mt-0.5">{biz.category}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <span className="inline-block text-[11px] text-amber-700 dark:text-amber-400 font-bold">{biz.category}</span>
+                              {isExempt && (
+                                <span className="text-[9.5px] bg-teal-500/20 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-md font-black border border-teal-500/30">
+                                  🌟 رائج (معفى مجاناً)
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="shrink-0">
                             {isLiveVerified ? (
@@ -1309,8 +1326,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
                         </div>
 
-                        {/* Urgent Alert if Verified but Unpaid */}
-                        {isLiveVerified && !isPaid && (
+                        {/* Urgent Alert if Verified but Unpaid (Strictly non-exempt) */}
+                        {isLiveVerified && !isPaid && !isExempt && (
                           <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-black flex items-center justify-between gap-2 animate-pulse">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -1373,7 +1390,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {/* Payment & Commission status */}
                         <div className="bg-[var(--bg-surface)] p-2.5 rounded-xl border border-[var(--border-color)] text-xs flex items-center justify-between gap-2">
                           <div className="min-w-0">
-                            {!isPaid ? (
+                            {isExempt ? (
+                              <div className="space-y-0.5">
+                                <span className="text-[10.5px] font-black px-2.5 py-1 rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 inline-flex items-center gap-1">
+                                  <span>🆓 إدراج مجاني (معفى من الرسوم 0 ج)</span>
+                                </span>
+                                <p className="text-[9.5px] text-[var(--text-muted)] font-bold">معلم رائج بالمنطقة - لا توجد مطالبات مالية</p>
+                              </div>
+                            ) : !isPaid ? (
                               <div>
                                 {isLiveVerified ? (
                                   <span className="badge-danger text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 animate-pulse">
@@ -1463,22 +1487,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         const isLiveVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
                         const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isLiveVerified;
                         const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
-                        const debtAmount = Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                        const isPaid = (biz.amountPaid || 0) > 0;
-                        const isCash = biz.cashCollectedByRep !== undefined
+                        const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                        const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                        const isPaid = !isExempt && (biz.amountPaid || 0) > 0;
+                        const isCash = !isExempt && (biz.cashCollectedByRep !== undefined
                           ? (biz.cashCollectedByRep || 0) > 0
-                          : biz.paymentMethod !== 'gateway_online' && isPaid;
+                          : biz.paymentMethod !== 'gateway_online' && isPaid);
                         const rate = biz.repCommissionRate || 42.86;
-                        const repComm = Math.round(((biz.amountPaid || 0) * rate) / 100);
-                        const platDue = (biz.amountPaid || 0) - repComm;
-                        const expectedComm = Math.round(((biz.packagePrice || 250) * rate) / 100);
+                        const repComm = isExempt ? 0 : Math.round(((biz.amountPaid || 0) * rate) / 100);
+                        const platDue = isExempt ? 0 : (biz.amountPaid || 0) - repComm;
+                        const expectedComm = isExempt ? 0 : Math.round(((biz.packagePrice || 250) * rate) / 100);
 
                         return (
-                          <tr key={biz.id} className={`transition-colors ${isLiveVerified && !isPaid ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-amber-500/5'}`}>
+                          <tr key={biz.id} className={`transition-colors ${isLiveVerified && !isPaid && !isExempt ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-amber-500/5'}`}>
                             <td className="p-3">
                               <p className="font-extrabold text-[var(--text-primary)] text-sm">{biz.nameAr}</p>
                               {biz.nameEn && <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.nameEn}</p>}
-                              <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold mt-0.5">{biz.category}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold">{biz.category}</p>
+                                {isExempt && (
+                                  <span className="text-[9.5px] bg-teal-500/20 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-md font-black border border-teal-500/30">
+                                    🌟 رائج (معفى مجاناً)
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             <td className="p-3">
@@ -1519,6 +1551,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             <td className="p-3">
                               {(() => {
+                                if (isExempt) {
+                                  return (
+                                    <div className="space-y-0.5">
+                                      <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 inline-flex items-center gap-1">
+                                        <span>🆓 إدراج مجاني (معفى 0 ج)</span>
+                                      </span>
+                                      <p className="text-[9.5px] text-[var(--text-muted)] font-bold">لا توجد مطالبات مالية</p>
+                                    </div>
+                                  );
+                                }
+
                                 if (!isPaid) {
                                   return (
                                     <div className="space-y-1">

@@ -31,6 +31,8 @@ export default function App() {
     let metaRepLocationUrl = r.rep_location_url;
     let metaGoogleMapsUrl = r.google_maps_url;
     let metaGooglePlaceId = r.google_place_id;
+    let metaIsFeeExempt = r.is_fee_exempt ?? r.isFeeExempt;
+    let metaFeeExemptionReason = r.fee_exemption_reason || r.feeExemptionReason;
 
     if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')) {
       try {
@@ -41,10 +43,13 @@ export default function App() {
           if (parsed.repLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
           if (parsed.googleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
           if (parsed.googlePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
+          if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = parsed.isFeeExempt;
+          if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
         }
       } catch {}
     }
 
+    const isFeeExempt = Boolean(metaIsFeeExempt || r.package_price === 0 || r.packagePrice === 0 || r.package_id === 'pkg_exempt');
     const rawPhotos = Array.isArray(r.photos) ? r.photos : [];
     const rawVideos = Array.isArray(r.videos) && r.videos.length > 0 ? r.videos : metaVideos;
 
@@ -88,17 +93,19 @@ export default function App() {
       googleSyncStatus: metaGoogleSyncStatus || r.google_sync_status || r.googleSyncStatus || 'not_synced',
       createdAt: r.created_at || r.createdAt || new Date().toISOString(),
       createdDate: r.created_at || r.createdDate || new Date().toISOString(),
-      amountPaid: typeof r.amount_paid === 'number' ? r.amount_paid : 0,
+      amountPaid: isFeeExempt ? 0 : (typeof r.amount_paid === 'number' ? r.amount_paid : 0),
       ownerName: r.owner_name || r.ownerName || '',
       ownerPhone: r.owner_phone || r.ownerPhone || '',
       repId: r.rep_id || r.repId || '',
       repName: r.rep_name || r.repName || '',
-      packageId: r.package_id || r.packageId || 'pkg_basic',
-      packageName: r.package_name || r.packageName || 'باقة التوثيق الأساسي',
-      packagePrice: typeof r.package_price === 'number' ? r.package_price : 250,
-      paymentStatus: r.payment_status || r.paymentStatus || 'fully_paid',
+      packageId: isFeeExempt ? 'pkg_exempt' : (r.package_id || r.packageId || 'pkg_basic'),
+      packageName: isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (r.package_name || r.packageName || 'باقة التوثيق الأساسي'),
+      packagePrice: isFeeExempt ? 0 : (typeof r.package_price === 'number' ? r.package_price : 250),
+      paymentStatus: isFeeExempt ? 'fully_paid' : (r.payment_status || r.paymentStatus || 'fully_paid'),
       invoiceNumber: r.invoice_number || r.invoiceNumber || '',
       invoiceDate: r.invoice_date || r.invoiceDate || '',
+      isFeeExempt,
+      feeExemptionReason: metaFeeExemptionReason,
     };
   }
 

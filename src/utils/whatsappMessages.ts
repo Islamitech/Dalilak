@@ -45,9 +45,10 @@ export function safeWhatsAppEncode(text: string): string {
  * Event 1: Initial Registration & Official Invoice Message
  */
 export function generateInvoiceWhatsAppMessage(biz: Business): string {
-  const pkgPrice = biz.packagePrice || 250;
-  const amtPaid = biz.amountPaid || 0;
-  const remaining = Math.max(0, pkgPrice - amtPaid);
+  const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+  const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
+  const amtPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
+  const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
 
   const raw = 
     `*فاتورة توثيق نشاط تجاري - شركة دليلك*\n` +
@@ -57,17 +58,21 @@ export function generateInvoiceWhatsAppMessage(biz: Business): string {
     `• *الموقع:* ${biz.governorate || ''} - ${biz.city || ''}\n` +
     `• *رقم الفاتورة:* ${biz.invoiceNumber || ''}\n` +
     `• *تاريخ الإصدار:* ${biz.invoiceDate || ''}\n\n` +
-    `• *الباقة المختارة:* ${biz.packageName || 'باقة التوثيق الأساسي'}\n` +
-    `• *إجمالي قيمة الباقة:* ${pkgPrice} ج.م\n` +
-    `• *المبلغ المدفوع:* ${amtPaid} ج.م\n` +
-    `• *المبلغ المتبقي:* ${remaining} ج.م\n` +
-    `• *حالة الدفع:* ${
-      biz.paymentStatus === 'fully_paid'
-        ? 'مدفوعة بالكامل (خالص)'
-        : biz.paymentStatus === 'partially_paid'
-        ? `مدفوع جزء منها (متبقي ${remaining} ج.م)`
-        : 'لم يتم الدفع بعد'
-    }\n\n` +
+    (isFeeExempt
+      ? `• *نوع الخدمة:* نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون رسوم)\n` +
+        `• *إجمالي القيمة:* 0 ج.م (معفى من الرسوم تماماً)\n` +
+        `• *حالة الدفع:* معفى بالكامل (مجاني)\n\n`
+      : `• *الباقة المختارة:* ${biz.packageName || 'باقة التوثيق الأساسي'}\n` +
+        `• *إجمالي قيمة الباقة:* ${pkgPrice} ج.م\n` +
+        `• *المبلغ المدفوع:* ${amtPaid} ج.م\n` +
+        `• *المبلغ المتبقي:* ${remaining} ج.م\n` +
+        `• *حالة الدفع:* ${
+          biz.paymentStatus === 'fully_paid'
+            ? 'مدفوعة بالكامل (خالص)'
+            : biz.paymentStatus === 'partially_paid'
+            ? `مدفوع جزء منها (متبقي ${remaining} ج.م)`
+            : 'لم يتم الدفع بعد'
+        }\n\n`) +
     `*تهانينا! تم إدراج ونشر نشاطكم مباشرة في دليل الأنشطة والخدمات المعتمد في مصر:*\n` +
     `رابط دليل الأنشطة المباشر: ${DIRECTORY_URL}\n\n` +
     `*ملاحظة:* تم رفع وتثبيت بيانات نشاطكم بنجاح وهو متاح الآن للعملاء على المنظومة، وتتم متابعة مراجعة وتوثيق النشاط حتى اعتماده على خرائط Google. شكرًا لثقتكم بشركة دليلك!`;
@@ -85,10 +90,11 @@ export function getInvoiceWhatsAppUrl(biz: Business): string {
  * Event 2: Google Maps Live Verification & Approval Notification Message
  */
 export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string {
-  const pkgPrice = biz.packagePrice || 250;
-  const amtPaid = biz.amountPaid || 0;
-  const remaining = Math.max(0, pkgPrice - amtPaid);
-  const isFullyPaid = biz.paymentStatus === 'fully_paid' || remaining === 0;
+  const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+  const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
+  const amtPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
+  const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
+  const isFullyPaid = isFeeExempt || biz.paymentStatus === 'fully_paid' || remaining === 0;
   const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
 
   const raw = 
@@ -98,7 +104,9 @@ export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string
     `• *رابط موقعكم المباشر على خرائط Google:*\n` +
     `${activeMapUrl}\n\n` +
     `• *رابط صفحتكم على دليل الأنشطة المعتمد:* ${DIRECTORY_URL}\n\n` +
-    (isFullyPaid
+    (isFeeExempt
+      ? `• *حالة الحساب:* إدراج مجاني بدون أي رسوم معلقة.\n\n`
+      : isFullyPaid
       ? `• *حالة الحساب:* مسدد بالكامل (${pkgPrice} ج.م) — لا توجد أي مستحقات معلقة.\n\n`
       : `• *حالة الحساب:* متبقي سداد (*${remaining} ج.م*)\n\n` +
         `*طرق الدفع المعتمدة للتسوية:*\n` +

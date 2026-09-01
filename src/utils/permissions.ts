@@ -192,3 +192,13 @@ export function canUserManagePayouts(user: User | null): boolean {
   if (!user) return false;
   return user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant';
 }
+
+/**
+ * Checks if a user has permission to add or modify fee-exempt popular area activities
+ * (إضافة أو تعديل الأنشطة الرائجة بالمنطقة المعفاة من الرسوم)
+ */
+export function canUserManageFeeExemption(user: User | null): boolean {
+  if (!user) return false;
+  return user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant';
+}
+

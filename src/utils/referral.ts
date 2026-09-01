@@ -165,7 +165,7 @@ export function getRepReferralSummary(
   const invitedRepsDetails = invitedReps.map((rep) => {
     const repBiz = allBusinesses.filter((b) => b.repId === rep.id || b.repName === rep.name);
     const bizCount = repBiz.length;
-    const totalRevenue = repBiz.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+    const totalRevenue = repBiz.reduce((sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + (b.amountPaid || 0), 0);
     const currentRate = calculateReferralCommissionRate(bizCount);
     const commissionEarned = Math.round(totalRevenue * (currentRate / 100));
 
