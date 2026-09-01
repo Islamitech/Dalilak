@@ -46,8 +46,10 @@ import {
   FileCheck,
   Compass,
   PieChart,
-  BarChart3,
   Award,
+  ChevronDown,
+  ChevronUp,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -110,6 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [payoutTransactionRef, setPayoutTransactionRef] = useState<string>('');
   const [payoutAdminNotes, setPayoutAdminNotes] = useState<string>('');
   const [selectedReceiptPhoto, setSelectedReceiptPhoto] = useState<string | null>(null);
+  const [expandedAuditPayoutId, setExpandedAuditPayoutId] = useState<string | null>(null);
 
   // Search & Filter States
   const [bizSearchQuery, setBizSearchQuery] = useState<string>('');
@@ -2910,6 +2913,173 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           )}
                         </div>
+
+                        {/* ── 🔍 SMART COMMISSION AUDIT & FRAUD DETECTION ENGINE ── */}
+                        {(() => {
+                          const repBiz = businesses.filter((b) => b.repId === payout.repId || (rep && (b.repName === rep.name || b.repId === rep.phone)));
+                          const repRate = rep?.commissionRate || 42.86;
+                          const repSettlement = calculateRepSettlement(payout.repId, repBiz, repRate, payoutRequests);
+                          const verifiedBiz = repBiz.filter((b) => b.verificationStatus === 'verified');
+                          const unverifiedBiz = repBiz.filter((b) => b.verificationStatus !== 'verified');
+                          const isExcessiveAmount = !isRemittance && (payout.amount > (repSettlement.withdrawableBalance + 0.5));
+                          const hasDebtToPlatform = repSettlement.isDebtToPlatform;
+                          const isAuditExpanded = expandedAuditPayoutId === payout.id;
+
+                          return (
+                            <div className="bg-[var(--bg-surface)] border border-amber-500/30 rounded-2xl p-3.5 space-y-3 shadow-xs">
+                              {/* Audit Header Bar */}
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2.5">
+                                <div className="flex items-center gap-2">
+                                  <ShieldAlert className={`w-4 h-4 ${isExcessiveAmount ? 'text-rose-500 animate-bounce' : hasDebtToPlatform ? 'text-amber-500' : 'text-emerald-500'}`} />
+                                  <span className="font-black text-xs text-[var(--text-primary)]">
+                                    تقرير التدقيق والتحليل المالي للطلب:
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {isExcessiveAmount ? (
+                                    <span className="bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-[10.5px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                      <span>🚨 تنبيه تلاعب: المبلغ المطلوب ({payout.amount} ج) أكبر من رصيده الفعلي ({repSettlement.withdrawableBalance} ج)!</span>
+                                    </span>
+                                  ) : hasDebtToPlatform && !isRemittance ? (
+                                    <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[10.5px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                      <span>⚠️ تنبيه: المندوب في ذمته كاش محصل للمنصة ({repSettlement.debtToPlatformAmount} ج) لم يورده بعد!</span>
+                                    </span>
+                                  ) : unverifiedBiz.length > 0 ? (
+                                    <span className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[10.5px] font-black px-2.5 py-1 rounded-lg">
+                                      <span>⏳ تنبيه: ({unverifiedBiz.length}) نشاط قيد التوثيق والمراجعة</span>
+                                    </span>
+                                  ) : (
+                                    <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[10.5px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>سليم ومطابق 100%: الأنشطة موثقة ومسددة والمبلغ مستحق</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* 4 Financial Metric Cards */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                                <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]">
+                                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي أنشطة المندوب</span>
+                                  <span className="font-black text-sm text-[var(--text-primary)] font-mono">
+                                    {repBiz.length} <span className="text-[10px] text-emerald-600 font-sans">({verifiedBiz.length} موثق ✅)</span>
+                                  </span>
+                                </div>
+
+                                <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]">
+                                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">كاش استلمه بيده 💵</span>
+                                  <span className="font-black text-sm text-amber-600 dark:text-amber-400 font-mono">
+                                    {repSettlement.totalCashInHand.toLocaleString()} ج.م
+                                  </span>
+                                </div>
+
+                                <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]">
+                                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولته المستحقة 💎</span>
+                                  <span className="font-black text-sm text-emerald-600 dark:text-emerald-400 font-mono">
+                                    {repSettlement.totalEarnedCommission.toLocaleString()} ج.م
+                                  </span>
+                                </div>
+
+                                <div className={`p-2 rounded-xl border font-mono ${
+                                  repSettlement.isDebtToPlatform
+                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-600'
+                                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'
+                                }`}>
+                                  <span className="text-[10px] text-[var(--text-muted)] font-bold font-sans block">الرصيد الفعلي المتاح للسحب</span>
+                                  <span className="font-black text-sm">
+                                    {repSettlement.isDebtToPlatform
+                                      ? `مستحق عليه: ${repSettlement.debtToPlatformAmount} ج`
+                                      : `${repSettlement.withdrawableBalance.toLocaleString()} ج.م`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Toggle Detailed Breakdown Button */}
+                              <div className="flex items-center justify-between pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedAuditPayoutId(isAuditExpanded ? null : payout.id)}
+                                  className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:text-amber-600 flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  {isAuditExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                  <span>{isAuditExpanded ? 'إخفاء كشف حساب وتفاصيل الأنشطة ▲' : `عرض كشف حساب الأنشطة والتحصيلات للتدقيق (${repBiz.length} نشاط) ▼`}</span>
+                                </button>
+
+                                <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                                  نسبة عمولة المندوب المعتمدة: {repRate}%
+                                </span>
+                              </div>
+
+                              {/* Collapsible Detailed Activities List for Instant Audit */}
+                              {isAuditExpanded && (
+                                <div className="space-y-2 pt-2 border-t border-[var(--border-color)] max-h-72 overflow-y-auto animate-fade-in">
+                                  {repBiz.length > 0 ? (
+                                    repBiz.map((biz) => {
+                                      const isVerified = biz.verificationStatus === 'verified';
+                                      const isPaid = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'paid';
+                                      const isCashHand = (biz.cashCollectedByRep || 0) > 0 || biz.paymentMethod === 'cash';
+                                      const commAmt = Math.round(((biz.amountPaid || 0) * repRate) / 100);
+                                      const platAmt = (biz.amountPaid || 0) - commAmt;
+
+                                      return (
+                                        <div
+                                          key={biz.id}
+                                          className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
+                                            isPaid && isVerified
+                                              ? 'bg-[var(--bg-card)] border-emerald-500/30'
+                                              : isPaid && !isVerified
+                                              ? 'bg-blue-500/5 border-blue-500/30'
+                                              : 'bg-[var(--input-bg)] border-[var(--border-color)]'
+                                          }`}
+                                        >
+                                          <div className="min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-black text-[var(--text-primary)]">
+                                                {biz.name}
+                                              </span>
+                                              <span className="text-[10px] text-[var(--text-muted)]">
+                                                ({biz.governorate} - {biz.city})
+                                              </span>
+                                              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                                                isVerified ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-800 dark:text-amber-300'
+                                              }`}>
+                                                {isVerified ? '✅ موثق ومعتمد' : '⏳ قيد المراجعة'}
+                                              </span>
+                                              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                                                isPaid ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                                              }`}>
+                                                {isPaid ? (isCashHand ? '💵 محصل كاش بيده' : '💳 مسدد إلكترونياً') : '⚠️ غير مسدد'}
+                                              </span>
+                                            </div>
+                                            <p className="text-[10px] text-[var(--text-muted)] mt-0.5 font-bold">
+                                              باقة: {biz.packageName} ({biz.packagePrice} ج) • المحصل الفعلي: <strong className="text-[var(--text-primary)]">{biz.amountPaid || 0} ج.م</strong>
+                                            </p>
+                                          </div>
+
+                                          <div className="flex items-center gap-3 font-mono text-[11px] shrink-0">
+                                            <div>
+                                              <span className="text-[9px] text-emerald-600 block font-sans font-bold">عمولة المندوب:</span>
+                                              <span className="font-black text-emerald-600 dark:text-emerald-400">+{commAmt} ج</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-[9px] text-[var(--text-muted)] block font-sans font-bold">للمنصة:</span>
+                                              <span className="font-black text-[var(--text-primary)]">{platAmt} ج</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    <p className="text-center text-xs text-[var(--text-muted)] py-2">
+                                      لا توجد أنشطة مسجلة باسم هذا المندوب في النظام بعد.
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Admin Actions Toolbar */}
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">

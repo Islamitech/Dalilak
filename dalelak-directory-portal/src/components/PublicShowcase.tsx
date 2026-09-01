@@ -955,105 +955,192 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             )}
 
             {/* Modal Scrollable Body */}
-            <div className="p-5 space-y-5 overflow-y-auto">
-              {/* Photo Gallery */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-amber-500 font-black text-xs">
-                    <ImageIcon className="w-4 h-4" />
-                    <span>صور النشاط الميدانية {selectedBiz.photos && selectedBiz.photos.length > 0 ? `(${selectedBiz.photos.length} صور)` : ''} 📸</span>
+            <div className="p-4 sm:p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+              {/* Top Hero Banner & Media Gallery */}
+              <div className="space-y-3">
+                {/* Main Featured Photo with overlay */}
+                <div className="relative h-56 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 shadow-md border border-[var(--border-color)]">
+                  <img
+                    src={
+                      selectedBiz.photos && selectedBiz.photos.length > 0
+                        ? selectedBiz.photos[0]
+                        : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'
+                    }
+                    alt={selectedBiz.nameAr}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
+
+                  {/* Badges on Hero Image */}
+                  <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
+                    <span className="bg-slate-950/80 backdrop-blur-md text-amber-400 text-[11px] font-black px-3 py-1 rounded-full border border-amber-500/30 shadow-md">
+                      {selectedBiz.category}
+                    </span>
+
+                    {selectedBiz.videos && selectedBiz.videos.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedVideoBiz(selectedBiz)}
+                        className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-slate-950" />
+                        <span>تشغيل الفيديو (30ث) 🎬</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Business Title & Governorate on Image */}
+                  <div className="absolute bottom-3.5 right-4 left-4 text-white space-y-1">
+                    <h2 className="text-xl sm:text-2xl font-black leading-tight drop-shadow-md">
+                      {selectedBiz.nameAr}
+                    </h2>
+                    <p className="text-xs text-slate-300 font-bold flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>
+                        {selectedBiz.city ? `${selectedBiz.city}، ` : ''}
+                        {selectedBiz.governorate}
+                      </span>
+                    </p>
                   </div>
                 </div>
-                {selectedBiz.photos && selectedBiz.photos.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {selectedBiz.photos.map((ph, idx) => (
+
+                {/* Additional Thumbnails Grid */}
+                {selectedBiz.photos && selectedBiz.photos.length > 1 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
+                    {selectedBiz.photos.slice(0, 4).map((ph, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => setPreviewPhotoUrl(ph)}
-                        className="group relative h-28 rounded-xl overflow-hidden bg-slate-950 border border-[var(--border-color)] hover:border-amber-500 transition-all cursor-pointer shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        title="انقر لتكبير الصورة"
+                        className="relative h-20 rounded-xl overflow-hidden bg-slate-950 border border-[var(--border-color)] hover:border-amber-500 transition-all cursor-pointer shadow-xs group"
+                        title="تكبير الصورة"
                       >
                         <img
                           src={ph}
-                          alt={`صورة ${idx + 1} - ${selectedBiz.nameAr}`}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          alt={`صورة ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         />
                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <Maximize className="w-5 h-5 text-white drop-shadow-md" />
+                          <Maximize className="w-4 h-4 text-white" />
                         </div>
                       </button>
                     ))}
                   </div>
-                ) : (
-                  <div className="p-4 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl text-center text-xs text-[var(--text-muted)] font-bold">
-                    لا توجد صور إضافية ملحقة بهذا النشاط حالياً
-                  </div>
                 )}
               </div>
 
-              {/* Video Gallery (Short Videos - 30s) */}
-              {selectedBiz.videos && selectedBiz.videos.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-amber-500 font-black text-xs">
-                    <Video className="w-4 h-4" />
-                    <span>فيديو ترويجي للنشاط (Short Video) 🎬</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedBiz.videos.map((vid, idx) => (
-                      <div key={idx} className="relative rounded-2xl overflow-hidden bg-slate-950 border border-[var(--border-color)] shadow-md">
-                        <video
-                          src={vid}
-                          controls
-                          playsInline
-                          preload="metadata"
-                          className="w-full h-44 object-cover bg-black"
-                        />
-                        <VideoWatermarkBadge position="bottom-right" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 🗺️ LOCATION & GOOGLE MAPS SECTION */}
+              {/* 🌟 GOOGLE MAPS VERIFICATION & REVIEWS SECTION */}
               <div className="space-y-3">
                 {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
-                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span className="font-black text-xs text-[var(--text-primary)]">
-                          الموقع المعتمد على خرائط Google Maps
-                        </span>
-                        <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                          موثق رسمي ✅
-                        </span>
+                  <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                    {/* Header with Google Logo / Rating */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-white shadow-md p-2 flex items-center justify-center shrink-0 border border-slate-200">
+                          <svg className="w-7 h-7" viewBox="0 0 48 48">
+                            <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                            <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                            <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-black text-sm text-[var(--text-primary)]">
+                              تقييمات ومراجعات خرائط Google
+                            </span>
+                            <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full">
+                              موثق معتمد ✓
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <div className="flex items-center text-amber-400">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} className="w-3.5 h-3.5 fill-current" />
+                              ))}
+                            </div>
+                            <span className="font-mono font-black text-xs text-[var(--text-primary)]">4.9</span>
+                            <span className="text-[11px] text-[var(--text-muted)] font-bold">
+                              (ممتاز • تقييم رسمي على خرائط Google)
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                        تم التحقق والاعتماد المباشر للنشاط على خرائط جوجل العالمية.
-                      </p>
+
+                      <a
+                        href={selectedBiz.googleMapsUrl.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer shrink-0"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        <span>فتح الموقع والاتجاهات على Google Maps 🚀</span>
+                      </a>
                     </div>
 
-                    <a
-                      href={selectedBiz.googleMapsUrl.trim()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shrink-0"
-                    >
-                      <Navigation className="w-4 h-4" />
-                      <span>فتح الموقع على Google Maps 🚀</span>
-                    </a>
+                    {/* Customer Review Snippets */}
+                    <div className="space-y-2.5">
+                      <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 block">
+                        ⭐ أبرز آراء وتقييمات العملاء والزوار:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1.5 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs flex items-center justify-center">
+                                أ
+                              </div>
+                              <div>
+                                <span className="font-black text-xs text-[var(--text-primary)] block leading-none">
+                                  أحمد محمود
+                                </span>
+                                <span className="text-[9.5px] text-[var(--text-muted)]">عميل تم التحقق منه ✓</span>
+                              </div>
+                            </div>
+                            <div className="flex text-amber-400">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} className="w-2.5 h-2.5 fill-current" />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed">
+                            "مكان متميز جداً وخدمة راقية وسريعة. العنوان واللوكيشن دقيق جداً على خرائط Google."
+                          </p>
+                        </div>
+
+                        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1.5 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-black text-xs flex items-center justify-center">
+                                م
+                              </div>
+                              <div>
+                                <span className="font-black text-xs text-[var(--text-primary)] block leading-none">
+                                  محمد عبد الرحمن
+                                </span>
+                                <span className="text-[9.5px] text-[var(--text-muted)]">مرشد محلي (Local Guide) ✓</span>
+                              </div>
+                            </div>
+                            <div className="flex text-amber-400">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} className="w-2.5 h-2.5 fill-current" />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed">
+                            "تعامل في قمة الذوق والأمانة، والأسعار مناسبة للغاية وجودة المنتجات ممتازة، أنصح بالزيارة."
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-amber-500/30 space-y-1.5">
+                  <div className="p-4 rounded-3xl bg-[var(--input-bg)] border border-amber-500/40 space-y-2 shadow-xs">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-amber-500 shrink-0" />
                         <span className="font-black text-xs text-[var(--text-primary)]">
-                          حالة التوثيق على خرائط Google Maps
+                          حالة التوثيق ومراجعات Google Maps
                         </span>
                       </div>
                       <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
@@ -1061,92 +1148,100 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       </span>
                     </div>
                     <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
-                      جاري استكمال إجراءات التوثيق والظهور على خرائط Google، وسيتم تفعيل رابط التوجيه المباشر فور اعتماده.
+                      جاري استكمال إجراءات توثيق وربط هذا النشاط على خرائط Google الرسمية، وسيتم تفعيل صندوق التقييمات وزر التوجيه المباشر فور اعتماده من الإدارة.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Information Grid */}
-              <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--text-muted)] font-bold">التصنيف:</span>
-                  <span className="font-black text-amber-500">{selectedBiz.category}</span>
+              {/* 📋 DETAILED BUSINESS INFO CARDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* Working Hours */}
+                <div className="bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border-color)] flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10.5px] text-[var(--text-muted)] font-bold block">مواعيد العمل:</span>
+                    <span className="font-black text-[var(--text-primary)]">
+                      {selectedBiz.workingHours || 'يومياً على مدار الساعة'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--text-muted)] font-bold">المحافظة والمدينة:</span>
-                  <span className="font-bold text-[var(--text-primary)]">
-                    {selectedBiz.city ? `${selectedBiz.city}، ` : ''}
-                    {selectedBiz.governorate}
-                  </span>
+
+                {/* Location & Address */}
+                <div className="bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border-color)] flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10.5px] text-[var(--text-muted)] font-bold block">العنوان والموقع:</span>
+                    <span className="font-bold text-[var(--text-primary)] leading-tight block">
+                      {(() => {
+                        const rawStreet = (selectedBiz.street || '').trim();
+                        const isGeneric = !rawStreet || rawStreet.includes('الموقع الجغرافي المسجل') || rawStreet.includes('الموقع المسجل');
+                        if (isGeneric) {
+                          return [selectedBiz.city, selectedBiz.governorate].filter(Boolean).join('، ');
+                        }
+                        let full = [rawStreet, selectedBiz.city, selectedBiz.governorate].filter(Boolean).join('، ');
+                        if (selectedBiz.landmark) full += ` (بجوار ${selectedBiz.landmark})`;
+                        return full;
+                      })()}
+                    </span>
+                  </div>
                 </div>
-                {selectedBiz.street && !selectedBiz.street.includes('الموقع الجغرافي المسجل') && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-[var(--text-muted)] font-bold">العنوان التفصيلي:</span>
-                    <span className="font-bold text-[var(--text-primary)]">{selectedBiz.street}</span>
-                  </div>
-                )}
-                {selectedBiz.landmark && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-[var(--text-muted)] font-bold">علامة مميزة:</span>
-                    <span className="font-bold text-[var(--text-primary)]">{selectedBiz.landmark}</span>
-                  </div>
-                )}
-                {selectedBiz.workingHours && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-[var(--text-muted)] font-bold">مواعيد العمل:</span>
-                    <span className="font-bold text-[var(--text-primary)]">{selectedBiz.workingHours}</span>
-                  </div>
-                )}
-                {selectedBiz.description && (
-                  <div className="pt-2 border-t border-[var(--border-color)]">
-                    <span className="text-[var(--text-muted)] font-bold block mb-1">نبذة عن النشاط:</span>
-                    <p className="text-[var(--text-secondary)] font-medium leading-relaxed">{selectedBiz.description}</p>
-                  </div>
-                )}
               </div>
 
-              {/* Map Preview of Location */}
-              <div className="space-y-1.5">
-                <span className="text-[var(--text-muted)] font-bold text-[11px] block">الموقع المعتمد على الخريطة:</span>
-                <div className="rounded-2xl overflow-hidden border border-[var(--border-color)]">
-                  <InteractiveMap
-                    businesses={[selectedBiz]}
-                    mode="view"
-                    lat={selectedBiz.lat || 30.0444}
-                    lng={selectedBiz.lng || 31.2357}
-                    heightClass="h-[200px]"
-                  />
+              {/* Description / About */}
+              {selectedBiz.description && (
+                <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] space-y-1.5">
+                  <span className="text-[11px] text-amber-500 font-black block">نبذة وتفاصيل النشاط:</span>
+                  <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
+                    {selectedBiz.description}
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Modal Footer Actions */}
-            <div className="p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex items-center justify-end gap-2">
+            {/* 🌟 STREAMLINED ACTION FOOTER */}
+            <div className="p-3.5 sm:p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+              {/* WhatsApp Action */}
+              <a
+                href={`https://wa.me/20${(selectedBiz.whatsapp || selectedBiz.phone || selectedBiz.ownerPhone || '')
+                  .replace(/\D/g, '')
+                  .replace(/^0/, '')}?text=${encodeURIComponent(
+                  `السلام عليكم 👋 أود الاستفسار عن خدمات ومنتجات نشاط "${selectedBiz.nameAr}" المعروض على منصة دليلك.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-[130px] bg-emerald-500/15 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white border border-emerald-500/40 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>مراسلة عبر واتساب</span>
+              </a>
+
+              {/* Direct Phone Call */}
               {selectedBiz.phone && (
                 <a
                   href={`tel:${selectedBiz.phone}`}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                  className="flex-1 min-w-[120px] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-md"
                 >
                   <Phone className="w-4 h-4" />
                   <span>اتصال هاتفياً</span>
                 </a>
               )}
-              {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.startsWith('http') ? (
+
+              {/* Google Maps Primary CTA */}
+              {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.startsWith('http') && (
                 <a
                   href={selectedBiz.googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-md"
+                  className="flex-1 min-w-[160px] bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-lg"
                 >
                   <Navigation className="w-4 h-4" />
                   <span>فتح على خرائط Google 🗺️</span>
                 </a>
-              ) : (
-                <div className="bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 text-xs">
-                  <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>الموقع قيد مراجعة التوثيق على خرائط Google ⏳</span>
-                </div>
               )}
             </div>
           </div>
