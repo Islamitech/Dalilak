@@ -201,10 +201,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
   const cleanBiz: Business = { ...biz, photos: safePhotos, videos: safeVideos };
   const dbRecord = mapBusinessToDb(cleanBiz);
 
-  // 1. 🗄️ Guaranteed IndexedDB local persistence (Zero Data Loss even when offline)
-  await saveOfflineBusiness(cleanBiz);
-
-  // 2. Immediate LocalStorage cache update
+  // 1. Immediate LocalStorage cache update
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
     const map = new Map<string, Business>();
@@ -217,16 +214,18 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
     safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
   } catch {}
 
-  // 3. Direct Supabase Cloud Save if Online
+  let savedToCloud = false;
+
+  // 2. Direct Supabase Cloud Save if Online
   if (isOnline && isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('businesses')
-        .upsert(dbRecord, { onConflict: 'id' })
-        .select();
+        .upsert(dbRecord, { onConflict: 'id' });
 
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        await removeOfflineBusiness(cleanBiz.id);
+      if (!error) {
+        savedToCloud = true;
+        await removeOfflineBusiness(cleanBiz.id).catch(() => {});
         return;
       }
     } catch (sdkErr) {
@@ -243,12 +242,18 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       });
 
       if (res.ok) {
-        await removeOfflineBusiness(cleanBiz.id);
+        savedToCloud = true;
+        await removeOfflineBusiness(cleanBiz.id).catch(() => {});
         return;
       }
     } catch (err) {
       console.warn('Supabase REST save notice (saved offline):', err);
     }
+  }
+
+  // 3. Fallback: Save to IndexedDB ONLY if offline or cloud save failed
+  if (!savedToCloud) {
+    await saveOfflineBusiness(cleanBiz);
   }
 
   // 4. Local Server API fetch fallback
@@ -280,10 +285,8 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updatedList));
   } catch {}
 
-  // 2. Persist updated record in IndexedDB so offline cache never overwrites with stale data
-  try {
-    await saveOfflineBusiness(mergedObj);
-  } catch {}
+  // 2. Remove any old offline sync entry for this existing business (edits are never offline sync items)
+  await removeOfflineBusiness(id).catch(() => {});
 
   const fullRecord = getSafeCoreBusinessDbRecord(mergedObj);
   const dbUpdates = { ...fullRecord };
@@ -301,7 +304,6 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
 
       if (!error) {
         syncedSuccessfully = true;
-        await removeOfflineBusiness(id).catch(() => {});
       }
     } catch (sdkErr) {
       console.warn('Supabase SDK update business warning:', sdkErr);
@@ -323,7 +325,6 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
 
         if (res.ok && patchedCount > 0) {
           syncedSuccessfully = true;
-          await removeOfflineBusiness(id).catch(() => {});
         } else {
           // If record wasn't in DB yet, POST upsert
           const postRes = await supabaseRestFetch('businesses', {
@@ -335,7 +336,6 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
           });
           if (postRes.ok) {
             syncedSuccessfully = true;
-            await removeOfflineBusiness(id).catch(() => {});
           }
         }
       } catch (err) {
@@ -633,22 +633,14 @@ export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<Pa
   const dbRecord = mapPayoutToDb(payout);
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
-  // 1. IndexedDB persistence
-  await saveOfflinePayout(payout);
-
   if (isOnline && isSupabaseConfigured()) {
     try {
       const { error } = await supabase.from('payout_requests').insert([dbRecord]);
-      if (!error) {
-        await removeOfflinePayout(payout.id);
-      } else {
-        const res = await supabaseRestFetch('payout_requests', {
+      if (error) {
+        await supabaseRestFetch('payout_requests', {
           method: 'POST',
           body: JSON.stringify(dbRecord),
         });
-        if (res.ok) {
-          await removeOfflinePayout(payout.id);
-        }
       }
     } catch (err) {
       console.error('Supabase create payout request error:', err);

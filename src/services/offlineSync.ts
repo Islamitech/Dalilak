@@ -262,50 +262,27 @@ export async function saveOfflinePayout(payout: PayoutRequest, userId?: string):
 }
 
 export async function getOfflinePayouts(targetUserId?: string | null): Promise<PayoutRequest[]> {
-  try {
-    const effectiveUid = targetUserId !== undefined ? targetUserId : getActiveUserId();
-    if (!effectiveUid) return [];
-
-    const db = await openOfflineDb();
-    const tx = db.transaction(STORES.PAYOUTS, 'readonly');
-    const store = tx.objectStore(STORES.PAYOUTS);
-    const request = store.getAll();
-
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => {
-        const all: PayoutRequest[] = request.result || [];
-        const filtered = all.filter((p: any) => {
-          const recordUid = (p._offlineUserId || p.repId || '').toString().toLowerCase();
-          const currentUidStr = effectiveUid.toString().toLowerCase();
-          return recordUid === currentUidStr || recordUid === 'unknown';
-        });
-        resolve(filtered);
-      };
-      request.onerror = () => reject(request.error);
-    });
-  } catch (err) {
-    console.warn('Failed to get offline payouts from IndexedDB:', err);
-    return [];
-  }
+  return [];
 }
 
 export async function removeOfflinePayout(id: string): Promise<void> {
   try {
     const db = await openOfflineDb();
-    const tx = db.transaction(STORES.PAYOUTS, 'readwrite');
-    const store = tx.objectStore(STORES.PAYOUTS);
-    store.delete(id);
+    if (db.objectStoreNames.contains(STORES.PAYOUTS)) {
+      const tx = db.transaction(STORES.PAYOUTS, 'readwrite');
+      tx.objectStore(STORES.PAYOUTS).delete(id);
+    }
+  } catch {}
+}
 
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => {
-        dispatchOfflineStateChangeEvent();
-        resolve();
-      };
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (err) {
-    console.warn('Failed to delete offline payout from IndexedDB:', err);
-  }
+export async function purgeStaleOfflineQueue(): Promise<void> {
+  try {
+    const db = await openOfflineDb();
+    if (db.objectStoreNames.contains(STORES.PAYOUTS)) {
+      const tx = db.transaction(STORES.PAYOUTS, 'readwrite');
+      tx.objectStore(STORES.PAYOUTS).clear();
+    }
+  } catch {}
 }
 
 // -----------------------------------------------------------------------------
@@ -322,16 +299,14 @@ export async function getOfflineSyncStatus(targetUserId?: string | null): Promis
       isSyncing: false,
       pendingBusinessesCount: 0,
       pendingLeadsCount: 0,
-      pendingPayoutsCount: 0,
       totalPendingCount: 0,
       lastSyncTime: null,
     };
   }
 
-  const [businesses, leads, payouts] = await Promise.all([
+  const [businesses, leads] = await Promise.all([
     getOfflineBusinesses(effectiveUid),
     getOfflineLeads(effectiveUid),
-    getOfflinePayouts(effectiveUid),
   ]);
 
   const lastSyncTime = typeof localStorage !== 'undefined' ? localStorage.getItem('dalelak_last_sync_timestamp') : null;
@@ -341,8 +316,7 @@ export async function getOfflineSyncStatus(targetUserId?: string | null): Promis
     isSyncing: isCurrentlySyncing,
     pendingBusinessesCount: businesses.length,
     pendingLeadsCount: leads.length,
-    pendingPayoutsCount: payouts.length,
-    totalPendingCount: businesses.length + leads.length + payouts.length,
+    totalPendingCount: businesses.length + leads.length,
     lastSyncTime,
   };
 }
@@ -381,13 +355,12 @@ export async function syncAllPendingOfflineData(
   let failedCount = 0;
 
   try {
-    const [businesses, leads, payouts] = await Promise.all([
+    const [businesses, leads] = await Promise.all([
       getOfflineBusinesses(effectiveUid),
       getOfflineLeads(effectiveUid),
-      getOfflinePayouts(effectiveUid),
     ]);
 
-    const totalItems = businesses.length + leads.length + payouts.length;
+    const totalItems = businesses.length + leads.length;
     if (totalItems === 0) {
       isCurrentlySyncing = false;
       dispatchOfflineStateChangeEvent();
@@ -564,61 +537,6 @@ export async function syncAllPendingOfflineData(
 
         if (leadSaved) {
           await removeOfflineLead(lead.id);
-          syncedCount++;
-        } else {
-          failedCount++;
-        }
-      } catch {
-        failedCount++;
-      }
-    }
-
-    // 3. Sync Offline Payouts
-    for (const payout of payouts) {
-      currentIndex++;
-      if (onProgress) onProgress(currentIndex, totalItems, `مزامنة طلب تسوية: ${payout.amount} ج.م`);
-
-      try {
-        const payoutPayload = {
-          id: payout.id,
-          rep_id: payout.repId,
-          rep_name: payout.repName,
-          rep_phone: payout.repPhone || null,
-          amount: payout.amount,
-          method: payout.method,
-          account_details: payout.accountDetails,
-          status: payout.status || 'pending',
-          request_date: payout.requestDate,
-          receipt_photo: payout.receiptPhoto || null,
-          transaction_ref: payout.transactionRef || null,
-          admin_notes: payout.adminNotes || null,
-          type: payout.type || 'payout',
-        };
-
-        let payoutSaved = false;
-
-        try {
-          const res = await supabaseRestFetch('payout_requests', {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-            body: JSON.stringify(payoutPayload),
-          });
-          if (res.ok) payoutSaved = true;
-        } catch {}
-
-        if (!payoutSaved) {
-          try {
-            const localRes = await fetch('/api/payouts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payout),
-            });
-            if (localRes.ok) payoutSaved = true;
-          } catch {}
-        }
-
-        if (payoutSaved) {
-          await removeOfflinePayout(payout.id);
           syncedCount++;
         } else {
           failedCount++;

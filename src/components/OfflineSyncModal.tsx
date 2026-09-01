@@ -10,16 +10,14 @@ import {
   Clock,
   Store,
   Users,
-  Wallet,
   X,
   Database,
   ShieldCheck,
 } from 'lucide-react';
-import { Business, InterestedLead, PayoutRequest } from '../types';
+import { Business, InterestedLead } from '../types';
 import {
   getOfflineBusinesses,
   getOfflineLeads,
-  getOfflinePayouts,
   syncAllPendingOfflineData,
   exportOfflineBackupJson,
 } from '../services/offlineSync';
@@ -40,7 +38,6 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [offlineBusinesses, setOfflineBusinesses] = useState<Business[]>([]);
   const [offlineLeads, setOfflineLeads] = useState<InterestedLead[]>([]);
-  const [offlinePayouts, setOfflinePayouts] = useState<PayoutRequest[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; message: string } | null>(null);
   const [syncResult, setSyncResult] = useState<{ success: boolean; text: string } | null>(null);
@@ -49,14 +46,12 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
 
   const loadOfflineData = async () => {
     try {
-      const [biz, leads, payouts] = await Promise.all([
+      const [biz, leads] = await Promise.all([
         getOfflineBusinesses(effectiveUid),
         getOfflineLeads(effectiveUid),
-        getOfflinePayouts(effectiveUid),
       ]);
       setOfflineBusinesses(biz);
       setOfflineLeads(leads);
-      setOfflinePayouts(payouts);
       setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
     } catch (err) {
       console.warn('Failed to load offline modal data:', err);
@@ -86,7 +81,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
 
   if (!isOpen) return null;
 
-  const totalPending = offlineBusinesses.length + offlineLeads.length + offlinePayouts.length;
+  const totalPending = offlineBusinesses.length + offlineLeads.length;
 
   const handleStartManualSync = async () => {
     if (!navigator.onLine) {
@@ -193,29 +188,21 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
           )}
 
           {/* Pending Queue Statistics Cards */}
-          <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 text-center">
-              <div className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 text-center">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-1.5">
                 <Store className="w-4 h-4" />
               </div>
-              <div className="font-black text-lg text-[var(--text-primary)]">{offlineBusinesses.length}</div>
-              <div className="text-[10.5px] font-bold text-[var(--text-muted)]">أنشطة بانتظار الرفع</div>
+              <div className="font-black text-xl text-[var(--text-primary)]">{offlineBusinesses.length}</div>
+              <div className="text-[11px] font-bold text-[var(--text-muted)]">أنشطة ميدانية بانتظار الرفع</div>
             </div>
 
-            <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 text-center">
-              <div className="w-7 h-7 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-1">
+            <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 text-center">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-1.5">
                 <Users className="w-4 h-4" />
               </div>
-              <div className="font-black text-lg text-[var(--text-primary)]">{offlineLeads.length}</div>
-              <div className="text-[10.5px] font-bold text-[var(--text-muted)]">عملاء مهتمون</div>
-            </div>
-
-            <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 text-center">
-              <div className="w-7 h-7 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto mb-1">
-                <Wallet className="w-4 h-4" />
-              </div>
-              <div className="font-black text-lg text-[var(--text-primary)]">{offlinePayouts.length}</div>
-              <div className="text-[10.5px] font-bold text-[var(--text-muted)]">طلبات تسوية</div>
+              <div className="font-black text-xl text-[var(--text-primary)]">{offlineLeads.length}</div>
+              <div className="text-[11px] font-bold text-[var(--text-muted)]">عملاء مهتمون</div>
             </div>
           </div>
 
