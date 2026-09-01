@@ -1431,9 +1431,12 @@ export default function App() {
 
     const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_single_session_channel') : null;
 
-    // Send periodic heartbeat every 60 seconds (Only when tab is actively visible)
+    // Send immediate heartbeat on session start
+    const initialNow = Date.now();
+    updateRepSessionInDb(user.id, user.activeSessionId, initialNow);
+
+    // Send periodic heartbeat every 30 seconds
     const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
       const now = Date.now();
       
       // Update local rep active timestamp in state
@@ -1462,7 +1465,7 @@ export default function App() {
           }
         })
         .catch(() => {});
-    }, 60000);
+    }, 30000);
 
     // Cross-tab broadcast listener (Prevent simultaneous tabs on same device)
     if (channel) {

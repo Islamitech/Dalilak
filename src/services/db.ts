@@ -586,32 +586,53 @@ export async function deleteRepFromDb(id: string): Promise<void> {
 }
 
 export async function updateRepSessionInDb(id: string, sessionId?: string, timestamp?: number): Promise<void> {
-  const updates: any = {
-    active_session_id: sessionId || null,
-    last_active_timestamp: timestamp || null,
-  };
+  const now = timestamp || Date.now();
 
-  // 1. Real-time active session synchronization to Supabase Cloud
+  // 1. Real-time active session synchronization to LocalStorage
+  try {
+    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    if (Array.isArray(cached)) {
+      const updated = cached.map((r: Representative) =>
+        r.id === id || r.phone === id
+          ? { ...r, activeSessionId: sessionId !== undefined ? sessionId : r.activeSessionId, lastActiveTimestamp: now }
+          : r
+      );
+      safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
+    }
+  } catch {}
+
+  // 2. Real-time active session synchronization to Supabase Cloud via avatar JSON packing
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('representatives').update(updates).eq('id', id);
-      if (error) {
+      const res = await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}&select=id,avatar`);
+      if (res.ok) {
+        const rows = await res.json();
+        const row = rows[0];
+        let meta: any = {};
+        if (row?.avatar && typeof row.avatar === 'string' && row.avatar.startsWith('{')) {
+          try { meta = JSON.parse(row.avatar); } catch {}
+        } else if (row?.avatar) {
+          meta.avatar = row.avatar;
+        }
+        meta.lastActiveTimestamp = now;
+        if (sessionId !== undefined) meta.activeSessionId = sessionId;
+
         await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
           method: 'PATCH',
-          body: JSON.stringify(updates),
+          body: JSON.stringify({ avatar: JSON.stringify(meta) }),
         });
       }
     } catch (err) {
-      console.warn('Supabase update session warning:', err);
+      console.warn('Supabase session sync warning:', err);
     }
   }
 
-  // 2. Real-time active session synchronization to local Express backend if present
+  // 3. Real-time active session synchronization to local Express backend if present
   try {
     await fetch('/api/auth/heartbeat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: id, sessionId, timestamp }),
+      body: JSON.stringify({ userId: id, sessionId, timestamp: now }),
     });
   } catch {}
 }
@@ -1362,8 +1383,10 @@ function mapDbToRep(item: any): Representative {
   let metaNationalIdCardBackPhoto: string | undefined = item.national_id_card_back_photo || item.nationalIdCardBackPhoto;
   let metaPendingPhone: string | undefined = item.pending_phone || item.pendingPhone;
   let metaPhoneStatus = item.phone_status || item.phoneStatus || 'none';
+  let metaLastActiveTimestamp: number | undefined = item.last_active_timestamp ? Number(item.last_active_timestamp) : (item.lastActiveTimestamp ? Number(item.lastActiveTimestamp) : undefined);
+  let metaActiveSessionId: string | undefined = item.active_session_id || item.activeSessionId;
 
-  // Backward compatibility check for legacy JSON avatar packing
+  // Backward compatibility check for JSON avatar packing
   if (typeof parsedAvatar === 'string' && parsedAvatar.trim().startsWith('{')) {
     try {
       const parsed = JSON.parse(parsedAvatar.trim());
@@ -1379,6 +1402,8 @@ function mapDbToRep(item: any): Representative {
         if (parsed.nationalIdCardBackPhoto && !metaNationalIdCardBackPhoto) metaNationalIdCardBackPhoto = parsed.nationalIdCardBackPhoto;
         if (parsed.pendingPhone && !metaPendingPhone) metaPendingPhone = parsed.pendingPhone;
         if (parsed.phoneStatus && metaPhoneStatus === 'none') metaPhoneStatus = parsed.phoneStatus;
+        if (parsed.lastActiveTimestamp && !metaLastActiveTimestamp) metaLastActiveTimestamp = Number(parsed.lastActiveTimestamp);
+        if (parsed.activeSessionId && !metaActiveSessionId) metaActiveSessionId = parsed.activeSessionId;
       }
     } catch {}
   }
@@ -1406,8 +1431,8 @@ function mapDbToRep(item: any): Representative {
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: item.status || 'active',
     password: item.password || (item.role === 'admin' ? 'admin' : 'Aa123456'),
-    activeSessionId: item.active_session_id || item.activeSessionId,
-    lastActiveTimestamp: item.last_active_timestamp ? Number(item.last_active_timestamp) : (item.lastActiveTimestamp ? Number(item.lastActiveTimestamp) : undefined),
+    activeSessionId: metaActiveSessionId,
+    lastActiveTimestamp: metaLastActiveTimestamp,
     referralCode: metaReferralCode || defaultRefCode,
     referredByCode: metaReferredByCode || undefined,
     referralUnlocked: Boolean(metaReferralUnlocked),
