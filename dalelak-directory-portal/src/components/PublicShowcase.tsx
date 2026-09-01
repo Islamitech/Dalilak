@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Business, PackageOption } from '../types';
-import { EGYPT_GOVERNORATES, CATEGORY_GROUPS, PACKAGES } from '../data/mockData';
+import { EGYPT_GOVERNORATES, EGYPT_CITIES_BY_GOV, CATEGORY_GROUPS, PACKAGES } from '../data/mockData';
 import { Logo } from './Logo';
 import { InteractiveMap } from './InteractiveMap';
 import {
@@ -35,6 +35,8 @@ import {
   Share2,
   Copy,
   CheckCheck,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
@@ -62,15 +64,63 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   // Search and Filters (Default to 'الجيزة' for targeted launch)
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [govFilter, setGovFilter] = useState<string>('الجيزة');
+  const [cityFilter, setCityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeView, setActiveView] = useState<'grid' | 'map'>('grid');
+
+  // Available areas based on chosen Governorate
+  const availableCities = useMemo(() => {
+    if (govFilter === 'all') {
+      return EGYPT_CITIES_BY_GOV['الجيزة'] || [];
+    }
+    return EGYPT_CITIES_BY_GOV[govFilter] || [];
+  }, [govFilter]);
 
   // Selected Business for Detail Modal
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
-  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+  const [previewPhotoIndex, setPreviewPhotoIndex] = useState<number | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [copiedBizId, setCopiedBizId] = useState<string | null>(null);
   const [shareToastText, setShareToastText] = useState<string | null>(null);
+
+  // Photos array of the currently selected business
+  const currentPhotos = useMemo(() => {
+    return selectedBiz?.photos && selectedBiz.photos.length > 0
+      ? selectedBiz.photos
+      : [];
+  }, [selectedBiz]);
+
+  // Photo slider navigation handlers
+  const handlePrevPhoto = useCallback(() => {
+    if (currentPhotos.length === 0) return;
+    setPreviewPhotoIndex((prev) =>
+      prev === null ? 0 : (prev - 1 + currentPhotos.length) % currentPhotos.length
+    );
+  }, [currentPhotos]);
+
+  const handleNextPhoto = useCallback(() => {
+    if (currentPhotos.length === 0) return;
+    setPreviewPhotoIndex((prev) =>
+      prev === null ? 0 : (prev + 1) % currentPhotos.length
+    );
+  }, [currentPhotos]);
+
+  // Keyboard navigation for Lightbox (Arrow Keys & Escape)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (previewPhotoIndex === null) return;
+      if (e.key === 'Escape') {
+        setPreviewPhotoIndex(null);
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        handlePrevPhoto(); // RTL intuitive
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        handleNextPhoto();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewPhotoIndex, handlePrevPhoto, handleNextPhoto]);
 
   // Quick Consultation Form State (Default to 'الجيزة')
   const [formBizName, setFormBizName] = useState<string>('');
@@ -166,6 +216,33 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           return false;
         }
       }
+      if (cityFilter !== 'all') {
+        const qCity = cityFilter.toLowerCase().trim();
+        const cleanLetterMatch = qCity.match(/منطقة\s+([أ-ي]+)/);
+        const letter = cleanLetterMatch ? cleanLetterMatch[1] : null;
+
+        const bCity = (b.city || '').toLowerCase().trim();
+        const bStreet = (b.street || '').toLowerCase().trim();
+        const bLandmark = (b.landmark || '').toLowerCase().trim();
+        const bAddress = `${bCity} ${bStreet} ${bLandmark}`;
+
+        const matchDirect = bAddress.includes(qCity) || (bCity && qCity.includes(bCity));
+        const matchLetter = letter
+          ? bAddress.includes(`منطقة ${letter}`) ||
+            bAddress.includes(`منطقة (${letter})`) ||
+            bAddress.includes(` ${letter} `) ||
+            bAddress.endsWith(` ${letter}`) ||
+            bStreet.includes(`منطقة ${letter}`) ||
+            bCity.includes(`منطقة ${letter}`)
+          : false;
+
+        const keyWord = qCity.split('(')[0].trim();
+        const matchKeyword = keyWord && bAddress.includes(keyWord);
+
+        if (!matchDirect && !matchLetter && !matchKeyword) {
+          return false;
+        }
+      }
       if (categoryFilter !== 'all') {
         const grp = CATEGORY_GROUPS.find((g) => g.group === categoryFilter);
         if (grp) {
@@ -176,7 +253,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       }
       return true;
     });
-  }, [publicBusinesses, searchQuery, govFilter, categoryFilter]);
+  }, [publicBusinesses, searchQuery, govFilter, cityFilter, categoryFilter]);
 
   // Dynamic WhatsApp Message generator for Package Orders
   const getPackageWhatsAppUrl = (pkg: PackageOption) => {
@@ -456,13 +533,29 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         {/* SHOWCASE VIEW 2: BUSINESSES GRID */}
         {activeView === 'grid' && (
           <div className="space-y-6">
-            {/* 1. MINIMAL & ELEGANT SKELETON LOADING (Global Standard) */}
+            {/* 1. ELEGANT ROTATING SPINNER LOADING */}
             {loading && businesses.length === 0 && (
-              <div className="space-y-5 animate-fade-in">
-                {/* Slim Status Bar */}
-                <div className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold shadow-xs">
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
-                  <span>{initialBizId ? 'جاري فتح وتجهيز النشاط المطلوب...' : 'جاري تحميل الأنشطة...'}</span>
+              <div className="space-y-6 animate-fade-in py-2">
+                {/* Center Rotating Glow Spinner */}
+                <div className="py-6 flex flex-col items-center justify-center space-y-3">
+                  <div className="relative flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin" />
+                    <div
+                      className="w-11 h-11 rounded-full border-4 border-emerald-500/20 border-b-emerald-500 animate-spin absolute"
+                      style={{ animationDirection: 'reverse', animationDuration: '1.2s' }}
+                    />
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center absolute text-xs">
+                      🧭
+                    </div>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-xs sm:text-sm font-black text-[var(--text-primary)] animate-pulse">
+                      {initialBizId ? 'جاري فتح وتجهيز النشاط المطلوب...' : 'جاري تحميل الأنشطة المعتمدة...'}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                      يرجى الانتظار لحظات جاري استرجاع البيانات الموثقة 🌿
+                    </p>
+                  </div>
                 </div>
 
                 {/* Shimmer Card Placeholders Grid */}
@@ -978,7 +1071,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               {/* Top Hero Banner & Media Gallery */}
               <div className="space-y-3">
                 {/* Main Featured Photo with overlay */}
-                <div className="relative h-56 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 shadow-md border border-[var(--border-color)]">
+                <div
+                  onClick={() => setPreviewPhotoIndex(0)}
+                  className="group relative h-56 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 shadow-md border border-[var(--border-color)] cursor-pointer"
+                  title="انقر لتكبير واستعراض صور النشاط 🔍"
+                >
                   <img
                     src={
                       selectedBiz.photos && selectedBiz.photos.length > 0
@@ -986,7 +1083,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'
                     }
                     alt={selectedBiz.nameAr}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
 
@@ -999,7 +1096,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     {selectedBiz.videos && selectedBiz.videos.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => setSelectedVideoBiz(selectedBiz)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVideoBiz(selectedBiz);
+                        }}
                         className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
                       >
                         <Play className="w-3.5 h-3.5 fill-slate-950" />
@@ -1030,9 +1130,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setPreviewPhotoUrl(ph)}
-                        className="relative h-20 rounded-xl overflow-hidden bg-slate-950 border border-[var(--border-color)] hover:border-amber-500 transition-all cursor-pointer shadow-xs group"
-                        title="تكبير الصورة"
+                        onClick={() => setPreviewPhotoIndex(idx)}
+                        className={`relative h-20 rounded-xl overflow-hidden bg-slate-950 border transition-all cursor-pointer shadow-xs group ${
+                          previewPhotoIndex === idx ? 'border-amber-500 ring-2 ring-amber-500/50' : 'border-[var(--border-color)] hover:border-amber-500'
+                        }`}
+                        title="انقر لتكبير واستعراض الصورة"
                       >
                         <img
                           src={ph}
@@ -1296,31 +1398,114 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         />
       )}
 
-      {/* 🌟 10. PHOTO PREVIEW LIGHTBOX MODAL */}
-      {previewPhotoUrl && (
+      {/* 🌟 10. TOUCH-ENABLED & ARROW-NAVIGATED PHOTO GALLERY LIGHTBOX */}
+      {previewPhotoIndex !== null && currentPhotos.length > 0 && (
         <div
-          className="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 animate-fade-in"
-          onClick={() => setPreviewPhotoUrl(null)}
+          className="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-between p-3 sm:p-6 animate-fade-in select-none"
+          onClick={() => setPreviewPhotoIndex(null)}
         >
+          {/* Top Bar: Counter & Close Button */}
           <div
-            className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center animate-fade-in-scale"
+            className="w-full max-w-5xl flex items-center justify-between z-20 pt-2"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-black text-amber-400 shadow-md">
+              <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+              <span>
+                صورة {previewPhotoIndex + 1} من {currentPhotos.length}
+              </span>
+            </div>
+
             <button
-              onClick={() => setPreviewPhotoUrl(null)}
-              className="absolute -top-12 left-0 sm:left-auto sm:-right-2 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer shadow-lg z-10"
-              title="إغلاق"
+              onClick={() => setPreviewPhotoIndex(null)}
+              className="w-10 h-10 rounded-full bg-slate-800/80 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer shadow-lg border border-white/10"
+              title="إغلاق المعاينة (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black max-h-[82vh] max-w-full flex items-center justify-center">
+          </div>
+
+          {/* Center Image Container with Touch Listeners and Navigation Arrows */}
+          <div
+            className="relative w-full max-w-5xl flex-1 flex items-center justify-center my-2"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+            onTouchEnd={(e) => {
+              if (touchStartX === null) return;
+              const touchEndX = e.changedTouches[0].clientX;
+              const diff = touchStartX - touchEndX;
+              // Swipe Left / Right threshold
+              if (diff > 40) {
+                handleNextPhoto();
+              } else if (diff < -40) {
+                handlePrevPhoto();
+              }
+              setTouchStartX(null);
+            }}
+          >
+            {/* Desktop Left Navigation Arrow */}
+            {currentPhotos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrevPhoto();
+                }}
+                className="absolute right-2 sm:right-4 z-20 w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-900/70 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition-all cursor-pointer backdrop-blur-md border border-white/15 shadow-2xl hover:scale-110 active:scale-95"
+                title="الصورة السابقة (السهم الأيمن)"
+              >
+                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+            )}
+
+            {/* Current Active Photo */}
+            <div className="relative max-h-[72vh] max-w-full rounded-3xl overflow-hidden border-2 border-amber-500/40 shadow-2xl bg-black flex items-center justify-center">
               <img
-                src={previewPhotoUrl}
-                alt="معاينة صورة النشاط"
-                className="max-h-[80vh] max-w-full w-auto h-auto object-contain"
+                key={previewPhotoIndex}
+                src={currentPhotos[previewPhotoIndex]}
+                alt={`صورة ${previewPhotoIndex + 1}`}
+                className="max-h-[70vh] max-w-full w-auto h-auto object-contain animate-fade-in-scale select-none pointer-events-none"
               />
             </div>
+
+            {/* Desktop Right Navigation Arrow */}
+            {currentPhotos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNextPhoto();
+                }}
+                className="absolute left-2 sm:left-4 z-20 w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-900/70 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition-all cursor-pointer backdrop-blur-md border border-white/15 shadow-2xl hover:scale-110 active:scale-95"
+                title="الصورة التالية (السهم الأيسر)"
+              >
+                <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+            )}
           </div>
+
+          {/* Bottom Thumbnails Strip for Quick Direct Jumping */}
+          {currentPhotos.length > 1 && (
+            <div
+              className="w-full max-w-xl flex items-center justify-center gap-2 overflow-x-auto py-2 z-20 scrollbar-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {currentPhotos.map((thumb, tIdx) => (
+                <button
+                  key={tIdx}
+                  onClick={() => setPreviewPhotoIndex(tIdx)}
+                  className={`relative w-14 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                    previewPhotoIndex === tIdx
+                      ? 'border-amber-500 scale-110 shadow-lg ring-2 ring-amber-500/50'
+                      : 'border-white/20 opacity-60 hover:opacity-100'
+                  }`}
+                  title={`انتقال للصورة ${tIdx + 1}`}
+                >
+                  <img src={thumb} alt={`صورة ${tIdx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

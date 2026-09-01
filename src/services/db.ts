@@ -104,13 +104,20 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     } catch {}
   }
 
-  // ⚡ 4. Guaranteed Merge with IndexedDB Offline Businesses (Always visible, never vanish)
+  // ⚡ 4. Guaranteed Merge with IndexedDB Offline Businesses (Only new offline entries not yet in cloud)
   try {
     const offlineList = await getOfflineBusinesses();
     if (offlineList && offlineList.length > 0) {
       const map = new Map<string, Business>();
       resultList.forEach((b) => map.set(b.id, b));
-      offlineList.forEach((b) => map.set(b.id, b));
+      offlineList.forEach((b) => {
+        if (!map.has(b.id)) {
+          map.set(b.id, b);
+        } else {
+          // Already in cloud - clean up stale offline copy so it never overwrites cloud updates
+          removeOfflineBusiness(b.id).catch(() => {});
+        }
+      });
       resultList = Array.from(map.values());
     }
   } catch {}
@@ -1074,7 +1081,11 @@ function mapDbToBusiness(item: any): Business {
   let metaRepLocationUrl = item.rep_location_url || item.repLocationUrl;
   let metaGoogleMapsUrl = item.google_maps_url || item.googleMapsUrl;
   let metaRepCommissionRate = item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : item.repCommissionRate;
-  let metaIsFeeExempt = item.is_fee_exempt ?? item.isFeeExempt;
+  let metaIsFeeExempt: boolean | undefined = item.is_fee_exempt !== undefined && item.is_fee_exempt !== null 
+    ? Boolean(item.is_fee_exempt) 
+    : item.isFeeExempt !== undefined && item.isFeeExempt !== null 
+    ? Boolean(item.isFeeExempt) 
+    : undefined;
   let metaFeeExemptionReason = item.fee_exemption_reason || item.feeExemptionReason;
   let metaVideos: string[] | undefined = undefined;
   let pureNotes = item.notes;
@@ -1091,7 +1102,7 @@ function mapDbToBusiness(item: any): Business {
         if (parsed.repLocationUrl && !metaRepLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
         if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
-        if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = parsed.isFeeExempt;
+        if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = Boolean(parsed.isFeeExempt);
         if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
         pureNotes = parsed.userNotes !== undefined ? parsed.userNotes : undefined;
@@ -1099,7 +1110,9 @@ function mapDbToBusiness(item: any): Business {
     } catch {}
   }
 
-  const isFeeExempt = Boolean(metaIsFeeExempt || item.package_price === 0 || item.packagePrice === 0 || item.package_id === 'pkg_exempt');
+  const isFeeExempt = metaIsFeeExempt !== undefined
+    ? metaIsFeeExempt
+    : Boolean(item.package_price === 0 || item.packagePrice === 0 || item.package_id === 'pkg_exempt');
   const parsedVideos = parseVideosArray(item);
   const finalVideos = parsedVideos.length > 0 ? parsedVideos : (metaVideos || []);
 

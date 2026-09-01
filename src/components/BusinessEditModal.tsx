@@ -182,6 +182,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
     onSave(updatedFormData);
     setIsEditMode(false);
+    setStatusNotification('تم حفظ وتحديث بيانات النشاط في قاعدة البيانات بنجاح ✅');
+    setTimeout(() => setStatusNotification(null), 3500);
   };
 
   const handleSetVerificationStatus = (newStatus: VerificationStatus) => {

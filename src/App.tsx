@@ -741,6 +741,9 @@ export default function App() {
 
     const normalizedBiz: Business = {
       ...updatedBiz,
+      packagePrice: isExempt ? 0 : (updatedBiz.packagePrice ?? 250),
+      amountPaid: isExempt ? 0 : (updatedBiz.amountPaid || 0),
+      isFeeExempt: isExempt,
       paymentStatus: autoPaymentStatus,
     };
 
