@@ -189,6 +189,45 @@ export function getGoogleMapsVerifiedWhatsAppUrl(biz: Business): string {
 /**
  * Event 3: Full Payment Settlement & Final Receipt Message
  */
+
+/**
+ * Event 3.5: Final Warning & Administrative Accountability for Overdue Payment
+ */
+export function generateOverdueWarningWhatsAppMessage(biz: Business): string {
+  const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+  const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
+  const amtPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
+  const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
+  const owner = biz.ownerName || 'صاحب النشاط';
+  const name = biz.nameAr || 'نشاطكم';
+  const invNumber = biz.invoiceNumber || 'INV-2026';
+  const payConfig = getActivePaymentConfig();
+
+  const raw =
+    `⚠️ *إنذار إداري ومالي نهائي — منصة دليلك*\n` +
+    `-----------------------------------------\n` +
+    `أستاذ *${owner}* — نشاط (*${name}*) 📍\n` +
+    `📄 *رقم الفاتورة الصادرة:* ${invNumber}\n\n` +
+    `نود إحاطتكم بأنه تم بالفعل توثيق وظهور نشاطكم تجارياً على خرائط Google بموجب الفاتورة أعلاه وبناءً على موافقتكم المسبقة للمندوب الميداني، حيث تمنع سياساتنا إدراج أي نشاط دون إذن وإقرار صاحبه.\n\n` +
+    `وحيث إنه تم التأكد من ظهور النشاط واستفادتكم منه مع استمرار المماطلة في سداد مستحقات الفاتورة (*${remaining} ج.م*):\n\n` +
+    `🛑 *نحيطكم علماً بأنه سيتم اتخاذ الإجراءات التالية خلال 24 ساعة في حال عدم التسوية:*\n` +
+    `1. إدراج النشاط ضمن «القائمة السوداء للأنشطة غير الموثوقة» على المنظومة ودليل الخدمات.\n` +
+    `2. خفض وتعديل تقييم النشاط ورفع بلاغ رسمي لمراجعة وتجميد الموقع على خرائط Google.\n\n` +
+    `• *طرق السداد الفوري:*\n` +
+    `- إنستاباي: ${payConfig.instaPay}\n` +
+    `- فودافون كاش / محافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}\n\n` +
+    `تواصل مع الدعم الفني للمنصة للتسوية وإرسال إيصال التحويل لإيقاف الإجراءات فوراً.\n` +
+    `الإدارة القانونية والمالية — منصة دليلك`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getOverdueWarningWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateOverdueWarningWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
 export function generatePaymentReceiptWhatsAppMessage(biz: Business): string {
   const total = biz.packagePrice || 250;
   const paid = biz.amountPaid || total;

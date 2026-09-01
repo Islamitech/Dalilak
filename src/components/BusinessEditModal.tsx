@@ -59,6 +59,8 @@ import {
   generateGoogleMapsVerifiedWhatsAppMessage,
   getPaymentReceiptWhatsAppUrl,
   generatePaymentReceiptWhatsAppMessage,
+  getOverdueWarningWhatsAppUrl,
+  generateOverdueWarningWhatsAppMessage,
   getFreeQrGiftWhatsAppUrl,
   generateFreeQrGiftWhatsAppMessage,
   getQrImportanceWhatsAppUrl,
@@ -1769,6 +1771,43 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Message 4: Overdue Warning (Strictly for activities with remaining debt) */}
+              {remainingDebt > 0 && !isFeeExempt && (
+                <div className="bg-rose-500/10 border-2 border-rose-500/40 rounded-2xl p-3.5 space-y-2 transition-all shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-black text-xs text-rose-700 dark:text-rose-300">
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 stroke-[2.5]" />
+                      <span>4. رسالة إنذار المماطلة في السداد والمساءلة الإدارية ⚠️</span>
+                    </div>
+                    <span className="text-[9.5px] bg-rose-500/20 text-rose-700 dark:text-rose-300 font-black px-2 py-0.5 rounded-md border border-rose-500/40">
+                      إنذار 24 ساعة
+                    </span>
+                  </div>
+                  <p className="text-[10.5px] text-rose-800 dark:text-rose-200 font-bold leading-relaxed">
+                    إنذار إداري ومالي رسمي صريح يوضح صدور الفاتورة وتوثيق النشاط بموافقته، مع التنبيه باتخاذ إجراءات خفض التقييم والإدراج بالقائمة السوداء حال المماطلة.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <a
+                      href={getOverdueWarningWhatsAppUrl(formData)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-xs py-2 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>إرسال إنذار المماطلة الرسمي (WhatsApp) ⚠️</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(generateOverdueWarningWhatsAppMessage(formData), 'wa_warn')}
+                      className="bg-[var(--bg-card)] hover:bg-rose-500/15 text-rose-600 border border-rose-500/30 text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer shrink-0"
+                      title="نسخ نص الإنذار"
+                    >
+                      {copiedField === 'wa_warn' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-rose-500" />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Message 3: Payment Receipt */}
               <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-3 space-y-2 transition-colors">
