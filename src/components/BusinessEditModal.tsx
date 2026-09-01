@@ -942,18 +942,23 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </button>
                 </div>
 
-                {/* Admin Status Controls */}
+                {/* Admin Directory Approval Controls (مستقل تماماً عن خرائط Google) */}
                 {isAdminOrFinancial && (
-                  <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-300 block">
-                      تحديد واعتماد حالة التوثيق يدوياً:
-                    </label>
+                  <div className="pt-2.5 border-t border-slate-800/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black text-amber-400 block">
+                        🏛️ اعتماد النشر على الدليل العام (مراجعة المسؤول وصحة البيانات):
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-bold">
+                        (لا يشترط توثيق جوجل)
+                      </span>
+                    </div>
                     <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => handleSetVerificationStatus('in_progress')}
                         className={`p-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer ${
-                          formData.verificationStatus === 'in_progress'
+                          formData.verificationStatus === 'in_progress' || formData.verificationStatus === 'pending'
                             ? 'bg-amber-500 text-slate-950 border-amber-400 shadow'
                             : 'bg-slate-800/80 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
                         }`}
@@ -970,7 +975,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                             : 'bg-slate-800/80 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
                         }`}
                       >
-                        🟢 اعتماد وتوثيق
+                        🟢 اعتماد ونشر بالدليل
                       </button>
 
                       <button

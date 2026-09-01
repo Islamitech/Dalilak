@@ -1515,17 +1515,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               الكل ({businesses.length})
             </button>
             <button
-              onClick={() => setVerificationFilter('not_submitted')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
-                verificationFilter === 'not_submitted'
-                  ? 'bg-rose-600 text-white font-black shadow-xs'
-                  : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 border border-rose-500/30'
-              }`}
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>لم تُرفع بعد ({notSubmittedCount})</span>
-            </button>
-            <button
               onClick={() => setVerificationFilter('in_progress')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
                 verificationFilter === 'in_progress'
@@ -1534,32 +1523,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>قيد المراجعة ({inProgressCount})</span>
+              <span>⏳ قيد مراجعة الدليل ({inProgressCount})</span>
             </button>
-            {overdueReviewCount > 0 && (
-              <button
-                onClick={() => setVerificationFilter('overdue')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
-                  verificationFilter === 'overdue'
-                    ? 'bg-orange-600 text-white font-black shadow-xs'
-                    : 'bg-orange-500/10 text-orange-700 dark:text-orange-300 hover:bg-orange-500/20 border border-orange-500/30'
-                }`}
-              >
-                <span>⏱️ تجاوزت المدة ({overdueReviewCount})</span>
-              </button>
-            )}
-            {verifiedWithDebtCount > 0 && (
-              <button
-                onClick={() => setVerificationFilter('verified_debt')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
-                  verificationFilter === 'verified_debt'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                    : 'bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30'
-                }`}
-              >
-                <span>⚠️ موثقة ولها متبقي ({verifiedWithDebtCount})</span>
-              </button>
-            )}
             <button
               onClick={() => setVerificationFilter('verified')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
@@ -1569,7 +1534,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>موثقة ومعتمدة ({verifiedCount})</span>
+              <span>🟢 معتمدة بالدليل ({verifiedCount})</span>
+            </button>
+            <button
+              onClick={() => setVerificationFilter('google_synced')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                verificationFilter === 'google_synced'
+                  ? 'bg-blue-600 text-white font-black shadow-xs'
+                  : 'bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-500/20 border border-blue-500/30'
+              }`}
+            >
+              <span>🌐 موثقة بـ Google Maps ({businesses.filter(b => b.googleSyncStatus === 'synced' || Boolean(b.googleMapsUrl)).length})</span>
+            </button>
+            <button
+              onClick={() => setVerificationFilter('google_pending')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                verificationFilter === 'google_pending'
+                  ? 'bg-purple-600 text-white font-black shadow-xs'
+                  : 'bg-purple-500/10 text-purple-800 dark:text-purple-300 hover:bg-purple-500/20 border border-purple-500/30'
+              }`}
+            >
+              <span>⏳ قيد توثيق Google ({businesses.filter(b => b.googleSyncStatus === 'in_progress').length})</span>
             </button>
           </div>
 
@@ -1669,8 +1654,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {/* 1. Mobile Cards View (Hidden on md and larger) */}
                 <div className="block md:hidden space-y-3">
                   {pagedBusinesses.map((biz) => {
-                    const isLiveVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
-                    const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isLiveVerified;
+                    const isDirectoryApproved = biz.verificationStatus === 'verified';
+                    const isGoogleSynced = biz.googleSyncStatus === 'synced' || Boolean(biz.googleMapsUrl);
+                    const isInGoogleReview = biz.googleSyncStatus === 'in_progress';
                     const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
                     const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
                     const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
@@ -1685,7 +1671,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     return (
                       <div key={`m-${biz.id}`} className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl space-y-3 shadow-sm hover:border-amber-500/40 transition-all">
-                        {/* Header: Name + Verification status */}
+                        {/* Header: Name + Dual Status (Directory + Google Maps) */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <h4 className="font-black text-sm text-[var(--text-primary)] truncate">{biz.nameAr}</h4>
@@ -1699,28 +1685,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               )}
                             </div>
                           </div>
-                          <div className="shrink-0">
-                            {isLiveVerified ? (
-                              <span className="badge-success text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" />
-                                <span>موثق ✅</span>
-                              </span>
-                            ) : isInGoogleReview ? (
-                              <span className="badge-warning text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                <span>{isOverdue ? 'تجاوزت المدة ⏱️' : 'مراجعة جوجل ⏳'}</span>
+                          <div className="shrink-0 flex flex-col items-end gap-1">
+                            {/* Directory Approval Status */}
+                            {isDirectoryApproved ? (
+                              <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
+                                <span>معتمد بالدليل ✅</span>
                               </span>
                             ) : (
-                              <span className="badge-danger text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                <span>غير مرفوع 🚨</span>
+                              <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>قيد مراجعة الدليل ⏳</span>
                               </span>
                             )}
+
+                            {/* Google Maps Sync Status */}
+                            {isGoogleSynced ? (
+                              <span className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                                🌐 خرائط Google
+                              </span>
+                            ) : isInGoogleReview ? (
+                              <span className="bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                                ⏳ مراجعة Google
+                              </span>
+                            ) : null}
                           </div>
                         </div>
 
                         {/* Urgent Alert if Verified but Unpaid (Strictly non-exempt) */}
-                        {isLiveVerified && !isPaid && !isExempt && (
+                        {isDirectoryApproved && !isPaid && !isExempt && (
                           <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-black flex items-center justify-between gap-2 animate-pulse">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -1792,7 +1785,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </div>
                             ) : !isPaid ? (
                               <div>
-                                {isLiveVerified ? (
+                                {isDirectoryApproved ? (
                                   <span className="badge-danger text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 animate-pulse">
                                     <AlertTriangle className="w-3 h-3" />
                                     <span>🚨 موثق ولم يُسدد! (مطلوب التحصيل)</span>
@@ -1802,8 +1795,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     ⏳ الدفع لاحقاً (عند التوثيق)
                                   </span>
                                 )}
-                                <p className={`text-[10px] font-bold mt-0.5 ${isLiveVerified ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                  {isLiveVerified ? `مستحق للمنصة: ${biz.packagePrice || 250} ج.م` : `عمولة معلقة: ${expectedComm} ج.م`}
+                                <p className={`text-[10px] font-bold mt-0.5 ${isDirectoryApproved ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                  {isDirectoryApproved ? `مستحق للمنصة: ${biz.packagePrice || 250} ج.م` : `عمولة معلقة: ${expectedComm} ج.م`}
                                 </p>
                               </div>
                             ) : (
@@ -1839,7 +1832,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         {/* Action buttons */}
                         <div className="flex items-center gap-2 pt-1 border-t border-[var(--border-color)]">
-                          {!isLiveVerified && (
+                          {!isDirectoryApproved && (
                             <button
                               type="button"
                               onClick={() => setSyncModalBiz(biz)}
@@ -1877,8 +1870,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </thead>
                     <tbody className="divide-y divide-[var(--border-color)]">
                       {pagedBusinesses.map((biz) => {
-                        const isLiveVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
-                        const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isLiveVerified;
+                        const isDirectoryApproved = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                        const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isDirectoryApproved;
                         const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
                         const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
                         const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
@@ -1893,7 +1886,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         const expectedComm = isExempt ? 0 : Math.round(((biz.packagePrice || 250) * rate) / 100);
 
                         return (
-                          <tr key={biz.id} className={`transition-colors ${isLiveVerified && !isPaid && !isExempt ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-amber-500/5'}`}>
+                          <tr key={biz.id} className={`transition-colors ${isDirectoryApproved && !isPaid && !isExempt ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-amber-500/5'}`}>
                             <td className="p-3">
                               <p className="font-extrabold text-[var(--text-primary)] text-sm">{biz.nameAr}</p>
                               {biz.nameEn && <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.nameEn}</p>}
@@ -1965,7 +1958,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 if (!isPaid) {
                                   return (
                                     <div className="space-y-1">
-                                      {isLiveVerified ? (
+                                      {isDirectoryApproved ? (
                                         <span className="badge-danger text-[10.5px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1 animate-pulse">
                                           <AlertTriangle className="w-3.5 h-3.5" />
                                           <span>🚨 موثق ولم يُسدد! (مطلوب التحصيل)</span>
@@ -1975,8 +1968,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                           ⏳ الدفع لاحقاً (عند التوثيق)
                                         </span>
                                       )}
-                                      <p className={`text-[10px] font-bold ${isLiveVerified ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                        {isLiveVerified ? `مستحق للمنصة: ${biz.packagePrice || 250} ج.م` : `عمولة معلقة: ${expectedComm} ج.م`}
+                                      <p className={`text-[10px] font-bold ${isDirectoryApproved ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                        {isDirectoryApproved ? `مستحق للمنصة: ${biz.packagePrice || 250} ج.م` : `عمولة معلقة: ${expectedComm} ج.م`}
                                       </p>
                                     </div>
                                   );
@@ -2009,7 +2002,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </td>
 
                             <td className="p-3">
-                              {isLiveVerified ? (
+                              {isDirectoryApproved ? (
                                 <div className="space-y-1">
                                   <span className="badge-success text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
                                     <CheckCircle2 className="w-3 h-3" />
@@ -2054,7 +2047,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   </button>
                                 )}
 
-                                {!isLiveVerified && (
+                                {!isDirectoryApproved && (
                                   <button
                                     type="button"
                                     onClick={() => setSyncModalBiz(biz)}
