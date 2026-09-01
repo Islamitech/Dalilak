@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, VerificationStatus } from '../types';
-import { EGYPT_GOVERNORATES, PACKAGES, EXEMPT_PACKAGE, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
+import { EGYPT_GOVERNORATES, PACKAGES, EXEMPT_PACKAGE, ALREADY_ON_GOOGLE_PACKAGE, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import { uploadMediaToSupabaseStorage } from '../services/storage';
@@ -1258,22 +1258,52 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     <span>باقة التوثيق والخدمات</span>
                   </span>
-                  {isEditMode && !formData.isFeeExempt ? (
+                  {isEditMode ? (
                     <select
-                      value={formData.packageId || PACKAGES[0].id}
+                      value={formData.packageId || (formData.isAlreadyOnGoogle ? ALREADY_ON_GOOGLE_PACKAGE.id : PACKAGES[0].id)}
                       onChange={(e) => {
-                        const pkg = PACKAGES.find((p) => p.id === e.target.value);
-                        if (pkg) {
+                        const val = e.target.value;
+                        if (val === ALREADY_ON_GOOGLE_PACKAGE.id) {
                           setFormData({
                             ...formData,
-                            packageId: pkg.id,
-                            packageName: pkg.title,
-                            packagePrice: pkg.price,
+                            isFeeExempt: true,
+                            isAlreadyOnGoogle: true,
+                            packageId: ALREADY_ON_GOOGLE_PACKAGE.id,
+                            packageName: ALREADY_ON_GOOGLE_PACKAGE.title,
+                            packagePrice: 0,
+                            amountPaid: 0,
+                            cashCollectedByRep: 0,
+                            paymentStatus: 'fully_paid',
                           });
+                        } else if (val === EXEMPT_PACKAGE.id) {
+                          setFormData({
+                            ...formData,
+                            isFeeExempt: true,
+                            packageId: EXEMPT_PACKAGE.id,
+                            packageName: EXEMPT_PACKAGE.title,
+                            packagePrice: 0,
+                            amountPaid: 0,
+                            cashCollectedByRep: 0,
+                            paymentStatus: 'fully_paid',
+                          });
+                        } else {
+                          const pkg = PACKAGES.find((p) => p.id === val);
+                          if (pkg) {
+                            setFormData({
+                              ...formData,
+                              isFeeExempt: false,
+                              packageId: pkg.id,
+                              packageName: pkg.title,
+                              packagePrice: pkg.price,
+                            });
+                          }
                         }
                       }}
                       className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-black text-xs rounded-xl p-2 focus:outline-none focus:border-amber-500 cursor-pointer mt-1"
                     >
+                      <option value={ALREADY_ON_GOOGLE_PACKAGE.id}>
+                        {ALREADY_ON_GOOGLE_PACKAGE.title} (0 ج.م - مجاناً)
+                      </option>
                       {PACKAGES.map((pkg) => (
                         <option key={pkg.id} value={pkg.id}>
                           {pkg.title} ({pkg.price} ج.م)
@@ -1281,7 +1311,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       ))}
                     </select>
                   ) : (
-                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">{formData.packageName || (formData.isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : '1. باقة التوثيق الأساسي')}</div>
+                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">{formData.packageName || (formData.isAlreadyOnGoogle ? ALREADY_ON_GOOGLE_PACKAGE.title : formData.isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : '1. باقة التوثيق الأساسي')}</div>
                   )}
                 </div>
 

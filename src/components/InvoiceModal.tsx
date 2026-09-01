@@ -159,13 +159,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             <div className="text-left space-y-1">
               <span className={`inline-block text-[10.5px] font-black px-3 py-1 rounded-full border shadow-2xs ${
                 activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
-                  ? 'bg-blue-50 text-blue-900 border-blue-300'
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                   : isFeeExempt
                   ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                   : 'bg-amber-50 text-amber-900 border-amber-300'
               }`}>
                 {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
-                  ? 'فاتورة ترحيبية وإشعار إدراج بالدليل (Google Maps قائم) 📍'
+                  ? 'فاتورة ترحيبية وإشعار انضمام بالدليل 🌟'
                   : isFeeExempt
                   ? 'فاتورة إلكترونية معتمدة (إدراج مجاني)'
                   : 'فاتورة إلكترونية معتمدة'}
@@ -205,10 +205,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             <div className="p-3.5 flex items-center justify-between bg-white">
               <div className="space-y-0.5">
                 <span className="font-black text-slate-900 text-xs sm:text-sm block">
-                  {activeBusiness.packageName || (isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : 'باقة التوثيق الأساسي')}
+                  {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                    ? 'إدراج وربط النشاط في دليل دليلك المعتمد'
+                    : activeBusiness.packageName || (isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : 'باقة التوثيق الأساسي')}
                 </span>
                 <span className="text-[10.5px] text-slate-500 font-medium block">
-                  {isFeeExempt 
+                  {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                    ? 'إدراج وتوثيق النشاط التجاري بالدليل الميداني مجاناً 100% بدون أي مقابل مالي لتعزيز وصول العملاء والزوار'
+                    : isFeeExempt 
                     ? 'إدراج وتوثيق النشاط التجاري الرائج بالدليل والخرائط مجاناً وبدون أي مقابل مالي'
                     : 'توثيق واستخراج الإحداثيات والظهور على خرائط Google والدليل'}
                 </span>
@@ -222,15 +226,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           {/* Financial Summary Box */}
           <div className="space-y-2 bg-slate-50/90 p-4 rounded-2xl border border-slate-200 text-xs font-bold shadow-2xs">
             <div className="flex items-center justify-between text-slate-600">
-              <span>إجمالي قيمة الباقة:</span>
+              <span>إجمالي قيمة الخدمة:</span>
               <span className="font-mono text-slate-900">
-                {isFeeExempt ? '0 جنيه مصري (معفى من الرسوم)' : `${pkgPrice} جنيه مصري`}
+                {isFeeExempt ? '0 جنيه مصري (مجاناً)' : `${pkgPrice} جنيه مصري`}
               </span>
             </div>
             <div className="flex items-center justify-between text-emerald-700 font-black">
-              <span>المبلغ المدفوع (المسدد):</span>
+              <span>المبلغ المسدد:</span>
               <span className="font-mono">
-                {isFeeExempt ? '0 جنيه مصري (معفى)' : `${amtPaid} جنيه مصري`}
+                {isFeeExempt ? '0 جنيه مصري (معفى بالكامل)' : `${amtPaid} جنيه مصري`}
               </span>
             </div>
             <div className="border-t border-slate-200/80 pt-1.5 flex items-center justify-between">
@@ -256,7 +260,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   ? 'bg-amber-50 text-amber-900 border-amber-300'
                   : 'bg-rose-50 text-rose-800 border-rose-300'
               }`}>
-                {isFeeExempt ? 'معفى بالكامل (مجاني) ✓' : activeBusiness.paymentStatus === 'fully_paid' ? 'مدفوعة بالكامل ✓' : activeBusiness.paymentStatus === 'partially_paid' ? `متبقي ${remaining} ج` : 'غير مسددة'}
+                {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                  ? 'مفعل ومدرج مجاناً بالكامل ✓'
+                  : isFeeExempt
+                  ? 'معفى بالكامل (مجاني) ✓'
+                  : activeBusiness.paymentStatus === 'fully_paid'
+                  ? 'مدفوعة بالكامل ✓'
+                  : activeBusiness.paymentStatus === 'partially_paid'
+                  ? `متبقي ${remaining} ج`
+                  : 'غير مسددة'}
               </span>
             </div>
 
@@ -268,7 +280,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           {/* Directory Portal Link Notice */}
           <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border border-amber-300 rounded-2xl p-3 text-center text-[11px] text-amber-950 font-bold shadow-2xs space-y-0.5">
             <div>
-              {isFeeExempt ? '🌟 نشاطكم مسجل كمعلم رائج ومعفى مجاناً في دليل الأنشطة المعتمد بمصر:' : '✨ نشاطكم التجاري منشور ومتاح في دليل الأنشطة المعتمد في مصر:'}
+              {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                ? '🌟 يسعدنا الترحيب بنشاطكم في منصة دليلك! نؤكد لكم أن رسوم الظهور والإدراج في الدليل مجانية تماماً:'
+                : isFeeExempt
+                ? '🌟 نشاطكم مسجل كمعلم رائج ومعفى مجاناً في دليل الأنشطة المعتمد بمصر:'
+                : '✨ نشاطكم التجاري منشور ومتاح في دليل الأنشطة المعتمد في مصر:'}
             </div>
             <div>
               <a href={directoryUrl} target="_blank" rel="noreferrer" className="text-amber-800 hover:text-amber-900 underline font-mono font-black">

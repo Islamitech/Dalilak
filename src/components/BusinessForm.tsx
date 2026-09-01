@@ -1269,51 +1269,31 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
             <div className="flex items-center gap-2 text-amber-500">
               <Sparkles className="w-5 h-5" />
-              <h3 className="font-bold text-sm text-[var(--text-primary)]">5. باقة التوثيق والخدمات المطلوبة</h3>
+              <h3 className="font-bold text-sm text-[var(--text-primary)]">5. باقة التوثيق الميداني المعتمدة</h3>
             </div>
-            <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-              {selectedPackage.title} ({selectedPackage.price} ج.م)
+            <span className="text-xs font-black text-slate-950 bg-gradient-to-r from-amber-500 to-yellow-500 px-3 py-1 rounded-xl shadow-xs">
+              250 ج.م (الباقة الأساسية)
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {PACKAGES.map((pkg) => {
-              const isSelected = selectedPackage.id === pkg.id && !isFeeExempt;
-              return (
-                <div
-                  key={pkg.id}
-                  onClick={() => {
-                    if (isFeeExempt) setIsFeeExempt(false);
-                    setSelectedPackage(pkg);
-                    if (paymentStatus === 'fully_paid') {
-                      setAmountPaid(pkg.price);
-                    } else if (paymentStatus === 'partially_paid') {
-                      setAmountPaid(Math.round(pkg.price / 2));
-                    }
-                  }}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between relative shadow-xs ${
-                    isSelected
-                      ? 'bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-amber-500/5 border-amber-500 ring-2 ring-amber-500/20 text-[var(--text-primary)] scale-[1.02]'
-                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40 text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {pkg.popular && (
-                    <span className="absolute -top-2.5 right-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[9.5px] font-black px-2 py-0.5 rounded-full shadow-xs">
-                      الأكثر طلباً ⭐
-                    </span>
-                  )}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-black text-xs sm:text-sm text-[var(--text-primary)]">{pkg.title}</span>
-                      <span className="font-black font-mono text-sm text-amber-600 dark:text-amber-400">{pkg.price} ج.م</span>
-                    </div>
-                    <p className="text-[10.5px] text-[var(--text-muted)] leading-relaxed font-medium line-clamp-2">
-                      {pkg.description}
-                    </p>
-                  </div>
+          <div className="bg-gradient-to-br from-amber-500/15 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-500/50 rounded-2xl p-4 space-y-2 text-right shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm">
+                  1
                 </div>
-              );
-            })}
+                <span className="font-black text-sm text-[var(--text-primary)]">باقة التوثيق الأساسي لخرائط Google</span>
+              </div>
+              <span className="font-mono font-black text-base text-amber-600 dark:text-amber-400">250 ج.م</span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
+              التفعيل الميداني الرسمي واستخراج الإحداثيات الدقيقة على خرائط Google، تثبيت مواعيد العمل والهواتف، ورفع الصور مع إصدار الفاتورة المعتمدة وهدية تصميم باركود QR.
+            </p>
+            <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+              <span>✨ عمولة المندوب المعتمدة:</span>
+              <span className="font-mono font-black">+{Math.round((250 * (currentRep?.commissionRate || 42.86)) / 100)} ج.م</span>
+              <span className="text-[10px] text-[var(--text-muted)]">(تتاح الباقات الإضافية للتطوير والترقية لاحقاً من قسم التفاصيل)</span>
+            </div>
           </div>
         </div>
       )}
