@@ -27,20 +27,29 @@ export function getSafeUserForStorage(user: User | null): User | null {
   };
 }
 
-/**
- * Strips bulky Base64 image payloads (>100KB) from businesses before saving to cache
- * to ensure offline cache remains under 50KB and never triggers QuotaExceededError.
- */
 export function getSafeBusinessesForStorage(businesses: any[]): any[] {
   if (!Array.isArray(businesses)) return [];
   return businesses.map((b) => {
     const cleanPhotos = Array.isArray(b.photos)
-      ? b.photos.map((p: string) => (typeof p === 'string' && p.startsWith('data:') && p.length > 80000 ? '' : p)).filter(Boolean)
+      ? b.photos
+          .map((p: string) => {
+            if (typeof p !== 'string') return '';
+            // If it's a hosted URL (http/https), keep it intact
+            if (p.startsWith('http://') || p.startsWith('https://')) return p;
+            // If it's a huge base64 payload (> 20KB), strip from localStorage to prevent quota overflow
+            if (p.startsWith('data:') && p.length > 20000) return '';
+            return p;
+          })
+          .filter(Boolean)
+          .slice(0, 3)
       : [];
+
     return {
       ...b,
       photos: cleanPhotos,
-      videos: Array.isArray(b.videos) ? b.videos.slice(0, 2) : [],
+      videos: Array.isArray(b.videos) 
+        ? b.videos.filter((v: string) => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))).slice(0, 2) 
+        : [],
     };
   });
 }

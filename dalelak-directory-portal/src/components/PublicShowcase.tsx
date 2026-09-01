@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Business, PackageOption } from '../types';
-import { EGYPT_GOVERNORATES, EGYPT_CITIES_BY_GOV, CATEGORY_GROUPS, PACKAGES } from '../data/mockData';
+import {
+  EGYPT_GOVERNORATES,
+  EGYPT_CITIES_BY_GOV,
+  HADAYEK_ALAHRAM_ZONES,
+  CATEGORY_GROUPS,
+  PACKAGES,
+} from '../data/mockData';
 import { Logo } from './Logo';
 import { InteractiveMap } from './InteractiveMap';
 import {
@@ -61,10 +67,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const { theme, toggleTheme } = useTheme();
   const isActuallyLoading = loading && businesses.length === 0;
 
-  // Search and Filters (Default to 'الجيزة' for targeted launch)
+  // Search and Filters (Default to 'الجيزة' and 'حدائق الأهرام' for targeted launch)
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [govFilter, setGovFilter] = useState<string>('الجيزة');
-  const [cityFilter, setCityFilter] = useState<string>('all');
+  const [cityFilter, setCityFilter] = useState<string>('حدائق الأهرام');
+  const [hadayekZoneFilter, setHadayekZoneFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeView, setActiveView] = useState<'grid' | 'map'>('grid');
 
@@ -218,28 +225,61 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       }
       if (cityFilter !== 'all') {
         const qCity = cityFilter.toLowerCase().trim();
-        const cleanLetterMatch = qCity.match(/منطقة\s+([أ-ي]+)/);
-        const letter = cleanLetterMatch ? cleanLetterMatch[1] : null;
-
         const bCity = (b.city || '').toLowerCase().trim();
         const bStreet = (b.street || '').toLowerCase().trim();
         const bLandmark = (b.landmark || '').toLowerCase().trim();
-        const bAddress = `${bCity} ${bStreet} ${bLandmark}`;
+        const bGov = (b.governorate || '').toLowerCase().trim();
 
-        const matchDirect = bAddress.includes(qCity) || (bCity && qCity.includes(bCity));
-        const matchLetter = letter
-          ? bAddress.includes(`منطقة ${letter}`) ||
-            bAddress.includes(`منطقة (${letter})`) ||
-            bAddress.includes(` ${letter} `) ||
-            bAddress.endsWith(` ${letter}`) ||
-            bStreet.includes(`منطقة ${letter}`) ||
-            bCity.includes(`منطقة ${letter}`)
-          : false;
+        // Normalize Arabic characters for robust fuzzy matching
+        const norm = (str: string) =>
+          str
+            .replace(/[إأآا]/g, 'ا')
+            .replace(/ة/g, 'ه')
+            .replace(/ى/g, 'ي')
+            .replace(/[\u064B-\u065F]/g, '');
 
-        const keyWord = qCity.split('(')[0].trim();
-        const matchKeyword = keyWord && bAddress.includes(keyWord);
+        const normQ = norm(qCity);
+        const normAddress = norm(`${bCity} ${bStreet} ${bLandmark} ${bGov}`);
 
-        if (!matchDirect && !matchLetter && !matchKeyword) {
+        // If Hadayek Al Ahram is chosen:
+        if (normQ.includes('حدايق الاهرام') || normQ.includes('حدايق اهرام') || normQ.includes('هضبه الاهرام')) {
+          const isHadayek =
+            normAddress.includes('حدايق الاهرام') ||
+            normAddress.includes('هضبه الاهرام') ||
+            normAddress.includes('الاهرام') ||
+            normAddress.includes('منطقه ') ||
+            norm(bCity).includes('منطقه') ||
+            norm(bStreet).includes('حدايق');
+
+          if (!isHadayek) return false;
+
+          // Now check sub-zone inside Hadayek if selected!
+          if (hadayekZoneFilter !== 'all') {
+            const normZone = norm(hadayekZoneFilter);
+            const letterMatch = hadayekZoneFilter.match(/منطقة\s+([أ-ي]+)/);
+            const letter = letterMatch ? norm(letterMatch[1]) : null;
+
+            if (letter) {
+              const isLetterMatch =
+                normAddress.includes(`منطقه ${letter}`) ||
+                normAddress.includes(`منطقه (${letter})`) ||
+                normAddress.includes(`(${letter})`) ||
+                normAddress.includes(` ${letter} `) ||
+                normAddress.endsWith(` ${letter}`) ||
+                norm(bCity).includes(`منطقه ${letter}`) ||
+                norm(bStreet).includes(`منطقه ${letter}`);
+              if (!isLetterMatch) return false;
+            } else {
+              const mainZoneKey = normZone.split('(')[0].trim();
+              if (!normAddress.includes(mainZoneKey)) return false;
+            }
+          }
+          return true;
+        }
+
+        // If another city/district is chosen:
+        const mainKeyword = normQ.split('(')[0].trim();
+        if (!normAddress.includes(mainKeyword) && !normAddress.includes(normQ) && !(bCity && normQ.includes(norm(bCity)))) {
           return false;
         }
       }
@@ -253,7 +293,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       }
       return true;
     });
-  }, [publicBusinesses, searchQuery, govFilter, cityFilter, categoryFilter]);
+  }, [publicBusinesses, searchQuery, govFilter, cityFilter, hadayekZoneFilter, categoryFilter]);
 
   // Dynamic WhatsApp Message generator for Package Orders
   const getPackageWhatsAppUrl = (pkg: PackageOption) => {
@@ -356,10 +396,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           </div>
 
           {/* 🔍 UNIFIED SMART SEARCH & FILTER BAR */}
-          <div className="max-w-4xl mx-auto bg-[var(--bg-card)] border-2 border-amber-500/30 dark:border-slate-800 rounded-3xl p-3 sm:p-4 shadow-xl backdrop-blur-xl">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3">
+          <div className="max-w-6xl mx-auto bg-[var(--bg-card)] border-2 border-amber-500/30 dark:border-slate-800 rounded-3xl p-3 sm:p-4 shadow-xl backdrop-blur-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-3">
               {/* Search text input */}
-              <div className="relative md:col-span-6">
+              <div className={`relative sm:col-span-2 ${cityFilter === 'حدائق الأهرام' ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
                 <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -379,11 +419,15 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               </div>
 
               {/* Governorate selector */}
-              <div className="md:col-span-3">
+              <div className={`${cityFilter === 'حدائق الأهرام' ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
                 <select
                   value={govFilter}
-                  onChange={(e) => setGovFilter(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3.5 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                  onChange={(e) => {
+                    setGovFilter(e.target.value);
+                    setCityFilter('all');
+                    setHadayekZoneFilter('all');
+                  }}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
                 >
                   <option value="all">📍 كل المحافظات</option>
                   {EGYPT_GOVERNORATES.map((g) => (
@@ -394,12 +438,53 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 </select>
               </div>
 
+              {/* Area / District / City Selector */}
+              <div className={`${cityFilter === 'حدائق الأهرام' ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+                <select
+                  value={cityFilter}
+                  onChange={(e) => {
+                    setCityFilter(e.target.value);
+                    setHadayekZoneFilter('all');
+                  }}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                >
+                  <option value="all">
+                    {govFilter === 'all'
+                      ? '🏙️ كل المناطق والمدن'
+                      : `🏙️ كل مناطق ${govFilter} (${availableCities.length})`}
+                  </option>
+                  {availableCities.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 🌿 Dedicated Hadayek Al Ahram Sub-Zone Selector */}
+              {cityFilter === 'حدائق الأهرام' && (
+                <div className="lg:col-span-3 animate-fade-in">
+                  <select
+                    value={hadayekZoneFilter}
+                    onChange={(e) => setHadayekZoneFilter(e.target.value)}
+                    className="w-full bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl px-3 py-3 text-xs font-black text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <option value="all">🌿 كل قطاعات حدائق الأهرام ({HADAYEK_ALAHRAM_ZONES.length})</option>
+                    {HADAYEK_ALAHRAM_ZONES.map((z) => (
+                      <option key={z} value={z}>
+                        📍 {z}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Category dropdown */}
-              <div className="md:col-span-3">
+              <div className="lg:col-span-2">
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3.5 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
                 >
                   <option value="all">🏷️ كل التصنيفات</option>
                   {CATEGORY_GROUPS.map((grp) => (
@@ -419,11 +504,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               </span>
 
               <div className="flex items-center gap-3">
-                {(searchQuery || govFilter !== 'all' || categoryFilter !== 'all') && (
+                {(searchQuery || govFilter !== 'all' || cityFilter !== 'all' || hadayekZoneFilter !== 'all' || categoryFilter !== 'all') && (
                   <button
                     onClick={() => {
                       setSearchQuery('');
                       setGovFilter('all');
+                      setCityFilter('all');
+                      setHadayekZoneFilter('all');
                       setCategoryFilter('all');
                     }}
                     className="text-rose-500 hover:text-rose-600 font-black text-xs cursor-pointer transition-colors"

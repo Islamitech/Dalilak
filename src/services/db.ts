@@ -37,6 +37,8 @@ export function getCachedBusinesses(): Business[] {
   return [];
 }
 
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
+
 /**
  * ⚡ Stale-While-Revalidate Full Cloud Fetch
  * Returns fresh data and updates offline cache
@@ -45,10 +47,10 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const cached = getCachedBusinesses();
   let resultList: Business[] = [];
 
-  // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
+  // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH - FAST HIGH-SPEED QUERY)
   if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
     try {
-      const res = await supabaseRestFetch('businesses?select=*&order=created_at.desc');
+      const res = await supabaseRestFetch(`businesses?select=${FAST_BUSINESS_SELECT}&order=created_at.desc`);
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
