@@ -262,7 +262,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
-  // 1. Immediately update LocalStorage cache
+  // 1. Immediately update LocalStorage caches
   let mergedObj: Business = { id } as Business;
   try {
     const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
@@ -275,43 +275,76 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     const current = map.get(id) || ({} as Business);
     mergedObj = { ...current, ...updates, id } as Business;
     map.set(id, mergedObj);
-    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
+    const updatedList = Array.from(map.values());
+    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updatedList));
+    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updatedList));
+  } catch {}
+
+  // 2. Persist updated record in IndexedDB so offline cache never overwrites with stale data
+  try {
+    await saveOfflineBusiness(mergedObj);
   } catch {}
 
   const fullRecord = getSafeCoreBusinessDbRecord(mergedObj);
   const dbUpdates = { ...fullRecord };
   delete dbUpdates.id;
 
-  // 2. Sync to Supabase via Direct REST PATCH + UPSERT Fallback
+  // 3. Direct Supabase Cloud Save (SDK Upsert + REST PATCH/POST Fallback)
   if (isSupabaseConfigured()) {
+    let syncedSuccessfully = false;
+
+    // A. Supabase JS SDK Direct Upsert
     try {
-      const res = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
-        method: 'PATCH',
-        headers: {
-          'Prefer': 'return=representation',
-        },
-        body: JSON.stringify(dbUpdates),
-      });
+      const { error } = await supabase
+        .from('businesses')
+        .upsert(fullRecord, { onConflict: 'id' });
 
-      const restData = res.ok ? await res.json().catch(() => null) : null;
-      const patchedCount = Array.isArray(restData) ? restData.length : 0;
-
-      // If PATCH updated 0 rows (record not in Supabase yet), perform an upsert
-      if (!res.ok || patchedCount === 0) {
-        await supabaseRestFetch('businesses', {
-          method: 'POST',
-          headers: {
-            'Prefer': 'resolution=merge-duplicates,return=representation',
-          },
-          body: JSON.stringify(fullRecord),
-        }).catch(() => {});
+      if (!error) {
+        syncedSuccessfully = true;
+        await removeOfflineBusiness(id).catch(() => {});
       }
-    } catch (err) {
-      console.warn('Supabase update business warning:', err);
+    } catch (sdkErr) {
+      console.warn('Supabase SDK update business warning:', sdkErr);
+    }
+
+    // B. Direct REST PATCH / Upsert Fallback if SDK didn't complete
+    if (!syncedSuccessfully) {
+      try {
+        const res = await supabaseRestFetch(`businesses?id=eq.${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          headers: {
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify(dbUpdates),
+        });
+
+        const restData = res.ok ? await res.json().catch(() => null) : null;
+        const patchedCount = Array.isArray(restData) ? restData.length : 0;
+
+        if (res.ok && patchedCount > 0) {
+          syncedSuccessfully = true;
+          await removeOfflineBusiness(id).catch(() => {});
+        } else {
+          // If record wasn't in DB yet, POST upsert
+          const postRes = await supabaseRestFetch('businesses', {
+            method: 'POST',
+            headers: {
+              'Prefer': 'resolution=merge-duplicates,return=representation',
+            },
+            body: JSON.stringify(fullRecord),
+          });
+          if (postRes.ok) {
+            syncedSuccessfully = true;
+            await removeOfflineBusiness(id).catch(() => {});
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase REST update business warning:', err);
+      }
     }
   }
 
-  // 3. Sync to local server API
+  // 4. Sync to local server API
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -1143,16 +1176,40 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.verification_status = biz.verificationStatus || 'pending';
   record.rep_id = biz.repId || 'rep_1';
   record.rep_name = biz.repName || 'مندوب معتمد';
-  record.rep_location_url = biz.repLocationUrl || (biz.lat && biz.lng ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}` : null);
-  record.google_maps_url = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=')) ? biz.googleMapsUrl.trim() : null;
+  let cleanGoogleMapsUrl: string | null = null;
+  if (biz.googleMapsUrl && typeof biz.googleMapsUrl === 'string') {
+    let trimmed = biz.googleMapsUrl.trim();
+    if (trimmed) {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        trimmed = `https://${trimmed}`;
+      }
+      if (!trimmed.includes('search/?api=1&query=')) {
+        cleanGoogleMapsUrl = trimmed;
+      }
+    }
+  }
+
+  let cleanRepLocationUrl: string | null = null;
+  if (biz.repLocationUrl && typeof biz.repLocationUrl === 'string') {
+    let trimmed = biz.repLocationUrl.trim();
+    if (trimmed) {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        trimmed = `https://${trimmed}`;
+      }
+      cleanRepLocationUrl = trimmed;
+    }
+  }
+  if (!cleanRepLocationUrl && biz.lat && biz.lng) {
+    cleanRepLocationUrl = `https://www.google.com/maps?q=${biz.lat},${biz.lng}`;
+  }
+
+  record.rep_location_url = cleanRepLocationUrl;
+  record.google_maps_url = cleanGoogleMapsUrl;
   record.invoice_number = biz.invoiceNumber || `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
   record.invoice_date = biz.invoiceDate || new Date().toISOString().split('T')[0];
   record.created_at = biz.createdDate || new Date().toISOString();
 
   // Safely preserve financial, sync, and video metadata in notes JSON
-  const repLocationUrl = biz.repLocationUrl || (biz.lat && biz.lng ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}` : null);
-  const googleMapsUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=')) ? biz.googleMapsUrl.trim() : null;
-
   const metaObj = {
     paymentMethod: biz.paymentMethod,
     cashCollectedByRep: isExempt ? 0 : biz.cashCollectedByRep,
@@ -1162,8 +1219,8 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googleSyncStatus: biz.googleSyncStatus,
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,
-    repLocationUrl,
-    googleMapsUrl,
+    repLocationUrl: cleanRepLocationUrl,
+    googleMapsUrl: cleanGoogleMapsUrl,
     videos: Array.isArray(biz.videos)
       ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))
       : [],

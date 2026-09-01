@@ -135,6 +135,33 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       return;
     }
 
+    let cleanGoogleMapsUrl: string | undefined = undefined;
+    if (formData.googleMapsUrl && typeof formData.googleMapsUrl === 'string') {
+      let trimmed = formData.googleMapsUrl.trim();
+      if (trimmed) {
+        if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+          trimmed = `https://${trimmed}`;
+        }
+        if (!trimmed.includes('search/?api=1&query=')) {
+          cleanGoogleMapsUrl = trimmed;
+        }
+      }
+    }
+
+    let cleanRepUrl: string | undefined = undefined;
+    if (formData.repLocationUrl && typeof formData.repLocationUrl === 'string') {
+      let trimmed = formData.repLocationUrl.trim();
+      if (trimmed) {
+        if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+          trimmed = `https://${trimmed}`;
+        }
+        cleanRepUrl = trimmed;
+      }
+    }
+    if (!cleanRepUrl && formData.lat && formData.lng) {
+      cleanRepUrl = `https://www.google.com/maps?q=${formData.lat},${formData.lng}`;
+    }
+
     const updatedFormData: Business = {
       ...formData,
       nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || 'نشاط تجاري',
@@ -142,8 +169,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       ownerName: (formData.ownerName && formData.ownerName.trim()) || 'صاحب النشاط',
       phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
       ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
-      repLocationUrl: formData.repLocationUrl?.trim() || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : undefined),
-      googleMapsUrl: (formData.googleMapsUrl && formData.googleMapsUrl.trim().startsWith('http')) ? formData.googleMapsUrl.trim() : undefined,
+      repLocationUrl: cleanRepUrl,
+      googleMapsUrl: cleanGoogleMapsUrl,
       verificationStatus: formData.verificationStatus || 'pending',
       googleSyncStatus: formData.googleSyncStatus || (formData.verificationStatus === 'verified' ? 'synced' : 'not_synced'),
       photos: Array.isArray(formData.photos) ? formData.photos : [],

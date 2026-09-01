@@ -3403,11 +3403,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {syncModalBiz && (
         <GoogleMapsSyncModal
           business={syncModalBiz}
-          isOpen={true}
+          isOpen={Boolean(syncModalBiz)}
           onClose={() => setSyncModalBiz(null)}
           onUpdateBusiness={(updated) => {
             if (onUpdateBusiness) onUpdateBusiness(updated);
-            setSyncModalBiz(null);
+            setSyncModalBiz(updated);
           }}
         />
       )}
@@ -3639,19 +3639,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>,
           document.body
         )}
-
-      {/* GOOGLE MAPS DIRECT SYNC MODAL */}
-      {syncModalBiz && (
-        <GoogleMapsSyncModal
-          business={syncModalBiz}
-          isOpen={Boolean(syncModalBiz)}
-          onClose={() => setSyncModalBiz(null)}
-          onUpdateBusiness={(updated) => {
-            onUpdateBusiness(updated);
-            setSyncModalBiz(updated);
-          }}
-        />
-      )}
 
       {/* PERMISSIONS MATRIX & ROLES GUIDE MODAL */}
       {showPermissionsModal && (

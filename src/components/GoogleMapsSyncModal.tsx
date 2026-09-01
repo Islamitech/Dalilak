@@ -76,6 +76,17 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     setIsDownloadingAll(false);
   };
 
+  const formatValidGoogleMapsUrl = (url?: string | null): string | undefined => {
+    if (!url || typeof url !== 'string') return undefined;
+    let trimmed = url.trim();
+    if (!trimmed) return undefined;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      trimmed = `https://${trimmed}`;
+    }
+    if (trimmed.includes('search/?api=1&query=')) return undefined;
+    return trimmed;
+  };
+
   const handleSaveVerification = (targetStatus?: VerificationStatus) => {
     const newStatus = targetStatus || currentStatus;
     let gStatus: 'synced' | 'in_progress' | 'not_synced' | 'failed' = 'not_synced';
@@ -84,12 +95,12 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     else if (newStatus === 'pending') gStatus = 'not_synced';
     else if (newStatus === 'rejected') gStatus = 'failed';
 
-    const cleanVerifiedUrl = (finalMapUrl.trim().startsWith('http') && !finalMapUrl.includes('search/?api=1&query=')) ? finalMapUrl.trim() : (newStatus === 'verified' && finalMapUrl.trim().startsWith('http') ? finalMapUrl.trim() : undefined);
+    const cleanVerifiedUrl = formatValidGoogleMapsUrl(finalMapUrl) || (newStatus === 'verified' ? business.googleMapsUrl : undefined);
 
     const updated: Business = {
       ...business,
       repLocationUrl: business.repLocationUrl || repFieldMapUrl || undefined,
-      googleMapsUrl: cleanVerifiedUrl || (newStatus === 'verified' ? business.googleMapsUrl : undefined),
+      googleMapsUrl: cleanVerifiedUrl,
       street: verifiedAddress.trim() || business.street,
       verificationStatus: newStatus,
       googleSyncStatus: gStatus,
