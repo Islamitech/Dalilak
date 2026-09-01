@@ -1173,16 +1173,17 @@ export default function App() {
   const handleUpdateRepresentative = async (updatedRep: Representative) => {
     const prevRep = representatives.find((r) => r.id === updatedRep.id);
 
-    // Strict Role & Permission Security Guard:
-    // Only Admin / Supervisor can change roles, commission rates, or account status.
-    const isCallerAdmin = user?.role === 'admin' || user?.role === 'supervisor';
     const secureRep: Representative = {
       ...updatedRep,
-      role: isCallerAdmin && updatedRep.role ? updatedRep.role : (prevRep?.role || 'rep'),
-      roleTitle: isCallerAdmin && updatedRep.roleTitle ? updatedRep.roleTitle : (prevRep?.roleTitle || 'مندوب مبيعات معتمد'),
-      commissionRate: isCallerAdmin && updatedRep.commissionRate !== undefined ? Number(updatedRep.commissionRate) : (prevRep?.commissionRate || 42.86),
-      status: isCallerAdmin && updatedRep.status ? updatedRep.status : (prevRep?.status || 'active'),
-      targetMonth: isCallerAdmin && updatedRep.targetMonth !== undefined ? Number(updatedRep.targetMonth) : (prevRep?.targetMonth || 25),
+      role: updatedRep.role || prevRep?.role || 'rep',
+      roleTitle: updatedRep.roleTitle || (
+        updatedRep.role === 'supervisor' ? 'مشرف إدارة منطقة ومحافظة' :
+        updatedRep.role === 'accountant' ? 'محاسب ومحصل فواتير إلكترونية' :
+        updatedRep.role === 'admin' ? 'مدير النظام المعتمد' : 'مندوب مبيعات ميداني'
+      ),
+      commissionRate: updatedRep.commissionRate !== undefined ? Number(updatedRep.commissionRate) : (prevRep?.commissionRate || 42.86),
+      status: updatedRep.status || prevRep?.status || 'active',
+      targetMonth: updatedRep.targetMonth !== undefined ? Number(updatedRep.targetMonth) : (prevRep?.targetMonth || 25),
     };
 
     setRepresentatives((prev) => {
@@ -1200,12 +1201,12 @@ export default function App() {
       safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
     }
 
-    if (prevRep && prevRep.status !== updatedRep.status) {
-      if (updatedRep.status === 'active') {
-        addNotification(`✅ تم تفعيل حساب "${updatedRep.name}" بنجاح ويمكنه الدخول الآن!`, 'success');
+    if (prevRep && prevRep.status !== secureRep.status) {
+      if (secureRep.status === 'active') {
+        addNotification(`✅ تم تفعيل حساب "${secureRep.name}" بنجاح ويمكنه الدخول الآن!`, 'success');
         addSystemNotification({
           title: 'تفعيل حساب مندوب 👤',
-          message: `تم تفعيل حساب المندوب "${updatedRep.name}" وسماح الدخول له بالكامل.`,
+          message: `تم تفعيل حساب المندوب "${secureRep.name}" وسماح الدخول له بالكامل.`,
           type: 'success',
           category: 'account',
           targetRole: 'admin',
@@ -1216,24 +1217,24 @@ export default function App() {
           message: 'تهانينا! تمت مراجعة وتفعيل حسابك رسمياً من مدير النظام، يمكنك الآن تسجيل وتوثيق المحلات والتحصيل.',
           type: 'success',
           category: 'account',
-          targetUserId: updatedRep.id,
+          targetUserId: secureRep.id,
         });
       } else {
-        addNotification(`🔒 تم تعليق حساب "${updatedRep.name}" مؤقتاً.`, 'warning');
+        addNotification(`🔒 تم تعليق حساب "${secureRep.name}" مؤقتاً.`, 'warning');
         addSystemNotification({
           title: 'تعليق حساب مندوب 🔒',
-          message: `تم تعليق حساب المندوب "${updatedRep.name}" مؤقتاً.`,
+          message: `تم تعليق حساب المندوب "${secureRep.name}" مؤقتاً.`,
           type: 'warning',
           category: 'account',
           targetRole: 'admin',
         });
       }
-    } else if (prevRep && prevRep.avatarStatus !== updatedRep.avatarStatus && updatedRep.avatarStatus !== 'none') {
-      if (updatedRep.avatarStatus === 'approved') {
-        addNotification(`📸 تمت الموافقة على صورة ملف "${updatedRep.name}" وتفعيلها في حسابه!`, 'success');
+    } else if (prevRep && prevRep.avatarStatus !== secureRep.avatarStatus && secureRep.avatarStatus !== 'none') {
+      if (secureRep.avatarStatus === 'approved') {
+        addNotification(`📸 تمت الموافقة على صورة ملف "${secureRep.name}" وتفعيلها في حسابه!`, 'success');
         addSystemNotification({
           title: 'اعتماد صورة المندوب 📸',
-          message: `تمت الموافقة على الصورة الشخصية للمندوب "${updatedRep.name}".`,
+          message: `تمت الموافقة على الصورة الشخصية للمندوب "${secureRep.name}".`,
           type: 'success',
           category: 'avatar',
           targetRole: 'admin',
@@ -1243,24 +1244,24 @@ export default function App() {
           message: 'تم اعتماد وتوثيق صورتك الشخصية رسمياً وتحديث بطاقتك الرقمية التكليفية.',
           type: 'success',
           category: 'avatar',
-          targetUserId: updatedRep.id,
+          targetUserId: secureRep.id,
           linkTab: 'profile',
         });
-      } else if (updatedRep.avatarStatus === 'rejected') {
-        addNotification(`❌ تم رفض صورة ملف "${updatedRep.name}" — يجب رفع صورة بديلة.`, 'warning');
+      } else if (secureRep.avatarStatus === 'rejected') {
+        addNotification(`❌ تم رفض صورة ملف "${secureRep.name}" — يجب رفع صورة بديلة.`, 'warning');
         addSystemNotification({
           title: '❌ مرفوض: الصورة الشخصية',
           message: 'تم رفض الصورة الشخصية المرفوعة، يرجى إعادة رفع صورة رسمية واضحة ومطابقة للضوابط.',
           type: 'error',
           category: 'avatar',
-          targetUserId: updatedRep.id,
+          targetUserId: secureRep.id,
           linkTab: 'profile',
         });
       } else {
-        addNotification(`⏳ تم إرسال صورة "${updatedRep.name}" لمراجعة المدير.`, 'info');
+        addNotification(`⏳ تم إرسال صورة "${secureRep.name}" لمراجعة المدير.`, 'info');
         addSystemNotification({
           title: 'صورة شخصية جديدة للمراجعة 📸',
-          message: `قام المندوب "${updatedRep.name}" برفع صورة شخصية جديدة للمراجعة والاعتماد.`,
+          message: `قام المندوب "${secureRep.name}" برفع صورة شخصية جديدة للمراجعة والاعتماد.`,
           type: 'info',
           category: 'avatar',
           targetRole: 'admin',
@@ -1268,10 +1269,10 @@ export default function App() {
         });
       }
     } else {
-      addNotification(`💾 تم حفظ تعديلات حساب "${updatedRep.name}" بنجاح!`, 'success');
+      addNotification(`💾 تم حفظ وتحديث صلاحيات وبيانات "${secureRep.name}" بنجاح! ${secureRep.roleTitle ? `(${secureRep.roleTitle})` : ''}`, 'success');
     }
 
-    await saveRepToDb(updatedRep);
+    await saveRepToDb(secureRep);
 
     try {
       const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;

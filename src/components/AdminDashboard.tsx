@@ -188,6 +188,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
   const [editingAccId, setEditingAccId] = useState<string | null>(null);
   const [modalRole, setModalRole] = useState<UserRole>('rep');
+  const [modalRoleTitle, setModalRoleTitle] = useState<string>('');
   const [modalName, setModalName] = useState<string>('');
   const [modalEmail, setModalEmail] = useState<string>('');
   const [modalPhone, setModalPhone] = useState<string>('');
@@ -684,6 +685,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const openEditAccountModal = (rep: Representative) => {
     setEditingAccId(rep.id);
     setModalRole(rep.role || 'rep');
+    setModalRoleTitle(rep.roleTitle || (rep.role === 'supervisor' ? 'مشرف إدارة منطقة ومحافظة' : rep.role === 'accountant' ? 'محاسب ومحصل فواتير إلكترونية' : rep.role === 'admin' ? 'مدير النظام المعتمد' : 'مندوب مبيعات ميداني'));
     setModalName(rep.name);
     setModalEmail(rep.email);
     setModalPhone(rep.phone);
@@ -702,6 +704,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     e.preventDefault();
     if (!modalName.trim()) return;
 
+    const finalRoleTitle = modalRoleTitle.trim() || (
+      modalRole === 'supervisor' ? 'مشرف إدارة منطقة ومحافظة' :
+      modalRole === 'accountant' ? 'محاسب ومحصل فواتير إلكترونية' :
+      modalRole === 'admin' ? 'مدير النظام المعتمد' : 'مندوب مبيعات ميداني'
+    );
+
     if (editingAccId) {
       const existing = mergedAdminReps.find((r) => r.id === editingAccId);
       if (existing && onUpdateRepresentative) {
@@ -712,6 +720,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           phone: modalPhone.trim() || existing.phone,
           governorate: modalGov,
           role: modalRole,
+          roleTitle: finalRoleTitle,
           targetMonth: Number(modalTarget) || 25,
           commissionRate: Number(modalCommission) || 42.86,
           status: modalStatus,
@@ -731,6 +740,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         phone: modalPhone.trim() || '01000000000',
         governorate: modalGov,
         role: modalRole,
+        roleTitle: finalRoleTitle,
         targetMonth: Number(modalTarget) || 25,
         commissionRate: Number(modalCommission) || 42.86,
         status: modalStatus,
@@ -2905,7 +2915,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </label>
                     <select
                       value={modalRole}
-                      onChange={(e) => setModalRole(e.target.value as UserRole)}
+                      onChange={(e) => {
+                        const newRole = e.target.value as UserRole;
+                        setModalRole(newRole);
+                        if (newRole === 'supervisor') setModalRoleTitle('مشرف إدارة منطقة ومحافظة');
+                        else if (newRole === 'accountant') setModalRoleTitle('محاسب ومحصل فواتير إلكترونية');
+                        else if (newRole === 'admin') setModalRoleTitle('مدير النظام المعتمد');
+                        else setModalRoleTitle('مندوب مبيعات ميداني');
+                      }}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-extrabold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
                     >
                       <option value="rep">💼 مندوب مبيعات ميداني (تسجيل المحلات والتحصيل)</option>
@@ -2913,6 +2930,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <option value="accountant">🧾 محاسب ومحصل فواتير إلكترونية</option>
                       <option value="admin">🛡️ مدير النظام (أدمن بجميع الصلاحيات)</option>
                     </select>
+                  </div>
+
+                  {/* Role Title / المسمى الوظيفي المعتمد */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">
+                      المسمى الوظيفي المعتمد (الظاهر في الكارنيه، والبطاقة، والمنظومة) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="مثال: مشرف منطقة ومحافظة / مندوب مبيعات أول"
+                      value={modalRoleTitle}
+                      onChange={(e) => setModalRoleTitle(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-black text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
                   </div>
 
                   {/* Full Name */}
