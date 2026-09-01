@@ -493,10 +493,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       paymentMethod: 'platform_collected',
       cashCollectedByRep: 0,
       paymentStatus: 'fully_paid',
-      verificationStatus: 'verified', // Pre-verified because already active on Google Maps
+      verificationStatus: 'pending', // Requires admin review and confirmation before publishing on public directory
       googleMapsUrl: finalGoogleMapUrl,
-      googleSyncStatus: 'synced',
-      googleSyncDate: new Date().toISOString().split('T')[0],
+      googleSyncStatus: 'not_synced',
+      googleSyncDate: undefined,
       invoiceNumber: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
       invoiceDate: new Date().toISOString().split('T')[0],
       createdDate: new Date().toISOString(),
@@ -1301,7 +1301,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           </p>
           <div className="flex items-center gap-2 pt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="w-4 h-4" />
-            <span>معتمد وموثق على الخرائط فورياً (0 ج.م)</span>
+            <span>قيد المراجعة والاعتماد للرفع على الدليل من قبل الإدارة (0 ج.م)</span>
           </div>
         </div>
       ) : (

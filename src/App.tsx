@@ -1348,31 +1348,40 @@ export default function App() {
 
   const isRepUser = user?.role === 'rep';
 
-  // Strict Scoping & Newest-First Sorting:
+  const isPrivilegedUser = Boolean(user && (user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant'));
+
+  // Strict Scoping & Verification Publishing Engine:
+  // Requires admin review & approval before any business appears on the public directory
   const scopedBusinesses = useMemo(() => {
-    if (!isRepUser) return sortBusinessesNewestFirst(businesses);
+    // 1. Privileged users (Admin, Supervisor, Accountant): Can see all businesses for review & oversight
+    if (isPrivilegedUser) {
+      return sortBusinessesNewestFirst(businesses);
+    }
 
-    const repId = (currentRep.id || '').toLowerCase().trim();
-    const repName = (currentRep.name || '').toLowerCase().trim();
-    const userId = (user?.id || '').toLowerCase().trim();
-    const userName = (user?.name || '').toLowerCase().trim();
+    // 2. Logged-in representative: Can see all public verified businesses PLUS his own registered businesses (even if pending)
+    if (isRepUser) {
+      const repId = (currentRep.id || '').toLowerCase().trim();
+      const repName = (currentRep.name || '').toLowerCase().trim();
+      const userId = (user?.id || '').toLowerCase().trim();
+      const userName = (user?.name || '').toLowerCase().trim();
 
-    const filtered = businesses.filter((b) => {
-      const bRepId = (b.repId || '').toLowerCase().trim();
-      const bRepName = (b.repName || '').toLowerCase().trim();
+      const filtered = businesses.filter((b) => {
+        const isLiveVerified = b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
+        if (isLiveVerified) return true;
 
-      const matchId = (repId && bRepId === repId) || (userId && bRepId === userId);
-      const matchName = 
-        (repName && bRepName === repName) || 
-        (userName && bRepName === userName) ||
-        (repName && bRepName && (bRepName.includes(repName) || repName.includes(bRepName))) ||
-        (userName && bRepName && (bRepName.includes(userName) || userName.includes(bRepName)));
+        const bRepId = (b.repId || '').toLowerCase().trim();
+        const bRepName = (b.repName || '').toLowerCase().trim();
+        const isOwnBiz = (repId && bRepId === repId) || (userId && bRepId === userId) || (repName && bRepName && (bRepName.includes(repName) || repName.includes(bRepName))) || (userName && bRepName && (bRepName.includes(userName) || userName.includes(bRepName)));
+        return isOwnBiz;
+      });
 
-      return matchId || matchName;
-    });
+      return sortBusinessesNewestFirst(filtered);
+    }
 
-    return sortBusinessesNewestFirst(filtered);
-  }, [isRepUser, businesses, currentRep.id, currentRep.name, user?.id, user?.name]);
+    // 3. Public directory visitors (Strict public view): ONLY officially reviewed & confirmed businesses appear!
+    const publicVerified = businesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced');
+    return sortBusinessesNewestFirst(publicVerified);
+  }, [isPrivilegedUser, isRepUser, businesses, currentRep.id, currentRep.name, user?.id, user?.name]);
 
   const homeStats = useMemo(() => {
     const total = scopedBusinesses.length;
