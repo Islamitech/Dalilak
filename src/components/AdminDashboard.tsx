@@ -413,6 +413,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const netPlatformRevenue = Math.max(0, totalRevenue - totalEarnedCommissions);
 
+  // ── ⚖️ ADVANCED CASH & COMMISSIONS SETTLEMENT MATRIX ──
+  const netRepsSettlementMatrix = useMemo(() => {
+    let totalRepsCashDebtToPlatform = 0; // Net physical cash in reps hands to be remitted to platform
+    let totalPlatformPayableToReps = 0;   // Net withdrawable credit platform owes to reps for online receipts
+    let totalRepCashInHand = 0;
+
+    mergedAdminReps.forEach((rep) => {
+      if (rep.role !== 'rep') return;
+      const repBiz = businesses.filter((b) => b.repId === rep.id || b.repName === rep.name || b.repId === rep.phone);
+      const repRate = (rep.commissionRate && rep.commissionRate < 100) ? rep.commissionRate : 42.86;
+      const settlement = calculateRepSettlement(rep.id, repBiz, repRate, payoutRequests);
+      
+      totalRepCashInHand += settlement.totalCashInHand;
+      if (settlement.isDebtToPlatform) {
+        totalRepsCashDebtToPlatform += settlement.debtToPlatformAmount;
+      } else {
+        totalPlatformPayableToReps += settlement.withdrawableBalance;
+      }
+    });
+
+    return {
+      totalRepsCashDebtToPlatform,
+      totalPlatformPayableToReps,
+      totalRepCashInHand,
+    };
+  }, [mergedAdminReps, businesses, payoutRequests]);
+
   // ── MONTHLY FINANCIAL MATRIX & BREAKDOWN ──
   const monthlyFinancialStats = useMemo(() => {
     const monthsMap = new Map<string, {
@@ -467,6 +494,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         m.grossRevenue += paid;
         m.repCommissions += repShare;
         m.netPlatform += (paid - repShare);
+        if ((b.cashCollectedByRep || 0) > 0 || (b.paymentMethod as string) === 'cash_by_rep') {
+          // cash tracked
+        }
 
         if (isFieldRep && repShare > 0) {
           const repIdentifier = b.repId || b.repName || 'rep';
@@ -969,7 +999,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات المناديب المكتسبة</span>
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">كاش محصل بيد المناديب</span>
+                <span className="font-black text-base text-blue-600 dark:text-blue-400 font-mono block">
+                  {totalCashInRepsHands.toLocaleString()} <span className="text-[10px]">ج</span>
+                </span>
+                <span className="text-[9px] text-[var(--text-muted)]">مقبوضات نقدية ميدانية</span>
+              </div>
+
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات المناديب المستحقة</span>
                 <span className="font-black text-base text-amber-600 dark:text-amber-400 font-mono block">
                   {totalEarnedCommissions.toLocaleString()} <span className="text-[10px]">ج</span>
                 </span>
@@ -984,28 +1022,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span className="text-[9px] text-[var(--text-muted)]">حوالات معتمدة ومكتملة</span>
               </div>
 
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <span className="text-[10px] text-[var(--text-muted)] font-bold block">طلبات سحب قيد المراجعة</span>
-                <span className="font-black text-base text-amber-500 font-mono block">
-                  {totalPendingPayouts.toLocaleString()} <span className="text-[10px]">ج</span>
+              <div className="bg-rose-500/10 p-3 rounded-2xl border border-rose-500/30 space-y-1">
+                <span className="text-[10px] text-rose-700 dark:text-rose-300 font-bold block">⚠️ عهدة كاش مستحقة للتوريد</span>
+                <span className="font-black text-base text-rose-600 dark:text-rose-400 font-mono block">
+                  {netRepsSettlementMatrix.totalRepsCashDebtToPlatform.toLocaleString()} <span className="text-[10px]">ج</span>
                 </span>
-                <span className="text-[9px] text-[var(--text-muted)]">بانتظار التحويل والاعتماد</span>
+                <span className="text-[9px] text-rose-600/80 dark:text-rose-300/80 font-bold">مطلوب تحصيلها من المناديب</span>
               </div>
 
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <span className="text-[10px] text-[var(--text-muted)] font-bold block">كاش محصل بيد المناديب</span>
-                <span className="font-black text-base text-blue-600 dark:text-blue-400 font-mono block">
-                  {totalCashInRepsHands.toLocaleString()} <span className="text-[10px]">ج</span>
-                </span>
-                <span className="text-[9px] text-[var(--text-muted)]">مقبوضات نقدية ميدانية</span>
-              </div>
-
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <span className="text-[10px] text-[var(--text-muted)] font-bold block">صافي أرباح المنظومة</span>
+              <div className="bg-teal-500/10 p-3 rounded-2xl border border-teal-500/30 space-y-1">
+                <span className="text-[10px] text-teal-700 dark:text-teal-300 font-bold block">صافي أرباح المنظومة</span>
                 <span className="font-black text-base text-teal-600 dark:text-teal-400 font-mono block">
                   {netPlatformRevenue.toLocaleString()} <span className="text-[10px]">ج</span>
                 </span>
-                <span className="text-[9px] text-[var(--text-muted)]">بعد استقطاع العمولات</span>
+                <span className="text-[9px] text-teal-600/80 dark:text-teal-300/80 font-bold">بعد استقطاع كافة العمولات</span>
               </div>
             </div>
           </div>
