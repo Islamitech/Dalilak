@@ -65,6 +65,8 @@ import {
   generateSocialProofUpgradeWhatsAppMessage,
 } from '../utils/whatsappMessages';
 
+import { fetchBusinessPhotosOnDemand } from '../services/db';
+
 interface BusinessEditModalProps {
   business: Business | null;
   onClose: () => void;
@@ -109,10 +111,17 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   // Tab navigation
   const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp'>('info');
 
-  // Keep internal formData in sync when parent business prop changes
+  // Keep internal formData in sync when parent business prop changes & load high-res photos on-demand
   useEffect(() => {
     if (business) {
       setFormData({ ...business });
+      if ((!business.photos || business.photos.length === 0) && business.id) {
+        fetchBusinessPhotosOnDemand(business.id).then((photos) => {
+          if (photos && photos.length > 0) {
+            setFormData((prev) => (prev ? { ...prev, photos } : null));
+          }
+        });
+      }
     }
   }, [business]);
 

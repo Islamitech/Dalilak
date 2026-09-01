@@ -37,7 +37,7 @@ export function getCachedBusinesses(): Business[] {
   return [];
 }
 
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,photos,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
 
 /**
  * ⚡ Stale-While-Revalidate Full Cloud Fetch
@@ -125,6 +125,28 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   } catch {}
 
   return resultList;
+}
+
+/**
+ * 📸 Fetch high-resolution photos on demand for a single business
+ * Used when viewing details/editing without bloating the initial feed query or cache
+ */
+export async function fetchBusinessPhotosOnDemand(businessId: string): Promise<string[]> {
+  if (!businessId) return [];
+  if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+    try {
+      const res = await supabaseRestFetch(`businesses?id=eq.${businessId}&select=photos`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data[0]) {
+          return parsePhotosArray(data[0]);
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase fetch photos on demand error:', err);
+    }
+  }
+  return [];
 }
 
 /**

@@ -295,7 +295,7 @@ export default function App() {
   const [homeGovFilter, setHomeGovFilter] = useState<string>('all');
   const [homeCategoryFilter, setHomeCategoryFilter] = useState<string>('all');
   const [homeVerificationFilter, setHomeVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
-  const [homeViewMode, setHomeViewMode] = useState<'grid' | 'list'>('grid');
+  const [homeViewMode, setHomeViewMode] = useState<'grid' | 'list'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list') || 'list');
 
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
@@ -1941,7 +1941,7 @@ export default function App() {
                     {/* View Switcher: Grid vs List */}
                     <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0">
                       <button
-                        onClick={() => setHomeViewMode('grid')}
+                        onClick={() => { setHomeViewMode('grid'); safeSetLocalStorageItem('dalelak_home_view_mode', 'grid'); }}
                         className={`p-1.5 rounded-xl transition-all cursor-pointer ${
                           homeViewMode === 'grid'
                             ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
@@ -1952,7 +1952,7 @@ export default function App() {
                         <LayoutGrid className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => setHomeViewMode('list')}
+                        onClick={() => { setHomeViewMode('list'); safeSetLocalStorageItem('dalelak_home_view_mode', 'list'); }}
                         className={`p-1.5 rounded-xl transition-all cursor-pointer ${
                           homeViewMode === 'list'
                             ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
@@ -2328,88 +2328,224 @@ export default function App() {
 
               {/* ── LIST / TABLE MODE (HIGH DENSITY PRODUCTIVITY VIEW - Instant 0ms Render) ─────────── */}
               {(!isLoadingData || businesses.length > 0) && homeViewMode === 'list' && filteredHomeBusinesses.length > 0 && (
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-right text-xs">
-                      <thead className="bg-[var(--input-bg)] border-b border-[var(--border-color)] text-[var(--text-muted)] font-black text-[11px]">
-                        <tr>
-                          <th className="py-3 px-4">النشاط التجاري</th>
-                          <th className="py-3 px-3">التصنيف</th>
-                          <th className="py-3 px-3">الموقع</th>
-                          <th className="py-3 px-3">حالة التوثيق</th>
-                          <th className="py-3 px-3">السداد</th>
-                          <th className="py-3 px-3">المندوب المسجل</th>
-                          <th className="py-3 px-4 text-center">الإجراءات</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-color)]/60">
-                        {filteredHomeBusinesses.map((biz) => {
-                          const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-                          const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                          const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                <div className="space-y-2.5">
+                  {/* MOBILE VIEW (< md): High-Density Fast Action Rows */}
+                  <div className="md:hidden space-y-2.5">
+                    {filteredHomeBusinesses.map((biz) => {
+                      const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                      const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                      const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                      const ownerPhone = biz.ownerPhone || biz.phone || '';
 
-                          return (
-                            <tr key={`list_${biz.id}`} className="hover:bg-[var(--input-bg)]/40 transition-colors">
-                              <td className="py-3 px-4">
-                                <div className="font-black text-[var(--text-primary)]">{biz.nameAr}</div>
-                                <div className="text-[10px] font-mono text-[var(--text-muted)]">{biz.invoiceNumber}</div>
-                              </td>
-                              <td className="py-3 px-3">
-                                <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-500/20">
+                      return (
+                        <div
+                          key={`mobile_row_${biz.id}`}
+                          className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-2.5 shadow-2xs hover:border-amber-500/40 transition-all text-right"
+                        >
+                          {/* Row 1: Name, Category, Verification */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-0.5 min-w-0">
+                              <h4
+                                onClick={() => setEditingBusiness(biz)}
+                                className="font-black text-sm text-[var(--text-primary)] hover:text-amber-500 cursor-pointer truncate"
+                              >
+                                {biz.nameAr}
+                              </h4>
+                              <div className="flex items-center gap-1.5 text-[10.5px] text-[var(--text-muted)] font-bold">
+                                <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/20 truncate max-w-[120px]">
                                   {biz.category}
                                 </span>
-                              </td>
-                              <td className="py-3 px-3 text-[var(--text-secondary)] font-bold">
-                                {biz.governorate} • {biz.city}
-                              </td>
-                              <td className="py-3 px-3">
-                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                  isVerified ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                                }`}>
-                                  {isVerified ? '✓ موثق رسمي' : '⏳ قيد التوثيق'}
-                                </span>
-                              </td>
-                              <td className="py-3 px-3">
-                                {isExempt ? (
-                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30">
-                                    🆓 إدراج مجاني
-                                  </span>
-                                ) : (
-                                  <span className={`text-[10px] font-bold ${remaining === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                    {remaining === 0 ? `مسدد (${biz.packagePrice || 250} ج)` : `متبقي ${remaining} ج`}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-3 px-3 text-[11px] text-[var(--text-muted)] font-bold">
-                                {biz.repName || '—'}
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
+                                <span>•</span>
+                                <span className="truncate">{biz.governorate} - {biz.city}</span>
+                              </div>
+                            </div>
+
+                            <span
+                              className={`text-[9.5px] font-black px-2 py-0.5 rounded-full shrink-0 border ${
+                                isVerified
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                              }`}
+                            >
+                              {isVerified ? '✓ موثق' : '⏳ قيد التوثيق'}
+                            </span>
+                          </div>
+
+                          {/* Row 2: Financial & Operational Status */}
+                          <div className="flex items-center justify-between text-[11px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] font-bold">
+                            <div className="flex items-center gap-1">
+                              {isExempt ? (
+                                <span className="text-teal-600 dark:text-teal-400 font-black">🆓 إدراج مجاني (0 ج)</span>
+                              ) : remaining === 0 ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-black">✓ مسدد بالكامل ({biz.packagePrice || 250} ج)</span>
+                              ) : (
+                                <span className="text-rose-600 dark:text-rose-400 font-black">⚠️ متبقي {remaining} ج من {biz.packagePrice || 250} ج</span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[130px]">
+                              👤 {biz.repName || 'مندوب'}
+                            </span>
+                          </div>
+
+                          {/* Row 3: Fast Quick Actions (Zero Image Overhead) */}
+                          <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                            <button
+                              onClick={() => setEditingBusiness(biz)}
+                              className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black py-1.5 px-2 rounded-xl shadow-2xs transition-transform active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>التفاصيل</span>
+                            </button>
+
+                            <button
+                              onClick={() => setSelectedInvoiceBiz(biz)}
+                              className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                              title="عرض الفاتورة"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-amber-500" />
+                              <span>فاتورة</span>
+                            </button>
+
+                            {ownerPhone && (
+                              <a
+                                href={`https://wa.me/2${ownerPhone.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                                title="مراسلة واتساب"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+
+                            {ownerPhone && (
+                              <a
+                                href={`tel:${ownerPhone}`}
+                                className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                                title="اتصال هاتفي"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* DESKTOP VIEW (>= md): High-Speed Data Table */}
+                  <div className="hidden md:block bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-xs">
+                        <thead className="bg-[var(--input-bg)] border-b border-[var(--border-color)] text-[var(--text-muted)] font-black text-[11px]">
+                          <tr>
+                            <th className="py-3.5 px-4">النشاط التجاري</th>
+                            <th className="py-3.5 px-3">التصنيف</th>
+                            <th className="py-3.5 px-3">الموقع الجغرافي</th>
+                            <th className="py-3.5 px-3">حالة التوثيق</th>
+                            <th className="py-3.5 px-3">الموقف المالي</th>
+                            <th className="py-3.5 px-3">المندوب المسجل</th>
+                            <th className="py-3.5 px-4 text-center">الإجراءات السريعة</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border-color)]/60">
+                          {filteredHomeBusinesses.map((biz) => {
+                            const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                            const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                            const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                            const ownerPhone = biz.ownerPhone || biz.phone || '';
+
+                            return (
+                              <tr key={`desktop_list_${biz.id}`} className="hover:bg-[var(--input-bg)]/50 transition-colors">
+                                <td className="py-3.5 px-4">
+                                  <div
                                     onClick={() => setEditingBusiness(biz)}
-                                    className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-black hover:bg-amber-600 transition-colors cursor-pointer text-xs flex items-center gap-1"
+                                    className="font-black text-[var(--text-primary)] hover:text-amber-500 cursor-pointer text-sm"
                                   >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span>معاينة</span>
-                                  </button>
-                                  <button
-                                    onClick={() => setSelectedInvoiceBiz(biz)}
-                                    className="p-1.5 rounded-lg bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)] transition-colors cursor-pointer"
-                                    title="الفاتورة"
-                                  >
-                                    <FileText className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                    {biz.nameAr}
+                                  </div>
+                                  <div className="text-[10px] font-mono text-[var(--text-muted)]">{biz.invoiceNumber}</div>
+                                </td>
+                                <td className="py-3.5 px-3">
+                                  <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold px-2 py-0.5 rounded-md border border-amber-500/20">
+                                    {biz.category}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-3 text-[var(--text-secondary)] font-bold">
+                                  {biz.governorate} • {biz.city}
+                                </td>
+                                <td className="py-3.5 px-3">
+                                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${
+                                    isVerified ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                  }`}>
+                                    {isVerified ? '✓ موثق رسمي' : '⏳ قيد التوثيق'}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-3">
+                                  {isExempt ? (
+                                    <span className="text-[10.5px] font-black px-2.5 py-1 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                                      🆓 إدراج مجاني
+                                    </span>
+                                  ) : remaining === 0 ? (
+                                    <span className="text-[10.5px] font-black px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                      ✓ مسدد ({biz.packagePrice || 250} ج)
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10.5px] font-black px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                      متبقي {remaining} ج
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-3 text-[11px] text-[var(--text-muted)] font-bold">
+                                  {biz.repName || '—'}
+                                </td>
+                                <td className="py-3.5 px-4 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => setEditingBusiness(biz)}
+                                      className="py-1 px-2.5 rounded-xl bg-amber-500 text-slate-950 font-black hover:bg-amber-600 transition-transform active:scale-95 cursor-pointer text-xs flex items-center gap-1 shadow-2xs"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>تفاصيل</span>
+                                    </button>
+                                    <button
+                                      onClick={() => setSelectedInvoiceBiz(biz)}
+                                      className="p-1.5 rounded-xl bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)] transition-colors cursor-pointer"
+                                      title="عرض الفاتورة"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-amber-500" />
+                                    </button>
+                                    {ownerPhone && (
+                                      <a
+                                        href={`https://wa.me/2${ownerPhone.replace(/\D/g, '')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors"
+                                        title="مراسلة واتساب"
+                                      >
+                                        <MessageCircle className="w-3.5 h-3.5" />
+                                      </a>
+                                    )}
+                                    {ownerPhone && (
+                                      <a
+                                        href={`tel:${ownerPhone}`}
+                                        className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border border-blue-500/30 transition-colors"
+                                        title="اتصال هاتفي"
+                                      >
+                                        <Phone className="w-3.5 h-3.5" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
-
             </div>
           </div>
         )}
