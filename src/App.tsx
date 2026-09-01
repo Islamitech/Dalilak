@@ -1360,13 +1360,32 @@ export default function App() {
   }, [verifiedPublicBusinesses]);
 
   const homeStats = useMemo(() => {
-    const total = verifiedPublicBusinesses.length;
-    const verified = total;
-    const inProgress = businesses.filter((b) => b.verificationStatus !== 'verified').length;
-    const govs = new Set(verifiedPublicBusinesses.map((b) => b.governorate).filter(Boolean)).size;
+    const totalRegistered = businesses.length;
+    const directoryApproved = verifiedPublicBusinesses.length; // معتمد بالدليل العام
+    const pendingDirectory = businesses.filter((b) => b.verificationStatus !== 'verified').length; // قيد مراجعة الدليل
+    
+    // موثق بـ Google Maps فعلياً: له رابط خريطة Google صالح ورسمي
+    const googleMapsVerified = businesses.filter((b) => {
+      const url = (b.googleMapsUrl || '').trim();
+      const hasRealUrl = url.startsWith('http') && !url.includes('search/?api=1&query=');
+      const isAlreadyOnGooglePkg = b.isAlreadyOnGoogle || b.packageId === 'pkg_already_on_google';
+      return hasRealUrl || isAlreadyOnGooglePkg;
+    }).length;
+
+    const govs = new Set(businesses.map((b) => b.governorate).filter(Boolean)).size;
     const fullyPaid = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
     const exempt = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
-    return { total, verified, inProgress, govs, fullyPaid, exempt };
+
+    return {
+      totalRegistered,
+      directoryApproved,
+      googleMapsVerified,
+      pendingDirectory,
+      govs,
+      fullyPaid,
+      exempt,
+      total: directoryApproved, // for directory filter count
+    };
   }, [verifiedPublicBusinesses, businesses]);
 
   const filteredHomeBusinesses = useMemo(() => {
@@ -1827,56 +1846,75 @@ export default function App() {
             {/* Modern Global Directory Container */}
             <div className="space-y-4">
               
-              {/* ── TOP KPI METRICS BAR ────────────────────────────────────── */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
-                    <Store className="w-5 h-5" />
+              {/* ── TOP KPI METRICS BAR (DECOUPLED DIRECTORY VS GOOGLE MAPS) ── */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                {/* 1. إجمالي الأنشطة المسجلة */}
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-500/15 text-slate-600 dark:text-slate-300 flex items-center justify-center font-black shrink-0">
+                    <Store className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي الأنشطة</div>
+                    <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي المسجل</div>
                     {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
-                      <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.total}</div>
+                      <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.totalRegistered}</div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
+                {/* 2. معتمد بالدليل العام (يظهر للعملاء) */}
+                <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
+                    <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">موثقة على Maps</div>
+                    <div className="text-[10.5px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold truncate">معتمد بالدليل 🟢</div>
                     {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
-                      <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.verified}</div>
+                      <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.directoryApproved}</div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
-                    <Clock className="w-5 h-5" />
+                {/* 3. موثق بـ Google Maps فعلياً (رابط الخريطة مفعل) */}
+                <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
+                    <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">قيد التوثيق</div>
+                    <div className="text-[10.5px] sm:text-[11px] text-blue-600 dark:text-blue-400 font-bold truncate">موثق بـ Google 🗺️</div>
                     {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
-                      <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.inProgress}</div>
+                      <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.googleMapsVerified}</div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
-                    <MapPin className="w-5 h-5" />
+                {/* 4. قيد مراجعة الدليل */}
+                <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
+                    <div className="text-[10.5px] sm:text-[11px] text-amber-600 dark:text-amber-400 font-bold truncate">قيد مراجعة الدليل ⏳</div>
+                    {isLoadingData && businesses.length === 0 ? (
+                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                    ) : (
+                      <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{homeStats.pendingDirectory}</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 5. المحافظات المغطاة */}
+                <div className="col-span-2 sm:col-span-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
+                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
                     {isLoadingData && businesses.length === 0 ? (
                       <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
                     ) : (
