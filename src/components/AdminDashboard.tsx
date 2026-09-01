@@ -1864,15 +1864,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <th className="p-3">الموقع الجغرافي والمندوب</th>
                         <th className="p-3">تاريخ ووقت الإضافة</th>
                         <th className="p-3">حالة السداد والتحصيل</th>
-                        <th className="p-3">حالة التوثيق وGoogle Maps</th>
+                        <th className="p-3">اعتماد الدليل العام</th>
                         <th className="p-3 text-center">الإجراءات والتحكم</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border-color)]">
                       {pagedBusinesses.map((biz) => {
                         const isDirectoryApproved = biz.verificationStatus === 'verified';
-                        const isGoogleSynced = Boolean(biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=')) || biz.googleSyncStatus === 'synced';
-                        const isInGoogleReview = biz.googleSyncStatus === 'in_progress';
+                        const hasGoogleMap = Boolean(biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query='));
+                        const isGoogleSynced = hasGoogleMap;
+                        const isInGoogleReview = !hasGoogleMap && biz.googleSyncStatus === 'in_progress';
                         const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
                         const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
                         const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
@@ -2003,35 +2004,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </td>
 
                             <td className="p-3">
-                              {isDirectoryApproved ? (
-                                <div className="space-y-1">
-                                  <span className="badge-success text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    <span>موثق ومعتمد ✅</span>
+                              <div className="space-y-1">
+                                {isDirectoryApproved ? (
+                                  <span className="badge-success text-[10.5px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                    <span>معتمد بالدليل 🟢</span>
                                   </span>
-                                  {!isExempt && (!isPaid ? (
-                                    <span className="badge-danger text-[9px] font-black px-2 py-0.5 rounded-full block w-fit animate-pulse">
-                                      🚨 لم يتم الدفع ({biz.packagePrice || 250} ج)
-                                    </span>
-                                  ) : debtAmount > 0 ? (
-                                    <span className="badge-warning text-[9px] font-black px-2 py-0.5 rounded-full block w-fit">
-                                      ⚠️ متبقي {debtAmount.toLocaleString()} ج.م
-                                    </span>
-                                  ) : null)}
-                                </div>
-                              ) : isInGoogleReview ? (
-                                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${
-                                  isOverdue ? 'badge-warning' : 'badge-warning'
-                                }`}>
-                                  <Clock className="w-3 h-3" />
-                                  <span>{isOverdue ? 'تجاوزت المدة ⏱️' : 'قيد مراجعة جوجل ⏳'}</span>
-                                </span>
-                              ) : (
-                                <span className="badge-danger text-[10px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  <span>لم تُرفع للتوثيق 🚨</span>
-                                </span>
-                              )}
+                                ) : (
+                                  <span className="badge-warning text-[10.5px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-amber-500" />
+                                    <span>قيد مراجعة الدليل ⏳</span>
+                                  </span>
+                                )}
+                                {hasGoogleMap ? (
+                                  <span className="text-[9.5px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md border border-blue-500/30 flex items-center gap-1 w-fit">
+                                    <span>📍 خريطة Google مفعلة</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[9.5px] text-slate-500 font-medium px-1.5 py-0.5 rounded border border-slate-700/40 flex items-center gap-1 w-fit opacity-70">
+                                    <span>⚪ خريطة غير مفعلة</span>
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             <td className="p-3 text-center">

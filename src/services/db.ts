@@ -1266,7 +1266,7 @@ function mapDbToBusiness(item: any): Business {
     repLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl,
     googlePlaceId: item.google_place_id || item.googlePlaceId || metaGooglePlaceId,
-    googleSyncStatus: item.google_sync_status || item.googleSyncStatus || metaGoogleSyncStatus || 'not_synced',
+    googleSyncStatus: cleanGoogleMapsUrl ? 'synced' : ((item.google_sync_status === 'in_progress' || metaGoogleSyncStatus === 'in_progress') ? 'in_progress' : 'not_synced'),
     googleSyncDate: item.google_sync_date || item.googleSyncDate || metaGoogleSyncDate,
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
