@@ -275,14 +275,74 @@ export async function removeOfflinePayout(id: string): Promise<void> {
   } catch {}
 }
 
-export async function purgeStaleOfflineQueue(): Promise<void> {
+/**
+ * Automatically purges any offline records that are already confirmed to exist in the cloud database.
+ * This ensures that already-uploaded activities are NEVER re-uploaded or kept in pending status.
+ */
+export async function purgeConfirmedOfflineRecords(): Promise<void> {
   try {
+    if (!isSupabaseConfigured() || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+
     const db = await openOfflineDb();
+
+    // 1. Purge legacy/unsupported payouts store
     if (db.objectStoreNames.contains(STORES.PAYOUTS)) {
-      const tx = db.transaction(STORES.PAYOUTS, 'readwrite');
-      tx.objectStore(STORES.PAYOUTS).clear();
+      const txP = db.transaction(STORES.PAYOUTS, 'readwrite');
+      txP.objectStore(STORES.PAYOUTS).clear();
     }
-  } catch {}
+
+    // 2. Check offline businesses against cloud
+    const txB = db.transaction(STORES.BUSINESSES, 'readonly');
+    const storeB = txB.objectStore(STORES.BUSINESSES);
+    const requestB = storeB.getAll();
+
+    const offlineBusinesses: Business[] = await new Promise((resolve) => {
+      requestB.onsuccess = () => resolve(requestB.result || []);
+      requestB.onerror = () => resolve([]);
+    });
+
+    if (offlineBusinesses.length > 0) {
+      const ids = offlineBusinesses.map((b) => b.id);
+      const { data: cloudRecords, error } = await supabase
+        .from('businesses')
+        .select('id')
+        .in('id', ids);
+
+      if (!error && Array.isArray(cloudRecords) && cloudRecords.length > 0) {
+        const confirmedIds = new Set(cloudRecords.map((r: any) => r.id));
+        for (const id of confirmedIds) {
+          await removeOfflineBusiness(id);
+        }
+      }
+    }
+
+    // 3. Check offline leads against cloud
+    const txL = db.transaction(STORES.LEADS, 'readonly');
+    const storeL = txL.objectStore(STORES.LEADS);
+    const requestL = storeL.getAll();
+
+    const offlineLeads: InterestedLead[] = await new Promise((resolve) => {
+      requestL.onsuccess = () => resolve(requestL.result || []);
+      requestL.onerror = () => resolve([]);
+    });
+
+    if (offlineLeads.length > 0) {
+      const leadIds = offlineLeads.map((l) => l.id);
+      const { data: cloudLeads, error: leadError } = await supabase
+        .from('leads')
+        .select('id')
+        .in('id', leadIds);
+
+      if (!leadError && Array.isArray(cloudLeads) && cloudLeads.length > 0) {
+        const confirmedLeadIds = new Set(cloudLeads.map((r: any) => r.id));
+        for (const id of confirmedLeadIds) {
+          await removeOfflineLead(id);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Purge confirmed offline records warning:', err);
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -355,6 +415,9 @@ export async function syncAllPendingOfflineData(
   let failedCount = 0;
 
   try {
+    // 🛡️ Pre-sync optimization: Purge already-confirmed items to save mobile data and prevent phantom re-uploads
+    await purgeConfirmedOfflineRecords();
+
     const [businesses, leads] = await Promise.all([
       getOfflineBusinesses(effectiveUid),
       getOfflineLeads(effectiveUid),
@@ -375,6 +438,22 @@ export async function syncAllPendingOfflineData(
       if (onProgress) onProgress(currentIndex, totalItems, `مزامنة نشاط: ${biz.nameAr}`);
 
       try {
+        // Quick verification: Check if already stored in cloud to avoid duplicate uploads
+        try {
+          const { data: existingCheck } = await supabase
+            .from('businesses')
+            .select('id')
+            .eq('id', biz.id)
+            .maybeSingle();
+
+          if (existingCheck && existingCheck.id) {
+            // Already confirmed in cloud: remove from local offline store immediately
+            await removeOfflineBusiness(biz.id);
+            syncedCount++;
+            continue;
+          }
+        } catch {}
+
         // Step A: Upload any base64/blob photos to Supabase Storage
         let cleanPhotos: string[] = [];
         if (Array.isArray(biz.photos) && biz.photos.length > 0) {
@@ -495,6 +574,21 @@ export async function syncAllPendingOfflineData(
       if (onProgress) onProgress(currentIndex, totalItems, `مزامنة عميل مهتم: ${lead.clientName}`);
 
       try {
+        // Quick verification: Check if already stored in cloud
+        try {
+          const { data: existingLeadCheck } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('id', lead.id)
+            .maybeSingle();
+
+          if (existingLeadCheck && existingLeadCheck.id) {
+            await removeOfflineLead(lead.id);
+            syncedCount++;
+            continue;
+          }
+        } catch {}
+
         const leadPayload = {
           id: lead.id,
           client_name: lead.clientName,
@@ -580,10 +674,9 @@ function dispatchOfflineStateChangeEvent() {
 // -----------------------------------------------------------------------------
 
 export async function exportOfflineBackupJson(): Promise<void> {
-  const [businesses, leads, payouts] = await Promise.all([
+  const [businesses, leads] = await Promise.all([
     getOfflineBusinesses(),
     getOfflineLeads(),
-    getOfflinePayouts(),
   ]);
 
   const backupData = {
@@ -591,10 +684,8 @@ export async function exportOfflineBackupJson(): Promise<void> {
     system: 'Dalelak Offline Representative Backup',
     businessesCount: businesses.length,
     leadsCount: leads.length,
-    payoutsCount: payouts.length,
     businesses,
     leads,
-    payouts,
   };
 
   const jsonStr = JSON.stringify(backupData, null, 2);
@@ -610,25 +701,30 @@ export async function exportOfflineBackupJson(): Promise<void> {
 }
 
 // -----------------------------------------------------------------------------
-// AUTOMATIC EVENT LISTENERS INITIALIZATION
+// AUTOMATIC EVENT LISTENERS INITIALIZATION (WITH THROTTLING & DATA PROTECTION)
 // -----------------------------------------------------------------------------
 
+let lastOnlineSyncTime = 0;
+
 if (typeof window !== 'undefined') {
+  // Purge any stale confirmed records on app startup
+  setTimeout(() => {
+    purgeConfirmedOfflineRecords().catch(() => {});
+  }, 1000);
+
   window.addEventListener('online', () => {
     dispatchOfflineStateChangeEvent();
-    // Auto-trigger sync after 2.5 seconds to let connection stabilize
-    setTimeout(() => {
-      syncAllPendingOfflineData().catch(() => {});
-    }, 2500);
+    const now = Date.now();
+    // Only auto-trigger if at least 2 minutes passed since last attempt to protect mobile data
+    if (now - lastOnlineSyncTime > 2 * 60 * 1000) {
+      lastOnlineSyncTime = now;
+      setTimeout(() => {
+        syncAllPendingOfflineData().catch(() => {});
+      }, 3000);
+    }
   });
 
   window.addEventListener('offline', () => {
     dispatchOfflineStateChangeEvent();
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && navigator.onLine) {
-      syncAllPendingOfflineData().catch(() => {});
-    }
   });
 }
