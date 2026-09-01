@@ -404,28 +404,47 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       : []),
   ];
 
-  const verificationBadge = formData.verificationStatus === 'verified'
-    ? { label: 'موثق على الخرائط ✓', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
-    : formData.verificationStatus === 'in_progress'
-    ? { label: 'قيد المراجعة ⏳', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
+  // 1. Directory Approval Status (خاص بالدليل فقط ومراجعة المسؤول)
+  const isDirectoryApproved = formData.verificationStatus === 'verified';
+  const directoryBadge = isDirectoryApproved
+    ? { label: '🟢 معتمد بالدليل', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
     : formData.verificationStatus === 'rejected'
-    ? { label: 'مرفوض 🔴', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
-    : { label: 'بانتظار المراجعة', cls: 'bg-slate-700/50 text-slate-300 border-slate-600' };
+    ? { label: '🔴 مرفوض بالدليل', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold' }
+    : { label: '⏳ قيد مراجعة الدليل', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' };
+
+  // 2. Google Maps Verification Status (خاص بخرائط Google فقط)
+  const hasVerifiedGoogleMap = Boolean(
+    formData.googleMapsUrl &&
+    formData.googleMapsUrl.trim().startsWith('http') &&
+    !formData.googleMapsUrl.includes('search/?api=1&query=')
+  );
+  const isGoogleSynced = hasVerifiedGoogleMap || formData.googleSyncStatus === 'synced';
+  const googleBadge = hasVerifiedGoogleMap
+    ? { label: '🌐 موثق على Google Maps ✓', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
+    : formData.googleSyncStatus === 'in_progress'
+    ? { label: '⏳ قيد توثيق Google', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold' }
+    : { label: 'غير مدرج بـ Google بعد', cls: 'bg-slate-800/80 text-slate-400 border-slate-700 font-medium' };
+
+  // 3. Payment Status & Alert (تنبيه السداد يرتبط بتوثيق خرائط Google)
+  const isUnpaid = !isFeeExempt && (formData.amountPaid || 0) < (formData.packagePrice || 250);
+  const isGoogleVerifiedAndUnpaid = hasVerifiedGoogleMap && isUnpaid;
 
   const paymentBadge = isAlreadyOnGoogle
-    ? { label: 'مسجل مسبقاً على Google Maps 📍 (إدراج مجاني 0 ج)', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
+    ? { label: 'مسجل مسبقاً على Google Maps 📍 (مجاني 0 ج)', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
     : isFeeExempt
     ? { label: 'معفى من الرسوم (مجاني 0 ج)', cls: 'bg-teal-500/20 text-teal-300 border-teal-500/40 font-black' }
     : formData.paymentStatus === 'fully_paid'
-    ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
+    ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
+    : isGoogleVerifiedAndUnpaid
+    ? { label: `🚨 موثق بـ Google ولم يُسدد! (${formData.packagePrice || 250} ج)`, cls: 'bg-rose-500/30 text-rose-200 border-rose-500/50 font-black animate-pulse shadow-xs' }
     : formData.paymentStatus === 'partially_paid'
-    ? { label: `متبقي دين (${remainingDebt} ج)`, cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
-    : { label: `غير مسدد (${formData.packagePrice || 250} ج)`, cls: 'bg-rose-500/30 text-rose-200 border-rose-500/50 font-black shadow-xs' };
+    ? { label: `متبقي دين (${remainingDebt} ج)`, cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' }
+    : { label: `⏳ الدفع عند توثيق Google (${formData.packagePrice || 250} ج)`, cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold' };
 
 
   const primaryPhone = formData.phone || formData.ownerPhone || '';
   const cleanPhone = primaryPhone.replace(/\D/g, '');
-  const mapsUrl = formData.googleMapsUrl || (formData.lat && formData.lng ? `https://www.google.com/maps/?q=${formData.lat},${formData.lng}` : '');
+  const mapsUrl = hasVerifiedGoogleMap ? formData.googleMapsUrl.trim() : '';
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
@@ -464,10 +483,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                <span className={`text-[9.5px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${verificationBadge.cls}`}>
-                  {verificationBadge.label}
+                <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${directoryBadge.cls}`} title="حالة الاعتماد للظهور على دليل المنصة">
+                  {directoryBadge.label}
                 </span>
-                <span className={`text-[9.5px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${paymentBadge.cls}`}>
+                <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${googleBadge.cls}`} title="حالة التوثيق على خرائط Google">
+                  {googleBadge.label}
+                </span>
+                <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${paymentBadge.cls}`}>
                   {paymentBadge.label}
                 </span>
               </div>
@@ -915,8 +937,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     </div>
                   </div>
 
-                  <span className={`text-[9.5px] font-black px-2.5 py-1 rounded-full border ${verificationBadge.cls}`}>
-                    {verificationBadge.label}
+                  <span className={`text-[9.5px] font-black px-2.5 py-1 rounded-full border ${googleBadge.cls}`}>
+                    {googleBadge.label}
                   </span>
                 </div>
 

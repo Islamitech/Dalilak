@@ -737,25 +737,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         {/* High-Contrast Gradient Backdrop for Text Readability */}
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-slate-950/20" />
 
-                        {/* Top Badges */}
-                        <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
-                          {isVerified ? (
-                            <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-md border border-emerald-400/40">
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>موثق معتمد ✅</span>
-                            </span>
-                          ) : (
-                            <span className="bg-slate-950/90 text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-md border border-amber-500/40">
-                              <Clock className="w-3 h-3" />
-                              <span>قيد المراجعة ⏳</span>
-                            </span>
-                          )}
-
-                          <span className="bg-slate-950/80 text-white text-[10.5px] font-black px-2.5 py-1 rounded-full border border-white/20 backdrop-blur-md shadow-md">
-                            📍 {biz.governorate}
-                          </span>
-                        </div>
-
                         {/* Center Play Button Overlay for Videos */}
                         {biz.videos && biz.videos.length > 0 && (
                           <button
@@ -785,26 +766,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       {/* Content Card Body */}
                       <div className="p-4 space-y-3 flex-1 flex flex-col justify-between text-xs">
                         <div className="space-y-2">
-                          <div className="flex items-start gap-2 text-[var(--text-secondary)] font-bold leading-tight">
-                            <MapPin className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                            <span className="line-clamp-2">
-                              {(() => {
-                                const rawStreet = (biz.street || '').trim();
-                                const isGenericPlaceholder = !rawStreet || rawStreet.includes('الموقع الجغرافي المسجل') || rawStreet.includes('الموقع المسجل');
-
-                                if (isGenericPlaceholder) {
-                                  const parts = [biz.city, biz.governorate].filter(Boolean);
-                                  return parts.length > 0 ? parts.join('، ') : biz.governorate;
-                                }
-
-                                const parts = [rawStreet, biz.city, biz.governorate].filter(Boolean);
-                                let full = parts.join('، ');
-                                if (biz.landmark) full += ` (بجوار ${biz.landmark})`;
-                                return full;
-                              })()}
-                            </span>
-                          </div>
-
                           {biz.workingHours && (
                             <div className="flex items-center gap-2 text-[var(--text-muted)] text-[11px] font-bold">
                               <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />

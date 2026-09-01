@@ -1713,11 +1713,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* Urgent Alert if Verified but Unpaid (Strictly non-exempt) */}
-                        {isDirectoryApproved && !isPaid && !isExempt && (
+                        {isGoogleSynced && !isPaid && !isExempt && (
                           <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-black flex items-center justify-between gap-2 animate-pulse">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-                              <span className="truncate">⚠️ تم التوثيق رسمياً ولم يُسدد بعد! (مستحق: {biz.packagePrice || 250} ج)</span>
+                              <span className="truncate">🚨 تم التوثيق على خرائط Google ولم يُسدد بعد! (مستحق: {biz.packagePrice || 250} ج)</span>
                             </div>
                             <button
                               type="button"
@@ -1870,8 +1870,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </thead>
                     <tbody className="divide-y divide-[var(--border-color)]">
                       {pagedBusinesses.map((biz) => {
-                        const isDirectoryApproved = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
-                        const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isDirectoryApproved;
+                        const isDirectoryApproved = biz.verificationStatus === 'verified';
+                        const isGoogleSynced = Boolean(biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=')) || biz.googleSyncStatus === 'synced';
+                        const isInGoogleReview = biz.googleSyncStatus === 'in_progress';
                         const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
                         const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
                         const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
@@ -1958,10 +1959,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 if (!isPaid) {
                                   return (
                                     <div className="space-y-1">
-                                      {isDirectoryApproved ? (
+                                      {isGoogleSynced ? (
                                         <span className="badge-danger text-[10.5px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1 animate-pulse">
                                           <AlertTriangle className="w-3.5 h-3.5" />
-                                          <span>🚨 موثق ولم يُسدد! (مطلوب التحصيل)</span>
+                                          <span>🚨 موثق بـ Google ولم يُسدد! (مستحق: {biz.packagePrice || 250} ج)</span>
                                         </span>
                                       ) : (
                                         <span className="badge-warning text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
