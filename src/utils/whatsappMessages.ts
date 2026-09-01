@@ -150,32 +150,30 @@ export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string
   const isFullyPaid = isFeeExempt || biz.paymentStatus === 'fully_paid' || remaining === 0;
   const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
   const owner = biz.ownerName || 'صاحب النشاط';
-  const name = biz.nameAr || 'نشاطكم';
+  const name = biz.nameAr || 'نشاطك';
   const payConfig = getActivePaymentConfig();
 
   let raw = '';
 
   if (isFullyPaid || isFeeExempt) {
     raw = 
-      `أهلاً أستاذ *${owner}* (${name}) 🗺️\n` +
-      `تم توثيق وظهور نشاطكم رسمياً على خرائط Google.\n\n` +
+      `هلا أستاذ *${owner}*، يسعدنا أنه تم توثيق وظهور نشاطك (*${name}*) رسمياً على خرائط Google 🗺️\n\n` +
       `📍 *رابط النشاط المباشر على Google Maps:*\n` +
       `${activeMapUrl}\n\n` +
       `• *حالة السداد:* مسدد بالكامل (خالص ✓)\n\n` +
-      `نتمنى لكم دوام التوفيق والنجاح!\n` +
+      `نتمنى لك دوام التوفيق والنجاح!\n` +
       `منظومة دليلك`;
   } else {
     raw = 
-      `أهلاً أستاذ *${owner}* (${name}) 🗺️\n` +
-      `تم توثيق وظهور نشاطكم رسمياً على خرائط Google.\n\n` +
+      `هلا أستاذ *${owner}*، يسعدنا أنه تم توثيق وظهور نشاطك (*${name}*) رسمياً على خرائط Google 🗺️\n\n` +
       `📍 *رابط النشاط المباشر على Google Maps:*\n` +
       `${activeMapUrl}\n\n` +
-      `يرجى الضغط على الرابط أعلاه والتأكد من ظهور نشاطكم وبياناته على الخريطة أولاً قبل السداد.\n\n` +
+      `يرجى الضغط على الرابط أعلاه والتأكد من ظهور نشاطك وبياناته على الخريطة أولاً قبل السداد.\n\n` +
       `• *المبلغ المستحق:* ${remaining} ج.م\n` +
       `• *طرق الدفع:*\n` +
       `- إنستاباي: ${payConfig.instaPay}\n` +
       `- فودافون كاش / محافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}\n\n` +
-      `يرجى إرسال صورة التحويل بعد التأكد والسداد لتأكيد وتفعيل الحساب.\n` +
+      `يرجى إرسال صورة التحويل بعد التأكد والسداد لتأكيد الحساب.\n` +
       `منظومة دليلك`;
   }
 
