@@ -1,3 +1,24 @@
+function getActivePaymentConfig() {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('dalelak_payment_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          vodafone1: parsed.vodafoneCashNumber || '01143888355',
+          vodafone2: parsed.vodafoneCashNumber2 || '01556221141',
+          instaPay: parsed.instaPayHandle || '@daz31181',
+        };
+      }
+    }
+  } catch {}
+  return {
+    vodafone1: '01143888355',
+    vodafone2: '01556221141',
+    instaPay: '@daz31181',
+  };
+}
+
 import { Business } from '../types';
 
 // Using a cache-busting parameter forces WhatsApp servers to crawl and fetch the new 3D OpenGraph image immediately
@@ -128,25 +149,35 @@ export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
   const isFullyPaid = isFeeExempt || biz.paymentStatus === 'fully_paid' || remaining === 0;
   const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
+  const owner = biz.ownerName || 'صاحب النشاط';
+  const name = biz.nameAr || 'نشاطكم';
+  const payConfig = getActivePaymentConfig();
 
-  const raw = 
-    `*تهانينا! تم توثيق واعتماد نشاطكم رسمياً على خرائط Google*\n\n` +
-    `أهلاً بحضرتك أستاذ *${biz.ownerName || 'صاحب النشاط'}*\n` +
-    `تسر منصة *دليلك* إعلامكم بأنه تم نشر وتفعيل نشاطكم التجاري *(${biz.nameAr})* بنجاح على خرائط Google Maps والمنصات الجغرافية المعتمدة.\n\n` +
-    `• *رابط موقعكم المباشر على خرائط Google:*\n` +
-    `${activeMapUrl}\n\n` +
-    `• *رابط صفحتكم على دليل الأنشطة المعتمد:* ${DIRECTORY_URL}\n\n` +
-    (isFeeExempt
-      ? `• *حالة الحساب:* إدراج مجاني بدون أي رسوم معلقة.\n\n`
-      : isFullyPaid
-      ? `• *حالة الحساب:* مسدد بالكامل (${pkgPrice} ج.م) — لا توجد أي مستحقات معلقة.\n\n`
-      : `• *حالة الحساب:* متبقي سداد (*${remaining} ج.م*)\n\n` +
-        `*طرق الدفع المعتمدة للتسوية:*\n` +
-        `- إنستاباي (InstaPay): @daz31181\n` +
-        `- فودافون كاش / محافظ إلكترونية: 01143888355 أو 01556221141\n\n` +
-        `*(يرجى إرسال صورة إيصال التحويل لتأكيد إتمام التسوية وإصدار المخالصة النهائية)*\n\n`) +
-    `نتمنى لنشاطكم دوام التوفيق والازدهار!\n` +
-    `فريق عمل منظومة دليلك`;
+  let raw = '';
+
+  if (isFullyPaid || isFeeExempt) {
+    raw = 
+      `أهلاً أستاذ *${owner}* (${name}) 🗺️\n` +
+      `تم توثيق وظهور نشاطكم رسمياً على خرائط Google.\n\n` +
+      `📍 *رابط النشاط المباشر على Google Maps:*\n` +
+      `${activeMapUrl}\n\n` +
+      `• *حالة السداد:* مسدد بالكامل (خالص ✓)\n\n` +
+      `نتمنى لكم دوام التوفيق والنجاح!\n` +
+      `منظومة دليلك`;
+  } else {
+    raw = 
+      `أهلاً أستاذ *${owner}* (${name}) 🗺️\n` +
+      `تم توثيق وظهور نشاطكم رسمياً على خرائط Google.\n\n` +
+      `📍 *رابط النشاط المباشر على Google Maps:*\n` +
+      `${activeMapUrl}\n\n` +
+      `يرجى الضغط على الرابط أعلاه والتأكد من ظهور نشاطكم وبياناته على الخريطة أولاً قبل السداد.\n\n` +
+      `• *المبلغ المستحق:* ${remaining} ج.م\n` +
+      `• *طرق الدفع:*\n` +
+      `- إنستاباي: ${payConfig.instaPay}\n` +
+      `- فودافون كاش / محافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}\n\n` +
+      `يرجى إرسال صورة التحويل بعد التأكد والسداد لتأكيد وتفعيل الحساب.\n` +
+      `منظومة دليلك`;
+  }
 
   return cleanWhatsAppText(raw);
 }
