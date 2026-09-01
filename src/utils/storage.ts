@@ -36,12 +36,12 @@ export function getSafeBusinessesForStorage(businesses: any[]): any[] {
             if (typeof p !== 'string') return '';
             // If it's a hosted URL (http/https), keep it intact
             if (p.startsWith('http://') || p.startsWith('https://')) return p;
-            // If it's a huge base64 payload (> 20KB), strip from localStorage to prevent quota overflow
-            if (p.startsWith('data:') && p.length > 20000) return '';
+            // Keep compressed photos up to 150KB for fast card previews
+            if (p.startsWith('data:') && p.length > 150000) return '';
             return p;
           })
           .filter(Boolean)
-          .slice(0, 3)
+          .slice(0, 2)
       : [];
 
     return {
