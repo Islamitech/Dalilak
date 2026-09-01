@@ -332,8 +332,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         accuracyCircleRef.current = circle;
       }
     } else {
-      // View Mode: Render all Businesses as native Leaflet markers
+      // View Mode: Render ONLY verified Businesses as native Leaflet markers
       const filteredBusinesses = businesses.filter((b) => {
+        if (b.verificationStatus !== 'verified') return false;
         if (selectedGovFilter !== 'all' && !b.governorate.includes(selectedGovFilter)) {
           return false;
         }
