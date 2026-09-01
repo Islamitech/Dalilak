@@ -163,11 +163,12 @@ export default function App() {
     lastSyncTime: null,
   });
 
-  // Reactive IndexedDB Offline Sync Status Listener
+  // Reactive IndexedDB Offline Sync Status Listener (Strictly User-Scoped)
   useEffect(() => {
     const updateSyncStatus = async () => {
       try {
-        const status = await getOfflineSyncStatus();
+        const effectiveUid = user?.id || user?.email || null;
+        const status = await getOfflineSyncStatus(effectiveUid);
         setOfflineSyncStatus(status);
       } catch {}
     };
@@ -183,7 +184,7 @@ export default function App() {
       window.removeEventListener('online', updateSyncStatus);
       window.removeEventListener('offline', updateSyncStatus);
     };
-  }, []);
+  }, [user]);
 
   const [businesses, setBusinesses] = useState<Business[]>(() => getCachedBusinesses());
 
@@ -1520,6 +1521,7 @@ export default function App() {
     window.history.replaceState({}, '', url.toString());
 
     addNotification('🔒 تم تسجيل الخروج بنجاح من الحساب.', 'info');
+    window.dispatchEvent(new CustomEvent('dalelak_offline_state_changed'));
 
     // Refresh full cloud database list on logout so public view shows all businesses immediately
     fetchBusinessesFromDb().then((freshData) => {
@@ -1535,6 +1537,7 @@ export default function App() {
     setShowLoginModal(false);
     safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(u)));
     safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
+    window.dispatchEvent(new CustomEvent('dalelak_offline_state_changed'));
 
     const roleLabels: Record<string, string> = {
       admin: 'مدير النظام (صلاحيات كاملة) 🛡️',
@@ -2754,6 +2757,7 @@ export default function App() {
       {/* MODAL: OFFLINE SYNC HUB (INDEXEDDB & ZERO DATA LOSS) */}
       <OfflineSyncModal
         isOpen={showOfflineSyncModal}
+        currentUser={user}
         onClose={() => setShowOfflineSyncModal(false)}
         onSyncComplete={async () => {
           try {

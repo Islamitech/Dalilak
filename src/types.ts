@@ -46,6 +46,9 @@ export interface Business {
   feeExemptionReason?: string; // سبب الإعفاء
   notes?: string;
   createdDate: string;
+  _offlineUserId?: string;
+  _offlineTimestamp?: number;
+  _isOfflinePending?: boolean;
 }
 
 export interface ToastNotification {
@@ -160,6 +163,8 @@ export interface PayoutRequest {
   transactionRef?: string;
   receiptPhoto?: string;
   type?: 'payout' | 'remittance'; // طلب سحب أرباح أو إشعار توريد سداد للمنصة
+  _offlineUserId?: string;
+  _offlineTimestamp?: number;
 }
 
 export type LeadInterestLevel = 'high' | 'medium' | 'low' | 'intro_sent' | 'need_visit';
@@ -182,5 +187,7 @@ export interface InterestedLead {
   repName: string;
   lastContactedDate?: string;
   status: LeadStatus;
+  _offlineUserId?: string;
+  _offlineTimestamp?: number;
 }
 

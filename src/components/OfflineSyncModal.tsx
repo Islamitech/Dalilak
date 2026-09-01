@@ -28,12 +28,14 @@ interface OfflineSyncModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSyncComplete?: () => void;
+  currentUser?: any;
 }
 
 export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
   isOpen,
   onClose,
   onSyncComplete,
+  currentUser,
 }) => {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [offlineBusinesses, setOfflineBusinesses] = useState<Business[]>([]);
@@ -43,12 +45,14 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; message: string } | null>(null);
   const [syncResult, setSyncResult] = useState<{ success: boolean; text: string } | null>(null);
 
+  const effectiveUid = currentUser?.id || currentUser?.email;
+
   const loadOfflineData = async () => {
     try {
       const [biz, leads, payouts] = await Promise.all([
-        getOfflineBusinesses(),
-        getOfflineLeads(),
-        getOfflinePayouts(),
+        getOfflineBusinesses(effectiveUid),
+        getOfflineLeads(effectiveUid),
+        getOfflinePayouts(effectiveUid),
       ]);
       setOfflineBusinesses(biz);
       setOfflineLeads(leads);
@@ -78,7 +82,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
       window.removeEventListener('online', handleStateChange);
       window.removeEventListener('offline', handleStateChange);
     };
-  }, [isOpen]);
+  }, [isOpen, effectiveUid]);
 
   if (!isOpen) return null;
 
@@ -97,7 +101,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
     setSyncResult(null);
 
     try {
-      const result = await syncAllPendingOfflineData((current, total, message) => {
+      const result = await syncAllPendingOfflineData(effectiveUid, (current, total, message) => {
         setSyncProgress({ current, total, message });
       });
 

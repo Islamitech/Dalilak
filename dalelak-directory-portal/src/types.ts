@@ -49,6 +49,9 @@ export interface Business {
   feeExemptionReason?: string; // سبب الإعفاء
   notes?: string;
   createdDate: string;
+  _offlineUserId?: string;
+  _offlineTimestamp?: number;
+  _isOfflinePending?: boolean;
 }
 
 export interface ToastNotification {

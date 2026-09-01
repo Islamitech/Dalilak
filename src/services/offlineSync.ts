@@ -53,19 +53,41 @@ export function openOfflineDb(): Promise<IDBDatabase> {
   });
 }
 
+/**
+ * Helper to get currently active authenticated user identity (id or email)
+ */
+export function getActiveUserId(): string | null {
+  try {
+    const sessionUser = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('dalelak_active_user') : null;
+    if (sessionUser) {
+      const parsed = JSON.parse(sessionUser);
+      if (parsed && (parsed.id || parsed.email)) return (parsed.id || parsed.email).toString();
+    }
+    const localUser = typeof localStorage !== 'undefined' ? localStorage.getItem('dalelak_active_user') : null;
+    if (localUser) {
+      const parsed = JSON.parse(localUser);
+      if (parsed && (parsed.id || parsed.email)) return (parsed.id || parsed.email).toString();
+    }
+  } catch {}
+  return null;
+}
+
 // -----------------------------------------------------------------------------
 // BUSINESSES STORE HELPERS
 // -----------------------------------------------------------------------------
 
-export async function saveOfflineBusiness(business: Business): Promise<void> {
+export async function saveOfflineBusiness(business: Business, userId?: string): Promise<void> {
   try {
     const db = await openOfflineDb();
     const tx = db.transaction(STORES.BUSINESSES, 'readwrite');
     const store = tx.objectStore(STORES.BUSINESSES);
     
+    const currentUid = userId || getActiveUserId() || business.repId || 'unknown';
+
     // Add offline metadata tag
     const offlineRecord = {
       ...business,
+      _offlineUserId: currentUid,
       _offlineTimestamp: Date.now(),
       _isOfflinePending: true,
     };
@@ -84,15 +106,27 @@ export async function saveOfflineBusiness(business: Business): Promise<void> {
   }
 }
 
-export async function getOfflineBusinesses(): Promise<Business[]> {
+export async function getOfflineBusinesses(targetUserId?: string | null): Promise<Business[]> {
   try {
+    const effectiveUid = targetUserId !== undefined ? targetUserId : getActiveUserId();
+    // If no user is logged in, do not return any pending offline records to prevent cross-account leak
+    if (!effectiveUid) return [];
+
     const db = await openOfflineDb();
     const tx = db.transaction(STORES.BUSINESSES, 'readonly');
     const store = tx.objectStore(STORES.BUSINESSES);
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => {
+        const all: Business[] = request.result || [];
+        const filtered = all.filter((b: any) => {
+          const recordUid = (b._offlineUserId || b.repId || '').toString().toLowerCase();
+          const currentUidStr = effectiveUid.toString().toLowerCase();
+          return recordUid === currentUidStr || recordUid === 'unknown';
+        });
+        resolve(filtered);
+      };
       request.onerror = () => reject(request.error);
     });
   } catch (err) {
@@ -124,12 +158,19 @@ export async function removeOfflineBusiness(id: string): Promise<void> {
 // LEADS STORE HELPERS
 // -----------------------------------------------------------------------------
 
-export async function saveOfflineLead(lead: InterestedLead): Promise<void> {
+export async function saveOfflineLead(lead: InterestedLead, userId?: string): Promise<void> {
   try {
     const db = await openOfflineDb();
     const tx = db.transaction(STORES.LEADS, 'readwrite');
     const store = tx.objectStore(STORES.LEADS);
-    store.put({ ...lead, _offlineTimestamp: Date.now() });
+
+    const currentUid = userId || getActiveUserId() || lead.repId || 'unknown';
+
+    store.put({
+      ...lead,
+      _offlineUserId: currentUid,
+      _offlineTimestamp: Date.now(),
+    });
 
     return new Promise((resolve, reject) => {
       tx.oncomplete = () => {
@@ -143,15 +184,26 @@ export async function saveOfflineLead(lead: InterestedLead): Promise<void> {
   }
 }
 
-export async function getOfflineLeads(): Promise<InterestedLead[]> {
+export async function getOfflineLeads(targetUserId?: string | null): Promise<InterestedLead[]> {
   try {
+    const effectiveUid = targetUserId !== undefined ? targetUserId : getActiveUserId();
+    if (!effectiveUid) return [];
+
     const db = await openOfflineDb();
     const tx = db.transaction(STORES.LEADS, 'readonly');
     const store = tx.objectStore(STORES.LEADS);
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => {
+        const all: InterestedLead[] = request.result || [];
+        const filtered = all.filter((l: any) => {
+          const recordUid = (l._offlineUserId || l.repId || '').toString().toLowerCase();
+          const currentUidStr = effectiveUid.toString().toLowerCase();
+          return recordUid === currentUidStr || recordUid === 'unknown';
+        });
+        resolve(filtered);
+      };
       request.onerror = () => reject(request.error);
     });
   } catch (err) {
@@ -183,12 +235,19 @@ export async function removeOfflineLead(id: string): Promise<void> {
 // PAYOUTS STORE HELPERS
 // -----------------------------------------------------------------------------
 
-export async function saveOfflinePayout(payout: PayoutRequest): Promise<void> {
+export async function saveOfflinePayout(payout: PayoutRequest, userId?: string): Promise<void> {
   try {
     const db = await openOfflineDb();
     const tx = db.transaction(STORES.PAYOUTS, 'readwrite');
     const store = tx.objectStore(STORES.PAYOUTS);
-    store.put({ ...payout, _offlineTimestamp: Date.now() });
+
+    const currentUid = userId || getActiveUserId() || payout.repId || 'unknown';
+
+    store.put({
+      ...payout,
+      _offlineUserId: currentUid,
+      _offlineTimestamp: Date.now(),
+    });
 
     return new Promise((resolve, reject) => {
       tx.oncomplete = () => {
@@ -202,15 +261,26 @@ export async function saveOfflinePayout(payout: PayoutRequest): Promise<void> {
   }
 }
 
-export async function getOfflinePayouts(): Promise<PayoutRequest[]> {
+export async function getOfflinePayouts(targetUserId?: string | null): Promise<PayoutRequest[]> {
   try {
+    const effectiveUid = targetUserId !== undefined ? targetUserId : getActiveUserId();
+    if (!effectiveUid) return [];
+
     const db = await openOfflineDb();
     const tx = db.transaction(STORES.PAYOUTS, 'readonly');
     const store = tx.objectStore(STORES.PAYOUTS);
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => {
+        const all: PayoutRequest[] = request.result || [];
+        const filtered = all.filter((p: any) => {
+          const recordUid = (p._offlineUserId || p.repId || '').toString().toLowerCase();
+          const currentUidStr = effectiveUid.toString().toLowerCase();
+          return recordUid === currentUidStr || recordUid === 'unknown';
+        });
+        resolve(filtered);
+      };
       request.onerror = () => reject(request.error);
     });
   } catch (err) {
@@ -242,12 +312,26 @@ export async function removeOfflinePayout(id: string): Promise<void> {
 // PENDING COUNTS & STATUS
 // -----------------------------------------------------------------------------
 
-export async function getOfflineSyncStatus(): Promise<OfflineSyncStatus> {
+export async function getOfflineSyncStatus(targetUserId?: string | null): Promise<OfflineSyncStatus> {
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+  const effectiveUid = targetUserId !== undefined ? targetUserId : getActiveUserId();
+
+  if (!effectiveUid) {
+    return {
+      isOnline,
+      isSyncing: false,
+      pendingBusinessesCount: 0,
+      pendingLeadsCount: 0,
+      pendingPayoutsCount: 0,
+      totalPendingCount: 0,
+      lastSyncTime: null,
+    };
+  }
+
   const [businesses, leads, payouts] = await Promise.all([
-    getOfflineBusinesses(),
-    getOfflineLeads(),
-    getOfflinePayouts(),
+    getOfflineBusinesses(effectiveUid),
+    getOfflineLeads(effectiveUid),
+    getOfflinePayouts(effectiveUid),
   ]);
 
   const lastSyncTime = typeof localStorage !== 'undefined' ? localStorage.getItem('dalelak_last_sync_timestamp') : null;
@@ -270,6 +354,7 @@ export async function getOfflineSyncStatus(): Promise<OfflineSyncStatus> {
 let isCurrentlySyncing = false;
 
 export async function syncAllPendingOfflineData(
+  targetUserId?: string | null,
   onProgress?: (current: number, total: number, itemName: string) => void
 ): Promise<{ success: boolean; syncedCount: number; failedCount: number }> {
   if (isCurrentlySyncing) {
@@ -284,6 +369,11 @@ export async function syncAllPendingOfflineData(
     return { success: false, syncedCount: 0, failedCount: 0 };
   }
 
+  const effectiveUid = targetUserId !== undefined ? targetUserId : getActiveUserId();
+  if (!effectiveUid) {
+    return { success: true, syncedCount: 0, failedCount: 0 };
+  }
+
   isCurrentlySyncing = true;
   dispatchOfflineStateChangeEvent();
 
@@ -292,9 +382,9 @@ export async function syncAllPendingOfflineData(
 
   try {
     const [businesses, leads, payouts] = await Promise.all([
-      getOfflineBusinesses(),
-      getOfflineLeads(),
-      getOfflinePayouts(),
+      getOfflineBusinesses(effectiveUid),
+      getOfflineLeads(effectiveUid),
+      getOfflinePayouts(effectiveUid),
     ]);
 
     const totalItems = businesses.length + leads.length + payouts.length;
