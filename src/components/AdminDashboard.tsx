@@ -46,6 +46,7 @@ import {
   FileCheck,
   Compass,
   PieChart,
+  BarChart3,
   Award,
   ChevronDown,
   ChevronUp,
@@ -3017,8 +3018,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   {repBiz.length > 0 ? (
                                     repBiz.map((biz) => {
                                       const isVerified = biz.verificationStatus === 'verified';
-                                      const isPaid = (biz.amountPaid || 0) > 0 || biz.paymentStatus === 'paid';
-                                      const isCashHand = (biz.cashCollectedByRep || 0) > 0 || biz.paymentMethod === 'cash';
+                                      const isPaid = (biz.amountPaid || 0) > 0 || (biz.paymentStatus as string) === 'paid_full' || (biz.paymentStatus as string) === 'paid_deposit';
+                                      const isCashHand = (biz.cashCollectedByRep || 0) > 0 || (biz.paymentMethod as string) === 'cash_by_rep';
                                       const commAmt = Math.round(((biz.amountPaid || 0) * repRate) / 100);
                                       const platAmt = (biz.amountPaid || 0) - commAmt;
 
@@ -3036,7 +3037,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                           <div className="min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                               <span className="font-black text-[var(--text-primary)]">
-                                                {biz.name}
+                                                {biz.nameAr || biz.nameEn || 'نشاط تجاري'}
                                               </span>
                                               <span className="text-[10px] text-[var(--text-muted)]">
                                                 ({biz.governorate} - {biz.city})

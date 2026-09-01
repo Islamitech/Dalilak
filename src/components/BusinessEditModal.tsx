@@ -39,6 +39,7 @@ import {
   Send,
   TrendingUp,
   ShieldCheck,
+  QrCode,
 } from 'lucide-react';
 
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';

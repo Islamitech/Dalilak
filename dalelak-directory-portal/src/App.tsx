@@ -19,10 +19,14 @@ export default function App() {
     return [];
   });
   const [loading, setLoading] = useState<boolean>(() => {
-    const isPortalInitialized = localStorage.getItem('dalelak_portal_initialized') === 'true';
-    const hasCachedData = Boolean(localStorage.getItem('dalelak_directory_cache') || localStorage.getItem('dalelak_cached_businesses'));
-    // If directory cache exists or portal was visited before, render instantly in 0ms without skeleton flicker!
-    return !isPortalInitialized && !hasCachedData;
+    try {
+      const cached = localStorage.getItem('dalelak_directory_cache') || localStorage.getItem('dalelak_cached_businesses');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch {}
+    return true; // Always true if no cached data exists, until Supabase responds
   });
   const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
 

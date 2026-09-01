@@ -429,68 +429,77 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         {/* SHOWCASE VIEW 2: BUSINESSES GRID */}
         {activeView === 'grid' && (
           <div className="space-y-6">
-            {/* 1. SKELETON LOADING STATE */}
-            {isActuallyLoading && businesses.length === 0 && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
-                  <span>جاري جلب وتحديث الأنشطة التجارية والدليل الميداني...</span>
+            {/* 1. INTERACTIVE FULL LOADING STATE WITH BLUR & SPINNER */}
+            {loading && businesses.length === 0 && (
+              <div className="relative rounded-3xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center p-8 sm:p-12 border border-amber-500/30 bg-gradient-to-b from-amber-500/10 via-[var(--bg-card)] to-amber-500/5 shadow-xl space-y-6 animate-fade-in">
+                {/* Glowing Spinner Centerpiece */}
+                <div className="relative flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin" />
+                  <div className="w-14 h-14 rounded-full border-4 border-emerald-500/20 border-b-emerald-500 animate-spin absolute" style={{ animationDirection: 'reverse', animationDuration: '1.2s' }} />
+                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center absolute text-amber-500 font-bold text-sm">
+                    🗺️
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div
-                      key={`portal-skel-${i}`}
-                      className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col justify-between animate-pulse"
-                    >
-                      <div className="relative h-44 bg-slate-200 dark:bg-slate-800" />
-                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                        <div className="space-y-2">
-                          <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
-                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
-                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-2/3" />
-                        </div>
-                        <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
-                          <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl flex-1" />
-                          <div className="h-8 w-8 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
-                          <div className="h-8 w-8 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center space-y-2 max-w-md">
+                  <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)] animate-pulse">
+                    {initialBizId ? 'جاري فتح وتحضير النشاط المطلوب مباشرة...' : 'جاري الاتصال السحابي واستجلاب بيانات الدليل المعتمد...'}
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] font-bold leading-relaxed">
+                    يتم التحقق من قاعدة البيانات والمزامنة الحية لعرض أحدث الأنشطة والمواقع الموثقة بدقة
+                  </p>
+                </div>
+
+                {/* Shimmer Preview Bars */}
+                <div className="w-full max-w-md space-y-2.5 pt-2">
+                  <div className="h-3 bg-amber-500/15 rounded-full w-full animate-pulse" />
+                  <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full w-3/4 mx-auto animate-pulse" />
                 </div>
               </div>
             )}
 
-            {/* 2. EMPTY STATE (When NOT loading & search/filter produces 0 results) */}
-            {!isActuallyLoading && !loading && (businesses.length > 0 ? filteredBusinesses.length === 0 : true) && (
-              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-3">
+            {/* 2. EMPTY STATE (Only when loading has truly finished and DB is empty) */}
+            {!loading && businesses.length === 0 && (
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-3 shadow-sm">
                 <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">
                   🔍
                 </div>
                 <h3 className="font-black text-base text-[var(--text-primary)]">
-                  {businesses.length === 0 ? 'لا توجد أنشطة تجارية مسجلة حالياً' : 'لا توجد نتائج مطابقة لبحثك'}
+                  لا توجد أنشطة تجارية مسجلة حالياً
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] font-bold">
-                  {businesses.length === 0 ? 'سيتم إدراج الأنشطة فور اعتمادها من المنظومة' : 'جرب تغيير خيارات البحث أو اختيار محافظة أخرى'}
+                  سيتم إدراج الأنشطة فور اعتمادها ونشرها من إدارة المنظومة
                 </p>
-                {businesses.length > 0 && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setGovFilter('all');
-                      setCategoryFilter('all');
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
-                  >
-                    إعادة ضبط خيارات البحث 🔄
-                  </button>
-                )}
               </div>
             )}
 
-            {/* 3. BUSINESSES GRID (Instant 0ms Cache-First Render) */}
-            {(!isActuallyLoading || businesses.length > 0) && filteredBusinesses.length > 0 && (
+            {/* 3. FILTER RESULTS EMPTY (When businesses exist but filters match 0) */}
+            {!loading && businesses.length > 0 && filteredBusinesses.length === 0 && (
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-3 shadow-sm">
+                <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">
+                  🔍
+                </div>
+                <h3 className="font-black text-base text-[var(--text-primary)]">
+                  لا توجد نتائج مطابقة لخيارات البحث
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] font-bold">
+                  جرب تغيير خيارات الفلترة أو اختيار محافظة أخرى
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setGovFilter('all');
+                    setCategoryFilter('all');
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                >
+                  إعادة ضبط خيارات البحث 🔄
+                </button>
+              </div>
+            )}
+
+            {/* 4. BUSINESSES GRID (Rendered when businesses exist) */}
+            {filteredBusinesses.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredBusinesses.map((biz) => {
                   const mainPhoto =
@@ -1029,11 +1038,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 )}
               </div>
 
-              {/* 🌟 GOOGLE MAPS VERIFICATION & REVIEWS SECTION */}
+              {/* 🌟 GOOGLE MAPS VERIFICATION & AUTHENTIC REVIEWS HUB */}
               <div className="space-y-3">
                 {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
                   <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
-                    {/* Header with Google Logo / Rating */}
+                    {/* Header with Google Logo & Verified Badge */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-500/20">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-2xl bg-white shadow-md p-2 flex items-center justify-center shrink-0 border border-slate-200">
@@ -1047,23 +1056,15 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-black text-sm text-[var(--text-primary)]">
-                              تقييمات ومراجعات خرائط Google
+                              تقييمات ومراجعات خرائط Google الرسمية
                             </span>
                             <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full">
-                              موثق معتمد ✓
+                              موثق ومعتمد ✓
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 pt-0.5">
-                            <div className="flex items-center text-amber-400">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star key={s} className="w-3.5 h-3.5 fill-current" />
-                              ))}
-                            </div>
-                            <span className="font-mono font-black text-xs text-[var(--text-primary)]">4.9</span>
-                            <span className="text-[11px] text-[var(--text-muted)] font-bold">
-                              (ممتاز • تقييم رسمي على خرائط Google)
-                            </span>
-                          </div>
+                          <p className="text-[11px] text-[var(--text-muted)] font-bold pt-0.5">
+                            التقييمات والمراجعات الحية الصادرة من زوار وعملاء النشاط على خرائط Google
+                          </p>
                         </div>
                       </div>
 
@@ -1074,64 +1075,55 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer shrink-0"
                       >
                         <Navigation className="w-4 h-4" />
-                        <span>فتح الموقع والاتجاهات على Google Maps 🚀</span>
+                        <span>فتح الموقع على Google Maps 🚀</span>
                       </a>
                     </div>
 
-                    {/* Customer Review Snippets */}
-                    <div className="space-y-2.5">
-                      <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 block">
-                        ⭐ أبرز آراء وتقييمات العملاء والزوار:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1.5 shadow-2xs">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs flex items-center justify-center">
-                                أ
-                              </div>
-                              <div>
-                                <span className="font-black text-xs text-[var(--text-primary)] block leading-none">
-                                  أحمد محمود
-                                </span>
-                                <span className="text-[9.5px] text-[var(--text-muted)]">عميل تم التحقق منه ✓</span>
-                              </div>
-                            </div>
-                            <div className="flex text-amber-400">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star key={s} className="w-2.5 h-2.5 fill-current" />
-                              ))}
-                            </div>
+                    {/* Authentic Google Action Hub */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <a
+                        href={selectedBiz.googleMapsUrl.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-emerald-500/30 hover:border-emerald-500 flex items-center justify-between gap-3 group transition-all cursor-pointer shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black">
+                            <Star className="w-4 h-4 fill-current" />
                           </div>
-                          <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed">
-                            "مكان متميز جداً وخدمة راقية وسريعة. العنوان واللوكيشن دقيق جداً على خرائط Google."
-                          </p>
+                          <div>
+                            <span className="font-black text-xs text-[var(--text-primary)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 block transition-colors">
+                              قراءة المراجعات والآراء الحية
+                            </span>
+                            <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                              مشاهدة تعليقات وصور العملاء على خرائط Google
+                            </span>
+                          </div>
                         </div>
+                        <ExternalLink className="w-4 h-4 text-emerald-500 group-hover:translate-x-[-2px] transition-transform shrink-0" />
+                      </a>
 
-                        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1.5 shadow-2xs">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-black text-xs flex items-center justify-center">
-                                م
-                              </div>
-                              <div>
-                                <span className="font-black text-xs text-[var(--text-primary)] block leading-none">
-                                  محمد عبد الرحمن
-                                </span>
-                                <span className="text-[9.5px] text-[var(--text-muted)]">مرشد محلي (Local Guide) ✓</span>
-                              </div>
-                            </div>
-                            <div className="flex text-amber-400">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star key={s} className="w-2.5 h-2.5 fill-current" />
-                              ))}
-                            </div>
+                      <a
+                        href={selectedBiz.googleMapsUrl.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-amber-500/30 hover:border-amber-500 flex items-center justify-between gap-3 group transition-all cursor-pointer shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black">
+                            <MessageCircle className="w-4 h-4" />
                           </div>
-                          <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed">
-                            "تعامل في قمة الذوق والأمانة، والأسعار مناسبة للغاية وجودة المنتجات ممتازة، أنصح بالزيارة."
-                          </p>
+                          <div>
+                            <span className="font-black text-xs text-[var(--text-primary)] group-hover:text-amber-600 dark:group-hover:text-amber-400 block transition-colors">
+                              كتابة تقييم جديد للنشاط
+                            </span>
+                            <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                              شارك تجربتك الحقيقية مباشرة على خرائط Google
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                        <ExternalLink className="w-4 h-4 text-amber-500 group-hover:translate-x-[-2px] transition-transform shrink-0" />
+                      </a>
                     </div>
                   </div>
                 ) : (

@@ -359,6 +359,7 @@ export async function getOfflineSyncStatus(targetUserId?: string | null): Promis
       isSyncing: false,
       pendingBusinessesCount: 0,
       pendingLeadsCount: 0,
+      pendingPayoutsCount: 0,
       totalPendingCount: 0,
       lastSyncTime: null,
     };
@@ -376,6 +377,7 @@ export async function getOfflineSyncStatus(targetUserId?: string | null): Promis
     isSyncing: isCurrentlySyncing,
     pendingBusinessesCount: businesses.length,
     pendingLeadsCount: leads.length,
+    pendingPayoutsCount: 0,
     totalPendingCount: businesses.length + leads.length,
     lastSyncTime,
   };
