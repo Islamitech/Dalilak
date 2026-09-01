@@ -116,6 +116,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   // Tab navigation
   const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp'>('info');
+  const [selectedMotiGroupName, setSelectedMotiGroupName] = useState<string>('');
 
   // Keep internal formData in sync when parent business prop changes & load high-res photos on-demand
   useEffect(() => {
@@ -1537,6 +1538,130 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   {formData.phone || formData.ownerPhone || 'لا يوجد هاتف'}
                 </span>
               </div>
+
+              {/* ── 🌟 CATEGORY-SPECIFIC MOTIVATIONAL CAMPAIGNS (FIRST & PROMINENT) ── */}
+              {(() => {
+                const autoGroup = getMotivationalGroupByBusiness(formData);
+                const currentGroupName = selectedMotiGroupName || autoGroup.groupName;
+                const activeGroupObj = CATEGORY_MOTIVATIONAL_DATA.find((g) => g.groupName === currentGroupName) || autoGroup;
+
+                return (
+                  <div className="bg-gradient-to-b from-emerald-500/10 via-[var(--input-bg)] to-[var(--input-bg)] border-2 border-emerald-500/40 rounded-3xl p-3.5 sm:p-4 space-y-3 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/25 text-emerald-600 dark:text-emerald-300 flex items-center justify-center font-black text-sm shrink-0">
+                          🌟
+                        </div>
+                        <div>
+                          <h4 className="font-black text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                            <span>رسائل التحفيز ونبض النشاط</span>
+                            <span className="text-[10px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                              مخصصة حسب التصنيف
+                            </span>
+                          </h4>
+                          <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">
+                            إشادة بالأداء الميداني، زيارات الخريطة، وحلول عملية لزيادة رضا الزبائن
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="text-xs font-black bg-emerald-500 text-slate-950 px-2.5 py-1 rounded-xl shrink-0 self-start sm:self-auto shadow-2xs">
+                        {activeGroupObj.groupIcon} {activeGroupObj.groupName}
+                      </span>
+                    </div>
+
+                    {/* Category Selector Tabs */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[var(--text-muted)]">اختر تصنيف النشاط لعرض رسائله المخصصة:</span>
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar text-[11px] font-bold">
+                        {CATEGORY_MOTIVATIONAL_DATA.map((grp) => {
+                          const isSelected = grp.groupName === currentGroupName;
+                          const isMatchAuto = grp.groupName === autoGroup.groupName;
+                          return (
+                            <button
+                              key={grp.groupName}
+                              type="button"
+                              onClick={() => setSelectedMotiGroupName(grp.groupName)}
+                              className={`px-2.5 py-1.5 rounded-xl border whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
+                                isSelected
+                                  ? 'bg-emerald-600 text-white font-black border-emerald-500 shadow-xs scale-102'
+                                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-emerald-500/40'
+                              }`}
+                            >
+                              <span>{grp.groupIcon}</span>
+                              <span>{grp.groupName.split(' ')[0]}</span>
+                              {isMatchAuto && (
+                                <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1 py-0.2 rounded">
+                                  نشاطكم
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Render Active Category Models */}
+                    <div className="space-y-2.5 pt-1">
+                      {activeGroupObj.models.map((m, idx) => {
+                        const msgText = m.generateText(formData);
+                        const waUrl = getCategoryMotivationalWhatsAppUrl(m, formData);
+                        const copyKey = `wa_cat_${m.id}`;
+
+                        return (
+                          <div
+                            key={m.id}
+                            className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/50 rounded-2xl p-3 space-y-2 transition-colors shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                                <span>{m.icon}</span>
+                                <span>{idx + 1}. {m.title}</span>
+                              </div>
+                              <span className="text-[9.5px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                                {m.badge}
+                              </span>
+                            </div>
+
+                            <p className="text-[10.5px] text-[var(--text-muted)] font-medium leading-relaxed">
+                              {m.summary}
+                            </p>
+
+                            {/* Message Preview Box */}
+                            <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)]/60 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-32 overflow-y-auto font-sans">
+                              {msgText}
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-0.5">
+                              <a
+                                href={waUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>إرسال عبر WhatsApp 🚀</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(msgText, copyKey)}
+                                className="bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                                title="نسخ نص الرسالة"
+                              >
+                                {copiedField === copyKey ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5 text-emerald-500" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* WELCOME MESSAGE FOR ALREADY-ON-GOOGLE BUSINESSES */}
               {(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google') ? (
