@@ -1,6 +1,6 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { uploadMultipleMediaToStorage } from './storage';
-import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus } from '../types';
+import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole } from '../types';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeBusinessesForStorage } from '../utils/storage';
 import {
   saveOfflineBusiness,
@@ -1422,8 +1422,21 @@ function mapDbToRep(item: any): Representative {
     activationFacePhoto: metaActivationFacePhoto || '',
     nationalIdCardPhoto: metaNationalIdCardPhoto || '',
     nationalIdCardBackPhoto: metaNationalIdCardBackPhoto || '',
-    role: item.role || 'rep',
-    roleTitle: item.role_title || item.roleTitle || 'مندوب مبيعات ميداني',
+    role: (item.role || 'rep') as UserRole,
+    roleTitle: (() => {
+      const rawTitle = (item.role_title || item.roleTitle || '').trim();
+      const actualRole = item.role || 'rep';
+      if (actualRole === 'admin') {
+        return rawTitle && rawTitle !== 'مندوب مبيعات ميداني' ? rawTitle : 'مدير النظام (أدمن)';
+      }
+      if (actualRole === 'supervisor') {
+        return rawTitle && rawTitle !== 'مندوب مبيعات ميداني' ? rawTitle : 'مشرف إدارة منطقة ومحافظة';
+      }
+      if (actualRole === 'accountant') {
+        return rawTitle && rawTitle !== 'مندوب مبيعات ميداني' ? rawTitle : 'محاسب ومحصل فواتير';
+      }
+      return rawTitle || 'مندوب مبيعات ميداني';
+    })(),
     governorate: item.governorate || 'القاهرة',
     targetMonth: Number(item.target_month || item.targetMonth) || 25,
     avatar: parsedAvatar,

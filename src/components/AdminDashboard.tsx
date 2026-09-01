@@ -771,41 +771,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setShowPaymentModal(false);
   };
 
-  // Render role badge helper with custom roleTitle priority
+  // Render role badge helper with custom roleTitle priority & role fallback safety
   const renderRoleBadge = (role: UserRole = 'rep', customTitle?: string) => {
-    const label = customTitle?.trim() || (
-      role === 'admin' ? 'مدير النظام' :
-      role === 'supervisor' ? 'مشرف منطقة' :
-      role === 'accountant' ? 'محاسب ومحصل' : 'مندوب ميداني'
-    );
+    let label = (customTitle || '').trim();
+    if (!label || (role !== 'rep' && label === 'مندوب مبيعات ميداني')) {
+      label = (
+        role === 'admin' ? 'مدير النظام (أدمن)' :
+        role === 'supervisor' ? 'مشرف إدارة منطقة' :
+        role === 'accountant' ? 'محاسب ومحصل فواتير' : 'مندوب مبيعات ميداني'
+      );
+    }
 
     switch (role) {
       case 'admin':
         return (
-          <span className="bg-purple-500/15 text-purple-900 dark:text-purple-300 border border-purple-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs" title={label}>
-            <ShieldCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-            <span className="max-w-[130px] truncate">{label}</span>
+          <span className="bg-purple-500/15 text-purple-900 dark:text-purple-300 border border-purple-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <ShieldCheck className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
         );
       case 'supervisor':
         return (
-          <span className="bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs" title={label}>
-            <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-            <span className="max-w-[130px] truncate">{label}</span>
+          <span className="bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
         );
       case 'accountant':
         return (
-          <span className="bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs" title={label}>
-            <Calculator className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-            <span className="max-w-[130px] truncate">{label}</span>
+          <span className="bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <Calculator className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
         );
       default:
         return (
-          <span className="bg-blue-500/15 text-blue-900 dark:text-blue-300 border border-blue-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs" title={label}>
-            <Briefcase className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-            <span className="max-w-[130px] truncate">{label}</span>
+          <span className="bg-blue-500/15 text-blue-900 dark:text-blue-300 border border-blue-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <Briefcase className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
         );
     }
