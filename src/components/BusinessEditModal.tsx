@@ -201,6 +201,40 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
+  const handleToggleFeeExempt = (exempt: boolean) => {
+    let updated: Business;
+    if (exempt) {
+      updated = {
+        ...formData,
+        isFeeExempt: true,
+        feeExemptionReason: 'نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)',
+        packageId: EXEMPT_PACKAGE.id,
+        packageName: EXEMPT_PACKAGE.title,
+        packagePrice: 0,
+        amountPaid: 0,
+        cashCollectedByRep: 0,
+        paymentStatus: 'fully_paid',
+      };
+    } else {
+      updated = {
+        ...formData,
+        isFeeExempt: false,
+        isAlreadyOnGoogle: false,
+        feeExemptionReason: undefined,
+        packageId: PACKAGES[0].id,
+        packageName: PACKAGES[0].title,
+        packagePrice: PACKAGES[0].price,
+        amountPaid: 0,
+        cashCollectedByRep: 0,
+        paymentStatus: 'unpaid',
+      };
+    }
+    setFormData(updated);
+    onSave(updated);
+    setStatusNotification(exempt ? 'تم إعفاء النشاط وتصفير الرسوم وتحديث قاعدة البيانات بنجاح ✅' : 'تم تحويل النشاط إلى نشاط تجاري عادي وتحديث قاعدة البيانات بنجاح ✅');
+    setTimeout(() => setStatusNotification(null), 3500);
+  };
+
   const handleSetVerificationStatus = (newStatus: VerificationStatus) => {
     const newGoogleSyncStatus = newStatus === 'verified' ? 'synced' : newStatus === 'in_progress' ? 'in_progress' : 'not_synced';
     const updated: Business = {
@@ -1216,43 +1250,19 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       </div>
                     </div>
 
-                    {isEditMode ? (
-                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(formData.isFeeExempt)}
-                          onChange={(e) => {
-                            const isExempt = e.target.checked;
-                            if (isExempt) {
-                              setFormData({
-                                ...formData,
-                                isFeeExempt: true,
-                                feeExemptionReason: 'نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)',
-                                packageId: EXEMPT_PACKAGE.id,
-                                packageName: EXEMPT_PACKAGE.title,
-                                packagePrice: 0,
-                                amountPaid: 0,
-                                cashCollectedByRep: 0,
-                                paymentStatus: 'fully_paid',
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                isFeeExempt: false,
-                                feeExemptionReason: undefined,
-                                packageId: PACKAGES[0].id,
-                                packageName: PACKAGES[0].title,
-                                packagePrice: PACKAGES[0].price,
-                                amountPaid: 0,
-                                cashCollectedByRep: 0,
-                                paymentStatus: 'unpaid',
-                              });
-                            }
-                          }}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 shadow-inner"></div>
-                      </label>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleFeeExempt(!formData.isFeeExempt)}
+                        className={`text-xs font-black px-4 py-2 rounded-xl border transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95 ${
+                          formData.isFeeExempt
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-emerald-600/30'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600'
+                        }`}
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full ${formData.isFeeExempt ? 'bg-white animate-pulse' : 'bg-slate-400'}`}></span>
+                        <span>{formData.isFeeExempt ? '✓ نشاط معفى (إدراج مجاني)' : 'نشاط تجاري عادي (اضغط للإعفاء)'}</span>
+                      </button>
                     ) : (
                       <span className={`text-xs font-black px-3 py-1.5 rounded-xl border ${
                         formData.isFeeExempt
@@ -1870,14 +1880,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               إغلاق
             </button>
 
-            {canEdit && isEditMode && (
+            {canEdit && (
               <button
                 type="button"
                 onClick={handleSubmit}
                 className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 text-slate-950 text-xs font-black px-5 py-2 rounded-xl shadow-md transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                <span>حفظ التعديلات</span>
+                <span>حفظ التعديلات في السحابة</span>
               </button>
             )}
           </div>
