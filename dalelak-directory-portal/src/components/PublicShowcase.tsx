@@ -530,8 +530,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             </div>
           </div>
 
-          {/* 🏷️ HORIZONTAL CATEGORY PILL CHIPS */}
-          <div className="max-w-5xl mx-auto flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {/* 🏷️ CATEGORY PILL CHIPS (Perfect RTL Wrap & Centering) */}
+          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-2 pt-1 pb-2">
             <button
               onClick={() => setCategoryFilter('all')}
               className={`px-4 py-2 rounded-full text-xs font-black shrink-0 transition-all cursor-pointer shadow-xs ${

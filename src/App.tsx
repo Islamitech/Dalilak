@@ -42,6 +42,8 @@ import {
   LayoutGrid, 
   List, 
   MessageCircle, 
+  CheckCircle2,
+  AlertCircle, 
   Store, 
   Navigation,
   Play,
@@ -2328,7 +2330,38 @@ export default function App() {
 
               {/* ── LIST / TABLE MODE (HIGH DENSITY PRODUCTIVITY VIEW - Instant 0ms Render) ─────────── */}
               {(!isLoadingData || businesses.length > 0) && homeViewMode === 'list' && filteredHomeBusinesses.length > 0 && (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
+                  {/* ── TOP MICRO-LEGEND BAR (دليل الرموز والمؤشرات المعتمدة) ── */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-[11px] font-bold text-[var(--text-secondary)] shadow-2xs text-right">
+                    <div className="flex items-center gap-1.5 text-[var(--text-primary)] font-black">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>دليل الحالات والمؤشرات:</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 text-[10.5px]">
+                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-subtle"></span>
+                        <span>موثق رسمي</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span>قيد التوثيق</span>
+                      </span>
+                      <span className="text-[var(--border-color)] opacity-70">|</span>
+                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        <span>مسدد بالكامل</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
+                        <AlertCircle className="w-3 h-3 text-rose-500" />
+                        <span>متبقي تحصيل (دين)</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-lg border border-blue-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <span>إدراج مجاني (0 ج)</span>
+                      </span>
+                    </div>
+                  </div>
+
                   {/* MOBILE VIEW (< md): High-Density Fast Action Rows */}
                   <div className="md:hidden space-y-2.5">
                     {filteredHomeBusinesses.map((biz) => {
@@ -2340,18 +2373,18 @@ export default function App() {
                       return (
                         <div
                           key={`mobile_row_${biz.id}`}
-                          className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-2.5 shadow-2xs hover:border-amber-500/40 transition-all text-right"
+                          className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-3 space-y-2 shadow-2xs hover:border-amber-500/40 transition-all text-right"
                         >
                           {/* Row 1: Name, Category, Verification */}
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="space-y-0.5 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
                               <h4
                                 onClick={() => setEditingBusiness(biz)}
                                 className="font-black text-sm text-[var(--text-primary)] hover:text-amber-500 cursor-pointer truncate"
                               >
                                 {biz.nameAr}
                               </h4>
-                              <div className="flex items-center gap-1.5 text-[10.5px] text-[var(--text-muted)] font-bold">
+                              <div className="flex items-center gap-1.5 text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
                                 <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/20 truncate max-w-[120px]">
                                   {biz.category}
                                 </span>
@@ -2361,25 +2394,35 @@ export default function App() {
                             </div>
 
                             <span
-                              className={`text-[9.5px] font-black px-2 py-0.5 rounded-full shrink-0 border ${
+                              className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-xl shrink-0 border whitespace-nowrap shadow-2xs ${
                                 isVerified
-                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                               }`}
                             >
-                              {isVerified ? '✓ موثق' : '⏳ قيد التوثيق'}
+                              <span className={`w-1.5 h-1.5 rounded-full ${isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                              <span>{isVerified ? 'موثق رسمي' : 'قيد التوثيق'}</span>
                             </span>
                           </div>
 
                           {/* Row 2: Financial & Operational Status */}
                           <div className="flex items-center justify-between text-[11px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] font-bold">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 whitespace-nowrap">
                               {isExempt ? (
-                                <span className="text-teal-600 dark:text-teal-400 font-black">🆓 إدراج مجاني (0 ج)</span>
+                                <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-black">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                  <span>مجاني (0 ج)</span>
+                                </span>
                               ) : remaining === 0 ? (
-                                <span className="text-emerald-600 dark:text-emerald-400 font-black">✓ مسدد بالكامل ({biz.packagePrice || 250} ج)</span>
+                                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-black">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                  <span>خالص ({biz.packagePrice || 250} ج)</span>
+                                </span>
                               ) : (
-                                <span className="text-rose-600 dark:text-rose-400 font-black">⚠️ متبقي {remaining} ج من {biz.packagePrice || 250} ج</span>
+                                <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-black">
+                                  <AlertCircle className="w-3 h-3 text-rose-500" />
+                                  <span>متبقي ({remaining} ج)</span>
+                                </span>
                               )}
                             </div>
                             <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[130px]">
@@ -2387,7 +2430,7 @@ export default function App() {
                             </span>
                           </div>
 
-                          {/* Row 3: Fast Quick Actions (Zero Image Overhead) */}
+                          {/* Row 3: Fast Quick Actions */}
                           <div className="flex items-center justify-between gap-1.5 pt-0.5">
                             <button
                               onClick={() => setEditingBusiness(biz)}
@@ -2433,19 +2476,19 @@ export default function App() {
                     })}
                   </div>
 
-                  {/* DESKTOP VIEW (>= md): High-Speed Data Table */}
+                  {/* DESKTOP VIEW (>= md): High-Speed Clean Data Table */}
                   <div className="hidden md:block bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-right text-xs">
+                      <table className="w-full text-right text-xs table-auto">
                         <thead className="bg-[var(--input-bg)] border-b border-[var(--border-color)] text-[var(--text-muted)] font-black text-[11px]">
                           <tr>
-                            <th className="py-3.5 px-4">النشاط التجاري</th>
-                            <th className="py-3.5 px-3">التصنيف</th>
-                            <th className="py-3.5 px-3">الموقع الجغرافي</th>
-                            <th className="py-3.5 px-3">حالة التوثيق</th>
-                            <th className="py-3.5 px-3">الموقف المالي</th>
-                            <th className="py-3.5 px-3">المندوب المسجل</th>
-                            <th className="py-3.5 px-4 text-center">الإجراءات السريعة</th>
+                            <th className="py-3 px-4 min-w-[170px]">النشاط التجاري</th>
+                            <th className="py-3 px-3 min-w-[130px]">التصنيف</th>
+                            <th className="py-3 px-3 min-w-[130px]">الموقع</th>
+                            <th className="py-3 px-3 min-w-[110px]">حالة التوثيق</th>
+                            <th className="py-3 px-3 min-w-[125px]">الموقف المالي</th>
+                            <th className="py-3 px-3 min-w-[120px]">المندوب المسجل</th>
+                            <th className="py-3 px-4 text-center min-w-[140px]">الإجراءات السريعة</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--border-color)]/60">
@@ -2457,49 +2500,53 @@ export default function App() {
 
                             return (
                               <tr key={`desktop_list_${biz.id}`} className="hover:bg-[var(--input-bg)]/50 transition-colors">
-                                <td className="py-3.5 px-4">
+                                <td className="py-3 px-4">
                                   <div
                                     onClick={() => setEditingBusiness(biz)}
-                                    className="font-black text-[var(--text-primary)] hover:text-amber-500 cursor-pointer text-sm"
+                                    className="font-black text-[var(--text-primary)] hover:text-amber-500 cursor-pointer text-sm truncate max-w-[180px]"
                                   >
                                     {biz.nameAr}
                                   </div>
                                   <div className="text-[10px] font-mono text-[var(--text-muted)]">{biz.invoiceNumber}</div>
                                 </td>
-                                <td className="py-3.5 px-3">
-                                  <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold px-2 py-0.5 rounded-md border border-amber-500/20">
+                                <td className="py-3 px-3">
+                                  <span className="inline-block bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold px-2 py-0.5 rounded-lg border border-amber-500/20 truncate max-w-[140px]">
                                     {biz.category}
                                   </span>
                                 </td>
-                                <td className="py-3.5 px-3 text-[var(--text-secondary)] font-bold">
+                                <td className="py-3 px-3 text-[var(--text-secondary)] font-bold whitespace-nowrap">
                                   {biz.governorate} • {biz.city}
                                 </td>
-                                <td className="py-3.5 px-3">
-                                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${
-                                    isVerified ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                <td className="py-3 px-3 whitespace-nowrap">
+                                  <span className={`inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl border whitespace-nowrap shadow-2xs ${
+                                    isVerified ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                                   }`}>
-                                    {isVerified ? '✓ موثق رسمي' : '⏳ قيد التوثيق'}
+                                    <span className={`w-1.5 h-1.5 rounded-full ${isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                    <span>{isVerified ? 'موثق رسمي' : 'قيد التوثيق'}</span>
                                   </span>
                                 </td>
-                                <td className="py-3.5 px-3">
+                                <td className="py-3 px-3 whitespace-nowrap">
                                   {isExempt ? (
-                                    <span className="text-[10.5px] font-black px-2.5 py-1 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30">
-                                      🆓 إدراج مجاني
+                                    <span className="inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 whitespace-nowrap shadow-2xs">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                      <span>مجاني (0 ج)</span>
                                     </span>
                                   ) : remaining === 0 ? (
-                                    <span className="text-[10.5px] font-black px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                      ✓ مسدد ({biz.packagePrice || 250} ج)
+                                    <span className="inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap shadow-2xs">
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                      <span>خالص ({biz.packagePrice || 250} ج)</span>
                                     </span>
                                   ) : (
-                                    <span className="text-[10.5px] font-black px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                                      متبقي {remaining} ج
+                                    <span className="inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 whitespace-nowrap shadow-2xs">
+                                      <AlertCircle className="w-3 h-3 text-rose-500" />
+                                      <span>متبقي ({remaining} ج)</span>
                                     </span>
                                   )}
                                 </td>
-                                <td className="py-3.5 px-3 text-[11px] text-[var(--text-muted)] font-bold">
+                                <td className="py-3 px-3 text-[11px] text-[var(--text-muted)] font-bold whitespace-nowrap">
                                   {biz.repName || '—'}
                                 </td>
-                                <td className="py-3.5 px-4 text-center">
+                                <td className="py-3 px-4 text-center whitespace-nowrap">
                                   <div className="flex items-center justify-center gap-1.5">
                                     <button
                                       onClick={() => setEditingBusiness(biz)}
