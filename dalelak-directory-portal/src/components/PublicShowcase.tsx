@@ -200,10 +200,17 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
   };
 
-  // All registered businesses for the comprehensive public directory
+  // 100% STRICT PUBLIC DIRECTORY FILTER:
+  // Only officially approved & verified businesses appear on the public directory
   const publicBusinesses = useMemo(() => {
-    return businesses;
-  }, [businesses]);
+    return businesses.filter((b) => {
+      if (!b) return false;
+      // Direct preview link allow-list
+      if (isPreviewMode || (initialBizId && b.id === initialBizId)) return true;
+      // Public directory visibility condition: MUST BE OFFICIALLY APPROVED FOR DIRECTORY
+      return b.verificationStatus === 'verified';
+    });
+  }, [businesses, isPreviewMode, initialBizId]);
 
   // Filtered Businesses
   const filteredBusinesses = useMemo(() => {

@@ -1348,30 +1348,48 @@ export default function App() {
 
   const isRepUser = user?.role === 'rep';
 
-  // 100% STRICT PUBLIC DIRECTORY FILTER:
-  // The Public Directory MUST NEVER display unverified / pending businesses under any circumstance.
-  // All newly registered businesses require review and confirmation by an admin before publication.
-  const verifiedPublicBusinesses = useMemo(() => {
-    return businesses.filter((b) => b.verificationStatus === 'verified');
-  }, [businesses]);
-
+  // 🏛️ MANAGEMENT & OPERATIONAL PLATFORM SCOPING:
+  // Enables administrators and representatives to inspect, filter and manage all activities
   const scopedBusinesses = useMemo(() => {
-    return sortBusinessesNewestFirst(verifiedPublicBusinesses);
-  }, [verifiedPublicBusinesses]);
+    // 1. Admins, Supervisors, Accountants: Have full operational visibility over all businesses
+    if (user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant') {
+      return sortBusinessesNewestFirst(businesses);
+    }
+
+    // 2. Representatives: See all approved businesses + their own registered businesses
+    if (user?.role === 'rep') {
+      const repId = (currentRep.id || '').toLowerCase().trim();
+      const repName = (currentRep.name || '').toLowerCase().trim();
+      const userId = (user?.id || '').toLowerCase().trim();
+      const userName = (user?.name || '').toLowerCase().trim();
+
+      const filtered = businesses.filter((b) => {
+        if (b.verificationStatus === 'verified') return true;
+        const bRepId = (b.repId || '').toLowerCase().trim();
+        const bRepName = (b.repName || '').toLowerCase().trim();
+        const isOwn = (repId && bRepId === repId) || (userId && bRepId === userId) || (repName && bRepName && bRepName.includes(repName)) || (userName && bRepName && bRepName.includes(userName));
+        return isOwn;
+      });
+      return sortBusinessesNewestFirst(filtered);
+    }
+
+    // 3. Public fallback: ONLY verified businesses
+    return sortBusinessesNewestFirst(businesses.filter((b) => b.verificationStatus === 'verified'));
+  }, [user?.role, user?.id, user?.name, businesses, currentRep.id, currentRep.name]);
 
   const homeStats = useMemo(() => {
-    const total = verifiedPublicBusinesses.length;
-    const verified = total;
-    const inProgress = businesses.filter((b) => b.verificationStatus !== 'verified').length;
-    const govs = new Set(verifiedPublicBusinesses.map((b) => b.governorate).filter(Boolean)).size;
-    const fullyPaid = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
-    const exempt = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
+    const total = scopedBusinesses.length;
+    const verified = scopedBusinesses.filter((b) => b.verificationStatus === 'verified').length;
+    const inProgress = scopedBusinesses.filter((b) => b.verificationStatus !== 'verified').length;
+    const govs = new Set(scopedBusinesses.map((b) => b.governorate).filter(Boolean)).size;
+    const fullyPaid = scopedBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
+    const exempt = scopedBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
     return { total, verified, inProgress, govs, fullyPaid, exempt };
-  }, [verifiedPublicBusinesses, businesses]);
+  }, [scopedBusinesses]);
 
   const filteredHomeBusinesses = useMemo(() => {
     return sortBusinessesNewestFirst(
-      verifiedPublicBusinesses.filter((b) => {
+      scopedBusinesses.filter((b) => {
         if (homeSearchQuery) {
           const q = homeSearchQuery.trim().toLowerCase();
           const matchName = (b.nameAr || '').toLowerCase().includes(q) || (b.nameEn || '').toLowerCase().includes(q);
@@ -1396,10 +1414,19 @@ export default function App() {
             return false;
           }
         }
+        if (homeVerificationFilter === 'verified') {
+          if (b.verificationStatus !== 'verified') return false;
+        } else if (homeVerificationFilter === 'in_progress') {
+          if (b.verificationStatus === 'verified') return false;
+        } else if (homeVerificationFilter === 'fully_paid') {
+          if (!b.isFeeExempt && b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
+        } else if (homeVerificationFilter === 'unpaid') {
+          if (b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) > 0) return false;
+        }
         return true;
       })
     );
-  }, [verifiedPublicBusinesses, homeSearchQuery, homeGovFilter, homeCategoryFilter]);
+  }, [scopedBusinesses, homeSearchQuery, homeGovFilter, homeCategoryFilter, homeVerificationFilter]);
 
   // Single-Session Active Heartbeat & Cross-Tab Invalidation Listener
   useEffect(() => {
@@ -1951,8 +1978,8 @@ export default function App() {
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
                   {[
                     { key: 'all', label: 'الكل', count: homeStats.total },
-                    { key: 'verified', label: '🗺️ موثقة رسمياً', count: homeStats.verified },
-                    { key: 'in_progress', label: '⏳ قيد التوثيق', count: homeStats.inProgress },
+                    { key: 'verified', label: '🟢 معتمدة بالدليل', count: homeStats.verified },
+                    { key: 'in_progress', label: '⏳ قيد مراجعة الدليل', count: homeStats.inProgress },
                     { key: 'fully_paid', label: '💳 مسددة بالكامل', count: homeStats.fullyPaid },
                     { key: 'unpaid', label: '⚠️ بانتظار السداد', count: Math.max(0, homeStats.total - homeStats.fullyPaid) },
                   ].map((tab) => (
