@@ -50,7 +50,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH - FAST HIGH-SPEED QUERY)
   if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
     try {
-      const res = await supabaseRestFetch(`businesses?select=${FAST_BUSINESS_SELECT}&order=created_at.desc`);
+      const res = await supabaseRestFetch(`businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&order=created_at.desc`);
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {

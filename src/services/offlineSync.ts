@@ -570,66 +570,61 @@ export async function syncAllPendingOfflineData(
       }
     }
 
-    // 2. Sync Offline Leads
+    // 2. Sync Offline Leads (Reliable Supabase Upsert)
     for (const lead of leads) {
       currentIndex++;
       if (onProgress) onProgress(currentIndex, totalItems, `مزامنة عميل مهتم: ${lead.clientName}`);
 
       try {
-        // Quick verification: Check if already stored in cloud
-        try {
-          const { data: existingLeadCheck } = await supabase
-            .from('leads')
-            .select('id')
-            .eq('id', lead.id)
-            .maybeSingle();
-
-          if (existingLeadCheck && existingLeadCheck.id) {
-            await removeOfflineLead(lead.id);
-            syncedCount++;
-            continue;
-          }
-        } catch {}
-
+        const cleanPhone = lead.phone || '01000000000';
         const leadPayload = {
           id: lead.id,
-          client_name: lead.clientName,
-          business_name: lead.businessName || null,
-          business_category: lead.businessCategory || null,
-          phone: lead.phone,
+          name_ar: lead.businessName ? lead.businessName.trim() : `عميل مهتم: ${lead.clientName}`,
+          owner_name: lead.clientName,
+          owner_phone: cleanPhone,
+          phone: cleanPhone,
           secondary_phone: lead.secondaryPhone || null,
-          governorate: lead.governorate || 'القاهرة',
-          city: lead.city || 'القاهرة',
-          interest_level: lead.interestLevel || 'medium',
-          notes: lead.notes || null,
-          follow_up_date: lead.followUpDate || null,
+          category: lead.businessCategory || 'نشاط تجاري / خدمي آخر',
+          governorate: lead.governorate || 'الجيزة',
+          city: lead.city || 'حدائق الأهرام',
+          package_id: 'pkg_interested_lead',
+          package_name: 'عميل مهتم بالمتابعة',
+          package_price: 0,
+          amount_paid: 0,
+          payment_status: 'unpaid',
+          verification_status: 'lead',
           rep_id: lead.repId || 'rep_1',
           rep_name: lead.repName || 'مندوب معتمد',
-          last_contacted_date: lead.lastContactedDate || null,
-          status: lead.status || 'pending_followup',
+          invoice_number: `LEAD-${lead.id.replace(/\D/g, '').slice(-6) || Date.now()}`,
+          invoice_date: (lead.createdDate || new Date().toISOString()).split('T')[0],
+          notes: JSON.stringify({
+            isInterestedLead: true,
+            clientName: lead.clientName,
+            businessName: lead.businessName,
+            businessCategory: lead.businessCategory,
+            interestLevel: lead.interestLevel,
+            notes: lead.notes,
+            followUpDate: lead.followUpDate,
+            lastContactedDate: lead.lastContactedDate,
+            status: lead.status,
+          }),
         };
 
         let leadSaved = false;
 
         try {
-          const res = await supabaseRestFetch('leads', {
+          const res = await supabaseRestFetch('businesses', {
             method: 'POST',
             headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
             body: JSON.stringify(leadPayload),
           });
-          if (res.ok) leadSaved = true;
+          if (res.ok) {
+            leadSaved = true;
+          } else {
+            const { error } = await supabase.from('businesses').upsert([leadPayload]);
+            if (!error) leadSaved = true;
+          }
         } catch {}
-
-        if (!leadSaved) {
-          try {
-            const localRes = await fetch('/api/leads', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(lead),
-            });
-            if (localRes.ok) leadSaved = true;
-          } catch {}
-        }
 
         if (leadSaved) {
           await removeOfflineLead(lead.id);
