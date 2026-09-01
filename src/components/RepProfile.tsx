@@ -78,7 +78,9 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   isExternalView = false,
 }) => {
   // Navigation Tabs for Profile
-  const [activeTab, setActiveTab] = useState<'id_docs' | 'finance' | 'referral'>('id_docs');
+  const [activeTab, setActiveTab] = useState<'id_docs' | 'finance' | 'activities' | 'referral'>('activities');
+  const [bizSearch, setBizSearch] = useState('');
+  const [bizFilter, setBizFilter] = useState<'all' | 'verified' | 'pending' | 'cash' | 'online' | 'exempt'>('all');
 
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -516,15 +518,15 @@ export const RepProfile: React.FC<RepProfileProps> = ({
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-2xl flex items-center gap-1 shadow-sm text-xs font-bold overflow-x-auto scrollbar-none snap-x">
         <button
           type="button"
-          onClick={() => setActiveTab('id_docs')}
+          onClick={() => setActiveTab('activities')}
           className={`flex-1 min-w-[110px] sm:min-w-[130px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap snap-start ${
-            activeTab === 'id_docs'
+            activeTab === 'activities'
               ? 'bg-amber-500 text-slate-950 font-black shadow-md'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
           }`}
         >
-          <IdCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>بطاقة الهوية والوثائق</span>
+          <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>الأنشطة المسجلة ({repBusinesses.length})</span>
         </button>
 
         <button
@@ -537,7 +539,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
           }`}
         >
           <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>المحفظة والتحصيل</span>
+          <span>كشف الحساب والعمولات</span>
         </button>
 
         <button
@@ -550,9 +552,194 @@ export const RepProfile: React.FC<RepProfileProps> = ({
           }`}
         >
           <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>برنامج الإحالة</span>
+          <span>برنامج الإحالة ({referralSummary.totalInvitedCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('id_docs')}
+          className={`flex-1 min-w-[110px] sm:min-w-[130px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap snap-start ${
+            activeTab === 'id_docs'
+              ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+          }`}
+        >
+          <IdCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>بطاقة التكليف والوثائق</span>
         </button>
       </div>
+
+      {/* ========================================================
+          TAB: 📋 REGISTERED FIELD ACTIVITIES
+          ======================================================== */}
+      {activeTab === 'activities' && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Header & KPI Summary */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 shadow-md space-y-3.5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border-b border-[var(--border-color)] pb-3">
+              <div>
+                <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-amber-500" />
+                  <span>سجل الأنشطة والمحلات المسجلة بواسطتك ({repBusinesses.length})</span>
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  متابعة حالة التوثيق على خرائط جوجل وعمولات كل نشاط مسجل
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-xl border border-emerald-500/30">
+                  {repBusinesses.filter(b => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length} موثق رسمياً
+                </span>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              <input
+                type="text"
+                placeholder="بحث في أنشطتك بالاسم أو المدينة أو رقم الفاتورة..."
+                value={bizSearch}
+                onChange={(e) => setBizSearch(e.target.value)}
+                className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500"
+              />
+
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setBizFilter('all')}
+                  className={`px-2.5 py-1.5 rounded-xl font-bold whitespace-nowrap ${bizFilter === 'all' ? 'bg-amber-500 text-slate-950 font-black' : 'bg-[var(--input-bg)] text-[var(--text-muted)]'}`}
+                >
+                  الكل ({repBusinesses.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBizFilter('verified')}
+                  className={`px-2.5 py-1.5 rounded-xl font-bold whitespace-nowrap ${bizFilter === 'verified' ? 'bg-emerald-600 text-white font-black' : 'bg-[var(--input-bg)] text-[var(--text-muted)]'}`}
+                >
+                  🟢 موثق
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBizFilter('pending')}
+                  className={`px-2.5 py-1.5 rounded-xl font-bold whitespace-nowrap ${bizFilter === 'pending' ? 'bg-amber-600 text-white font-black' : 'bg-[var(--input-bg)] text-[var(--text-muted)]'}`}
+                >
+                  ⏳ قيد التوثيق
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBizFilter('cash')}
+                  className={`px-2.5 py-1.5 rounded-xl font-bold whitespace-nowrap ${bizFilter === 'cash' ? 'bg-blue-600 text-white font-black' : 'bg-[var(--input-bg)] text-[var(--text-muted)]'}`}
+                >
+                  💵 كاش باليد
+                </button>
+              </div>
+            </div>
+
+            {/* Activities Table */}
+            {repBusinesses.length === 0 ? (
+              <div className="p-8 text-center bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
+                لم تقم بتسجيل أي أنشطة بعد. اضغط على زر "تسجيل نشاط جديد" للبدء!
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
+                <table className="w-full text-xs text-right border-collapse min-w-[650px]">
+                  <thead>
+                    <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold text-[11px]">
+                      <th className="p-3">اسم النشاط والتصنيف</th>
+                      <th className="p-3">تاريخ الإضافة</th>
+                      <th className="p-3">الباقة والمبلغ</th>
+                      <th className="p-3">طريقة السداد</th>
+                      <th className="p-3">عمولتك المستحقة</th>
+                      <th className="p-3">حالة التوثيق</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-color)]">
+                    {repBusinesses
+                      .filter((biz) => {
+                        const matchesSearch = !bizSearch.trim() || biz.nameAr?.toLowerCase().includes(bizSearch.toLowerCase()) || biz.city?.toLowerCase().includes(bizSearch.toLowerCase());
+                        if (!matchesSearch) return false;
+                        const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                        const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                        const isCash = !isExempt && (biz.cashCollectedByRep !== undefined ? (biz.cashCollectedByRep || 0) > 0 : biz.paymentMethod === 'cash_by_rep');
+                        if (bizFilter === 'verified') return isVerified;
+                        if (bizFilter === 'pending') return !isVerified;
+                        if (bizFilter === 'cash') return isCash;
+                        if (bizFilter === 'exempt') return isExempt;
+                        return true;
+                      })
+                      .map((biz) => {
+                        const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                        const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                        const isCash = !isExempt && (biz.cashCollectedByRep !== undefined ? (biz.cashCollectedByRep || 0) > 0 : biz.paymentMethod === 'cash_by_rep');
+                        const paid = isExempt ? 0 : Number(biz.amountPaid) || 0;
+                        const commEarned = isExempt ? 0 : Math.round((paid * commissionPercentage) / 100);
+
+                        return (
+                          <tr key={biz.id} className="hover:bg-amber-500/5 transition-colors">
+                            <td className="p-3">
+                              <p className="font-extrabold text-sm text-[var(--text-primary)]">{biz.nameAr}</p>
+                              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">{biz.category} • {biz.city}</p>
+                            </td>
+
+                            <td className="p-3 text-[11px] font-mono text-[var(--text-muted)]">
+                              {biz.createdDate ? new Date(biz.createdDate).toLocaleDateString('ar-EG') : '—'}
+                            </td>
+
+                            <td className="p-3 font-bold">
+                              {isExempt ? (
+                                <span className="text-teal-600 dark:text-teal-400 font-black">إدراج مجاني (0 ج)</span>
+                              ) : (
+                                <div>
+                                  <span className="text-[var(--text-primary)]">{biz.packagePrice || 250} ج.م</span>
+                                  <p className="text-[10px] text-emerald-600 font-black">مسدد: {paid} ج.م</p>
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="p-3">
+                              {isExempt ? (
+                                <span className="text-[10px] font-bold text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded-md">معفى</span>
+                              ) : isCash ? (
+                                <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
+                                  💵 كاش بيدك ({paid} ج)
+                                </span>
+                              ) : paid > 0 ? (
+                                <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
+                                  💳 تحويل للمنصة
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-md">لم يدفع بعد</span>
+                              )}
+                            </td>
+
+                            <td className="p-3 font-black text-emerald-600 dark:text-emerald-400 font-mono text-sm">
+                              {isExempt ? '0 ج.م' : `${commEarned} ج.م`}
+                            </td>
+
+                            <td className="p-3">
+                              {isVerified ? (
+                                <span className="badge-success text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>موثق رسمياً ✅</span>
+                                </span>
+                              ) : (
+                                <span className="badge-warning text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  <span>قيد التوثيق ⏳</span>
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ========================================================
           TAB 1: 🪪 DIGITAL FIELD ID CARD & OFFICIAL DOCUMENTS

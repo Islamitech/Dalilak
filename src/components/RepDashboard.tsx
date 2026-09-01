@@ -8,6 +8,7 @@ import {
 import { getRepReferralSummary, getRepReferralCode, INVITATION_GIFT_BONUS } from '../utils/referral';
 import { UserAvatar } from './UserAvatar';
 import { RequestPayoutModal } from './RequestPayoutModal';
+import { RepAccountDossierModal } from './RepAccountDossierModal';
 import { compressImageFile } from '../utils/imageCompressor';
 import { 
   PlusCircle, 
@@ -51,6 +52,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
 }) => {
   const [copiedCode, setCopiedCode] = useState(false);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [showDossierModal, setShowDossierModal] = useState(false);
   const [showRemitInfoModal, setShowRemitInfoModal] = useState(false);
 
   // Remittance Submission States
@@ -196,13 +198,25 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onAddNewClick}
-          className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs px-5 py-3 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer shrink-0"
-        >
-          <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-          <span>تسجيل وتوثيق نشاط جديد</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowDossierModal(true)}
+            className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-300 font-black text-xs px-4 py-3 rounded-2xl border border-amber-500/40 shadow-xs flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer shrink-0"
+            title="فتح الملف المحاسبي الشامل، كشف الحسابات النقدية، وقائمة الأنشطة وشبكة الإحالة"
+          >
+            <FileCheck className="w-4 h-4 text-amber-500" />
+            <span>الملف المحاسبي والأنشطة</span>
+          </button>
+
+          <button
+            onClick={onAddNewClick}
+            className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs px-5 py-3 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer shrink-0"
+          >
+            <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+            <span>تسجيل وتوثيق نشاط جديد</span>
+          </button>
+        </div>
       </div>
 
       {/* ── SECTION 1: MASTER FINANCIAL & SETTLEMENT ENGINE ────────────── */}
