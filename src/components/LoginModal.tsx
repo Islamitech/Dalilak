@@ -207,16 +207,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Real-time concurrent session check
-      if (
-        foundRep.activeSessionId &&
-        foundRep.lastActiveTimestamp &&
-        now - foundRep.lastActiveTimestamp < SESSION_ACTIVE_THRESHOLD_MS
-      ) {
-        setErrorMsg('⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً. لا يُسمح بتسجيل الدخول المتزامن من أكثر من مكان بنفس الوقت.');
-        setIsLoading(false);
-        return;
-      }
+      // Set active session ID and takeover cleanly
+      foundRep.activeSessionId = newSessionId;
+      foundRep.lastActiveTimestamp = now;
 
       foundRep.activeSessionId = newSessionId;
       foundRep.lastActiveTimestamp = now;

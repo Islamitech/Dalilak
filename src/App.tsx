@@ -86,51 +86,53 @@ import {
   savePaymentConfigToDb,
 } from './services/db';
 
-// Strict Non-Permanent Session: 30 minutes of idle inactivity auto-logout
-const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
+// Session Persistence: 20 minutes of idle inactivity auto-logout
+const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
 
 export default function App() {
-  // Application State - Strictly non-permanent session (SessionStorage only - wiped when browser/tab closes)
+  // Application State - Persisted session (Stays open upon quick reload/reopening, auto-logs out after 20 mins of inactivity)
   const [user, setUser] = useState<User | null>(() => {
-    // 1. Purge legacy permanent localStorage login keys to guarantee accounts do not stay logged in permanently
-    safeRemoveLocalStorageItem('dalelak_logged_user');
-    safeRemoveLocalStorageItem('dalelak_session_expires_at');
-    safeRemoveLocalStorageItem('dalelak_last_interaction');
-
-    // 2. Read strictly from active tab sessionStorage
-    const savedSessionUser = safeGetSessionItem('dalelak_active_user');
-    const lastActive = safeGetSessionItem('dalelak_session_last_active');
+    const savedUserStr = safeGetLocalStorageItem('dalelak_logged_user') || safeGetSessionItem('dalelak_active_user');
+    const lastActiveStr = safeGetLocalStorageItem('dalelak_last_interaction') || safeGetSessionItem('dalelak_session_last_active');
     const now = Date.now();
 
-    if (savedSessionUser) {
-      const lastActiveTimestamp = Number(lastActive) || now;
+    if (savedUserStr) {
+      const lastActiveTimestamp = Number(lastActiveStr) || now;
       const isNotIdle = (now - lastActiveTimestamp) < INACTIVITY_TIMEOUT_MS;
 
       if (isNotIdle) {
         try {
-          const parsed = JSON.parse(savedSessionUser);
+          const parsed = JSON.parse(savedUserStr);
           if (parsed && parsed.id && parsed.name) {
+            safeSetLocalStorageItem('dalelak_last_interaction', String(now));
+            safeSetSessionItem('dalelak_session_last_active', String(now));
             return parsed;
           }
         } catch (e) {}
       }
     }
 
-    // Clean expired or closed session
+    // Clean expired session
+    safeRemoveLocalStorageItem('dalelak_logged_user');
+    safeRemoveLocalStorageItem('dalelak_last_interaction');
     safeRemoveSessionItem('dalelak_active_user');
     safeRemoveSessionItem('dalelak_session_last_active');
-    return null; // Guest visitor / Login prompt by default
+    return null;
   });
 
-  // Sync user state with sessionStorage (NOT permanent localStorage)
+  // Sync user state with localStorage and sessionStorage
   useEffect(() => {
     if (user) {
-      safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(user)));
+      const safeUserStr = JSON.stringify(getSafeUserForStorage(user));
+      safeSetLocalStorageItem('dalelak_logged_user', safeUserStr);
+      safeSetSessionItem('dalelak_active_user', safeUserStr);
+      safeSetLocalStorageItem('dalelak_last_interaction', String(Date.now()));
       safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
     } else {
+      safeRemoveLocalStorageItem('dalelak_logged_user');
+      safeRemoveLocalStorageItem('dalelak_last_interaction');
       safeRemoveSessionItem('dalelak_active_user');
       safeRemoveSessionItem('dalelak_session_last_active');
-      safeRemoveLocalStorageItem('dalelak_logged_user');
     }
   }, [user]);
 
@@ -432,39 +434,38 @@ export default function App() {
     }
   }, []);
 
-  // Live Session Expiration & Idle Inactivity Auto-Logout Watcher
+  // Live Session Expiration & Idle Inactivity Auto-Logout Watcher (Strict 20-minute inactivity timer)
   useEffect(() => {
     if (!user) return;
 
     const updateActivity = () => {
-      localStorage.setItem('dalelak_last_interaction', String(Date.now()));
+      const now = Date.now();
+      safeSetLocalStorageItem('dalelak_last_interaction', String(now));
+      safeSetSessionItem('dalelak_session_last_active', String(now));
     };
 
     window.addEventListener('click', updateActivity, { passive: true });
     window.addEventListener('touchstart', updateActivity, { passive: true });
     window.addEventListener('keydown', updateActivity, { passive: true });
     window.addEventListener('scroll', updateActivity, { passive: true });
+    window.addEventListener('mousemove', updateActivity, { passive: true });
 
-    // Check expiration every 10 seconds
+    // Check inactivity every 15 seconds
     const interval = setInterval(() => {
       const now = Date.now();
-      const sessionExpiresAt = Number(localStorage.getItem('dalelak_session_expires_at')) || 0;
-      const lastInteraction = Number(localStorage.getItem('dalelak_last_interaction')) || now;
+      const lastInteraction = Number(safeGetLocalStorageItem('dalelak_last_interaction') || safeGetSessionItem('dalelak_session_last_active')) || now;
 
-      const isExpired = sessionExpiresAt > 0 && now >= sessionExpiresAt;
       const isIdle = (now - lastInteraction) >= INACTIVITY_TIMEOUT_MS;
 
-      if (isExpired || isIdle) {
+      if (isIdle) {
         handleLogout();
         setShowLoginModal(true);
         addNotification(
-          isIdle
-            ? '⏳ تم تسجيل الخروج تلقائياً لعدم النشاط لفترة. يرجى تسجيل الدخول مجدداً.'
-            : '⏳ انتهت مدة الجلسة المحددة. يرجى تسجيل الدخول مرة أخرى للمتابعة.',
+          '⏳ تم تسجيل الخروج تلقائياً لعدم التفاعل مع الحساب لمدة 20 دقيقة. يرجى تسجيل الدخول مجدداً.',
           'warning'
         );
       }
-    }, 10000);
+    }, 15000);
 
     return () => {
       clearInterval(interval);
@@ -472,6 +473,7 @@ export default function App() {
       window.removeEventListener('touchstart', updateActivity);
       window.removeEventListener('keydown', updateActivity);
       window.removeEventListener('scroll', updateActivity);
+      window.removeEventListener('mousemove', updateActivity);
     };
   }, [user]);
 
