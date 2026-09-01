@@ -51,6 +51,9 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldAlert,
+  Calendar,
+  TrendingUp,
+  Printer,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -376,6 +379,124 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       })
       .sort((a, b) => b.totalBiz - a.totalBiz);
   }, [mergedAdminReps, businesses]);
+
+  // ── MASTER FINANCIAL ACCOUNTING & REVENUE MODEL ──
+  const totalApprovedPayouts = (payoutRequests || [])
+    .filter((p) => p.status === 'approved' && (!p.type || p.type === 'payout'))
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+  const totalPendingPayouts = (payoutRequests || [])
+    .filter((p) => p.status === 'pending' && (!p.type || p.type === 'payout'))
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+  const totalRemittancesReceived = (payoutRequests || [])
+    .filter((p) => p.status === 'approved' && p.type === 'remittance')
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+  const totalCashInRepsHands = businesses.reduce((acc, b) => {
+    if (b.isFeeExempt || b.packagePrice === 0) return acc;
+    if ((b.cashCollectedByRep || 0) > 0) return acc + (b.cashCollectedByRep || 0);
+    if ((b.paymentMethod as string) === 'cash_by_rep') return acc + (b.amountPaid || 0);
+    return acc;
+  }, 0);
+
+  const totalEarnedCommissions = useMemo(() => {
+    return mergedAdminReps.reduce((sum, rep) => {
+      const repBiz = businesses.filter((b) => b.repId === rep.id || b.repName === rep.name || b.repId === rep.phone);
+      const repRate = rep.commissionRate || 42.86;
+      const settlement = calculateRepSettlement(rep.id, repBiz, repRate, payoutRequests);
+      return sum + settlement.totalEarnedCommission;
+    }, 0);
+  }, [mergedAdminReps, businesses, payoutRequests]);
+
+  const netPlatformRevenue = Math.max(0, totalRevenue - totalEarnedCommissions);
+
+  // ── MONTHLY FINANCIAL MATRIX & BREAKDOWN ──
+  const monthlyFinancialStats = useMemo(() => {
+    const monthsMap = new Map<string, {
+      monthKey: string;
+      monthLabel: string;
+      grossRevenue: number;
+      repCommissions: number;
+      netPlatform: number;
+      verifiedCount: number;
+      totalBizCount: number;
+      disbursedPayouts: number;
+      repsActive: Set<string>;
+      repEarningsMap: Map<string, { name: string; earnings: number; count: number }>;
+    }>();
+
+    businesses.forEach((b) => {
+      const d = b.createdDate ? new Date(b.createdDate) : new Date();
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = d.toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
+
+      if (!monthsMap.has(monthKey)) {
+        monthsMap.set(monthKey, {
+          monthKey,
+          monthLabel,
+          grossRevenue: 0,
+          repCommissions: 0,
+          netPlatform: 0,
+          verifiedCount: 0,
+          totalBizCount: 0,
+          disbursedPayouts: 0,
+          repsActive: new Set(),
+          repEarningsMap: new Map(),
+        });
+      }
+
+      const m = monthsMap.get(monthKey)!;
+      m.totalBizCount += 1;
+      if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') {
+        m.verifiedCount += 1;
+      }
+      if (!b.isFeeExempt && (b.packagePrice || 0) > 0) {
+        const paid = b.amountPaid || 0;
+        const rep = mergedAdminReps.find((r) => r.id === b.repId || r.name === b.repName);
+        const rate = rep?.commissionRate || 42.86;
+        const repShare = Math.round((paid * rate) / 100);
+        m.grossRevenue += paid;
+        m.repCommissions += repShare;
+        m.netPlatform += (paid - repShare);
+        const repIdentifier = b.repId || b.repName || 'rep';
+        m.repsActive.add(repIdentifier);
+
+        const curRep = m.repEarningsMap.get(repIdentifier) || { name: b.repName || rep?.name || 'مندوب معتمد', earnings: 0, count: 0 };
+        curRep.earnings += repShare;
+        curRep.count += 1;
+        m.repEarningsMap.set(repIdentifier, curRep);
+      }
+    });
+
+    (payoutRequests || []).forEach((p) => {
+      if (p.status === 'approved' && (!p.type || p.type === 'payout')) {
+        const d = p.requestDate ? new Date(p.requestDate) : new Date();
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (monthsMap.has(monthKey)) {
+          monthsMap.get(monthKey)!.disbursedPayouts += (Number(p.amount) || 0);
+        }
+      }
+    });
+
+    return Array.from(monthsMap.values())
+      .map((m) => {
+        let topRep = { name: 'لا يوجد', earnings: 0 };
+        m.repEarningsMap.forEach((val) => {
+          if (val.earnings > topRep.earnings) topRep = val;
+        });
+        const activeRepsCount = Math.max(1, m.repsActive.size);
+        const avgRepIncome = Math.round(m.repCommissions / activeRepsCount);
+        return {
+          ...m,
+          topRepName: topRep.name,
+          topRepEarnings: topRep.earnings,
+          avgRepIncome,
+        };
+      })
+      .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+  }, [businesses, payoutRequests, mergedAdminReps]);
+
 
   // Filtered Businesses for Businesses Tab
   const filteredBusinesses = useMemo(
@@ -798,6 +919,162 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span>المحافظات المغطاة:</span>
                 <span className="font-bold font-sans text-amber-600 dark:text-amber-400">{governorateStats.length} محافظة</span>
               </div>
+            </div>
+          </div>
+
+
+          {/* ── 🏛️ MASTER FINANCIAL ACCOUNTING & REVENUE BREAKDOWN ── */}
+          <div className="bg-gradient-to-br from-[var(--bg-card)] via-[var(--bg-surface)] to-[var(--bg-card)] border-2 border-amber-500/30 rounded-3xl p-5 shadow-md space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                  <Calculator className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-[var(--text-primary)]">
+                    النمط الحسابي الشامل للمنظومة والتحصيل المالي والعمولات
+                  </h3>
+                  <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
+                    توزيع الإيرادات المحصلة، عمولات فريق المناديب، وصافي أرباح المنظومة
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  صافي المنصة: {netPlatformRevenue.toLocaleString()} ج.م
+                </span>
+              </div>
+            </div>
+
+            {/* 6 Key Accounting Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-center text-xs">
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي المحصل الشامل</span>
+                <span className="font-black text-base text-emerald-600 dark:text-emerald-400 font-mono block">
+                  {totalRevenue.toLocaleString()} <span className="text-[10px]">ج</span>
+                </span>
+                <span className="text-[9px] text-[var(--text-muted)]">كافة باقات المنظومة</span>
+              </div>
+
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات المناديب المكتسبة</span>
+                <span className="font-black text-base text-amber-600 dark:text-amber-400 font-mono block">
+                  {totalEarnedCommissions.toLocaleString()} <span className="text-[10px]">ج</span>
+                </span>
+                <span className="text-[9px] text-[var(--text-muted)]">إجمالي استحقاق المناديب</span>
+              </div>
+
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات تم صرفها فعلياً</span>
+                <span className="font-black text-base text-emerald-600 dark:text-emerald-400 font-mono block">
+                  {totalApprovedPayouts.toLocaleString()} <span className="text-[10px]">ج</span>
+                </span>
+                <span className="text-[9px] text-[var(--text-muted)]">حوالات معتمدة ومكتملة</span>
+              </div>
+
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">طلبات سحب قيد المراجعة</span>
+                <span className="font-black text-base text-amber-500 font-mono block">
+                  {totalPendingPayouts.toLocaleString()} <span className="text-[10px]">ج</span>
+                </span>
+                <span className="text-[9px] text-[var(--text-muted)]">بانتظار التحويل والاعتماد</span>
+              </div>
+
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">كاش محصل بيد المناديب</span>
+                <span className="font-black text-base text-blue-600 dark:text-blue-400 font-mono block">
+                  {totalCashInRepsHands.toLocaleString()} <span className="text-[10px]">ج</span>
+                </span>
+                <span className="text-[9px] text-[var(--text-muted)]">مقبوضات نقدية ميدانية</span>
+              </div>
+
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">صافي أرباح المنظومة</span>
+                <span className="font-black text-base text-teal-600 dark:text-teal-400 font-mono block">
+                  {netPlatformRevenue.toLocaleString()} <span className="text-[10px]">ج</span>
+                </span>
+                <span className="text-[9px] text-[var(--text-muted)]">بعد استقطاع العمولات</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 📅 MONTHLY INCOME & REVENUE BREAKDOWN ── */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-amber-500" />
+                <div>
+                  <h3 className="font-black text-sm text-[var(--text-primary)]">
+                    سجل الإيرادات والدخل الشهري لفريق المناديب والمنظومة
+                  </h3>
+                  <p className="text-[10.5px] text-[var(--text-muted)]">
+                    تحليل الأداء المالي، متوسط دخل المندوب، وأرباح المنظومة عبر الشهور
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs text-[var(--text-muted)] font-bold">
+                السنة المالية الحالية
+              </span>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
+              <table className="w-full text-xs text-right border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold">
+                    <th className="p-3">الشهر / الفترة</th>
+                    <th className="p-3 text-center">الأنشطة الموثقة</th>
+                    <th className="p-3 text-center">إجمالي التحصيل</th>
+                    <th className="p-3 text-center">عمولات المناديب</th>
+                    <th className="p-3 text-center">متوسط دخل المندوب</th>
+                    <th className="p-3 text-center">صافي المنصة</th>
+                    <th className="p-3 text-center">المصروف فعلياً</th>
+                    <th className="p-3 text-center">نجم الشهر 🌟</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-color)]">
+                  {monthlyFinancialStats.map((m) => (
+                    <tr key={m.monthKey} className="hover:bg-amber-500/5 transition-colors">
+                      <td className="p-3 font-bold text-[var(--text-primary)]">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          <span>{m.monthLabel}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-center font-mono font-bold">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">{m.verifiedCount}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]"> / {m.totalBizCount}</span>
+                      </td>
+                      <td className="p-3 text-center font-mono font-black text-[var(--text-primary)]">
+                        {m.grossRevenue.toLocaleString()} ج.م
+                      </td>
+                      <td className="p-3 text-center font-mono font-bold text-amber-600 dark:text-amber-400">
+                        {m.repCommissions.toLocaleString()} ج.م
+                      </td>
+                      <td className="p-3 text-center font-mono font-bold text-blue-600 dark:text-blue-400">
+                        {m.avgRepIncome.toLocaleString()} ج.م
+                      </td>
+                      <td className="p-3 text-center font-mono font-black text-teal-600 dark:text-teal-400">
+                        {m.netPlatform.toLocaleString()} ج.م
+                      </td>
+                      <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {m.disbursedPayouts.toLocaleString()} ج.م
+                      </td>
+                      <td className="p-3 text-center">
+                        {m.topRepEarnings > 0 ? (
+                          <div className="inline-flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30 text-[10.5px]">
+                            <Crown className="w-3 h-3 text-amber-500" />
+                            <span className="font-bold text-amber-800 dark:text-amber-300">{m.topRepName}</span>
+                            <span className="font-mono font-bold text-amber-600">({m.topRepEarnings} ج)</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-[var(--text-muted)]">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

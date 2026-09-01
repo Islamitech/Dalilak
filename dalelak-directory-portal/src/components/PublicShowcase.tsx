@@ -429,31 +429,35 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         {/* SHOWCASE VIEW 2: BUSINESSES GRID */}
         {activeView === 'grid' && (
           <div className="space-y-6">
-            {/* 1. INTERACTIVE FULL LOADING STATE WITH BLUR & SPINNER */}
+            {/* 1. MINIMAL & ELEGANT SKELETON LOADING (Global Standard) */}
             {loading && businesses.length === 0 && (
-              <div className="relative rounded-3xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center p-8 sm:p-12 border border-amber-500/30 bg-gradient-to-b from-amber-500/10 via-[var(--bg-card)] to-amber-500/5 shadow-xl space-y-6 animate-fade-in">
-                {/* Glowing Spinner Centerpiece */}
-                <div className="relative flex items-center justify-center">
-                  <div className="w-20 h-20 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin" />
-                  <div className="w-14 h-14 rounded-full border-4 border-emerald-500/20 border-b-emerald-500 animate-spin absolute" style={{ animationDirection: 'reverse', animationDuration: '1.2s' }} />
-                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center absolute text-amber-500 font-bold text-sm">
-                    🗺️
-                  </div>
+              <div className="space-y-5 animate-fade-in">
+                {/* Slim Status Bar */}
+                <div className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold shadow-xs">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
+                  <span>{initialBizId ? 'جاري فتح وتجهيز النشاط المطلوب...' : 'جاري تحميل الأنشطة...'}</span>
                 </div>
 
-                <div className="text-center space-y-2 max-w-md">
-                  <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)] animate-pulse">
-                    {initialBizId ? 'جاري فتح وتحضير النشاط المطلوب مباشرة...' : 'جاري الاتصال السحابي واستجلاب بيانات الدليل المعتمد...'}
-                  </h3>
-                  <p className="text-xs text-[var(--text-muted)] font-bold leading-relaxed">
-                    يتم التحقق من قاعدة البيانات والمزامنة الحية لعرض أحدث الأنشطة والمواقع الموثقة بدقة
-                  </p>
-                </div>
-
-                {/* Shimmer Preview Bars */}
-                <div className="w-full max-w-md space-y-2.5 pt-2">
-                  <div className="h-3 bg-amber-500/15 rounded-full w-full animate-pulse" />
-                  <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full w-3/4 mx-auto animate-pulse" />
+                {/* Shimmer Card Placeholders Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={`skel-${i}`}
+                      className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col justify-between animate-pulse"
+                    >
+                      <div className="h-44 bg-slate-200 dark:bg-slate-800" />
+                      <div className="p-4 space-y-3">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
+                          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
+                        </div>
+                        <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
+                          <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl flex-1" />
+                          <div className="h-8 w-8 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -42,7 +42,10 @@ import {
   FileCheck,
   Send,
   Clock,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Calendar,
+  TrendingUp,
+  X
 } from 'lucide-react';
 
 interface RepProfileProps {
@@ -119,6 +122,70 @@ export const RepProfile: React.FC<RepProfileProps> = ({
     (p) => p.repId === rep.id && p.type !== 'remittance' && p.status === 'pending'
   );
   const myPayouts = (payoutRequests || []).filter((p) => p.repId === rep.id);
+
+  const [showAnnualStatementModal, setShowAnnualStatementModal] = useState<boolean>(false);
+
+  // ── MONTHLY PROFITS & EARNINGS TRACKER ──
+  const repMonthlyProfits = React.useMemo(() => {
+    const map = new Map<string, {
+      monthKey: string;
+      monthLabel: string;
+      totalBiz: number;
+      verifiedBiz: number;
+      totalSales: number;
+      earnedCommission: number;
+      payoutsReceived: number;
+    }>();
+
+    repBusinesses.forEach((b) => {
+      const d = b.createdDate ? new Date(b.createdDate) : new Date();
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = d.toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
+
+      if (!map.has(monthKey)) {
+        map.set(monthKey, {
+          monthKey,
+          monthLabel,
+          totalBiz: 0,
+          verifiedBiz: 0,
+          totalSales: 0,
+          earnedCommission: 0,
+          payoutsReceived: 0,
+        });
+      }
+
+      const m = map.get(monthKey)!;
+      m.totalBiz += 1;
+      if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') {
+        m.verifiedBiz += 1;
+      }
+      if (!b.isFeeExempt && (b.packagePrice || 0) > 0) {
+        const paid = b.amountPaid || 0;
+        const comm = Math.round((paid * commissionPercentage) / 100);
+        m.totalSales += paid;
+        m.earnedCommission += comm;
+      }
+    });
+
+    (myPayouts || []).forEach((p) => {
+      if (p.status === 'approved' && (!p.type || p.type === 'payout')) {
+        const d = p.requestDate ? new Date(p.requestDate) : new Date();
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (map.has(monthKey)) {
+          map.get(monthKey)!.payoutsReceived += (Number(p.amount) || 0);
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+  }, [repBusinesses, myPayouts, commissionPercentage]);
+
+  // Annual Totals
+  const annualTotalSales = repMonthlyProfits.reduce((s, m) => s + m.totalSales, 0);
+  const annualTotalEarnedComm = repMonthlyProfits.reduce((s, m) => s + m.earnedCommission, 0);
+  const annualTotalDisbursed = repMonthlyProfits.reduce((s, m) => s + m.payoutsReceived, 0);
+  const annualVerifiedBizCount = repMonthlyProfits.reduce((s, m) => s + m.verifiedBiz, 0);
+
 
   const [showBreakdownList, setShowBreakdownList] = useState(false);
   const [showRemitInfoModal, setShowRemitInfoModal] = useState(false);
@@ -1089,6 +1156,105 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                   <p className="text-[var(--text-primary)] font-bold">لا توجد طلبات سحب سابقة مسجلة</p>
                 </div>
               )}
+            </div>
+
+            {/* ── 📅 MONTHLY PROFITS & EARNINGS BREAKDOWN ── */}
+            <div className="pt-4 border-t border-[var(--border-color)] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-amber-500" />
+                  <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                    سجل الأرباح والدخل الشهري التراكمي ({repMonthlyProfits.length} شهور)
+                  </h4>
+                </div>
+                <span className="text-[10.5px] text-[var(--text-muted)] font-bold">
+                  تحديث فوري لكل فترة
+                </span>
+              </div>
+
+              {repMonthlyProfits.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {repMonthlyProfits.map((m) => {
+                    const netRemaining = Math.max(0, m.earnedCommission - m.payoutsReceived);
+                    return (
+                      <div
+                        key={m.monthKey}
+                        className="bg-[var(--bg-surface)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2.5 shadow-xs transition-all"
+                      >
+                        <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
+                          <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                            <span>{m.monthLabel}</span>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                            {m.verifiedBiz} موثق ✅
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]">
+                            <span className="text-[9.5px] text-[var(--text-muted)] font-bold block">مبيعات الشهر</span>
+                            <span className="font-black text-xs text-[var(--text-primary)] font-mono">
+                              {m.totalSales.toLocaleString()} ج.م
+                            </span>
+                          </div>
+
+                          <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]">
+                            <span className="text-[9.5px] text-[var(--text-muted)] font-bold block">العمولة المكتسبة</span>
+                            <span className="font-black text-xs text-emerald-600 dark:text-emerald-400 font-mono">
+                              {m.earnedCommission.toLocaleString()} ج.م
+                            </span>
+                          </div>
+
+                          <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]">
+                            <span className="text-[9.5px] text-[var(--text-muted)] font-bold block">المصروف بحوالات</span>
+                            <span className="font-black text-xs text-blue-600 dark:text-blue-400 font-mono">
+                              {m.payoutsReceived.toLocaleString()} ج.م
+                            </span>
+                          </div>
+
+                          <div className="bg-[var(--bg-card)] p-2 rounded-xl border border-[var(--border-color)]">
+                            <span className="text-[9.5px] text-[var(--text-muted)] font-bold block">المتبقي الصافي</span>
+                            <span className="font-black text-xs text-amber-600 dark:text-amber-400 font-mono">
+                              {netRemaining.toLocaleString()} ج.م
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center text-xs text-[var(--text-muted)] py-3">
+                  لا توجد أرباح مسجلة بعد.
+                </p>
+              )}
+            </div>
+
+            {/* ── 🏛️ ANNUAL STATEMENT & FISCAL ARCHIVE ── */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border-2 border-amber-500/30 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-[var(--text-primary)]">
+                    كشف الحساب والأرشيف المالي السنوي الرسمي
+                  </h4>
+                  <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                    إصدار كشف حساب سنوي معتمد موثق بختم المنظومة لكافة العمليات والعمولات
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAnnualStatementModal(true)}
+                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95 shrink-0"
+              >
+                <Printer className="w-4 h-4" />
+                <span>طباعة كشف الحساب السنوي</span>
+              </button>
             </div>
           </div>
         </div>
