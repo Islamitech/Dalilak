@@ -1259,7 +1259,8 @@ function mapDbToBusiness(item: any): Business {
 }
 
 function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
-  const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+  const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
+  const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
   const record: any = {};
   if (biz.id !== undefined) record.id = biz.id;
   record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'نشاط تجاري';
@@ -1280,14 +1281,18 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.owner_email = biz.ownerEmail?.trim() || null;
   record.national_id = biz.nationalId?.trim() || null;
   record.photos = Array.isArray(biz.photos) ? biz.photos : [];
-  record.package_id = isExempt ? 'pkg_exempt' : (biz.packageId || 'pkg_basic');
-  record.package_name = isExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (biz.packageName || '1. باقة التوثيق الأساسي');
+  record.package_id = isAlreadyOnGoogle ? 'pkg_already_on_google' : (isExempt ? 'pkg_exempt' : (biz.packageId || 'pkg_basic'));
+  record.package_name = isAlreadyOnGoogle ? 'نشاط مسجل مسبقاً على Google Maps (إدراج مجاني)' : (isExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (biz.packageName || '1. باقة التوثيق الأساسي'));
   record.package_price = isExempt ? 0 : (Number(biz.packagePrice) || 250);
   record.amount_paid = isExempt ? 0 : (Number(biz.amountPaid) || 0);
   record.payment_status = isExempt ? 'fully_paid' : (biz.paymentStatus || 'unpaid');
-  record.verification_status = biz.verificationStatus || 'pending';
+  record.verification_status = isAlreadyOnGoogle ? 'verified' : (biz.verificationStatus || 'pending');
   record.rep_id = biz.repId || 'rep_1';
   record.rep_name = biz.repName || 'مندوب معتمد';
+  record.invoice_number = biz.invoiceNumber || `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
+  record.invoice_date = biz.invoiceDate || new Date().toISOString().split('T')[0];
+  record.created_at = biz.createdDate || new Date().toISOString();
+
   let cleanGoogleMapsUrl: string | null = null;
   if (biz.googleMapsUrl && typeof biz.googleMapsUrl === 'string') {
     let trimmed = biz.googleMapsUrl.trim();
@@ -1302,37 +1307,33 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   }
 
   let cleanRepLocationUrl: string | null = null;
-  if (biz.repLocationUrl && typeof biz.repLocationUrl === 'string') {
-    let trimmed = biz.repLocationUrl.trim();
-    if (trimmed) {
-      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-        trimmed = `https://${trimmed}`;
+  if (!isAlreadyOnGoogle) {
+    if (biz.repLocationUrl && typeof biz.repLocationUrl === 'string') {
+      let trimmed = biz.repLocationUrl.trim();
+      if (trimmed) {
+        if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+          trimmed = `https://${trimmed}`;
+        }
+        cleanRepLocationUrl = trimmed;
       }
-      cleanRepLocationUrl = trimmed;
+    }
+    if (!cleanRepLocationUrl && biz.lat && biz.lng) {
+      cleanRepLocationUrl = `https://www.google.com/maps?q=${biz.lat},${biz.lng}`;
     }
   }
-  if (!cleanRepLocationUrl && biz.lat && biz.lng) {
-    cleanRepLocationUrl = `https://www.google.com/maps?q=${biz.lat},${biz.lng}`;
-  }
-
-  record.rep_location_url = cleanRepLocationUrl;
-  record.google_maps_url = cleanGoogleMapsUrl;
-  record.invoice_number = biz.invoiceNumber || `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
-  record.invoice_date = biz.invoiceDate || new Date().toISOString().split('T')[0];
-  record.created_at = biz.createdDate || new Date().toISOString();
 
   // Safely preserve financial, sync, and video metadata in notes JSON
   const metaObj = {
-    paymentMethod: biz.paymentMethod,
+    paymentMethod: isExempt ? 'platform_collected' : biz.paymentMethod,
     cashCollectedByRep: isExempt ? 0 : biz.cashCollectedByRep,
     repCommissionRate: isExempt ? 0 : biz.repCommissionRate,
     isFeeExempt: isExempt,
     feeExemptionReason: biz.feeExemptionReason,
-    isAlreadyOnGoogle: Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google'),
-    registrationType: biz.registrationType || (biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' ? 'already_on_google' : 'new_verification'),
-    googleSyncStatus: biz.googleSyncStatus,
+    isAlreadyOnGoogle,
+    registrationType: isAlreadyOnGoogle ? 'already_on_google' : (biz.registrationType || 'new_verification'),
+    googleSyncStatus: isAlreadyOnGoogle ? 'synced' : biz.googleSyncStatus,
     googlePlaceId: biz.googlePlaceId,
-    googleSyncDate: biz.googleSyncDate,
+    googleSyncDate: isAlreadyOnGoogle ? (biz.googleSyncDate || new Date().toISOString().split('T')[0]) : biz.googleSyncDate,
     repLocationUrl: cleanRepLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl,
     videos: Array.isArray(biz.videos)
