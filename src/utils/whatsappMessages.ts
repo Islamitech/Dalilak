@@ -213,6 +213,33 @@ export function getFreeQrGiftWhatsAppUrl(biz: Business): string {
 }
 
 /**
+ * Monthly Campaign: Importance of QR Code & Video Tutorial Guide
+ */
+export function generateQrImportanceWhatsAppMessage(biz: Business): string {
+  const raw = 
+    `*📲 لماذا من المهم وجود QR Code داخل نشاطك (${biz.nameAr})؟*\n` +
+    `-----------------------------------------\n` +
+    `أهلاً بحضرتك أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
+    `وجود QR Code في مكان واضح داخل النشاط يسهّل على العميل الوصول إلى صفحة نشاطك على خرائط Google وتقييم تجربته في لحظتها، بدلًا من أن يضطر للبحث عن اسم النشاط بنفسه.\n\n` +
+    `*وهذا يساعدك على:*\n` +
+    `⭐ *الحصول على تقييمات من عملاء حقيقيين* بعد تجربتهم مباشرة.\n` +
+    `📍 *تسهيل وصول العميل* إلى موقع ومعلومات نشاطك.\n` +
+    `🤝 *بناء سجل من التقييمات* التي تساعد العملاء الجدد على التعرف على نشاطك والثقة به.\n` +
+    `📈 *الحفاظ على حضور نشاطك الرقمي* وتحديثه من خلال تفاعل العملاء.\n\n` +
+    `لذلك، طباعة QR Code ووضعه داخل النشاط في مكان يراه العميل بسهولة ليست مجرد وسيلة للوصول إلى رابط، بل طريقة بسيطة لربط تجربة العميل داخل المكان بحضور نشاطك على الإنترنت.\n\n` +
+    `🎥 *مرفق لحضرتك مع هذه الرسالة فيديو توضيحي لطريقة استخدام ومسح الباركود للزبائن بكل سهولة!*\n\n` +
+    `منصة دليلك: ${DIRECTORY_URL}`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getQrImportanceWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateQrImportanceWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
  * Monthly Campaign 2: Visual Merchandising & Free Store Layout Consultation
  */
 export function generateVisualConsultingWhatsAppMessage(biz: Business): string {

@@ -52,6 +52,8 @@ import {
   generatePaymentReceiptWhatsAppMessage,
   getFreeQrGiftWhatsAppUrl,
   generateFreeQrGiftWhatsAppMessage,
+  getQrImportanceWhatsAppUrl,
+  generateQrImportanceWhatsAppMessage,
   getVisualConsultingWhatsAppUrl,
   generateVisualConsultingWhatsAppMessage,
   getBusinessCheckupWhatsAppUrl,
@@ -1585,6 +1587,54 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                         title="نسخ نص الرسالة"
                       >
                         {copiedField === 'wa_qr_gift' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Campaign: Importance of QR Code & Explanatory Video Guide */}
+                  <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-blue-500/10 border border-blue-500/30 rounded-2xl p-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                        <QrCode className="w-4 h-4 text-blue-500" />
+                        <span>📲 أهمية وجود الـ QR Code داخل النشاط + فيديو الشرح</span>
+                      </div>
+                      <span className="text-[9px] bg-blue-500/20 text-blue-900 dark:text-blue-300 font-black px-2 py-0.5 rounded-md">
+                        مرفق فيديو توضيحي 🎥
+                      </span>
+                    </div>
+
+                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium leading-relaxed">
+                      رسالة توعوية احترافية تشرح لصاحب النشاط أهمية وضع الباركود لزيادة التقييمات والحضور الرقمي، مع إرسال فيديو شرح عملي.
+                    </p>
+
+                    {/* Admin Visual Notice */}
+                    <div className="bg-blue-500/15 border border-blue-500/30 rounded-xl p-2.5 text-[11px] text-blue-900 dark:text-blue-200 font-bold space-y-1">
+                      <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 font-black">
+                        <span>🎬</span>
+                        <span>تنبيه للإدارة والمشرفين:</span>
+                      </div>
+                      <p className="text-[10.5px] font-medium leading-relaxed">
+                        يُرجى إرفاق <strong>الفيديو التوضيحي</strong> لطريقة استخدام ومسح الباركود للزبائن مع هذه الرسالة عند إرسالها للعميل على الواتساب.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <a
+                        href={getQrImportanceWhatsAppUrl(formData)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>إرسال رسالة أهمية الـ QR (واتساب)</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(generateQrImportanceWhatsAppMessage(formData), 'wa_qr_importance')}
+                        className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        title="نسخ نص الرسالة"
+                      >
+                        {copiedField === 'wa_qr_importance' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-blue-500" />}
                       </button>
                     </div>
                   </div>
