@@ -1819,9 +1819,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         const isLiveVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
                         const isInGoogleReview = (biz.verificationStatus === 'in_progress' || biz.googleSyncStatus === 'in_progress') && !isLiveVerified;
                         const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
-                        const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                        const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
+                        const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
                         const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                        const isPaid = !isExempt && (biz.amountPaid || 0) > 0;
+                        const isPaid = isExempt ? true : (biz.amountPaid || 0) > 0;
                         const isCash = !isExempt && (biz.cashCollectedByRep !== undefined
                           ? (biz.cashCollectedByRep || 0) > 0
                           : biz.paymentMethod !== 'gateway_online' && isPaid);
@@ -1837,11 +1838,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {biz.nameEn && <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.nameEn}</p>}
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                 <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold">{biz.category}</p>
-                                {isExempt && (
+                                {isAlreadyOnGoogle ? (
+                                  <span className="text-[9.5px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-black border border-blue-500/30">
+                                    📍 مسجل بـ Google (0 ج)
+                                  </span>
+                                ) : isExempt ? (
                                   <span className="text-[9.5px] bg-teal-500/20 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-md font-black border border-teal-500/30">
                                     🌟 رائج (معفى مجاناً)
                                   </span>
-                                )}
+                                ) : null}
                               </div>
                             </td>
 
@@ -1849,16 +1854,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <p className="font-bold text-[var(--text-primary)]">{biz.governorate} ({biz.city})</p>
                               <p className="text-[11px] text-[var(--text-secondary)] font-bold">المندوب: {biz.repName}</p>
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                <a
-                                  href={biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-[9.5px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold px-2 py-0.5 rounded-md border border-amber-500/30 inline-flex items-center gap-1"
-                                  title="فتح موقع المعاينة الميدانية المرسل من المندوب (غير موثق)"
-                                >
-                                  <MapPin className="w-2.5 h-2.5 text-amber-500" />
-                                  <span>موقع المندوب (غير موثق) ↗</span>
-                                </a>
+                                {!isAlreadyOnGoogle && (
+                                  <a
+                                    href={biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[9.5px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold px-2 py-0.5 rounded-md border border-amber-500/30 inline-flex items-center gap-1"
+                                    title="فتح موقع المعاينة الميدانية المرسل من المندوب (غير موثق)"
+                                  >
+                                    <MapPin className="w-2.5 h-2.5 text-amber-500" />
+                                    <span>موقع المندوب (غير موثق) ↗</span>
+                                  </a>
+                                )}
                                 {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && (
                                   <a
                                     href={biz.googleMapsUrl.trim()}
@@ -1947,7 +1954,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <CheckCircle2 className="w-3 h-3" />
                                     <span>موثق ومعتمد ✅</span>
                                   </span>
-                                  {!isPaid ? (
+                                  {!isExempt && (!isPaid ? (
                                     <span className="badge-danger text-[9px] font-black px-2 py-0.5 rounded-full block w-fit animate-pulse">
                                       🚨 لم يتم الدفع ({biz.packagePrice || 250} ج)
                                     </span>
@@ -1955,7 +1962,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <span className="badge-warning text-[9px] font-black px-2 py-0.5 rounded-full block w-fit">
                                       ⚠️ متبقي {debtAmount.toLocaleString()} ج.م
                                     </span>
-                                  ) : null}
+                                  ) : null)}
                                 </div>
                               ) : isInGoogleReview ? (
                                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${
@@ -1974,7 +1981,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1.5">
-                                {!isPaid && onCollectPayment && (
+                                {!isExempt && !isPaid && onCollectPayment && (
                                   <button
                                     type="button"
                                     onClick={() => onCollectPayment(biz)}
