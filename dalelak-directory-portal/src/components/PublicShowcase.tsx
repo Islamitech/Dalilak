@@ -214,13 +214,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       <header className="sticky top-0 z-50 bg-[var(--nav-bg)] backdrop-blur-xl border-b border-[var(--border-color)] transition-colors duration-300 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Logo size="md" />
-            <div className="hidden sm:block">
-              <span className="inline-flex items-center gap-1.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>دليل الأنشطة والخدمات المعتمدة</span>
-              </span>
-            </div>
+            <Logo size="md" showSubtitle={false} />
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-xs font-black text-[var(--text-secondary)]">
@@ -266,65 +260,176 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         </div>
       </header>
 
-      {/* 🌟 2. ULTRA-COMPACT SLIM HERO BANNER */}
-      <section className="relative overflow-hidden py-3 sm:py-4 border-b border-[var(--border-color)] bg-gradient-to-r from-amber-500/10 via-[var(--bg-primary)] to-amber-500/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
-              <Building2 className="w-5 h-5" />
+      {/* 🌟 2. UNIFIED MODERN HERO & DIRECTORY SEARCH HUB */}
+      <section className="relative overflow-hidden pt-8 pb-10 border-b border-[var(--border-color)] bg-gradient-to-b from-amber-500/10 via-[var(--bg-primary)] to-[var(--bg-primary)]">
+        {/* Subtle Decorative Background Glows */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 text-center">
+          {/* Main Headline */}
+          <div className="space-y-2.5 max-w-3xl mx-auto">
+            <h1 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
+              اكتشف أفضل المحلات والأنشطة التجارية والخدمات الميدانية
+            </h1>
+
+            <p className="text-xs sm:text-sm text-[var(--text-muted)] font-bold max-w-2xl mx-auto leading-relaxed">
+              تصفح العناوين الدقيقة، أرقام التواصل المباشرة، مقاطع الفيديو الترويجية، والمواقع المعتمدة على الخريطة
+            </p>
+          </div>
+
+          {/* 🔍 UNIFIED SMART SEARCH & FILTER BAR */}
+          <div className="max-w-4xl mx-auto bg-[var(--bg-card)] border-2 border-amber-500/30 dark:border-slate-800 rounded-3xl p-3 sm:p-4 shadow-xl backdrop-blur-xl">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3">
+              {/* Search text input */}
+              <div className="relative md:col-span-6">
+                <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="ابحث باسم المحل، النشاط، أو الخدمة..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl pr-10 pl-4 py-3 text-xs sm:text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Governorate selector */}
+              <div className="md:col-span-3">
+                <select
+                  value={govFilter}
+                  onChange={(e) => setGovFilter(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3.5 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                >
+                  <option value="all">📍 كل المحافظات</option>
+                  {EGYPT_GOVERNORATES.map((g) => (
+                    <option key={g} value={g}>
+                      📍 {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Category dropdown */}
+              <div className="md:col-span-3">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3.5 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                >
+                  <option value="all">🏷️ كل التصنيفات</option>
+                  {CATEGORY_GROUPS.map((grp) => (
+                    <option key={grp.group} value={grp.group}>
+                      {grp.icon} {grp.group}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <h1 className="text-sm sm:text-base font-black text-[var(--text-primary)] flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
-                <span>دليل المحلات والأنشطة التجارية والخدمات المعتمدة</span>
-              </h1>
-              <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                تصفح المحلات والخدمات المسجلة واكتشف أرقام التواصل ومواقعها المعتمدة
-              </p>
+
+            {/* Quick Stats & Active Filter Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 mt-2 border-t border-[var(--border-color)] text-xs">
+              <span className="text-[11.5px] text-[var(--text-muted)] font-bold">
+                عرض <strong className="text-amber-500 font-mono text-sm">{filteredBusinesses.length}</strong> من إجمالي{' '}
+                <strong className="text-[var(--text-primary)] font-mono text-sm">{publicBusinesses.length}</strong> نشاط معتمد
+              </span>
+
+              <div className="flex items-center gap-3">
+                {(searchQuery || govFilter !== 'all' || categoryFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setGovFilter('all');
+                      setCategoryFilter('all');
+                    }}
+                    className="text-rose-500 hover:text-rose-600 font-black text-xs cursor-pointer transition-colors"
+                  >
+                    إعادة ضبط الفلاتر ✕
+                  </button>
+                )}
+
+                <a
+                  href="#packages"
+                  className="text-amber-600 dark:text-amber-400 hover:underline font-black text-xs flex items-center gap-1"
+                >
+                  <Award className="w-3.5 h-3.5" />
+                  <span>توثيق نشاطك التجاري 💎</span>
+                </a>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <a
-              href="#packages"
-              className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-black px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+          {/* 🏷️ HORIZONTAL CATEGORY PILL CHIPS */}
+          <div className="max-w-5xl mx-auto flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              onClick={() => setCategoryFilter('all')}
+              className={`px-4 py-2 rounded-full text-xs font-black shrink-0 transition-all cursor-pointer shadow-xs ${
+                categoryFilter === 'all'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
+                  : 'bg-[var(--bg-card)] hover:bg-[var(--input-bg)] text-[var(--text-secondary)] border border-[var(--border-color)]'
+              }`}
             >
-              <Award className="w-3.5 h-3.5 text-amber-500" />
-              <span>أصحاب الأنشطة: باقات التوثيق 💎</span>
-            </a>
+              ✨ كل الأنشطة
+            </button>
+
+            {CATEGORY_GROUPS.map((grp) => {
+              const isActive = categoryFilter === grp.group;
+              return (
+                <button
+                  key={grp.group}
+                  onClick={() => setCategoryFilter(isActive ? 'all' : grp.group)}
+                  className={`px-3.5 py-2 rounded-full text-xs font-black shrink-0 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                    isActive
+                      ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
+                      : 'bg-[var(--bg-card)] hover:bg-[var(--input-bg)] text-[var(--text-secondary)] border border-[var(--border-color)]'
+                  }`}
+                >
+                  <span>{grp.icon}</span>
+                  <span>{grp.group.split(' ')[0]}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* 🌟 3. SEARCH & DIRECTORY SHOWCASE SECTION */}
-      <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4">
-        {/* Section Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
-          <div className="space-y-0.5">
-            <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)] flex items-center gap-2">
+      {/* 🌟 3. DIRECTORY SHOWCASE & INTERACTIVE CONTENT */}
+      <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {/* Section Header & View Mode Switcher */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-black text-[var(--text-primary)] flex items-center gap-2">
               <Layers className="w-5 h-5 text-amber-500" />
-              <span>استعراض الأنشطة والخدمات المتاحة</span>
+              <span>الأنشطة والخدمات المتاحة</span>
             </h2>
-            <p className="text-[11px] text-[var(--text-muted)] font-bold">
-              تصفح الأنشطة المسجلة مع بيانات التواصل والعنوان الدقيق وموقعها المعتمد على الخريطة
+            <p className="text-xs text-[var(--text-muted)] font-bold">
+              تصفح الأنشطة الميدانية الموثقة مع بيانات الاتصال ومقاطع الفيديو والعناوين الدقيقة
             </p>
           </div>
 
-          {/* Grid / Map Toggle */}
-          <div className="flex items-center gap-1 bg-[var(--input-bg)] p-1 rounded-xl border border-[var(--border-color)]">
+          {/* Grid / Map Mode Switcher */}
+          <div className="flex items-center gap-1 bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shadow-xs">
             <button
               onClick={() => setActiveView('grid')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeView === 'grid'
                   ? 'bg-amber-500 text-slate-950 shadow-sm'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>شبكة الأنشطة</span>
+              <span>عرض الشبكة</span>
             </button>
             <button
               onClick={() => setActiveView('map')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeView === 'map'
                   ? 'bg-amber-500 text-slate-950 shadow-sm'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -336,84 +441,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           </div>
         </div>
 
-        {/* Search & Multi-Filters Toolbar */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 shadow-md space-y-2.5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
-            {/* Search input */}
-            <div className="relative">
-              <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="ابحث باسم المحل، النشاط، أو المدينة..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl pr-10 pl-3.5 py-2.5 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors shadow-xs"
-              />
-            </div>
-
-            {/* Sub-grid for Gov and Category: 2 columns on mobile */}
-            <div className="grid grid-cols-2 gap-2 md:col-span-2">
-              {/* Governorate selector */}
-              <div>
-                <select
-                  value={govFilter}
-                  onChange={(e) => setGovFilter(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-2.5 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors shadow-xs cursor-pointer"
-                >
-                  <option value="all">📍 المحافظات ({EGYPT_GOVERNORATES.length})</option>
-                  {EGYPT_GOVERNORATES.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Category selector */}
-              <div>
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-2.5 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors shadow-xs cursor-pointer"
-                >
-                  <option value="all">🏷️ كل التصنيفات</option>
-                  {CATEGORY_GROUPS.map((grp) => (
-                    <option key={grp.group} value={grp.group}>
-                      {grp.icon} {grp.group}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-xs px-1 pt-2 border-t border-[var(--border-color)]">
-            {isActuallyLoading ? (
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500 font-bold animate-pulse">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>جاري جلب وتحديث الأنشطة والدليل الميداني...</span>
-              </span>
-            ) : (
-              <span className="text-[11px] text-[var(--text-muted)] font-bold">
-                عرض <strong className="text-amber-500 font-mono">{filteredBusinesses.length}</strong> من إجمالي{' '}
-                <strong className="text-[var(--text-primary)] font-mono">{publicBusinesses.length}</strong> نشاط ومحل مسجل
-              </span>
-            )}
-            {!isActuallyLoading && (searchQuery || govFilter !== 'all' || categoryFilter !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setGovFilter('all');
-                  setCategoryFilter('all');
-                }}
-                className="text-rose-500 hover:underline cursor-pointer font-black"
-              >
-                عرض كافة المحافظات ✕
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* SHOWCASE VIEW 1: INTERACTIVE MAP */}
         {activeView === 'map' && (
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3 shadow-lg animate-fade-in">
@@ -421,7 +448,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               businesses={filteredBusinesses}
               mode="view"
               onSelectBusiness={(b) => handleOpenBusiness(b)}
-              heightClass="h-[480px] sm:h-[560px]"
+              heightClass="h-[500px] sm:h-[600px]"
             />
           </div>
         )}
@@ -445,7 +472,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       key={`skel-${i}`}
                       className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col justify-between animate-pulse"
                     >
-                      <div className="h-44 bg-slate-200 dark:bg-slate-800" />
+                      <div className="h-48 bg-slate-200 dark:bg-slate-800" />
                       <div className="p-4 space-y-3">
                         <div className="space-y-2">
                           <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
@@ -504,20 +531,22 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
             {/* 4. BUSINESSES GRID (Rendered when businesses exist) */}
             {filteredBusinesses.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredBusinesses.map((biz) => {
                   const mainPhoto =
                     biz.photos && biz.photos.length > 0
                       ? biz.photos[0]
                       : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80';
 
+                  const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+
                   return (
                     <div
                       key={biz.id}
-                      className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                      className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between"
                     >
                       {/* Photo banner with badge */}
-                      <div className="relative h-44 bg-slate-950 overflow-hidden">
+                      <div className="relative h-52 bg-slate-950 overflow-hidden">
                         <img
                           src={mainPhoto}
                           alt={biz.nameAr}
@@ -525,7 +554,27 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                        {/* High-Contrast Gradient Backdrop for Text Readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-slate-950/20" />
+
+                        {/* Top Badges */}
+                        <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
+                          {isVerified ? (
+                            <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-md border border-emerald-400/40">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>موثق معتمد ✅</span>
+                            </span>
+                          ) : (
+                            <span className="bg-slate-950/90 text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-md border border-amber-500/40">
+                              <Clock className="w-3 h-3" />
+                              <span>قيد المراجعة ⏳</span>
+                            </span>
+                          )}
+
+                          <span className="bg-slate-950/80 text-white text-[10.5px] font-black px-2.5 py-1 rounded-full border border-white/20 backdrop-blur-md shadow-md">
+                            📍 {biz.governorate}
+                          </span>
+                        </div>
 
                         {/* Center Play Button Overlay for Videos */}
                         {biz.videos && biz.videos.length > 0 && (
@@ -535,53 +584,19 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                               e.stopPropagation();
                               setSelectedVideoBiz(biz);
                             }}
-                            className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-slate-950/75 hover:bg-amber-500 text-amber-400 hover:text-slate-950 flex items-center justify-center backdrop-blur-md border border-amber-500/60 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer group-hover:scale-105"
+                            className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-amber-500 hover:bg-yellow-400 text-slate-950 flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer border-2 border-white/80"
                             title="تشغيل فيديو النشاط الموثق (30 ثانية)"
                           >
-                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                            <Play className="w-5 h-5 fill-slate-950 ml-0.5" />
                           </button>
                         )}
 
-                        {/* Top Badges */}
-                        <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
-                          {biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced' ? (
-                            <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm border border-emerald-400/40">
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>موثق رسمياً ✅</span>
-                            </span>
-                          ) : (
-                            <span className="bg-slate-950/90 text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm border border-amber-500/40">
-                              <Clock className="w-3 h-3" />
-                              <span>قيد المراجعة والاعتماد ⏳</span>
-                            </span>
-                          )}
-
-                          {biz.videos && biz.videos.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedVideoBiz(biz);
-                              }}
-                              className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
-                              title="مشاهدة فيديو النشاط"
-                            >
-                              <Play className="w-2.5 h-2.5 fill-slate-950" />
-                              <span>فيديو 30ث</span>
-                            </button>
-                          )}
-
-                          <span className="bg-slate-950/70 text-amber-400 text-[10.5px] font-bold px-2 py-0.5 rounded-lg border border-amber-500/30 backdrop-blur-md">
-                            {biz.governorate}
-                          </span>
-                        </div>
-
-                        {/* Bottom Name inside photo banner */}
-                        <div className="absolute bottom-2.5 right-3 left-3">
-                          <span className="text-[10.5px] font-bold text-amber-400 block truncate">
+                        {/* Bottom Name & Category inside photo banner */}
+                        <div className="absolute bottom-3 right-3 left-3 space-y-0.5">
+                          <span className="inline-block bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-md backdrop-blur-md">
                             {biz.category}
                           </span>
-                          <h3 className="text-base font-black text-white leading-tight truncate">
+                          <h3 className="text-base font-black text-white leading-tight truncate drop-shadow-md">
                             {biz.nameAr}
                           </h3>
                         </div>
@@ -591,7 +606,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       <div className="p-4 space-y-3 flex-1 flex flex-col justify-between text-xs">
                         <div className="space-y-2">
                           <div className="flex items-start gap-2 text-[var(--text-secondary)] font-bold leading-tight">
-                            <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                            <MapPin className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                             <span className="line-clamp-2">
                               {(() => {
                                 const rawStreet = (biz.street || '').trim();
@@ -612,7 +627,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
                           {biz.workingHours && (
                             <div className="flex items-center gap-2 text-[var(--text-muted)] text-[11px] font-bold">
-                              <Clock className="w-3.5 h-3.5 text-amber-500/80 shrink-0" />
+                              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                               <span className="truncate">{biz.workingHours}</span>
                             </div>
                           )}
@@ -622,30 +637,16 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
                           <button
                             onClick={() => handleOpenBusiness(biz)}
-                            className="flex-1 bg-[var(--input-bg)] hover:bg-amber-500 hover:text-slate-950 text-[var(--text-primary)] font-black text-xs py-2 rounded-xl border border-[var(--border-color)] transition-all cursor-pointer text-center"
+                            className="flex-1 bg-amber-500 hover:bg-yellow-400 text-slate-950 font-black text-xs py-2.5 rounded-xl transition-all cursor-pointer text-center shadow-xs"
                           >
                             {biz.videos && biz.videos.length > 0 ? 'التفاصيل والفيديو 🎬' : 'التفاصيل والصور 📸'}
-                          </button>
-
-                          {/* Quick Share Direct Link */}
-                          <button
-                            type="button"
-                            onClick={(e) => handleShareBusiness(biz, e)}
-                            className="w-8 h-8 rounded-xl bg-[var(--input-bg)] hover:bg-amber-500 hover:text-slate-950 text-[var(--text-muted)] hover:text-slate-950 flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-[var(--border-color)]"
-                            title="مشاركة رابط النشاط المباشر 🔗"
-                          >
-                            {copiedBizId === biz.id ? (
-                              <CheckCheck className="w-4 h-4 text-emerald-500" />
-                            ) : (
-                              <Share2 className="w-4 h-4" />
-                            )}
                           </button>
 
                           {/* Direct Phone / Call */}
                           {biz.phone && (
                             <a
                               href={`tel:${biz.phone}`}
-                              className="w-8 h-8 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
+                              className="w-9 h-9 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-emerald-500/30"
                               title="اتصال هاتفياً"
                             >
                               <Phone className="w-4 h-4" />
@@ -658,21 +659,26 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                               href={biz.googleMapsUrl.trim()}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-8 h-8 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
-                              title="الموقع موثق رسمياً: فتح على خرائط Google 🗺️"
+                              className="w-9 h-9 rounded-xl bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-blue-500/30"
+                              title="فتح الموقع على خرائط Google 🗺️"
                             >
                               <Navigation className="w-4 h-4" />
                             </a>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-700/80 flex items-center justify-center shrink-0 cursor-not-allowed opacity-60 shadow-none"
-                              title="الموقع غير مدرج بعد على خرائط Google (قيد مراجعة وتوثيق الإدارة ⏳)"
-                            >
-                              <Navigation className="w-4 h-4 opacity-40" />
-                            </button>
-                          )}
+                          ) : null}
+
+                          {/* Quick Share Direct Link */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleShareBusiness(biz, e)}
+                            className="w-9 h-9 rounded-xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-muted)] flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-[var(--border-color)]"
+                            title="مشاركة رابط النشاط المباشر 🔗"
+                          >
+                            {copiedBizId === biz.id ? (
+                              <CheckCheck className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                              <Share2 className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>

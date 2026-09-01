@@ -402,8 +402,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const totalEarnedCommissions = useMemo(() => {
     return mergedAdminReps.reduce((sum, rep) => {
+      // Only field reps ('rep') receive commission expense from platform; Admin/Managers direct activities yield 0 rep commission
+      if (rep.role !== 'rep') return sum;
       const repBiz = businesses.filter((b) => b.repId === rep.id || b.repName === rep.name || b.repId === rep.phone);
-      const repRate = rep.commissionRate || 42.86;
+      const repRate = (rep.commissionRate && rep.commissionRate < 100) ? rep.commissionRate : 42.86;
       const settlement = calculateRepSettlement(rep.id, repBiz, repRate, payoutRequests);
       return sum + settlement.totalEarnedCommission;
     }, 0);
@@ -453,19 +455,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
       if (!b.isFeeExempt && (b.packagePrice || 0) > 0) {
         const paid = b.amountPaid || 0;
-        const rep = mergedAdminReps.find((r) => r.id === b.repId || r.name === b.repName);
-        const rate = rep?.commissionRate || 42.86;
-        const repShare = Math.round((paid * rate) / 100);
+        const rep = mergedAdminReps.find((r) => r.id === b.repId || r.name === b.repName || r.phone === b.repId);
+        const isFieldRep = rep ? rep.role === 'rep' : (!b.repId?.startsWith('admin_') && b.repName !== 'مدير النظام دليلك');
+        
+        let repShare = 0;
+        if (isFieldRep) {
+          const rate = (rep?.commissionRate && rep.commissionRate < 100) ? rep.commissionRate : 42.86;
+          repShare = Math.round((paid * rate) / 100);
+        }
+
         m.grossRevenue += paid;
         m.repCommissions += repShare;
         m.netPlatform += (paid - repShare);
-        const repIdentifier = b.repId || b.repName || 'rep';
-        m.repsActive.add(repIdentifier);
 
-        const curRep = m.repEarningsMap.get(repIdentifier) || { name: b.repName || rep?.name || 'مندوب معتمد', earnings: 0, count: 0 };
-        curRep.earnings += repShare;
-        curRep.count += 1;
-        m.repEarningsMap.set(repIdentifier, curRep);
+        if (isFieldRep && repShare > 0) {
+          const repIdentifier = b.repId || b.repName || 'rep';
+          m.repsActive.add(repIdentifier);
+
+          const curRep = m.repEarningsMap.get(repIdentifier) || { name: b.repName || rep?.name || 'مندوب معتمد', earnings: 0, count: 0 };
+          curRep.earnings += repShare;
+          curRep.count += 1;
+          m.repEarningsMap.set(repIdentifier, curRep);
+        }
       }
     });
 

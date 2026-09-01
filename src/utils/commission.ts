@@ -38,8 +38,9 @@ export function calculateBusinessCommission(
 ): number {
   if (isFeeExempt || _packagePrice === 0) return 0;
   const paid = amountPaid || 0;
-  const commissionRate = rate || DEFAULT_COMMISSION_RATE;
-  return Math.round((paid * commissionRate) / 100);
+  // If rate >= 100 (admin/direct platform account), rep commission is 0%
+  const effectiveRate = (rate > 0 && rate < 100) ? rate : (rate >= 100 ? 0 : DEFAULT_COMMISSION_RATE);
+  return Math.round((paid * effectiveRate) / 100);
 }
 
 /**
