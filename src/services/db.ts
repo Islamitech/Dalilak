@@ -605,7 +605,21 @@ export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutR
       const { data, error } = await query;
       if (!error && data && Array.isArray(data)) {
         const mapped = data.map(mapDbToPayout);
-        if (!repId && typeof localStorage !== 'undefined') {
+
+        // ⚡ Auto-Heal: If the rep has pending local payouts submitted previously when table was offline, sync them now
+        if (repId && Array.isArray(cached) && cached.length > 0) {
+          const missingInCloud = cached.filter((c) => c.repId === repId && !mapped.some((m) => m.id === c.id));
+          if (missingInCloud.length > 0) {
+            for (const item of missingInCloud) {
+              try {
+                await supabase.from('payout_requests').upsert([mapPayoutToDb(item)], { onConflict: 'id' });
+                mapped.unshift(item);
+              } catch {}
+            }
+          }
+        }
+
+        if (typeof localStorage !== 'undefined') {
           safeSetLocalStorageItem('dalelak_cached_payouts', JSON.stringify(mapped));
         }
         return mapped;
@@ -619,7 +633,7 @@ export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutR
         const restData = await res.json();
         if (Array.isArray(restData)) {
           const mapped = restData.map(mapDbToPayout);
-          if (!repId && typeof localStorage !== 'undefined') {
+          if (typeof localStorage !== 'undefined') {
             safeSetLocalStorageItem('dalelak_cached_payouts', JSON.stringify(mapped));
           }
           return mapped;
