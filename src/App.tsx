@@ -2420,6 +2420,27 @@ export default function App() {
                               <span>التفاصيل</span>
                             </button>
 
+                            {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
+                              <a
+                                href={biz.googleMapsUrl.trim()}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                                title="فتح موقع النشاط على خرائط Google"
+                              >
+                                <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                              </a>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
+                                title="الخريطة غير مفعلة (لم يتم إضافة الرابط بعد)"
+                              >
+                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                              </button>
+                            )}
+
                             <button
                               onClick={() => setSelectedInvoiceBiz(biz)}
                               className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
@@ -2535,6 +2556,28 @@ export default function App() {
                                       <Eye className="w-3.5 h-3.5" />
                                       <span>تفاصيل</span>
                                     </button>
+                                    {/* Google Maps Official Link Button */}
+                                    {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
+                                      <a
+                                        href={biz.googleMapsUrl.trim()}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
+                                        title="فتح موقع النشاط المعتمد على خرائط Google 🗺️"
+                                      >
+                                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                                      </a>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled
+                                        className="p-1.5 rounded-xl bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] opacity-40 cursor-not-allowed flex items-center justify-center"
+                                        title="الخريطة غير مفعلة - لم يتم إضافة وتوثيق رابط Google بعد"
+                                      >
+                                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                      </button>
+                                    )}
+
                                     <button
                                       onClick={() => setSelectedInvoiceBiz(biz)}
                                       className="p-1.5 rounded-xl bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)] transition-colors cursor-pointer"
