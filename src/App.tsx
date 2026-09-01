@@ -2090,7 +2090,7 @@ export default function App() {
                   {filteredHomeBusinesses.map((biz) => {
                     const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
                     const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                    const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                    const isVerified = biz.verificationStatus === 'verified';
                     const hasPhotos = biz.photos && biz.photos.length > 0;
                     const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
                     const coverPhoto = hasPhotos ? biz.photos[0] : null;
@@ -2141,7 +2141,7 @@ export default function App() {
                                   : 'bg-amber-500/90 text-slate-950 border-amber-400/40'
                               }`}
                             >
-                              {isVerified ? '✓ موثق رسمي' : '⏳ قيد التوثيق'}
+                              {isVerified ? '✓ معتمد بالدليل' : '⏳ قيد المراجعة'}
                             </span>
 
                             {hasVideos && (
@@ -2346,7 +2346,7 @@ export default function App() {
                     {filteredHomeBusinesses.map((biz) => {
                       const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
                       const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                      const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                      const isVerified = biz.verificationStatus === 'verified';
                       const ownerPhone = biz.ownerPhone || biz.phone || '';
 
                       return (
@@ -2380,7 +2380,7 @@ export default function App() {
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                              <span>{isVerified ? 'موثق رسمي' : 'قيد التوثيق'}</span>
+                              <span>{isVerified ? 'معتمد بالدليل' : 'قيد المراجعة'}</span>
                             </span>
                           </div>
 
@@ -2474,7 +2474,7 @@ export default function App() {
                           {filteredHomeBusinesses.map((biz) => {
                             const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
                             const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                            const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                            const isVerified = biz.verificationStatus === 'verified';
                             const ownerPhone = biz.ownerPhone || biz.phone || '';
 
                             return (
@@ -2501,7 +2501,7 @@ export default function App() {
                                     isVerified ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                                   }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                    <span>{isVerified ? 'موثق رسمي' : 'قيد التوثيق'}</span>
+                                    <span>{isVerified ? 'معتمد بالدليل' : 'قيد المراجعة'}</span>
                                   </span>
                                 </td>
                                 <td className="py-3 px-3 whitespace-nowrap">
