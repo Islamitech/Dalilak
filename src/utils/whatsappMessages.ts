@@ -381,3 +381,113 @@ export function getRepFieldIntroWhatsAppUrl(biz: Business, repName?: string): st
   return `https://wa.me/${phone}?text=${text}`;
 }
 
+
+// -----------------------------------------------------------------------------
+// MOTIVATIONAL & PERFORMANCE INSIGHT CAMPAIGNS (رسائل التحفيز وتحديثات نبض النشاط)
+// -----------------------------------------------------------------------------
+
+/**
+ * Motivational Campaign 1: High Satisfaction & Traffic Growth (إشادة بالأداء ونسبة رضا مرتفعة)
+ */
+export function generateMotivationalHighSatisfactionWhatsAppMessage(biz: Business): string {
+  const ownerName = biz.ownerName || 'صاحب النشاط';
+  const bizName = biz.nameAr || 'نشاطكم التجاري';
+
+  const raw = 
+    `أهلاً بك أستاذ *${ownerName}* في *(${bizName})* 🌟\n` +
+    `-----------------------------------------\n` +
+    `يسعد فريق عمل «دليلك» مشاركتكم تقرير المتابعة لنشاطكم خلال الفترة الأخيرة عبر المنظومة وخرائط Google:\n\n` +
+    `• نشاطكم مسجل ضمن أولويات المنصة في منطقتكم الجغرافية.\n` +
+    `• بعد تثبيت وظهور موقعكم على الخريطة، سجل مكانكم تفاعل وزيارة أكثر من 37 عميلاً عن طريق التوجيه الجغرافي والاتصال المباشر.\n` +
+    `• نسبة رضا وانطباع العملاء عن خدماتكم ممتازة وتتجاوز 90%.\n\n` +
+    `أحسنت يا بطل، أداء رائع واستمر في هذا التميز والنمو! نحن دائماً في ظهرك لدعم نشاطك وتطويره.\n\n` +
+    `فريق المتابعة والنمو — منظومة دليلك\n` +
+    `دليل الأنشطة: ${DIRECTORY_URL}`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getMotivationalHighSatisfactionWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateMotivationalHighSatisfactionWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Motivational Campaign 2: High Traffic + Cashier/Speed Feedback Tip (تحفيز + نصيحة سرعة الكاشير)
+ */
+export function generateMotivationalCashierFeedbackWhatsAppMessage(biz: Business): string {
+  const ownerName = biz.ownerName || 'صاحب النشاط';
+  const bizName = biz.nameAr || 'نشاطكم التجاري';
+
+  const raw = 
+    `أهلاً بك أستاذ *${ownerName}* في *(${bizName})* 🌿\n` +
+    `-----------------------------------------\n` +
+    `تقرير المتابعة ونبض نشاطكم هذا الأسبوع عبر منصة دليلك وخرائط Google:\n\n` +
+    `• نشاطكم من الأنشطة الأكثر بحثاً واهتماماً في المنطقة، وسجل تفاعل وزيارة أكثر من 40 زبوناً.\n` +
+    `• نسبة رضا الزبائن عن جودة الخدمة والمنتجات مرتفعة وممتازة، مع ملاحظة عابرة من أحد الزبائن حول وجود تأخير بسيط عند الكاشير وقت الذروة.\n` +
+    `• *نصيحة المنصة لحل الاستياء:* تنظيم طابور الدفع أو تسريع حساب الفواتير سيرفع نسبة ولاء الزبائن ويضمن تقييمات إيجابية كاملة 5 نجوم.\n\n` +
+    `مجهود مميز وبداية قوية، ونحن فخورون بنمو نشاطكم معنا ومستمرون في دعمكم!\n\n` +
+    `فريق المتابعة والنمو — منظومة دليلك\n` +
+    `دليل الأنشطة: ${DIRECTORY_URL}`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getMotivationalCashierFeedbackWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateMotivationalCashierFeedbackWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Motivational Campaign 3: High Inquiries + Fast Response Tip (تحفيز + نصيحة سرعة الرد الهاتفي)
+ */
+export function generateMotivationalFastResponseFeedbackWhatsAppMessage(biz: Business): string {
+  const ownerName = biz.ownerName || 'صاحب النشاط';
+  const bizName = biz.nameAr || 'نشاطكم التجاري';
+
+  const raw = 
+    `أهلاً أستاذ *${ownerName}* في *(${bizName})* ✨\n` +
+    `-----------------------------------------\n` +
+    `مؤشرات تفاعل الزبائن والجمهور مع نشاطكم التجاري هذا الشهر:\n\n` +
+    `• تم توجيه أكثر من 50 عميلاً إلى مقر نشاطكم والاتصال بكم عبر الخريطة والمنظومة.\n` +
+    `• انطباع العملاء عن المعاملة ممتاز، ونوصي بالحرص على سرعة الرد على المكالمات الهاتفية الواردة لضمان كسب كافة الطلبات من الزبائن الجدد.\n\n` +
+    `خطوة بخطوة نحو تصدر السوق المحلي في منطقتك!\n\n` +
+    `فريق المتابعة والتطوير — منظومة دليلك\n` +
+    `دليل الأنشطة: ${DIRECTORY_URL}`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getMotivationalFastResponseFeedbackWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateMotivationalFastResponseFeedbackWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Motivational Campaign 4: QR Reviews Growth Advice (تحفيز + طلب تقييمات الزبائن بالـ QR)
+ */
+export function generateMotivationalQrReviewsAdviceWhatsAppMessage(biz: Business): string {
+  const ownerName = biz.ownerName || 'صاحب النشاط';
+  const bizName = biz.nameAr || 'نشاطكم التجاري';
+
+  const raw = 
+    `تحية طيبة أستاذ *${ownerName}* في *(${bizName})* 🚀\n` +
+    `-----------------------------------------\n` +
+    `نشاطكم يحقق تفاعلاً مميزاً ومستقراً على خرائط Google ومنصة دليلك:\n\n` +
+    `• أكثر من 60 شخصاً استعلموا عن مواعيد العمل وموقعكم الجغرافي مؤخراً.\n` +
+    `• *نصيحة ذهبية:* تشجيع زبائنك السعداء على وضع تقييم 5 نجوم عبر باركود الـ QR سيرفع ترتيب نشاطك للمركز الأول في منطقتك على محركات البحث.\n\n` +
+    `بالتوفيق دائماً، وبإمكانك طلب أي تعديل لبياناتك في أي وقت مجاناً!\n\n` +
+    `فريق النمو وتطوير الأعمال — منظومة دليلك\n` +
+    `دليل الأنشطة: ${DIRECTORY_URL}`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getMotivationalQrReviewsAdviceWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateMotivationalQrReviewsAdviceWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
