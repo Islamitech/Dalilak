@@ -630,20 +630,24 @@ export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutR
     }
   }
 
-  // Fallback to cache
-  if (Array.isArray(cached) && cached.length > 0) {
-    return repId ? cached.filter((p) => p.repId === repId) : cached;
-  }
-
+  // Fallback: Merge LocalStorage cache with Express Local Server API
+  let fallbackList: PayoutRequest[] = cached;
   try {
     const localRes = await fetch('/api/payouts');
     if (localRes.ok) {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
-        return repId ? localData.filter((p: any) => p.repId === repId) : localData;
+        const map = new Map<string, PayoutRequest>();
+        fallbackList.forEach((p) => map.set(p.id, p));
+        localData.forEach((p: any) => map.set(p.id, mapDbToPayout(p)));
+        fallbackList = Array.from(map.values());
       }
     }
   } catch {}
+
+  if (fallbackList.length > 0) {
+    return repId ? fallbackList.filter((p) => p.repId === repId) : fallbackList;
+  }
 
   return [];
 }

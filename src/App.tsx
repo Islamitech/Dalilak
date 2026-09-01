@@ -195,7 +195,13 @@ export default function App() {
     } catch {}
     return [];
   });
-  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('dalelak_cached_payouts') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) return cached;
+    } catch {}
+    return [];
+  });
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(() => {
     const saved = localStorage.getItem('dalelak_payment_config');
     if (saved) {

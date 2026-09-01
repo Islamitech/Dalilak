@@ -898,85 +898,53 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 </div>
               )}
 
-              {/* 🗺️ DUAL LOCATION SECTION: REP FIELD LOCATION VS OFFICIAL GOOGLE MAPS LINK */}
+              {/* 🗺️ LOCATION & GOOGLE MAPS SECTION */}
               <div className="space-y-3">
-                {/* 1. Official Google Maps Verified Link (or empty pending field) */}
-                <div className={`p-4 rounded-2xl border ${
-                  selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http')
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-slate-900/60 border-amber-500/30'
-                } space-y-2`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span className="font-black text-xs text-[var(--text-primary)]">
-                        رابط النشاط المعتمد النهائي على Google Maps (الموقع المباشر) 🌐
-                      </span>
-                    </div>
-                    {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
-                      <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                        موثق رسمي ✅
-                      </span>
-                    ) : (
-                      <span className="bg-amber-500/20 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
-                        قيد التوثيق ⏳
-                      </span>
-                    )}
-                  </div>
-
-                  {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1">
-                      <div className="font-mono text-xs text-emerald-600 dark:text-emerald-300 truncate max-w-md dir-ltr text-right">
-                        {selectedBiz.googleMapsUrl}
-                      </div>
-                      <a
-                        href={selectedBiz.googleMapsUrl.trim()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shrink-0"
-                      >
-                        <Navigation className="w-4 h-4" />
-                        <span>فتح الموقع المعتمد على Google Maps 🚀</span>
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-[var(--input-bg)] border border-dashed border-amber-500/40 rounded-xl space-y-1">
-                      <div className="flex items-center gap-2 text-amber-500 font-bold text-xs">
-                        <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>[ خانة الرابط المعتمد فارغة — قيد المراجعة والاعتماد من خرائط Google ]</span>
+                {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span className="font-black text-xs text-[var(--text-primary)]">
+                          الموقع المعتمد على خرائط Google Maps
+                        </span>
+                        <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                          موثق رسمي ✅
+                        </span>
                       </div>
                       <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                        لم يصدر الرابط المباشر المعتمد من خرائط Google بعد، وسيتم إدراجه هنا فور اعتماده من إدارة المنظومة.
+                        تم التحقق والاعتماد المباشر للنشاط على خرائط جوجل العالمية.
                       </p>
                     </div>
-                  )}
-                </div>
 
-                {/* 2. Rep Field Capture Coordinates Location */}
-                <div className="p-3.5 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)]">
-                      <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span>الموقع الميداني المرفوع من المندوب (إحداثيات الزيارة الميدانية) 📍</span>
+                    <a
+                      href={selectedBiz.googleMapsUrl.trim()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shrink-0"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      <span>فتح الموقع على Google Maps 🚀</span>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-amber-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span className="font-black text-xs text-[var(--text-primary)]">
+                          حالة التوثيق على خرائط Google Maps
+                        </span>
+                      </div>
+                      <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                        قيد المراجعة والاعتماد ⏳
+                      </span>
                     </div>
-                    {selectedBiz.lat && selectedBiz.lng && (
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${selectedBiz.lat},${selectedBiz.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/20 text-[var(--text-primary)] hover:text-amber-500 border border-[var(--border-color)] font-bold text-[11px] px-3 py-1 rounded-xl shadow-2xs flex items-center gap-1 transition-colors cursor-pointer"
-                        title="معاينة إحداثيات الزيارة الميدانية"
-                      >
-                        <ExternalLink className="w-3 h-3 text-amber-500" />
-                        <span>معاينة إحداثيات المندوب</span>
-                      </a>
-                    )}
+                    <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
+                      جاري استكمال إجراءات التوثيق والظهور على خرائط Google، وسيتم تفعيل رابط التوجيه المباشر فور اعتماده.
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] font-mono text-[var(--text-muted)]">
-                    <span>خط العرض: <strong className="text-[var(--text-primary)] font-mono">{selectedBiz.lat ? selectedBiz.lat.toFixed(5) : '—'}</strong></span>
-                    <span>خط الطول: <strong className="text-[var(--text-primary)] font-mono">{selectedBiz.lng ? selectedBiz.lng.toFixed(5) : '—'}</strong></span>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Information Grid */}
