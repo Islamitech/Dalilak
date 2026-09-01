@@ -448,6 +448,12 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       return;
     }
 
+    if (!alreadyGoogleMapsUrl.trim()) {
+      setErrorMsg('⚠️ يرجى إدخال الرابط الدقيق للنشاط الظاهر على خرائط Google');
+      window.scrollTo({ top: 250, behavior: 'smooth' });
+      return;
+    }
+
     const timestamp = Date.now();
     const finalNameAr = (nameAr && nameAr.trim()) || (nameEn && nameEn.trim()) || 'نشاط تجاري قائم';
     const finalNameEn = nameEn?.trim() || undefined;
