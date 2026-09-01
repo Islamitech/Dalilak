@@ -13,6 +13,7 @@ import { UserAvatar } from './UserAvatar';
 import { BusinessEditModal } from './BusinessEditModal';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { PermissionsModal } from './PermissionsModal';
+import { RepAccountDossierModal } from './RepAccountDossierModal';
 import {
   ShieldCheck,
   DollarSign,
@@ -167,6 +168,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // MODAL STATES
   // ---------------------------------------------------------------------------
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [selectedDossierRep, setSelectedDossierRep] = useState<Representative | null>(null);
 
   // Keep editingBusiness in sync with businesses array updates (such as payment updates)
   useEffect(() => {
@@ -2478,6 +2480,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
 
+
+      {/* MASTER DOSSIER MODAL: Representative Financial Ledger, Activities & Referrals */}
+      {selectedDossierRep && (
+        <RepAccountDossierModal
+          rep={selectedDossierRep}
+          onClose={() => setSelectedDossierRep(null)}
+          businesses={businesses}
+          allReps={mergedAdminReps}
+          payoutRequests={payoutRequests}
+          onUpdateRepresentative={onUpdateRepresentative}
+          onEditBusiness={(biz) => {
+            setSelectedDossierRep(null);
+            setEditingBusiness(biz);
+          }}
+          onUpdatePayoutRequest={onUpdatePayoutRequest}
+          currentUser={currentUser}
+        />
+      )}
 
       {/* SHARED MODAL: Business Data View & Editing */}
       <BusinessEditModal
