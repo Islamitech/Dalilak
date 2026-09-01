@@ -41,7 +41,8 @@ import {
   Loader2,
   FileCheck,
   Send,
-  Clock
+  Clock,
+  History as HistoryIcon
 } from 'lucide-react';
 
 interface RepProfileProps {
@@ -996,7 +997,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             <div className="pt-3 border-t border-[var(--border-color)] space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-black text-xs text-[var(--text-primary)] flex items-center gap-1.5">
-                  <History className="w-4 h-4 text-emerald-500" />
+                  <HistoryIcon className="w-4 h-4 text-emerald-500" />
                   <span>سجل ومتابعة طلبات سحب العمولات والتوريد ({myPayouts.length})</span>
                 </h4>
                 <span className="text-[10px] text-[var(--text-muted)] font-bold">

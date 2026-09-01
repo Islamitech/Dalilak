@@ -32,6 +32,9 @@ import {
   ExternalLink,
   Maximize,
   Image as ImageIcon,
+  Share2,
+  Copy,
+  CheckCheck,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
@@ -39,6 +42,8 @@ import { VideoPlayerModal } from './VideoPlayerModal';
 
 interface PublicShowcaseProps {
   businesses: Business[];
+  initialBizId?: string;
+  isPreviewMode?: boolean;
   onOpenInternalApp?: () => void;
   referralCode?: string;
   loading?: boolean;
@@ -46,6 +51,8 @@ interface PublicShowcaseProps {
 
 export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   businesses,
+  initialBizId,
+  isPreviewMode = false,
   referralCode,
   loading = false,
 }) => {
@@ -62,6 +69,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+  const [copiedBizId, setCopiedBizId] = useState<string | null>(null);
+  const [shareToastText, setShareToastText] = useState<string | null>(null);
 
   // Quick Consultation Form State (Default to 'الجيزة')
   const [formBizName, setFormBizName] = useState<string>('');
@@ -70,6 +79,69 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [formGov, setFormGov] = useState<string>('الجيزة');
   const [formSelectedPackage, setFormSelectedPackage] = useState<string>(PACKAGES[1].title);
   const [consultSuccess, setConsultSuccess] = useState<boolean>(false);
+
+  // Deep Link Auto-Select Business on load
+  useEffect(() => {
+    if (initialBizId && businesses.length > 0) {
+      const match = businesses.find(
+        (b) => b.id === initialBizId || (b.nameAr && b.nameAr.trim() === initialBizId.trim())
+      );
+      if (match) {
+        setSelectedBiz(match);
+      }
+    }
+  }, [initialBizId, businesses]);
+
+  // Open Business and update browser URL without reload
+  const handleOpenBusiness = (biz: Business) => {
+    setSelectedBiz(biz);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('biz', biz.id);
+      window.history.replaceState(null, '', url.toString());
+    } catch {}
+  };
+
+  // Close Business and restore browser URL
+  const handleCloseBusiness = () => {
+    setSelectedBiz(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('biz');
+      url.searchParams.delete('b');
+      url.searchParams.delete('id');
+      url.searchParams.delete('preview');
+      window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+    } catch {}
+  };
+
+  // Share Business Direct Link
+  const handleShareBusiness = (biz: Business, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}?biz=${biz.id}`;
+    const shareTitle = `نشاط ${biz.nameAr} على منصة دليلك المعتمدة 🗺️`;
+    const shareText = `شاهد تفاصيل وموقع نشاط "${biz.nameAr}" المعتمد في ${biz.governorate}:`;
+
+    if (navigator.share) {
+      navigator
+        .share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        })
+        .catch(() => {});
+    } else {
+      try {
+        navigator.clipboard.writeText(shareUrl);
+        setCopiedBizId(biz.id);
+        setShareToastText('تم نسخ رابط النشاط المباشر بنجاح! 📋');
+        setTimeout(() => {
+          setCopiedBizId(null);
+          setShareToastText(null);
+        }, 3000);
+      } catch {}
+    }
+  };
 
   // All registered businesses for the comprehensive public directory
   const publicBusinesses = useMemo(() => {
@@ -348,7 +420,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             <InteractiveMap
               businesses={filteredBusinesses}
               mode="view"
-              onSelectBusiness={(b) => setSelectedBiz(b)}
+              onSelectBusiness={(b) => handleOpenBusiness(b)}
               heightClass="h-[480px] sm:h-[560px]"
             />
           </div>
@@ -467,7 +539,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           ) : (
                             <span className="bg-slate-950/90 text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm border border-amber-500/40">
                               <Clock className="w-3 h-3" />
-                              <span>غير موثق (قيد المراجعة ⏳)</span>
+                              <span>قيد المراجعة والاعتماد ⏳</span>
                             </span>
                           )}
 
@@ -536,10 +608,24 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         {/* Actions Toolbar */}
                         <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
                           <button
-                            onClick={() => setSelectedBiz(biz)}
+                            onClick={() => handleOpenBusiness(biz)}
                             className="flex-1 bg-[var(--input-bg)] hover:bg-amber-500 hover:text-slate-950 text-[var(--text-primary)] font-black text-xs py-2 rounded-xl border border-[var(--border-color)] transition-all cursor-pointer text-center"
                           >
                             {biz.videos && biz.videos.length > 0 ? 'التفاصيل والفيديو 🎬' : 'التفاصيل والصور 📸'}
+                          </button>
+
+                          {/* Quick Share Direct Link */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleShareBusiness(biz, e)}
+                            className="w-8 h-8 rounded-xl bg-[var(--input-bg)] hover:bg-amber-500 hover:text-slate-950 text-[var(--text-muted)] hover:text-slate-950 flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-[var(--border-color)]"
+                            title="مشاركة رابط النشاط المباشر 🔗"
+                          >
+                            {copiedBizId === biz.id ? (
+                              <CheckCheck className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                              <Share2 className="w-4 h-4" />
+                            )}
                           </button>
 
                           {/* Direct Phone / Call */}
@@ -818,21 +904,55 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] flex flex-col text-right text-xs">
             {/* Modal Header Bar */}
-            <div className="p-4 sm:p-5 border-b border-[var(--border-color)] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="bg-emerald-600 text-white text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>نشاط معتمد</span>
-                </span>
-                <h3 className="font-black text-base text-[var(--text-primary)]">{selectedBiz.nameAr}</h3>
+            <div className="p-4 sm:p-5 border-b border-[var(--border-color)] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 truncate">
+                {selectedBiz.verificationStatus === 'verified' || selectedBiz.googleSyncStatus === 'synced' ? (
+                  <span className="bg-emerald-600 text-white text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>نشاط معتمد</span>
+                  </span>
+                ) : (
+                  <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>قيد المراجعة والاعتماد</span>
+                  </span>
+                )}
+                <h3 className="font-black text-base text-[var(--text-primary)] truncate">{selectedBiz.nameAr}</h3>
               </div>
-              <button
-                onClick={() => setSelectedBiz(null)}
-                className="w-8 h-8 rounded-full bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center font-bold cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Share Business Link */}
+                <button
+                  type="button"
+                  onClick={(e) => handleShareBusiness(selectedBiz, e)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-600 dark:text-amber-400 font-black text-xs flex items-center gap-1.5 transition-all border border-amber-500/30 cursor-pointer shadow-xs"
+                  title="مشاركة رابط هذا النشاط المباشر"
+                >
+                  {copiedBizId === selectedBiz.id ? (
+                    <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  ) : (
+                    <Share2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>{copiedBizId === selectedBiz.id ? 'تم النسخ!' : 'مشاركة الرابط'}</span>
+                </button>
+
+                <button
+                  onClick={handleCloseBusiness}
+                  className="w-8 h-8 rounded-full bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center font-bold cursor-pointer"
+                  title="إغلاق"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+
+            {/* Instant Preview / Pending Notice Banner */}
+            {(isPreviewMode || (selectedBiz.verificationStatus !== 'verified' && selectedBiz.googleSyncStatus !== 'synced')) && (
+              <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 flex items-center gap-2 text-amber-700 dark:text-amber-300 text-xs font-black">
+                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>معاينة فورية: هذا النشاط مسجل بنجاح 🌿 — قيد المراجعة الإدارية والاعتماد للنشر على الخريطة العامة ⏳</span>
+              </div>
+            )}
 
             {/* Modal Scrollable Body */}
             <div className="p-5 space-y-5 overflow-y-auto">
@@ -1104,6 +1224,17 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 🌟 11. FLOATING SHARE TOAST NOTIFICATION */}
+      {shareToastText && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999999] pointer-events-auto inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900/95 text-emerald-400 border border-emerald-500/50 backdrop-blur-xl text-xs font-black shadow-2xl animate-fade-in transition-all"
+          style={{ direction: 'rtl' }}
+        >
+          <CheckCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{shareToastText}</span>
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Business } from './types';
 import { PublicShowcase } from './components/PublicShowcase';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { supabase } from './services/storage';
 
 const SUPABASE_REST_URL = 'https://xdqpbajymacpdccorjcj.supabase.co/rest/v1/businesses?select=*&order=created_at.desc';
 const SUPABASE_ANON_KEY = 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x';
@@ -23,7 +24,7 @@ export default function App() {
     // If directory cache exists or portal was visited before, render instantly in 0ms without skeleton flicker!
     return !isPortalInitialized && !hasCachedData;
   });
-  const [showSyncBadge, setShowSyncBadge] = useState<boolean>(false);
+  const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
 
   function mapRawToBusiness(r: any): Business {
     let metaVideos: string[] = [];
@@ -109,7 +110,15 @@ export default function App() {
     };
   }
 
-  // Fetch real-time businesses from Supabase REST API with background Delta Sync
+  // Trigger brief sync toast
+  function triggerSyncToast(msg: string) {
+    setSyncToastMessage(msg);
+    setTimeout(() => {
+      setSyncToastMessage((current) => (current === msg ? null : current));
+    }, 4000);
+  }
+
+  // Fetch real-time businesses from Supabase REST API + WebSockets Live Channel
   useEffect(() => {
     let isMounted = true;
 
@@ -162,7 +171,49 @@ export default function App() {
     // 1. Initial Load
     loadBusinesses(true);
 
-    // 2. Real-Time Cross-Tab Instant Sync Listener via BroadcastChannel
+    // 2. ⚡ SUPABASE REALTIME WEBSOCKET SUBSCRIPTION
+    const realtimeChannel = supabase
+      .channel('dalelak-public-directory-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'businesses' },
+        (payload: any) => {
+          if (!isMounted) return;
+          if (payload.eventType === 'INSERT') {
+            const newBiz = mapRawToBusiness(payload.new);
+            setBusinesses((prev) => {
+              const filtered = prev.filter((b) => b.id !== newBiz.id);
+              const updated = [newBiz, ...filtered];
+              try {
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
+            triggerSyncToast('تم إضافة نشاط جديد واعتماده للتو 🔔');
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedBiz = mapRawToBusiness(payload.new);
+            setBusinesses((prev) => {
+              const updated = prev.map((b) => (b.id === updatedBiz.id ? updatedBiz : b));
+              try {
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
+            triggerSyncToast('تم تحديث بيانات النشاط مباشرة ⚡');
+          } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+            setBusinesses((prev) => {
+              const updated = prev.filter((b) => b.id !== payload.old.id);
+              try {
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // 3. Real-Time Cross-Tab Instant Sync Listener via BroadcastChannel
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
     if (syncChannel) {
       syncChannel.onmessage = (event) => {
@@ -182,7 +233,7 @@ export default function App() {
       };
     }
 
-    // 3. Storage Event Listener for Instant Cross-Tab Sync
+    // 4. Storage Event Listener for Instant Cross-Tab Sync
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'dalelak_directory_cache' || e.key === 'dalelak_cached_businesses') {
         try {
@@ -197,7 +248,7 @@ export default function App() {
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // 3. Tab Visibility Change Listener: catch up when user opens tab
+    // 5. Tab Visibility Change Listener: catch up when user opens tab
     const handleVisibilityChange = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
         loadBusinesses(true);
@@ -207,12 +258,13 @@ export default function App() {
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
 
-    // 4. Lightweight Background Delta Poll Interval every 60 seconds
+    // 6. Lightweight Background Delta Poll Interval every 60 seconds
     const intervalId = setInterval(() => loadBusinesses(true), 60000);
 
     return () => {
       isMounted = false;
       clearInterval(intervalId);
+      supabase.removeChannel(realtimeChannel);
       if (syncChannel) syncChannel.close();
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -220,22 +272,30 @@ export default function App() {
     };
   }, []);
 
-  // Parse referral code if present in URL
+  // Parse direct business link, preview mode & referral code if present in URL
   const urlParams = new URLSearchParams(window.location.search);
+  const initialBizId = urlParams.get('biz') || urlParams.get('b') || urlParams.get('preview') || urlParams.get('id') || '';
+  const isPreviewMode = urlParams.has('preview');
   const refCode = urlParams.get('ref') || urlParams.get('rep') || '';
 
   return (
     <ThemeProvider>
-      {showSyncBadge && (
+      {syncToastMessage && (
         <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 dark:bg-emerald-950/90 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 backdrop-blur-xl text-xs font-black shadow-xl animate-fade-in transition-all"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600/90 text-white border border-emerald-400/40 backdrop-blur-xl text-xs font-black shadow-2xl animate-fade-in transition-all"
           style={{ direction: 'rtl' }}
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span>تم تحديث البيانات للتو 🔄</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+          <span>{syncToastMessage}</span>
         </div>
       )}
-      <PublicShowcase businesses={businesses} referralCode={refCode} loading={loading} />
+      <PublicShowcase
+        businesses={businesses}
+        initialBizId={initialBizId}
+        isPreviewMode={isPreviewMode}
+        referralCode={refCode}
+        loading={loading}
+      />
     </ThemeProvider>
   );
 }

@@ -22,7 +22,7 @@ import {
   Sparkles,
   Send,
   CreditCard,
-  History,
+  History as HistoryIcon,
   ArrowDownLeft,
   Calendar,
   Camera,
@@ -360,7 +360,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
         <div className="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-              <History className="w-4 h-4" />
+              <HistoryIcon className="w-4 h-4" />
             </div>
             <div>
               <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
