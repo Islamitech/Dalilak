@@ -368,6 +368,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }
         }
 
+        const effectiveRate = rep.commissionRate && rep.commissionRate < 100 ? rep.commissionRate : 42.86;
+        const settlement = calculateRepSettlement(rep.id, repBiz, effectiveRate, payoutRequests);
+        const invitedCount = mergedAdminReps.filter((r) => isReferredByInviter(r, rep)).length;
+
         return {
           rep,
           totalBiz: repBiz.length,
@@ -377,10 +381,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           achievement: Number(achievement),
           isOnline,
           lastActiveText,
+          settlement,
+          cashInHand: settlement.totalCashInHand,
+          earnedCommission: settlement.totalEarnedCommission,
+          debtToPlatform: settlement.debtToPlatformAmount,
+          withdrawableBalance: settlement.withdrawableBalance,
+          isDebt: settlement.isDebtToPlatform,
+          invitedCount,
         };
       })
       .sort((a, b) => b.totalBiz - a.totalBiz);
-  }, [mergedAdminReps, businesses]);
+  }, [mergedAdminReps, businesses, payoutRequests]);
 
   // ── MASTER FINANCIAL ACCOUNTING & REVENUE MODEL ──
   const totalApprovedPayouts = (payoutRequests || [])
@@ -1347,39 +1358,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          {/* Team Performance Table (Pure Statistics & Metrics) */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3 shadow-xs">
-            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-              <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
-                <Award className="w-5 h-5 text-amber-500" />
-                <span>إحصائيات ومعدلات إنجاز فريق العمل الميداني</span>
-              </h3>
-              <span className="text-xs text-[var(--text-muted)] font-bold">
-                ترتيب حسب أعلى الأنشطة المسجلة
+          {/* Team Performance & Comprehensive Account Ledger Table */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border-b border-[var(--border-color)] pb-3">
+              <div>
+                <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-500" />
+                  <span>إحصائيات وحركات وحسابات فريق العمل الميداني الشاملة</span>
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  متابعة دقيقة وفورية لحركات الكاش المحصل، العمولات المستحقة، عهدة التوريد، وشبكة الإحالة لكل حساب
+                </p>
+              </div>
+
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-black bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/30">
+                إجمالي الأعضاء: {repPerformanceStats.length}
               </span>
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
-              <table className="w-full text-xs text-right border-collapse min-w-[650px]">
+              <table className="w-full text-xs text-right border-collapse min-w-[950px]">
                 <thead>
-                  <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold">
+                  <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold text-[11px]">
                     <th className="p-3">اسم العضو / المندوب</th>
                     <th className="p-3">المحافظة والصلاحية</th>
                     <th className="p-3 text-center">الأنشطة المسجلة</th>
-                    <th className="p-3 text-center">الأنشطة الموثقة</th>
-                    <th className="p-3 text-center">المبالغ المحصلة</th>
-                    <th className="p-3 text-center">المستهدف والإنجاز</th>
-                    <th className="p-3 text-center">التواجد والنشاط (آخر 59 دقيقة)</th>
+                    <th className="p-3 text-center">إجمالي التحصيل</th>
+                    <th className="p-3 text-center">كاش باليد</th>
+                    <th className="p-3 text-center">العمولات المستحقة</th>
+                    <th className="p-3 text-center">الموقف المالي / العهدة</th>
+                    <th className="p-3 text-center">شبكة الإحالة</th>
+                    <th className="p-3 text-center">الحالة والتواجد</th>
+                    <th className="p-3 text-center">كشف الحساب</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
-                  {repPerformanceStats.map(({ rep, totalBiz, verifiedBiz, collectedRevenue, target, achievement, isOnline, lastActiveText }) => (
-                    <tr key={rep.id} className="hover:bg-amber-500/5 transition-colors">
+                  {repPerformanceStats.map(({ rep, totalBiz, verifiedBiz, collectedRevenue, target, achievement, isOnline, lastActiveText, cashInHand, earnedCommission, debtToPlatform, withdrawableBalance, isDebt, invitedCount }) => (
+                    <tr
+                      key={rep.id}
+                      className="hover:bg-amber-500/5 transition-colors cursor-pointer"
+                      onClick={() => setSelectedDossierRep(rep)}
+                    >
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <UserAvatar avatar={rep.avatar} name={rep.name} role={rep.role} size="sm" />
                           <div>
-                            <p className="font-black text-[var(--text-primary)]">{rep.name}</p>
+                            <p className="font-black text-[var(--text-primary)] hover:text-amber-500 transition-colors">{rep.name}</p>
                             <p className="text-[10px] text-[var(--text-muted)] font-mono">{rep.phone}</p>
                           </div>
                         </div>
@@ -1387,33 +1411,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                       <td className="p-3">
                         <p className="font-bold text-[var(--text-primary)]">{rep.governorate}</p>
-                        <p className="text-[10px] text-[var(--text-muted)]">{rep.roleTitle || 'مندوب'}</p>
+                        <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">{rep.roleTitle || (rep.role === 'admin' ? 'مدير' : rep.role === 'supervisor' ? 'مشرف' : 'مندوب')}</span>
                       </td>
 
-                      <td className="p-3 text-center font-mono font-black text-sm text-[var(--text-primary)]">
-                        {totalBiz}
+                      <td className="p-3 text-center font-mono">
+                        <span className="font-black text-sm text-[var(--text-primary)]">{totalBiz}</span>
+                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">{verifiedBiz} موثق</p>
                       </td>
 
                       <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {verifiedBiz}
+                        {collectedRevenue.toLocaleString()} ج
                       </td>
 
-                      <td className="p-3 text-center font-mono font-black text-emerald-600 dark:text-emerald-400">
-                        {collectedRevenue.toLocaleString()} ج.م
+                      <td className="p-3 text-center font-mono font-black text-blue-600 dark:text-blue-400">
+                        {cashInHand > 0 ? `${cashInHand.toLocaleString()} ج` : '0 ج'}
+                      </td>
+
+                      <td className="p-3 text-center font-mono font-black text-amber-600 dark:text-amber-400">
+                        {earnedCommission > 0 ? `${earnedCommission.toLocaleString()} ج` : '0 ج'}
                       </td>
 
                       <td className="p-3 text-center">
-                        <div className="space-y-1">
-                          <span className={`font-mono font-bold text-xs ${achievement >= 100 ? 'text-emerald-600' : achievement >= 50 ? 'text-amber-600' : 'text-slate-500'}`}>
-                            {achievement}% ({totalBiz}/{target})
+                        {isDebt ? (
+                          <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xs inline-block whitespace-nowrap">
+                            ⚠️ عهدة: {debtToPlatform.toLocaleString()} ج
                           </span>
-                          <div className="w-20 bg-[var(--input-bg)] h-1.5 rounded-full mx-auto overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${achievement >= 100 ? 'bg-emerald-500' : achievement >= 50 ? 'bg-amber-500' : 'bg-slate-400'}`}
-                              style={{ width: `${Math.min(100, achievement)}%` }}
-                            />
-                          </div>
-                        </div>
+                        ) : withdrawableBalance > 0 ? (
+                          <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xs inline-block whitespace-nowrap">
+                            🟢 متاح: {withdrawableBalance.toLocaleString()} ج
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[var(--input-bg)] px-2 py-0.5 rounded-lg">
+                            مصفى (0 ج)
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3 text-center">
+                        {invitedCount > 0 ? (
+                          <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/30">
+                            👥 دعا {invitedCount}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[var(--text-muted)]">—</span>
+                        )}
                       </td>
 
                       <td className="p-3 text-center">
@@ -1428,6 +1469,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span>{lastActiveText}</span>
                           </span>
                         )}
+                      </td>
+
+                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDossierRep(rep)}
+                          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 mx-auto cursor-pointer"
+                          title="فتح كشف الحساب والأنشطة والذمة المالية للمندوب"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>الملف</span>
+                        </button>
                       </td>
                     </tr>
                   ))}
