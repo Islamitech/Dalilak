@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { DocViewerModal } from './DocViewerModal';
 import { Business, Representative, PaymentGatewayConfig, UserRole, PayoutRequest, User } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
-import { calculateRepSettlement, PAYOUT_METHOD_LABELS } from '../utils/commission';
+import { calculateRepSettlement, calculateRepCommissionFromCash, PAYOUT_METHOD_LABELS } from '../utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { getRepReferralCode, isReferralSystemUnlocked, isReferredByInviter } from '../utils/referral';
 import { compressImageFile } from '../utils/imageCompressor';
@@ -412,6 +412,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [mergedAdminReps, businesses, payoutRequests]);
 
   const netPlatformRevenue = Math.max(0, totalRevenue - totalEarnedCommissions);
+
+  // 💵 Commissions retained / received in cash directly by representatives
+  const totalCommissionsRetainedInCash = useMemo(() => {
+    return mergedAdminReps.reduce((sum, rep) => {
+      if (rep.role !== 'rep') return sum;
+      const repBiz = businesses.filter((b) => b.repId === rep.id || b.repName === rep.name || b.repId === rep.phone);
+      const repRate = (rep.commissionRate && rep.commissionRate < 100) ? rep.commissionRate : 42.86;
+      return sum + calculateRepCommissionFromCash(repBiz, repRate);
+    }, 0);
+  }, [mergedAdminReps, businesses]);
 
   // ── ⚖️ ADVANCED CASH & COMMISSIONS SETTLEMENT MATRIX ──
   const netRepsSettlementMatrix = useMemo(() => {
@@ -1006,28 +1016,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span className="text-[9px] text-[var(--text-muted)]">مقبوضات نقدية ميدانية</span>
               </div>
 
-              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات المناديب المستحقة</span>
+              <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 space-y-1">
+                <span className="text-[10px] text-amber-800 dark:text-amber-300 font-black block">💵 عمولات استلمت نقداً</span>
                 <span className="font-black text-base text-amber-600 dark:text-amber-400 font-mono block">
-                  {totalEarnedCommissions.toLocaleString()} <span className="text-[10px]">ج</span>
+                  {totalCommissionsRetainedInCash.toLocaleString()} <span className="text-[10px]">ج</span>
                 </span>
-                <span className="text-[9px] text-[var(--text-muted)]">إجمالي استحقاق المناديب</span>
+                <span className="text-[9px] text-amber-700/80 dark:text-amber-300/80 font-bold">استقطعها المندوب من الكاش</span>
               </div>
 
               <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
-                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات تم صرفها فعلياً</span>
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات تم صرفها بحوالة</span>
                 <span className="font-black text-base text-emerald-600 dark:text-emerald-400 font-mono block">
                   {totalApprovedPayouts.toLocaleString()} <span className="text-[10px]">ج</span>
                 </span>
-                <span className="text-[9px] text-[var(--text-muted)]">حوالات معتمدة ومكتملة</span>
+                <span className="text-[9px] text-[var(--text-muted)]">إلكتروني / إنستاباي / فودافون</span>
               </div>
 
-              <div className="bg-rose-500/10 p-3 rounded-2xl border border-rose-500/30 space-y-1">
-                <span className="text-[10px] text-rose-700 dark:text-rose-300 font-bold block">⚠️ عهدة كاش مستحقة للتوريد</span>
-                <span className="font-black text-base text-rose-600 dark:text-rose-400 font-mono block">
-                  {netRepsSettlementMatrix.totalRepsCashDebtToPlatform.toLocaleString()} <span className="text-[10px]">ج</span>
+              <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي عمولات المناديب</span>
+                <span className="font-black text-base text-indigo-600 dark:text-indigo-400 font-mono block">
+                  {totalEarnedCommissions.toLocaleString()} <span className="text-[10px]">ج</span>
                 </span>
-                <span className="text-[9px] text-rose-600/80 dark:text-rose-300/80 font-bold">مطلوب تحصيلها من المناديب</span>
+                <span className="text-[9px] text-[var(--text-muted)]">كافة الاستحقاقات الشاملة</span>
               </div>
 
               <div className="bg-teal-500/10 p-3 rounded-2xl border border-teal-500/30 space-y-1">
