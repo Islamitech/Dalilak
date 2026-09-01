@@ -10,6 +10,38 @@ export function formatWhatsAppPhone(phone?: string): string {
 }
 
 /**
+ * Event 0: Welcome & Onboarding Message for Businesses Already Active on Google Maps
+ */
+export function generateWelcomeAlreadyOnGoogleWhatsAppMessage(biz: Business): string {
+  const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
+
+  const raw = 
+    `*مرحباً بكم في منصة دليلك - إشعار إدراج النشاط التجاري*\n` +
+    `-----------------------------------------\n` +
+    `• *اسم النشاط:* ${biz.nameAr || ''}\n` +
+    `• *صاحب النشاط:* ${biz.ownerName || ''}\n` +
+    `• *الموقع والنطاق:* ${biz.governorate || ''} - ${biz.city || ''}\n` +
+    `• *رقم الإدراج:* ${biz.invoiceNumber || ''}\n` +
+    `• *حالة التوثيق على Google Maps:* نشاط قائم ومعتمد بالفعل ✅\n` +
+    `• *رابط موقعكم على خرائط Google:* ${activeMapUrl}\n\n` +
+    `*يسعدنا إعلامكم بأنه تم إدراج وربط نشاطكم رسمياً بدليل الأنشطة والخدمات الميدانية المعتمدة في مصر مجاناً:*\n` +
+    `🔗 رابط دليل الأنشطة المباشر: ${DIRECTORY_URL}\n\n` +
+    `*مزايا إدراج نشاطكم في دليلك:*\n` +
+    `1. ظهور النشاط أمام آلاف العملاء والزوار في نطاق منطقتكم.\n` +
+    `2. توثيق رقم التواصل ومواعيد العمل وإتاحة الوصول السريع.\n` +
+    `3. إمكانية الاستفادة من حملات الرعاية والتسويق الإلكتروني وملصقات الباركود الذكية.\n\n` +
+    `شكرًا لتعاونكم مع فريق العمل الميداني لمنظومة دليلك!`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getWelcomeAlreadyOnGoogleWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateWelcomeAlreadyOnGoogleWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
  * Strips any invisible zero-width characters or problematic variation selectors
  * that can cause replacement characters in WhatsApp decoders.
  */

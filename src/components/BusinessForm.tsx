@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, PackageOption, PaymentStatus, Representative, InterestedLead, LeadInterestLevel, User as UserType } from '../types';
-import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory, PACKAGES, EXEMPT_PACKAGE } from '../data/mockData';
+import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES, CATEGORY_GROUPS, getGroupFromCategory, PACKAGES, EXEMPT_PACKAGE, ALREADY_ON_GOOGLE_PACKAGE } from '../data/mockData';
 import { canUserManageFeeExemption } from '../utils/permissions';
 import { InteractiveMap } from './InteractiveMap';
 import { compressImageFile } from '../utils/imageCompressor';
@@ -59,6 +59,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   onSaveLead,
   initialLead,
 }) => {
+
+  // Registration Mode: 1. New Google Package, 2. Already on Google Maps, 3. Interested Lead
+  const [registrationType, setRegistrationType] = useState<'new_verification' | 'already_on_google' | 'interested_lead'>('new_verification');
+  const [alreadyGoogleMapsUrl, setAlreadyGoogleMapsUrl] = useState<string>('');
 
   // Form State
   const [nameAr, setNameAr] = useState<string>(initialLead?.businessName || '');
@@ -122,6 +126,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [leadPhone, setLeadPhone] = useState<string>('');
   const [leadGov, setLeadGov] = useState<string>('القاهرة');
   const [leadCity, setLeadCity] = useState<string>('');
+  const [leadStreet, setLeadStreet] = useState<string>('');
+  const [isSavingLead, setIsSavingLead] = useState<boolean>(false);
   const [leadInterest, setLeadInterest] = useState<LeadInterestLevel>('medium');
   const [leadFollowDate, setLeadFollowDate] = useState<string>(
     new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -373,9 +379,136 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     };
   }, [nameAr, nameEn, ownerName, ownerPhone, phone, secondaryPhone, paymentStatus, selectedPackage]);
 
+
+
+  const handleSaveLeadSubmit = async () => {
+    if (!leadClientName.trim() && !leadBizName.trim()) {
+      alert('يرجى إدخال اسم العميل أو اسم النشاط على الأقل');
+      return;
+    }
+    if (!leadPhone.trim()) {
+      alert('يرجى إدخال رقم الهاتف للتواصل');
+      return;
+    }
+
+    setIsSavingLead(true);
+    try {
+      const lead: InterestedLead = {
+        id: `lead_${Date.now()}`,
+        clientName: leadClientName.trim() || 'عميل مهتم',
+        businessName: leadBizName.trim() || undefined,
+        phone: leadPhone.trim(),
+        governorate: leadGov,
+        city: leadCity.trim() || undefined,
+        interestLevel: leadInterest,
+        followUpDate: leadFollowDate || undefined,
+        notes: leadNotes.trim() || undefined,
+        createdDate: new Date().toISOString(),
+        repId: currentRep?.id || 'rep_1',
+        repName: currentRep?.name || 'مندوب معتمد',
+        status: 'pending_followup',
+      };
+
+      if (onSaveLead) {
+        onSaveLead(lead);
+      } else {
+        await saveLeadToDb(lead);
+      }
+
+      setLeadSuccessMsg(`✅ تم حفظ بيانات العميل "${lead.clientName}" بنجاح في مركز المراجعات والمتابعة!`);
+      setLeadClientName('');
+      setLeadBizName('');
+      setLeadPhone('');
+      setLeadCity('');
+      setLeadStreet('');
+      setLeadNotes('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingLead(false);
+    }
+  };
+
+  const handleDirectAlreadyOnGoogleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (!nameAr.trim() && !nameEn.trim()) {
+      setErrorMsg('⚠️ يرجى إدخال اسم النشاط التجاري');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const finalOwner = ownerName.trim() || 'صاحب النشاط';
+    const finalPhone = (ownerPhone.trim() || phone.trim());
+
+    if (!finalPhone) {
+      setErrorMsg('⚠️ يرجى إدخال رقم هاتف الواتساب أو هاتف المحل للتواصل وإصدار الفاتورة الترحيبية');
+      window.scrollTo({ top: 250, behavior: 'smooth' });
+      return;
+    }
+
+    const timestamp = Date.now();
+    const finalNameAr = (nameAr && nameAr.trim()) || (nameEn && nameEn.trim()) || 'نشاط تجاري قائم';
+    const finalNameEn = nameEn?.trim() || undefined;
+    const finalGoogleMapUrl = alreadyGoogleMapsUrl.trim() || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined);
+
+    const newBusiness: Business = {
+      id: `biz_${timestamp}`,
+      nameAr: finalNameAr,
+      nameEn: finalNameEn,
+      category,
+      governorate,
+      city,
+      street: street.trim() || 'الموقع الجغرافي المسجل على الخريطة',
+      landmark: landmark.trim() || undefined,
+      phone: finalPhone,
+      secondaryPhone: secondaryPhone.trim() || undefined,
+      workingHours: workingHours.trim() || 'يومياً',
+      description: description.trim() || `نشاط ${finalNameAr} في ${governorate} - ${city}`,
+      lat: lat || 30.0444,
+      lng: lng || 31.2357,
+      ownerName: finalOwner,
+      ownerPhone: finalPhone,
+      ownerEmail: ownerEmail.trim() || undefined,
+      nationalId: nationalId.trim() || undefined,
+      photos: Array.isArray(photos) ? photos : [],
+      videos: Array.isArray(videos) ? videos : [],
+      repId: currentRep?.id || 'rep_1',
+      repName: currentRep?.name || 'مندوب معتمد',
+      packageId: ALREADY_ON_GOOGLE_PACKAGE.id,
+      packageName: ALREADY_ON_GOOGLE_PACKAGE.title,
+      packagePrice: 0,
+      amountPaid: 0,
+      isFeeExempt: true,
+      isAlreadyOnGoogle: true,
+      registrationType: 'already_on_google',
+      feeExemptionReason: 'نشاط مسجل ومفعل بالفعل على خرائط Google (إدراج مجاني بدون رسوم وعمولات)',
+      paymentMethod: 'platform_collected',
+      cashCollectedByRep: 0,
+      paymentStatus: 'fully_paid',
+      verificationStatus: 'verified', // Pre-verified because already active on Google Maps
+      googleMapsUrl: finalGoogleMapUrl,
+      googleSyncStatus: 'synced',
+      googleSyncDate: new Date().toISOString().split('T')[0],
+      invoiceNumber: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
+      invoiceDate: new Date().toISOString().split('T')[0],
+      createdDate: new Date().toISOString(),
+      notes: notes || undefined,
+    };
+
+    onSubmitBusiness(newBusiness);
+    setSubmittedBusiness(newBusiness);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
   const handleInitiateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    if (registrationType === 'already_on_google') {
+      handleDirectAlreadyOnGoogleSubmit(e);
+      return;
+    }
 
     if (!nameAr.trim() && !nameEn.trim()) {
       setErrorMsg('⚠️ يرجى إدخال اسم النشاط التجاري (باللغة العربية أو باللغة الإنجليزية)');
@@ -631,6 +764,205 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         </div>
       </div>
 
+
+      {/* ── 🚀 UNIFIED REGISTRATION MODE SELECTOR (3 OPTIONS) ── */}
+      <div className="bg-[var(--bg-card)] border-2 border-amber-500/30 rounded-3xl p-3 shadow-md space-y-2">
+        <span className="text-[11px] font-black text-[var(--text-muted)] block px-1 text-right">
+          اختر نوع وطبيعة التسجيل الميداني:
+        </span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {/* Mode 1: New Google Maps Verification */}
+          <button
+            type="button"
+            onClick={() => setRegistrationType('new_verification')}
+            className={`p-3 rounded-2xl font-black text-xs flex flex-col sm:flex-row items-center justify-center gap-2 border-2 transition-all cursor-pointer ${
+              registrationType === 'new_verification'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 border-amber-500 shadow-md scale-[1.02]'
+                : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <div className="text-center sm:text-right">
+              <span className="block font-black leading-tight">باقة خرائط جوجل</span>
+              <span className="text-[9.5px] opacity-80 block">توثيق جديد (250 / 750 / 2000 ج)</span>
+            </div>
+          </button>
+
+          {/* Mode 2: Already on Google Maps */}
+          <button
+            type="button"
+            onClick={() => setRegistrationType('already_on_google')}
+            className={`p-3 rounded-2xl font-black text-xs flex flex-col sm:flex-row items-center justify-center gap-2 border-2 transition-all cursor-pointer ${
+              registrationType === 'already_on_google'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-500 shadow-md scale-[1.02]'
+                : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-blue-500/40'
+            }`}
+          >
+            <MapPin className="w-4 h-4 shrink-0" />
+            <div className="text-center sm:text-right">
+              <span className="block font-black leading-tight">نشاط مسجل بالفعل</span>
+              <span className="text-[9.5px] opacity-80 block">مفعل على Google (إدراج مجاني)</span>
+            </div>
+          </button>
+
+          {/* Mode 3: Interested Lead */}
+          <button
+            type="button"
+            onClick={() => setRegistrationType('interested_lead')}
+            className={`p-3 rounded-2xl font-black text-xs flex flex-col sm:flex-row items-center justify-center gap-2 border-2 transition-all cursor-pointer ${
+              registrationType === 'interested_lead'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-500 shadow-md scale-[1.02]'
+                : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-emerald-500/40'
+            }`}
+          >
+            <UserCheck className="w-4 h-4 shrink-0" />
+            <div className="text-center sm:text-right">
+              <span className="block font-black leading-tight">عميل مهتم / زيارة</span>
+              <span className="text-[9.5px] opacity-80 block">تسجيل طلب متابعة ومراجعة</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* ── MODE 3 VIEW: INTERESTED LEAD REGISTRATION FORM ── */}
+      {registrationType === 'interested_lead' && (
+        <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl animate-fade-in text-right">
+          <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold shrink-0">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                تسجيل بيانات عميل مهتم / زيارة ميدانية للمتابعة
+              </h3>
+              <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                سجّل بيانات النشاط وصاحب المحل لحفظه ومتابعته والتواصل معه لاحقاً
+              </p>
+            </div>
+          </div>
+
+          {leadSuccessMsg && (
+            <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+              <span>{leadSuccessMsg} (تم حفظ العميل في سجل المراجعات)</span>
+            </div>
+          )}
+
+          <div className="space-y-3.5 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم صاحب النشاط / العميل *</label>
+                <input
+                  type="text"
+                  placeholder="مثال: أ. محمود خالد"
+                  value={leadClientName}
+                  onChange={(e) => setLeadClientName(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم المحل / النشاط التجاري</label>
+                <input
+                  type="text"
+                  placeholder="مثال: سوبر ماركت البركة"
+                  value={leadBizName}
+                  onChange={(e) => setLeadBizName(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold mb-1 text-[var(--text-primary)]">رقم هاتف الواتساب / الاتصال *</label>
+                <input
+                  type="tel"
+                  placeholder="010XXXXXXXX"
+                  value={leadPhone}
+                  onChange={(e) => setLeadPhone(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-[var(--text-primary)]">درجة اهتمام العميل</label>
+                <select
+                  value={leadInterest}
+                  onChange={(e) => setLeadInterest(e.target.value as any)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="high">🔥 مهتم جداً (جاهز للطلب قريباً)</option>
+                  <option value="medium">⚡ مهتم (يحتاج تفاصيل واستشارة)</option>
+                  <option value="low">⏳ متردد / يطلب وقتاً للتفكير</option>
+                  <option value="needs_admin_call">📞 يرغب في مكالمة هاتفية من الإدارة</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold mb-1 text-[var(--text-primary)]">المحافظة</label>
+                <select
+                  value={leadGov}
+                  onChange={(e) => setLeadGov(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  {EGYPT_GOVERNORATES.map((gov) => (
+                    <option key={gov} value={gov}>{gov}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-[var(--text-primary)]">المدينة / المنطقة</label>
+                <input
+                  type="text"
+                  placeholder="مثال: حدائق الأهرام"
+                  value={leadCity}
+                  onChange={(e) => setLeadCity(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-bold mb-1 text-[var(--text-primary)]">العنوان / الشارع وأقرب معلم</label>
+              <input
+                type="text"
+                placeholder="مثال: البوابة الثانية - بجوار صيدلية رشدي"
+                value={leadStreet}
+                onChange={(e) => setLeadStreet(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-medium focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold mb-1 text-[var(--text-primary)]">ملاحظات الزيارة وما تم مناقشته</label>
+              <textarea
+                rows={2}
+                placeholder="مثال: تم شرح باقة الـ 250 ج وطلب التواصل معه يوم السبت القادم بعد موافقة الشريك..."
+                value={leadNotes}
+                onChange={(e) => setLeadNotes(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-medium focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveLeadSubmit}
+              disabled={isSavingLead}
+              className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-sm py-3.5 px-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {isSavingLead ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-5 h-5" />}
+              <span>حفظ العميل في سجل المراجعات والمتابعة 📋</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {registrationType !== 'interested_lead' && (
+        <>
       {/* 1. البيانات الأساسية للنشاط */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
         <div className="flex items-center gap-2 text-amber-500 pb-2 border-b border-[var(--border-color)]">
@@ -909,6 +1241,77 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         </div>
       )}
 
+      {/* 5. باقات التوثيق والخدمات */}
+      {registrationType === 'already_on_google' ? (
+        <div className="bg-gradient-to-br from-blue-500/10 via-[var(--bg-card)] to-indigo-500/10 border-2 border-blue-500/40 rounded-3xl p-4 sm:p-5 space-y-3 shadow-md text-right">
+          <div className="flex items-center gap-2.5 text-blue-500 border-b border-[var(--border-color)] pb-2.5">
+            <MapPin className="w-5 h-5" />
+            <h3 className="font-black text-sm text-[var(--text-primary)]">
+              باقة الإدراج الميداني للأنشطة المسجلة بالفعل على Google Maps
+            </h3>
+          </div>
+          <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
+            هذا النشاط قائم بالفعل في الشارع ومفعل على خرائط Google. يتم إدراجه في دليل المنظومة كنشاط موثق رسمياً <strong className="text-blue-600 dark:text-blue-400 font-bold">(إدراج مجاني 0 ج.م بدون أي مديونية أو عمولات)</strong> مع توليد فاتورة ترحيبية فورية وإشعار انضمام.
+          </p>
+          <div className="flex items-center gap-2 pt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>معتمد وموثق على الخرائط فورياً (0 ج.م)</span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+            <div className="flex items-center gap-2 text-amber-500">
+              <Sparkles className="w-5 h-5" />
+              <h3 className="font-bold text-sm text-[var(--text-primary)]">5. باقة التوثيق والخدمات المطلوبة</h3>
+            </div>
+            <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+              {selectedPackage.title} ({selectedPackage.price} ج.م)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {PACKAGES.map((pkg) => {
+              const isSelected = selectedPackage.id === pkg.id && !isFeeExempt;
+              return (
+                <div
+                  key={pkg.id}
+                  onClick={() => {
+                    if (isFeeExempt) setIsFeeExempt(false);
+                    setSelectedPackage(pkg);
+                    if (paymentStatus === 'fully_paid') {
+                      setAmountPaid(pkg.price);
+                    } else if (paymentStatus === 'partially_paid') {
+                      setAmountPaid(Math.round(pkg.price / 2));
+                    }
+                  }}
+                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between relative shadow-xs ${
+                    isSelected
+                      ? 'bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-amber-500/5 border-amber-500 ring-2 ring-amber-500/20 text-[var(--text-primary)] scale-[1.02]'
+                      : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40 text-[var(--text-secondary)]'
+                  }`}
+                >
+                  {pkg.popular && (
+                    <span className="absolute -top-2.5 right-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[9.5px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                      الأكثر طلباً ⭐
+                    </span>
+                  )}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-black text-xs sm:text-sm text-[var(--text-primary)]">{pkg.title}</span>
+                      <span className="font-black font-mono text-sm text-amber-600 dark:text-amber-400">{pkg.price} ج.م</span>
+                    </div>
+                    <p className="text-[10.5px] text-[var(--text-muted)] leading-relaxed font-medium line-clamp-2">
+                      {pkg.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 🌟 Admin/Manager Special Feature: Fee-Exempt Popular Area Landmark/Activity */}
       {canExempt && (
         <div className={`p-4 sm:p-5 rounded-3xl border-2 transition-all duration-300 ${
@@ -966,205 +1369,26 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       {/* Submit Action Button */}
       <button
         type="submit"
-        className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-sm sm:text-base py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+        className={`w-full font-black text-sm sm:text-base py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer ${
+          registrationType === 'already_on_google'
+            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white'
+            : 'bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950'
+        }`}
       >
-        <CreditCard className="w-5 h-5 stroke-[2.5]" />
-        <span>{isFeeExempt ? 'تأكيد تسجيل النشاط الرائج (إدراج مجاني) 🌟' : 'حفظ النشاط وتحديد حالة الدفع والفاتورة 💳'}</span>
+        {registrationType === 'already_on_google' ? (
+          <>
+            <CheckCircle2 className="w-5 h-5" />
+            <span>إدراج النشاط المسجل وتوليد الفاتورة الترحيبية 📄✨</span>
+          </>
+        ) : (
+          <>
+            <CreditCard className="w-5 h-5 stroke-[2.5]" />
+            <span>{isFeeExempt ? 'تأكيد تسجيل النشاط الرائج (إدراج مجاني) 🌟' : 'حفظ النشاط وتحديد حالة الدفع والفاتورة 💳'}</span>
+          </>
+        )}
       </button>
-
-        {/* ========================================================
-            ⚡ BOTTOM SECTION: REGISTER INTERESTED LEAD / PROSPECT
-            ======================================================== */}
-        <div className="pt-2 border-t-2 border-dashed border-amber-500/30">
-          <div className="bg-gradient-to-br from-amber-500/10 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-500/40 rounded-3xl p-4 sm:p-6 space-y-4 shadow-lg">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold shrink-0 mt-0.5 sm:mt-0">
-                  <UserCheck className="w-5 h-5" />
-                </div>
-                <div className="flex-1 text-right">
-                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] leading-tight">
-                    ⚡ تسجيل عميل مهتم / زيارة ميدانية (بدون باقة حالياً)
-                  </h3>
-                  <p className="text-[11px] text-[var(--text-muted)] font-bold mt-1 leading-relaxed">
-                    قابلت صاحب نشاط مهتم لكنه لم يطلب باقة بعد؟ سجّل رقمه هنا لحفظه وإرسال رسالة تعريفية ومتابعته لاحقاً
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowLeadSection(!showLeadSection)}
-                className="w-full sm:w-auto justify-center bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
-              >
-                {showLeadSection ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                <span>{showLeadSection ? 'إخفاء النموذج' : 'فتح نموذج المهتمين'}</span>
-              </button>
-            </div>
-
-            {leadSuccessMsg && (
-              <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>{leadSuccessMsg} (تم حفظ العميل للمتابعة الإدارية)</span>
-              </div>
-            )}
-
-            {showLeadSection && (
-              <div className="space-y-3 pt-2 border-t border-[var(--border-color)] animate-fade-in text-xs">
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم صاحب النشاط / العميل *</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: أ. محمود خالد"
-                    value={leadClientName}
-                    onChange={(e) => setLeadClientName(e.target.value)}
-                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم المحل / النشاط (اختياري)</label>
-                    <input
-                      type="text"
-                      placeholder="مثال: صيدلية النور"
-                      value={leadBizName}
-                      onChange={(e) => setLeadBizName(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">رقم الهاتف / واتساب (11 رقم) *</label>
-                    <input
-                      type="tel"
-                      placeholder="011XXXXXXXX"
-                      value={leadPhone}
-                      onChange={(e) => setLeadPhone(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المحافظة</label>
-                    <select
-                      value={leadGov}
-                      onChange={(e) => setLeadGov(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    >
-                      {EGYPT_GOVERNORATES.map((gov) => (
-                        <option key={gov} value={gov}>
-                          {gov}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المدينة / المنطقة</label>
-                    <input
-                      type="text"
-                      placeholder="مثال: مدينة نصر"
-                      value={leadCity}
-                      onChange={(e) => setLeadCity(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">درجة الاهتمام</label>
-                    <select
-                      value={leadInterest}
-                      onChange={(e) => setLeadInterest(e.target.value as LeadInterestLevel)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    >
-                      <option value="high">🔥 مهتم جداً (أولوية عالية)</option>
-                      <option value="medium">⏳ يحتاج تفكير ومتابعة</option>
-                      <option value="need_visit">📅 طلب زيارة ميدانية</option>
-                      <option value="intro_sent">💬 طلب رسالة تعريفية</option>
-                      <option value="low">متردد / استفسار عام</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">موعد المتابعة المقترح</label>
-                    <input
-                      type="date"
-                      value={leadFollowDate}
-                      onChange={(e) => setLeadFollowDate(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">ملاحظات الزيارة (اختياري)</label>
-                  <textarea
-                    rows={2}
-                    placeholder="مثال: تم شرح الباقات وسيقوم بالرد بعد العودة لمدير الفرع..."
-                    value={leadNotes}
-                    onChange={(e) => setLeadNotes(e.target.value)}
-                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    if (!leadClientName || leadClientName.trim().length < 3) {
-                      alert('يرجى كتابة اسم العميل بشكل صحيح.');
-                      return;
-                    }
-                    const cleanP = leadPhone.replace(/\D/g, '');
-                    if (cleanP.length < 10) {
-                      alert('يرجى إدخال رقم هاتف صحيح (11 رقم).');
-                      return;
-                    }
-
-                    const lead: InterestedLead = {
-                      id: `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-                      clientName: leadClientName.trim(),
-                      businessName: leadBizName.trim() || undefined,
-                      phone: cleanP,
-                      governorate: leadGov,
-                      city: leadCity.trim() || undefined,
-                      interestLevel: leadInterest,
-                      followUpDate: leadFollowDate || undefined,
-                      notes: leadNotes.trim() || undefined,
-                      createdDate: new Date().toISOString(),
-                      repId: currentRep?.id || 'rep_1',
-                      repName: currentRep?.name || 'مندوب معتمد',
-                      status: 'pending_followup',
-                    };
-
-                    if (onSaveLead) {
-                      onSaveLead(lead);
-                    } else {
-                      await saveLeadToDb(lead);
-                    }
-
-                    setSavedLeadForWhatsApp(lead);
-                    setLeadSuccessMsg(`✅ تم حفظ بيانات العميل "${lead.clientName}" بنجاح في مركز المتابعات والمهتمين!`);
-                    setLeadClientName('');
-                    setLeadBizName('');
-                    setLeadPhone('');
-                    setLeadCity('');
-                    setLeadNotes('');
-                  }}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 rounded-xl shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <UserCheck className="w-4 h-4 stroke-[3]" />
-                  <span>حفظ العميل في مركز المتابعات والمهتمين 📋</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        </>
+      )}
 
       {/* 💳 Dedicated Payment Confirmation Modal Popup */}
       {showPaymentModal &&

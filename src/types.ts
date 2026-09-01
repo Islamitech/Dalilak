@@ -44,6 +44,8 @@ export interface Business {
   repCommissionRate?: number;
   isFeeExempt?: boolean; // نشاط رائج بالمنطقة معفى من الرسوم والتحصيل المالي (إدراج مجاني)
   feeExemptionReason?: string; // سبب الإعفاء
+  registrationType?: 'new_verification' | 'already_on_google' | 'interested_lead'; // أسلوب التسجيل
+  isAlreadyOnGoogle?: boolean; // نشاط مسجل ومفعل بالفعل على خرائط Google مسبقاً
   notes?: string;
   createdDate: string;
   _offlineUserId?: string;

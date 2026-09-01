@@ -260,6 +260,19 @@ export const EXEMPT_PACKAGE: PackageOption = {
   ]
 };
 
+export const ALREADY_ON_GOOGLE_PACKAGE: PackageOption = {
+  id: 'pkg_already_on_google',
+  title: 'نشاط مسجل مسبقاً على Google Maps (إدراج مجاني)',
+  price: 0,
+  description: 'إدراج نشاط قائم بالفعل ومفعل على خرائط Google في دليل دليلك الميداني.',
+  features: [
+    'ربط الموقع المعتمد والموثق على خرائط Google بدليل الأنشطة.',
+    'إصدار فاتورة ترحيبية رسمية وإشعار انضمام لمنظومة دليلك.',
+    'إدراج مجاني 100% بدون أي مطالبات مالية أو عمولات.',
+    'تفعيل الرعاية والتسويق وخدمات القيمة المضافة الاختيارية.'
+  ]
+};
+
 
 export const MOCK_REPRESENTATIVES: Representative[] = [
   {

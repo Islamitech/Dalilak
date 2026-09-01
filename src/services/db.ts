@@ -1089,6 +1089,8 @@ function mapDbToBusiness(item: any): Business {
     ? Boolean(item.isFeeExempt) 
     : undefined;
   let metaFeeExemptionReason = item.fee_exemption_reason || item.feeExemptionReason;
+  let metaIsAlreadyOnGoogle: boolean | undefined = item.is_already_on_google !== undefined ? Boolean(item.is_already_on_google) : item.isAlreadyOnGoogle !== undefined ? Boolean(item.isAlreadyOnGoogle) : undefined;
+  let metaRegistrationType = item.registration_type || item.registrationType;
   let metaVideos: string[] | undefined = undefined;
   let pureNotes = item.notes;
 
@@ -1106,6 +1108,8 @@ function mapDbToBusiness(item: any): Business {
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
         if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = Boolean(parsed.isFeeExempt);
         if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
+        if (parsed.isAlreadyOnGoogle !== undefined && metaIsAlreadyOnGoogle === undefined) metaIsAlreadyOnGoogle = Boolean(parsed.isAlreadyOnGoogle);
+        if (parsed.registrationType !== undefined && !metaRegistrationType) metaRegistrationType = parsed.registrationType;
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
         pureNotes = parsed.userNotes !== undefined ? parsed.userNotes : undefined;
       }
@@ -1207,6 +1211,8 @@ function mapDbToBusiness(item: any): Business {
     createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
     isFeeExempt,
     feeExemptionReason: metaFeeExemptionReason,
+    isAlreadyOnGoogle: Boolean(metaIsAlreadyOnGoogle || item.package_id === 'pkg_already_on_google'),
+    registrationType: metaRegistrationType || (metaIsAlreadyOnGoogle || item.package_id === 'pkg_already_on_google' ? 'already_on_google' : 'new_verification'),
   };
 }
 
@@ -1280,6 +1286,8 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     repCommissionRate: isExempt ? 0 : biz.repCommissionRate,
     isFeeExempt: isExempt,
     feeExemptionReason: biz.feeExemptionReason,
+    isAlreadyOnGoogle: Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google'),
+    registrationType: biz.registrationType || (biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' ? 'already_on_google' : 'new_verification'),
     googleSyncStatus: biz.googleSyncStatus,
     googlePlaceId: biz.googlePlaceId,
     googleSyncDate: biz.googleSyncDate,

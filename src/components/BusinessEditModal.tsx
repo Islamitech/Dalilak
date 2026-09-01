@@ -45,6 +45,8 @@ import {
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 import {
+  getWelcomeAlreadyOnGoogleWhatsAppUrl,
+  generateWelcomeAlreadyOnGoogleWhatsAppMessage,
   getInvoiceWhatsAppUrl,
   generateInvoiceWhatsAppMessage,
   getGoogleMapsVerifiedWhatsAppUrl,
@@ -362,7 +364,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     ? { label: 'مرفوض 🔴', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
     : { label: 'بانتظار المراجعة', cls: 'bg-slate-700/50 text-slate-300 border-slate-600' };
 
-  const paymentBadge = isFeeExempt
+  const isAlreadyOnGoogle = Boolean(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google');
+  const paymentBadge = isAlreadyOnGoogle
+    ? { label: 'مسجل مسبقاً على Google Maps 📍 (إدراج مجاني 0 ج)', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
+    : isFeeExempt
     ? { label: 'معفى من الرسوم (مجاني 0 ج)', cls: 'bg-teal-500/20 text-teal-300 border-teal-500/40 font-black' }
     : formData.paymentStatus === 'fully_paid'
     ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
@@ -1437,6 +1442,43 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </span>
               </div>
 
+              {/* WELCOME MESSAGE FOR ALREADY-ON-GOOGLE BUSINESSES */}
+              {(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google') ? (
+                <div className="bg-[var(--input-bg)] border-2 border-blue-500/40 hover:border-blue-500 rounded-2xl p-3.5 space-y-2.5 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                      <Sparkles className="w-4 h-4 text-blue-500" />
+                      <span>رسالة الترحيب الرسمية وإشعار الإدراج بالدليل (Google Maps قائم)</span>
+                    </div>
+                    <span className="text-[9.5px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
+                      نشاط مسجل مسبقاً 📍
+                    </span>
+                  </div>
+                  <p className="text-[10.5px] text-[var(--text-muted)] font-medium leading-relaxed">
+                    رسالة ترحيبية راقية للمالك تتضمن إشعار إدراج وربط نشاطه القائم على Google Maps بدليل الأنشطة والخدمات المعتمد مجاناً.
+                  </p>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <a
+                      href={getWelcomeAlreadyOnGoogleWhatsAppUrl(formData)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>إرسال رسالة الترحيب والإدراج عبر WhatsApp</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(generateWelcomeAlreadyOnGoogleWhatsAppMessage(formData), 'wa_welcome')}
+                      className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                      title="نسخ نص رسالة الترحيب"
+                    >
+                      {copiedField === 'wa_welcome' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
               {/* Message 1: Initial Invoice */}
               <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3 space-y-2 transition-colors">
                 <div className="flex items-center justify-between">
@@ -1541,6 +1583,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </button>
                 </div>
               </div>
+                </>
+              )}
 
               {/* ── STRICT ADMIN/SUPERVISOR ONLY: MONTHLY NURTURING CAMPAIGNS ── */}
               {isAdminOrFinancial && (

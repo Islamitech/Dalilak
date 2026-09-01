@@ -158,11 +158,17 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
             <div className="text-left space-y-1">
               <span className={`inline-block text-[10.5px] font-black px-3 py-1 rounded-full border shadow-2xs ${
-                isFeeExempt
+                activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                  ? 'bg-blue-50 text-blue-900 border-blue-300'
+                  : isFeeExempt
                   ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                   : 'bg-amber-50 text-amber-900 border-amber-300'
               }`}>
-                {isFeeExempt ? 'فاتورة إلكترونية معتمدة (إدراج مجاني)' : 'فاتورة إلكترونية معتمدة'}
+                {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                  ? 'فاتورة ترحيبية وإشعار إدراج بالدليل (Google Maps قائم) 📍'
+                  : isFeeExempt
+                  ? 'فاتورة إلكترونية معتمدة (إدراج مجاني)'
+                  : 'فاتورة إلكترونية معتمدة'}
               </span>
               <div className="text-xs font-mono font-black text-slate-700" dir="ltr">
                 {activeBusiness.invoiceNumber}
