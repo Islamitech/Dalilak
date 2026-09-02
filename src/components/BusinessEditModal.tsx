@@ -432,7 +432,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   const TABS: TabItem[] = [
     { key: 'info', label: 'البيانات', icon: <Store className="w-4 h-4" /> },
-    { key: 'owner', label: 'المالك', icon: <User className="w-4 h-4" /> },
     { key: 'location', label: 'الموقع والخرائط', icon: <MapPin className="w-4 h-4" /> },
     { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4" /> },
     { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
@@ -910,117 +909,122 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     </p>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* ── TAB 2: المالك والتواصل ────────────────────────────────── */}
-          {activeSection === 'owner' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-right">
-              {/* اسم صاحب النشاط */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-amber-500" />
-                  <span>اسم صاحب النشاط / المسؤول</span>
-                </span>
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={formData.ownerName || ''}
-                    onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1"
-                    placeholder="اسم المسؤول"
-                  />
-                ) : (
-                  <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">
-                    {formData.ownerName || 'صاحب النشاط'}
+                {/* ── فاصل وقسم بيانات المالك والتواصل ── */}
+                <div className="sm:col-span-2 pt-2 border-t border-[var(--border-color)]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xs">
+                      <User className="w-3.5 h-3.5" />
+                    </div>
+                    <h5 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">بيانات المالك والتواصل</h5>
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* رقم الهاتف الأساسي */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>رقم الهاتف الأساسي (واتساب)</span>
-                </span>
-                {isEditMode ? (
-                  <input
-                    type="tel"
-                    dir="ltr"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
-                    placeholder="01xxxxxxxxx"
-                  />
-                ) : (
-                  <div className="flex items-center justify-between gap-2 pt-0.5">
-                    <span className="font-black text-sm text-[var(--text-primary)] font-mono" dir="ltr">
-                      {formData.phone || 'غير مسجل'}
-                    </span>
-                    {formData.phone && (
-                      <div className="flex items-center gap-1">
-                        <a href={`tel:${formData.phone}`} className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg" title="اتصال">
-                          <Phone className="w-3.5 h-3.5" />
-                        </a>
-                        {isAdminOrFinancial && (
-                          <button
-                            type="button"
-                            onClick={() => setActiveSection('whatsapp')}
-                            className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg cursor-pointer"
-                            title="فتح رسائل الواتساب"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                {/* اسم صاحب النشاط */}
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
+                  <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-amber-500" />
+                    <span>اسم صاحب النشاط / المسؤول</span>
+                  </span>
+                  {isEditMode ? (
+                    <input
+                      type="text"
+                      value={formData.ownerName || ''}
+                      onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1"
+                      placeholder="اسم المسؤول"
+                    />
+                  ) : (
+                    <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">
+                      {formData.ownerName || 'صاحب النشاط'}
+                    </div>
+                  )}
+                </div>
 
-              {/* هاتف إضافي */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-blue-500" />
-                  <span>هاتف إضافي / أرضي</span>
-                </span>
-                {isEditMode ? (
-                  <input
-                    type="tel"
-                    dir="ltr"
-                    value={formData.secondaryPhone || ''}
-                    onChange={(e) => setFormData({ ...formData, secondaryPhone: e.target.value })}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
-                    placeholder="رقم آخر (اختياري)"
-                  />
-                ) : (
-                  <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5 font-mono" dir="ltr">
-                    {formData.secondaryPhone || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
-                  </div>
-                )}
-              </div>
+                {/* رقم الهاتف الأساسي */}
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
+                  <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>رقم الهاتف الأساسي (واتساب)</span>
+                  </span>
+                  {isEditMode ? (
+                    <input
+                      type="tel"
+                      dir="ltr"
+                      value={formData.phone || ''}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
+                      placeholder="01xxxxxxxxx"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <span className="font-black text-sm text-[var(--text-primary)] font-mono" dir="ltr">
+                        {formData.phone || 'غير مسجل'}
+                      </span>
+                      {formData.phone && (
+                        <div className="flex items-center gap-1">
+                          <a href={`tel:${formData.phone}`} className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg" title="اتصال">
+                            <Phone className="w-3.5 h-3.5" />
+                          </a>
+                          {isAdminOrFinancial && (
+                            <button
+                              type="button"
+                              onClick={() => setActiveSection('whatsapp')}
+                              className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg cursor-pointer"
+                              title="فتح رسائل الواتساب"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              {/* البريد الإلكتروني */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-purple-500" />
-                  <span>البريد الإلكتروني</span>
-                </span>
-                {isEditMode ? (
-                  <input
-                    type="email"
-                    dir="ltr"
-                    value={formData.ownerEmail || ''}
-                    onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
-                    placeholder="example@mail.com"
-                  />
-                ) : (
-                  <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5" dir="ltr">
-                    {formData.ownerEmail || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
-                  </div>
-                )}
+                {/* هاتف إضافي */}
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
+                  <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-blue-500" />
+                    <span>هاتف إضافي / أرضي</span>
+                  </span>
+                  {isEditMode ? (
+                    <input
+                      type="tel"
+                      dir="ltr"
+                      value={formData.secondaryPhone || ''}
+                      onChange={(e) => setFormData({ ...formData, secondaryPhone: e.target.value })}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
+                      placeholder="رقم آخر (اختياري)"
+                    />
+                  ) : (
+                    <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5 font-mono" dir="ltr">
+                      {formData.secondaryPhone || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
+                    </div>
+                  )}
+                </div>
+
+                {/* البريد الإلكتروني */}
+                <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
+                  <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-purple-500" />
+                    <span>البريد الإلكتروني</span>
+                  </span>
+                  {isEditMode ? (
+                    <input
+                      type="email"
+                      dir="ltr"
+                      value={formData.ownerEmail || ''}
+                      onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
+                      placeholder="example@mail.com"
+                    />
+                  ) : (
+                    <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5" dir="ltr">
+                      {formData.ownerEmail || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
