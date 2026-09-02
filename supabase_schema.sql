@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     payment_method TEXT,
     cash_collected_by_rep NUMERIC DEFAULT 0,
     payment_status TEXT DEFAULT 'unpaid',
-    verification_status TEXT DEFAULT 'verified',
+    verification_status TEXT DEFAULT 'pending',
     rep_location_url TEXT,
     google_maps_url TEXT,
     google_place_id TEXT,

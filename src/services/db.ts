@@ -168,8 +168,15 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
   }
 
   try {
-    const query = `businesses?select=*&created_at=gte.${encodeURIComponent(lastSync)}&order=created_at.desc`;
-    const res = await supabaseRestFetch(query);
+    const encLastSync = encodeURIComponent(lastSync);
+    // PostgREST syntax for OR condition across updated_at and created_at
+    const query = `businesses?select=*&or=(updated_at.gte.${encLastSync},created_at.gte.${encLastSync})&order=created_at.desc`;
+    let res = await supabaseRestFetch(query);
+
+    // Fallback if updated_at column isn't queryable
+    if (!res.ok) {
+      res = await supabaseRestFetch(`businesses?select=*&created_at=gte.${encLastSync}&order=created_at.desc`);
+    }
 
     if (res.ok) {
       const deltaData = await res.json();

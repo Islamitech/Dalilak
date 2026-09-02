@@ -823,15 +823,6 @@ export default function App() {
       }
     }
 
-    try {
-      await fetch(`/api/businesses/${normalizedBiz.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizedBiz),
-      });
-    } catch (err) {
-      console.log('Express backend sync notice:', err);
-    }
   };
 
   // Commission Payout & Remittance Request Handlers

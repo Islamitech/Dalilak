@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { updateRepSessionInDb, fetchRepsFromDb, saveRepToDb } from '../services/db';
 import { compressImageFile } from '../utils/imageCompressor';
 import { getRepReferralCode } from '../utils/referral';
+import { hashPassword, verifyPassword, isPasswordHashed } from '../utils/crypto';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { 
@@ -182,7 +183,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
       const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds active session threshold
 
-      // Verify Password strictly
+      // Verify Password strictly (supports both SHA-256 and legacy plaintext)
       const storedPassword = (foundRep.password || '').trim();
       let isPasswordCorrect = false;
 
@@ -191,13 +192,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         setIsLoading(false);
         return;
       } else if (storedPassword && storedPassword !== '••••••••') {
-        isPasswordCorrect = storedPassword === cleanPassword;
+        isPasswordCorrect = await verifyPassword(cleanPassword, storedPassword);
       }
 
       if (!isPasswordCorrect) {
         setErrorMsg('⚠️ كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور وإعادة المحاولة.');
         setIsLoading(false);
         return;
+      }
+
+      // Auto-upgrade legacy plaintext passwords to SHA-256 upon successful login
+      if (!isPasswordHashed(storedPassword)) {
+        try {
+          const newHashed = await hashPassword(cleanPassword);
+          foundRep.password = newHashed;
+          saveRepToDb({ id: foundRep.id, password: newHashed }).catch(() => {});
+        } catch {}
       }
 
       // Check account review / suspension status
@@ -410,7 +420,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       avatarStatus: 'none',
       commissionRate: 42.86,
       status: 'suspended', // New accounts are suspended until admin activates
-      password: regPassword,
+      password: await hashPassword(regPassword),
       referralCode: ownCode,
       referredByCode: resolvedReferredByCode,
       referralUnlocked: false,
