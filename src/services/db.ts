@@ -468,34 +468,59 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
   // 1. Direct Supabase Cloud Save / Upsert
   if (isSupabaseConfigured()) {
     try {
-      const res = await supabaseRestFetch('representatives', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-        body: JSON.stringify(dbRecord),
-      });
+      // First try update by ID if it already exists
+      const { error: updateErr, data } = await supabase
+        .from('representatives')
+        .update(dbRecord)
+        .eq('id', rep.id)
+        .select();
 
-      if (!res.ok) {
-        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
-          method: 'PATCH',
-          body: JSON.stringify(dbRecord),
-        });
+      if (updateErr || !data || data.length === 0) {
+        // Record doesn't exist yet or update error — perform upsert
+        const { error: upsertErr } = await supabase
+          .from('representatives')
+          .upsert(dbRecord, { onConflict: 'id' });
+
+        if (upsertErr) {
+          const patchRes = await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(dbRecord),
+          });
+
+          if (!patchRes.ok) {
+            await supabaseRestFetch('representatives', {
+              method: 'POST',
+              headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+              body: JSON.stringify(dbRecord),
+            });
+          }
+        }
       }
     } catch (err) {
       console.warn('Supabase save rep REST warning:', err);
     }
   }
 
-  // 2. Update in LocalStorage cache
+  // 2. Update in LocalStorage cache (syncing both cached and custom reps keys)
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_reps') || '[]');
-    const map = new Map<string, Representative>();
-    map.set(rep.email.toLowerCase(), rep);
-    if (Array.isArray(cached)) {
-      cached.forEach((r: Representative) => {
-        if (!map.has(r.email.toLowerCase())) map.set(r.email.toLowerCase(), r);
-      });
-    }
-    safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(Array.from(map.values())));
+    const updateCache = (key: string) => {
+      const cached = JSON.parse(localStorage.getItem(key) || '[]');
+      const map = new Map<string, Representative>();
+      map.set(rep.id, rep);
+      if (rep.email) map.set(rep.email.toLowerCase(), rep);
+      if (Array.isArray(cached)) {
+        cached.forEach((r: Representative) => {
+          const emailKey = (r.email || '').toLowerCase();
+          if (!map.has(r.id) && (!emailKey || !map.has(emailKey))) {
+            map.set(r.id, r);
+          }
+        });
+      }
+      safeSetLocalStorageItem(key, JSON.stringify(Array.from(map.values())));
+    };
+
+    updateCache('dalelak_cached_reps');
+    updateCache('dalelak_custom_reps');
   } catch {}
 
   // 3. Always sync to local server
@@ -509,13 +534,17 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
 }
 
 export async function updateRepInDb(id: string, updates: Partial<Representative>): Promise<void> {
-  // 1. Update in LocalStorage
+  // 1. Update in LocalStorage (both custom and cached keys)
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
-    if (Array.isArray(cached)) {
-      const updated = cached.map((r: Representative) => (r.id === id ? { ...r, ...updates } : r));
-      safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
-    }
+    const updateCache = (key: string) => {
+      const cached = JSON.parse(localStorage.getItem(key) || '[]');
+      if (Array.isArray(cached)) {
+        const updated = cached.map((r: Representative) => (r.id === id ? { ...r, ...updates } : r));
+        safeSetLocalStorageItem(key, JSON.stringify(updated));
+      }
+    };
+    updateCache('dalelak_custom_reps');
+    updateCache('dalelak_cached_reps');
   } catch {}
 
   // 2. Update in Supabase Cloud
@@ -1470,28 +1499,44 @@ function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.name !== undefined) record.name = rep.name;
   if (rep.email !== undefined) record.email = rep.email;
   if (rep.phone !== undefined) record.phone = rep.phone;
-  if (rep.pendingPhone !== undefined) record.pending_phone = rep.pendingPhone || null;
-  if (rep.phoneStatus !== undefined) record.phone_status = rep.phoneStatus || 'none';
   if (rep.nationalId !== undefined) record.national_id = rep.nationalId || null;
-  if (rep.activationFacePhoto !== undefined) record.activation_face_photo = rep.activationFacePhoto || null;
-  if (rep.nationalIdCardPhoto !== undefined) record.national_id_card_photo = rep.nationalIdCardPhoto || null;
-  if (rep.nationalIdCardBackPhoto !== undefined) record.national_id_card_back_photo = rep.nationalIdCardBackPhoto || null;
   if (rep.role !== undefined) record.role = rep.role;
   if (rep.roleTitle !== undefined) record.role_title = rep.roleTitle;
   if (rep.governorate !== undefined) record.governorate = rep.governorate;
   if (rep.targetMonth !== undefined) record.target_month = Number(rep.targetMonth) || 25;
-  if (rep.avatar !== undefined) record.avatar = rep.avatar || null;
   if (rep.avatarStatus !== undefined) record.avatar_status = rep.avatarStatus || 'approved';
   if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
   if (rep.status !== undefined) record.status = rep.status;
   if (rep.password !== undefined) record.password = rep.password;
-  if (rep.activeSessionId !== undefined) record.active_session_id = rep.activeSessionId || null;
-  if (rep.lastActiveTimestamp !== undefined) record.last_active_timestamp = rep.lastActiveTimestamp || null;
-  if (rep.referralCode !== undefined) record.referral_code = rep.referralCode || null;
-  if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode || null;
-  if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);
-  if (rep.adminBypassReferral !== undefined) record.admin_bypass_referral = Boolean(rep.adminBypassReferral);
-  if (rep.referralRewardGranted !== undefined) record.referral_reward_granted = Boolean(rep.referralRewardGranted);
+
+  // Metadata JSON packing into avatar to prevent PostgreSQL PGRST204 schema cache errors
+  // while retaining complete lossless persistence across devices and server reloads
+  let meta: any = {};
+  if (typeof rep.avatar === 'string' && rep.avatar.trim().startsWith('{')) {
+    try { meta = JSON.parse(rep.avatar.trim()); } catch {}
+  } else if (rep.avatar) {
+    meta.avatar = rep.avatar;
+  }
+
+  if (rep.referralCode !== undefined) meta.referralCode = rep.referralCode;
+  if (rep.referredByCode !== undefined) meta.referredByCode = rep.referredByCode;
+  if (rep.referralUnlocked !== undefined) meta.referralUnlocked = Boolean(rep.referralUnlocked);
+  if (rep.adminBypassReferral !== undefined) meta.adminBypassReferral = Boolean(rep.adminBypassReferral);
+  if (rep.referralRewardGranted !== undefined) meta.referralRewardGranted = Boolean(rep.referralRewardGranted);
+  if (rep.activationFacePhoto !== undefined) meta.activationFacePhoto = rep.activationFacePhoto;
+  if (rep.nationalIdCardPhoto !== undefined) meta.nationalIdCardPhoto = rep.nationalIdCardPhoto;
+  if (rep.nationalIdCardBackPhoto !== undefined) meta.nationalIdCardBackPhoto = rep.nationalIdCardBackPhoto;
+  if (rep.pendingPhone !== undefined) meta.pendingPhone = rep.pendingPhone;
+  if (rep.phoneStatus !== undefined) meta.phoneStatus = rep.phoneStatus;
+  if (rep.lastActiveTimestamp !== undefined) meta.lastActiveTimestamp = rep.lastActiveTimestamp;
+  if (rep.activeSessionId !== undefined) meta.activeSessionId = rep.activeSessionId;
+
+  const hasExtraMeta = Object.keys(meta).some((k) => k !== 'avatar');
+  if (hasExtraMeta) {
+    record.avatar = JSON.stringify(meta);
+  } else if (rep.avatar !== undefined) {
+    record.avatar = rep.avatar || null;
+  }
 
   return record;
 }

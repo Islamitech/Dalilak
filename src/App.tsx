@@ -1135,6 +1135,7 @@ export default function App() {
       const updated = [newRep, ...filtered];
       try {
         safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -1171,7 +1172,11 @@ export default function App() {
   };
 
   const handleUpdateRepresentative = async (updatedRep: Representative) => {
-    const prevRep = representatives.find((r) => r.id === updatedRep.id);
+    const prevRep = representatives.find((r) =>
+      r.id === updatedRep.id ||
+      (r.email && updatedRep.email && r.email.toLowerCase() === updatedRep.email.toLowerCase()) ||
+      (r.phone && updatedRep.phone && r.phone === updatedRep.phone)
+    );
 
     const secureRep: Representative = {
       ...updatedRep,
@@ -1187,18 +1192,32 @@ export default function App() {
     };
 
     setRepresentatives((prev) => {
-      const updated = prev.map((r) => (r.id === secureRep.id ? secureRep : r));
+      let matched = false;
+      const updated = prev.map((r) => {
+        if (
+          r.id === secureRep.id ||
+          (r.email && secureRep.email && r.email.toLowerCase() === secureRep.email.toLowerCase()) ||
+          (r.phone && secureRep.phone && r.phone === secureRep.phone)
+        ) {
+          matched = true;
+          return secureRep;
+        }
+        return r;
+      });
+      const finalList = matched ? updated : [secureRep, ...prev];
       try {
-        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(finalList));
+        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(finalList));
       } catch {}
-      return updated;
+      return finalList;
     });
 
     // Always sync user state & localStorage when the logged-in rep's data changes
-    if (user && (user.id === secureRep.id || user.repData?.id === secureRep.id || user.email.toLowerCase() === secureRep.email.toLowerCase())) {
+    if (user && (user.id === secureRep.id || user.repData?.id === secureRep.id || (user.email && secureRep.email && user.email.toLowerCase() === secureRep.email.toLowerCase()))) {
       const updatedUser = { ...user, repData: secureRep, name: secureRep.name, email: secureRep.email, role: secureRep.role || user.role };
       setUser(updatedUser);
       safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
+      safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
     }
 
     if (prevRep && prevRep.status !== secureRep.status) {
@@ -1290,6 +1309,7 @@ export default function App() {
       const updated = prev.filter((r) => r.id !== id && (rep?.email ? r.email.toLowerCase() !== rep.email.toLowerCase() : true));
       try {
         safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(updated));
       } catch {}
       return updated;
     });

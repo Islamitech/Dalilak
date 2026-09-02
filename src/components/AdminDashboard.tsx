@@ -731,7 +731,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
 
     if (editingAccId) {
-      const existing = mergedAdminReps.find((r) => r.id === editingAccId);
+      const existing = mergedAdminReps.find((r) => r.id === editingAccId) || representatives.find((r) => r.id === editingAccId);
       if (existing && onUpdateRepresentative) {
         onUpdateRepresentative({
           ...existing,
@@ -772,6 +772,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       });
     }
 
+    setEditingAccId(null);
     setShowAccountModal(false);
   };
 

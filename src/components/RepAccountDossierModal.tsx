@@ -165,9 +165,16 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
   // Handle Role Change
   const handleChangeRole = (newRole: UserRole) => {
     if (!onUpdateRepresentative) return;
+    const newRoleTitle = (
+      newRole === 'supervisor' ? 'مشرف إدارة منطقة ومحافظة' :
+      newRole === 'accountant' ? 'محاسب ومحصل فواتير إلكترونية' :
+      newRole === 'admin' ? 'مدير النظام المعتمد' : 'مندوب مبيعات ميداني'
+    );
+    setEditingRoleTitle(newRoleTitle);
     onUpdateRepresentative({
       ...rep,
       role: newRole,
+      roleTitle: newRoleTitle,
     });
     showToast(`تم تغيير الرتبة إلى: ${newRole === 'admin' ? 'مدير نظام' : newRole === 'supervisor' ? 'مشرف منطقة' : newRole === 'accountant' ? 'محاسب' : 'مندوب ميداني'} ✅`);
   };
