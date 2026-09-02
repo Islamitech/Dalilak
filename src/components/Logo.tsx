@@ -39,14 +39,128 @@ export const Logo: React.FC<LogoProps> = ({
     '2xl': 'text-base sm:text-lg',
   }[size];
 
-  // Pure, crystal-clear Official Transparent Logo Emblem (Golden Pin & Silver Skyline)
+  // Pure mathematical, crystal-clear SVG Vector Icon (Official Golden Pin & Silver Skyline)
   const VectorIcon = () => (
-    <img
-      src="/logo.png"
-      alt="شعار دليلك"
-      className="w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-300 drop-shadow-md select-none"
-      loading="eager"
-    />
+    <svg
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-full transform group-hover:scale-105 transition-transform duration-300 drop-shadow-md"
+    >
+      <defs>
+        {/* Luxury Polished Gold Gradient */}
+        <linearGradient id="dalelakAppAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FDE68A" />
+          <stop offset="30%" stopColor="#F59E0B" />
+          <stop offset="70%" stopColor="#D97706" />
+          <stop offset="100%" stopColor="#B45309" />
+        </linearGradient>
+
+        {/* Polished Silver/Platinum Gradient for Buildings */}
+        <linearGradient id="dalelakPlatinum" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="45%" stopColor="#F1F5F9" />
+          <stop offset="85%" stopColor="#CBD5E1" />
+          <stop offset="100%" stopColor="#94A3B8" />
+        </linearGradient>
+
+        {/* Deep Midnight Obsidian Gradient for Dark Backdrop */}
+        <linearGradient id="dalelakAppDark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#111827" />
+          <stop offset="50%" stopColor="#0B132B" />
+          <stop offset="100%" stopColor="#030712" />
+        </linearGradient>
+      </defs>
+
+      {/* 1. Deep Midnight Squircle Base */}
+      <rect
+        x="3"
+        y="3"
+        width="94"
+        height="94"
+        rx="24"
+        fill="url(#dalelakAppDark)"
+      />
+      {/* Outer Golden Border Rim */}
+      <rect
+        x="3"
+        y="3"
+        width="94"
+        height="94"
+        rx="24"
+        fill="none"
+        stroke="url(#dalelakAppAmber)"
+        strokeWidth="3.5"
+      />
+      {/* Inner Accent Gold Line */}
+      <rect
+        x="6"
+        y="6"
+        width="88"
+        height="88"
+        rx="21"
+        fill="none"
+        stroke="url(#dalelakAppAmber)"
+        strokeWidth="1"
+        opacity="0.4"
+      />
+
+      {/* 2. Golden Map Pin */}
+      <path
+        d="M50 14 C32 14 19 27 19 44 C19 60 38 78 50 89 C62 78 81 60 81 44 C81 27 68 14 50 14 Z"
+        fill="url(#dalelakAppAmber)"
+      />
+
+      {/* 3. Dark Inner Circular Core */}
+      <circle
+        cx="50"
+        cy="42"
+        r="18"
+        fill="#0A0F1D"
+      />
+      <circle
+        cx="50"
+        cy="42"
+        r="18"
+        fill="none"
+        stroke="url(#dalelakAppAmber)"
+        strokeWidth="1"
+        opacity="0.4"
+      />
+
+      {/* 4. Silver/Platinum Business Skyline (3 Buildings + Arched Base) */}
+      {/* Curved Horizon Base */}
+      <path
+        d="M37 52 C44 49 56 49 63 52 L63 54.5 C56 51.5 44 51.5 37 54.5 Z"
+        fill="url(#dalelakPlatinum)"
+      />
+      {/* Left Building */}
+      <path
+        d="M39 51 L39 42 L44 38 L44 50 Z"
+        fill="url(#dalelakPlatinum)"
+        opacity="0.9"
+      />
+      {/* Left Highlight */}
+      <path d="M44 38 L39 42" stroke="#FFFFFF" strokeWidth="0.8" strokeLinecap="round" />
+
+      {/* Center Tower (Tallest) */}
+      <path
+        d="M45.5 49 L45.5 32 L51 28 L55 30.5 L55 49 Z"
+        fill="url(#dalelakPlatinum)"
+      />
+      {/* Center Tower Crown Highlight */}
+      <path d="M45.5 32 L51 28 L55 30.5" stroke="#FFFFFF" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="50" y1="31" x2="50" y2="48" stroke="#0A0F1D" strokeWidth="0.8" opacity="0.8" />
+
+      {/* Right Building */}
+      <path
+        d="M56.5 50 L56.5 41.5 L61.5 43.5 L61.5 51 Z"
+        fill="url(#dalelakPlatinum)"
+        opacity="0.9"
+      />
+      {/* Right Highlight */}
+      <path d="M56.5 41.5 L61.5 43.5" stroke="#FFFFFF" strokeWidth="0.8" strokeLinecap="round" />
+    </svg>
   );
 
   const IconElement = (
