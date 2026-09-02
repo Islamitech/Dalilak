@@ -176,7 +176,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
               <h3 className="font-black text-base text-[var(--text-primary)] flex items-center gap-2">
                 <span>تعديل الملفات والبيانات الإدارية</span>
                 <span className="bg-amber-500/20 text-amber-600 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
-                  {role === 'admin' ? 'مدير النظام' : role === 'supervisor' ? 'مشرف إدارة' : role === 'accountant' ? 'محاسب مالي' : 'مندوب'}
+                  {roleTitle || (role === 'admin' ? 'مدير النظام' : role === 'supervisor' ? 'مشرف إدارة' : role === 'accountant' ? 'محاسب مالي' : 'مندوب')}
                 </span>
               </h3>
               <p className="text-[11px] text-[var(--text-muted)] font-bold">

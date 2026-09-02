@@ -1582,7 +1582,7 @@ export default function App() {
       accountant: 'محاسب ومحصل 💳',
       rep: 'مندوب ميداني معتمد 💼',
     };
-    const roleTitle = roleLabels[u.role] || u.role;
+    const roleTitle = u.repData?.roleTitle || u.roleTitle || roleLabels[u.role] || u.role;
     addNotification(`🟢 مرحباً بك يا أستاذ ${u.name} — تم تسجيل الدخول بصلاحية: ${roleTitle}`, 'success');
 
     const savedTab = localStorage.getItem('dalelak_active_tab');
@@ -2939,6 +2939,7 @@ export default function App() {
             setEditingBusiness(null);
           }}
           userRole={user?.role}
+          currentRoleTitle={user?.repData?.roleTitle || user?.roleTitle}
           currentUserName={user?.name}
           currentUserId={user?.id}
           canEdit={canUserEditBusiness(user, editingBusiness)}

@@ -85,6 +85,7 @@ interface BusinessEditModalProps {
   onClose: () => void;
   onSave: (updatedBiz: Business) => void;
   userRole?: string;
+  currentRoleTitle?: string;
   currentUserName?: string;
   currentUserId?: string;
   initialTab?: string;
@@ -100,6 +101,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   onClose,
   onSave,
   userRole,
+  currentRoleTitle,
   currentUserName,
   currentUserId,
   initialTab,
@@ -456,7 +458,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       const newNote: AdminFollowUpNote = {
         id: `af_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         authorId: currentUserId || 'admin_1',
-        authorName: currentUserName || (userRole === 'accountant' ? 'المحاسب المعتمد' : userRole === 'supervisor' ? 'المشرف الميداني' : 'مدير النظام'),
+        authorName: currentUserName || currentRoleTitle || (userRole === 'accountant' ? 'المحاسب المعتمد' : userRole === 'supervisor' ? 'المشرف الميداني' : 'مدير النظام'),
         authorRole: userRole || 'admin',
         type: newFollowUpType,
         status: newFollowUpStatus,
@@ -2211,7 +2213,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <span>تسجيل متابعة / ملاحظة جديدة</span>
                   </h5>
                   <span className="text-[10px] text-[var(--text-secondary)] font-bold">
-                    المسؤول: <strong className="text-amber-600 dark:text-amber-400">{currentUserName || (userRole === 'accountant' ? 'المحاسب المعتمد' : userRole === 'supervisor' ? 'المشرف' : 'مدير النظام')}</strong>
+                    المسؤول: <strong className="text-amber-600 dark:text-amber-400">{currentUserName ? `${currentUserName} (${currentRoleTitle || (userRole === 'accountant' ? 'محاسب' : userRole === 'supervisor' ? 'مشرف' : 'مدير')})` : (currentRoleTitle || (userRole === 'accountant' ? 'المحاسب المعتمد' : userRole === 'supervisor' ? 'المشرف' : 'مدير النظام'))}</strong>
                   </span>
                 </div>
 

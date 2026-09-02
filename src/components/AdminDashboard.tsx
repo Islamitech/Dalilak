@@ -2644,6 +2644,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }}
         onSave={handleSaveBusinessFromModal}
         userRole={currentUser?.role || 'admin'}
+        currentRoleTitle={currentUser?.repData?.roleTitle || currentUser?.roleTitle || (currentUser?.role === 'admin' ? 'مدير النظام' : currentUser?.role === 'supervisor' ? 'مشرف إدارة' : currentUser?.role === 'accountant' ? 'محاسب' : 'مندوب')}
         currentUserName={currentUser?.name || 'مدير النظام'}
         currentUserId={currentUser?.id || 'admin_1'}
         initialTab={editingBusinessInitialTab}
@@ -3330,7 +3331,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </span>
                                 {rep && (
                                   <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                                    مندوب {rep.governorate}
+                                    {rep.roleTitle || `مندوب ${rep.governorate}`}
                                   </span>
                                 )}
                                 <span className="text-[10px] text-[var(--text-muted)] font-mono">
