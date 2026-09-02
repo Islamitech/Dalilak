@@ -47,8 +47,28 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   </head>
-  <body class="font-['Cairo',sans-serif] antialiased selection:bg-amber-500 selection:text-slate-950">
-    <div id="root"></div>
+  <body class="font-['Cairo',sans-serif] antialiased selection:bg-amber-500 selection:text-slate-950" style="background-color: #0a0a12; margin: 0;">
+    <div id="root">
+      <div id="app-splash" style="position: fixed; inset: 0; background-color: #0a0a12; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; font-family: 'Cairo', sans-serif; color: #ffffff; padding: 20px; box-sizing: border-box;">
+        <div style="position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center;">
+          <img src="/logo.png" alt="دليلك" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 30px rgba(245,158,11,0.35)); animation: dalelakPulse 2s ease-in-out infinite;" />
+        </div>
+        <div style="margin-top: 16px; text-align: center;">
+          <h1 style="font-size: 22px; font-weight: 900; color: #f59e0b; margin: 0; letter-spacing: -0.5px;">دليلك</h1>
+          <p style="font-size: 11px; color: #94a3b8; font-weight: 700; margin: 5px 0 0 0;">المنظومة الرقمية الشاملة لإدارة وتوثيق الأنشطة والخدمات</p>
+        </div>
+        <div style="margin-top: 24px; width: 30px; height: 30px; border: 2.5px solid rgba(245,158,11,0.2); border-top-color: #f59e0b; border-radius: 50%; animation: dalelakSpin 0.9s linear infinite;"></div>
+      </div>
+      <style>
+        @keyframes dalelakPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        @keyframes dalelakSpin {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

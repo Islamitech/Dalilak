@@ -17,15 +17,11 @@
     </linearGradient>
   </defs>
 
-  <rect x="16" y="16" width="480" height="480" rx="124" fill="url(#dalelakDarkBase)" />
-  <rect x="16" y="16" width="480" height="480" rx="124" fill="none" stroke="url(#dalelakGold)" stroke-width="18" />
-
-  <!-- Pin -->
+  <!-- Transparent Golden Pin -->
   <path
-    d="M256 74 C166 74 102 138 102 226 C102 304 196 394 256 450 C316 394 410 304 410 226 C410 138 346 74 256 74 Z"
+    d="M256 30 C150 30 76 104 76 210 C76 300 188 408 256 482 C324 408 436 300 436 210 C436 104 362 30 256 30 Z M256 330 C190 330 136 276 136 210 C136 144 190 90 256 90 C322 90 376 144 376 210 C376 276 322 330 256 330 Z"
     fill="url(#dalelakGold)"
   />
-  <circle cx="256" cy="214" r="92" fill="#030712" />
 
   <!-- Skyline -->
   <path d="M188 266 C224 252 288 252 324 266 L324 278 C288 264 224 264 188 278 Z" fill="url(#dalelakPlatinum)" />
