@@ -141,7 +141,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     } else if (!initialTab) {
       setActiveSection(isAdminOrFinancial ? 'admin_followup' : 'info');
     }
-  }, [initialTab, business, isAdminOrFinancial]);
+  }, [initialTab, business?.id, isAdminOrFinancial]);
 
   // Admin CRM Follow-ups State
   const [newFollowUpText, setNewFollowUpText] = useState<string>('');
@@ -236,6 +236,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       videos: Array.isArray(formData.videos) ? formData.videos : [],
     };
 
+    setFormData(updatedFormData);
     onSave(updatedFormData);
     setIsEditMode(false);
     setStatusNotification('تم حفظ وتحديث بيانات النشاط في قاعدة البيانات بنجاح ✅');

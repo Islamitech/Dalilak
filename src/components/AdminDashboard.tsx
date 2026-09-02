@@ -778,7 +778,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleSaveBusinessFromModal = (updated: Business) => {
     onUpdateBusiness(updated);
-    setEditingBusiness(null);
+    setEditingBusiness(updated);
   };
 
   const handleSavePaymentConfigModal = (e: React.FormEvent) => {

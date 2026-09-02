@@ -769,6 +769,9 @@ export default function App() {
       return updated;
     });
 
+    // Keep editingBusiness in sync if modal is currently open
+    setEditingBusiness((prev) => (prev && prev.id === normalizedBiz.id ? normalizedBiz : prev));
+
     // Instant Cross-Tab Broadcast to Directory Portal
     try {
       const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
@@ -2971,7 +2974,7 @@ export default function App() {
             onClose={() => setEditingBusiness(null)}
             onSave={(updatedBiz) => {
               handleUpdateBusiness(updatedBiz);
-              setEditingBusiness(null);
+              setEditingBusiness(updatedBiz);
             }}
             userRole={user?.role}
             currentRoleTitle={user?.repData?.roleTitle || user?.roleTitle}
