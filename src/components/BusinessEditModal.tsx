@@ -563,7 +563,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   const primaryPhone = formData.phone || formData.ownerPhone || '';
   const cleanPhone = primaryPhone.replace(/\D/g, '');
-  const mapsUrl = hasVerifiedGoogleMap ? formData.googleMapsUrl.trim() : '';
+  const mapsUrl = hasVerifiedGoogleMap && formData.googleMapsUrl ? formData.googleMapsUrl.trim() : '';
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">

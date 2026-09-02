@@ -1,7 +1,7 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { uploadMultipleMediaToStorage } from './storage';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote } from '../types';
-import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeBusinessesForStorage } from '../utils/storage';
+import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeBusinessesForStorage, getApiAuthHeaders } from '../utils/storage';
 import {
   saveOfflineBusiness,
   getOfflineBusinesses,
@@ -24,16 +24,22 @@ import {
 // 1. BUSINESSES OPERATIONS (الأنشطة التجارية والمحلات)
 // =============================================================================
 
-export function getCachedBusinesses(): Business[] {
+function safeParseJson<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw || typeof raw !== 'string') return fallback;
   try {
-    const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
-    if (raw) {
-      const cached = JSON.parse(raw);
-      if (Array.isArray(cached) && cached.length > 0) {
-        return cached;
-      }
-    }
-  } catch {}
+    const val = JSON.parse(raw);
+    return val !== undefined && val !== null ? val : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function getCachedBusinesses(): Business[] {
+  const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
+  const cached = safeParseJson<Business[]>(raw, []);
+  if (Array.isArray(cached) && cached.length > 0) {
+    return cached;
+  }
   return [];
 }
 
@@ -241,7 +247,7 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
 
   // 1. Immediate LocalStorage cache update
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
     const map = new Map<string, Business>();
     map.set(cleanBiz.id, cleanBiz);
     if (Array.isArray(cached)) {
@@ -298,17 +304,17 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
   try {
     await fetch('/api/businesses', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(cleanBiz),
     });
   } catch {}
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
-  // 1. Immediately update LocalStorage caches
+  // 1. Immediately update LocalStorage cache
   let mergedObj: Business = { id } as Business;
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
     const map = new Map<string, Business>();
     if (Array.isArray(cached)) {
       cached.forEach((b: Business) => {
@@ -318,23 +324,19 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     const current = map.get(id) || ({} as Business);
     mergedObj = { ...current, ...updates, id } as Business;
     map.set(id, mergedObj);
-    const updatedList = Array.from(map.values());
-    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updatedList));
-    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updatedList));
+    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(Array.from(map.values())));
   } catch {}
 
-  // 2. Remove any old offline sync entry for this existing business (edits are never offline sync items)
-  await removeOfflineBusiness(id).catch(() => {});
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
-  const fullRecord = getSafeCoreBusinessDbRecord(mergedObj);
-  const dbUpdates = { ...fullRecord };
-  delete dbUpdates.id;
+  // 2. Real-time Supabase Cloud Update
+  let syncedSuccessfully = false;
+  if (isOnline && isSupabaseConfigured()) {
+    const dbUpdates = mapBusinessToDb(updates as Business);
+    const fullRecord = mapBusinessToDb(mergedObj);
 
-  // 3. Direct Supabase Cloud Save (SDK Upsert + REST PATCH/POST Fallback)
-  if (isSupabaseConfigured()) {
-    let syncedSuccessfully = false;
-
-    // A. Supabase JS SDK Direct Upsert
+    // A. Direct Client SDK Upsert
     try {
       const { error } = await supabase
         .from('businesses')
@@ -343,8 +345,8 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
       if (!error) {
         syncedSuccessfully = true;
       }
-    } catch (sdkErr) {
-      console.warn('Supabase SDK update business warning:', sdkErr);
+    } catch (err) {
+      console.warn('Supabase SDK update business warning:', err);
     }
 
     // B. Direct REST PATCH / Upsert Fallback if SDK didn't complete
@@ -358,7 +360,7 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
           body: JSON.stringify(dbUpdates),
         });
 
-        const restData = res.ok ? await res.json().catch(() => null) : null;
+        const restData: any = res.ok ? await res.json().catch((): any => null) : null;
         const patchedCount = Array.isArray(restData) ? restData.length : 0;
 
         if (res.ok && patchedCount > 0) {
@@ -382,11 +384,19 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     }
   }
 
+  // 3. Fallback queue in Offline IndexedDB if offline or cloud sync failed
+  if (!syncedSuccessfully) {
+    await saveOfflineBusiness(mergedObj);
+  } else {
+    // If synced to cloud, remove any old offline sync entry
+    await removeOfflineBusiness(id).catch(() => {});
+  }
+
   // 4. Sync to local server API
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(mergedObj),
     });
   } catch {}
@@ -395,7 +405,7 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
 export async function deleteBusinessFromDb(id: string): Promise<void> {
   // 1. Delete from LocalStorage cache immediately
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_businesses') || '[]');
+    const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
     if (Array.isArray(cached)) {
       const filtered = cached.filter((b: Business) => b.id !== id);
       safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(filtered));
@@ -417,6 +427,7 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
   try {
     await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+      headers: getApiAuthHeaders(),
     });
   } catch {}
 }
@@ -460,7 +471,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 
   // 2. Offline fallback from local cache
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_reps') || '[]');
+    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []);
     if (Array.isArray(cached) && cached.length > 0) {
       return cached;
     }
@@ -511,7 +522,7 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
   // 2. Update in LocalStorage cache (syncing both cached and custom reps keys)
   try {
     const updateCache = (key: string) => {
-      const cached = JSON.parse(localStorage.getItem(key) || '[]');
+      const cached = safeParseJson<Representative[]>(localStorage.getItem(key), []);
       const map = new Map<string, Representative>();
       map.set(rep.id, rep);
       if (rep.email) map.set(rep.email.toLowerCase(), rep);
@@ -534,7 +545,7 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
   try {
     await fetch('/api/representatives', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(rep),
     });
   } catch {}
@@ -544,7 +555,7 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
   // 1. Update in LocalStorage (both custom and cached keys)
   try {
     const updateCache = (key: string) => {
-      const cached = JSON.parse(localStorage.getItem(key) || '[]');
+      const cached = safeParseJson<Representative[]>(localStorage.getItem(key), []);
       if (Array.isArray(cached)) {
         const updated = cached.map((r: Representative) => (r.id === id ? { ...r, ...updates } : r));
         safeSetLocalStorageItem(key, JSON.stringify(updated));
@@ -575,7 +586,7 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
   try {
     await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
   } catch {}
@@ -584,7 +595,7 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
 export async function deleteRepFromDb(id: string): Promise<void> {
   // 1. Blacklist in deleted reps registry
   try {
-    const delArr = JSON.parse(localStorage.getItem('dalelak_deleted_rep_ids') || '[]');
+    const delArr = safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []);
     const delSet = new Set(Array.isArray(delArr) ? delArr : []);
     delSet.add(id.toLowerCase());
     safeSetLocalStorageItem('dalelak_deleted_rep_ids', JSON.stringify(Array.from(delSet)));
@@ -592,7 +603,7 @@ export async function deleteRepFromDb(id: string): Promise<void> {
 
   // 2. Remove from LocalStorage custom reps
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
     if (Array.isArray(cached)) {
       const filtered = cached.filter((r: Representative) => r.id !== id && r.email?.toLowerCase() !== id.toLowerCase());
       safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(filtered));
@@ -617,6 +628,7 @@ export async function deleteRepFromDb(id: string): Promise<void> {
   try {
     await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+      headers: getApiAuthHeaders(),
     });
   } catch {}
 }
@@ -626,7 +638,7 @@ export async function updateRepSessionInDb(id: string, sessionId?: string, times
 
   // 1. Real-time active session synchronization to LocalStorage
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_custom_reps') || '[]');
+    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
     if (Array.isArray(cached)) {
       const updated = cached.map((r: Representative) =>
         r.id === id || r.phone === id
@@ -784,7 +796,7 @@ export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<Pa
   try {
     await fetch('/api/payouts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payout),
     });
   } catch {}
@@ -823,7 +835,7 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
   try {
     await fetch(`/api/payouts/${encodeURIComponent(payout.id)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payout),
     });
   } catch {}
@@ -836,7 +848,7 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 // =============================================================================
 
 export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]> {
-  const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+  const cached = safeParseJson<InterestedLead[]>(localStorage.getItem('dalelak_cached_leads'), []);
   const leadMap = new Map<string, InterestedLead>();
   if (Array.isArray(cached)) {
     cached.forEach((l: InterestedLead) => {
@@ -897,7 +909,7 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
 
   // 2. Immediate Local Cache update
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+    const cached = safeParseJson<InterestedLead[]>(localStorage.getItem('dalelak_cached_leads'), []);
     const map = new Map<string, InterestedLead>();
     map.set(lead.id, lead);
     if (Array.isArray(cached)) {
@@ -922,7 +934,7 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
       if (res.ok) {
         await removeOfflineLead(lead.id);
       } else {
-        const { error } = await supabase.from('leads').upsert([dbRecord]);
+        const { error } = await supabase.from('leads').upsert([dbRecord], { onConflict: 'id' });
         if (!error) {
           await removeOfflineLead(lead.id);
         }
@@ -936,7 +948,7 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
   try {
     await fetch('/api/leads', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(lead),
     });
   } catch {}
@@ -950,7 +962,7 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
 
   // 1. Immediate Local Cache update
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+    const cached = safeParseJson<InterestedLead[]>(localStorage.getItem('dalelak_cached_leads'), []);
     if (Array.isArray(cached)) {
       const updated = cached.map((l: InterestedLead) => (l.id === lead.id ? lead : l));
       safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
@@ -980,7 +992,7 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
   try {
     await fetch(`/api/leads/${encodeURIComponent(lead.id)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(lead),
     });
   } catch {}
@@ -991,7 +1003,7 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
 export async function deleteLeadFromDb(id: string): Promise<void> {
   // 1. Immediate Local Cache remove
   try {
-    const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
+    const cached = safeParseJson<InterestedLead[]>(localStorage.getItem('dalelak_cached_leads'), []);
     if (Array.isArray(cached)) {
       const filtered = cached.filter((l: InterestedLead) => l.id !== id);
       safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(filtered));
@@ -1017,6 +1029,7 @@ export async function deleteLeadFromDb(id: string): Promise<void> {
   try {
     await fetch(`/api/leads/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+      headers: getApiAuthHeaders(),
     });
   } catch {}
 }
@@ -1084,7 +1097,7 @@ export async function savePaymentConfigToDb(config: PaymentGatewayConfig): Promi
   try {
     await fetch('/api/payment-config', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     });
   } catch {}
@@ -1408,6 +1421,19 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
   };
   record.notes = JSON.stringify(metaObj);
+
+  // First-class SQL columns (Idempotent synchronization)
+  record.is_fee_exempt = isExempt;
+  record.fee_exemption_reason = biz.feeExemptionReason || null;
+  record.is_already_on_google = isAlreadyOnGoogle;
+  record.registration_type = isAlreadyOnGoogle ? 'already_on_google' : (biz.registrationType || 'new_verification');
+  record.videos = metaObj.videos;
+  record.rep_location_url = cleanRepLocationUrl;
+  record.google_maps_url = cleanGoogleMapsUrl;
+  record.google_place_id = biz.googlePlaceId || null;
+  record.google_sync_status = isAlreadyOnGoogle ? 'synced' : (biz.googleSyncStatus || 'pending');
+  record.google_sync_date = isAlreadyOnGoogle ? (biz.googleSyncDate || new Date().toISOString().split('T')[0]) : (biz.googleSyncDate || null);
+  record.admin_follow_ups = metaObj.adminFollowUps;
 
   return record;
 }

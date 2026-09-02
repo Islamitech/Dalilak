@@ -9,6 +9,7 @@ import {
 import { compressImageFile } from '../utils/imageCompressor';
 import { getRepReferralSummary, getRepReferralCode } from '../utils/referral';
 import { generateQrDataUrl } from '../utils/qrGenerator';
+import { safeGetLocalStorageItem, safeSetLocalStorageItem } from '../utils/storage';
 import { DocViewerModal, DocType } from './DocViewerModal';
 import { UserAvatar } from './UserAvatar';
 import { Logo } from './Logo';
@@ -85,8 +86,8 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
-  const [payoutVoda, setPayoutVoda] = useState(localStorage.getItem(`dalelak_payout_voda_${rep.id}`) || rep.phone);
-  const [payoutInsta, setPayoutInsta] = useState(localStorage.getItem(`dalelak_payout_insta_${rep.id}`) || '');
+  const [payoutVoda, setPayoutVoda] = useState(safeGetLocalStorageItem(`dalelak_payout_voda_${rep.id}`) || rep.phone);
+  const [payoutInsta, setPayoutInsta] = useState(safeGetLocalStorageItem(`dalelak_payout_insta_${rep.id}`) || '');
   const [savedPayoutNotice, setSavedPayoutNotice] = useState(false);
 
   const isAdmin = user.role === 'admin' || user.role === 'supervisor';
@@ -383,8 +384,8 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
   const handleSavePayout = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem(`dalelak_payout_voda_${rep.id}`, payoutVoda);
-    localStorage.setItem(`dalelak_payout_insta_${rep.id}`, payoutInsta);
+    safeSetLocalStorageItem(`dalelak_payout_voda_${rep.id}`, payoutVoda);
+    safeSetLocalStorageItem(`dalelak_payout_insta_${rep.id}`, payoutInsta);
     setSavedPayoutNotice(true);
     setTimeout(() => setSavedPayoutNotice(false), 3000);
   };

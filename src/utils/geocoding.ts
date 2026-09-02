@@ -138,7 +138,7 @@ export async function fetchLocationAddress(lat: number, lng: number): Promise<Lo
 
       const cleanCity = sanitizeDistrictScope(data.locality || data.city, govMatch || coordScope.governorate) || coordScope.city;
 
-      const result = {
+      const result: LocationAddressData = {
         governorate: govMatch || coordScope.governorate,
         city: cleanCity,
         street: undefined,
@@ -152,7 +152,7 @@ export async function fetchLocationAddress(lat: number, lng: number): Promise<Lo
   }
 
   // Safe fallback: Accurate district scope matching by coordinates
-  const fallbackResult = {
+  const fallbackResult: LocationAddressData = {
     governorate: coordScope.governorate,
     city: coordScope.city,
     street: undefined,

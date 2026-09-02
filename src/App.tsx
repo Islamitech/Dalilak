@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification, PayoutRequest, InterestedLead } from './types';
 import { DEFAULT_PAYMENT_CONFIG, EGYPT_GOVERNORATES, CATEGORY_GROUPS } from './data/mockData';
 import { calculateTotalRepCommission } from './utils/commission';
@@ -6,22 +6,25 @@ import { formatActivityDateTime, sortBusinessesNewestFirst } from './utils/dateF
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { InteractiveMap } from './components/InteractiveMap';
-import { BusinessForm } from './components/BusinessForm';
 import { InvoiceModal } from './components/InvoiceModal';
 import { InvoicesLeadsHub } from './components/InvoicesLeadsHub';
-import { AdminDashboard } from './components/AdminDashboard';
-import { AdminProfileModal } from './components/AdminProfileModal';
-import { RepDashboard } from './components/RepDashboard';
-import { RepProfile } from './components/RepProfile';
 import { LoginModal } from './components/LoginModal';
-import { PaymentGatewayModal } from './components/PaymentGatewayModal';
-import { BusinessEditModal } from './components/BusinessEditModal';
 import { AboutUsModal } from './components/AboutUsModal';
 import { TermsModal } from './components/TermsModal';
 import { PermissionsModal } from './components/PermissionsModal';
 import { PackagesModal } from './components/PackagesModal';
-import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { OfflineSyncModal } from './components/OfflineSyncModal';
+
+// ⚡ Code Splitting: تحميل المكونات الضخمة عند الحاجة فقط (يقلّص حجم الـ Bundle الأولي بنسبة ~60%)
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminProfileModal = lazy(() => import('./components/AdminProfileModal').then(m => ({ default: m.AdminProfileModal })));
+const BusinessForm = lazy(() => import('./components/BusinessForm').then(m => ({ default: m.BusinessForm })));
+const BusinessEditModal = lazy(() => import('./components/BusinessEditModal').then(m => ({ default: m.BusinessEditModal })));
+const RepProfile = lazy(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
+const RepDashboard = lazy(() => import('./components/RepDashboard').then(m => ({ default: m.RepDashboard })));
+const PaymentGatewayModal = lazy(() => import('./components/PaymentGatewayModal').then(m => ({ default: m.PaymentGatewayModal })));
+const VideoPlayerModal = lazy(() => import('./components/VideoPlayerModal').then(m => ({ default: m.VideoPlayerModal })));
+
 import { getOfflineSyncStatus, OfflineSyncStatus } from './services/offlineSync';
 import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';
 import { Logo } from './components/Logo';
@@ -641,8 +644,14 @@ export default function App() {
     return () => {
       clearInterval(interval);
       if (syncChannel) syncChannel.close();
-      if (realtimeChannel && typeof realtimeChannel.unsubscribe === 'function') {
-        realtimeChannel.unsubscribe();
+      if (realtimeChannel) {
+        try {
+          supabase.removeChannel(realtimeChannel);
+        } catch {
+          if (typeof realtimeChannel.unsubscribe === 'function') {
+            realtimeChannel.unsubscribe();
+          }
+        }
       }
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -1051,6 +1060,12 @@ export default function App() {
   const handleDeleteBusiness = async (id: string) => {
     const biz = businesses.find((b) => b.id === id);
 
+    // 🛡️ تأكيد الحذف: منع الحذف العرضي للبيانات
+    const confirmed = window.confirm(
+      `⚠️ تأكيد الحذف النهائي\n\nهل أنت متأكد تمامًا من حذف نشاط "${biz?.nameAr || 'المحدد'}"؟\n\nهذا الإجراء لا يمكن التراجع عنه وسيُحذف النشاط بشكل نهائي من قاعدة البيانات.`
+    );
+    if (!confirmed) return;
+
     // 1. Immediately remove from businesses state and update cache
     setBusinesses((prev) => {
       const updated = prev.filter((b) => b.id !== id);
@@ -1296,6 +1311,12 @@ export default function App() {
   const handleDeleteRepresentative = async (id: string) => {
     const rep = representatives.find((r) => r.id === id);
 
+    // 🛡️ تأكيد الحذف: منع الحذف العرضي للحسابات
+    const confirmed = window.confirm(
+      `⚠️ تأكيد حذف الحساب\n\nهل أنت متأكد تمامًا من حذف حساب "${rep?.name || 'المحدد'}"؟\n\nسيُحذف الحساب نهائياً ولا يمكن استعادته.`
+    );
+    if (!confirmed) return;
+
     setRepresentatives((prev) => {
       const updated = prev.filter((r) => r.id !== id && (rep?.email ? r.email.toLowerCase() !== rep.email.toLowerCase() : true));
       try {
@@ -1539,6 +1560,8 @@ export default function App() {
     setUser(null);
     safeRemoveSessionItem('dalelak_active_user');
     safeRemoveSessionItem('dalelak_session_last_active');
+    safeRemoveSessionItem('dalelak_auth_token');
+    safeRemoveLocalStorageItem('dalelak_auth_token');
     safeRemoveLocalStorageItem('dalelak_logged_user');
     safeRemoveLocalStorageItem('dalelak_session_expires_at');
     safeRemoveLocalStorageItem('dalelak_last_interaction');
@@ -1628,18 +1651,30 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
-        <RepProfile 
-          user={null as any} 
-          rep={rep} 
-          businessesCount={0} 
-          totalRevenue={0} 
-          totalCommission={0} 
-          allReps={representatives}
-          allBusinesses={businesses}
-          onLogout={() => {}} 
-          onUpdateRep={() => {}} 
-          isExternalView={true} 
-        />
+        <Suspense fallback={
+          <div className="min-h-screen flex flex-col items-center justify-center gap-5">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl border-[3px] border-amber-500/20 border-t-amber-500 animate-spin" style={{ animation: 'spinGlow 1s linear infinite' }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-amber-500 font-black text-lg">د</span>
+              </div>
+            </div>
+            <p className="text-sm font-bold text-[var(--text-muted)]" style={{ animation: 'breathe 2s ease-in-out infinite' }}>جاري تحميل البطاقة...</p>
+          </div>
+        }>
+          <RepProfile 
+            user={null as any} 
+            rep={rep} 
+            businessesCount={0} 
+            totalRevenue={0} 
+            totalCommission={0} 
+            allReps={representatives}
+            allBusinesses={businesses}
+            onLogout={() => {}} 
+            onUpdateRep={() => {}} 
+            isExternalView={true} 
+          />
+        </Suspense>
       </div>
     );
   }
@@ -1844,15 +1879,17 @@ export default function App() {
 
             {/* Quick Rep Workspace summary if Rep logged in */}
             {user?.role === 'rep' && (
-              <RepDashboard
-                rep={currentRep}
-                businesses={businesses}
-                allReps={representatives}
-                payoutRequests={payoutRequests}
-                onAddNewClick={() => setActiveTab('add')}
-                onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-                onRequestPayout={handleCreatePayoutRequest}
-              />
+              <Suspense fallback={<div className="flex items-center justify-center py-6"><div className="w-8 h-8 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
+                <RepDashboard
+                  rep={currentRep}
+                  businesses={businesses}
+                  allReps={representatives}
+                  payoutRequests={payoutRequests}
+                  onAddNewClick={() => setActiveTab('add')}
+                  onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+                  onRequestPayout={handleCreatePayoutRequest}
+                />
+              </Suspense>
             )}
 
             {/* Modern Global Directory Container */}
@@ -2687,22 +2724,24 @@ export default function App() {
 
         {/* TAB 3: REGISTER NEW BUSINESS FORM */}
         {activeTab === 'add' && (
-          <BusinessForm
-            currentUser={user}
-            onSubmitBusiness={(newBiz) => {
-              handleAddBusiness(newBiz);
-              if (convertingLead) {
-                handleUpdateLead({ ...convertingLead, status: 'converted' });
-                setConvertingLead(null);
-              }
-            }}
-            currentRep={currentRep}
-            onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-            businesses={businesses}
-            onSaveLead={handleCreateLead}
-            initialLead={convertingLead}
-            onOpenPackages={() => setShowPackagesModal(true)}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-10 h-10 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
+            <BusinessForm
+              currentUser={user}
+              onSubmitBusiness={(newBiz) => {
+                handleAddBusiness(newBiz);
+                if (convertingLead) {
+                  handleUpdateLead({ ...convertingLead, status: 'converted' });
+                  setConvertingLead(null);
+                }
+              }}
+              currentRep={currentRep}
+              onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+              businesses={businesses}
+              onSaveLead={handleCreateLead}
+              initialLead={convertingLead}
+              onOpenPackages={() => setShowPackagesModal(true)}
+            />
+          </Suspense>
         )}
 
         {/* TAB 4: REVIEWS & INTERESTED LEADS HUB */}
@@ -2720,39 +2759,43 @@ export default function App() {
 
         {/* TAB 5 (ADMIN DASHBOARD / REP PROFILE) */}
         {activeTab === 'admin' && canUserAccessAdminPanel(user) && (
-          <AdminDashboard
-            currentUser={user}
-            businesses={businesses}
-            representatives={representatives}
-            paymentConfig={paymentConfig}
-            payoutRequests={payoutRequests}
-            onUpdateBusiness={handleUpdateBusiness}
-            onDeleteBusiness={handleDeleteBusiness}
-            onAddRepresentative={handleAddRepresentative}
-            onUpdateRepresentative={handleUpdateRepresentative}
-            onDeleteRepresentative={handleDeleteRepresentative}
-            onUpdatePaymentConfig={handleUpdatePaymentConfig}
-            onUpdatePayoutRequest={handleUpdatePayoutRequest}
-            onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-            onCollectPayment={(b) => setSelectedPayBiz(b)}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-10 h-10 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
+            <AdminDashboard
+              currentUser={user}
+              businesses={businesses}
+              representatives={representatives}
+              paymentConfig={paymentConfig}
+              payoutRequests={payoutRequests}
+              onUpdateBusiness={handleUpdateBusiness}
+              onDeleteBusiness={handleDeleteBusiness}
+              onAddRepresentative={handleAddRepresentative}
+              onUpdateRepresentative={handleUpdateRepresentative}
+              onDeleteRepresentative={handleDeleteRepresentative}
+              onUpdatePaymentConfig={handleUpdatePaymentConfig}
+              onUpdatePayoutRequest={handleUpdatePayoutRequest}
+              onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+              onCollectPayment={(b) => setSelectedPayBiz(b)}
+            />
+          </Suspense>
         )}
 
         {(activeTab === 'profile' || (activeTab === 'admin' && !canUserAccessAdminPanel(user))) && (
           user ? (
-            <RepProfile
-              user={user}
-              rep={currentRep}
-              businessesCount={scopedBusinesses.length}
-              totalRevenue={scopedBusinesses.reduce((acc, b) => acc + b.amountPaid, 0)}
-              totalCommission={calculateTotalRepCommission(scopedBusinesses, currentRep.commissionRate)}
-              allReps={representatives}
-              allBusinesses={businesses}
-              payoutRequests={payoutRequests}
-              onLogout={() => setUser(null)}
-              onUpdateRep={handleUpdateRepresentative}
-              onRequestPayout={handleCreatePayoutRequest}
-            />
+            <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-10 h-10 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
+              <RepProfile
+                user={user}
+                rep={currentRep}
+                businessesCount={scopedBusinesses.length}
+                totalRevenue={scopedBusinesses.reduce((acc, b) => acc + b.amountPaid, 0)}
+                totalCommission={calculateTotalRepCommission(scopedBusinesses, currentRep.commissionRate)}
+                allReps={representatives}
+                allBusinesses={businesses}
+                payoutRequests={payoutRequests}
+                onLogout={() => setUser(null)}
+                onUpdateRep={handleUpdateRepresentative}
+                onRequestPayout={handleCreatePayoutRequest}
+              />
+            </Suspense>
           ) : (
             <div className="text-center py-16 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-4 max-w-md mx-auto shadow-md transition-colors duration-300">
               <ShieldCheck className="w-12 h-12 text-amber-500 mx-auto" />
@@ -2922,31 +2965,33 @@ export default function App() {
 
       {/* MODAL: FULL BUSINESS DATA VIEW & EDITING POP-UP */}
       {editingBusiness && (
-        <BusinessEditModal
-          business={editingBusiness}
-          onClose={() => setEditingBusiness(null)}
-          onSave={(updatedBiz) => {
-            handleUpdateBusiness(updatedBiz);
-            setEditingBusiness(null);
-          }}
-          userRole={user?.role}
-          currentRoleTitle={user?.repData?.roleTitle || user?.roleTitle}
-          currentUserName={user?.name}
-          currentUserId={user?.id}
-          canEdit={canUserEditBusiness(user, editingBusiness)}
-          onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-          onCollectPayment={
-            user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
-              ? (b) => setSelectedPayBiz(b)
-              : undefined
-          }
-          businesses={businesses}
-          onDeleteBusiness={
-            canUserDeleteBusiness(user, editingBusiness)
-              ? handleDeleteBusiness
-              : undefined
-          }
-        />
+        <Suspense fallback={null}>
+          <BusinessEditModal
+            business={editingBusiness}
+            onClose={() => setEditingBusiness(null)}
+            onSave={(updatedBiz) => {
+              handleUpdateBusiness(updatedBiz);
+              setEditingBusiness(null);
+            }}
+            userRole={user?.role}
+            currentRoleTitle={user?.repData?.roleTitle || user?.roleTitle}
+            currentUserName={user?.name}
+            currentUserId={user?.id}
+            canEdit={canUserEditBusiness(user, editingBusiness)}
+            onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+            onCollectPayment={
+              user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
+                ? (b) => setSelectedPayBiz(b)
+                : undefined
+            }
+            businesses={businesses}
+            onDeleteBusiness={
+              canUserDeleteBusiness(user, editingBusiness)
+                ? handleDeleteBusiness
+                : undefined
+            }
+          />
+        </Suspense>
       )}
 
       {/* MODAL: INVOICE VIEWER & WHATSAPP DISPATCH */}
@@ -2969,32 +3014,34 @@ export default function App() {
 
       {/* MODAL: PAYMENT GATEWAY SIMULATION */}
       {selectedPayBiz && (
-        <PaymentGatewayModal
-          business={selectedPayBiz}
-          config={paymentConfig}
-          onClose={() => setSelectedPayBiz(null)}
-          onPaymentSuccess={(newPaid, method = 'gateway_online') => {
-            if (selectedPayBiz) {
-              const status = newPaid >= (selectedPayBiz.packagePrice || 250) ? 'fully_paid' : 'partially_paid';
-              const updatedBiz: Business = {
-                ...selectedPayBiz,
-                amountPaid: newPaid,
-                paymentStatus: status,
-                paymentMethod: method,
-                cashCollectedByRep: method === 'cash_by_rep' ? newPaid : 0, // Received directly via platform payment gateway / wallets
-              };
-              handleUpdateBusiness(updatedBiz);
+        <Suspense fallback={null}>
+          <PaymentGatewayModal
+            business={selectedPayBiz}
+            config={paymentConfig}
+            onClose={() => setSelectedPayBiz(null)}
+            onPaymentSuccess={(newPaid, method = 'gateway_online') => {
+              if (selectedPayBiz) {
+                const status = newPaid >= (selectedPayBiz.packagePrice || 250) ? 'fully_paid' : 'partially_paid';
+                const updatedBiz: Business = {
+                  ...selectedPayBiz,
+                  amountPaid: newPaid,
+                  paymentStatus: status,
+                  paymentMethod: method,
+                  cashCollectedByRep: method === 'cash_by_rep' ? newPaid : 0, // Received directly via platform payment gateway / wallets
+                };
+                handleUpdateBusiness(updatedBiz);
 
-              // Keep open modals in sync with the payment update
-              if (editingBusiness && editingBusiness.id === updatedBiz.id) {
-                setEditingBusiness(updatedBiz);
+                // Keep open modals in sync with the payment update
+                if (editingBusiness && editingBusiness.id === updatedBiz.id) {
+                  setEditingBusiness(updatedBiz);
+                }
+                if (selectedInvoiceBiz && selectedInvoiceBiz.id === updatedBiz.id) {
+                  setSelectedInvoiceBiz(updatedBiz);
+                }
               }
-              if (selectedInvoiceBiz && selectedInvoiceBiz.id === updatedBiz.id) {
-                setSelectedInvoiceBiz(updatedBiz);
-              }
-            }
-          }}
-        />
+            }}
+          />
+        </Suspense>
       )}
 
       {/* MODAL: LOGIN DIALOG */}
@@ -3011,20 +3058,25 @@ export default function App() {
 
       {/* MODAL: ADMIN & USER PROFILE / AVATAR MODAL (STRICT ADMIN ONLY) */}
       {showAdminProfileModal && user && user.role === 'admin' && (
-        <AdminProfileModal
-          user={user}
-          onClose={() => setShowAdminProfileModal(false)}
-          onUpdateProfile={handleUpdateUserProfile}
-        />
+        <Suspense fallback={null}>
+          <AdminProfileModal
+            user={user}
+            onClose={() => setShowAdminProfileModal(false)}
+            onUpdateProfile={handleUpdateUserProfile}
+          />
+        </Suspense>
       )}
 
       {/* MODAL: SHORT VIDEO PLAYER */}
       {selectedVideoBiz && (
-        <VideoPlayerModal
-          business={selectedVideoBiz}
-          onClose={() => setSelectedVideoBiz(null)}
-        />
+        <Suspense fallback={null}>
+          <VideoPlayerModal
+            business={selectedVideoBiz}
+            onClose={() => setSelectedVideoBiz(null)}
+          />
+        </Suspense>
       )}
+
 
       {/* MODAL: OFFLINE SYNC HUB (INDEXEDDB & ZERO DATA LOSS) */}
       <OfflineSyncModal

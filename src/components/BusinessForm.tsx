@@ -575,7 +575,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       ownerEmail: ownerEmail?.trim() || undefined,
       nationalId: nationalId?.trim() || undefined,
       photos: Array.isArray(photos) ? photos : [],
-      videos: [],
+      videos: Array.isArray(videos) ? videos : [],
       repId: currentRep?.id || 'rep_1',
       repName: currentRep?.name || 'مندوب معتمد',
       packageId: isFeeExempt ? EXEMPT_PACKAGE.id : selectedPackage.id,

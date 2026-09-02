@@ -7,6 +7,7 @@ import { updateRepSessionInDb, fetchRepsFromDb, saveRepToDb } from '../services/
 import { compressImageFile } from '../utils/imageCompressor';
 import { getRepReferralCode } from '../utils/referral';
 import { hashPassword, verifyPassword, isPasswordHashed } from '../utils/crypto';
+import { safeSetLocalStorageItem, safeSetSessionItem } from '../utils/storage';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { 
@@ -137,6 +138,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         if (res.ok) {
           const data = await res.json();
           if (data && data.user) {
+            if (data.token) {
+              safeSetLocalStorageItem('dalelak_auth_token', data.token);
+              safeSetSessionItem('dalelak_auth_token', data.token);
+            }
             await updateRepSessionInDb(data.user.id, data.user.activeSessionId, data.user.lastActiveTimestamp);
             onLoginSuccess(data.user);
             onClose();
@@ -187,11 +192,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       const storedPassword = (foundRep.password || '').trim();
       let isPasswordCorrect = false;
 
-      if (storedPassword.startsWith('scrypt:')) {
-        setErrorMsg('⚠️ كلمة المرور محمية بتشفير أمني مشدد. يرجى الاتصال بالخادم المركزي لتسجيل الدخول.');
-        setIsLoading(false);
-        return;
-      } else if (storedPassword && storedPassword !== '••••••••') {
+      if (storedPassword && storedPassword !== '••••••••') {
+        if (storedPassword.startsWith('scrypt:')) {
+          setErrorMsg('⚠️ كلمة المرور محمية بنظام تشفير الخادم، يرجى تشغيل الخادم المحلي لتسجيل الدخول.');
+          setIsLoading(false);
+          return;
+        }
         isPasswordCorrect = await verifyPassword(cleanPassword, storedPassword);
       }
 
@@ -206,7 +212,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         try {
           const newHashed = await hashPassword(cleanPassword);
           foundRep.password = newHashed;
-          saveRepToDb({ id: foundRep.id, password: newHashed }).catch(() => {});
+          saveRepToDb({ ...foundRep, password: newHashed }).catch(() => {});
         } catch {}
       }
 
@@ -238,7 +244,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         id: foundRep.id,
         name: foundRep.name,
         email: foundRep.email,
-        role: foundRep.role,
+        role: foundRep.role || 'rep',
         repData: foundRep,
         activeSessionId: newSessionId,
         lastActiveTimestamp: now,

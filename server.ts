@@ -4,7 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './src/data/mockData.js';
-import { Business, Representative, PaymentGatewayConfig } from './src/types.js';
+import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from './src/types.js';
 
 const app = express();
 const DEFAULT_PORT = Number(process.env.PORT) || 3001;
@@ -12,30 +12,70 @@ const DEFAULT_PORT = Number(process.env.PORT) || 3001;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// 🛡️ Security Helpers: Password Hashing with Salt & Scrypt
+// 🛡️ Security Headers Middleware — يُطبَّق على جميع الاستجابات
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  // CORS: السماح فقط من المصادر الموثوقة
+  const allowedOrigins = [
+    process.env.APP_URL,
+    'http://localhost:3001',
+    'http://localhost:5173',
+  ].filter(Boolean) as string[];
+  const origin = _req.headers.origin || '';
+  if (!origin || allowedOrigins.some((o) => origin.startsWith(o))) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (_req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
+
+// 🛡️ Security Helpers: Cross-Platform Universal Password Hashing & Verification
 function hashPassword(password: string): string {
   if (!password) return '';
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  return `scrypt:${salt}:${hash}`;
+  const hash = crypto.createHash('sha256').update(password.trim()).digest('hex');
+  return `sha256:${hash}`;
 }
 
 function verifyPassword(password: string, storedHash?: string): boolean {
   if (!storedHash || !password) return false;
-  // Seamless migration for existing plaintext passwords
-  if (!storedHash.startsWith('scrypt:')) {
-    return storedHash === password;
+  const cleanPassword = password.trim();
+
+  // 1. Universal SHA-256 Hash Verification (Matches client Web Crypto API 100%)
+  if (storedHash.startsWith('sha256:')) {
+    const hash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
+    const computed = `sha256:${hash}`;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(storedHash));
+    } catch {
+      return computed === storedHash;
+    }
   }
-  const parts = storedHash.split(':');
-  if (parts.length !== 3) return false;
-  const salt = parts[1];
-  const originalHash = parts[2];
-  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  try {
-    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'));
-  } catch {
-    return false;
+
+  // 2. Legacy scrypt Hash Verification (Backward compatibility)
+  if (storedHash.startsWith('scrypt:')) {
+    const parts = storedHash.split(':');
+    if (parts.length !== 3) return false;
+    const salt = parts[1];
+    const originalHash = parts[2];
+    const hash = crypto.scryptSync(cleanPassword, salt, 64).toString('hex');
+    try {
+      return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'));
+    } catch {
+      return false;
+    }
   }
+
+  // 3. Backward-compatible Plaintext Verification
+  return storedHash === cleanPassword;
 }
 
 // 🛡️ Safe Atomic File Writing: Prevents race conditions and file corruption
@@ -55,9 +95,35 @@ interface ActiveSession {
 }
 const activeSessions = new Map<string, ActiveSession>();
 
+// 🛡️ Rate Limiting: منع هجمات Brute Force على تسجيل الدخول
+interface RateLimitRecord { count: number; resetAt: number; }
+const loginRateLimit = new Map<string, RateLimitRecord>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_RATE_WINDOW_MS = 60 * 1000; // نافذة دقيقة واحدة
+
+// تنظيف دوري لإدخالات Rate Limit المنتهية كل 5 دقائق لمنع تسرب الذاكرة
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of loginRateLimit.entries()) {
+    if (now >= val.resetAt) loginRateLimit.delete(key);
+  }
+}, 5 * 60 * 1000);
+
+// تنظيف دوري لـ Sessions المنتهية كل 30 دقيقة
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of activeSessions.entries()) {
+    if (now >= session.expiresAt) activeSessions.delete(token);
+  }
+}, 30 * 60 * 1000);
+
 function getRequestUser(req: express.Request): ActiveSession | null {
   const authHeader = req.headers.authorization;
-  const token = authHeader?.replace(/^Bearer\s+/i, '') || (req.headers['x-session-id'] as string);
+  const token = authHeader?.replace(/^Bearer\s+/i, '');
+  const sessionId = (req.headers['x-session-id'] as string) || '';
+  const userId = (req.headers['x-user-id'] as string) || '';
+
+  // 1. Direct active token lookup
   if (token && activeSessions.has(token)) {
     const session = activeSessions.get(token)!;
     if (Date.now() < session.expiresAt) {
@@ -66,6 +132,35 @@ function getRequestUser(req: express.Request): ActiveSession | null {
       activeSessions.delete(token);
     }
   }
+
+  // 2. Active Session ID lookup
+  if (sessionId && activeSessions.has(sessionId)) {
+    const session = activeSessions.get(sessionId)!;
+    if (Date.now() < session.expiresAt) {
+      return session;
+    } else {
+      activeSessions.delete(sessionId);
+    }
+  }
+
+  // 3. Representative live session verification from stored database
+  if (sessionId || userId) {
+    const reps = representatives.length > 0 ? representatives : loadStoredReps();
+    const rep = reps.find((r) => 
+      (sessionId && r.activeSessionId === sessionId) ||
+      (userId && r.id === userId && (!sessionId || r.activeSessionId === sessionId))
+    );
+    if (rep && rep.status !== 'suspended') {
+      const sessionObj: ActiveSession = {
+        userId: rep.id,
+        role: rep.role || 'rep',
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      };
+      if (sessionId) activeSessions.set(sessionId, sessionObj);
+      return sessionObj;
+    }
+  }
+
   return null;
 }
 
@@ -183,9 +278,22 @@ function persistStoredLeads(data: any[]) {
 
 let businesses: Business[] = loadStoredBusinesses();
 let representatives: Representative[] = loadStoredReps();
-let payoutRequests: any[] = loadStoredPayouts();
-let leadsStore: any[] = loadStoredLeads();
+let payoutRequests: PayoutRequest[] = loadStoredPayouts();
+let leadsStore: InterestedLead[] = loadStoredLeads();
 let paymentConfig: PaymentGatewayConfig = { ...DEFAULT_PAYMENT_CONFIG };
+
+// =============================================================================
+// 🛡️ Input Validation Helper: يتحقق من وجود الحقول المطلوبة في الطلب
+// =============================================================================
+function validateRequiredFields(obj: Record<string, unknown>, fields: string[]): string | null {
+  for (const field of fields) {
+    const val = obj[field];
+    if (val === undefined || val === null || (typeof val === 'string' && !val.trim())) {
+      return `الحقل المطلوب مفقود أو فارغ: ${field}`;
+    }
+  }
+  return null;
+}
 
 // REST API Endpoints
 
@@ -227,7 +335,7 @@ app.post('/api/test-mode', (req, res) => {
 
 app.post('/api/test-mode/reset', (req, res) => {
   const reqUser = getRequestUser(req);
-  if (!isServerTestMode && reqUser && reqUser.role !== 'admin') {
+  if (!isServerTestMode && (!reqUser || reqUser.role !== 'admin')) {
     return res.status(403).json({ error: 'غير مصرح: إعادة ضبط البيانات تتطلب صلاحية مدير النظام' });
   }
   businesses = [...INITIAL_BUSINESSES];
@@ -255,6 +363,28 @@ app.post('/api/auth/login', (req, res) => {
   const now = Date.now();
   const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
 
+  // 🛡️ Rate Limiting Check: منع هجمات Brute Force
+  const clientIp = (req.ip || req.socket?.remoteAddress || 'unknown').replace(/^::ffff:/, '');
+  const rateLimitKey = `login_${clientIp}_${cleanEmail}`;
+  const attempts = loginRateLimit.get(rateLimitKey);
+
+  if (attempts && now < attempts.resetAt && attempts.count >= MAX_LOGIN_ATTEMPTS) {
+    const retryAfterSeconds = Math.ceil((attempts.resetAt - now) / 1000);
+    return res.status(429).json({
+      error: `⏳ تم تجاوز الحد المسموح من محاولات تسجيل الدخول (${MAX_LOGIN_ATTEMPTS} محاولات). يرجى الانتظار ${retryAfterSeconds} ثانية قبل المحاولة مجدداً.`,
+    });
+  }
+
+  // دالة داخلية لتسجيل محاولة فاشلة
+  const recordFailedAttempt = () => {
+    const current = loginRateLimit.get(rateLimitKey);
+    if (!current || now >= current.resetAt) {
+      loginRateLimit.set(rateLimitKey, { count: 1, resetAt: now + LOGIN_RATE_WINDOW_MS });
+    } else {
+      current.count++;
+    }
+  };
+
   // Always refresh latest reps from disk store before checking login
   representatives = loadStoredReps();
 
@@ -277,6 +407,7 @@ app.post('/api/auth/login', (req, res) => {
 
   // Strictly reject unregistered accounts
   if (!rep) {
+    recordFailedAttempt();
     return res.status(401).json({ error: `⚠️ الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات. لا يُسمح بتسجيل الدخول لأي حساب غير مسجل.` });
   }
 
@@ -285,8 +416,12 @@ app.post('/api/auth/login', (req, res) => {
   const isPassValid = verifyPassword(cleanPassword, storedPassword);
 
   if (!isPassValid) {
+    recordFailedAttempt();
     return res.status(401).json({ error: '⚠️ كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.' });
   }
+
+  // ✅ تسجيل دخول ناجح — مسح سجل المحاولات الفاشلة
+  loginRateLimit.delete(rateLimitKey);
 
   // Automatic secure password upgrade: If password was plaintext, hash it immediately
   if (!storedPassword.startsWith('scrypt:')) {
@@ -342,6 +477,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Heartbeat endpoint to maintain active session lock
+
 app.post('/api/auth/heartbeat', (req, res) => {
   const { userId, sessionId } = req.body;
   if (!userId || !sessionId) {
@@ -383,6 +519,13 @@ app.get('/api/businesses', (_req, res) => {
 app.post('/api/businesses', (req, res) => {
   try {
     const newBiz: Business = req.body;
+
+    // 🛡️ Input Validation: التحقق من الحقول المطلوبة
+    const validationError = validateRequiredFields(req.body, ['nameAr', 'phone', 'repId']);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
     if (!newBiz.id) {
       newBiz.id = `biz_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     }
@@ -425,6 +568,24 @@ app.put('/api/businesses/:id', (req, res) => {
 app.delete('/api/businesses/:id', (req, res) => {
   const { id } = req.params;
   const targetBiz = businesses.find((b) => b.id === id);
+  if (!targetBiz) {
+    return res.status(404).json({ error: 'النشاط غير موجود' });
+  }
+
+  const reqUser = getRequestUser(req);
+  if (!isServerTestMode) {
+    if (!reqUser) {
+      return res.status(401).json({ error: 'يرجى تسجيل الدخول لحذف النشاط' });
+    }
+    const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor';
+    const isCreator = targetBiz.repId === reqUser.userId;
+    const isUnverified = targetBiz.verificationStatus !== 'verified' && targetBiz.googleSyncStatus !== 'synced';
+
+    if (!isManager && !(isCreator && isUnverified)) {
+      return res.status(403).json({ error: 'غير مصرح بحذف هذا النشاط' });
+    }
+  }
+
   businesses = businesses.filter((b) => b.id !== id);
   persistStoredBusinesses(businesses);
 
@@ -500,7 +661,23 @@ app.put('/api/representatives/:id', (req, res) => {
   if (index === -1) {
     return res.status(404).json({ error: 'الحساب غير موجود' });
   }
+
+  const reqUser = getRequestUser(req);
+  const isSelf = reqUser && reqUser.userId === id;
+  const isManager = reqUser && (reqUser.role === 'admin' || reqUser.role === 'supervisor');
+
+  if (!isServerTestMode && !isSelf && !isManager) {
+    return res.status(403).json({ error: 'غير مصرح: ليس لديك صلاحية لتعديل هذا الحساب' });
+  }
+
   const updates = { ...req.body };
+  // Non-managers cannot escalate roles, change commission rates, or alter status
+  if (!isManager && !isServerTestMode) {
+    delete updates.role;
+    delete updates.commissionRate;
+    delete updates.status;
+  }
+
   if (updates.password && typeof updates.password === 'string' && !updates.password.startsWith('scrypt:')) {
     updates.password = hashPassword(updates.password.trim());
   }
@@ -511,7 +688,7 @@ app.put('/api/representatives/:id', (req, res) => {
 
 app.delete('/api/representatives/:id', (req, res) => {
   const reqUser = getRequestUser(req);
-  if (reqUser && reqUser.role !== 'admin') {
+  if (!reqUser || reqUser.role !== 'admin') {
     return res.status(403).json({ error: 'غير مصرح: حذف الحسابات حصري لمدير النظام فقط' });
   }
   const { id } = req.params;
@@ -605,7 +782,7 @@ app.get('/api/payment-config', (_req, res) => {
 
 app.post('/api/payment-config', (req, res) => {
   const reqUser = getRequestUser(req);
-  if (reqUser && reqUser.role !== 'admin' && reqUser.role !== 'accountant' && reqUser.role !== 'supervisor') {
+  if (!reqUser || (reqUser.role !== 'admin' && reqUser.role !== 'accountant' && reqUser.role !== 'supervisor')) {
     return res.status(403).json({ error: 'غير مصرح: تعديل إعدادات بوابات الدفع مقتصر على الإدارة والمحاسبين فقط' });
   }
   paymentConfig = { ...paymentConfig, ...req.body };

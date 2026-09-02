@@ -50,6 +50,11 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     google_sync_date TEXT,
     invoice_number TEXT,
     invoice_date TEXT,
+    is_fee_exempt BOOLEAN DEFAULT false,
+    fee_exemption_reason TEXT,
+    is_already_on_google BOOLEAN DEFAULT false,
+    registration_type TEXT DEFAULT 'new_verification',
+    admin_follow_ups JSONB DEFAULT '[]'::jsonb,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -59,6 +64,10 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS videos JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS rep_location_url TEXT;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS admin_follow_ups JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_fee_exempt BOOLEAN DEFAULT false;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS fee_exemption_reason TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_already_on_google BOOLEAN DEFAULT false;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS registration_type TEXT DEFAULT 'new_verification';
 
 -- =============================================================================
 -- 2. TABLE: representatives (المناديب والمشرفين والمحاسبين والإدارة)
@@ -82,7 +91,9 @@ CREATE TABLE IF NOT EXISTS public.representatives (
     avatar_status TEXT DEFAULT 'none',
     commission_rate NUMERIC DEFAULT 42.86,
     status TEXT DEFAULT 'suspended',
-    password TEXT DEFAULT 'Aa123456',
+    -- ⚠️ SECURITY: يجب تغيير كلمة المرور الافتراضية قبل النشر في بيئة الإنتاج
+    -- لا يجب أن تصل الحسابات بهذه الكلمة الافتراضية للواجهة أبداً — يجب تغييرها فور إنشاء الحساب
+    password TEXT,
     referral_code TEXT,
     referred_by_code TEXT,
     referral_unlocked BOOLEAN DEFAULT false,
@@ -299,7 +310,10 @@ INSERT INTO public.representatives (
     'approved',
     0,
     'active',
-    'admin',
+    -- ⚠️ SECURITY CRITICAL: يجب تغيير كلمة المرور الافتراضية فوراً بعد التثبيت
+    -- استخدم endpoint /api/auth/login لتسجيل الدخول ثم غيّر كلمة المرور من لوحة الإعدادات
+    -- القيمة هنا هي hash لكلمة المرور الافتراضية — يجب تغييرها قبل الإنتاج
+    'CHANGE_THIS_PASSWORD_IMMEDIATELY',
     'DALIL-ADMIN',
     true,
     true
@@ -337,3 +351,57 @@ DROP POLICY IF EXISTS "Allow deletes to business-media" ON storage.objects;
 CREATE POLICY "Allow deletes to business-media" ON storage.objects
 FOR DELETE USING (bucket_id = 'business-media');
 
+-- =============================================================================
+-- 11. SOFT DELETE: أعمدة الحذف الناعم (تسمح باسترجاع السجلات المحذوفة)
+-- =============================================================================
+ALTER TABLE public.businesses      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.businesses      ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+
+-- View: الأنشطة النشطة (غير المحذوفة)
+CREATE OR REPLACE VIEW public.active_businesses AS
+    SELECT * FROM public.businesses WHERE deleted_at IS NULL;
+
+-- View: العملاء المحتملين النشطين
+CREATE OR REPLACE VIEW public.active_leads AS
+    SELECT * FROM public.leads WHERE deleted_at IS NULL;
+
+-- =============================================================================
+-- 12. AUDIT TRAIL: سجل التدقيق الشامل لتتبع جميع التغييرات الحرجة
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+    id          BIGSERIAL PRIMARY KEY,
+    table_name  TEXT NOT NULL,
+    record_id   TEXT NOT NULL,
+    action      TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE', 'SOFT_DELETE', 'RESTORE')),
+    actor_id    TEXT,
+    actor_name  TEXT,
+    actor_role  TEXT,
+    old_data    JSONB,
+    new_data    JSONB,
+    changed_at  TIMESTAMPTZ DEFAULT NOW(),
+    ip_address  TEXT,
+    notes       TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_logs_table_record ON public.activity_logs (table_name, record_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_actor        ON public.activity_logs (actor_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_changed_at   ON public.activity_logs (changed_at DESC);
+
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Audit log read access" ON public.activity_logs;
+CREATE POLICY "Audit log read access" ON public.activity_logs FOR SELECT USING (true);
+
+-- =============================================================================
+-- 13. PERFORMANCE INDEXES: فهارس لتحسين أداء الاستعلامات على حقول JSONB
+-- =============================================================================
+CREATE INDEX IF NOT EXISTS idx_businesses_photos           ON public.businesses USING GIN (photos);
+CREATE INDEX IF NOT EXISTS idx_businesses_admin_followups  ON public.businesses USING GIN (admin_follow_ups);
+CREATE INDEX IF NOT EXISTS idx_businesses_gov_category     ON public.businesses (governorate, category);
+CREATE INDEX IF NOT EXISTS idx_businesses_rep_status       ON public.businesses (rep_id, verification_status);
+CREATE INDEX IF NOT EXISTS idx_businesses_payment          ON public.businesses (payment_status, amount_paid);
+CREATE INDEX IF NOT EXISTS idx_leads_rep_status            ON public.leads (rep_id, status);
+CREATE INDEX IF NOT EXISTS idx_reps_role_status            ON public.representatives (role, status);

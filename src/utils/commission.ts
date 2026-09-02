@@ -262,7 +262,7 @@ export function calculateRepSettlement(
     repShareFromOnline,
     netBalance: finalNetBalance,
     isDebtToPlatform,
-    debtToPlatformAmount: remainingCashDebt, // Amount rep should physically remit if cash in hand
+    debtToPlatformAmount, // Net remaining debt owed to platform after online credit offset
     withdrawableBalance,
     pendingPayout,
     totalPaidOut,

@@ -122,7 +122,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
 /**
  * Checks if a user has permission to edit a specific business
  */
-export function canUserEditBusiness(user: User | null, business: Business): boolean {
+export function canUserEditBusiness(user: User | null | undefined, business: Business): boolean {
   if (!user) return false;
   if (user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant') return true;
 
@@ -143,7 +143,7 @@ export function canUserEditBusiness(user: User | null, business: Business): bool
  * 1. Admin and Supervisor can delete any business.
  * 2. Representative / User can delete their OWN registered business ONLY IF it has NOT been verified or synced on Google Maps yet.
  */
-export function canUserDeleteBusiness(user: User | null, business: Business): boolean {
+export function canUserDeleteBusiness(user: User | null | undefined, business: Business): boolean {
   if (!user || !business) return false;
 
   // 1. Admin and Supervisor have unrestricted deletion privileges
@@ -171,7 +171,7 @@ export function canUserDeleteBusiness(user: User | null, business: Business): bo
 /**
  * Checks if a user has permission to delete accounts/reps
  */
-export function canUserDeleteAccount(user: User | null): boolean {
+export function canUserDeleteAccount(user: User | null | undefined): boolean {
   if (!user) return false;
   // Only Admin can delete accounts (حذف الحسابات حصري لمدير النظام)
   return user.role === 'admin';
@@ -180,7 +180,7 @@ export function canUserDeleteAccount(user: User | null): boolean {
 /**
  * Checks if a user has permission to access the management / admin panel
  */
-export function canUserAccessAdminPanel(user: User | null): boolean {
+export function canUserAccessAdminPanel(user: User | null | undefined): boolean {
   if (!user) return false;
   return user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant';
 }
@@ -188,7 +188,7 @@ export function canUserAccessAdminPanel(user: User | null): boolean {
 /**
  * Checks if a user can approve or reject commission payout requests
  */
-export function canUserManagePayouts(user: User | null): boolean {
+export function canUserManagePayouts(user: User | null | undefined): boolean {
   if (!user) return false;
   return user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant';
 }
@@ -197,7 +197,7 @@ export function canUserManagePayouts(user: User | null): boolean {
  * Checks if a user has permission to add or modify fee-exempt popular area activities
  * (إضافة أو تعديل الأنشطة الرائجة بالمنطقة المعفاة من الرسوم)
  */
-export function canUserManageFeeExemption(user: User | null): boolean {
+export function canUserManageFeeExemption(user: User | null | undefined): boolean {
   if (!user) return false;
   return user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant';
 }

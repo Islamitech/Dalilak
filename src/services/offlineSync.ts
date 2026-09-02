@@ -58,12 +58,16 @@ export function openOfflineDb(): Promise<IDBDatabase> {
  */
 export function getActiveUserId(): string | null {
   try {
-    const sessionUser = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('dalelak_active_user') : null;
+    const sessionUser = typeof sessionStorage !== 'undefined' 
+      ? (sessionStorage.getItem('dalelak_active_user') || sessionStorage.getItem('dalelak_logged_user')) 
+      : null;
     if (sessionUser) {
       const parsed = JSON.parse(sessionUser);
       if (parsed && (parsed.id || parsed.email)) return (parsed.id || parsed.email).toString();
     }
-    const localUser = typeof localStorage !== 'undefined' ? localStorage.getItem('dalelak_active_user') : null;
+    const localUser = typeof localStorage !== 'undefined' 
+      ? (localStorage.getItem('dalelak_logged_user') || localStorage.getItem('dalelak_active_user')) 
+      : null;
     if (localUser) {
       const parsed = JSON.parse(localUser);
       if (parsed && (parsed.id || parsed.email)) return (parsed.id || parsed.email).toString();
@@ -548,6 +552,9 @@ export async function syncAllPendingOfflineData(
         const repLocationUrl = cleanBizToSave.repLocationUrl || (cleanBizToSave.lat && cleanBizToSave.lng ? `https://www.google.com/maps?q=${cleanBizToSave.lat},${cleanBizToSave.lng}` : null);
         const googleMapsUrl = (cleanBizToSave.googleMapsUrl && cleanBizToSave.googleMapsUrl.trim().startsWith('http') && !cleanBizToSave.googleMapsUrl.includes('search/?api=1&query=')) ? cleanBizToSave.googleMapsUrl.trim() : null;
 
+        const isAlreadyOnGoogle = Boolean(cleanBizToSave.isAlreadyOnGoogle || cleanBizToSave.packageId === 'pkg_already_on_google' || cleanBizToSave.registrationType === 'already_on_google');
+        const isFeeExempt = Boolean(isAlreadyOnGoogle || cleanBizToSave.isFeeExempt || cleanBizToSave.packagePrice === 0);
+
         const dbPayload: any = {
           id: cleanBizToSave.id,
           name_ar: cleanBizToSave.nameAr,
@@ -568,6 +575,7 @@ export async function syncAllPendingOfflineData(
           owner_email: cleanBizToSave.ownerEmail || null,
           national_id: cleanBizToSave.nationalId || null,
           photos: cleanPhotos,
+          videos: cleanVideos,
           package_id: cleanBizToSave.packageId || 'pkg_basic',
           package_name: cleanBizToSave.packageName || '1. باقة التوثيق الأساسي',
           package_price: Number(cleanBizToSave.packagePrice) || 250,
@@ -576,13 +584,27 @@ export async function syncAllPendingOfflineData(
           verification_status: cleanBizToSave.verificationStatus || 'pending',
           rep_id: cleanBizToSave.repId || 'rep_1',
           rep_name: cleanBizToSave.repName || 'مندوب معتمد',
+          rep_location_url: repLocationUrl,
+          is_fee_exempt: isFeeExempt,
+          fee_exemption_reason: cleanBizToSave.feeExemptionReason || null,
+          is_already_on_google: isAlreadyOnGoogle,
+          registration_type: isAlreadyOnGoogle ? 'already_on_google' : (cleanBizToSave.registrationType || 'new_verification'),
+          admin_follow_ups: Array.isArray(cleanBizToSave.adminFollowUps) ? cleanBizToSave.adminFollowUps : [],
           invoice_number: cleanBizToSave.invoiceNumber,
           invoice_date: cleanBizToSave.invoiceDate,
           created_at: cleanBizToSave.createdDate || new Date().toISOString(),
+          google_maps_url: googleMapsUrl || null,
+          google_place_id: cleanBizToSave.googlePlaceId || null,
+          google_sync_status: isAlreadyOnGoogle ? 'synced' : (cleanBizToSave.googleSyncStatus || 'pending'),
+          google_sync_date: isAlreadyOnGoogle ? (cleanBizToSave.googleSyncDate || new Date().toISOString().split('T')[0]) : (cleanBizToSave.googleSyncDate || null),
           notes: JSON.stringify({
             paymentMethod: cleanBizToSave.paymentMethod,
             cashCollectedByRep: cleanBizToSave.cashCollectedByRep,
             repCommissionRate: cleanBizToSave.repCommissionRate,
+            isFeeExempt,
+            feeExemptionReason: cleanBizToSave.feeExemptionReason,
+            isAlreadyOnGoogle,
+            registrationType: isAlreadyOnGoogle ? 'already_on_google' : (cleanBizToSave.registrationType || 'new_verification'),
             googleSyncStatus: cleanBizToSave.googleSyncStatus,
             googlePlaceId: cleanBizToSave.googlePlaceId,
             googleSyncDate: cleanBizToSave.googleSyncDate,
@@ -640,41 +662,27 @@ export async function syncAllPendingOfflineData(
         const cleanPhone = lead.phone || '01000000000';
         const leadPayload = {
           id: lead.id,
-          name_ar: lead.businessName ? lead.businessName.trim() : `عميل مهتم: ${lead.clientName}`,
-          owner_name: lead.clientName,
-          owner_phone: cleanPhone,
+          client_name: lead.clientName,
+          business_name: lead.businessName || null,
+          business_category: lead.businessCategory || null,
           phone: cleanPhone,
           secondary_phone: lead.secondaryPhone || null,
-          category: lead.businessCategory || 'نشاط تجاري / خدمي آخر',
           governorate: lead.governorate || 'الجيزة',
-          city: lead.city || 'حدائق الأهرام',
-          package_id: 'pkg_interested_lead',
-          package_name: 'عميل مهتم بالمتابعة',
-          package_price: 0,
-          amount_paid: 0,
-          payment_status: 'unpaid',
-          verification_status: 'lead',
+          city: lead.city || null,
+          interest_level: lead.interestLevel || 'high',
+          notes: lead.notes || null,
+          follow_up_date: lead.followUpDate || null,
+          created_at: lead.createdDate || new Date().toISOString(),
           rep_id: lead.repId || 'rep_1',
           rep_name: lead.repName || 'مندوب معتمد',
-          invoice_number: `LEAD-${lead.id.replace(/\D/g, '').slice(-6) || Date.now()}`,
-          invoice_date: (lead.createdDate || new Date().toISOString()).split('T')[0],
-          notes: JSON.stringify({
-            isInterestedLead: true,
-            clientName: lead.clientName,
-            businessName: lead.businessName,
-            businessCategory: lead.businessCategory,
-            interestLevel: lead.interestLevel,
-            notes: lead.notes,
-            followUpDate: lead.followUpDate,
-            lastContactedDate: lead.lastContactedDate,
-            status: lead.status,
-          }),
+          last_contacted_date: lead.lastContactedDate || null,
+          status: lead.status || 'pending_followup',
         };
 
         let leadSaved = false;
 
         try {
-          const res = await supabaseRestFetch('businesses', {
+          const res = await supabaseRestFetch('leads', {
             method: 'POST',
             headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
             body: JSON.stringify(leadPayload),
@@ -682,7 +690,7 @@ export async function syncAllPendingOfflineData(
           if (res.ok) {
             leadSaved = true;
           } else {
-            const { error } = await supabase.from('businesses').upsert([leadPayload]);
+            const { error } = await supabase.from('leads').upsert([leadPayload], { onConflict: 'id' });
             if (!error) leadSaved = true;
           }
         } catch {}

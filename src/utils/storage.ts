@@ -146,3 +146,27 @@ export function safeRemoveSessionItem(key: string): void {
     sessionStorage.removeItem(key);
   } catch {}
 }
+
+/**
+ * Generates API authentication and session headers for local server requests.
+ */
+export function getApiAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = safeGetSessionItem('dalelak_auth_token') || safeGetLocalStorageItem('dalelak_auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const userStr = safeGetSessionItem('dalelak_active_user') || safeGetLocalStorageItem('dalelak_logged_user');
+  if (userStr) {
+    try {
+      const u = JSON.parse(userStr);
+      if (u.activeSessionId) {
+        headers['x-session-id'] = u.activeSessionId;
+      }
+      if (u.id) {
+        headers['x-user-id'] = u.id;
+      }
+    } catch {}
+  }
+  return headers;
+}
