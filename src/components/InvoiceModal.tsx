@@ -26,6 +26,7 @@ import {
   getUpgradeOffersWhatsAppUrl,
   generateUpgradeOffersWhatsAppMessage,
 } from '../utils/whatsappMessages';
+import { generateQrDataUrl } from '../utils/qrGenerator';
 
 interface InvoiceModalProps {
   business: Business | null;
@@ -83,8 +84,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   // Dynamic QR Code URL to open the invoice online
   const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('localhost') ? window.location.origin : 'https://www.dalilaak.com';
   const qrUrl = `${baseUrl}/?view=invoice&id=${activeBusiness.id}`;
-  const qrData = encodeURIComponent(qrUrl);
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
+  const qrImageUrl = generateQrDataUrl(qrUrl, 250);
 
   // Pixel-Perfect DOM Screenshot Downloader using html-to-image
   const handleSaveInvoiceImage = async () => {

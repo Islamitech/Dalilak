@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './src/data/mockData.js';
 import { Business, Representative, PaymentGatewayConfig } from './src/types.js';
@@ -10,6 +11,76 @@ const DEFAULT_PORT = Number(process.env.PORT) || 3001;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// 🛡️ Security Helpers: Password Hashing with Salt & Scrypt
+function hashPassword(password: string): string {
+  if (!password) return '';
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `scrypt:${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, storedHash?: string): boolean {
+  if (!storedHash || !password) return false;
+  // Seamless migration for existing plaintext passwords
+  if (!storedHash.startsWith('scrypt:')) {
+    return storedHash === password;
+  }
+  const parts = storedHash.split(':');
+  if (parts.length !== 3) return false;
+  const salt = parts[1];
+  const originalHash = parts[2];
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'));
+  } catch {
+    return false;
+  }
+}
+
+// 🛡️ Safe Atomic File Writing: Prevents race conditions and file corruption
+function atomicWriteFileSync(filePath: string, data: string): void {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmpPath = `${filePath}.${Date.now()}.${Math.random().toString(36).substring(2, 7)}.tmp`;
+  fs.writeFileSync(tmpPath, data, 'utf-8');
+  fs.renameSync(tmpPath, filePath);
+}
+
+// 🛡️ In-memory Session Registry & Authorization
+interface ActiveSession {
+  userId: string;
+  role: string;
+  expiresAt: number;
+}
+const activeSessions = new Map<string, ActiveSession>();
+
+function getRequestUser(req: express.Request): ActiveSession | null {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace(/^Bearer\s+/i, '') || (req.headers['x-session-id'] as string);
+  if (token && activeSessions.has(token)) {
+    const session = activeSessions.get(token)!;
+    if (Date.now() < session.expiresAt) {
+      return session;
+    } else {
+      activeSessions.delete(token);
+    }
+  }
+  return null;
+}
+
+// 🛡️ Representative Data Sanitization (Hides sensitive credentials & KYC documents from public)
+function sanitizeRep(rep: Representative, isPrivileged: boolean = false): Partial<Representative> {
+  const copy = { ...rep };
+  delete copy.password;
+  if (!isPrivileged) {
+    delete copy.nationalId;
+    delete copy.nationalIdCardPhoto;
+    delete copy.nationalIdCardBackPhoto;
+    delete copy.activationFacePhoto;
+  }
+  return copy;
+}
 
 // Persistent file data store
 const STORE_DIR = path.resolve(process.cwd(), 'data');
@@ -40,7 +111,7 @@ function loadStoredReps(): Representative[] {
 
 function persistStoredReps(reps: Representative[]) {
   try {
-    fs.writeFileSync(REPS_STORE_PATH, JSON.stringify(reps, null, 2), 'utf-8');
+    atomicWriteFileSync(REPS_STORE_PATH, JSON.stringify(reps, null, 2));
   } catch (e) {
     console.error('Error persisting reps:', e);
   }
@@ -62,7 +133,7 @@ function loadStoredBusinesses(): Business[] {
 
 function persistStoredBusinesses(bizList: Business[]) {
   try {
-    fs.writeFileSync(BIZ_STORE_PATH, JSON.stringify(bizList, null, 2), 'utf-8');
+    atomicWriteFileSync(BIZ_STORE_PATH, JSON.stringify(bizList, null, 2));
   } catch (e) {
     console.error('Error persisting businesses:', e);
   }
@@ -82,7 +153,7 @@ function loadStoredPayouts(): any[] {
 
 function persistStoredPayouts(payoutList: any[]) {
   try {
-    fs.writeFileSync(PAYOUTS_STORE_PATH, JSON.stringify(payoutList, null, 2), 'utf-8');
+    atomicWriteFileSync(PAYOUTS_STORE_PATH, JSON.stringify(payoutList, null, 2));
   } catch (e) {
     console.error('Error persisting payouts:', e);
   }
@@ -104,9 +175,7 @@ function loadStoredLeads(): any[] {
 
 function persistStoredLeads(data: any[]) {
   try {
-    const dir = path.dirname(LEADS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(LEADS_STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    atomicWriteFileSync(LEADS_STORE_FILE, JSON.stringify(data, null, 2));
   } catch (err) {
     console.error('Error persisting leads:', err);
   }
@@ -156,7 +225,11 @@ app.post('/api/test-mode', (req, res) => {
   });
 });
 
-app.post('/api/test-mode/reset', (_req, res) => {
+app.post('/api/test-mode/reset', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!isServerTestMode && reqUser && reqUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: إعادة ضبط البيانات تتطلب صلاحية مدير النظام' });
+  }
   businesses = [...INITIAL_BUSINESSES];
   representatives = [...MOCK_REPRESENTATIVES];
   payoutRequests = [];
@@ -207,16 +280,17 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: `⚠️ الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات. لا يُسمح بتسجيل الدخول لأي حساب غير مسجل.` });
   }
 
-  // Verify password strictly based on role
+  // Verify password strictly with cryptographic hash & backward-compatible plaintext check
   const storedPassword = (rep.password || '').trim();
-  const isAdminUser = rep.role === 'admin' || rep.email.toLowerCase() === 'info@dalilaak.com';
-  const isPassValid =
-    storedPassword && storedPassword !== '••••••••'
-      ? storedPassword === cleanPassword
-      : (isAdminUser ? cleanPassword === 'admin' : cleanPassword === 'Aa123456');
+  const isPassValid = verifyPassword(cleanPassword, storedPassword);
 
   if (!isPassValid) {
     return res.status(401).json({ error: '⚠️ كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.' });
+  }
+
+  // Automatic secure password upgrade: If password was plaintext, hash it immediately
+  if (!storedPassword.startsWith('scrypt:')) {
+    rep.password = hashPassword(cleanPassword);
   }
 
   if (rep.status === 'suspended') {
@@ -242,18 +316,28 @@ app.post('/api/auth/login', (req, res) => {
   rep.lastActiveTimestamp = now;
   persistStoredReps(representatives);
 
+  // Register session token with 24-hour expiration
+  const authToken = `dalil_tok_${now}_${crypto.randomBytes(24).toString('hex')}`;
+  activeSessions.set(authToken, {
+    userId: rep.id,
+    role: rep.role || 'rep',
+    expiresAt: now + 24 * 60 * 60 * 1000,
+  });
+
+  const sanitizedRepData = sanitizeRep(rep, rep.role === 'admin' || rep.role === 'supervisor');
+
   return res.json({
     user: {
       id: rep.id,
       name: rep.name,
       email: rep.email,
       role: rep.role,
-      repData: rep,
+      repData: sanitizedRepData,
       activeSessionId: newSessionId,
       lastActiveTimestamp: now,
     },
     sessionId: newSessionId,
-    token: 'auth-token-' + rep.id,
+    token: authToken,
   });
 });
 
@@ -353,13 +437,20 @@ app.delete('/api/businesses/:id', (req, res) => {
 });
 
 // 4. Representatives API
-app.get('/api/representatives', (_req, res) => {
+app.get('/api/representatives', (req, res) => {
   representatives = loadStoredReps();
-  res.json(representatives);
+  const reqUser = getRequestUser(req);
+  const isPrivileged = reqUser?.role === 'admin' || reqUser?.role === 'supervisor';
+  res.json(representatives.map((r) => sanitizeRep(r, isPrivileged)));
 });
 
 app.post('/api/representatives', (req, res) => {
   const repData = req.body;
+  const rawPassword = (repData.password || '').trim();
+  const securePassword = rawPassword
+    ? (rawPassword.startsWith('scrypt:') ? rawPassword : hashPassword(rawPassword))
+    : hashPassword('Aa123456');
+
   const newRep: Representative = {
     id: repData.id || `rep_${Date.now()}`,
     name: repData.name,
@@ -379,7 +470,7 @@ app.post('/api/representatives', (req, res) => {
     avatarStatus: repData.avatarStatus || 'none',
     commissionRate: Number(repData.commissionRate) || 42.86,
     status: repData.status || 'suspended',
-    password: repData.password || 'Aa123456',
+    password: securePassword,
     referralCode: repData.referralCode || `DALIL-${Date.now().toString().slice(-4)}`,
     referredByCode: repData.referredByCode || undefined,
     referralUnlocked: Boolean(repData.referralUnlocked),
@@ -391,13 +482,16 @@ app.post('/api/representatives', (req, res) => {
     (r) => r.id === newRep.id || r.email.toLowerCase() === newRep.email.toLowerCase()
   );
   if (existingIdx >= 0) {
+    if (!rawPassword && representatives[existingIdx].password) {
+      newRep.password = representatives[existingIdx].password;
+    }
     representatives[existingIdx] = { ...representatives[existingIdx], ...newRep };
   } else {
     representatives.unshift(newRep);
   }
 
   persistStoredReps(representatives);
-  res.status(201).json(newRep);
+  res.status(201).json(sanitizeRep(newRep, true));
 });
 
 app.put('/api/representatives/:id', (req, res) => {
@@ -406,12 +500,20 @@ app.put('/api/representatives/:id', (req, res) => {
   if (index === -1) {
     return res.status(404).json({ error: 'الحساب غير موجود' });
   }
-  representatives[index] = { ...representatives[index], ...req.body };
+  const updates = { ...req.body };
+  if (updates.password && typeof updates.password === 'string' && !updates.password.startsWith('scrypt:')) {
+    updates.password = hashPassword(updates.password.trim());
+  }
+  representatives[index] = { ...representatives[index], ...updates };
   persistStoredReps(representatives);
-  res.json(representatives[index]);
+  res.json(sanitizeRep(representatives[index], true));
 });
 
 app.delete('/api/representatives/:id', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (reqUser && reqUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: حذف الحسابات حصري لمدير النظام فقط' });
+  }
   const { id } = req.params;
   representatives = representatives.filter((r) => r.id !== id);
   persistStoredReps(representatives);
@@ -502,6 +604,10 @@ app.get('/api/payment-config', (_req, res) => {
 });
 
 app.post('/api/payment-config', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (reqUser && reqUser.role !== 'admin' && reqUser.role !== 'accountant' && reqUser.role !== 'supervisor') {
+    return res.status(403).json({ error: 'غير مصرح: تعديل إعدادات بوابات الدفع مقتصر على الإدارة والمحاسبين فقط' });
+  }
   paymentConfig = { ...paymentConfig, ...req.body };
   res.json(paymentConfig);
 });

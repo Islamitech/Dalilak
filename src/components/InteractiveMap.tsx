@@ -244,19 +244,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     if (window.L) {
       initMap();
     } else {
-      const existingScript = document.querySelector('script[src*="leaflet.js"]');
-      if (existingScript) {
-        existingScript.addEventListener('load', () => {
-          if (isSubscribed) initMap();
-        });
-      } else {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = () => {
-          if (isSubscribed) initMap();
-        };
-        document.head.appendChild(script);
-      }
+      const checkInterval = setInterval(() => {
+        if (!isSubscribed) {
+          clearInterval(checkInterval);
+          return;
+        }
+        if (window.L) {
+          clearInterval(checkInterval);
+          initMap();
+        }
+      }, 100);
+
+      setTimeout(() => clearInterval(checkInterval), 6000);
     }
 
     return () => {

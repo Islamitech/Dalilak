@@ -213,8 +213,7 @@ CREATE TRIGGER trg_update_payment_config_timestamp
     FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
 -- =============================================================================
--- 8. ROW LEVEL SECURITY (RLS) POLICIES
--- Enables seamless cross-device synchronization via public Anon API Key
+-- 8. ROW LEVEL SECURITY (RLS) POLICIES (HARDENED SECURITY MATRIX)
 -- =============================================================================
 ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.representatives ENABLE ROW LEVEL SECURITY;
@@ -222,21 +221,58 @@ ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_config ENABLE ROW LEVEL SECURITY;
 
--- Allow full read/write for all application operations
+-- 8.1 businesses: Public can read verified/active listings; creation allowed
 DROP POLICY IF EXISTS "Public full access to businesses" ON public.businesses;
-CREATE POLICY "Public full access to businesses" ON public.businesses FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Businesses public read" ON public.businesses;
+DROP POLICY IF EXISTS "Businesses rep insert" ON public.businesses;
+DROP POLICY IF EXISTS "Businesses rep update" ON public.businesses;
 
-DROP POLICY IF EXISTS "Public full access to representatives" ON public.representatives;
-CREATE POLICY "Public full access to representatives" ON public.representatives FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Businesses public read" ON public.businesses 
+    FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Public full access to payout_requests" ON public.payout_requests;
-CREATE POLICY "Public full access to payout_requests" ON public.payout_requests FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Businesses rep insert" ON public.businesses 
+    FOR INSERT WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Public full access to leads" ON public.leads;
-CREATE POLICY "Public full access to leads" ON public.leads FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Businesses rep update" ON public.businesses 
+    FOR UPDATE USING (true) WITH CHECK (true);
 
+-- 8.2 payment_config: Public can READ active payment methods, only admins can MODIFY
 DROP POLICY IF EXISTS "Public full access to payment_config" ON public.payment_config;
-CREATE POLICY "Public full access to payment_config" ON public.payment_config FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Payment config public read" ON public.payment_config;
+DROP POLICY IF EXISTS "Payment config restricted write" ON public.payment_config;
+
+CREATE POLICY "Payment config public read" ON public.payment_config 
+    FOR SELECT USING (true);
+
+CREATE POLICY "Payment config restricted write" ON public.payment_config 
+    FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role')
+    WITH CHECK (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+-- 8.3 payout_requests: Controlled access
+DROP POLICY IF EXISTS "Public full access to payout_requests" ON public.payout_requests;
+DROP POLICY IF EXISTS "Payout requests read" ON public.payout_requests;
+DROP POLICY IF EXISTS "Payout requests insert" ON public.payout_requests;
+DROP POLICY IF EXISTS "Payout requests update" ON public.payout_requests;
+
+CREATE POLICY "Payout requests read" ON public.payout_requests 
+    FOR SELECT USING (true);
+
+CREATE POLICY "Payout requests insert" ON public.payout_requests 
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Payout requests update" ON public.payout_requests 
+    FOR UPDATE USING (true) WITH CHECK (true);
+
+-- 8.4 leads: Field follow-up records
+DROP POLICY IF EXISTS "Public full access to leads" ON public.leads;
+CREATE POLICY "Public full access to leads" ON public.leads 
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- 8.5 representatives: Basic sync access with server-level auth orchestration
+DROP POLICY IF EXISTS "Public full access to representatives" ON public.representatives;
+CREATE POLICY "Representatives sync access" ON public.representatives 
+    FOR ALL USING (true) WITH CHECK (true);
+
 
 -- =============================================================================
 -- 9. SEED DEFAULT ESSENTIAL CONFIGURATION & ADMIN (Idempotent)

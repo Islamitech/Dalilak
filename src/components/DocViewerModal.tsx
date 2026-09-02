@@ -5,6 +5,7 @@ import { Representative } from '../types';
 import { Logo } from './Logo';
 import { Printer, Download, ShieldCheck, FileSignature, Loader2 } from 'lucide-react';
 import { downloadSinglePhoto } from '../utils/photoDownloader';
+import { generateQrDataUrl } from '../utils/qrGenerator';
 
 export type DocType = 'field_letter' | 'digital_badge' | 'rep_contract';
 
@@ -30,8 +31,8 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
 
   const repCode = `REP-2026-${rep.id.replace(/\D/g, '') || '084'}`;
   const nationalId = rep.nationalId || '29805120104892';
-  const qrData = encodeURIComponent(`DALEELEK-OFFICIAL-CONTRACT-${rep.name}-${nationalId}-${repCode}`);
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+  const qrData = `DALEELEK-OFFICIAL-CONTRACT-${rep.name}-${nationalId}-${repCode}`;
+  const qrImageUrl = generateQrDataUrl(qrData, 150);
 
   const handleDownloadDocument = async () => {
     if (!docRef.current) return;

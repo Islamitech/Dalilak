@@ -182,13 +182,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
       const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds active session threshold
 
-      // Verify Password strictly based on role
+      // Verify Password strictly
       const storedPassword = (foundRep.password || '').trim();
-      const isAdminUser = foundRep.role === 'admin' || foundRep.email.trim().toLowerCase() === 'info@dalilaak.com';
-      const isPasswordCorrect =
-        storedPassword && storedPassword !== '••••••••'
-          ? storedPassword === cleanPassword
-          : (isAdminUser ? cleanPassword === 'admin' : cleanPassword === 'Aa123456');
+      let isPasswordCorrect = false;
+
+      if (storedPassword.startsWith('scrypt:')) {
+        setErrorMsg('⚠️ كلمة المرور محمية بتشفير أمني مشدد. يرجى الاتصال بالخادم المركزي لتسجيل الدخول.');
+        setIsLoading(false);
+        return;
+      } else if (storedPassword && storedPassword !== '••••••••') {
+        isPasswordCorrect = storedPassword === cleanPassword;
+      }
 
       if (!isPasswordCorrect) {
         setErrorMsg('⚠️ كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور وإعادة المحاولة.');

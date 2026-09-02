@@ -18,6 +18,19 @@ function downloadCsvBlob(csvContent: string, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Sanitizes CSV cell values to prevent Formula Injection (CSV Injection).
+ * Any cell starting with =, +, -, @, \t, or \r is prefixed with a single quote.
+ */
+export function sanitizeCsvCell(value: any): string {
+  if (value === null || value === undefined) return '""';
+  const str = String(value);
+  const trimmed = str.trimStart();
+  const dangerousChars = ['=', '+', '-', '@', '\t', '\r'];
+  const safeStr = dangerousChars.some((c) => trimmed.startsWith(c)) ? `'${str}` : str;
+  return `"${safeStr.replace(/"/g, '""')}"`;
+}
+
 export function exportBusinessesToCsv(businesses: Business[]) {
   const headers = [
     'اسم النشاط بالعربية',
@@ -49,27 +62,27 @@ export function exportBusinessesToCsv(businesses: Business[]) {
     const mapsLink = b.lat && b.lng ? `https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}` : '';
     
     return [
-      `"${(b.nameAr || '').replace(/"/g, '""')}"`,
-      `"${(b.nameEn || '').replace(/"/g, '""')}"`,
-      `"${(b.category || '').replace(/"/g, '""')}"`,
-      `"${(b.governorate || '').replace(/"/g, '""')}"`,
-      `"${(b.city || '').replace(/"/g, '""')}"`,
-      `"${(b.street || b.city || '').replace(/"/g, '""')}"`,
-      `"${(b.ownerName || '').replace(/"/g, '""')}"`,
-      `"${(b.ownerPhone || '').replace(/"/g, '""')}"`,
-      `"${(b.repName || '').replace(/"/g, '""')}"`,
-      `"${(b.invoiceNumber || '').replace(/"/g, '""')}"`,
-      `"${(b.createdDate || b.invoiceDate || '').replace(/"/g, '""')}"`,
-      `"${(b.packageName || (isExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : '')).replace(/"/g, '""')}"`,
+      sanitizeCsvCell(b.nameAr || ''),
+      sanitizeCsvCell(b.nameEn || ''),
+      sanitizeCsvCell(b.category || ''),
+      sanitizeCsvCell(b.governorate || ''),
+      sanitizeCsvCell(b.city || ''),
+      sanitizeCsvCell(b.street || b.city || ''),
+      sanitizeCsvCell(b.ownerName || ''),
+      sanitizeCsvCell(b.ownerPhone || ''),
+      sanitizeCsvCell(b.repName || ''),
+      sanitizeCsvCell(b.invoiceNumber || ''),
+      sanitizeCsvCell(b.createdDate || b.invoiceDate || ''),
+      sanitizeCsvCell(b.packageName || (isExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : '')),
       isExempt ? 0 : (b.packagePrice || 0),
       isExempt ? 0 : (b.amountPaid || 0),
       debt,
-      `"${isExempt ? 'معفى من الرسوم (مجاني)' : b.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل' : b.paymentStatus === 'partially_paid' ? 'مدفوع جزئياً' : 'غير مسدد'}"`,
-      `"${b.verificationStatus === 'verified' ? 'موثق' : b.verificationStatus === 'in_progress' ? 'قيد المراجعة' : b.verificationStatus === 'rejected' ? 'مرفوض' : 'غير مرسل'}"`,
-      `"${b.googleSyncStatus === 'synced' ? 'تمت المزامنة بنجاح' : b.googleSyncStatus === 'in_progress' ? 'قيد المزامنة' : 'لم تتم'}"`,
+      sanitizeCsvCell(isExempt ? 'معفى من الرسوم (مجاني)' : b.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل' : b.paymentStatus === 'partially_paid' ? 'مدفوع جزئياً' : 'غير مسدد'),
+      sanitizeCsvCell(b.verificationStatus === 'verified' ? 'موثق' : b.verificationStatus === 'in_progress' ? 'قيد المراجعة' : b.verificationStatus === 'rejected' ? 'مرفوض' : 'غير مرسل'),
+      sanitizeCsvCell(b.googleSyncStatus === 'synced' ? 'تمت المزامنة بنجاح' : b.googleSyncStatus === 'in_progress' ? 'قيد المزامنة' : 'لم تتم'),
       b.lat || '',
       b.lng || '',
-      `"${mapsLink}"`,
+      sanitizeCsvCell(mapsLink),
     ].join(',');
   });
 
@@ -99,19 +112,19 @@ export function exportRepsToCsv(reps: Representative[], businesses: Business[]) 
     const collected = repBiz.reduce((sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + (b.amountPaid || 0), 0);
 
     return [
-      `"${(r.name || '').replace(/"/g, '""')}"`,
-      `"${(r.email || '').replace(/"/g, '""')}"`,
-      `"${(r.phone || '').replace(/"/g, '""')}"`,
-      `"${(r.nationalId || '').replace(/"/g, '""')}"`,
-      `"${(r.governorate || '').replace(/"/g, '""')}"`,
-      `"${(r.roleTitle || r.role || 'مندوب').replace(/"/g, '""')}"`,
-      `"${r.status === 'active' ? 'نشط' : 'معلق'}"`,
+      sanitizeCsvCell(r.name || ''),
+      sanitizeCsvCell(r.email || ''),
+      sanitizeCsvCell(r.phone || ''),
+      sanitizeCsvCell(r.nationalId || ''),
+      sanitizeCsvCell(r.governorate || ''),
+      sanitizeCsvCell(r.roleTitle || r.role || 'مندوب'),
+      sanitizeCsvCell(r.status === 'active' ? 'نشط' : 'معلق'),
       r.commissionRate || 42.86,
       r.targetMonth || 25,
       repBiz.length,
       collected,
-      `"${r.referralCode || ''}"`,
-      `"${r.referredByCode || ''}"`,
+      sanitizeCsvCell(r.referralCode || ''),
+      sanitizeCsvCell(r.referredByCode || ''),
     ].join(',');
   });
 
@@ -136,17 +149,17 @@ export function exportPayoutsToCsv(payouts: PayoutRequest[]) {
 
   const rows = payouts.map((p) => {
     return [
-      `"${p.id}"`,
-      `"${(p.repName || '').replace(/"/g, '""')}"`,
-      `"${(p.repPhone || '').replace(/"/g, '""')}"`,
+      sanitizeCsvCell(p.id),
+      sanitizeCsvCell(p.repName || ''),
+      sanitizeCsvCell(p.repPhone || ''),
       p.amount || 0,
-      `"${PAYOUT_METHOD_LABELS[p.method] || p.method}"`,
-      `"${(p.accountDetails || '').replace(/"/g, '""')}"`,
-      `"${p.status === 'approved' ? 'تم التحويل والصرف' : p.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}"`,
-      `"${p.requestDate || ''}"`,
-      `"${p.processedDate || ''}"`,
-      `"${(p.transactionRef || '').replace(/"/g, '""')}"`,
-      `"${(p.adminNotes || '').replace(/"/g, '""')}"`,
+      sanitizeCsvCell(PAYOUT_METHOD_LABELS[p.method] || p.method),
+      sanitizeCsvCell(p.accountDetails || ''),
+      sanitizeCsvCell(p.status === 'approved' ? 'تم التحويل والصرف' : p.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'),
+      sanitizeCsvCell(p.requestDate || ''),
+      sanitizeCsvCell(p.processedDate || ''),
+      sanitizeCsvCell(p.transactionRef || ''),
+      sanitizeCsvCell(p.adminNotes || ''),
     ].join(',');
   });
 

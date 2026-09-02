@@ -57,7 +57,14 @@ export function parseLocationQuery(query: string): { lat: number; lng: number } 
  * Resolves to standard Egyptian Scope (e.g. "الجيزة - حدائق الأهرام", "الجيزة - الهرم", "القاهرة - عين شمس")
  * Never populates raw microscopic street names automatically.
  */
+const geocodeCache = new Map<string, LocationAddressData>();
+
 export async function fetchLocationAddress(lat: number, lng: number): Promise<LocationAddressData> {
+  const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (geocodeCache.has(cacheKey)) {
+    return geocodeCache.get(cacheKey)!;
+  }
+
   // 1. High-accuracy coordinate scope boundary matching (instant & zero network dependency)
   const coordScope = matchScopeByCoords(lat, lng);
 
@@ -68,7 +75,12 @@ export async function fetchLocationAddress(lat: number, lng: number): Promise<Lo
 
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar,en`,
-      { signal: controller.signal }
+      {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
     );
     clearTimeout(timeoutId);
 
@@ -126,24 +138,28 @@ export async function fetchLocationAddress(lat: number, lng: number): Promise<Lo
 
       const cleanCity = sanitizeDistrictScope(data.locality || data.city, govMatch || coordScope.governorate) || coordScope.city;
 
-      return {
+      const result = {
         governorate: govMatch || coordScope.governorate,
         city: cleanCity,
         street: undefined,
         displayName: `${govMatch || coordScope.governorate} - ${cleanCity}`,
       };
+      geocodeCache.set(cacheKey, result);
+      return result;
     }
   } catch (err) {
     // Secondary fallback
   }
 
   // Safe fallback: Accurate district scope matching by coordinates
-  return {
+  const fallbackResult = {
     governorate: coordScope.governorate,
     city: coordScope.city,
     street: undefined,
     displayName: `${coordScope.governorate} - ${coordScope.city}`,
   };
+  geocodeCache.set(cacheKey, fallbackResult);
+  return fallbackResult;
 }
 
 /**

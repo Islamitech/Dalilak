@@ -8,6 +8,7 @@ import {
 } from '../utils/commission';
 import { compressImageFile } from '../utils/imageCompressor';
 import { getRepReferralSummary, getRepReferralCode } from '../utils/referral';
+import { generateQrDataUrl } from '../utils/qrGenerator';
 import { DocViewerModal, DocType } from './DocViewerModal';
 import { UserAvatar } from './UserAvatar';
 import { Logo } from './Logo';
@@ -283,10 +284,9 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
   const repCode = `REP-2026-${rep.id.replace(/\D/g, '') || '084'}`;
   
-  // Dynamic QR Code URL for the digital ID card
+  // Dynamic QR Code URL for the digital ID card (Generated locally offline)
   const qrUrl = `${platformDomain}/?view=rep&id=${rep.id}`;
-  const qrData = encodeURIComponent(qrUrl);
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
+  const qrImageUrl = generateQrDataUrl(qrUrl, 250);
 
   // Handle Edit Profile Form Submission with Strict Egyptian Validation Rules
   const handleSaveProfileData = (e: React.FormEvent) => {

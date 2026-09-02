@@ -262,7 +262,33 @@ export async function saveOfflinePayout(payout: PayoutRequest, userId?: string):
 }
 
 export async function getOfflinePayouts(targetUserId?: string | null): Promise<PayoutRequest[]> {
-  return [];
+  try {
+    const effectiveUid = targetUserId !== undefined ? targetUserId : getActiveUserId();
+    if (!effectiveUid) return [];
+
+    const db = await openOfflineDb();
+    if (!db.objectStoreNames.contains(STORES.PAYOUTS)) return [];
+
+    const tx = db.transaction(STORES.PAYOUTS, 'readonly');
+    const store = tx.objectStore(STORES.PAYOUTS);
+    const request = store.getAll();
+
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        const all: PayoutRequest[] = request.result || [];
+        const filtered = all.filter((p: any) => {
+          const recordUid = (p._offlineUserId || p.repId || '').toString().toLowerCase();
+          const currentUidStr = effectiveUid.toString().toLowerCase();
+          return recordUid === currentUidStr || recordUid === 'unknown';
+        });
+        resolve(filtered);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    console.warn('Failed to get offline payouts from IndexedDB:', err);
+    return [];
+  }
 }
 
 export async function removeOfflinePayout(id: string): Promise<void> {
@@ -285,10 +311,30 @@ export async function purgeConfirmedOfflineRecords(): Promise<void> {
 
     const db = await openOfflineDb();
 
-    // 1. Purge legacy/unsupported payouts store
+    // 1. Check offline payouts against cloud and remove only confirmed ones
     if (db.objectStoreNames.contains(STORES.PAYOUTS)) {
-      const txP = db.transaction(STORES.PAYOUTS, 'readwrite');
-      txP.objectStore(STORES.PAYOUTS).clear();
+      const txP = db.transaction(STORES.PAYOUTS, 'readonly');
+      const storeP = txP.objectStore(STORES.PAYOUTS);
+      const requestP = storeP.getAll();
+      const offlinePayouts: PayoutRequest[] = await new Promise((resolve) => {
+        requestP.onsuccess = () => resolve(requestP.result || []);
+        requestP.onerror = () => resolve([]);
+      });
+
+      if (offlinePayouts.length > 0) {
+        const pIds = offlinePayouts.map((p) => p.id);
+        const { data: cloudPayouts, error: pError } = await supabase
+          .from('payout_requests')
+          .select('id')
+          .in('id', pIds);
+
+        if (!pError && Array.isArray(cloudPayouts) && cloudPayouts.length > 0) {
+          const confirmedPIds = new Set(cloudPayouts.map((r: any) => r.id));
+          for (const id of confirmedPIds) {
+            await removeOfflinePayout(id);
+          }
+        }
+      }
     }
 
     // 2. Check offline businesses against cloud
@@ -365,9 +411,10 @@ export async function getOfflineSyncStatus(targetUserId?: string | null): Promis
     };
   }
 
-  const [businesses, leads] = await Promise.all([
+  const [businesses, leads, payouts] = await Promise.all([
     getOfflineBusinesses(effectiveUid),
     getOfflineLeads(effectiveUid),
+    getOfflinePayouts(effectiveUid),
   ]);
 
   const lastSyncTime = typeof localStorage !== 'undefined' ? localStorage.getItem('dalelak_last_sync_timestamp') : null;
@@ -377,8 +424,8 @@ export async function getOfflineSyncStatus(targetUserId?: string | null): Promis
     isSyncing: isCurrentlySyncing,
     pendingBusinessesCount: businesses.length,
     pendingLeadsCount: leads.length,
-    pendingPayoutsCount: 0,
-    totalPendingCount: businesses.length + leads.length,
+    pendingPayoutsCount: payouts.length,
+    totalPendingCount: businesses.length + leads.length + payouts.length,
     lastSyncTime,
   };
 }
@@ -420,12 +467,13 @@ export async function syncAllPendingOfflineData(
     // 🛡️ Pre-sync optimization: Purge already-confirmed items to save mobile data and prevent phantom re-uploads
     await purgeConfirmedOfflineRecords();
 
-    const [businesses, leads] = await Promise.all([
+    const [businesses, leads, payouts] = await Promise.all([
       getOfflineBusinesses(effectiveUid),
       getOfflineLeads(effectiveUid),
+      getOfflinePayouts(effectiveUid),
     ]);
 
-    const totalItems = businesses.length + leads.length;
+    const totalItems = businesses.length + leads.length + payouts.length;
     if (totalItems === 0) {
       isCurrentlySyncing = false;
       dispatchOfflineStateChangeEvent();
@@ -458,19 +506,31 @@ export async function syncAllPendingOfflineData(
 
         // Step A: Upload any base64/blob photos to Supabase Storage
         let cleanPhotos: string[] = [];
+        let uploadFailed = false;
         if (Array.isArray(biz.photos) && biz.photos.length > 0) {
           for (const photo of biz.photos) {
             if (typeof photo === 'string' && photo.startsWith('data:')) {
               try {
                 const publicUrl = await uploadMediaToSupabaseStorage(photo, 'photos');
-                cleanPhotos.push(publicUrl);
+                if (publicUrl && (publicUrl.startsWith('http://') || publicUrl.startsWith('https://'))) {
+                  cleanPhotos.push(publicUrl);
+                } else {
+                  uploadFailed = true;
+                }
               } catch {
-                cleanPhotos.push(photo);
+                uploadFailed = true;
               }
-            } else if (typeof photo === 'string') {
+            } else if (typeof photo === 'string' && (photo.startsWith('http://') || photo.startsWith('https://'))) {
               cleanPhotos.push(photo);
             }
           }
+        }
+
+        // If a photo upload failed, avoid dumping giant Base64 into the DB!
+        // Skip for now so it remains in offline queue to retry when connection is stronger
+        if (uploadFailed && cleanPhotos.length === 0) {
+          failedCount++;
+          continue;
         }
 
         // Step B: Sanitize videos array (must be valid hosted URLs only)
@@ -628,6 +688,66 @@ export async function syncAllPendingOfflineData(
 
         if (leadSaved) {
           await removeOfflineLead(lead.id);
+          syncedCount++;
+        } else {
+          failedCount++;
+        }
+      } catch {
+        failedCount++;
+      }
+    }
+
+    // 3. Sync Offline Payout Requests (Supabase Upsert & Local Server)
+    for (const payout of payouts) {
+      currentIndex++;
+      if (onProgress) onProgress(currentIndex, totalItems, `مزامنة طلب صرف: ${payout.amount} ج.م`);
+
+      try {
+        const payoutPayload = {
+          id: payout.id,
+          rep_id: payout.repId,
+          rep_name: payout.repName || 'مندوب معتمد',
+          rep_phone: payout.repPhone || null,
+          amount: Number(payout.amount) || 0,
+          method: payout.method || 'instapay',
+          account_details: payout.accountDetails || '',
+          status: payout.status || 'pending',
+          request_date: payout.requestDate || new Date().toISOString(),
+          receipt_photo: payout.receiptPhoto || null,
+          transaction_ref: payout.transactionRef || null,
+          admin_notes: payout.adminNotes || null,
+          type: payout.type || 'payout',
+        };
+
+        let payoutSaved = false;
+
+        try {
+          const { error } = await supabase.from('payout_requests').upsert([payoutPayload], { onConflict: 'id' });
+          if (!error) payoutSaved = true;
+        } catch {}
+
+        if (!payoutSaved) {
+          try {
+            const res = await supabaseRestFetch('payout_requests', {
+              method: 'POST',
+              headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+              body: JSON.stringify(payoutPayload),
+            });
+            if (res.ok) payoutSaved = true;
+          } catch {}
+        }
+
+        // Also sync to local server
+        try {
+          await fetch('/api/payouts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payout),
+          });
+        } catch {}
+
+        if (payoutSaved) {
+          await removeOfflinePayout(payout.id);
           syncedCount++;
         } else {
           failedCount++;
