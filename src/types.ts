@@ -47,10 +47,26 @@ export interface Business {
   registrationType?: 'new_verification' | 'already_on_google' | 'interested_lead'; // أسلوب التسجيل
   isAlreadyOnGoogle?: boolean; // نشاط مسجل ومفعل بالفعل على خرائط Google مسبقاً
   notes?: string;
+  adminFollowUps?: AdminFollowUpNote[]; // سجل الملاحظات والمتابعات الإدارية الداخلية
   createdDate: string;
   _offlineUserId?: string;
   _offlineTimestamp?: number;
   _isOfflinePending?: boolean;
+}
+
+export type AdminFollowUpType = 'call' | 'visit' | 'payment' | 'verification' | 'general';
+export type AdminFollowUpStatus = 'completed' | 'pending' | 'urgent';
+
+export interface AdminFollowUpNote {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole?: string;
+  type: AdminFollowUpType;
+  status?: AdminFollowUpStatus;
+  text: string;
+  createdAt: string;
+  nextFollowUpDate?: string;
 }
 
 export interface ToastNotification {

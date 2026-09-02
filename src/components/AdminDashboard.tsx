@@ -55,6 +55,7 @@ import {
   Calendar,
   TrendingUp,
   Printer,
+  ClipboardList,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -168,6 +169,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // MODAL STATES
   // ---------------------------------------------------------------------------
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [editingBusinessInitialTab, setEditingBusinessInitialTab] = useState<string | undefined>(undefined);
   const [selectedDossierRep, setSelectedDossierRep] = useState<Representative | null>(null);
 
   // Keep editingBusiness in sync with businesses array updates (such as payment updates)
@@ -1740,6 +1742,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 ⏳ مراجعة Google
                               </span>
                             ) : null}
+
+                            {/* Admin Follow-ups CRM Badge */}
+                            {Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingBusinessInitialTab('admin_followup');
+                                  setEditingBusiness(biz);
+                                }}
+                                className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                title="عرض وسجل المتابعات الإدارية"
+                              >
+                                <ClipboardList className="w-2.5 h-2.5 text-amber-500" />
+                                <span>{biz.adminFollowUps!.length} متابعة</span>
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -1874,6 +1892,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </button>
                           )}
                           <button
+                            type="button"
+                            onClick={() => {
+                              setEditingBusinessInitialTab('admin_followup');
+                              setEditingBusiness(biz);
+                            }}
+                            className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] hover:text-amber-600 border border-[var(--border-color)] font-bold text-xs py-2 px-2.5 rounded-xl shadow-2xs cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                            title="المتابعات والملاحظات الإدارية"
+                          >
+                            <ClipboardList className="w-3.5 h-3.5 text-amber-500" />
+                            <span>ملاحظات ({biz.adminFollowUps?.length || 0})</span>
+                          </button>
+                          <button
                             onClick={() => setEditingBusiness(biz)}
                             className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-2 rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                           >
@@ -1934,6 +1964,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     🌟 رائج (معفى مجاناً)
                                   </span>
                                 ) : null}
+                                {Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingBusinessInitialTab('admin_followup');
+                                      setEditingBusiness(biz);
+                                    }}
+                                    className="text-[9.5px] bg-amber-500/15 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md font-black border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer inline-flex items-center gap-1"
+                                    title="انقر لفتح سجل المتابعات والملاحظات"
+                                  >
+                                    <ClipboardList className="w-2.5 h-2.5 text-amber-500" />
+                                    <span>{biz.adminFollowUps!.length} متابعة إدارية</span>
+                                  </button>
+                                )}
                               </div>
                             </td>
 
@@ -2084,6 +2128,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <span>رفع لجوجل</span>
                                   </button>
                                 )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingBusinessInitialTab('admin_followup');
+                                    setEditingBusiness(biz);
+                                  }}
+                                  className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] hover:text-amber-600 border border-[var(--border-color)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer inline-flex items-center gap-1"
+                                  title="فتح سجل المتابعات والملاحظات الإدارية"
+                                >
+                                  <ClipboardList className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>ملاحظات ({biz.adminFollowUps?.length || 0})</span>
+                                </button>
 
                                 <button
                                   onClick={() => setEditingBusiness(biz)}
@@ -2580,9 +2637,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* SHARED MODAL: Business Data View & Editing */}
       <BusinessEditModal
         business={editingBusiness}
-        onClose={() => setEditingBusiness(null)}
+        onClose={() => {
+          setEditingBusiness(null);
+          setEditingBusinessInitialTab(undefined);
+        }}
         onSave={handleSaveBusinessFromModal}
-        userRole="admin"
+        userRole={currentUser?.role || 'admin'}
+        currentUserName={currentUser?.name || 'مدير النظام'}
+        currentUserId={currentUser?.id || 'admin_1'}
+        initialTab={editingBusinessInitialTab}
         canEdit={true}
         onShowInvoice={onShowInvoice}
         onCollectPayment={onCollectPayment}

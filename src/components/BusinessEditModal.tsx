@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Business, VerificationStatus } from '../types';
+import { Business, VerificationStatus, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus } from '../types';
 import { EGYPT_GOVERNORATES, PACKAGES, EXEMPT_PACKAGE, ALREADY_ON_GOOGLE_PACKAGE, CATEGORY_GROUPS, getGroupFromCategory } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
@@ -40,6 +40,11 @@ import {
   TrendingUp,
   ShieldCheck,
   QrCode,
+  ClipboardList,
+  Calendar,
+  Search,
+  Plus,
+  CheckSquare,
 } from 'lucide-react';
 
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
@@ -80,6 +85,9 @@ interface BusinessEditModalProps {
   onClose: () => void;
   onSave: (updatedBiz: Business) => void;
   userRole?: string;
+  currentUserName?: string;
+  currentUserId?: string;
+  initialTab?: string;
   canEdit?: boolean;
   onShowInvoice?: (business: Business) => void;
   onCollectPayment?: (business: Business) => void;
@@ -92,6 +100,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   onClose,
   onSave,
   userRole,
+  currentUserName,
+  currentUserId,
+  initialTab,
   canEdit = true,
   onShowInvoice,
   onCollectPayment,
@@ -117,8 +128,25 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
 
   // Tab navigation
-  const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp'>('info');
+  const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp' | 'admin_followup'>(
+    (initialTab as any) || 'info'
+  );
   const [selectedMotiGroupName, setSelectedMotiGroupName] = useState<string>('');
+
+  useEffect(() => {
+    if (initialTab && ['info', 'owner', 'location', 'payment', 'photos', 'whatsapp', 'admin_followup'].includes(initialTab)) {
+      setActiveSection(initialTab as any);
+    }
+  }, [initialTab, business]);
+
+  // Admin CRM Follow-ups State
+  const [newFollowUpText, setNewFollowUpText] = useState<string>('');
+  const [newFollowUpType, setNewFollowUpType] = useState<AdminFollowUpType>('call');
+  const [newFollowUpStatus, setNewFollowUpStatus] = useState<AdminFollowUpStatus>('completed');
+  const [newFollowUpNextDate, setNewFollowUpNextDate] = useState<string>('');
+  const [followUpFilterType, setFollowUpFilterType] = useState<string>('all');
+  const [followUpSearch, setFollowUpSearch] = useState<string>('');
+  const [isSavingFollowUp, setIsSavingFollowUp] = useState<boolean>(false);
 
   // Keep internal formData in sync when parent business prop changes & load high-res photos on-demand
   useEffect(() => {
@@ -396,7 +424,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const totalMediaCount = (formData.photos?.length || 0) + (formData.videos?.length || 0);
 
   interface TabItem {
-    key: 'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp';
+    key: 'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp' | 'admin_followup';
     label: string;
     icon: React.ReactNode;
     count?: number;
@@ -409,9 +437,84 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4" /> },
     { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
     ...(isAdminOrFinancial
-      ? [{ key: 'whatsapp', label: 'الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> } as TabItem]
+      ? [
+          { key: 'whatsapp', label: 'الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> } as TabItem,
+          {
+            key: 'admin_followup',
+            label: 'المتابعات الإدارية',
+            icon: <ClipboardList className="w-4 h-4 text-amber-500" />,
+            count: (formData.adminFollowUps || []).length,
+          } as TabItem,
+        ]
       : []),
   ];
+
+  // Admin CRM Follow-up Handlers
+  const handleAddFollowUp = () => {
+    if (!newFollowUpText.trim() || !formData) return;
+    setIsSavingFollowUp(true);
+    try {
+      const newNote: AdminFollowUpNote = {
+        id: `af_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        authorId: currentUserId || 'admin_1',
+        authorName: currentUserName || (userRole === 'accountant' ? 'المحاسب المعتمد' : userRole === 'supervisor' ? 'المشرف الميداني' : 'مدير النظام'),
+        authorRole: userRole || 'admin',
+        type: newFollowUpType,
+        status: newFollowUpStatus,
+        text: newFollowUpText.trim(),
+        createdAt: new Date().toISOString(),
+        nextFollowUpDate: newFollowUpNextDate ? newFollowUpNextDate : undefined,
+      };
+
+      const updatedFollowUps = [newNote, ...(formData.adminFollowUps || [])];
+      const updatedBiz: Business = {
+        ...formData,
+        adminFollowUps: updatedFollowUps,
+      };
+
+      setFormData(updatedBiz);
+      onSave(updatedBiz);
+      setNewFollowUpText('');
+      setNewFollowUpNextDate('');
+      setStatusNotification('تم تسجيل المتابعة الإدارية وحفظها بنجاح 📋');
+      setTimeout(() => setStatusNotification(null), 3000);
+    } finally {
+      setIsSavingFollowUp(false);
+    }
+  };
+
+  const handleDeleteFollowUp = (noteId: string) => {
+    if (!formData) return;
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذه المتابعة الإدارية؟')) return;
+    const updatedFollowUps = (formData.adminFollowUps || []).filter((n) => n.id !== noteId);
+    const updatedBiz: Business = {
+      ...formData,
+      adminFollowUps: updatedFollowUps,
+    };
+    setFormData(updatedBiz);
+    onSave(updatedBiz);
+    setStatusNotification('تم حذف الملاحظة الإدارية بنجاح');
+    setTimeout(() => setStatusNotification(null), 3000);
+  };
+
+  const handleToggleFollowUpStatus = (noteId: string) => {
+    if (!formData) return;
+    const updatedFollowUps = (formData.adminFollowUps || []).map((n) => {
+      if (n.id === noteId) {
+        return {
+          ...n,
+          status: (n.status === 'completed' ? 'pending' : 'completed') as AdminFollowUpStatus,
+        };
+      }
+      return n;
+    });
+    const updatedBiz: Business = {
+      ...formData,
+      adminFollowUps: updatedFollowUps,
+    };
+    setFormData(updatedBiz);
+    onSave(updatedBiz);
+  };
 
   // 1. Directory Approval Status (خاص بالدليل فقط ومراجعة المسؤول)
   const isDirectoryApproved = formData.verificationStatus === 'verified';
@@ -2046,6 +2149,372 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── 4.7 STRICT ADMIN/SUPERVISOR/ACCOUNTANT: INTERNAL FOLLOW-UPS & CRM NOTES ── */}
+          {activeSection === 'admin_followup' && isAdminOrFinancial && (
+            <div className="space-y-4 animate-fade-in">
+              {/* Header Card */}
+              <div className="bg-gradient-to-r from-amber-500/15 via-[var(--input-bg)] to-amber-500/10 border-2 border-amber-500/30 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/25 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-lg shrink-0 shadow-2xs">
+                      <ClipboardList className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm sm:text-base text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                        <span>سجل المتابعات والملاحظات الإدارية الداخلية</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-900 dark:text-amber-200 px-2.5 py-0.5 rounded-full font-bold">
+                          سري للإدارة 🔒
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
+                        أداة إدارة ومتابعة علاقات الأنشطة (CRM): تسجيل الاتصالات، الزيارات الميدانية، تذكيرات التحصيل وتاريخ المتابعات.
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-xs font-black bg-amber-500 text-slate-950 px-3 py-1.5 rounded-xl shrink-0 self-start sm:self-auto shadow-2xs flex items-center gap-1.5">
+                    <span>إجمالي المتابعات:</span>
+                    <strong className="font-mono text-sm">{(formData.adminFollowUps || []).length}</strong>
+                  </span>
+                </div>
+
+                {/* Quick CRM Metrics Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
+                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">📞 اتصالات هاتفية</span>
+                    <span className="font-mono font-black text-sm text-[var(--text-primary)]">
+                      {(formData.adminFollowUps || []).filter(f => f.type === 'call').length}
+                    </span>
+                  </div>
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
+                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">🏃 زيارات ميدانية</span>
+                    <span className="font-mono font-black text-sm text-[var(--text-primary)]">
+                      {(formData.adminFollowUps || []).filter(f => f.type === 'visit').length}
+                    </span>
+                  </div>
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
+                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">💰 متابعات تحصيل</span>
+                    <span className="font-mono font-black text-sm text-[var(--text-primary)]">
+                      {(formData.adminFollowUps || []).filter(f => f.type === 'payment').length}
+                    </span>
+                  </div>
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
+                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">⏳ بانتظار متابعة</span>
+                    <span className="font-mono font-black text-sm text-amber-600 dark:text-amber-400">
+                      {(formData.adminFollowUps || []).filter(f => f.status === 'pending').length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── ADD NEW FOLLOW-UP NOTE BOX ── */}
+              <div className="bg-[var(--input-bg)] border-2 border-[var(--border-color)] focus-within:border-amber-500/50 rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xs transition-colors">
+                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
+                  <h5 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-amber-500 stroke-[3]" />
+                    <span>تسجيل متابعة / ملاحظة جديدة</span>
+                  </h5>
+                  <span className="text-[10px] text-[var(--text-secondary)] font-bold">
+                    المسؤول: <strong className="text-amber-600 dark:text-amber-400">{currentUserName || (userRole === 'accountant' ? 'المحاسب المعتمد' : userRole === 'supervisor' ? 'المشرف' : 'مدير النظام')}</strong>
+                  </span>
+                </div>
+
+                {/* Type & Status Selectors */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[var(--text-muted)] block">نوع المتابعة:</label>
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
+                      {[
+                        { type: 'call', label: '📞 اتصال هاتفي', color: 'bg-emerald-600 text-white' },
+                        { type: 'visit', label: '🏃 زيارة ميدانية', color: 'bg-purple-600 text-white' },
+                        { type: 'payment', label: '💰 متابعة سداد وتحصيل', color: 'bg-amber-600 text-white' },
+                        { type: 'verification', label: '🌐 توثيق Google Maps', color: 'bg-blue-600 text-white' },
+                        { type: 'general', label: '📝 ملاحظة إدارية عامة', color: 'bg-slate-700 text-white' },
+                      ].map((item) => (
+                        <button
+                          key={item.type}
+                          type="button"
+                          onClick={() => setNewFollowUpType(item.type as AdminFollowUpType)}
+                          className={`px-2.5 py-1.5 rounded-xl border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
+                            newFollowUpType === item.type
+                              ? `${item.color} font-black shadow-xs scale-102`
+                              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[var(--text-muted)] block">حالة الإجراء:</label>
+                    <div className="flex items-center gap-1 text-xs font-bold">
+                      {[
+                        { status: 'completed', label: '✅ مكتملة' },
+                        { status: 'pending', label: '⏳ تتطلب متابعة' },
+                        { status: 'urgent', label: '🚨 عاجلة' },
+                      ].map((s) => (
+                        <button
+                          key={s.status}
+                          type="button"
+                          onClick={() => setNewFollowUpStatus(s.status as AdminFollowUpStatus)}
+                          className={`px-2.5 py-1.5 rounded-xl border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
+                            newFollowUpStatus === s.status
+                              ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)]'
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 min-w-[170px]">
+                    <label className="text-[10px] font-bold text-[var(--text-muted)] block">موعد المتابعة القادمة (اختياري):</label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={newFollowUpNextDate}
+                        onChange={(e) => setNewFollowUpNextDate(e.target.value)}
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-2.5 py-1 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Templates Buttons */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-[var(--text-muted)]">عبارات سريعة بنقرة واحدة:</span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                    {[
+                      '📞 تم الاتصال بالمالك وأكد الاستعداد للسداد غداً',
+                      '⏳ تم التواصل وطلب مهلة حتى نهاية الأسبوع للمراجعة',
+                      '📍 تمت المعاينة الميدانية ومطابقة بيانات اللافتة والنشاط',
+                      '🌐 تم رفع وتوثيق النشاط على خرائط Google وبانتظار الاعتماد',
+                      '💳 تم التذكير بالمتبقي المالي وإرسال بيانات الحساب البنكي',
+                      '⚠️ لم يتم الرد على الهاتف وتم إرسال رسالة تذكير عبر الواتساب',
+                    ].map((tpl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setNewFollowUpText(tpl)}
+                        className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)] hover:border-amber-500/40 text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 whitespace-nowrap cursor-pointer transition-colors"
+                      >
+                        {tpl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Textarea */}
+                <div className="space-y-1">
+                  <textarea
+                    rows={3}
+                    value={newFollowUpText}
+                    onChange={(e) => setNewFollowUpText(e.target.value)}
+                    placeholder="اكتب تفاصيل المتابعة أو الملاحظة الإدارية هنا بالتفصيل (نتيجة التواصل، الاتفاقيات، ملاحظات تدقيق الخريطة أو التحصيل)..."
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] rounded-2xl p-3 text-xs font-medium focus:outline-none transition-colors leading-relaxed"
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                    سيتم حفظ المتابعة فوراً مع التوثيق الزمني واسم المسؤول تلقائياً.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAddFollowUp}
+                    disabled={!newFollowUpText.trim() || isSavingFollowUp}
+                    className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <Save className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>{isSavingFollowUp ? 'جاري الحفظ...' : 'حفظ المتابعة الإدارية'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* ── FOLLOW-UP HISTORY & TIMELINE ── */}
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2.5">
+                  <h5 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    <span>الجدول الزمني للمتابعات السابقة ({(formData.adminFollowUps || []).length})</span>
+                  </h5>
+
+                  {/* Filter & Search Bar */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute right-2.5 top-2" />
+                      <input
+                        type="text"
+                        value={followUpSearch}
+                        onChange={(e) => setFollowUpSearch(e.target.value)}
+                        placeholder="بحث في الملاحظات..."
+                        className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl pr-8 pl-2 py-1 w-36 sm:w-44 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <select
+                      value={followUpFilterType}
+                      onChange={(e) => setFollowUpFilterType(e.target.value)}
+                      className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl px-2 py-1 font-bold focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="all">كل الأنواع</option>
+                      <option value="call">📞 اتصالات</option>
+                      <option value="visit">🏃 زيارات</option>
+                      <option value="payment">💰 سداد</option>
+                      <option value="verification">🌐 خرائط Google</option>
+                      <option value="general">📝 ملاحظات عامة</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Render Filtered Timeline List */}
+                {(() => {
+                  const allFollowUps = formData.adminFollowUps || [];
+                  const filtered = allFollowUps.filter((f) => {
+                    if (followUpFilterType !== 'all' && f.type !== followUpFilterType) return false;
+                    if (followUpSearch.trim()) {
+                      const q = followUpSearch.trim().toLowerCase();
+                      const matchText = f.text.toLowerCase().includes(q);
+                      const matchAuthor = f.authorName.toLowerCase().includes(q);
+                      if (!matchText && !matchAuthor) return false;
+                    }
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-8 text-center space-y-2">
+                        <ClipboardList className="w-8 h-8 text-[var(--text-muted)] mx-auto opacity-40" />
+                        <p className="font-bold text-xs text-[var(--text-secondary)]">
+                          {allFollowUps.length === 0
+                            ? 'لا توجد متابعات أو ملاحظات إدارية مسجلة بعد لهذا النشاط.'
+                            : 'لا توجد ملاحظات مطابقة لمعايير البحث المحددة.'}
+                        </p>
+                        <p className="text-[10.5px] text-[var(--text-muted)]">
+                          استخدم النموذج أعلاه لتوثيق اتصالاتك الهاتفية، المعاينات الميدانية، أو تدقيق التحصيل.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  const getTypeInfo = (type: AdminFollowUpType) => {
+                    switch (type) {
+                      case 'call':
+                        return { label: 'اتصال هاتفي', icon: '📞', bg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+                      case 'visit':
+                        return { label: 'زيارة ميدانية', icon: '🏃', bg: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
+                      case 'payment':
+                        return { label: 'متابعة سداد', icon: '💰', bg: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
+                      case 'verification':
+                        return { label: 'توثيق الخريطة', icon: '🌐', bg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
+                      default:
+                        return { label: 'ملاحظة عامة', icon: '📝', bg: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
+                    }
+                  };
+
+                  return (
+                    <div className="space-y-3">
+                      {filtered.map((note) => {
+                        const tInfo = getTypeInfo(note.type);
+                        const isPending = note.status === 'pending';
+                        const isUrgent = note.status === 'urgent';
+                        const createdFormatted = new Date(note.createdAt).toLocaleDateString('ar-EG', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        });
+
+                        return (
+                          <div
+                            key={note.id}
+                            className={`bg-[var(--bg-card)] border-2 rounded-2xl p-3.5 sm:p-4 space-y-2.5 transition-all shadow-xs ${
+                              isUrgent
+                                ? 'border-rose-500/50 bg-rose-500/5'
+                                : isPending
+                                ? 'border-amber-500/40 bg-amber-500/5'
+                                : 'border-[var(--border-color)] hover:border-amber-500/30'
+                            }`}
+                          >
+                            {/* Note Card Header */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${tInfo.bg}`}>
+                                  {tInfo.icon} {tInfo.label}
+                                </span>
+
+                                <span className="text-[10.5px] font-extrabold text-[var(--text-primary)]">
+                                  {note.authorName}
+                                </span>
+
+                                <span className="text-[9px] bg-slate-500/15 text-[var(--text-secondary)] font-bold px-1.5 py-0.2 rounded">
+                                  {note.authorRole === 'admin' ? 'الإدارة العامة' : note.authorRole === 'accountant' ? 'الحسابات' : 'المشرف'}
+                                </span>
+
+                                {/* Clickable Status Toggle */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleFollowUpStatus(note.id)}
+                                  className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border cursor-pointer transition-transform active:scale-95 ${
+                                    isUrgent
+                                      ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                                      : isPending
+                                      ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/40'
+                                      : 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-500/40'
+                                  }`}
+                                  title="انقر لتغيير حالة المتابعة"
+                                >
+                                  {isUrgent ? '🚨 عاجلة (انقر للتغيير)' : isPending ? '⏳ قيد المتابعة (انقر للإكمال)' : '✅ مكتملة'}
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono font-bold text-[var(--text-muted)]" dir="ltr">
+                                  {createdFormatted}
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteFollowUp(note.id)}
+                                  className="text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  title="حذف الملاحظة"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Note Card Body */}
+                            <p className="text-xs text-[var(--text-primary)] font-medium leading-relaxed whitespace-pre-wrap">
+                              {note.text}
+                            </p>
+
+                            {/* Next Follow-up Reminder Badge (if present) */}
+                            {note.nextFollowUpDate && (
+                              <div className="flex items-center gap-1.5 pt-1 text-[10.5px]">
+                                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-lg font-bold inline-flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-amber-500" />
+                                  <span>موعد المتابعة القادم: </span>
+                                  <strong className="font-mono font-black">{note.nextFollowUpDate}</strong>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
         </div>

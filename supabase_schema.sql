@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 -- Idempotent column check for existing databases
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS videos JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS rep_location_url TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS admin_follow_ups JSONB DEFAULT '[]'::jsonb;
 
 -- =============================================================================
 -- 2. TABLE: representatives (المناديب والمشرفين والمحاسبين والإدارة)

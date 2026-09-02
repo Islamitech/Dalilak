@@ -589,6 +589,7 @@ export async function syncAllPendingOfflineData(
             repLocationUrl,
             googleMapsUrl,
             videos: cleanVideos,
+            adminFollowUps: Array.isArray(cleanBizToSave.adminFollowUps) ? cleanBizToSave.adminFollowUps : [],
             userNotes: cleanBizToSave.notes,
           }),
         };

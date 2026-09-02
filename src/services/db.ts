@@ -1,6 +1,6 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { uploadMultipleMediaToStorage } from './storage';
-import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole } from '../types';
+import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote } from '../types';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeBusinessesForStorage } from '../utils/storage';
 import {
   saveOfflineBusiness,
@@ -1135,6 +1135,7 @@ function mapDbToBusiness(item: any): Business {
   let metaIsAlreadyOnGoogle: boolean | undefined = item.is_already_on_google !== undefined ? Boolean(item.is_already_on_google) : item.isAlreadyOnGoogle !== undefined ? Boolean(item.isAlreadyOnGoogle) : undefined;
   let metaRegistrationType = item.registration_type || item.registrationType;
   let metaVideos: string[] | undefined = undefined;
+  let metaAdminFollowUps: AdminFollowUpNote[] | undefined = undefined;
   let pureNotes = item.notes;
 
   if (typeof item.notes === 'string' && item.notes.trim().startsWith('{')) {
@@ -1154,10 +1155,16 @@ function mapDbToBusiness(item: any): Business {
         if (parsed.isAlreadyOnGoogle !== undefined && metaIsAlreadyOnGoogle === undefined) metaIsAlreadyOnGoogle = Boolean(parsed.isAlreadyOnGoogle);
         if (parsed.registrationType !== undefined && !metaRegistrationType) metaRegistrationType = parsed.registrationType;
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
+        if (parsed.adminFollowUps && Array.isArray(parsed.adminFollowUps)) metaAdminFollowUps = parsed.adminFollowUps;
         pureNotes = parsed.userNotes !== undefined ? parsed.userNotes : undefined;
       }
     } catch {}
   }
+
+  const directAdminFollowUps = (item.admin_follow_ups && Array.isArray(item.admin_follow_ups))
+    ? item.admin_follow_ups
+    : (item.adminFollowUps && Array.isArray(item.adminFollowUps) ? item.adminFollowUps : undefined);
+  const finalAdminFollowUps: AdminFollowUpNote[] = directAdminFollowUps || metaAdminFollowUps || [];
 
   const isAlreadyOnGoogle = Boolean(
     metaIsAlreadyOnGoogle ||
@@ -1271,6 +1278,7 @@ function mapDbToBusiness(item: any): Business {
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: pureNotes,
+    adminFollowUps: finalAdminFollowUps,
     createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
     isFeeExempt,
     feeExemptionReason: metaFeeExemptionReason,
@@ -1343,7 +1351,7 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     }
   }
 
-  // Safely preserve financial, sync, and video metadata in notes JSON
+  // Safely preserve financial, sync, video, and admin follow-up metadata in notes JSON
   const metaObj = {
     paymentMethod: isExempt ? 'platform_collected' : biz.paymentMethod,
     cashCollectedByRep: isExempt ? 0 : biz.cashCollectedByRep,
@@ -1360,6 +1368,7 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     videos: Array.isArray(biz.videos)
       ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))
       : [],
+    adminFollowUps: Array.isArray(biz.adminFollowUps) ? biz.adminFollowUps : [],
     userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
   };
   record.notes = JSON.stringify(metaObj);

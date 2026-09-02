@@ -2919,6 +2919,8 @@ export default function App() {
             setEditingBusiness(null);
           }}
           userRole={user?.role}
+          currentUserName={user?.name}
+          currentUserId={user?.id}
           canEdit={canUserEditBusiness(user, editingBusiness)}
           onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
           onCollectPayment={
