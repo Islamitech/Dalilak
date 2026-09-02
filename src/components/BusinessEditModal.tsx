@@ -684,6 +684,29 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </button>
           )}
 
+          {/* Pulsing Red Financial Alert Indicator in Quick Actions Strip */}
+          {!isFeeExempt && remainingDebt > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (onCollectPayment) {
+                  onCollectPayment(formData);
+                } else {
+                  setActiveSection('payment');
+                }
+              }}
+              className="relative flex items-center gap-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border-2 border-rose-500/50 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-all active:scale-95 shrink-0 cursor-pointer shadow-xs animate-pulse"
+              title={`تنبيه مالي: النشاط غير مسدد (متبقي ${remainingDebt} ج.م) - انقر لتسجيل التحصيل`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+              </span>
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-500 stroke-[2.5]" />
+              <span>تنبيه سداد ({remainingDebt} ج)</span>
+            </button>
+          )}
+
           {remainingDebt > 0 && (
             <button
               type="button"
@@ -735,40 +758,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-2xl text-xs font-black flex items-center gap-2 animate-fade-in shadow-sm">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>{statusNotification}</span>
-            </div>
-          )}
-
-          {/* Urgent Financial Alert Card (Strictly non-exempt only) */}
-          {!isFeeExempt && (formData.amountPaid || 0) === 0 && (
-            <div className="bg-gradient-to-r from-rose-500/20 via-orange-500/15 to-rose-500/20 border-2 border-rose-500/40 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm text-right">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md">
-                  <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
-                </div>
-                <div>
-                  <h4 className="font-black text-xs sm:text-sm text-rose-800 dark:text-rose-200">
-                    تنبيه مالي: النشاط غير مسدد ({formData.packagePrice || 250} ج.م)
-                  </h4>
-                  <p className="text-[10.5px] text-rose-700 dark:text-rose-300 font-bold mt-0.5">
-                    يرجى تحصيل قيمة الاشتراك المعتمدة وتسجيل عملية السداد لتأكيد وتفعيل خدمات النشاط.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onCollectPayment) {
-                    onCollectPayment(formData);
-                  } else {
-                    setActiveSection('payment');
-                  }
-                }}
-                className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-4 py-2 rounded-xl shadow-md cursor-pointer transition-transform active:scale-95 shrink-0 flex items-center justify-center gap-1.5"
-              >
-                <DollarSign className="w-4 h-4" />
-                <span>تسجيل التحصيل الآن</span>
-              </button>
             </div>
           )}
 
