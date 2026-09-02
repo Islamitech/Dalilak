@@ -129,17 +129,19 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [isDownloadingPhotos, setIsDownloadingPhotos] = useState<boolean>(false);
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
 
-  // Tab navigation
+  // Tab navigation: default to 'admin_followup' as requested for admins/supervisors/accountants
   const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp' | 'admin_followup'>(
-    (initialTab as any) || 'info'
+    (initialTab as any) || (isAdminOrFinancial ? 'admin_followup' : 'info')
   );
   const [selectedMotiGroupName, setSelectedMotiGroupName] = useState<string>('');
 
   useEffect(() => {
     if (initialTab && ['info', 'owner', 'location', 'payment', 'photos', 'whatsapp', 'admin_followup'].includes(initialTab)) {
       setActiveSection(initialTab as any);
+    } else if (!initialTab) {
+      setActiveSection(isAdminOrFinancial ? 'admin_followup' : 'info');
     }
-  }, [initialTab, business]);
+  }, [initialTab, business, isAdminOrFinancial]);
 
   // Admin CRM Follow-ups State
   const [newFollowUpText, setNewFollowUpText] = useState<string>('');
@@ -433,6 +435,16 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   }
 
   const TABS: TabItem[] = [
+    ...(isAdminOrFinancial
+      ? [
+          {
+            key: 'admin_followup',
+            label: 'المتابعات',
+            icon: <ClipboardList className="w-4 h-4 text-amber-500" />,
+            count: (formData.adminFollowUps || []).length,
+          } as TabItem,
+        ]
+      : []),
     { key: 'info', label: 'البيانات', icon: <Store className="w-4 h-4" /> },
     { key: 'location', label: 'الخرائط', icon: <MapPin className="w-4 h-4" /> },
     { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4" /> },
@@ -440,12 +452,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     ...(isAdminOrFinancial
       ? [
           { key: 'whatsapp', label: 'واتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> } as TabItem,
-          {
-            key: 'admin_followup',
-            label: 'المتابعات',
-            icon: <ClipboardList className="w-4 h-4 text-amber-500" />,
-            count: (formData.adminFollowUps || []).length,
-          } as TabItem,
         ]
       : []),
   ];
