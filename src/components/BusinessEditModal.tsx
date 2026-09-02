@@ -434,15 +434,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   const TABS: TabItem[] = [
     { key: 'info', label: 'البيانات', icon: <Store className="w-4 h-4" /> },
-    { key: 'location', label: 'الموقع والخرائط', icon: <MapPin className="w-4 h-4" /> },
+    { key: 'location', label: 'الخرائط', icon: <MapPin className="w-4 h-4" /> },
     { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4" /> },
     { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
     ...(isAdminOrFinancial
       ? [
-          { key: 'whatsapp', label: 'الواتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> } as TabItem,
+          { key: 'whatsapp', label: 'واتساب', icon: <MessageCircle className="w-4 h-4 text-emerald-500" /> } as TabItem,
           {
             key: 'admin_followup',
-            label: 'المتابعات الإدارية',
+            label: 'المتابعات',
             icon: <ClipboardList className="w-4 h-4 text-amber-500" />,
             count: (formData.adminFollowUps || []).length,
           } as TabItem,
@@ -564,49 +564,49 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       <div className="bg-[var(--bg-card)] border-t sm:border border-[var(--border-color)] rounded-t-[28px] sm:rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh] sm:max-h-[90vh] transition-all">
         
         {/* ── 0. MOBILE DRAG HANDLE ───────────────────────────────────── */}
-        <div className="w-12 h-1 bg-slate-700/80 rounded-full mx-auto mt-2 sm:hidden shrink-0" />
+        <div className="w-10 h-1 bg-slate-700/60 rounded-full mx-auto mt-2 sm:hidden shrink-0" />
 
         {/* ── 1. COMPACT & HIGH-CONTRAST HEADER ───────────────────────── */}
-        <div className="p-3.5 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-start justify-between gap-2.5 border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 flex items-center justify-center font-black text-lg sm:text-xl shadow-md shrink-0 border border-amber-400/40">
-              <Store className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+        <div className="p-3 sm:p-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-start justify-between gap-2 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-md shrink-0 border border-amber-400/40">
+              <Store className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
             </div>
 
-            <div className="min-w-0 flex-1 space-y-1">
+            <div className="min-w-0 flex-1 space-y-0.5">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="font-black text-sm sm:text-base text-white truncate max-w-[200px] sm:max-w-none">
+                <h3 className="font-black text-xs sm:text-base text-white truncate max-w-[160px] xs:max-w-[220px] sm:max-w-none">
                   {formData.nameAr || formData.nameEn || 'تفاصيل النشاط'}
                 </h3>
-                <span className="text-[10px] font-mono text-slate-300 bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-700">
+                <span className="text-[9px] sm:text-[10px] font-mono text-slate-300 bg-slate-800/90 px-1 py-0.5 rounded border border-slate-700 shrink-0">
                   {formData.invoiceNumber}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-300">
-                <span className="flex items-center gap-1 font-bold">
-                  <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+              <div className="flex items-center gap-1.5 flex-wrap text-[10px] sm:text-[11px] text-slate-300">
+                <span className="flex items-center gap-1 font-bold truncate max-w-[130px] sm:max-w-none">
+                  <MapPin className="w-2.5 h-2.5 text-amber-400 shrink-0" />
                   <span className="truncate">{formData.governorate} - {formData.city}</span>
                 </span>
                 <span className="text-slate-600 hidden xs:inline">•</span>
-                <span className="flex items-center gap-1 font-bold">
-                  <Tag className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="flex items-center gap-1 font-bold truncate max-w-[120px] sm:max-w-none">
+                  <Tag className="w-2.5 h-2.5 text-amber-400 shrink-0" />
                   <span className="truncate">{formData.category}</span>
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${directoryBadge.cls}`} title="حالة الاعتماد للظهور على دليل المنصة">
+              <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${directoryBadge.cls}`} title="حالة الاعتماد للظهور على دليل المنصة">
                   {directoryBadge.label}
                 </span>
-                <span className={`text-[9.5px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border ${paymentBadge.cls}`}>
+                <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${paymentBadge.cls}`}>
                   {paymentBadge.label}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+          <div className="flex items-center gap-1 shrink-0 pt-0.5">
             {canEdit && (
               <button
                 type="button"
@@ -617,13 +617,14 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     setIsEditMode(true);
                   }
                 }}
-                className={`text-xs font-black px-3 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                className={`text-[11px] sm:text-xs font-black px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ${
                   isEditMode
                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/50'
                     : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
                 }`}
+                title={isEditMode ? 'حفظ التعديلات' : 'تعديل البيانات'}
               >
-                {isEditMode ? <Check className="w-4 h-4 stroke-[3]" /> : <Pencil className="w-3.5 h-3.5 stroke-[2.5]" />}
+                {isEditMode ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Pencil className="w-3 h-3 stroke-[2.5]" />}
                 <span>{isEditMode ? 'حفظ' : 'تعديل'}</span>
               </button>
             )}
@@ -631,20 +632,20 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
               title="إغلاق النافذة"
             >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
 
         {/* ── 2. STREAMLINED QUICK ACTIONS STRIP ──────────────────────── */}
-        <div className="px-3 sm:px-5 py-2 bg-[var(--input-bg)]/90 border-b border-[var(--border-color)] flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+        <div className="px-2.5 sm:px-4 py-1.5 bg-[var(--input-bg)]/90 border-b border-[var(--border-color)] flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
           {cleanPhone && (
             <a
               href={`tel:${cleanPhone}`}
-              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
+              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
             >
               <Phone className="w-3 h-3" />
               <span>اتصال</span>
@@ -655,10 +656,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <button
               type="button"
               onClick={() => onShowInvoice(formData)}
-              className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
+              className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
             >
               <FileText className="w-3 h-3 text-amber-500" />
-              <span>الفاتورة</span>
+              <span>فاتورة</span>
             </button>
           )}
 
@@ -667,25 +668,25 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               href={mapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
+              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
               title="فتح موقع النشاط الموثق على خرائط Google"
             >
               <ExternalLink className="w-3 h-3 text-blue-500" />
-              <span>📍 Google Maps</span>
+              <span>الخريطة</span>
             </a>
           ) : (
             <button
               type="button"
-              disabled
-              className="bg-[var(--bg-card)] text-slate-400 border border-slate-700/50 text-[11px] font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 shrink-0 opacity-50 cursor-not-allowed"
-              title="الخريطة غير مفعلة - لم يتم إضافة رابط توثيق Google بعد"
+              onClick={() => setActiveSection('location')}
+              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-slate-500 dark:text-slate-400 border border-slate-700/40 text-[11px] font-medium px-2.5 py-1 rounded-xl flex items-center gap-1 shrink-0 cursor-pointer"
+              title="انقر لإضافة وتوثيق رابط خرائط Google"
             >
-              <ExternalLink className="w-3 h-3 text-slate-500" />
-              <span>📍 خريطة غير مفعلة</span>
+              <MapPin className="w-3 h-3 text-amber-500" />
+              <span>إضافة خريطة</span>
             </button>
           )}
 
-          {/* Pulsing Red Financial Alert Indicator in Quick Actions Strip */}
+          {/* Pulsing Red Financial Alert Indicator */}
           {!isFeeExempt && remainingDebt > 0 && (
             <button
               type="button"
@@ -696,15 +697,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   setActiveSection('payment');
                 }
               }}
-              className="relative flex items-center gap-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border-2 border-rose-500/50 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-all active:scale-95 shrink-0 cursor-pointer shadow-xs animate-pulse"
-              title={`تنبيه مالي: النشاط غير مسدد (متبقي ${remainingDebt} ج.م) - انقر لتسجيل التحصيل`}
+              className="relative flex items-center gap-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/50 text-[11px] font-black px-2.5 py-1 rounded-xl transition-all active:scale-95 shrink-0 cursor-pointer shadow-xs animate-pulse"
+              title={`تنبيه مالي: النشاط غير مسدد (متبقي ${remainingDebt} ج.م)`}
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
               </span>
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-500 stroke-[2.5]" />
-              <span>تنبيه سداد ({remainingDebt} ج)</span>
+              <AlertTriangle className="w-3 h-3 text-rose-500 stroke-[2.5]" />
+              <span>تنبيه ({remainingDebt} ج)</span>
             </button>
           )}
 
@@ -718,7 +719,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   setActiveSection('payment');
                 }
               }}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-[11px] px-3 py-1.5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer mr-auto"
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-[11px] px-3 py-1 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer mr-auto"
             >
               <DollarSign className="w-3 h-3" />
               <span>تحصيل ({remainingDebt} ج)</span>
@@ -1646,57 +1647,44 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 const activeGroupObj = CATEGORY_MOTIVATIONAL_DATA.find((g) => g.groupName === currentGroupName) || autoGroup;
 
                 return (
-                  <div className="bg-gradient-to-b from-emerald-500/10 via-[var(--input-bg)] to-[var(--input-bg)] border-2 border-emerald-500/40 rounded-3xl p-3.5 sm:p-4 space-y-3 shadow-xs">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-500/25 text-emerald-600 dark:text-emerald-300 flex items-center justify-center font-black text-sm shrink-0">
-                          🌟
-                        </div>
-                        <div>
-                          <h4 className="font-black text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                            <span>رسائل التحفيز ونبض النشاط</span>
-                            <span className="text-[10px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-full font-bold">
-                              نصائح النجاح الذهبية لجميع الأنشطة 💡
-                            </span>
-                          </h4>
-                          <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">
-                            استراتيجيات وتوجيهات عملية لزيادة الأرباح، تصدر السوق المحلي، وبناء ولاء دائم للعملاء
-                          </p>
-                        </div>
+                  <div className="bg-gradient-to-b from-emerald-500/10 via-[var(--input-bg)] to-[var(--input-bg)] border border-emerald-500/40 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-2xs">
+                    <div className="flex items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">🌟</span>
+                        <h4 className="font-black text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">
+                          نصائح ورسائل التحفيز
+                        </h4>
                       </div>
 
-                      <span className="text-xs font-black bg-emerald-500 text-slate-950 px-2.5 py-1 rounded-xl shrink-0 self-start sm:self-auto shadow-2xs">
+                      <span className="text-[10px] font-black bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-lg shadow-2xs">
                         {activeGroupObj.groupIcon} {activeGroupObj.groupName}
                       </span>
                     </div>
 
                     {/* Category Selector Tabs */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-[var(--text-muted)]">اختر محور النصائح والتحفيز لإرساله عبر WhatsApp:</span>
-                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar text-[11px] font-bold">
-                        {CATEGORY_MOTIVATIONAL_DATA.map((grp) => {
-                          const isSelected = grp.groupName === currentGroupName;
-                          return (
-                            <button
-                              key={grp.groupName}
-                              type="button"
-                              onClick={() => setSelectedMotiGroupName(grp.groupName)}
-                              className={`px-2.5 py-1.5 rounded-xl border whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
-                                isSelected
-                                  ? 'bg-emerald-600 text-white font-black border-emerald-500 shadow-xs scale-102'
-                                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-emerald-500/40'
-                              }`}
-                            >
-                              <span>{grp.groupIcon}</span>
-                              <span>{grp.groupName}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px] font-bold">
+                      {CATEGORY_MOTIVATIONAL_DATA.map((grp) => {
+                        const isSelected = grp.groupName === currentGroupName;
+                        return (
+                          <button
+                            key={grp.groupName}
+                            type="button"
+                            onClick={() => setSelectedMotiGroupName(grp.groupName)}
+                            className={`px-2.5 py-1 rounded-xl border whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white font-black border-emerald-500 shadow-xs'
+                                : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-emerald-500/40'
+                            }`}
+                          >
+                            <span>{grp.groupIcon}</span>
+                            <span>{grp.groupName}</span>
+                          </button>
+                        );
+                      })}
                     </div>
 
                     {/* Render Active Category Models */}
-                    <div className="space-y-2.5 pt-1">
+                    <div className="space-y-2 pt-1">
                       {activeGroupObj.models.map((m, idx) => {
                         const msgText = m.generateText(formData);
                         const waUrl = getCategoryMotivationalWhatsAppUrl(m, formData);
@@ -1705,33 +1693,29 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                         return (
                           <div
                             key={m.id}
-                            className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/50 rounded-2xl p-3 space-y-2 transition-colors shadow-2xs"
+                            className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/50 rounded-xl p-2.5 space-y-1.5 transition-colors shadow-2xs"
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                              <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
                                 <span>{m.icon}</span>
                                 <span>{idx + 1}. {m.title}</span>
                               </div>
-                              <span className="text-[9.5px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                              <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
                                 {m.badge}
                               </span>
                             </div>
 
-                            <p className="text-[10.5px] text-[var(--text-muted)] font-medium leading-relaxed">
-                              {m.summary}
-                            </p>
-
                             {/* Message Preview Box */}
-                            <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)]/60 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-32 overflow-y-auto font-sans">
+                            <div className="bg-[var(--input-bg)] p-2 rounded-lg border border-[var(--border-color)]/60 text-[10.5px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-24 overflow-y-auto font-sans">
                               {msgText}
                             </div>
 
-                            <div className="flex items-center gap-2 pt-0.5">
+                            <div className="flex items-center gap-1.5 pt-0.5">
                               <a
                                 href={waUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-1.5 px-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
                               >
                                 <Send className="w-3.5 h-3.5" />
                                 <span>إرسال عبر WhatsApp 🚀</span>
@@ -1739,7 +1723,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleCopyText(msgText, copyKey)}
-                                className="bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                                className="bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                                 title="نسخ نص الرسالة"
                               >
                                 {copiedField === copyKey ? (
@@ -1757,35 +1741,32 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 );
               })()}
 
-              {/* WELCOME MESSAGE FOR ALREADY-ON-GOOGLE BUSINESSES */}
-              {(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google') ? (
-                <div className="bg-[var(--input-bg)] border-2 border-blue-500/40 hover:border-blue-500 rounded-2xl p-3.5 space-y-2.5 transition-colors">
+              {/* ── 4.6.2 CORE WORKFLOW / TRANSACTIONAL WHATSAPP MESSAGES ── */}
+              {isAlreadyOnGoogle ? (
+                <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-blue-500/10 border border-blue-500/30 rounded-2xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                      <Sparkles className="w-4 h-4 text-blue-500" />
-                      <span>رسالة الترحيب الرسمية وإشعار الإدراج بالدليل (Google Maps قائم)</span>
+                      <MapPin className="w-4 h-4 text-blue-500" />
+                      <span>رسالة الترحيب وإدراج النشاط بالدليل (مجاناً) 🎁</span>
                     </div>
-                    <span className="text-[9.5px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
+                    <span className="text-[9px] bg-blue-500/20 text-blue-900 dark:text-blue-300 font-black px-2 py-0.5 rounded-md">
                       نشاط مسجل مسبقاً 📍
                     </span>
                   </div>
-                  <p className="text-[10.5px] text-[var(--text-muted)] font-medium leading-relaxed">
-                    رسالة ترحيبية راقية للمالك تتضمن إشعار إدراج وربط نشاطه القائم على Google Maps بدليل الأنشطة والخدمات المعتمد مجاناً.
-                  </p>
-                  <div className="flex items-center gap-2 pt-0.5">
+                  <div className="flex items-center gap-1.5 pt-0.5">
                     <a
                       href={getWelcomeAlreadyOnGoogleWhatsAppUrl(formData)}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>إرسال رسالة الترحيب والإدراج عبر WhatsApp</span>
+                      <span>إرسال رسالة الترحيب عبر WhatsApp</span>
                     </a>
                     <button
                       type="button"
                       onClick={() => handleCopyText(generateWelcomeAlreadyOnGoogleWhatsAppMessage(formData), 'wa_welcome')}
-                      className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                      className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                       title="نسخ نص رسالة الترحيب"
                     >
                       {copiedField === 'wa_welcome' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
@@ -1795,25 +1776,22 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               ) : (
                 <>
               {/* Message 1: Initial Invoice */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3 space-y-2 transition-colors">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-2.5 space-y-1.5 transition-colors">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                    <FileText className="w-4 h-4 text-amber-500" />
-                    <span>1. رسالة الفاتورة الإلكترونية الأولية وتأكيد التسجيل</span>
+                  <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                    <FileText className="w-3.5 h-3.5 text-amber-500" />
+                    <span>1. الفاتورة الإلكترونية الأولية وتأكيد التسجيل</span>
                   </div>
-                  <span className="text-[9.5px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
+                  <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
                     عند التسجيل
                   </span>
                 </div>
-                <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                  تتضمن تفاصيل الباقة، المبلغ المدفوع، المتبقي، ورابط الدليل الرسمي مع إشعار جارِ مراجعة التوثيق.
-                </p>
-                <div className="flex items-center gap-2 pt-0.5">
+                <div className="flex items-center gap-1.5 pt-0.5">
                   <a
                     href={getInvoiceWhatsAppUrl(formData)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>إرسال الفاتورة عبر WhatsApp</span>
@@ -1821,7 +1799,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopyText(generateInvoiceWhatsAppMessage(formData), 'wa_inv')}
-                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                     title="نسخ نص الفاتورة"
                   >
                     {copiedField === 'wa_inv' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
@@ -1830,25 +1808,22 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
 
               {/* Message 2: Google Maps Verification */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-3 space-y-2 transition-colors">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-2.5 space-y-1.5 transition-colors">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                    <MapPin className="w-4 h-4 text-blue-500" />
-                    <span>2. رسالة إشعار التوثيق والاعتماد على خرائط Google 🗺️</span>
+                  <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                    <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                    <span>2. إشعار التوثيق والاعتماد على خرائط Google 🗺️</span>
                   </div>
-                  <span className="text-[9.5px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
+                  <span className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
                     بعد التوثيق
                   </span>
                 </div>
-                <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                  تهنئة العميل مع رابط الخريطة المعتمد المباشر، رابط الدليل، وحالة السداد وطرق الدفع للتسوية.
-                </p>
-                <div className="flex items-center gap-2 pt-0.5">
+                <div className="flex items-center gap-1.5 pt-0.5">
                   <a
                     href={getGoogleMapsVerifiedWhatsAppUrl(formData)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>إرسال إشعار التوثيق (Google Maps)</span>
@@ -1856,71 +1831,65 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopyText(generateGoogleMapsVerifiedWhatsAppMessage(formData), 'wa_maps')}
-                    className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                    className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                     title="نسخ نص الإشعار"
                   >
-                    {copiedField === 'wa_maps' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                    {copiedField === 'wa_maps' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
                   </button>
                 </div>
               </div>
 
               {/* Message 4: Overdue Warning (Strictly for activities with remaining debt) */}
               {remainingDebt > 0 && !isFeeExempt && (
-                <div className="bg-rose-500/10 border-2 border-rose-500/40 rounded-2xl p-3.5 space-y-2 transition-all shadow-xs">
+                <div className="bg-rose-500/10 border border-rose-500/40 rounded-2xl p-2.5 space-y-1.5 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-black text-xs text-rose-700 dark:text-rose-300">
-                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 stroke-[2.5]" />
-                      <span>4. رسالة إنذار المماطلة في السداد والمساءلة الإدارية ⚠️</span>
+                    <div className="flex items-center gap-1.5 font-black text-xs text-rose-700 dark:text-rose-300">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 stroke-[2.5]" />
+                      <span>3. إنذار بسداد المستحقات ({remainingDebt} ج.م) ⚠️</span>
                     </div>
-                    <span className="text-[9.5px] bg-rose-500/20 text-rose-700 dark:text-rose-300 font-black px-2 py-0.5 rounded-md border border-rose-500/40">
-                      إنذار 24 ساعة
+                    <span className="text-[9px] bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold px-2 py-0.5 rounded-md">
+                      تذكير نهائي
                     </span>
                   </div>
-                  <p className="text-[10.5px] text-rose-800 dark:text-rose-200 font-bold leading-relaxed">
-                    إنذار إداري ومالي رسمي صريح يوضح صدور الفاتورة وتوثيق النشاط بموافقته، مع التنبيه باتخاذ إجراءات خفض التقييم والإدراج بالقائمة السوداء حال المماطلة.
-                  </p>
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-1.5 pt-0.5">
                     <a
                       href={getOverdueWarningWhatsAppUrl(formData)}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-xs py-2 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                      className="flex-1 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>إرسال إنذار المماطلة الرسمي (WhatsApp) ⚠️</span>
+                      <span>إرسال إنذار السداد الرسمي (WhatsApp)</span>
                     </a>
                     <button
                       type="button"
                       onClick={() => handleCopyText(generateOverdueWarningWhatsAppMessage(formData), 'wa_warn')}
-                      className="bg-[var(--bg-card)] hover:bg-rose-500/15 text-rose-600 border border-rose-500/30 text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer shrink-0"
+                      className="bg-[var(--bg-card)] hover:bg-rose-500/15 text-rose-600 border border-rose-500/30 text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
                       title="نسخ نص الإنذار"
                     >
-                      {copiedField === 'wa_warn' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-rose-500" />}
+                      {copiedField === 'wa_warn' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-rose-500" />}
                     </button>
                   </div>
                 </div>
               )}
 
               {/* Message 3: Payment Receipt */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-3 space-y-2 transition-colors">
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-2.5 space-y-1.5 transition-colors">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                    <DollarSign className="w-4 h-4 text-emerald-500" />
-                    <span>3. رسالة إيصال السداد المالي والمخالصة النهائية ✅</span>
+                  <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>4. إيصال السداد المالي والمخالصة ✅</span>
                   </div>
-                  <span className="text-[9.5px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
-                    عند السداد الكامل
+                  <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                    المخالصة
                   </span>
                 </div>
-                <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                  تأكيد سداد المبلغ كاملاً وتصفية الحساب (0 ج.م متبقي) وإصدار الإيصال المعتمد للعميل.
-                </p>
-                <div className="flex items-center gap-2 pt-0.5">
+                <div className="flex items-center gap-1.5 pt-0.5">
                   <a
                     href={getPaymentReceiptWhatsAppUrl(formData)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                    className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>إرسال إيصال السداد للعميل</span>
@@ -1928,10 +1897,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopyText(generatePaymentReceiptWhatsAppMessage(formData), 'wa_pay')}
-                    className="bg-[var(--bg-card)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                    className="bg-[var(--bg-card)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                     title="نسخ نص الإيصال"
                   >
-                    {copiedField === 'wa_pay' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-emerald-500" />}
+                    {copiedField === 'wa_pay' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-emerald-500" />}
                   </button>
                 </div>
               </div>
@@ -1940,124 +1909,100 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
               {/* ── STRICT ADMIN/SUPERVISOR ONLY: MONTHLY NURTURING CAMPAIGNS ── */}
               {isAdminOrFinancial && (
-                <div className="pt-3 border-t border-[var(--border-color)] space-y-3">
+                <div className="pt-2 border-t border-[var(--border-color)] space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center font-black text-xs">
-                        🎁
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs">🎁</span>
                       <h5 className="font-black text-xs text-amber-700 dark:text-amber-300">
-                        حملات الرعاية والمتابعة الشهرية لتنمية الأنشطة (خاص بالإدارة والمشرفين)
+                        حملات الرعاية والمتابعة الدورية
                       </h5>
                     </div>
                     <span className="text-[9px] bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
-                      أدوات تسويقية ورعاية 4x
+                      أدوات التسويق 4x
                     </span>
                   </div>
 
                   {/* Campaign 1: Free QR Stand & 100 EGP Print Delivery */}
-                  <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/30 rounded-2xl p-3 space-y-2">
+                  <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                        <Gift className="w-4 h-4 text-amber-500" />
-                        <span>الحملة 1: 🎁 هدية باركود التقييمات + خدمة الطباعة (100 ج)</span>
+                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                        <Gift className="w-3.5 h-3.5 text-amber-500" />
+                        <span>الحملة 1: 🎁 هدية باركود التقييمات + الطباعة (100 ج)</span>
                       </div>
                       <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
                         هدية ومبيعات
                       </span>
                     </div>
-                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                      إرسال تصميم الـ QR مجاناً + عرض خدمة الطباعة الفاخرة والتوصيل لموقع المحل في نفس اليوم بتكلفة 100 ج.
-                    </p>
-                    <div className="flex items-center gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <a
                         href={getFreeQrGiftWhatsAppUrl(formData)}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-slate-950 font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-slate-950 font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>إرسال هدية الـ QR وعرض الطباعة (100 ج)</span>
+                        <span>إرسال هدية الـ QR وعرض الطباعة</span>
                       </a>
                       <button
                         type="button"
                         onClick={() => handleCopyText(generateFreeQrGiftWhatsAppMessage(formData), 'wa_qr_gift')}
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                         title="نسخ نص الرسالة"
                       >
-                        {copiedField === 'wa_qr_gift' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                        {copiedField === 'wa_qr_gift' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
                       </button>
                     </div>
                   </div>
 
                   {/* Campaign: Importance of QR Code & Explanatory Video Guide */}
-                  <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-blue-500/10 border border-blue-500/30 rounded-2xl p-3 space-y-2.5">
+                  <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-blue-500/10 border border-blue-500/30 rounded-xl p-2.5 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                        <QrCode className="w-4 h-4 text-blue-500" />
-                        <span>📲 أهمية وجود الـ QR Code داخل النشاط + فيديو الشرح</span>
+                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                        <QrCode className="w-3.5 h-3.5 text-blue-500" />
+                        <span>الحملة 2: 📲 أهمية الـ QR Code داخل النشاط</span>
                       </div>
-                      <span className="text-[9px] bg-blue-500/20 text-blue-900 dark:text-blue-300 font-black px-2 py-0.5 rounded-md">
+                      <span className="text-[9px] bg-blue-500/20 text-blue-900 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
                         مرفق فيديو توضيحي 🎥
                       </span>
                     </div>
-
-                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium leading-relaxed">
-                      رسالة توعوية احترافية تشرح لصاحب النشاط أهمية وضع الباركود لزيادة التقييمات والحضور الرقمي، مع إرسال فيديو شرح عملي.
-                    </p>
-
-                    {/* Admin Visual Notice */}
-                    <div className="bg-blue-500/15 border border-blue-500/30 rounded-xl p-2.5 text-[11px] text-blue-900 dark:text-blue-200 font-bold space-y-1">
-                      <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 font-black">
-                        <span>🎬</span>
-                        <span>تنبيه للإدارة والمشرفين:</span>
-                      </div>
-                      <p className="text-[10.5px] font-medium leading-relaxed">
-                        يُرجى إرفاق <strong>الفيديو التوضيحي</strong> لطريقة استخدام ومسح الباركود للزبائن مع هذه الرسالة عند إرسالها للعميل على الواتساب.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <a
                         href={getQrImportanceWhatsAppUrl(formData)}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>إرسال رسالة أهمية الـ QR (واتساب)</span>
+                        <span>إرسال رسالة الـ QR (واتساب)</span>
                       </a>
                       <button
                         type="button"
                         onClick={() => handleCopyText(generateQrImportanceWhatsAppMessage(formData), 'wa_qr_importance')}
-                        className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                         title="نسخ نص الرسالة"
                       >
-                        {copiedField === 'wa_qr_importance' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                        {copiedField === 'wa_qr_importance' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
                       </button>
                     </div>
                   </div>
 
                   {/* Campaign 2: Visual Merchandising & Free Consultation */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3 space-y-2 transition-colors">
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-xl p-2.5 space-y-1.5 transition-colors">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        <span>الحملة 2: 💡 نصيحة ذهبية واستشارة العرض البصري المجانية</span>
+                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>الحملة 3: 💡 استشارة العرض والتنسيق البصري المجانية</span>
                       </div>
                       <span className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
                         استشارة مجانية
                       </span>
                     </div>
-                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                      نصيحة أول 3 ثوانٍ للمشتري + دعوة لإرسال صورة المحل للحصول على تقرير واقتراحات تنسيق مجاناً وبكل سخاء.
-                    </p>
-                    <div className="flex items-center gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <a
                         href={getVisualConsultingWhatsAppUrl(formData)}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-2 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-1.5 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
                       >
                         <Send className="w-3.5 h-3.5 text-amber-400" />
                         <span>إرسال استشارة العرض والتنسيق</span>
@@ -2065,34 +2010,31 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCopyText(generateVisualConsultingWhatsAppMessage(formData), 'wa_visual')}
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                         title="نسخ نص الرسالة"
                       >
-                        {copiedField === 'wa_visual' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-amber-500" />}
+                        {copiedField === 'wa_visual' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
                       </button>
                     </div>
                   </div>
 
                   {/* Campaign 3: Business Checkup & Working Hours Update */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-3 space-y-2 transition-colors">
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-xl p-2.5 space-y-1.5 transition-colors">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                        <Clock className="w-4 h-4 text-blue-500" />
-                        <span>الحملة 3: ☕ فحص نبض النشاط وتحديث المواعيد مجاناً</span>
+                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                        <Clock className="w-3.5 h-3.5 text-blue-500" />
+                        <span>الحملة 4: ☕ فحص نبض النشاط وتحديث المواعيد</span>
                       </div>
                       <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
                         اطمئنان ودعم
                       </span>
                     </div>
-                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                      متابعة مبيعات العميل والاطمئنان عليه وعرض تحديث أرقامه ومواعيد عمله على الخرائط مجاناً.
-                    </p>
-                    <div className="flex items-center gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <a
                         href={getBusinessCheckupWhatsAppUrl(formData)}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-2 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-1.5 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
                       >
                         <Send className="w-3.5 h-3.5 text-blue-400" />
                         <span>إرسال رسالة الاطمئنان والمتابعة</span>
@@ -2100,45 +2042,42 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCopyText(generateBusinessCheckupWhatsAppMessage(formData), 'wa_checkup')}
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                         title="نسخ نص الرسالة"
                       >
-                        {copiedField === 'wa_checkup' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                        {copiedField === 'wa_checkup' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
                       </button>
                     </div>
                   </div>
 
                   {/* Campaign 4: Social Proof & VIP Upgrade */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-purple-500/40 rounded-2xl p-3 space-y-2 transition-colors">
+                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-purple-500/40 rounded-xl p-2.5 space-y-1.5 transition-colors">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                        <TrendingUp className="w-4 h-4 text-purple-500" />
-                        <span>الحملة 4: 📈 قصة نجاح وترقية باقة التسويق VIP 🚀</span>
+                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                        <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
+                        <span>الحملة 5: 📈 قصة نجاح وترقية باقة VIP 🚀</span>
                       </div>
                       <span className="text-[9px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">
                         ترقية باقات
                       </span>
                     </div>
-                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                      قصة نجاح زيادة 40% وعرض فيديو ريلز إعلاني + حملة إعلانات جغرافية مستهدفة لمنطقة المحل.
-                    </p>
-                    <div className="flex items-center gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <a
                         href={getSocialProofUpgradeWhatsAppUrl(formData)}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>إرسال قصة النجاح وعرض باقة VIP</span>
+                        <span>إرسال قصة النجاح وباقة VIP</span>
                       </a>
                       <button
                         type="button"
                         onClick={() => handleCopyText(generateSocialProofUpgradeWhatsAppMessage(formData), 'wa_social')}
-                        className="bg-[var(--bg-card)] hover:bg-purple-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                        className="bg-[var(--bg-card)] hover:bg-purple-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
                         title="نسخ نص الرسالة"
                       >
-                        {copiedField === 'wa_social' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-purple-500" />}
+                        {copiedField === 'wa_social' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-purple-500" />}
                       </button>
                     </div>
                   </div>
@@ -2151,54 +2090,50 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           {activeSection === 'admin_followup' && isAdminOrFinancial && (
             <div className="space-y-4 animate-fade-in">
               {/* Header Card */}
-              <div className="bg-gradient-to-r from-amber-500/15 via-[var(--input-bg)] to-amber-500/10 border-2 border-amber-500/30 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-500/25 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-lg shrink-0 shadow-2xs">
-                      <ClipboardList className="w-5 h-5 stroke-[2.5]" />
+              <div className="bg-gradient-to-r from-amber-500/10 via-[var(--input-bg)] to-amber-500/5 border border-amber-500/30 rounded-2xl p-3 sm:p-4 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-black shrink-0">
+                      <ClipboardList className="w-4 h-4 stroke-[2.5]" />
                     </div>
-                    <div>
-                      <h4 className="font-black text-sm sm:text-base text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                        <span>سجل المتابعات والملاحظات الإدارية الداخلية</span>
-                        <span className="text-[10px] bg-amber-500/20 text-amber-900 dark:text-amber-200 px-2.5 py-0.5 rounded-full font-bold">
-                          سري للإدارة 🔒
-                        </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                        سجل المتابعات (CRM)
                       </h4>
-                      <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
-                        أداة إدارة ومتابعة علاقات الأنشطة (CRM): تسجيل الاتصالات، الزيارات الميدانية، تذكيرات التحصيل وتاريخ المتابعات.
-                      </p>
+                      <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
+                        سري 🔒
+                      </span>
                     </div>
                   </div>
 
-                  <span className="text-xs font-black bg-amber-500 text-slate-950 px-3 py-1.5 rounded-xl shrink-0 self-start sm:self-auto shadow-2xs flex items-center gap-1.5">
-                    <span>إجمالي المتابعات:</span>
-                    <strong className="font-mono text-sm">{(formData.adminFollowUps || []).length}</strong>
+                  <span className="text-[11px] font-black bg-amber-500 text-slate-950 px-2.5 py-1 rounded-lg shrink-0 shadow-2xs">
+                    {(formData.adminFollowUps || []).length} إجراء
                   </span>
                 </div>
 
                 {/* Quick CRM Metrics Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
-                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">📞 اتصالات هاتفية</span>
-                    <span className="font-mono font-black text-sm text-[var(--text-primary)]">
+                <div className="grid grid-cols-4 gap-1.5 text-center text-xs">
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-xl">
+                    <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">📞 اتصالات</span>
+                    <span className="font-mono font-black text-xs text-[var(--text-primary)]">
                       {(formData.adminFollowUps || []).filter(f => f.type === 'call').length}
                     </span>
                   </div>
-                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
-                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">🏃 زيارات ميدانية</span>
-                    <span className="font-mono font-black text-sm text-[var(--text-primary)]">
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-xl">
+                    <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">🏃 زيارات</span>
+                    <span className="font-mono font-black text-xs text-[var(--text-primary)]">
                       {(formData.adminFollowUps || []).filter(f => f.type === 'visit').length}
                     </span>
                   </div>
-                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
-                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">💰 متابعات تحصيل</span>
-                    <span className="font-mono font-black text-sm text-[var(--text-primary)]">
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-xl">
+                    <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">💰 تحصيل</span>
+                    <span className="font-mono font-black text-xs text-[var(--text-primary)]">
                       {(formData.adminFollowUps || []).filter(f => f.type === 'payment').length}
                     </span>
                   </div>
-                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-xl">
-                    <span className="text-[10px] text-[var(--text-muted)] block font-bold">⏳ بانتظار متابعة</span>
-                    <span className="font-mono font-black text-sm text-amber-600 dark:text-amber-400">
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-1.5 rounded-xl">
+                    <span className="text-[9px] text-amber-600 dark:text-amber-300 block font-bold truncate">⏳ معلق</span>
+                    <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">
                       {(formData.adminFollowUps || []).filter(f => f.status === 'pending').length}
                     </span>
                   </div>
@@ -2206,131 +2141,116 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
 
               {/* ── ADD NEW FOLLOW-UP NOTE BOX ── */}
-              <div className="bg-[var(--input-bg)] border-2 border-[var(--border-color)] focus-within:border-amber-500/50 rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xs transition-colors">
-                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
-                  <h5 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-amber-500 stroke-[3]" />
-                    <span>تسجيل متابعة / ملاحظة جديدة</span>
+              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] focus-within:border-amber-500/50 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-2xs transition-colors">
+                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
+                  <h5 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5 text-amber-500 stroke-[3]" />
+                    <span>إضافة متابعة / ملاحظة</span>
                   </h5>
-                  <span className="text-[10px] text-[var(--text-secondary)] font-bold">
-                    المسؤول: <strong className="text-amber-600 dark:text-amber-400">{currentUserName ? `${currentUserName} (${currentRoleTitle || (userRole === 'accountant' ? 'محاسب' : userRole === 'supervisor' ? 'مشرف' : 'مدير')})` : (currentRoleTitle || (userRole === 'accountant' ? 'المحاسب المعتمد' : userRole === 'supervisor' ? 'المشرف' : 'مدير النظام'))}</strong>
+                  <span className="text-[10px] text-[var(--text-secondary)] font-bold truncate max-w-[180px]">
+                    <strong className="text-amber-600 dark:text-amber-400">{currentUserName || currentRoleTitle || 'المسؤول'}</strong>
                   </span>
                 </div>
 
                 {/* Type & Status Selectors */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[var(--text-muted)] block">نوع المتابعة:</label>
-                    <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
-                      {[
-                        { type: 'call', label: '📞 اتصال هاتفي', color: 'bg-emerald-600 text-white' },
-                        { type: 'visit', label: '🏃 زيارة ميدانية', color: 'bg-purple-600 text-white' },
-                        { type: 'payment', label: '💰 متابعة سداد وتحصيل', color: 'bg-amber-600 text-white' },
-                        { type: 'verification', label: '🌐 توثيق Google Maps', color: 'bg-blue-600 text-white' },
-                        { type: 'general', label: '📝 ملاحظة إدارية عامة', color: 'bg-slate-700 text-white' },
-                      ].map((item) => (
-                        <button
-                          key={item.type}
-                          type="button"
-                          onClick={() => setNewFollowUpType(item.type as AdminFollowUpType)}
-                          className={`px-2.5 py-1.5 rounded-xl border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
-                            newFollowUpType === item.type
-                              ? `${item.color} font-black shadow-xs scale-102`
-                              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar text-xs font-bold w-full sm:w-auto">
+                    {[
+                      { type: 'call', label: '📞 اتصال', color: 'bg-emerald-600 text-white' },
+                      { type: 'visit', label: '🏃 زيارة', color: 'bg-purple-600 text-white' },
+                      { type: 'payment', label: '💰 تحصيل', color: 'bg-amber-600 text-white' },
+                      { type: 'verification', label: '🌐 خرائط', color: 'bg-blue-600 text-white' },
+                      { type: 'general', label: '📝 عامة', color: 'bg-slate-700 text-white' },
+                    ].map((item) => (
+                      <button
+                        key={item.type}
+                        type="button"
+                        onClick={() => setNewFollowUpType(item.type as AdminFollowUpType)}
+                        className={`px-2 py-1 rounded-lg border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
+                          newFollowUpType === item.type
+                            ? `${item.color} font-black shadow-xs`
+                            : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[var(--text-muted)] block">حالة الإجراء:</label>
-                    <div className="flex items-center gap-1 text-xs font-bold">
-                      {[
-                        { status: 'completed', label: '✅ مكتملة' },
-                        { status: 'pending', label: '⏳ تتطلب متابعة' },
-                        { status: 'urgent', label: '🚨 عاجلة' },
-                      ].map((s) => (
-                        <button
-                          key={s.status}
-                          type="button"
-                          onClick={() => setNewFollowUpStatus(s.status as AdminFollowUpStatus)}
-                          className={`px-2.5 py-1.5 rounded-xl border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
-                            newFollowUpStatus === s.status
-                              ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)]'
-                          }`}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-1 text-xs font-bold">
+                    {[
+                      { status: 'completed', label: '✅ مكتمل' },
+                      { status: 'pending', label: '⏳ معلق' },
+                      { status: 'urgent', label: '🚨 عاجل' },
+                    ].map((s) => (
+                      <button
+                        key={s.status}
+                        type="button"
+                        onClick={() => setNewFollowUpStatus(s.status as AdminFollowUpStatus)}
+                        className={`px-2 py-1 rounded-lg border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
+                          newFollowUpStatus === s.status
+                            ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                            : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)]'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="space-y-1 min-w-[170px]">
-                    <label className="text-[10px] font-bold text-[var(--text-muted)] block">موعد المتابعة القادمة (اختياري):</label>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        value={newFollowUpNextDate}
-                        onChange={(e) => setNewFollowUpNextDate(e.target.value)}
-                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-2.5 py-1 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
+                  <div className="flex items-center gap-1 min-w-[140px] mr-auto">
+                    <span className="text-[10px] text-[var(--text-muted)] font-bold whitespace-nowrap">الموعد القادم:</span>
+                    <input
+                      type="date"
+                      value={newFollowUpNextDate}
+                      onChange={(e) => setNewFollowUpNextDate(e.target.value)}
+                      className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-2 py-0.5 text-[11px] font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
+                    />
                   </div>
                 </div>
 
                 {/* Quick Templates Buttons */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-[var(--text-muted)]">عبارات سريعة بنقرة واحدة:</span>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                    {[
-                      '📞 تم الاتصال بالمالك وأكد الاستعداد للسداد غداً',
-                      '⏳ تم التواصل وطلب مهلة حتى نهاية الأسبوع للمراجعة',
-                      '📍 تمت المعاينة الميدانية ومطابقة بيانات اللافتة والنشاط',
-                      '🌐 تم رفع وتوثيق النشاط على خرائط Google وبانتظار الاعتماد',
-                      '💳 تم التذكير بالمتبقي المالي وإرسال بيانات الحساب البنكي',
-                      '⚠️ لم يتم الرد على الهاتف وتم إرسال رسالة تذكير عبر الواتساب',
-                    ].map((tpl, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setNewFollowUpText(tpl)}
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)] hover:border-amber-500/40 text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 whitespace-nowrap cursor-pointer transition-colors"
-                      >
-                        {tpl}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+                  {[
+                    '📞 تم الاتصال وأكد السداد غداً',
+                    '⏳ طلب مهلة للمراجعة',
+                    '📍 تمت المعاينة ومطابقة اللافتة',
+                    '🌐 تم رفع وتوثيق الخريطة',
+                    '💳 تم إرسال بيانات السداد',
+                    '⚠️ لم يرد وتم إرسال واتساب',
+                  ].map((tpl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setNewFollowUpText(tpl)}
+                      className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)] hover:border-amber-500/40 text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 whitespace-nowrap cursor-pointer transition-colors"
+                    >
+                      {tpl}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Textarea */}
-                <div className="space-y-1">
+                {/* Textarea & Submit */}
+                <div className="space-y-2">
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={newFollowUpText}
                     onChange={(e) => setNewFollowUpText(e.target.value)}
-                    placeholder="اكتب تفاصيل المتابعة أو الملاحظة الإدارية هنا بالتفصيل (نتيجة التواصل، الاتفاقيات، ملاحظات تدقيق الخريطة أو التحصيل)..."
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] rounded-2xl p-3 text-xs font-medium focus:outline-none transition-colors leading-relaxed"
+                    placeholder="اكتب ملاحظة أو تفاصيل الإجراء هنا..."
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] rounded-xl p-2.5 text-xs font-medium focus:outline-none transition-colors leading-relaxed resize-none"
                   />
-                </div>
 
-                {/* Submit Button */}
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold">
-                    سيتم حفظ المتابعة فوراً مع التوثيق الزمني واسم المسؤول تلقائياً.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleAddFollowUp}
-                    disabled={!newFollowUpText.trim() || isSavingFollowUp}
-                    className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
-                  >
-                    <Save className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{isSavingFollowUp ? 'جاري الحفظ...' : 'حفظ المتابعة الإدارية'}</span>
-                  </button>
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={handleAddFollowUp}
+                      disabled={!newFollowUpText.trim() || isSavingFollowUp}
+                      className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>{isSavingFollowUp ? 'جاري الحفظ...' : 'تسجيل المتابعة'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2515,7 +2435,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         </div>
 
         {/* ── 5. CLEAN & ERGONOMIC BOTTOM SHEET FOOTER ────────────────── */}
-        <div className="p-3 sm:p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex items-center justify-between gap-2 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="p-2.5 sm:p-3 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex items-center justify-between gap-2 shrink-0 pb-[max(0.6rem,env(safe-area-inset-bottom))]">
           <div>
             {onDeleteBusiness && (userRole === 'admin' || userRole === 'supervisor') && (
               <button
@@ -2526,19 +2446,20 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     onClose();
                   }
                 }}
-                className="text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="text-rose-600 hover:text-rose-700 hover:bg-rose-500/15 border border-rose-500/20 text-xs font-bold p-2 sm:px-3 sm:py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                title="حذف النشاط"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>حذف النشاط</span>
+                <span className="hidden sm:inline">حذف النشاط</span>
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="bg-[var(--bg-card)] hover:bg-slate-500/10 text-[var(--text-secondary)] border border-[var(--border-color)] text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer active:scale-95"
+              className="bg-[var(--bg-card)] hover:bg-slate-500/10 text-[var(--text-secondary)] border border-[var(--border-color)] text-xs font-bold px-3.5 py-2 rounded-xl transition-colors cursor-pointer active:scale-95 shrink-0"
             >
               إغلاق
             </button>
@@ -2547,10 +2468,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 text-slate-950 text-xs font-black px-5 py-2 rounded-xl shadow-md transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                className="flex-1 sm:flex-initial bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 text-slate-950 text-xs sm:text-sm font-black px-4 sm:px-5 py-2 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                <span>حفظ التعديلات في السحابة</span>
+                <span>حفظ التعديلات</span>
               </button>
             )}
           </div>
