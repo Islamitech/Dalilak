@@ -255,19 +255,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const overdueReviewCount = overdueReviewBusinesses.length;
 
-  // Verified Businesses with Unpaid / Remaining Balance (Excluding fee-exempt activities)
+  // Activities with Google Maps placed & Unpaid / Remaining Balance (Excluding fee-exempt and free activities)
   const verifiedWithDebtBusinesses = useMemo(() => {
     return businesses.filter((b) => {
-      if (b.isFeeExempt || b.packagePrice === 0) return false;
-      const isLive = b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
+      // 1. Exclude fee-exempt or free activities strictly
+      const isExempt = Boolean(
+        b.isFeeExempt ||
+        (b.packagePrice || 0) === 0 ||
+        b.packageId === 'pkg_exempt' ||
+        b.packageId === 'pkg_already_on_google' ||
+        b.registrationType === 'already_on_google'
+      );
+      if (isExempt) return false;
+
+      // 2. Must strictly have official Google Maps URL placed for the activity
+      const hasGoogleMap = Boolean(
+        b.googleMapsUrl &&
+        typeof b.googleMapsUrl === 'string' &&
+        b.googleMapsUrl.trim().startsWith('http') &&
+        !b.googleMapsUrl.includes('search/?api=1&query=')
+      );
+      if (!hasGoogleMap) return false;
+
+      // 3. Must have remaining unpaid balance
       const remaining = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
-      return isLive && remaining > 0;
+      return remaining > 0 && b.paymentStatus !== 'fully_paid';
     });
   }, [businesses]);
 
   const verifiedWithDebtCount = verifiedWithDebtBusinesses.length;
   const verifiedWithDebtTotal = verifiedWithDebtBusinesses.reduce(
-    (sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)),
+    (sum, b) => sum + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)),
     0
   );
 
@@ -1238,10 +1256,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                   <div>
                     <p className="alert-title font-black text-sm">
-                      تنبيه مالي مهم: ({verifiedWithDebtCount}) أنشطة موثقة ومعتمدة على الخريطة ولها متبقي سداد!
+                      تنبيه مالي مهم: ({verifiedWithDebtCount}) أنشطة موثقة على الخريطة ولها متبقي سداد!
                     </p>
                     <p className="alert-desc text-[11px] font-bold mt-0.5">
-                      تم نشر هذه الأنشطة بنجاح على Google Maps، وما زال عليها مبالغ معلقة بإجمالي <strong className="font-mono font-black">{verifiedWithDebtTotal.toLocaleString()} ج.م</strong> بانتظار استكمال التحصيل.
+                      تم وضع ونشر خرائط Google لهذه الأنشطة بنجاح، وما زال عليها مبالغ معلقة بإجمالي <strong className="font-mono font-black">{verifiedWithDebtTotal.toLocaleString()} ج.م</strong> بانتظار استكمال التحصيل.
                     </p>
                   </div>
                 </div>
@@ -1615,7 +1633,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <option value="not_submitted">🚨 لم تُرسل بعد ({notSubmittedCount})</option>
               <option value="in_progress">⏳ بانتظار موافقة جوجل ({inProgressCount})</option>
               <option value="overdue">⏱️ تجاوزت مدة المراجعة ({overdueReviewCount})</option>
-              <option value="verified_debt">⚠️ موثقة وعليها متبقي سداد ({verifiedWithDebtCount})</option>
+              <option value="verified_debt">⚠️ موثقة على الخريطة ولها متبقي سداد ({verifiedWithDebtCount})</option>
               <option value="verified">✅ موثقة رسمياً ({verifiedCount})</option>
               <option value="rejected">❌ مرفوضة</option>
             </select>
