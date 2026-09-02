@@ -1558,11 +1558,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                           <h4 className="font-black text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
                             <span>رسائل التحفيز ونبض النشاط</span>
                             <span className="text-[10px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-full font-bold">
-                              مخصصة حسب التصنيف
+                              نصائح النجاح الذهبية لجميع الأنشطة 💡
                             </span>
                           </h4>
                           <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">
-                            إشادة بالأداء الميداني، زيارات الخريطة، وحلول عملية لزيادة رضا الزبائن
+                            استراتيجيات وتوجيهات عملية لزيادة الأرباح، تصدر السوق المحلي، وبناء ولاء دائم للعملاء
                           </p>
                         </div>
                       </div>
@@ -1574,11 +1574,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
                     {/* Category Selector Tabs */}
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-[var(--text-muted)]">اختر تصنيف النشاط لعرض رسائله المخصصة:</span>
+                      <span className="text-[10px] font-bold text-[var(--text-muted)]">اختر محور النصائح والتحفيز لإرساله عبر WhatsApp:</span>
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar text-[11px] font-bold">
                         {CATEGORY_MOTIVATIONAL_DATA.map((grp) => {
                           const isSelected = grp.groupName === currentGroupName;
-                          const isMatchAuto = grp.groupName === autoGroup.groupName;
                           return (
                             <button
                               key={grp.groupName}
@@ -1591,12 +1590,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                               }`}
                             >
                               <span>{grp.groupIcon}</span>
-                              <span>{grp.groupName.split(' ')[0]}</span>
-                              {isMatchAuto && (
-                                <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1 py-0.2 rounded">
-                                  نشاطكم
-                                </span>
-                              )}
+                              <span>{grp.groupName}</span>
                             </button>
                           );
                         })}
