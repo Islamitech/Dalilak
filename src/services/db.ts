@@ -43,7 +43,7 @@ export function getCachedBusinesses(): Business[] {
   return [];
 }
 
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,photos,videos,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,rep_location_url,google_maps_url,google_place_id,google_sync_status,google_sync_date,is_fee_exempt,fee_exemption_reason,is_already_on_google,registration_type,notes,created_at';
 
 /**
  * ⚡ Stale-While-Revalidate Full Cloud Fetch
@@ -145,11 +145,21 @@ export async function fetchBusinessPhotosOnDemand(businessId: string): Promise<s
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data[0]) {
-          return parsePhotosArray(data[0]);
+          const parsed = parsePhotosArray(data[0]);
+          if (parsed.length > 0) return parsed;
         }
       }
     } catch (err) {
-      console.warn('Supabase fetch photos on demand error:', err);
+      console.warn('Supabase fetch photos on demand REST error:', err);
+    }
+
+    try {
+      const { data, error } = await supabase.from('businesses').select('photos').eq('id', businessId).single();
+      if (!error && data) {
+        return parsePhotosArray(data);
+      }
+    } catch (sdkErr) {
+      console.warn('Supabase fetch photos on demand SDK error:', sdkErr);
     }
   }
   return [];
@@ -333,6 +343,14 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
   // 2. Real-time Supabase Cloud Update
   let syncedSuccessfully = false;
   if (isOnline && isSupabaseConfigured()) {
+    // Ensure any Base64 photos in updates are uploaded to Supabase Storage
+    if (updates.photos && Array.isArray(updates.photos) && updates.photos.some((p) => typeof p === 'string' && p.startsWith('data:image/'))) {
+      try {
+        const uploaded = await uploadMultipleMediaToStorage(updates.photos, 'photos');
+        updates.photos = uploaded;
+        mergedObj.photos = uploaded;
+      } catch {}
+    }
     const dbUpdates = mapBusinessToDb(updates as Business);
     const fullRecord = mapBusinessToDb(mergedObj);
 

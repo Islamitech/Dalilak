@@ -41,14 +41,14 @@ export function getSafeBusinessesForStorage(businesses: any[]): any[] {
             return p;
           })
           .filter(Boolean)
-          .slice(0, 2)
+          .slice(0, 12)
       : [];
 
     return {
       ...b,
       photos: cleanPhotos,
       videos: Array.isArray(b.videos) 
-        ? b.videos.filter((v: string) => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))).slice(0, 2) 
+        ? b.videos.filter((v: string) => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))).slice(0, 5) 
         : [],
     };
   });

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { getGoogleMapsVerifiedWhatsAppUrl, generateGoogleMapsVerifiedWhatsAppMessage } from '../utils/whatsappMessages';
+import { fetchBusinessPhotosOnDemand } from '../services/db';
 
 interface GoogleMapsSyncModalProps {
   business: Business;
@@ -47,6 +48,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
   const [currentStatus, setCurrentStatus] = useState<VerificationStatus>(business.verificationStatus || 'pending');
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [modalPhotos, setModalPhotos] = useState<string[]>(business.photos || []);
 
   useEffect(() => {
     if (isOpen) {
@@ -55,11 +57,24 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
       setVerifiedAddress(
         business.street && !business.street.includes('الموقع الجغرافي المسجل') ? business.street : ''
       );
+      setModalPhotos(business.photos || []);
+
+      if ((!business.photos || business.photos.length === 0) && business.id) {
+        fetchBusinessPhotosOnDemand(business.id).then((photos) => {
+          if (photos && photos.length > 0) {
+            setModalPhotos(photos);
+            if (onUpdateBusiness) {
+              onUpdateBusiness({ ...business, photos });
+            }
+          }
+        });
+      }
     }
   }, [isOpen, business]);
 
   if (!isOpen) return null;
 
+  const activePhotos = modalPhotos && modalPhotos.length > 0 ? modalPhotos : (business.photos || []);
   const repFieldMapUrl = business.repLocationUrl || (business.lat && business.lng ? `https://www.google.com/maps?q=${business.lat},${business.lng}` : '');
 
   const copyToClipboard = (text: string, key: string) => {
@@ -70,9 +85,9 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   };
 
   const handleDownloadAll = async () => {
-    if (!business.photos || business.photos.length === 0) return;
+    if (!activePhotos || activePhotos.length === 0) return;
     setIsDownloadingAll(true);
-    await downloadAllBusinessPhotos(business.photos, business.nameAr);
+    await downloadAllBusinessPhotos(activePhotos, business.nameAr);
     setIsDownloadingAll(false);
   };
 
@@ -329,11 +344,11 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 <div className="flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4 text-amber-500" />
                   <span className="font-black text-xs text-[var(--text-primary)]">
-                    صور النشاط الجاهزة للرفع ({business.photos?.length || 0})
+                    صور النشاط الجاهزة للرفع ({activePhotos.length})
                   </span>
                 </div>
 
-                {business.photos && business.photos.length > 0 && (
+                {activePhotos && activePhotos.length > 0 && (
                   <button
                     onClick={handleDownloadAll}
                     disabled={isDownloadingAll}
@@ -345,9 +360,9 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 )}
               </div>
 
-              {business.photos && business.photos.length > 0 ? (
+              {activePhotos && activePhotos.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
-                  {business.photos.map((photo, idx) => (
+                  {activePhotos.map((photo, idx) => (
                     <div 
                       key={idx}
                       className="group relative bg-[var(--bg-card)] rounded-xl overflow-hidden border border-[var(--border-color)] aspect-square flex items-center justify-center shadow-xs"
