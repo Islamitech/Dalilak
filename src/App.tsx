@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification, PayoutRequest, InterestedLead } from './types';
 import { DEFAULT_PAYMENT_CONFIG, EGYPT_GOVERNORATES, CATEGORY_GROUPS } from './data/mockData';
 import { calculateTotalRepCommission } from './utils/commission';
@@ -123,6 +123,11 @@ export default function App() {
     safeRemoveSessionItem('dalelak_session_last_active');
     return null;
   });
+
+  const userRef = useRef<User | null>(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   // Sync user state with localStorage and sessionStorage
   useEffect(() => {
@@ -440,14 +445,105 @@ export default function App() {
     }
   }, []);
 
+  // Comprehensive, clean session termination handler
+  const handleLogout = useCallback(() => {
+    // 1. Immediately invalidate userRef so no pending background fetches resurrect the user
+    userRef.current = null;
+
+    if (user?.id) {
+      // Release DB session lock
+      updateRepSessionInDb(user.id, undefined, undefined);
+
+      // Release server session lock
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
+      }).catch(() => {});
+
+      // Clear lock on representatives in local state
+      setRepresentatives((prev) =>
+        prev.map((r) =>
+          r.id === user.id || (user.role === 'admin' && r.role === 'admin')
+            ? { ...r, activeSessionId: undefined, lastActiveTimestamp: undefined }
+            : r
+        )
+      );
+    }
+
+    // 2. Close ALL active modals & sensitive administrative views immediately
+    setEditingBusiness(null);
+    setSelectedInvoiceBiz(null);
+    setSelectedPayBiz(null);
+    setSelectedVideoBiz(null);
+    setConvertingLead(null);
+    setShowAdminProfileModal(false);
+    setShowLoginModal(false);
+    setShowPackagesModal(false);
+    setShowPermissionsModal(false);
+
+    // 3. Clear user state and reset navigation tab
+    setUser(null);
+    setActiveTab('home');
+
+    // 4. Thoroughly purge all auth & session keys from storage
+    safeRemoveSessionItem('dalelak_active_user');
+    safeRemoveSessionItem('dalelak_session_last_active');
+    safeRemoveSessionItem('dalelak_auth_token');
+    safeRemoveLocalStorageItem('dalelak_auth_token');
+    safeRemoveLocalStorageItem('dalelak_logged_user');
+    safeRemoveLocalStorageItem('dalelak_session_expires_at');
+    safeRemoveLocalStorageItem('dalelak_last_interaction');
+    safeRemoveLocalStorageItem('dalelak_active_tab');
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('tab');
+    url.searchParams.delete('view');
+    url.searchParams.delete('id');
+    window.history.replaceState({}, '', url.toString());
+
+    addNotification('🔒 تم تسجيل الخروج بنجاح من الحساب.', 'info');
+    window.dispatchEvent(new CustomEvent('dalelak_offline_state_changed'));
+
+    // Refresh full cloud database list on logout so public view shows all businesses immediately
+    fetchBusinessesFromDb().then((freshData) => {
+      if (Array.isArray(freshData) && freshData.length > 0) {
+        setBusinesses(freshData);
+      }
+    }).catch(() => {});
+  }, [user]);
+
   // Live Session Expiration & Idle Inactivity Auto-Logout Watcher (Strict 20-minute inactivity timer)
   useEffect(() => {
     if (!user) return;
 
-    const updateActivity = () => {
+    const checkAndHandleInactivity = () => {
+      if (!userRef.current) return false;
       const now = Date.now();
-      safeSetLocalStorageItem('dalelak_last_interaction', String(now));
-      safeSetSessionItem('dalelak_session_last_active', String(now));
+      const lastInteraction = Number(
+        safeGetLocalStorageItem('dalelak_last_interaction') ||
+        safeGetSessionItem('dalelak_session_last_active')
+      ) || now;
+
+      if (now - lastInteraction >= INACTIVITY_TIMEOUT_MS) {
+        handleLogout();
+        addNotification(
+          '⏳ تم تسجيل الخروج تلقائياً لعدم التفاعل مع الحساب لمدة 20 دقيقة. يرجى تسجيل الدخول مجدداً.',
+          'warning'
+        );
+        return true;
+      }
+      return false;
+    };
+
+    const updateActivity = () => {
+      if (!userRef.current) return;
+      const isExpired = checkAndHandleInactivity();
+      if (!isExpired) {
+        const now = Date.now();
+        safeSetLocalStorageItem('dalelak_last_interaction', String(now));
+        safeSetSessionItem('dalelak_session_last_active', String(now));
+      }
     };
 
     window.addEventListener('click', updateActivity, { passive: true });
@@ -456,32 +552,29 @@ export default function App() {
     window.addEventListener('scroll', updateActivity, { passive: true });
     window.addEventListener('mousemove', updateActivity, { passive: true });
 
-    // Check inactivity every 15 seconds
+    // Check inactivity every 10 seconds
     const interval = setInterval(() => {
-      const now = Date.now();
-      const lastInteraction = Number(safeGetLocalStorageItem('dalelak_last_interaction') || safeGetSessionItem('dalelak_session_last_active')) || now;
+      checkAndHandleInactivity();
+    }, 10000);
 
-      const isIdle = (now - lastInteraction) >= INACTIVITY_TIMEOUT_MS;
-
-      if (isIdle) {
-        handleLogout();
-        setShowLoginModal(true);
-        addNotification(
-          '⏳ تم تسجيل الخروج تلقائياً لعدم التفاعل مع الحساب لمدة 20 دقيقة. يرجى تسجيل الدخول مجدداً.',
-          'warning'
-        );
+    // Also check immediately when tab/phone becomes visible (after phone lock or switching apps)
+    const handleVisibility = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        checkAndHandleInactivity();
       }
-    }, 15000);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('click', updateActivity);
       window.removeEventListener('touchstart', updateActivity);
       window.removeEventListener('keydown', updateActivity);
       window.removeEventListener('scroll', updateActivity);
       window.removeEventListener('mousemove', updateActivity);
     };
-  }, [user]);
+  }, [user, handleLogout]);
 
   // Fetch initial data with fast independent parallel fetches
   useEffect(() => {
@@ -517,12 +610,14 @@ export default function App() {
           setRepresentatives(dbRepsData);
 
           // Instant user state sync if logged-in representative data changed
-          if (user) {
+          if (userRef.current) {
+            const currentLoggedInId = userRef.current.id;
             const freshUserRep = dbRepsData.find(
-              (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
+              (r) => r.id === currentLoggedInId || (userRef.current?.email && r.email.toLowerCase() === userRef.current.email.toLowerCase())
             );
-            if (freshUserRep) {
-              const updatedUser = { ...user, repData: freshUserRep };
+            if (freshUserRep && userRef.current && userRef.current.id === currentLoggedInId) {
+              const updatedUser = { ...userRef.current, repData: freshUserRep };
+              userRef.current = updatedUser;
               setUser(updatedUser);
               safeSetSessionItem(
                 'dalelak_active_user',
@@ -582,12 +677,14 @@ export default function App() {
         fetchRepsFromDb().then((freshReps) => {
           if (Array.isArray(freshReps) && freshReps.length > 0) {
             setRepresentatives(freshReps);
-            if (user) {
+            if (userRef.current) {
+              const currentLoggedInId = userRef.current.id;
               const myFreshRep = freshReps.find(
-                (r) => r.id === user.id || r.email.toLowerCase() === user.email.toLowerCase()
+                (r) => r.id === currentLoggedInId || (userRef.current?.email && r.email.toLowerCase() === userRef.current.email.toLowerCase())
               );
-              if (myFreshRep) {
-                const updatedUser = { ...user, repData: myFreshRep };
+              if (myFreshRep && userRef.current && userRef.current.id === currentLoggedInId) {
+                const updatedUser = { ...userRef.current, repData: myFreshRep };
+                userRef.current = updatedUser;
                 setUser(updatedUser);
                 safeSetSessionItem(
                   'dalelak_active_user',
@@ -1546,53 +1643,7 @@ export default function App() {
     };
   }, [user]);
 
-  // Remove current user from session storage & release single-session lock
-  const handleLogout = useCallback(() => {
-    if (user?.id) {
-      // Release DB session lock
-      updateRepSessionInDb(user.id, undefined, undefined);
 
-      // Release server session lock
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
-      }).catch(() => {});
-
-      // Clear lock on representatives in local state
-      setRepresentatives((prev) =>
-        prev.map((r) =>
-          r.id === user.id || (user.role === 'admin' && r.role === 'admin')
-            ? { ...r, activeSessionId: undefined, lastActiveTimestamp: undefined }
-            : r
-        )
-      );
-    }
-
-    setUser(null);
-    safeRemoveSessionItem('dalelak_active_user');
-    safeRemoveSessionItem('dalelak_session_last_active');
-    safeRemoveSessionItem('dalelak_auth_token');
-    safeRemoveLocalStorageItem('dalelak_auth_token');
-    safeRemoveLocalStorageItem('dalelak_logged_user');
-    safeRemoveLocalStorageItem('dalelak_session_expires_at');
-    safeRemoveLocalStorageItem('dalelak_last_interaction');
-    safeRemoveLocalStorageItem('dalelak_active_tab');
-    setActiveTab('home');
-    const url = new URL(window.location.href);
-    url.searchParams.delete('tab');
-    window.history.replaceState({}, '', url.toString());
-
-    addNotification('🔒 تم تسجيل الخروج بنجاح من الحساب.', 'info');
-    window.dispatchEvent(new CustomEvent('dalelak_offline_state_changed'));
-
-    // Refresh full cloud database list on logout so public view shows all businesses immediately
-    fetchBusinessesFromDb().then((freshData) => {
-      if (Array.isArray(freshData) && freshData.length > 0) {
-        setBusinesses(freshData);
-      }
-    }).catch(() => {});
-  }, [user]);
 
   // Unified Clean Login Handler with Role Specification
   const handleLoginUser = useCallback((u: User) => {
@@ -2807,7 +2858,7 @@ export default function App() {
                 allReps={representatives}
                 allBusinesses={businesses}
                 payoutRequests={payoutRequests}
-                onLogout={() => setUser(null)}
+                onLogout={handleLogout}
                 onUpdateRep={handleUpdateRepresentative}
                 onRequestPayout={handleCreatePayoutRequest}
               />
@@ -2980,7 +3031,7 @@ export default function App() {
       )}
 
       {/* MODAL: FULL BUSINESS DATA VIEW & EDITING POP-UP */}
-      {editingBusiness && (
+      {editingBusiness && user && (
         <Suspense fallback={null}>
           <BusinessEditModal
             business={editingBusiness}
@@ -3011,7 +3062,7 @@ export default function App() {
       )}
 
       {/* MODAL: INVOICE VIEWER & WHATSAPP DISPATCH */}
-      {selectedInvoiceBiz && (
+      {selectedInvoiceBiz && user && (
         <InvoiceModal
           business={selectedInvoiceBiz}
           onClose={() => setSelectedInvoiceBiz(null)}
@@ -3029,7 +3080,7 @@ export default function App() {
       )}
 
       {/* MODAL: PAYMENT GATEWAY SIMULATION */}
-      {selectedPayBiz && (
+      {selectedPayBiz && user && (
         <Suspense fallback={null}>
           <PaymentGatewayModal
             business={selectedPayBiz}
@@ -3061,7 +3112,7 @@ export default function App() {
       )}
 
       {/* MODAL: LOGIN DIALOG */}
-      {showLoginModal && (
+      {showLoginModal && user && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
           onOpenAbout={() => setShowAboutModal(true)}
