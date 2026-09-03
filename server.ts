@@ -24,14 +24,18 @@ app.use((_req, res, next) => {
     process.env.APP_URL,
     'http://localhost:3001',
     'http://localhost:5173',
+    'https://www.dalilaak.com',
+    'https://dalilaak.com',
   ].filter(Boolean) as string[];
   const origin = _req.headers.origin || '';
-  if (!origin || allowedOrigins.some((o) => origin.startsWith(o))) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (_req.method === 'OPTIONS') {
     return res.status(204).end();
   }
@@ -41,6 +45,10 @@ app.use((_req, res, next) => {
 // 🛡️ Security Helpers: Cross-Platform Universal Password Hashing & Verification
 function hashPassword(password: string): string {
   if (!password) return '';
+  // منع إعادة تشفير الهاشات الموجودة مسبقاً (Account Lockout Protection)
+  if (password.startsWith('sha256:') || password.startsWith('scrypt:')) {
+    return password;
+  }
   const hash = crypto.createHash('sha256').update(password.trim()).digest('hex');
   return `sha256:${hash}`;
 }
@@ -121,7 +129,6 @@ function getRequestUser(req: express.Request): ActiveSession | null {
   const authHeader = req.headers.authorization;
   const token = authHeader?.replace(/^Bearer\s+/i, '');
   const sessionId = (req.headers['x-session-id'] as string) || '';
-  const userId = (req.headers['x-user-id'] as string) || '';
 
   // 1. Direct active token lookup
   if (token && activeSessions.has(token)) {
@@ -143,20 +150,17 @@ function getRequestUser(req: express.Request): ActiveSession | null {
     }
   }
 
-  // 3. Representative live session verification from stored database
-  if (sessionId || userId) {
+  // 3. Representative live session verification strictly via valid activeSessionId
+  if (sessionId && sessionId.startsWith('sess_')) {
     const reps = representatives.length > 0 ? representatives : loadStoredReps();
-    const rep = reps.find((r) => 
-      (sessionId && r.activeSessionId === sessionId) ||
-      (userId && r.id === userId && (!sessionId || r.activeSessionId === sessionId))
-    );
+    const rep = reps.find((r) => r.activeSessionId === sessionId);
     if (rep && rep.status !== 'suspended') {
       const sessionObj: ActiveSession = {
         userId: rep.id,
         role: rep.role || 'rep',
         expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       };
-      if (sessionId) activeSessions.set(sessionId, sessionObj);
+      activeSessions.set(sessionId, sessionObj);
       return sessionObj;
     }
   }
@@ -323,6 +327,10 @@ app.get('/api/test-mode', (_req, res) => {
 });
 
 app.post('/api/test-mode', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (process.env.NODE_ENV === 'production' && (!reqUser || reqUser.role !== 'admin')) {
+    return res.status(403).json({ error: 'غير مصرح: تفعيل أو تعطيل وضع الاختبار في بيئة الإنتاج مقتصر على مدير النظام' });
+  }
   if (typeof req.body.testMode === 'boolean') {
     isServerTestMode = req.body.testMode;
   }
@@ -555,6 +563,19 @@ app.post('/api/businesses', (req, res) => {
 app.put('/api/businesses/:id', (req, res) => {
   const { id } = req.params;
   const index = businesses.findIndex((b) => b.id === id);
+
+  const reqUser = getRequestUser(req);
+  if (!isServerTestMode && index >= 0) {
+    if (!reqUser) {
+      return res.status(401).json({ error: 'يرجى تسجيل الدخول لتعديل النشاط' });
+    }
+    const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor' || reqUser.role === 'accountant';
+    const isOwner = businesses[index].repId === reqUser.userId;
+    if (!isManager && !isOwner) {
+      return res.status(403).json({ error: 'غير مصرح بتعديل هذا النشاط' });
+    }
+  }
+
   if (index === -1) {
     businesses.unshift({ ...req.body, id });
   } else {
@@ -724,6 +745,10 @@ app.post('/api/payouts', (req, res) => {
 });
 
 app.put('/api/payouts/:id', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!isServerTestMode && (!reqUser || (reqUser.role !== 'admin' && reqUser.role !== 'supervisor' && reqUser.role !== 'accountant'))) {
+    return res.status(403).json({ error: 'غير مصرح: اعتماد أو تعديل طلبات الصرف والتوريد مقتصر على الإدارة والمحاسبين فقط' });
+  }
   const { id } = req.params;
   const idx = payoutRequests.findIndex((p) => p.id === id);
   if (idx === -1) {

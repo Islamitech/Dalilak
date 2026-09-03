@@ -387,8 +387,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             capturedThumbnailUrl = thumbUrl;
           }
 
-          const videoDataUrl = await convertVideoToDataUrl(file);
-          const publicVideoUrl = await uploadMediaToSupabaseStorage(videoDataUrl, 'videos');
+          const publicVideoUrl = await uploadMediaToSupabaseStorage(file, 'videos');
           if (publicVideoUrl && (publicVideoUrl.startsWith('http://') || publicVideoUrl.startsWith('https://'))) {
             newVideos.push(publicVideoUrl);
           } else {

@@ -43,6 +43,16 @@ declare global {
 
 export type MapTileLayerType = 'google-hybrid' | 'google-streets' | 'cartodb';
 
+function escapeHtml(str?: string | null): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 interface InteractiveMapProps {
   mode?: 'picker' | 'view';
   lat?: number;
@@ -345,13 +355,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         const color = isVerified ? '#10b981' : '#f59e0b';
         const bg = isVerified ? '#064e3b' : '#78350f';
 
+        const safeName = escapeHtml(biz.nameAr || 'نشاط تجاري');
         const bizIcon = window.L.divIcon({
           className: 'custom-biz-pin',
           html: `
             <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
               <div style="background: ${bg}; border: 1.5px solid ${color}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; items-center; gap: 4px;">
                 <span style="color: ${color};">📍</span>
-                <span>${biz.nameAr}</span>
+                <span>${safeName}</span>
               </div>
             </div>
           `,

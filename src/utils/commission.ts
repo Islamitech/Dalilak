@@ -38,8 +38,10 @@ export function calculateBusinessCommission(
 ): number {
   if (isFeeExempt || _packagePrice === 0) return 0;
   const paid = amountPaid || 0;
-  // If rate >= 100 (admin/direct platform account), rep commission is 0%
-  const effectiveRate = (rate > 0 && rate < 100) ? rate : (rate >= 100 ? 0 : DEFAULT_COMMISSION_RATE);
+  // If rate is 0 or >= 100 (admin/direct platform account), rep commission is 0%
+  const effectiveRate = typeof rate === 'number' && rate >= 0 && rate < 100
+    ? rate
+    : (rate >= 100 ? 0 : DEFAULT_COMMISSION_RATE);
   return Math.round((paid * effectiveRate) / 100);
 }
 
@@ -50,7 +52,7 @@ export function calculateTotalRepCommission(
   businesses: Array<{ packagePrice: number; amountPaid: number; isFeeExempt?: boolean }>,
   rate: number = DEFAULT_COMMISSION_RATE
 ): number {
-  const commissionRate = rate || DEFAULT_COMMISSION_RATE;
+  const commissionRate = typeof rate === 'number' && rate >= 0 ? (rate >= 100 ? 0 : rate) : DEFAULT_COMMISSION_RATE;
   return businesses.reduce((sum, b) => {
     if (b.isFeeExempt || b.packagePrice === 0) return sum;
     return sum + calculateBusinessCommission(b.packagePrice, b.amountPaid, commissionRate, b.isFeeExempt);
@@ -127,7 +129,7 @@ export function calculateRepCommissionFromCash(
   businesses: Array<{ packagePrice: number; amountPaid: number; paymentMethod?: string; cashCollectedByRep?: number; isFeeExempt?: boolean }>,
   rate: number = DEFAULT_COMMISSION_RATE
 ): number {
-  const commissionRate = rate || DEFAULT_COMMISSION_RATE;
+  const commissionRate = typeof rate === 'number' && rate >= 0 ? (rate >= 100 ? 0 : rate) : DEFAULT_COMMISSION_RATE;
   return businesses.reduce((sum, b) => {
     if (b.isFeeExempt || b.packagePrice === 0) return sum;
     const paid = Number(b.amountPaid) || 0;

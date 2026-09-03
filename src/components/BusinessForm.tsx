@@ -329,8 +329,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             continue;
           }
 
-          const videoDataUrl = await convertVideoToDataUrl(file);
-          const publicVideoUrl = await uploadMediaToSupabaseStorage(videoDataUrl, 'videos');
+          const publicVideoUrl = await uploadMediaToSupabaseStorage(file, 'videos');
           if (publicVideoUrl && (publicVideoUrl.startsWith('http://') || publicVideoUrl.startsWith('https://'))) {
             newVideos.push(publicVideoUrl);
           } else {
@@ -497,7 +496,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       googleMapsUrl: finalGoogleMapUrl,
       googleSyncStatus: 'not_synced',
       googleSyncDate: undefined,
-      invoiceNumber: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${timestamp.toString().slice(-6)}`,
       invoiceDate: new Date().toISOString().split('T')[0],
       createdDate: new Date().toISOString(),
       notes: notes || undefined,
@@ -592,7 +591,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       repLocationUrl: `https://www.google.com/maps?q=${lat},${lng}`,
       googleMapsUrl: undefined, // Strictly verified by Admin only
       googleSyncStatus: 'not_synced',
-      invoiceNumber: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${timestamp.toString().slice(-6)}`,
       invoiceDate: new Date().toISOString().split('T')[0],
       createdDate: new Date().toISOString(),
       notes: notes || undefined,

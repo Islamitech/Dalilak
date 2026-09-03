@@ -52,10 +52,21 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     rep: 'from-blue-600 via-blue-700 to-indigo-700 border-blue-400 text-white shadow-blue-500/20',
   }[role];
 
+  // If avatar is packed JSON string, extract real avatar image URL if present
+  let resolvedAvatar = avatar;
+  if (typeof avatar === 'string' && avatar.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(avatar.trim());
+      if (parsed && typeof parsed.avatar === 'string') {
+        resolvedAvatar = parsed.avatar;
+      }
+    } catch {}
+  }
+
   const isValidImageUrl =
-    avatar &&
-    avatar.trim().length > 5 &&
-    (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:') || avatar.startsWith('blob:') || avatar.startsWith('/'));
+    resolvedAvatar &&
+    resolvedAvatar.trim().length > 5 &&
+    (resolvedAvatar.startsWith('http://') || resolvedAvatar.startsWith('https://') || resolvedAvatar.startsWith('data:') || resolvedAvatar.startsWith('blob:') || resolvedAvatar.startsWith('/'));
 
   const isPending = avatarStatus === 'pending_approval';
 
@@ -75,7 +86,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     return (
       <div className={`relative ${dimensions} rounded-2xl overflow-hidden border-2 ${isPending ? 'border-amber-500/80 shadow-amber-500/20' : avatarStatus === 'rejected' ? 'border-rose-500/80' : 'border-amber-500/50'} shadow-md ${className}`}>
         <img
-          src={avatar}
+          src={resolvedAvatar}
           alt={name}
           loading="lazy"
           decoding="async"

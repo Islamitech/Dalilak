@@ -9,6 +9,7 @@ import { getRepReferralCode, isReferralSystemUnlocked, isReferredByInviter } fro
 import { compressImageFile } from '../utils/imageCompressor';
 import { exportBusinessesToCsv, exportRepsToCsv, exportPayoutsToCsv } from '../utils/exportCsv';
 import { canUserDeleteAccount } from '../utils/permissions';
+import { hashPassword } from '../utils/crypto';
 import { UserAvatar } from './UserAvatar';
 import { BusinessEditModal } from './BusinessEditModal';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
@@ -713,14 +714,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setModalTarget(rep.targetMonth || 25);
     setModalCommission(rep.commissionRate || 42.86);
     setModalStatus(rep.status || 'active');
-    setModalPassword(rep.password || 'Aa123456');
+    setModalPassword(''); // تترك فارغة لمنع إعادة تشفير الهاش القديم وقفل الحساب
     setModalReferralCode(getRepReferralCode(rep));
     setModalReferredByCode(rep.referredByCode || '');
     setModalAdminBypassReferral(Boolean(rep.adminBypassReferral || rep.referralUnlocked));
     setShowAccountModal(true);
   };
 
-  const handleSaveAccountModal = (e: React.FormEvent) => {
+  const handleSaveAccountModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalName.trim()) return;
 
@@ -733,6 +734,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (editingAccId) {
       const existing = mergedAdminReps.find((r) => r.id === editingAccId) || representatives.find((r) => r.id === editingAccId);
       if (existing && onUpdateRepresentative) {
+        let finalPassword = existing.password || 'Aa123456';
+        if (modalPassword.trim()) {
+          finalPassword = await hashPassword(modalPassword.trim());
+        }
         onUpdateRepresentative({
           ...existing,
           name: modalName.trim(),
@@ -744,7 +749,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           targetMonth: Number(modalTarget) || 25,
           commissionRate: Number(modalCommission) || 42.86,
           status: modalStatus,
-          password: modalPassword || existing.password || 'Aa123456',
+          password: finalPassword,
           referralCode: modalReferralCode.trim().toUpperCase() || existing.referralCode,
           referredByCode: modalReferredByCode.trim().toUpperCase() || undefined,
           adminBypassReferral: modalAdminBypassReferral,
@@ -753,6 +758,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
     } else {
       const newRepId = `rep_${Date.now()}`;
+      const finalPassword = modalPassword.trim() ? await hashPassword(modalPassword.trim()) : await hashPassword('Aa123456');
       onAddRepresentative({
         id: newRepId,
         name: modalName.trim(),
@@ -764,7 +770,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         targetMonth: Number(modalTarget) || 25,
         commissionRate: Number(modalCommission) || 42.86,
         status: modalStatus,
-        password: modalPassword || 'Aa123456',
+        password: finalPassword,
         referralCode: modalReferralCode.trim().toUpperCase() || `DALIL-${Date.now().toString().slice(-4)}`,
         referredByCode: modalReferredByCode.trim().toUpperCase() || undefined,
         adminBypassReferral: modalAdminBypassReferral,
@@ -3125,10 +3131,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                   {/* Password */}
                   <div>
-                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">كلمة المرور *</label>
+                    <label className="block text-[var(--text-secondary)] font-bold text-xs mb-1">
+                      {editingAccId ? 'تغيير كلمة المرور (اختياري)' : 'كلمة المرور *'}
+                    </label>
                     <input
                       type="text"
-                      required
+                      required={!editingAccId}
+                      placeholder={editingAccId ? 'اتركها فارغة للإبقاء على الحالية' : 'Aa123456'}
                       value={modalPassword}
                       onChange={(e) => setModalPassword(e.target.value)}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"

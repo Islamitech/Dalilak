@@ -26,8 +26,29 @@ const DIRECTORY_URL = 'https://www.dalilaak.com/?ref=app';
 
 export function formatWhatsAppPhone(phone?: string): string {
   if (!phone) return '';
-  const clean = phone.replace(/\D/g, '').replace(/^0/, '');
-  return clean.startsWith('20') ? clean : `20${clean}`;
+  const trimmed = phone.trim();
+  const digits = trimmed.replace(/\D/g, '');
+  if (!digits) return '';
+
+  // 1. If explicitly prefixed with +
+  if (trimmed.startsWith('+')) {
+    return digits;
+  }
+
+  // 2. If already starts with Egyptian country code '20'
+  if (digits.startsWith('20')) {
+    return digits;
+  }
+
+  // 3. Known Arab & International country codes (Saudi, UAE, Kuwait, Jordan, etc.)
+  const intlPrefixes = ['966', '971', '965', '968', '974', '973', '962', '218', '249', '1', '44', '49', '33'];
+  if (intlPrefixes.some((p) => digits.startsWith(p)) && digits.length >= 10) {
+    return digits;
+  }
+
+  // 4. Standard Egyptian local phone (starts with 01...)
+  const localClean = digits.replace(/^0+/, '');
+  return `20${localClean}`;
 }
 
 /**

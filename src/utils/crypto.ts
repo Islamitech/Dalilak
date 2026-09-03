@@ -12,6 +12,11 @@ export async function hashPassword(plainText: string): Promise<string> {
   const clean = (plainText || '').trim();
   if (!clean) return '';
 
+  // Prevent double-hashing if password is already hashed
+  if (clean.startsWith(HASH_PREFIX) || clean.startsWith('scrypt:')) {
+    return clean;
+  }
+
   if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
     const encoder = new TextEncoder();
     const data = encoder.encode(clean);

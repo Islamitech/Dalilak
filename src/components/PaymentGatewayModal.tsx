@@ -120,7 +120,17 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           {/* Notice: Active Wallets & InstaPay */}
           <div className="bg-emerald-500/10 border border-emerald-500/25 p-2.5 rounded-xl flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
-            <span>طرق الدفع المعتمدة والمفعلة حالياً هي <strong>المحافظ الإلكترونية (فودافون كاش)</strong> وشبكة <strong>إنستاباي اللحظية ({activeInstaPayHandle})</strong>.</span>
+            <span>طرق التحصيل الميداني المعتمدة حالياً: <strong>المحافظ الإلكترونية (فودافون كاش)</strong> وشبكة <strong>إنستاباي اللحظية ({activeInstaPayHandle})</strong>.</span>
+          </div>
+
+          {/* Admin Integration Note */}
+          <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+            <p className="font-extrabold flex items-center gap-1.5">
+              <span>ℹ️ توجيه لمسؤول المنظومة والمحاسب:</span>
+            </p>
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
+              يتم تحصيل المبالغ ميدانياً عبر تحويل مباشر لرقم المحفظة أو عنوان إنستاباي أعلاه، ثم يقوم المندوب أو المحاسب بتأكيد استلام الحوالة لتحديث الفاتورة. ولتفعيل الدفع الإلكتروني التلقائي الفوري (بطاقات Visa/Mastercard وماكينات فوري) يلزم تزويد النظام بمفاتيح الربط البنكي (Paymob API Keys أو Fawry Merchant Code) عبر لوحة إدارة بوابات الدفع.
+            </p>
           </div>
 
           {/* Payment Methods Tabs */}

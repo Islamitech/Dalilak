@@ -98,30 +98,22 @@ export function isReferredByInviter(invitedRep: Representative, inviterRep: Repr
     return true;
   }
 
-  // 2. 4-digit code suffix match (e.g. '8355' matches 'DALIL-8355')
-  const inviterDigits = (inviterRep.referralCode || '').replace(/\D/g, '').slice(-4) ||
-    inviterRep.phone.replace(/\D/g, '').slice(-4) ||
-    inviterRep.id.replace(/\D/g, '').slice(-4);
-
-  const refDigits = rawRefBy.replace(/\D/g, '').slice(-4);
-  if (inviterDigits && refDigits && inviterDigits === refDigits) {
-    return true;
-  }
-
-  // 3. Match by inviter's phone number
+  // 2. Exact match by inviter's phone number (Must be full Egyptian phone >= 10 digits to prevent collision)
   const inviterCleanPhone = (inviterRep.phone || '').replace(/\D/g, '');
   const refCleanPhone = rawRefBy.replace(/\D/g, '');
-  if (inviterCleanPhone && refCleanPhone && (inviterCleanPhone === refCleanPhone || inviterCleanPhone.endsWith(refCleanPhone) || refCleanPhone.endsWith(inviterCleanPhone))) {
-    return true;
+  if (inviterCleanPhone && refCleanPhone && refCleanPhone.length >= 10 && inviterCleanPhone.length >= 10) {
+    if (inviterCleanPhone === refCleanPhone || inviterCleanPhone.endsWith(refCleanPhone) || refCleanPhone.endsWith(inviterCleanPhone)) {
+      return true;
+    }
   }
 
-  // 4. Match by inviter's email
+  // 3. Match by inviter's email
   const inviterEmail = (inviterRep.email || '').trim().toLowerCase();
   if (inviterEmail && rawRefBy.toLowerCase() === inviterEmail) {
     return true;
   }
 
-  // 5. Match by inviter's unique ID
+  // 4. Match by inviter's unique ID
   const inviterId = (inviterRep.id || '').trim().toLowerCase();
   if (inviterId && rawRefBy.toLowerCase() === inviterId) {
     return true;

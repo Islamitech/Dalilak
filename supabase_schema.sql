@@ -280,10 +280,25 @@ DROP POLICY IF EXISTS "Public full access to leads" ON public.leads;
 CREATE POLICY "Public full access to leads" ON public.leads 
     FOR ALL USING (true) WITH CHECK (true);
 
--- 8.5 representatives: Basic sync access with server-level auth orchestration
+-- 8.5 representatives: Sync access with restricted deletion
 DROP POLICY IF EXISTS "Public full access to representatives" ON public.representatives;
-CREATE POLICY "Representatives sync access" ON public.representatives 
-    FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Representatives sync access" ON public.representatives;
+DROP POLICY IF EXISTS "Representatives select access" ON public.representatives;
+DROP POLICY IF EXISTS "Representatives insert access" ON public.representatives;
+DROP POLICY IF EXISTS "Representatives update access" ON public.representatives;
+DROP POLICY IF EXISTS "Representatives delete restricted" ON public.representatives;
+
+CREATE POLICY "Representatives select access" ON public.representatives 
+    FOR SELECT USING (true);
+
+CREATE POLICY "Representatives insert access" ON public.representatives 
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Representatives update access" ON public.representatives 
+    FOR UPDATE USING (true) WITH CHECK (true);
+
+CREATE POLICY "Representatives delete restricted" ON public.representatives 
+    FOR DELETE USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 
 -- =============================================================================
@@ -349,7 +364,7 @@ FOR UPDATE USING (bucket_id = 'business-media');
 
 DROP POLICY IF EXISTS "Allow deletes to business-media" ON storage.objects;
 CREATE POLICY "Allow deletes to business-media" ON storage.objects
-FOR DELETE USING (bucket_id = 'business-media');
+FOR DELETE USING (bucket_id = 'business-media' AND (auth.role() = 'authenticated' OR auth.role() = 'service_role'));
 
 -- =============================================================================
 -- 11. SOFT DELETE: أعمدة الحذف الناعم (تسمح باسترجاع السجلات المحذوفة)

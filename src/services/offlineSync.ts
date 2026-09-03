@@ -127,7 +127,7 @@ export async function getOfflineBusinesses(targetUserId?: string | null): Promis
         const filtered = all.filter((b: any) => {
           const recordUid = (b._offlineUserId || b.repId || '').toString().toLowerCase();
           const currentUidStr = effectiveUid.toString().toLowerCase();
-          return recordUid === currentUidStr || recordUid === 'unknown';
+          return recordUid === currentUidStr;
         });
         resolve(filtered);
       };
@@ -204,7 +204,7 @@ export async function getOfflineLeads(targetUserId?: string | null): Promise<Int
         const filtered = all.filter((l: any) => {
           const recordUid = (l._offlineUserId || l.repId || '').toString().toLowerCase();
           const currentUidStr = effectiveUid.toString().toLowerCase();
-          return recordUid === currentUidStr || recordUid === 'unknown';
+          return recordUid === currentUidStr;
         });
         resolve(filtered);
       };
@@ -283,7 +283,7 @@ export async function getOfflinePayouts(targetUserId?: string | null): Promise<P
         const filtered = all.filter((p: any) => {
           const recordUid = (p._offlineUserId || p.repId || '').toString().toLowerCase();
           const currentUidStr = effectiveUid.toString().toLowerCase();
-          return recordUid === currentUidStr || recordUid === 'unknown';
+          return recordUid === currentUidStr;
         });
         resolve(filtered);
       };

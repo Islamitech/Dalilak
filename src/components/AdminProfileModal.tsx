@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { User, Representative, UserRole } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
+import { hashPassword } from '../utils/crypto';
 import {
   User as UserIcon,
   Camera,
@@ -64,8 +65,8 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
   const [status, setStatus] = useState<'active' | 'suspended'>(rep?.status || 'active');
 
   // Security & Password
-  const [password, setPassword] = useState<string>(rep?.password || 'Aa123456');
-  const [confirmPassword, setConfirmPassword] = useState<string>(rep?.password || 'Aa123456');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   // Documents & Photos
@@ -123,14 +124,26 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (password && confirmPassword && password !== confirmPassword) {
+    const hasNewPassword = Boolean(password.trim() || confirmPassword.trim());
+    if (hasNewPassword && password !== confirmPassword) {
       setErrorMsg('كلمة المرور وتأكيد كلمة المرور غير متطابقين.');
       setActiveTab('security');
       return;
+    }
+
+    if (hasNewPassword && password.trim().length < 6) {
+      setErrorMsg('كلمة المرور يجب أن لا تقل عن 6 أحرف أو أرقام.');
+      setActiveTab('security');
+      return;
+    }
+
+    let finalPassword = rep?.password;
+    if (hasNewPassword) {
+      finalPassword = await hashPassword(password.trim());
     }
 
     // Strict Role & Permission Security Guard: Non-admins cannot alter their role, status, or commission
@@ -149,7 +162,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
       targetMonth: isCallerAdmin ? (Number(targetMonth) || 25) : (rep?.targetMonth || 25),
       commissionRate: isCallerAdmin ? (Number(commissionRate) || 42.86) : (rep?.commissionRate || 42.86),
       status: isCallerAdmin ? status : (rep?.status || 'active'),
-      password: password.trim() || undefined,
+      password: finalPassword,
       avatar: avatar,
       avatarStatus: 'approved',
       nationalIdCardPhoto: nationalIdCardPhoto || undefined,
@@ -727,14 +740,14 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Password Field */}
                 <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">كلمة المرور الجديدة</label>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">كلمة المرور الجديدة (اختياري)</label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl pr-3 pl-9 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
+                      placeholder="اتركها فارغة للإبقاء على الحالية"
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono text-xs rounded-xl pr-3 pl-9 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
                     />
                     <button
                       type="button"

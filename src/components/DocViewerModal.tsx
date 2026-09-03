@@ -30,7 +30,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
   if (!docType) return null;
 
   const repCode = `REP-2026-${rep.id.replace(/\D/g, '') || '084'}`;
-  const nationalId = rep.nationalId || '29805120104892';
+  const nationalId = rep.nationalId || '— (قيد التوثيق)';
   const qrData = `DALEELEK-OFFICIAL-CONTRACT-${rep.name}-${nationalId}-${repCode}`;
   const qrImageUrl = generateQrDataUrl(qrData, 150);
 
