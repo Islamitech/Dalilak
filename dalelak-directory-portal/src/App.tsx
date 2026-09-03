@@ -6,7 +6,9 @@ import { supabase } from './services/storage';
 
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
-const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=*&order=created_at.desc`;
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
+const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&order=created_at.desc`;
+const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&order=created_at.desc`;
 
 export default function App() {
   const [businesses, setBusinesses] = useState<Business[]>(() => {
@@ -131,7 +133,7 @@ export default function App() {
       if (!force && typeof document !== 'undefined' && document.hidden) return;
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
         const res = await fetch(SUPABASE_REST_URL, {
@@ -160,6 +162,31 @@ export default function App() {
 
               return updated;
             });
+
+            // 📸 Non-blocking background photo hydration
+            fetch(SUPABASE_PHOTOS_URL, {
+              headers: {
+                apikey: SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+              },
+            })
+              .then((r) => (r.ok ? r.json() : []))
+              .then((photosData) => {
+                if (Array.isArray(photosData) && photosData.length > 0 && isMounted) {
+                  const photoMap = new Map<string, string[]>();
+                  photosData.forEach((item: any) => {
+                    if (item.id && Array.isArray(item.photos) && item.photos.length > 0) {
+                      photoMap.set(item.id, item.photos);
+                    }
+                  });
+                  if (photoMap.size > 0) {
+                    setBusinesses((prev) =>
+                      prev.map((b) => (photoMap.has(b.id) ? { ...b, photos: photoMap.get(b.id)! } : b))
+                    );
+                  }
+                }
+              })
+              .catch(() => {});
           }
         }
       } catch (e) {

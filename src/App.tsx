@@ -70,6 +70,7 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import {
   getCachedBusinesses,
   fetchBusinessesFromDb,
+  hydrateBusinessesPhotosInBackground,
   syncDeltaBusinessesFromDb,
   saveBusinessToDb,
   updateBusinessInDb,
@@ -490,6 +491,11 @@ export default function App() {
         if (Array.isArray(data) && data.length > 0) {
           const cleanBiz = data.filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
           setBusinesses(cleanBiz);
+
+          // 📸 Non-blocking background photo hydration
+          hydrateBusinessesPhotosInBackground(cleanBiz, (hydratedList) => {
+            setBusinesses(hydratedList);
+          });
         }
         safeSetLocalStorageItem('dalelak_app_initialized', 'true');
         if (user?.id) {

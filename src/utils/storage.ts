@@ -34,12 +34,14 @@ export function getSafeBusinessesForStorage(businesses: any[]): any[] {
       ? b.photos
           .map((p: string) => {
             if (typeof p !== 'string') return '';
-            // Keep valid hosted URLs and local Base64/Blob image data
-            if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:') || p.startsWith('blob:')) return p;
-            return p;
+            // Always keep hosted web URLs (clean, lightweight ~80 bytes)
+            if (p.startsWith('http://') || p.startsWith('https://')) return p;
+            // For data/blob URLs in local cache, only keep if small (< 35KB)
+            if ((p.startsWith('data:') || p.startsWith('blob:')) && p.length < 35000) return p;
+            return '';
           })
           .filter(Boolean)
-          .slice(0, 12)
+          .slice(0, 4)
       : [];
 
     return {

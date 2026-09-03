@@ -46,7 +46,9 @@ export function getCachedBusinesses(): Business[] {
   return [];
 }
 
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,photos,videos,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,rep_location_url,google_maps_url,google_place_id,google_sync_status,google_sync_date,is_fee_exempt,fee_exemption_reason,is_already_on_google,registration_type,notes,created_at';
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
+
+export { FAST_BUSINESS_SELECT };
 
 /**
  * ⚡ Stale-While-Revalidate Full Cloud Fetch
@@ -78,7 +80,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 
     if (resultList.length === 0) {
       try {
-        const { data, error } = await supabase.from('businesses').select('*').neq('package_id', 'pkg_interested_lead').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('businesses').select(FAST_BUSINESS_SELECT).neq('package_id', 'pkg_interested_lead').order('created_at', { ascending: false });
         if (!error && data && Array.isArray(data) && data.length > 0) {
           resultList = data.map(mapDbToBusiness);
           try {
@@ -218,6 +220,56 @@ export async function fetchBusinessPhotosOnDemand(businessId: string): Promise<s
 }
 
 /**
+ * 📸 Background Photo Hydration
+ * Non-blocking progressive photo fetch for businesses that do not have photos yet.
+ * Runs in background after initial render so user sees all businesses in < 300ms.
+ */
+export async function hydrateBusinessesPhotosInBackground(
+  businesses: Business[],
+  onUpdate: (updatedList: Business[]) => void
+): Promise<void> {
+  if (!isSupabaseConfigured() || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+  if (!Array.isArray(businesses) || businesses.length === 0) return;
+
+  try {
+    const res = await supabaseRestFetch(
+      'businesses?select=id,photos&package_id=neq.pkg_interested_lead&order=created_at.desc'
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const photoMap = new Map<string, string[]>();
+        data.forEach((item: any) => {
+          if (item.id) {
+            const parsed = parsePhotosArray(item);
+            if (parsed.length > 0) photoMap.set(item.id, parsed);
+          }
+        });
+
+        if (photoMap.size > 0) {
+          const updated = businesses.map((b) => {
+            const photos = photoMap.get(b.id);
+            if (photos && photos.length > 0) {
+              return { ...b, photos };
+            }
+            return b;
+          });
+          onUpdate(updated);
+
+          // Update cache with safe limits
+          try {
+            safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(getSafeBusinessesForStorage(updated)));
+            safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(updated)));
+          } catch {}
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Background photo hydration notice:', err);
+  }
+}
+
+/**
  * ⚡ Background Delta Sync (المزامنة الفروقية الذكية)
  * Only fetches rows modified/created after lastSyncTime to save bandwidth
  */
@@ -240,7 +292,7 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     // 5-minute safety overlap buffer to absorb cross-device clock drift
     const safeTime = new Date(Math.max(0, lastSyncDate.getTime() - 5 * 60 * 1000)).toISOString();
     const encLastSync = encodeURIComponent(safeTime);
-    const query = `businesses?select=*&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`;
+    const query = `businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`;
     const res = await supabaseRestFetch(query);
 
     if (res.ok) {
