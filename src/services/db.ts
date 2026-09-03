@@ -91,38 +91,53 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     }
   }
 
-  // 2. LocalStorage cache fallback
-  if (resultList.length === 0 && cached.length > 0) {
-    resultList = cached;
-  }
-
-  // 3. Local Server API fetch fallback
+  // 2. Local Server API fetch fallback (runs if Supabase is offline or restricted)
   if (resultList.length === 0) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const localRes = await fetch('/api/businesses', { signal: controller.signal });
       clearTimeout(timeoutId);
       if (localRes.ok) {
         const localData = await localRes.json();
         if (Array.isArray(localData) && localData.length > 0) {
-          resultList = localData;
+          resultList = localData.map(mapDbToBusiness);
         }
       }
     } catch {}
   }
 
-  // ⚡ 4. Guaranteed Merge with IndexedDB Offline Businesses (Only new offline entries not yet in cloud)
+  // 3. LocalStorage cache merge & fallback
+  if (resultList.length === 0 && cached.length > 0) {
+    resultList = cached;
+  } else if (cached.length > 0) {
+    const map = new Map<string, Business>();
+    resultList.forEach((b) => map.set(b.id, b));
+    cached.forEach((c) => {
+      const existing = map.get(c.id);
+      if (!existing) {
+        map.set(c.id, c);
+      } else if ((!existing.photos || existing.photos.length === 0) && c.photos && c.photos.length > 0) {
+        map.set(c.id, { ...existing, photos: c.photos });
+      }
+    });
+    resultList = Array.from(map.values());
+  }
+
+  // ⚡ 4. Guaranteed Merge with IndexedDB Offline Businesses (Preserve photos from local store)
   try {
     const offlineList = await getOfflineBusinesses();
     if (offlineList && offlineList.length > 0) {
       const map = new Map<string, Business>();
       resultList.forEach((b) => map.set(b.id, b));
       offlineList.forEach((b) => {
-        if (!map.has(b.id)) {
+        const existing = map.get(b.id);
+        if (!existing) {
           map.set(b.id, b);
-        } else {
-          // Already in cloud - clean up stale offline copy so it never overwrites cloud updates
+        } else if ((!existing.photos || existing.photos.length === 0) && b.photos && b.photos.length > 0) {
+          // Restore photos from IndexedDB if memory/cloud copy lost them
+          map.set(b.id, { ...existing, photos: b.photos });
+        } else if (existing.photos && existing.photos.length > 0) {
           removeOfflineBusiness(b.id).catch(() => {});
         }
       });
@@ -135,10 +150,12 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 
 /**
  * 📸 Fetch high-resolution photos on demand for a single business
- * Used when viewing details/editing without bloating the initial feed query or cache
+ * Multi-tier: Supabase Cloud -> Local Server -> IndexedDB -> LocalStorage
  */
 export async function fetchBusinessPhotosOnDemand(businessId: string): Promise<string[]> {
   if (!businessId) return [];
+
+  // 1. Supabase Cloud fetch if online
   if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
     try {
       const res = await supabaseRestFetch(`businesses?id=eq.${businessId}&select=photos`);
@@ -156,12 +173,42 @@ export async function fetchBusinessPhotosOnDemand(businessId: string): Promise<s
     try {
       const { data, error } = await supabase.from('businesses').select('photos').eq('id', businessId).single();
       if (!error && data) {
-        return parsePhotosArray(data);
+        const parsed = parsePhotosArray(data);
+        if (parsed.length > 0) return parsed;
       }
     } catch (sdkErr) {
       console.warn('Supabase fetch photos on demand SDK error:', sdkErr);
     }
   }
+
+  // 2. Local Server API fetch fallback
+  try {
+    const localRes = await fetch(`/api/businesses/${encodeURIComponent(businessId)}`);
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      const photos = parsePhotosArray(localData);
+      if (photos.length > 0) return photos;
+    }
+  } catch {}
+
+  // 3. IndexedDB Offline store fallback
+  try {
+    const offlineList = await getOfflineBusinesses();
+    const match = offlineList.find((b) => b.id === businessId);
+    if (match && Array.isArray(match.photos) && match.photos.length > 0) {
+      return match.photos;
+    }
+  } catch {}
+
+  // 4. LocalStorage cache fallback
+  try {
+    const cached = getCachedBusinesses();
+    const match = cached.find((b) => b.id === businessId);
+    if (match && Array.isArray(match.photos) && match.photos.length > 0) {
+      return match.photos;
+    }
+  } catch {}
+
   return [];
 }
 

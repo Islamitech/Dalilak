@@ -524,6 +524,16 @@ app.get('/api/businesses', (_req, res) => {
   res.json(businesses);
 });
 
+app.get('/api/businesses/:id', (req, res) => {
+  businesses = loadStoredBusinesses();
+  const found = businesses.find((b) => b.id === req.params.id);
+  if (found) {
+    res.json(found);
+  } else {
+    res.status(404).json({ error: 'النشاط التجاري غير موجود' });
+  }
+});
+
 app.post('/api/businesses', (req, res) => {
   try {
     const newBiz: Business = req.body;

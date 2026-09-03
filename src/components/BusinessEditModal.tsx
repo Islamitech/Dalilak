@@ -166,6 +166,17 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     }
   }, [business]);
 
+  // Also proactively fetch on-demand photos when user navigates to the Media/Photos tab
+  useEffect(() => {
+    if (activeSection === 'photos' && formData?.id && (!formData.photos || formData.photos.length === 0)) {
+      fetchBusinessPhotosOnDemand(formData.id).then((photos) => {
+        if (photos && photos.length > 0) {
+          setFormData((prev) => (prev ? { ...prev, photos } : null));
+        }
+      });
+    }
+  }, [activeSection, formData?.id]);
+
   if (!business || !formData) return null;
 
   const handleCopyText = (text: string, fieldName: string) => {

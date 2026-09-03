@@ -34,10 +34,8 @@ export function getSafeBusinessesForStorage(businesses: any[]): any[] {
       ? b.photos
           .map((p: string) => {
             if (typeof p !== 'string') return '';
-            // If it's a hosted URL (http/https), keep it intact
-            if (p.startsWith('http://') || p.startsWith('https://')) return p;
-            // Keep compressed photos up to 150KB for fast card previews
-            if (p.startsWith('data:') && p.length > 150000) return '';
+            // Keep valid hosted URLs and local Base64/Blob image data
+            if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:') || p.startsWith('blob:')) return p;
             return p;
           })
           .filter(Boolean)
