@@ -249,6 +249,54 @@ export function getOverdueWarningWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
+/**
+ * Event 3.6: Post-Deadline Executed Actions & Final Judicial Warning
+ */
+export function generateLegalActionExecutedWhatsAppMessage(biz: Business): string {
+  const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+  const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
+  const amtPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
+  const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
+  const owner = biz.ownerName || 'صاحب النشاط';
+  const name = biz.nameAr || 'نشاطكم';
+  const invNumber = biz.invoiceNumber || 'INV-2026';
+  const payConfig = getActivePaymentConfig();
+
+  const raw =
+    `🛑 *إشعار تنفيذ رسمي وتحذير قضائي أخير — منصة دليلك*\n` +
+    `--------------------------------------------------\n` +
+    `إلى إدارة نشاط: *(${name})* 📍\n` +
+    `عناية السيد / *${owner}*\n` +
+    `📄 *رقم الفاتورة الصادرة:* ${invNumber}\n` +
+    `💰 *المبلغ المستحق وغير المسدد:* ${remaining} ج.م\n\n` +
+    `نحيطكم علماً بأنه نظراً لانتهاء المهلة المقررة (24 ساعة) دون تسوية المستحقات المالية رغم توثيق النشاط واستفادتكم منه وبناءً على تعاقدكم المسبق، *فقد بدأنا بالفعل في تنفيذ الإجراءات الرادعة التالية ضد نشاطكم وهاتفكم التجاري:*\n\n` +
+    `🚫 *1. إدراج النشاط ضمن «الأنشطة التجارية المشبوهة والممتنعة عن السداد»:*\n` +
+    `تم رفع بلاغات التحذير والاشتباه على قواعد بيانات أرقام الهواتف (ومنها تطبيق *Truecaller* وغيره)، ليظهر هاتف النشاط للمتصلين كجهة *(مشبوهة / بلاغات احتيال وامتناع عن السداد)*، مما يضر بسمعتكم وثقة عملائكم بشكل مباشر.\n\n` +
+    `📵 *2. تجميد وضرب الحملات الإعلانية على كافة منصات التواصل:*\n` +
+    `تم ربط البيانات ورفع تقارير عدم الأهلية للسياسات الإعلانية على منصات التواصل (فيسبوك، إنستجرام، تيك توك، وغيرها)، مما سيجعل إنشاء أو ترويج أي حملات إعلانية مستقبلية لنشاطكم أمراً بالغ الصعوبة ومعرضاً للرفض والإغلاق الفوري.\n\n` +
+    `🌐 *3. إلغاء التوثيق وتجميد الموقع على خرائط Google:*\n` +
+    `تم إرسال طلبات رسمية لمراجعة وتجميد نشاطكم على Google وسحبه تماماً من الدليل العام.\n\n` +
+    `⚠️ *تنبيه بالغ الأهمية:*\n` +
+    `اعلم جيداً أن هذه الإجراءات عند دخولها حيز التنفيذ التام وتعميمها على الخوادم والمنصات الخارجية *يصعب جداً محوها أو إزالتها حتى بعد السداد* لما تتركه من سجل سلبي دائم على أرقامكم ونشاطكم.\n\n` +
+    `⚖️ *المسار القضائي:*\n` +
+    `نؤكد لكم أن *التسوية المالية والملاحقة القانونية آتية لا محالة*، ولن يتم التهاون في حقوق المنصة، وفي حال اضطرارنا لتصعيد الملف للجهات القضائية المختصة، *سيتحمل صاحب النشاط منفرداً كافة التعويضات والمصاريف القضائية وأتعاب المحاماة الإضافية.*\n\n` +
+    `--------------------------------------------------\n` +
+    `⏳ *الفرصة الاستثنائية الأخيرة لإيقاف التبعات خلال ساعات:*\n` +
+    `لسداد قيمة الفاتورة الأصلية فقط وتفادي اتساع نطاق الحظر:\n` +
+    `• إنستاباي (InstaPay): ${payConfig.instaPay}\n` +
+    `• فودافون كاش / محافظ إلكترونية: ${payConfig.vodafone1} أو ${payConfig.vodafone2}\n\n` +
+    `📲 *أرسل إيصال التحويل فوراً على هذه المحادثة لوقف الإجراءات ومحاولة تدارك القيود.*\n\n` +
+    `الإدارة القانونية والمالية — منصة دليلك`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getLegalActionExecutedWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateLegalActionExecutedWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
 export function generatePaymentReceiptWhatsAppMessage(biz: Business): string {
   const total = biz.packagePrice || 250;
   const paid = biz.amountPaid || total;

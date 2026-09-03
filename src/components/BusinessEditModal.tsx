@@ -66,6 +66,8 @@ import {
   generatePaymentReceiptWhatsAppMessage,
   getOverdueWarningWhatsAppUrl,
   generateOverdueWarningWhatsAppMessage,
+  getLegalActionExecutedWhatsAppUrl,
+  generateLegalActionExecutedWhatsAppMessage,
   getFreeQrGiftWhatsAppUrl,
   generateFreeQrGiftWhatsAppMessage,
   getQrImportanceWhatsAppUrl,
@@ -1883,7 +1885,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       <span>3. إنذار بسداد المستحقات ({remainingDebt} ج.م) ⚠️</span>
                     </div>
                     <span className="text-[9px] bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold px-2 py-0.5 rounded-md">
-                      تذكير نهائي
+                      مهلة 24 ساعة
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 pt-0.5">
@@ -1908,12 +1910,46 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
               )}
 
+              {/* Message 5: Post-Deadline Executed Actions & Judicial Warning (Strictly for activities verified on Google and still unpaid) */}
+              {isGoogleVerifiedAndUnpaid && (
+                <div className="bg-red-500/15 border border-red-500/50 rounded-2xl p-2.5 space-y-1.5 transition-all shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-black text-xs text-red-700 dark:text-red-400">
+                      <ShieldCheck className="w-3.5 h-3.5 text-red-500 shrink-0 stroke-[2.5]" />
+                      <span>4. إشعار تنفيذ الإجراءات والتحذير القضائي 🛑</span>
+                    </div>
+                    <span className="text-[9px] bg-red-500/25 text-red-700 dark:text-red-300 font-black px-2 py-0.5 rounded-md animate-pulse">
+                      بعد انتهاء المهلة
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <a
+                      href={getLegalActionExecutedWhatsAppUrl(formData)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 bg-gradient-to-r from-red-700 to-rose-900 hover:from-red-600 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>إرسال إشعار التنفيذ والملاحقة القضائية (WhatsApp)</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(generateLegalActionExecutedWhatsAppMessage(formData), 'wa_legal')}
+                      className="bg-[var(--bg-card)] hover:bg-red-500/15 text-red-600 border border-red-500/30 text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                      title="نسخ نص الإشعار القضائي"
+                    >
+                      {copiedField === 'wa_legal' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-red-500" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Message 3: Payment Receipt */}
               <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-2.5 space-y-1.5 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
                     <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>4. إيصال السداد المالي والمخالصة ✅</span>
+                    <span>5. إيصال السداد المالي والمخالصة ✅</span>
                   </div>
                   <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
                     المخالصة
