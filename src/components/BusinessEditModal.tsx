@@ -145,9 +145,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   // Admin CRM Follow-ups State
   const [newFollowUpText, setNewFollowUpText] = useState<string>('');
-  const [newFollowUpType, setNewFollowUpType] = useState<AdminFollowUpType>('call');
-  const [newFollowUpStatus, setNewFollowUpStatus] = useState<AdminFollowUpStatus>('completed');
+  const [newFollowUpType, setNewFollowUpType] = useState<AdminFollowUpType | null>(null);
+  const [newFollowUpStatus, setNewFollowUpStatus] = useState<AdminFollowUpStatus | null>(null);
   const [newFollowUpNextDate, setNewFollowUpNextDate] = useState<string>('');
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
   const [followUpFilterType, setFollowUpFilterType] = useState<string>('all');
   const [followUpSearch, setFollowUpSearch] = useState<string>('');
   const [isSavingFollowUp, setIsSavingFollowUp] = useState<boolean>(false);
@@ -469,7 +470,21 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   // Admin CRM Follow-up Handlers
   const handleAddFollowUp = () => {
-    if (!newFollowUpText.trim() || !formData) return;
+    if (!formData) return;
+    if (!newFollowUpText.trim()) {
+      setFollowUpError('يرجى كتابة نص الملاحظة أو تفاصيل الإجراء أولاً');
+      return;
+    }
+    if (!newFollowUpType) {
+      setFollowUpError('⚠️ خطوة إلزامية: يرجى تحديد طبيعة ونوع الإجراء (اتصال، زيارة، تحصيل...)');
+      return;
+    }
+    if (!newFollowUpStatus) {
+      setFollowUpError('⚠️ خطوة إلزامية: يرجى تحديد حالة الإجراء (مكتمل، معلق، عاجل)');
+      return;
+    }
+
+    setFollowUpError(null);
     setIsSavingFollowUp(true);
     try {
       const newNote: AdminFollowUpNote = {
@@ -493,8 +508,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       setFormData(updatedBiz);
       onSave(updatedBiz);
       setNewFollowUpText('');
+      setNewFollowUpType(null);
+      setNewFollowUpStatus(null);
       setNewFollowUpNextDate('');
-      setStatusNotification('تم تسجيل المتابعة الإدارية وحفظها بنجاح 📋');
+      setFollowUpError(null);
+      setStatusNotification('تم تسجيل المتابعة الإدارية وتصنيفها بنجاح 📋');
       setTimeout(() => setStatusNotification(null), 3000);
     } finally {
       setIsSavingFollowUp(false);
@@ -2169,63 +2187,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </span>
                 </div>
 
-                {/* Type & Status Selectors */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar text-xs font-bold w-full sm:w-auto">
-                    {[
-                      { type: 'call', label: '📞 اتصال', color: 'bg-emerald-600 text-white' },
-                      { type: 'visit', label: '🏃 زيارة', color: 'bg-purple-600 text-white' },
-                      { type: 'payment', label: '💰 تحصيل', color: 'bg-amber-600 text-white' },
-                      { type: 'verification', label: '🌐 خرائط', color: 'bg-blue-600 text-white' },
-                      { type: 'general', label: '📝 عامة', color: 'bg-slate-700 text-white' },
-                    ].map((item) => (
-                      <button
-                        key={item.type}
-                        type="button"
-                        onClick={() => setNewFollowUpType(item.type as AdminFollowUpType)}
-                        className={`px-2 py-1 rounded-lg border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
-                          newFollowUpType === item.type
-                            ? `${item.color} font-black shadow-xs`
-                            : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-1 text-xs font-bold">
-                    {[
-                      { status: 'completed', label: '✅ مكتمل' },
-                      { status: 'pending', label: '⏳ معلق' },
-                      { status: 'urgent', label: '🚨 عاجل' },
-                    ].map((s) => (
-                      <button
-                        key={s.status}
-                        type="button"
-                        onClick={() => setNewFollowUpStatus(s.status as AdminFollowUpStatus)}
-                        className={`px-2 py-1 rounded-lg border text-[11px] whitespace-nowrap cursor-pointer transition-all ${
-                          newFollowUpStatus === s.status
-                            ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                            : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-color)]'
-                        }`}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-1 min-w-[140px] mr-auto">
-                    <span className="text-[10px] text-[var(--text-muted)] font-bold whitespace-nowrap">الموعد القادم:</span>
-                    <input
-                      type="date"
-                      value={newFollowUpNextDate}
-                      onChange={(e) => setNewFollowUpNextDate(e.target.value)}
-                      className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-2 py-0.5 text-[11px] font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
                 {/* Quick Templates Buttons */}
                 <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
                   {[
@@ -2239,7 +2200,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setNewFollowUpText(tpl)}
+                      onClick={() => {
+                        setNewFollowUpText(tpl);
+                        setFollowUpError(null);
+                      }}
                       className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)] hover:border-amber-500/40 text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 whitespace-nowrap cursor-pointer transition-colors"
                     >
                       {tpl}
@@ -2247,27 +2211,150 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   ))}
                 </div>
 
-                {/* Textarea & Submit */}
-                <div className="space-y-2">
+                {/* Textarea Input */}
+                <div>
                   <textarea
                     rows={2}
                     value={newFollowUpText}
-                    onChange={(e) => setNewFollowUpText(e.target.value)}
+                    onChange={(e) => {
+                      setNewFollowUpText(e.target.value);
+                      if (followUpError) setFollowUpError(null);
+                    }}
                     placeholder="اكتب ملاحظة أو تفاصيل الإجراء هنا..."
                     className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] rounded-xl p-2.5 text-xs font-medium focus:outline-none transition-colors leading-relaxed resize-none"
                   />
+                </div>
 
-                  <div className="flex items-center justify-end">
-                    <button
-                      type="button"
-                      onClick={handleAddFollowUp}
-                      disabled={!newFollowUpText.trim() || isSavingFollowUp}
-                      className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>{isSavingFollowUp ? 'جاري الحفظ...' : 'تسجيل المتابعة'}</span>
-                    </button>
+                {/* Step 2 Box: Appears ONLY when admin starts typing or enters text or has selected a type/status */}
+                {(newFollowUpText.trim().length > 0 || newFollowUpType !== null || newFollowUpStatus !== null) && (
+                  <div className="bg-[var(--bg-card)] border-2 border-amber-500/40 rounded-2xl p-3 sm:p-3.5 space-y-3 shadow-xs animate-fade-in">
+                    <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
+                      <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                        <span>تحديد تصنيف وحالة هذا الإجراء (إلزامي للتذكير):</span>
+                      </span>
+                      {!newFollowUpType || !newFollowUpStatus ? (
+                        <span className="text-[10px] bg-rose-500/15 text-rose-700 dark:text-rose-300 font-black px-2 py-0.5 rounded-md animate-pulse">
+                          * مطلوب الاختيار
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Check className="w-3 h-3 text-emerald-500" /> جاهز للحفظ
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Type Selector Buttons */}
+                    <div>
+                      <span className="text-[10.5px] text-[var(--text-muted)] font-bold block mb-1.5">
+                        1. طبيعة الإجراء (اختر نوع المتابعة):
+                      </span>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-xs font-bold">
+                        {[
+                          { type: 'call', label: '📞 اتصال', color: 'bg-emerald-600 text-white' },
+                          { type: 'visit', label: '🏃 زيارة', color: 'bg-purple-600 text-white' },
+                          { type: 'payment', label: '💰 تحصيل', color: 'bg-amber-600 text-white' },
+                          { type: 'verification', label: '🌐 خرائط', color: 'bg-blue-600 text-white' },
+                          { type: 'general', label: '📝 عامة', color: 'bg-slate-700 text-white' },
+                        ].map((item) => (
+                          <button
+                            key={item.type}
+                            type="button"
+                            onClick={() => {
+                              setNewFollowUpType(item.type as AdminFollowUpType);
+                              setFollowUpError(null);
+                            }}
+                            className={`py-2 px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-all text-center ${
+                              newFollowUpType === item.type
+                                ? `${item.color} font-black ring-2 ring-amber-500 shadow-xs scale-98`
+                                : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Status Selector Buttons */}
+                    <div>
+                      <span className="text-[10.5px] text-[var(--text-muted)] font-bold block mb-1.5">
+                        2. حالة الإجراء (هل اكتمل أم معلق أم عاجل؟):
+                      </span>
+                      <div className="grid grid-cols-3 gap-1.5 text-xs font-bold">
+                        {[
+                          { status: 'completed', label: '✅ تم واكتمل', color: 'bg-emerald-600 text-white' },
+                          { status: 'pending', label: '⏳ معلق للمتابعة', color: 'bg-amber-500 text-slate-950' },
+                          { status: 'urgent', label: '🚨 عاجل وهام', color: 'bg-rose-600 text-white' },
+                        ].map((s) => (
+                          <button
+                            key={s.status}
+                            type="button"
+                            onClick={() => {
+                              setNewFollowUpStatus(s.status as AdminFollowUpStatus);
+                              setFollowUpError(null);
+                            }}
+                            className={`py-2 px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-all text-center ${
+                              newFollowUpStatus === s.status
+                                ? `${s.color} font-black ring-2 ring-amber-500 shadow-xs scale-98`
+                                : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Next follow-up date */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10.5px] text-[var(--text-muted)] font-bold whitespace-nowrap">موعد المتابعة القادمة (اختياري):</span>
+                        <input
+                          type="date"
+                          value={newFollowUpNextDate}
+                          onChange={(e) => setNewFollowUpNextDate(e.target.value)}
+                          className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg px-2.5 py-1 text-[11px] font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                      {newFollowUpNextDate && (
+                        <button
+                          type="button"
+                          onClick={() => setNewFollowUpNextDate('')}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
+                        >
+                          إلغاء الموعد ✕
+                        </button>
+                      )}
+                    </div>
                   </div>
+                )}
+
+                {/* Validation Error Message */}
+                {followUpError && (
+                  <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+                    <span>{followUpError}</span>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <div className="flex items-center justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleAddFollowUp}
+                    disabled={!newFollowUpText.trim() || isSavingFollowUp}
+                    className={`w-full sm:w-auto font-black text-xs px-5 py-2.5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer ${
+                      !newFollowUpText.trim()
+                        ? 'bg-slate-700/40 text-slate-500 cursor-not-allowed'
+                        : !newFollowUpType || !newFollowUpStatus
+                        ? 'bg-amber-500/50 hover:bg-amber-500/70 text-slate-900 border border-amber-500/40'
+                        : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>{isSavingFollowUp ? 'جاري الحفظ...' : 'تسجيل المتابعة'}</span>
+                  </button>
                 </div>
               </div>
 
