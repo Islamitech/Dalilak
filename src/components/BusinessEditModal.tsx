@@ -703,8 +703,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </button>
           )}
 
-          {/* Pulsing Red Financial Alert Indicator */}
-          {!isFeeExempt && remainingDebt > 0 && (
+          {/* Pulsing Red Financial Alert Indicator - Strictly for activities verified on Google with valid Google link and unpaid */}
+          {isGoogleVerifiedAndUnpaid && (
             <button
               type="button"
               onClick={() => {
@@ -715,7 +715,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 }
               }}
               className="relative flex items-center gap-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/50 text-[11px] font-black px-2.5 py-1 rounded-xl transition-all active:scale-95 shrink-0 cursor-pointer shadow-xs animate-pulse"
-              title={`تنبيه مالي: النشاط غير مسدد (متبقي ${remainingDebt} ج.م)`}
+              title={`تنبيه مالي: النشاط موثق على Google وغير مسدد (متبقي ${remainingDebt} ج.م)`}
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
@@ -1856,8 +1856,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 </div>
               </div>
 
-              {/* Message 4: Overdue Warning (Strictly for activities with remaining debt) */}
-              {remainingDebt > 0 && !isFeeExempt && (
+              {/* Message 4: Overdue Warning (Strictly for activities verified on Google with valid Google link and unpaid) */}
+              {isGoogleVerifiedAndUnpaid && (
                 <div className="bg-rose-500/10 border border-rose-500/40 rounded-2xl p-2.5 space-y-1.5 transition-all shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-black text-xs text-rose-700 dark:text-rose-300">

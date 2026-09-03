@@ -241,14 +241,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const collectionRate = totalContractValue > 0 ? ((totalRevenue / totalContractValue) * 100).toFixed(1) : '0';
   const exemptCount = realBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
 
-  // Verification Pipeline Metrics
-  const verifiedCount = realBusinesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
-  const inProgressCount = realBusinesses.filter(
-    (b) => (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress') && b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced'
-  ).length;
-  const notSubmittedCount = realBusinesses.filter(
-    (b) => b.verificationStatus !== 'verified' && b.verificationStatus !== 'in_progress' && b.googleSyncStatus !== 'synced' && b.googleSyncStatus !== 'in_progress'
-  ).length;
+  // Google Maps Verification Pipeline Metrics (خاص بخرائط Google ووجود الرابط المعتمد)
+  const verifiedCount = realBusinesses.filter((b) => {
+    const url = (b.googleMapsUrl || '').trim();
+    return url.startsWith('http') && !url.includes('search/?api=1&query=');
+  }).length;
+  const inProgressCount = realBusinesses.filter((b) => {
+    const url = (b.googleMapsUrl || '').trim();
+    const hasMap = url.startsWith('http') && !url.includes('search/?api=1&query=');
+    return !hasMap && b.googleSyncStatus === 'in_progress';
+  }).length;
+  const notSubmittedCount = realBusinesses.filter((b) => {
+    const url = (b.googleMapsUrl || '').trim();
+    const hasMap = url.startsWith('http') && !url.includes('search/?api=1&query=');
+    return !hasMap && b.googleSyncStatus !== 'in_progress';
+  }).length;
+  const directoryApprovedCount = realBusinesses.filter((b) => b.verificationStatus === 'verified').length;
   const verificationRate = realBusinesses.length > 0 ? ((verifiedCount / realBusinesses.length) * 100).toFixed(1) : '0';
 
   // ---------------------------------------------------------------------------
@@ -299,12 +307,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const now = Date.now();
     return realBusinesses.filter((b) => {
-      // 1. If already verified, NEVER trigger overdue alert!
-      const isVerified = b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
-      if (isVerified) return false;
+      // 1. If already verified with official Google Maps URL, NEVER trigger overdue alert!
+      const hasGoogleMap = Boolean(
+        b.googleMapsUrl &&
+        typeof b.googleMapsUrl === 'string' &&
+        b.googleMapsUrl.trim().startsWith('http') &&
+        !b.googleMapsUrl.includes('search/?api=1&query=')
+      );
+      if (hasGoogleMap) return false;
 
       // 2. Must be actively submitted and pending in Google review
-      const isInProgress = (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress');
+      const isInProgress = b.googleSyncStatus === 'in_progress';
       if (!isInProgress) return false;
 
       // 3. Check time elapsed since review submission
@@ -665,25 +678,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
             return false;
           }
+          const hasGoogleMap = Boolean(
+            b.googleMapsUrl &&
+            typeof b.googleMapsUrl === 'string' &&
+            b.googleMapsUrl.trim().startsWith('http') &&
+            !b.googleMapsUrl.includes('search/?api=1&query=')
+          );
+
           if (verificationFilter === 'not_submitted') {
-            const isNotSubmitted =
-              b.verificationStatus !== 'verified' &&
-              b.verificationStatus !== 'in_progress' &&
-              b.googleSyncStatus !== 'synced' &&
-              b.googleSyncStatus !== 'in_progress';
+            const isNotSubmitted = !hasGoogleMap && b.googleSyncStatus !== 'in_progress';
             if (!isNotSubmitted) return false;
           } else if (verificationFilter === 'in_progress') {
-            const isInProgress =
-              (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress') &&
-              b.verificationStatus !== 'verified' &&
-              b.googleSyncStatus !== 'synced';
+            const isInProgress = !hasGoogleMap && b.googleSyncStatus === 'in_progress';
             if (!isInProgress) return false;
           } else if (verificationFilter === 'overdue') {
             return overdueReviewBusinesses.some((ov) => ov.id === b.id);
           } else if (verificationFilter === 'verified_debt') {
             return verifiedWithDebtBusinesses.some((vd) => vd.id === b.id);
           } else if (verificationFilter === 'verified') {
-            if (b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced') return false;
+            if (!hasGoogleMap) return false;
+          } else if (verificationFilter === 'directory_verified') {
+            if (b.verificationStatus !== 'verified') return false;
           } else if (verificationFilter === 'rejected') {
             if (b.verificationStatus !== 'rejected') return false;
           } else if (verificationFilter !== 'all') {
@@ -1791,12 +1806,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
             >
               <option value="all">كل حالات التوثيق ({businesses.length})</option>
-              <option value="not_submitted">🚨 لم تُرسل بعد ({notSubmittedCount})</option>
+              <option value="not_submitted">🚨 لم تُرسل لجوجل بعد ({notSubmittedCount})</option>
               <option value="in_progress">⏳ بانتظار موافقة جوجل ({inProgressCount})</option>
               <option value="overdue">⏱️ تجاوزت مدة المراجعة ({overdueReviewCount})</option>
               <option value="verified_debt">⚠️ موثقة على الخريطة ولها متبقي سداد ({verifiedWithDebtCount})</option>
-              <option value="verified">✅ موثقة رسمياً ({verifiedCount})</option>
-              <option value="rejected">❌ مرفوضة</option>
+              <option value="verified">✅ موثقة بخرائط Google ({verifiedCount})</option>
+              <option value="directory_verified">🟢 معتمدة بالدليل العام ({directoryApprovedCount})</option>
+              <option value="rejected">❌ مرفوضة بالدليل</option>
             </select>
           </div>
 
@@ -1847,12 +1863,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="block md:hidden space-y-3">
                   {pagedBusinesses.map((biz) => {
                     const isDirectoryApproved = biz.verificationStatus === 'verified';
-                    const isGoogleSynced = biz.googleSyncStatus === 'synced' || Boolean(biz.googleMapsUrl);
-                    const isInGoogleReview = biz.googleSyncStatus === 'in_progress';
+                    const hasGoogleMap = Boolean(
+                      biz.googleMapsUrl &&
+                      typeof biz.googleMapsUrl === 'string' &&
+                      biz.googleMapsUrl.trim().startsWith('http') &&
+                      !biz.googleMapsUrl.includes('search/?api=1&query=')
+                    );
+                    const isGoogleSynced = hasGoogleMap;
+                    const isInGoogleReview = !hasGoogleMap && biz.googleSyncStatus === 'in_progress';
                     const isOverdue = overdueReviewBusinesses.some((ov) => ov.id === biz.id);
-                    const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                    const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
+                    const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
                     const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                    const isPaid = !isExempt && (biz.amountPaid || 0) > 0;
+                    const isPaid = isExempt ? true : (biz.paymentStatus === 'fully_paid' || (biz.amountPaid || 0) >= (biz.packagePrice || 250));
                     const isCash = !isExempt && (biz.cashCollectedByRep !== undefined
                       ? (biz.cashCollectedByRep || 0) > 0
                       : biz.paymentMethod !== 'gateway_online' && isPaid);
@@ -1860,6 +1883,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     const repComm = isExempt ? 0 : Math.round(((biz.amountPaid || 0) * rate) / 100);
                     const platDue = isExempt ? 0 : (biz.amountPaid || 0) - repComm;
                     const expectedComm = isExempt ? 0 : Math.round(((biz.packagePrice || 250) * rate) / 100);
+                    const isGoogleVerifiedWithDebt = hasGoogleMap && !isPaid && !isExempt && debtAmount > 0;
 
                     return (
                       <div key={`m-${biz.id}`} className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl space-y-3 shadow-sm hover:border-amber-500/40 transition-all">
@@ -1878,7 +1902,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </div>
                           <div className="shrink-0 flex flex-col items-end gap-1">
-                            {/* Directory Approval Status */}
+                            {/* Directory Approval Status (اعتماد الدليل العام - مجاني) */}
                             {isDirectoryApproved ? (
                               <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                 <CheckCircle2 className="w-2.5 h-2.5" />
@@ -1891,7 +1915,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             )}
 
-                            {/* Google Maps Sync Status */}
+                            {/* Google Maps Sync Status (توثيق خرائط Google الفعلي بالرابط) */}
                             {isGoogleSynced ? (
                               <span className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
                                 🌐 خرائط Google
@@ -1920,12 +1944,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
                         </div>
 
-                        {/* Urgent Alert if Verified but Unpaid (Strictly non-exempt) */}
-                        {isGoogleSynced && !isPaid && !isExempt && (
+                        {/* Urgent Alert if Verified on Google with Remaining Debt (Strictly requires real Google Maps link) */}
+                        {isGoogleVerifiedWithDebt && (
                           <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-black flex items-center justify-between gap-2 animate-pulse">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-                              <span className="truncate">🚨 تم التوثيق على خرائط Google ولم يُسدد بعد! (مستحق: {biz.packagePrice || 250} ج)</span>
+                              <span className="truncate">🚨 تم التوثيق على خرائط Google ومطلوب التحصيل! (مستحق: {debtAmount} ج)</span>
                             </div>
                             <button
                               type="button"
@@ -1959,9 +1983,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               >
                                 📍 موقع المندوب
                               </a>
-                              {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && (
+                              {hasGoogleMap && (
                                 <a
-                                  href={biz.googleMapsUrl.trim()}
+                                  href={biz.googleMapsUrl!.trim()}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
@@ -1993,18 +2017,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </div>
                             ) : !isPaid ? (
                               <div>
-                                {isDirectoryApproved ? (
+                                {isGoogleVerifiedWithDebt ? (
                                   <span className="badge-danger text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 animate-pulse">
                                     <AlertTriangle className="w-3 h-3" />
-                                    <span>🚨 موثق ولم يُسدد! (مطلوب التحصيل)</span>
+                                    <span>🚨 موثق بـ Google ولم يُسدد! (مطلوب التحصيل)</span>
                                   </span>
                                 ) : (
                                   <span className="badge-warning text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
-                                    ⏳ الدفع لاحقاً (عند التوثيق)
+                                    ⏳ الدفع لاحقاً (عند توثيق Google)
                                   </span>
                                 )}
-                                <p className={`text-[10px] font-bold mt-0.5 ${isDirectoryApproved ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                  {isDirectoryApproved ? `مستحق للمنصة: ${biz.packagePrice || 250} ج.م` : `عمولة معلقة: ${expectedComm} ج.م`}
+                                <p className={`text-[10px] font-bold mt-0.5 ${isGoogleVerifiedWithDebt ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                  {isGoogleVerifiedWithDebt ? `مستحق للمنصة: ${debtAmount} ج.م` : `عمولة معلقة عند التوثيق: ${expectedComm} ج.م`}
                                 </p>
                               </div>
                             ) : (
@@ -2098,7 +2122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
                         const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
                         const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                        const isPaid = isExempt ? true : (biz.amountPaid || 0) > 0;
+                        const isPaid = isExempt ? true : (biz.paymentStatus === 'fully_paid' || (biz.amountPaid || 0) >= (biz.packagePrice || 250));
                         const isCash = !isExempt && (biz.cashCollectedByRep !== undefined
                           ? (biz.cashCollectedByRep || 0) > 0
                           : biz.paymentMethod !== 'gateway_online' && isPaid);
@@ -2106,9 +2130,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         const repComm = isExempt ? 0 : Math.round(((biz.amountPaid || 0) * rate) / 100);
                         const platDue = isExempt ? 0 : (biz.amountPaid || 0) - repComm;
                         const expectedComm = isExempt ? 0 : Math.round(((biz.packagePrice || 250) * rate) / 100);
+                        const isGoogleVerifiedWithDebt = hasGoogleMap && !isPaid && !isExempt && debtAmount > 0;
 
                         return (
-                          <tr key={biz.id} className={`transition-colors ${isDirectoryApproved && !isPaid && !isExempt ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-amber-500/5'}`}>
+                          <tr key={biz.id} className={`transition-colors ${isGoogleVerifiedWithDebt ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-amber-500/5'}`}>
                             <td className="p-3">
                               <p className="font-extrabold text-[var(--text-primary)] text-sm">{biz.nameAr}</p>
                               {biz.nameEn && <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.nameEn}</p>}
@@ -2194,18 +2219,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 if (!isPaid) {
                                   return (
                                     <div className="space-y-1">
-                                      {isGoogleSynced ? (
+                                      {isGoogleVerifiedWithDebt ? (
                                         <span className="badge-danger text-[10.5px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1 animate-pulse">
                                           <AlertTriangle className="w-3.5 h-3.5" />
-                                          <span>🚨 موثق بـ Google ولم يُسدد! (مستحق: {biz.packagePrice || 250} ج)</span>
+                                          <span>🚨 موثق بـ Google ولم يُسدد! (مستحق: {debtAmount} ج)</span>
                                         </span>
                                       ) : (
                                         <span className="badge-warning text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
-                                          ⏳ الدفع لاحقاً (عند التوثيق)
+                                          ⏳ الدفع لاحقاً (عند توثيق Google)
                                         </span>
                                       )}
-                                      <p className={`text-[10px] font-bold ${isDirectoryApproved ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                        {isDirectoryApproved ? `مستحق للمنصة: ${biz.packagePrice || 250} ج.م` : `عمولة معلقة: ${expectedComm} ج.م`}
+                                      <p className={`text-[10px] font-bold ${isGoogleVerifiedWithDebt ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                        {isGoogleVerifiedWithDebt ? `مستحق للمنصة: ${debtAmount} ج.م` : `عمولة معلقة عند التوثيق: ${expectedComm} ج.م`}
                                       </p>
                                     </div>
                                   );
