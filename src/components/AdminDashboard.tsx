@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { DocViewerModal } from './DocViewerModal';
-import { Business, Representative, PaymentGatewayConfig, UserRole, PayoutRequest, User } from '../types';
+import { Business, Representative, PaymentGatewayConfig, UserRole, PayoutRequest, User, InterestedLead } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
 import { calculateRepSettlement, calculateRepCommissionFromCash, PAYOUT_METHOD_LABELS } from '../utils/commission';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../utils/dateFormatters';
@@ -57,6 +57,9 @@ import {
   TrendingUp,
   Printer,
   ClipboardList,
+  Sparkles,
+  ArrowLeft,
+  MessageSquare,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -65,6 +68,7 @@ interface AdminDashboardProps {
   representatives: Representative[];
   paymentConfig: PaymentGatewayConfig;
   payoutRequests?: PayoutRequest[];
+  leads?: InterestedLead[];
   onUpdateBusiness: (biz: Business) => void;
   onDeleteBusiness: (id: string) => void;
   onAddRepresentative: (rep: Partial<Representative>) => void;
@@ -74,6 +78,9 @@ interface AdminDashboardProps {
   onUpdatePayoutRequest?: (payout: PayoutRequest) => void;
   onShowInvoice: (biz: Business) => void;
   onCollectPayment?: (biz: Business) => void;
+  onUpdateLead?: (lead: InterestedLead) => void;
+  onDeleteLead?: (leadId: string) => void;
+  onConvertToBusiness?: (lead: InterestedLead) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -82,6 +89,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   representatives,
   paymentConfig,
   payoutRequests = [],
+  leads = [],
   onUpdateBusiness,
   onDeleteBusiness,
   onAddRepresentative,
@@ -91,17 +99,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdatePayoutRequest,
   onShowInvoice,
   onCollectPayment,
+  onUpdateLead,
+  onDeleteLead,
+  onConvertToBusiness,
 }) => {
-  // Main Tab State (5 Operational Tabs)
-  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts'>(() => {
+  // Main Tab State (6 Operational Tabs: Overview, Businesses, Reps, Gateways, Payouts, Leads)
+  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads'>(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlSubtab = urlParams.get('subtab');
-    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts'].includes(urlSubtab)) {
+    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads'].includes(urlSubtab)) {
       return urlSubtab as any;
     }
 
     const savedSubtab = localStorage.getItem('dalelak_active_admin_tab');
-    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts'].includes(savedSubtab)) {
+    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads'].includes(savedSubtab)) {
       return savedSubtab as any;
     }
 
@@ -214,29 +225,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [syncModalBiz, setSyncModalBiz] = useState<Business | null>(null);
 
   // ---------------------------------------------------------------------------
+  // FILTER REAL BUSINESSES (STRICTLY EXCLUDING FIELD LEADS)
+  // ---------------------------------------------------------------------------
+  const realBusinesses = useMemo(
+    () => businesses.filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')),
+    [businesses]
+  );
+
+  // ---------------------------------------------------------------------------
   // COMPREHENSIVE STATISTICS CALCULATIONS (Excluding fee-exempt popular area activities)
   // ---------------------------------------------------------------------------
-  const totalRevenue = businesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.amountPaid || 0), 0);
-  const totalContractValue = businesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.packagePrice || 0), 0);
-  const totalDebt = businesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)), 0);
+  const totalRevenue = realBusinesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.amountPaid || 0), 0);
+  const totalContractValue = realBusinesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.packagePrice || 0), 0);
+  const totalDebt = realBusinesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)), 0);
   const collectionRate = totalContractValue > 0 ? ((totalRevenue / totalContractValue) * 100).toFixed(1) : '0';
-  const exemptCount = businesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
+  const exemptCount = realBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
 
   // Verification Pipeline Metrics
-  const verifiedCount = businesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
-  const inProgressCount = businesses.filter(
+  const verifiedCount = realBusinesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
+  const inProgressCount = realBusinesses.filter(
     (b) => (b.verificationStatus === 'in_progress' || b.googleSyncStatus === 'in_progress') && b.verificationStatus !== 'verified' && b.googleSyncStatus !== 'synced'
   ).length;
-  const notSubmittedCount = businesses.filter(
+  const notSubmittedCount = realBusinesses.filter(
     (b) => b.verificationStatus !== 'verified' && b.verificationStatus !== 'in_progress' && b.googleSyncStatus !== 'synced' && b.googleSyncStatus !== 'in_progress'
   ).length;
-  const verificationRate = businesses.length > 0 ? ((verifiedCount / businesses.length) * 100).toFixed(1) : '0';
+  const verificationRate = realBusinesses.length > 0 ? ((verifiedCount / realBusinesses.length) * 100).toFixed(1) : '0';
+
+  // ---------------------------------------------------------------------------
+  // LEADS & FIELD REVIEWS METRICS & STATE
+  // ---------------------------------------------------------------------------
+  const [leadSearchQuery, setLeadSearchQuery] = useState<string>('');
+  const [leadStatusFilter, setLeadStatusFilter] = useState<string>('all');
+  const [leadInterestFilter, setLeadInterestFilter] = useState<string>('all');
+  const [leadGovFilter, setLeadGovFilter] = useState<string>('all');
+
+  const leadStats = useMemo(() => {
+    const total = leads.length;
+    const pendingFollowup = leads.filter((l) => l.status === 'pending_followup').length;
+    const contacted = leads.filter((l) => l.status === 'contacted').length;
+    const converted = leads.filter((l) => l.status === 'converted').length;
+    const highInterest = leads.filter((l) => l.interestLevel === 'high').length;
+    const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
+    return { total, pendingFollowup, contacted, converted, highInterest, conversionRate };
+  }, [leads]);
+
+  const filteredLeads = useMemo(() => {
+    return leads.filter((l) => {
+      if (leadSearchQuery) {
+        const q = leadSearchQuery.toLowerCase();
+        const cName = (l.clientName || '').toLowerCase();
+        const bName = (l.businessName || '').toLowerCase();
+        const phone = (l.phone || '').toLowerCase();
+        const notes = (l.notes || '').toLowerCase();
+        if (!cName.includes(q) && !bName.includes(q) && !phone.includes(q) && !notes.includes(q)) {
+          return false;
+        }
+      }
+      if (leadStatusFilter !== 'all' && l.status !== leadStatusFilter) {
+        return false;
+      }
+      if (leadInterestFilter !== 'all' && l.interestLevel !== leadInterestFilter) {
+        return false;
+      }
+      if (leadGovFilter !== 'all' && l.governorate !== leadGovFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [leads, leadSearchQuery, leadStatusFilter, leadInterestFilter, leadGovFilter]);
 
   // Overdue Google Verification Detection: ONLY for businesses submitted for Google review (in_progress) and NOT verified, and > 48 hours passed
   const overdueReviewBusinesses = useMemo(() => {
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const now = Date.now();
-    return businesses.filter((b) => {
+    return realBusinesses.filter((b) => {
       // 1. If already verified, NEVER trigger overdue alert!
       const isVerified = b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
       if (isVerified) return false;
@@ -500,7 +562,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       repEarningsMap: Map<string, { name: string; earnings: number; count: number }>;
     }>();
 
-    businesses.forEach((b) => {
+    realBusinesses.forEach((b) => {
       const d = b.createdDate ? new Date(b.createdDate) : new Date();
       const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = d.toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
@@ -588,7 +650,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const filteredBusinesses = useMemo(
     () =>
       sortBusinessesNewestFirst(
-        businesses.filter((b) => {
+        realBusinesses.filter((b) => {
           if (
             bizSearchQuery &&
             !b.nameAr.includes(bizSearchQuery) &&
@@ -910,7 +972,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }`}
           >
             <Store className="w-4 h-4 shrink-0" />
-            <span>الأنشطة ({businesses.length})</span>
+            <span>الأنشطة ({realBusinesses.length})</span>
             {notSubmittedCount > 0 && (
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             )}
@@ -957,6 +1019,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
                 {payoutRequests.filter((p) => p.status === 'pending').length}
               </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveAdminTab('leads')}
+            className={`px-3 sm:px-4 py-2 rounded-xl font-black transition-all relative cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+              activeAdminTab === 'leads'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <UserCheck className="w-4 h-4 shrink-0" />
+            <span>المراجعات والمهتمين ({leads.length})</span>
+            {leads.some((l) => l.status === 'pending_followup') && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             )}
           </button>
         </div>
@@ -1011,7 +1088,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
                 <span>إجمالي الأنشطة:</span>
                 <span className="font-bold font-sans">
-                  {businesses.length} نشاط {exemptCount > 0 && <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">({exemptCount} رائج معفى)</span>}
+                  {realBusinesses.length} نشاط {exemptCount > 0 && <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">({exemptCount} رائج معفى)</span>}
                 </span>
               </div>
             </div>
@@ -1028,6 +1105,81 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
                 <span>المحافظات المغطاة:</span>
                 <span className="font-bold font-sans text-amber-600 dark:text-amber-400">{governorateStats.length} محافظة</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 🌟 5. Field Leads & Reviews Performance Hub (مؤشرات العملاء المحتملين والمراجعات الميدانية) */}
+          <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border border-emerald-500/30 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <span>مؤشرات العملاء المحتملين والمراجعات الميدانية (CRM Leads)</span>
+                    <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/25">
+                      {leadStats.total} عميل مهتم
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                    متابعة زيارات المناديب الميدانية للأنشطة غير المشتركة بعد وتحويلها إلى اشتراكات رسمية
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveAdminTab('leads')}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              >
+                <span>إدارة ومتابعة المراجعات</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+                <div className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-between">
+                  <span>إجمالي الزيارات المسجلة</span>
+                  <ClipboardList className="w-3.5 h-3.5 text-emerald-500" />
+                </div>
+                <div className="text-lg sm:text-xl font-black text-[var(--text-primary)] font-mono">
+                  {leadStats.total}
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+                <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center justify-between">
+                  <span>بانتظار المتابعة</span>
+                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+                </div>
+                <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 font-mono">
+                  {leadStats.pendingFollowup}
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+                <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between">
+                  <span>تم التواصل معهم</span>
+                  <Phone className="w-3.5 h-3.5 text-blue-500" />
+                </div>
+                <div className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400 font-mono">
+                  {leadStats.contacted}
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+                <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+                  <span>تحولوا لمشتركين فعليين</span>
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                </div>
+                <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
+                  <span>{leadStats.converted}</span>
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                    ({leadStats.conversionRate}%)
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -3669,7 +3821,306 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* MODAL 3: PAYMENT GATEWAY CONFIG MODAL */}
+      {/* --------------------------------------------------------------------- */}
+      {/* TAB 6: INTERESTED LEADS & FIELD REVIEWS (CRM HUB) */}
+      {/* --------------------------------------------------------------------- */}
+      {activeAdminTab === 'leads' && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Header & KPI Summary */}
+          <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border border-emerald-500/30 rounded-3xl p-5 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shadow-inner">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-[var(--text-primary)] flex items-center gap-2">
+                    <span>سجل متابعة ومراجعات العملاء المهتمين (CRM Leads)</span>
+                    <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                      {leadStats.total} عميل مهتم
+                    </span>
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] font-medium">
+                    متابعة زيارات المناديب الميدانية للمحلات غير المشتركة بعد، والتواصل المباشر مع أصحابها لتحويلهم لاشتراكات رسمية.
+                  </p>
+                </div>
+              </div>
+
+              {/* Conversion Rate Badge */}
+              <div className="flex items-center gap-2 bg-[var(--bg-card)] border border-emerald-500/30 px-3.5 py-2 rounded-2xl">
+                <Sparkles className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs font-bold text-[var(--text-muted)]">معدل التحويل لاشتراكات:</span>
+                <span className="font-black text-sm text-emerald-600 dark:text-emerald-400 font-mono">
+                  {leadStats.conversionRate}% ({leadStats.converted} من {leadStats.total})
+                </span>
+              </div>
+            </div>
+
+            {/* 4 Stat Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] block">إجمالي العملاء المهتمين</span>
+                <span className="text-xl font-black text-[var(--text-primary)] font-mono">{leadStats.total}</span>
+              </div>
+              <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 rounded-2xl space-y-1">
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block">بانتظار المتابعة</span>
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400 font-mono">{leadStats.pendingFollowup}</span>
+              </div>
+              <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 rounded-2xl space-y-1">
+                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block">تم التواصل معهم</span>
+                <span className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono">{leadStats.contacted}</span>
+              </div>
+              <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 rounded-2xl space-y-1">
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block">تحولوا لاشتراكات فعلية</span>
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">{leadStats.converted}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters & Search Toolbar */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 sm:p-4 rounded-3xl space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="بحث باسم العميل، النشاط، الهاتف..."
+                  value={leadSearchQuery}
+                  onChange={(e) => setLeadSearchQuery(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl pr-9 pl-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <select
+                  value={leadStatusFilter}
+                  onChange={(e) => setLeadStatusFilter(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">كل الحالات ({leads.length})</option>
+                  <option value="pending_followup">بانتظار المتابعة ({leadStats.pendingFollowup})</option>
+                  <option value="contacted">تم التواصل ({leadStats.contacted})</option>
+                  <option value="converted">تحول إلى نشاط مسجل ({leadStats.converted})</option>
+                </select>
+              </div>
+
+              {/* Interest Level Filter */}
+              <div>
+                <select
+                  value={leadInterestFilter}
+                  onChange={(e) => setLeadInterestFilter(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">كل درجات الاهتمام</option>
+                  <option value="high">اهتمام مرتفع جداً 🔥</option>
+                  <option value="medium">اهتمام متوسط ⚡</option>
+                  <option value="low">استفسار عام / غير محدد 💬</option>
+                </select>
+              </div>
+
+              {/* Governorate Filter */}
+              <div>
+                <select
+                  value={leadGovFilter}
+                  onChange={(e) => setLeadGovFilter(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">جميع المحافظات</option>
+                  {EGYPT_GOVERNORATES.map((gov) => (
+                    <option key={gov} value={gov}>
+                      {gov}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
+              <span>
+                النتائج المطابقة: <strong className="font-mono font-black text-emerald-600 dark:text-emerald-400">{filteredLeads.length}</strong> عميل مهتم
+              </span>
+              {(leadSearchQuery || leadStatusFilter !== 'all' || leadInterestFilter !== 'all' || leadGovFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLeadSearchQuery('');
+                    setLeadStatusFilter('all');
+                    setLeadInterestFilter('all');
+                    setLeadGovFilter('all');
+                  }}
+                  className="text-amber-600 hover:text-amber-500 font-bold cursor-pointer"
+                >
+                  إعادة ضبط الفلاتر ↺
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Leads Cards Grid */}
+          {filteredLeads.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {filteredLeads.map((lead) => {
+                const cleanPhone = (lead.phone || '').replace(/\D/g, '');
+                const waUrl = cleanPhone
+                  ? `https://wa.me/2${cleanPhone.startsWith('0') ? cleanPhone : '0' + cleanPhone}?text=${encodeURIComponent(
+                      `أهلاً بحضرتك أستاذ ${lead.clientName}، بخصوص استفسارك عن إضافة "${lead.businessName || 'نشاطك التجاري'}" على منصة دليلك وتوثيقه على خرائط جوجل...`
+                    )}`
+                  : '#';
+
+                return (
+                  <div
+                    key={lead.id}
+                    className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3 transition-all"
+                  >
+                    {/* Top Row: Business Name / Client & Status */}
+                    <div className="flex items-start justify-between gap-2 border-b border-[var(--border-color)] pb-2.5">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-black text-sm text-[var(--text-primary)]">
+                            {lead.businessName || `عميل: ${lead.clientName}`}
+                          </h4>
+                          {lead.interestLevel === 'high' && (
+                            <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30">
+                              اهتمام مرتفع 🔥
+                            </span>
+                          )}
+                          {lead.interestLevel === 'medium' && (
+                            <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                              اهتمام متوسط ⚡
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
+                          صاحب النشاط: <strong className="text-[var(--text-primary)]">{lead.clientName}</strong>
+                          {lead.businessCategory && ` • ${lead.businessCategory}`}
+                        </p>
+                      </div>
+
+                      {/* Status Selector */}
+                      <select
+                        value={lead.status || 'pending_followup'}
+                        onChange={(e) => {
+                          if (onUpdateLead) {
+                            onUpdateLead({ ...lead, status: e.target.value as any });
+                          }
+                        }}
+                        className={`text-[11px] font-black px-2.5 py-1 rounded-xl border cursor-pointer focus:outline-none ${
+                          lead.status === 'converted'
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                            : lead.status === 'contacted'
+                            ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
+                            : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        }`}
+                      >
+                        <option value="pending_followup">بانتظار المتابعة ⏳</option>
+                        <option value="contacted">تم التواصل 📞</option>
+                        <option value="converted">تم التحويل لاشتراك 🌟</option>
+                      </select>
+                    </div>
+
+                    {/* Middle: Details Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-muted)]">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span className="truncate">{lead.governorate}{lead.city ? ` - ${lead.city}` : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                        <span className="truncate">المندوب: {lead.repName || 'مندوب معتمد'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-mono dir-ltr text-right">
+                        <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span>{lead.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                        <span>{lead.followUpDate ? `متابعة: ${lead.followUpDate}` : formatActivityDateTime(lead.createdDate || '')}</span>
+                      </div>
+                    </div>
+
+                    {/* Notes Box */}
+                    {lead.notes && (
+                      <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] text-[var(--text-secondary)]">
+                        <span className="font-bold text-[10px] text-[var(--text-muted)] block mb-0.5">ملاحظات الزيارة والمتابعة:</span>
+                        <p className="line-clamp-2">{lead.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Action Buttons Toolbar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]">
+                      {/* Direct Communication Buttons */}
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={`tel:${lead.phone}`}
+                          className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>اتصال</span>
+                        </a>
+                        {cleanPhone && (
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            <span>واتساب</span>
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Convert to Business & Delete */}
+                      <div className="flex items-center gap-2">
+                        {onConvertToBusiness && lead.status !== 'converted' && (
+                          <button
+                            type="button"
+                            onClick={() => onConvertToBusiness(lead)}
+                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>تحويل إلى نشاط مسجل 🌟</span>
+                          </button>
+                        )}
+                        {lead.status === 'converted' && (
+                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>مشترك مسجل بالدليل</span>
+                          </span>
+                        )}
+                        {onDeleteLead && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`هل أنت متأكد من حذف سجل العميل "${lead.clientName}"؟`)) {
+                                onDeleteLead(lead.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-xl text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="حذف السجل"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-10 text-center space-y-2">
+              <UserCheck className="w-10 h-10 text-emerald-500/50 mx-auto" />
+              <p className="font-black text-sm text-[var(--text-primary)]">لا توجد مراجعات أو عملاء مهتمين مطابقة للبحث</p>
+              <p className="text-xs text-[var(--text-muted)]">
+                عندما يسجل أي مندوب ميداني بيانات زيارة لعميل مهتم، ستظهر بياناته وملاحظات المتابعة هنا فورياً.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       {showPaymentModal &&
         createPortal(
           <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">

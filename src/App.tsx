@@ -193,7 +193,9 @@ export default function App() {
     };
   }, [user]);
 
-  const [businesses, setBusinesses] = useState<Business[]>(() => getCachedBusinesses());
+  const [businesses, setBusinesses] = useState<Business[]>(() =>
+    getCachedBusinesses().filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'))
+  );
 
   const [representatives, setRepresentatives] = useState<Representative[]>(() => {
     try {
@@ -486,7 +488,8 @@ export default function App() {
     fetchBusinessesFromDb()
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setBusinesses(data);
+          const cleanBiz = data.filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
+          setBusinesses(cleanBiz);
         }
         safeSetLocalStorageItem('dalelak_app_initialized', 'true');
         if (user?.id) {
@@ -2769,6 +2772,10 @@ export default function App() {
               representatives={representatives}
               paymentConfig={paymentConfig}
               payoutRequests={payoutRequests}
+              leads={leads}
+              onUpdateLead={handleUpdateLead}
+              onDeleteLead={handleDeleteLead}
+              onConvertToBusiness={handleConvertToBusiness}
               onUpdateBusiness={handleUpdateBusiness}
               onDeleteBusiness={handleDeleteBusiness}
               onAddRepresentative={handleAddRepresentative}

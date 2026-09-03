@@ -510,6 +510,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const handleInitiateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    if (registrationType === 'interested_lead') {
+      handleSaveLeadSubmit();
+      return;
+    }
     if (registrationType === 'already_on_google') {
       handleDirectAlreadyOnGoogleSubmit(e);
       return;

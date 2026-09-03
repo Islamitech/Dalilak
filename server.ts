@@ -221,7 +221,7 @@ function loadStoredBusinesses(): Business[] {
     if (fs.existsSync(BIZ_STORE_PATH)) {
       const data = JSON.parse(fs.readFileSync(BIZ_STORE_PATH, 'utf-8'));
       if (Array.isArray(data) && data.length > 0) {
-        return data;
+        return data.filter((b: any) => b && b.packageId !== 'pkg_interested_lead' && b.verificationStatus !== 'lead' && !String(b.id || '').startsWith('lead_'));
       }
     }
   } catch (e) {

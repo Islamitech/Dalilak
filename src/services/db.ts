@@ -1,6 +1,7 @@
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { uploadMultipleMediaToStorage } from './storage';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote } from '../types';
+import { MOCK_REPRESENTATIVES } from '../data/mockData';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeBusinessesForStorage, getApiAuthHeaders } from '../utils/storage';
 import {
   saveOfflineBusiness,
@@ -38,7 +39,9 @@ export function getCachedBusinesses(): Business[] {
   const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
   const cached = safeParseJson<Business[]>(raw, []);
   if (Array.isArray(cached) && cached.length > 0) {
-    return cached;
+    return cached.filter(
+      (b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
+    );
   }
   return [];
 }
@@ -75,7 +78,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 
     if (resultList.length === 0) {
       try {
-        const { data, error } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('businesses').select('*').neq('package_id', 'pkg_interested_lead').order('created_at', { ascending: false });
         if (!error && data && Array.isArray(data) && data.length > 0) {
           resultList = data.map(mapDbToBusiness);
           try {
@@ -145,7 +148,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     }
   } catch {}
 
-  return resultList;
+  return resultList.filter(
+    (b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
+  );
 }
 
 /**
@@ -232,19 +237,21 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
 
   try {
     const encLastSync = encodeURIComponent(lastSync);
-    // PostgREST syntax for OR condition across updated_at and created_at
-    const query = `businesses?select=*&or=(updated_at.gte.${encLastSync},created_at.gte.${encLastSync})&order=created_at.desc`;
+    // PostgREST syntax for OR condition across updated_at and created_at (excluding leads)
+    const query = `businesses?select=*&package_id=neq.pkg_interested_lead&or=(updated_at.gte.${encLastSync},created_at.gte.${encLastSync})&order=created_at.desc`;
     let res = await supabaseRestFetch(query);
 
     // Fallback if updated_at column isn't queryable
     if (!res.ok) {
-      res = await supabaseRestFetch(`businesses?select=*&created_at=gte.${encLastSync}&order=created_at.desc`);
+      res = await supabaseRestFetch(`businesses?select=*&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`);
     }
 
     if (res.ok) {
       const deltaData = await res.json();
       if (Array.isArray(deltaData) && deltaData.length > 0) {
-        const freshDeltaList = deltaData.map(mapDbToBusiness);
+        const freshDeltaList = deltaData
+          .map(mapDbToBusiness)
+          .filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
         
         // Merge delta updates with cached map (New/modified items override old)
         const map = new Map<string, Business>();
@@ -534,15 +541,33 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     }
   }
 
-  // 2. Offline fallback from local cache
+  // 2. Local Server API fetch fallback (runs if Supabase is restricted or offline)
   try {
-    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []);
-    if (Array.isArray(cached) && cached.length > 0) {
-      return cached;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const localRes = await fetch('/api/representatives', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (Array.isArray(localData) && localData.length > 0) {
+        return localData.map(mapDbToRep);
+      }
     }
   } catch {}
 
-  return [];
+  // 3. Offline fallback from local cache (merging cached and custom reps)
+  try {
+    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []) || [];
+    const custom = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []) || [];
+    const map = new Map<string, Representative>();
+    cached.forEach((r) => map.set(r.id, r));
+    custom.forEach((r) => map.set(r.id, r));
+    if (map.size > 0) {
+      return Array.from(map.values());
+    }
+  } catch {}
+
+  return [...MOCK_REPRESENTATIVES];
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
