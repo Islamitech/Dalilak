@@ -236,15 +236,12 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
   }
 
   try {
-    const encLastSync = encodeURIComponent(lastSync);
-    // PostgREST syntax for OR condition across updated_at and created_at (excluding leads)
-    const query = `businesses?select=*&package_id=neq.pkg_interested_lead&or=(updated_at.gte.${encLastSync},created_at.gte.${encLastSync})&order=created_at.desc`;
-    let res = await supabaseRestFetch(query);
-
-    // Fallback if updated_at column isn't queryable
-    if (!res.ok) {
-      res = await supabaseRestFetch(`businesses?select=*&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`);
-    }
+    const lastSyncDate = new Date(lastSync);
+    // 5-minute safety overlap buffer to absorb cross-device clock drift
+    const safeTime = new Date(Math.max(0, lastSyncDate.getTime() - 5 * 60 * 1000)).toISOString();
+    const encLastSync = encodeURIComponent(safeTime);
+    const query = `businesses?select=*&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`;
+    const res = await supabaseRestFetch(query);
 
     if (res.ok) {
       const deltaData = await res.json();
@@ -1511,19 +1508,6 @@ function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
   };
   record.notes = JSON.stringify(metaObj);
-
-  // First-class SQL columns (Idempotent synchronization)
-  record.is_fee_exempt = isExempt;
-  record.fee_exemption_reason = biz.feeExemptionReason || null;
-  record.is_already_on_google = isAlreadyOnGoogle;
-  record.registration_type = isAlreadyOnGoogle ? 'already_on_google' : (biz.registrationType || 'new_verification');
-  record.videos = metaObj.videos;
-  record.rep_location_url = cleanRepLocationUrl;
-  record.google_maps_url = cleanGoogleMapsUrl;
-  record.google_place_id = biz.googlePlaceId || null;
-  record.google_sync_status = isAlreadyOnGoogle ? 'synced' : (biz.googleSyncStatus || 'pending');
-  record.google_sync_date = isAlreadyOnGoogle ? (biz.googleSyncDate || new Date().toISOString().split('T')[0]) : (biz.googleSyncDate || null);
-  record.admin_follow_ups = metaObj.adminFollowUps;
 
   return record;
 }
