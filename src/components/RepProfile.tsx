@@ -29,6 +29,7 @@ import {
   Phone,
   X,
   Home,
+  Clock,
 } from 'lucide-react';
 
 interface RepProfileProps {
@@ -325,7 +326,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             <FileText className="w-4 h-4 stroke-[2.2]" />
           </div>
           <div>
-            <p className="text-[10px] text-[var(--text-muted)] font-bold">الأنشطة الموثقة</p>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">الأنشطة المسجلة</p>
             <p className="text-sm sm:text-base font-black text-[var(--text-primary)] leading-tight">
               {repBusinesses.length} <span className="text-[10px] text-[var(--text-muted)] font-normal">نشاط</span>
             </p>
@@ -337,33 +338,33 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             <CreditCard className="w-4 h-4 stroke-[2.2]" />
           </div>
           <div>
-            <p className="text-[10px] text-[var(--text-muted)] font-bold">صافي العمولات</p>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">إجمالي العمولات المكتسبة</p>
             <p className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 leading-tight">
-              {settlement.netRepEarnings.toLocaleString()} <span className="text-[10px] font-normal">ج.م</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4 stroke-[2.2]" />
-          </div>
-          <div>
-            <p className="text-[10px] text-[var(--text-muted)] font-bold">فريق الإحالة</p>
-            <p className="text-sm sm:text-base font-black text-blue-600 dark:text-blue-400 leading-tight">
-              {referralSummary.totalInvitedCount} <span className="text-[10px] font-normal">عضو</span>
+              {(settlement?.totalEarnedCommission || 0).toLocaleString()} <span className="text-[10px] font-normal">ج.م</span>
             </p>
           </div>
         </div>
 
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center shrink-0">
+            <Clock className="w-4 h-4 stroke-[2.2]" />
+          </div>
+          <div>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">تم صرفه وتحويله مسبقاً</p>
+            <p className="text-sm sm:text-base font-black text-purple-600 dark:text-purple-400 leading-tight">
+              {(settlement?.totalPaidOut || 0).toLocaleString()} <span className="text-[10px] font-normal">ج.م</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
             <Gift className="w-4 h-4 stroke-[2.2]" />
           </div>
           <div>
-            <p className="text-[10px] text-[var(--text-muted)] font-bold">الرصيد القابل للسحب</p>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">المتاح للسحب الآن</p>
             <p className="text-sm sm:text-base font-black text-amber-500 leading-tight">
-              {settlement.balanceToClaim > 0 ? `${settlement.balanceToClaim.toLocaleString()} ج.م` : 'مسوى بالكامل'}
+              {(settlement?.withdrawableBalance || 0) > 0 ? `${(settlement?.withdrawableBalance || 0).toLocaleString()} ج.م` : 'مسوى بالكامل'}
             </p>
           </div>
         </div>
