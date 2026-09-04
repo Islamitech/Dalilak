@@ -677,17 +677,6 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
 
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                {biz.paymentReceiptPhoto && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedReceiptPhoto(biz.paymentReceiptPhoto!)}
-                                    className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-black text-[11px] px-2 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1"
-                                    title="معاينة صورة التحصيل الخاصة بالنشاط"
-                                  >
-                                    <Camera className="w-3 h-3 text-emerald-500" />
-                                    <span>الإيصال</span>
-                                  </button>
-                                )}
                                 {onEditBusiness && (
                                   <button
                                     type="button"

@@ -520,7 +520,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           payoutRequests={payoutRequests}
           onUpdateRepresentative={onUpdateRepresentative}
           onEditBusiness={(biz) => {
-            setSelectedDossierRep(null);
             setEditingBusiness(biz);
           }}
           onUpdatePayoutRequest={onUpdatePayoutRequest}

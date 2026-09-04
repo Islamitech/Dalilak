@@ -480,7 +480,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
+    <div className="fixed inset-0 z-[10020] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
       <div className="bg-[var(--bg-card)] border-t sm:border border-[var(--border-color)] rounded-t-[28px] sm:rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh] sm:max-h-[90vh] transition-all">
         
         {/* ── 0. MOBILE DRAG HANDLE ───────────────────────────────────── */}
