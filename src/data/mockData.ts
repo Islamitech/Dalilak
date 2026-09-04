@@ -289,7 +289,7 @@ export const ALREADY_ON_GOOGLE_PACKAGE: PackageOption = {
 export const MOCK_REPRESENTATIVES: Representative[] = [
   {
     id: 'rep_ahmed_ezalden',
-    name: 'Ahmed Ezalden',
+    name: 'أحمد عزالدين محمد',
     email: 'info@dalilaak.com',
     phone: '01143888355',
     role: 'admin',

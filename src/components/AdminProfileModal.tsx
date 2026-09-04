@@ -505,7 +505,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="مثال: Ahmed Ezalden"
+                      placeholder="مثال: أحمد عزالدين محمد"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
