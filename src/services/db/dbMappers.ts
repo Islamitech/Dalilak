@@ -81,6 +81,11 @@ export function mapDbToBusiness(item: any): Business {
   let metaAdminFollowUps: AdminFollowUpNote[] | undefined = undefined;
   let metaPaymentReceiptPhoto = item.payment_receipt_photo || item.paymentReceiptPhoto;
   let metaPaymentReceiptDate = item.payment_receipt_date || item.paymentReceiptDate;
+  let metaIsDeleted: boolean | undefined = item.is_deleted !== undefined ? Boolean(item.is_deleted) : item.isDeleted !== undefined ? Boolean(item.isDeleted) : undefined;
+  let metaDeletedAt = item.deleted_at || item.deletedAt;
+  let metaDeletedBy = item.deleted_by || item.deletedBy;
+  let metaDeletedByRole = item.deleted_by_role || item.deletedByRole;
+  let metaDeletedReason = item.deleted_reason || item.deletedReason;
   let pureNotes = item.notes;
 
   if (typeof item.notes === 'string' && item.notes.trim().startsWith('{')) {
@@ -103,6 +108,11 @@ export function mapDbToBusiness(item: any): Business {
         if (parsed.registrationType !== undefined && !metaRegistrationType) metaRegistrationType = parsed.registrationType;
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
         if (parsed.adminFollowUps && Array.isArray(parsed.adminFollowUps)) metaAdminFollowUps = parsed.adminFollowUps;
+        if (parsed.isDeleted !== undefined && metaIsDeleted === undefined) metaIsDeleted = Boolean(parsed.isDeleted);
+        if (parsed.deletedAt && !metaDeletedAt) metaDeletedAt = parsed.deletedAt;
+        if (parsed.deletedBy && !metaDeletedBy) metaDeletedBy = parsed.deletedBy;
+        if (parsed.deletedByRole && !metaDeletedByRole) metaDeletedByRole = parsed.deletedByRole;
+        if (parsed.deletedReason && !metaDeletedReason) metaDeletedReason = parsed.deletedReason;
         pureNotes = parsed.userNotes !== undefined ? parsed.userNotes : undefined;
       }
     } catch {}
@@ -237,6 +247,11 @@ export function mapDbToBusiness(item: any): Business {
     feeExemptionReason: metaFeeExemptionReason,
     isAlreadyOnGoogle: Boolean(metaIsAlreadyOnGoogle || item.package_id === 'pkg_already_on_google'),
     registrationType: metaRegistrationType || (metaIsAlreadyOnGoogle || item.package_id === 'pkg_already_on_google' ? 'already_on_google' : 'new_verification'),
+    isDeleted: Boolean(metaIsDeleted),
+    deletedAt: metaDeletedAt,
+    deletedBy: metaDeletedBy,
+    deletedByRole: metaDeletedByRole,
+    deletedReason: metaDeletedReason,
   };
 }
 
@@ -344,6 +359,11 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     adminFollowUps: finalAdminFollowUps,
     paymentReceiptPhoto: biz.paymentReceiptPhoto !== undefined ? biz.paymentReceiptPhoto : existingMeta.paymentReceiptPhoto,
     paymentReceiptDate: biz.paymentReceiptDate !== undefined ? biz.paymentReceiptDate : existingMeta.paymentReceiptDate,
+    isDeleted: biz.isDeleted !== undefined ? biz.isDeleted : existingMeta.isDeleted,
+    deletedAt: biz.deletedAt !== undefined ? biz.deletedAt : existingMeta.deletedAt,
+    deletedBy: biz.deletedBy !== undefined ? biz.deletedBy : existingMeta.deletedBy,
+    deletedByRole: biz.deletedByRole !== undefined ? biz.deletedByRole : existingMeta.deletedByRole,
+    deletedReason: biz.deletedReason !== undefined ? biz.deletedReason : existingMeta.deletedReason,
     userNotes: finalUserNotes,
   };
   record.notes = JSON.stringify(metaObj);
@@ -450,6 +470,10 @@ export function mapDbToRep(item: any): Representative {
         if (parsed.phoneStatus && metaPhoneStatus === 'none') metaPhoneStatus = parsed.phoneStatus;
         if (parsed.lastActiveTimestamp && !metaLastActiveTimestamp) metaLastActiveTimestamp = Number(parsed.lastActiveTimestamp);
         if (parsed.activeSessionId && !metaActiveSessionId) metaActiveSessionId = parsed.activeSessionId;
+        if (parsed.isDeleted !== undefined && metaIsDeleted === undefined) metaIsDeleted = Boolean(parsed.isDeleted);
+        if (parsed.deletedAt && !metaDeletedAt) metaDeletedAt = parsed.deletedAt;
+        if (parsed.deletedBy && !metaDeletedBy) metaDeletedBy = parsed.deletedBy;
+        if (parsed.deletedByRole && !metaDeletedByRole) metaDeletedByRole = parsed.deletedByRole;
       }
     } catch {}
   }
@@ -497,6 +521,10 @@ export function mapDbToRep(item: any): Representative {
     referralUnlocked: Boolean(metaReferralUnlocked),
     adminBypassReferral: Boolean(metaAdminBypassReferral),
     referralRewardGranted: Boolean(metaReferralRewardGranted),
+    isDeleted: Boolean(metaIsDeleted),
+    deletedAt: metaDeletedAt,
+    deletedBy: metaDeletedBy,
+    deletedByRole: metaDeletedByRole,
   };
 }
 
@@ -543,6 +571,10 @@ export function mapRepToDb(rep: Partial<Representative>): any {
     phoneStatus: rep.phoneStatus ?? existingMeta.phoneStatus ?? 'none',
     lastActiveTimestamp: rep.lastActiveTimestamp ?? existingMeta.lastActiveTimestamp,
     activeSessionId: rep.activeSessionId ?? existingMeta.activeSessionId,
+    isDeleted: rep.isDeleted ?? existingMeta.isDeleted,
+    deletedAt: rep.deletedAt ?? existingMeta.deletedAt,
+    deletedBy: rep.deletedBy ?? existingMeta.deletedBy,
+    deletedByRole: rep.deletedByRole ?? existingMeta.deletedByRole,
   };
 
   record.avatar = JSON.stringify(avatarBundle);

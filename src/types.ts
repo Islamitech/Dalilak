@@ -51,6 +51,11 @@ export interface Business {
   notes?: string;
   adminFollowUps?: AdminFollowUpNote[]; // سجل الملاحظات والمتابعات الإدارية الداخلية
   createdDate: string;
+  isDeleted?: boolean; // أثر السيرفر: هل تم حذف النشاط ناعماً
+  deletedAt?: string;  // تاريخ الحذف الإداري
+  deletedBy?: string;  // اسم أو إيميل من قام بالحذف
+  deletedByRole?: string; // دور المسؤول الذي حذف
+  deletedReason?: string; // سبب الحذف إن وجد
   _offlineUserId?: string;
   _offlineTimestamp?: number;
   _isOfflinePending?: boolean;
@@ -107,6 +112,10 @@ export interface Representative {
   referralUnlocked?: boolean; // هل تم فتح كود الإحالة للمندوب
   adminBypassReferral?: boolean; // تجاوز وتفعيل يدوي من قبل المدير
   referralRewardGranted?: boolean; // هل تم منح هدية الدعوة لمن دعاه
+  isDeleted?: boolean; // أثر السيرفر: هل تم حذف الحساب ناعماً
+  deletedAt?: string;  // تاريخ الحذف الإداري
+  deletedBy?: string;  // من قام بالحذف
+  deletedByRole?: string;
 }
 
 export interface PackageOption {

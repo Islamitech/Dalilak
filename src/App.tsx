@@ -25,7 +25,7 @@ const RepDashboard = lazyWithRetry(() => import('./components/RepDashboard').the
 import { getOfflineSyncStatus, OfflineSyncStatus } from './services/offlineSync';
 import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';
 import { Logo } from './components/Logo';
-import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel } from './utils/permissions';
+import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, isSuperAdmin } from './utils/permissions';
 import { 
   MapPin, 
   PlusCircle, 
@@ -73,13 +73,22 @@ import {
   saveBusinessToDb,
   updateBusinessInDb,
   deleteBusinessFromDb,
+  softDeleteBusinessInDb,
+  restoreBusinessInDb,
+  hardDeleteBusinessFromDb,
+  getDeletedBusinesses,
   fetchRepsFromDb,
   saveRepToDb,
   deleteRepFromDb,
+  softDeleteRepInDb,
+  restoreRepInDb,
+  hardDeleteRepFromDb,
+  getDeletedRepresentatives,
   updateRepSessionInDb,
   fetchPayoutRequestsFromDb,
   createPayoutRequestInDb,
   updatePayoutRequestInDb,
+  deletePayoutRequestFromDb,
   fetchLeadsFromDb,
   saveLeadToDb,
   updateLeadInDb,
@@ -112,6 +121,8 @@ export default function App() {
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() =>
     safeParseJson<PayoutRequest[]>(safeGetLocalStorageItem('dalelak_cached_payouts'), [])
   );
+  const [deletedBusinesses, setDeletedBusinesses] = useState<Business[]>(() => getDeletedBusinesses());
+  const [deletedRepresentatives, setDeletedRepresentatives] = useState<Representative[]>(() => getDeletedRepresentatives());
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(() => {
     const parsed = safeParseJson<any>(safeGetLocalStorageItem('dalelak_payment_config'), null);
     if (parsed) {
@@ -974,12 +985,27 @@ export default function App() {
     addNotification('✅ تم تحديث بياناتك وملفاتك الرسمية بنجاح على السحابة!', 'success');
   };
 
+  const handleRestoreBusiness = async (biz: Business) => {
+    const restored = await restoreBusinessInDb(biz);
+    setDeletedBusinesses((prev) => prev.filter((b) => b.id !== biz.id));
+    setBusinesses((prev) => [restored, ...prev.filter((b) => b.id !== biz.id)]);
+    addNotification(`🟢 تم استرجاع نشاط "${biz.nameAr}" وإعادته نشطاً للمنظومة بنجاح!`, 'success');
+  };
+
+  const handleHardDeleteBusiness = async (id: string) => {
+    const biz = deletedBusinesses.find((b) => b.id === id) || businesses.find((b) => b.id === id);
+    await hardDeleteBusinessFromDb(id);
+    setDeletedBusinesses((prev) => prev.filter((b) => b.id !== id));
+    setBusinesses((prev) => prev.filter((b) => b.id !== id));
+    addNotification(`🗑️ تم الحذف النهائي البات لنشاط "${biz?.nameAr || 'المحدد'}" من قاعدة البيانات والسيرفر.`, 'warning');
+  };
+
   const handleDeleteBusiness = async (id: string) => {
     const biz = businesses.find((b) => b.id === id);
 
     // 🛡️ تأكيد الحذف: منع الحذف العرضي للبيانات
     const confirmed = window.confirm(
-      `⚠️ تأكيد الحذف النهائي\n\nهل أنت متأكد تمامًا من حذف نشاط "${biz?.nameAr || 'المحدد'}"؟\n\nهذا الإجراء لا يمكن التراجع عنه وسيُحذف النشاط بشكل نهائي من قاعدة البيانات.`
+      `⚠️ تأكيد حذف النشاط\n\nهل أنت متأكد من حذف نشاط "${biz?.nameAr || 'المحدد'}" من المنظومة؟`
     );
     if (!confirmed) return;
 
@@ -1009,8 +1035,24 @@ export default function App() {
       )
     );
 
-    // 4. Delete from Supabase Database and local server API
-    await deleteBusinessFromDb(id);
+    // 4. Soft Delete (الأثر على السيرفر): preserves data for Super Admin review
+    if (biz) {
+      const deletedBy = user?.name || user?.email || 'مدير النظام';
+      const deletedByRole = user?.repData?.roleTitle || user?.roleTitle || user?.role || 'admin';
+      await softDeleteBusinessInDb(biz, deletedBy, deletedByRole);
+      setDeletedBusinesses((prev) => [
+        {
+          ...biz,
+          isDeleted: true,
+          deletedAt: new Date().toISOString(),
+          deletedBy,
+          deletedByRole,
+        },
+        ...prev.filter((b) => b.id !== id),
+      ]);
+    } else {
+      await deleteBusinessFromDb(id);
+    }
 
     // 5. Broadcast deletion to other open browser tabs
     try {
@@ -1022,7 +1064,7 @@ export default function App() {
     } catch {}
 
     // 6. User Feedback
-    addNotification(`🗑️ تم حذف نشاط "${biz?.nameAr || 'المحدد'}" نهائياً من المنظومة.`, 'warning');
+    addNotification(`🗑️ تم حذف نشاط "${biz?.nameAr || 'المحدد'}" بنجاح.`, 'warning');
   };
 
   const handleAddRepresentative = async (repData: Partial<Representative>) => {
@@ -1232,12 +1274,38 @@ export default function App() {
     } catch {}
   };
 
+  const handleRestoreRepresentative = async (rep: Representative) => {
+    const restored = await restoreRepInDb(rep);
+    setDeletedRepresentatives((prev) => prev.filter((r) => r.id !== rep.id));
+    setRepresentatives((prev) => [restored, ...prev.filter((r) => r.id !== rep.id)]);
+    addNotification(`🟢 تم استرجاع حساب "${rep.name}" وتفعيله بنجاح!`, 'success');
+  };
+
+  const handleHardDeleteRepresentative = async (id: string) => {
+    const rep = deletedRepresentatives.find((r) => r.id === id) || representatives.find((r) => r.id === id);
+    await hardDeleteRepFromDb(id);
+    setDeletedRepresentatives((prev) => prev.filter((r) => r.id !== id));
+    setRepresentatives((prev) => prev.filter((r) => r.id !== id));
+    addNotification(`🗑️ تم الحذف النهائي البات لحساب "${rep?.name || 'المحدد'}" من قاعدة البيانات والسيرفر.`, 'warning');
+  };
+
+  const handleDeletePayoutRequest = async (id: string) => {
+    await deletePayoutRequestFromDb(id);
+    setPayoutRequests((prev) => prev.filter((p) => p.id !== id));
+    addNotification('🗑️ تم حذف المعاملة المالية نهائياً من قاعدة البيانات والسيرفر.', 'warning');
+  };
+
   const handleDeleteRepresentative = async (id: string) => {
     const rep = representatives.find((r) => r.id === id);
 
+    if (isSuperAdmin(rep)) {
+      addNotification('⛔ حساب المدير الأعلى للنظام محمي بالكامل ومحصن ضد الحذف!', 'error');
+      return;
+    }
+
     // 🛡️ تأكيد الحذف: منع الحذف العرضي للحسابات
     const confirmed = window.confirm(
-      `⚠️ تأكيد حذف الحساب\n\nهل أنت متأكد تمامًا من حذف حساب "${rep?.name || 'المحدد'}"؟\n\nسيُحذف الحساب نهائياً ولا يمكن استعادته.`
+      `⚠️ تأكيد حذف الحساب\n\nهل أنت متأكد من حذف حساب "${rep?.name || 'المحدد'}"؟`
     );
     if (!confirmed) return;
 
@@ -1250,8 +1318,23 @@ export default function App() {
       return updated;
     });
 
-    // Delete from DB & blacklist
-    await deleteRepFromDb(id);
+    if (rep) {
+      const deletedBy = user?.name || user?.email || 'مدير النظام';
+      const deletedByRole = user?.repData?.roleTitle || user?.roleTitle || user?.role || 'admin';
+      await softDeleteRepInDb(rep, deletedBy, deletedByRole);
+      setDeletedRepresentatives((prev) => [
+        {
+          ...rep,
+          isDeleted: true,
+          deletedAt: new Date().toISOString(),
+          deletedBy,
+          deletedByRole,
+        },
+        ...prev.filter((r) => r.id !== id),
+      ]);
+    } else {
+      await deleteRepFromDb(id);
+    }
 
     try {
       const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
@@ -1262,10 +1345,10 @@ export default function App() {
     } catch {}
 
     if (rep) {
-      addNotification(`🗑️ تم حذف حساب "${rep.name}" نهائياً من المنظومة.`, 'warning');
+      addNotification(`🗑️ تم حذف حساب "${rep.name}" بنجاح.`, 'warning');
       addSystemNotification({
         title: 'حذف حساب 🗑️',
-        message: `تم حذف حساب "${rep.name}" (${rep.roleTitle || rep.role}) نهائياً من المنظومة.`,
+        message: `تم حذف حساب "${rep.name}" (${rep.roleTitle || rep.role}).`,
         type: 'warning',
         category: 'account',
         targetRole: 'admin',
@@ -1715,16 +1798,23 @@ export default function App() {
               paymentConfig={paymentConfig}
               payoutRequests={payoutRequests}
               leads={leads}
+              deletedBusinesses={deletedBusinesses}
+              deletedRepresentatives={deletedRepresentatives}
               onUpdateLead={handleUpdateLead}
               onDeleteLead={handleDeleteLead}
               onConvertToBusiness={handleConvertToBusiness}
               onUpdateBusiness={handleUpdateBusiness}
               onDeleteBusiness={handleDeleteBusiness}
+              onRestoreBusiness={handleRestoreBusiness}
+              onHardDeleteBusiness={handleHardDeleteBusiness}
               onAddRepresentative={handleAddRepresentative}
               onUpdateRepresentative={handleUpdateRepresentative}
               onDeleteRepresentative={handleDeleteRepresentative}
+              onRestoreRepresentative={handleRestoreRepresentative}
+              onHardDeleteRepresentative={handleHardDeleteRepresentative}
               onUpdatePaymentConfig={handleUpdatePaymentConfig}
               onUpdatePayoutRequest={handleUpdatePayoutRequest}
+              onDeletePayoutRequest={handleDeletePayoutRequest}
               onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
               onCollectPayment={(b) => setSelectedPayBiz(b)}
             />

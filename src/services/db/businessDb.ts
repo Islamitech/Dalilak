@@ -531,23 +531,99 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
   } catch {}
 }
 
-export async function deleteBusinessFromDb(id: string): Promise<void> {
-  // 1. Delete from LocalStorage cache immediately (both cache keys)
-  // 🔐 BUG-02 FIX: ننظف كلا الـ cache keys لأن getCachedBusinesses() تقرأ من الاثنين
+export function getDeletedBusinesses(): Business[] {
+  const raw = safeGetLocalStorageItem('dalelak_soft_deleted_businesses');
+  return safeParseJson<Business[]>(raw, []);
+}
+
+/**
+ * 📦 Soft Delete Business (الأثر على السيرفر):
+ * Marks the business as deleted so it disappears from normal users/admins,
+ * but preserves all data in Supabase & server audit for the Super Admin.
+ */
+export async function softDeleteBusinessInDb(
+  biz: Business,
+  deletedBy: string,
+  deletedByRole?: string,
+  deletedReason?: string
+): Promise<void> {
+  const updatedBiz: Business = {
+    ...biz,
+    isDeleted: true,
+    deletedAt: new Date().toISOString(),
+    deletedBy,
+    deletedByRole,
+    deletedReason,
+  };
+
+  // 1. Remove from active cache and put in soft deleted registry
+  try {
+    const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
+    const filtered = cached.filter((b: Business) => b.id !== biz.id);
+    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(filtered));
+
+    const dirCached = safeParseJson<Business[]>(localStorage.getItem('dalelak_directory_cache'), []);
+    const dirFiltered = dirCached.filter((b: Business) => b.id !== biz.id);
+    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(dirFiltered));
+
+    const deletedList = getDeletedBusinesses().filter((b) => b.id !== biz.id);
+    safeSetLocalStorageItem('dalelak_soft_deleted_businesses', JSON.stringify([updatedBiz, ...deletedList]));
+  } catch {}
+
+  // 2. Persist soft-delete to Supabase DB
+  await updateBusinessInDb(biz.id, updatedBiz);
+}
+
+/**
+ * 🟢 Restores a soft-deleted business back to active state
+ */
+export async function restoreBusinessInDb(biz: Business): Promise<Business> {
+  const restored: Business = {
+    ...biz,
+    isDeleted: false,
+    deletedAt: undefined,
+    deletedBy: undefined,
+    deletedByRole: undefined,
+    deletedReason: undefined,
+  };
+
+  // 1. Remove from soft deleted registry and restore to active cache
+  try {
+    const deletedList = getDeletedBusinesses().filter((b) => b.id !== biz.id);
+    safeSetLocalStorageItem('dalelak_soft_deleted_businesses', JSON.stringify(deletedList));
+
+    const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
+    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify([restored, ...cached.filter((b) => b.id !== biz.id)]));
+  } catch {}
+
+  // 2. Persist restored state to Supabase DB
+  await updateBusinessInDb(biz.id, restored);
+  return restored;
+}
+
+/**
+ * 🔴 Permanent Purge (حذف نهائي بات):
+ * Completely deletes the business record from Supabase, local server, and all local storage.
+ */
+export async function hardDeleteBusinessFromDb(id: string): Promise<void> {
+  // 1. Purge from all caches & registries
   try {
     const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
     if (Array.isArray(cached)) {
-      const filtered = cached.filter((b: Business) => b.id !== id);
-      safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(filtered));
+      safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(cached.filter((b: Business) => b.id !== id)));
     }
   } catch {}
 
   try {
     const directoryCache = safeParseJson<Business[]>(localStorage.getItem('dalelak_directory_cache'), []);
     if (Array.isArray(directoryCache)) {
-      const filtered = directoryCache.filter((b: Business) => b.id !== id);
-      safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(filtered));
+      safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(directoryCache.filter((b: Business) => b.id !== id)));
     }
+  } catch {}
+
+  try {
+    const deletedList = getDeletedBusinesses().filter((b) => b.id !== id);
+    safeSetLocalStorageItem('dalelak_soft_deleted_businesses', JSON.stringify(deletedList));
   } catch {}
 
   // 2. Delete from Supabase REST
@@ -569,3 +645,6 @@ export async function deleteBusinessFromDb(id: string): Promise<void> {
     });
   } catch {}
 }
+
+export const deleteBusinessFromDb = hardDeleteBusinessFromDb;
+

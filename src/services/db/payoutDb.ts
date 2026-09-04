@@ -162,3 +162,41 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
 
   return payout;
 }
+
+/**
+ * 🗑️ Deletes / purges a payout request or remittance order permanently (Super Admin only)
+ */
+export async function deletePayoutRequestFromDb(id: string): Promise<void> {
+  // 1. LocalStorage update
+  try {
+    const cachedStr = localStorage.getItem('dalelak_cached_payouts');
+    if (cachedStr) {
+      const cachedList: PayoutRequest[] = JSON.parse(cachedStr);
+      const filtered = cachedList.filter((p) => p.id !== id);
+      safeSetLocalStorageItem('dalelak_cached_payouts', JSON.stringify(filtered));
+    }
+  } catch {}
+
+  // 2. Supabase deletion
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('payout_requests').delete().eq('id', id);
+      if (error) {
+        await supabaseRestFetch(`payout_requests?id=eq.${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+      }
+    } catch (err) {
+      console.error('Supabase delete payout request error:', err);
+    }
+  }
+
+  // 3. Local server API
+  try {
+    await fetch(`/api/payouts/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: getApiAuthHeaders(),
+    });
+  } catch {}
+}
+

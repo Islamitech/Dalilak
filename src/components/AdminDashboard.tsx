@@ -27,6 +27,8 @@ import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { PermissionsModal } from './PermissionsModal';
 import { RepAccountDossierModal } from './RepAccountDossierModal';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
+import { AdminAuditTrashTab } from './admin/tabs/AdminAuditTrashTab';
+import { isSuperAdmin } from '../utils/permissions';
 
 import {
   ShieldCheck,
@@ -35,6 +37,7 @@ import {
   CreditCard,
   UserCheck,
   Store,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -44,13 +47,20 @@ interface AdminDashboardProps {
   paymentConfig: PaymentGatewayConfig;
   payoutRequests?: PayoutRequest[];
   leads?: InterestedLead[];
+  deletedBusinesses?: Business[];
+  deletedRepresentatives?: Representative[];
   onUpdateBusiness: (biz: Business) => void;
   onDeleteBusiness: (id: string) => void;
+  onRestoreBusiness?: (biz: Business) => void;
+  onHardDeleteBusiness?: (id: string) => void;
   onAddRepresentative: (rep: Partial<Representative>) => void;
   onUpdateRepresentative?: (rep: Representative) => void;
   onDeleteRepresentative?: (id: string) => void;
+  onRestoreRepresentative?: (rep: Representative) => void;
+  onHardDeleteRepresentative?: (id: string) => void;
   onUpdatePaymentConfig: (config: PaymentGatewayConfig) => void;
   onUpdatePayoutRequest?: (payout: PayoutRequest) => void;
+  onDeletePayoutRequest?: (id: string) => void;
   onShowInvoice: (biz: Business) => void;
   onCollectPayment?: (biz: Business) => void;
   onUpdateLead?: (lead: InterestedLead) => void;
@@ -72,22 +82,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onDeleteRepresentative,
   onUpdatePaymentConfig,
   onUpdatePayoutRequest,
+  onDeletePayoutRequest,
+  onRestoreBusiness,
+  onHardDeleteBusiness,
+  onRestoreRepresentative,
+  onHardDeleteRepresentative,
+  deletedBusinesses = [],
+  deletedRepresentatives = [],
   onShowInvoice,
   onCollectPayment,
   onUpdateLead,
   onDeleteLead,
   onConvertToBusiness,
 }) => {
-  // Main Tab State (6 Operational Tabs: Overview, Businesses, Reps, Gateways, Payouts, Leads)
-  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads'>(() => {
+  // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash)
+  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash'>(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlSubtab = urlParams.get('subtab');
-    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads'].includes(urlSubtab)) {
+    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash'].includes(urlSubtab)) {
       return urlSubtab as any;
     }
 
     const savedSubtab = localStorage.getItem('dalelak_active_admin_tab');
-    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads'].includes(savedSubtab)) {
+    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash'].includes(savedSubtab)) {
       return savedSubtab as any;
     }
 
@@ -371,6 +388,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </span>
           )}
         </button>
+
+        {/* ── SUPER ADMIN EXCLUSIVE TAB BUTTON (مخفي تماماً عن باقي الحسابات) ── */}
+        {isSuperAdmin(currentUser) && (
+          <button
+            type="button"
+            onClick={() => setActiveAdminTab('audit_trash')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+              activeAdminTab === 'audit_trash'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md'
+                : 'text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:bg-[var(--input-bg)] border border-amber-500/30'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>سلة المحذوفات وأثر السيرفر ({deletedBusinesses.length + deletedRepresentatives.length})</span>
+          </button>
+        )}
       </div>
 
       {/* ── TAB 1: OVERVIEW ── */}
@@ -490,6 +523,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onOpenPayoutActionModal={(payout, action) => setActivePayoutModal({ payout, action })}
           onSelectReceiptPhoto={(photo) => setSelectedReceiptPhoto(photo)}
           onInspectRep={(rep) => setSelectedDossierRep(rep)}
+          currentUser={currentUser}
+          onDeletePayout={onDeletePayoutRequest}
         />
       )}
 
@@ -503,6 +538,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onDeleteLead={onDeleteLead}
           onConvertToBusiness={onConvertToBusiness}
           onSelectFollowUpLead={(lead) => setSelectedFollowUpLead(lead)}
+        />
+      )}
+
+      {/* ── TAB 7: CONFIDENTIAL SUPER ADMIN AUDIT & TRASH (حصري للـ Super Admin) ── */}
+      {activeAdminTab === 'audit_trash' && isSuperAdmin(currentUser) && (
+        <AdminAuditTrashTab
+          deletedBusinesses={deletedBusinesses}
+          deletedRepresentatives={deletedRepresentatives}
+          allBusinesses={businesses}
+          allLeads={leads}
+          onRestoreBusiness={onRestoreBusiness || (() => {})}
+          onHardDeleteBusiness={onHardDeleteBusiness || (() => {})}
+          onRestoreRepresentative={onRestoreRepresentative || (() => {})}
+          onHardDeleteRepresentative={onHardDeleteRepresentative || (() => {})}
         />
       )}
 
@@ -530,6 +579,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* SHARED MODAL: Business Data View & Editing */}
       <BusinessEditModal
         business={editingBusiness}
+        currentUser={currentUser}
         onClose={() => {
           setEditingBusiness(null);
           setEditingBusinessInitialTab(undefined);

@@ -202,3 +202,63 @@ export function canUserManageFeeExemption(user: User | null | undefined): boolea
   return user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant';
 }
 
+/**
+ * 👑 SUPER ADMIN SUPREME IDENTITY
+ * الحساب السيادي السري الأعلى لإدارة المنظومة وقاعدة البيانات بالكامل
+ */
+export const SUPER_ADMIN_EMAIL = 'ahmedhufne@gmail.com';
+export const SUPER_ADMIN_PHONE = '01143888355';
+
+/**
+ * Checks whether a given user / rep is the designated Super Admin
+ */
+export function isSuperAdmin(user?: { email?: string; phone?: string; id?: string; repData?: any } | null): boolean {
+  if (!user) return false;
+  const email = (user.email || user.repData?.email || '').toLowerCase().trim();
+  const phone = (user.phone || user.repData?.phone || '').trim();
+  return email === SUPER_ADMIN_EMAIL.toLowerCase() || phone === SUPER_ADMIN_PHONE;
+}
+
+/**
+ * Only Super Admin can perform Permanent Hard Deletes from server/database
+ */
+export function canUserHardDelete(user?: User | null | undefined): boolean {
+  return isSuperAdmin(user);
+}
+
+/**
+ * Only Super Admin can delete / purge payout requests and remittances
+ */
+export function canUserDeletePayout(user?: User | null | undefined): boolean {
+  return isSuperAdmin(user);
+}
+
+/**
+ * Only Super Admin can view the confidential Trash Bin & server audit archive
+ */
+export function canUserAccessTrash(user?: User | null | undefined): boolean {
+  return isSuperAdmin(user);
+}
+
+/**
+ * Only Super Admin can freely change roles of other users
+ */
+export function canUserChangeRoles(user?: User | null | undefined): boolean {
+  return isSuperAdmin(user);
+}
+
+/**
+ * Protects Super Admin account from being modified, suspended, or deleted by any other admin
+ */
+export function canModifyAccount(
+  actor?: User | null | undefined,
+  target?: { email?: string; phone?: string; id?: string } | null | undefined
+): boolean {
+  if (!target) return true;
+  // If target is Super Admin, only Super Admin himself can edit
+  if (isSuperAdmin(target)) {
+    return isSuperAdmin(actor);
+  }
+  return true;
+}
+

@@ -1,6 +1,7 @@
 import React from 'react';
-import { PayoutRequest, Representative } from '../../../types';
+import { PayoutRequest, Representative, User } from '../../../types';
 import { PAYOUT_METHOD_LABELS } from '../../../utils/commission';
+import { isSuperAdmin } from '../../../utils/permissions';
 import {
   Clock,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
   MessageCircle,
   Eye,
   FileCheck,
+  Trash2,
 } from 'lucide-react';
 
 interface AdminPayoutsTabProps {
@@ -22,6 +24,8 @@ interface AdminPayoutsTabProps {
   onOpenPayoutActionModal: (payout: PayoutRequest, action: 'approve' | 'reject') => void;
   onSelectReceiptPhoto: (photo: string) => void;
   onInspectRep?: (rep: Representative) => void;
+  currentUser?: User | null;
+  onDeletePayout?: (id: string) => void;
 }
 
 export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
@@ -32,6 +36,8 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
   onOpenPayoutActionModal,
   onSelectReceiptPhoto,
   onInspectRep,
+  currentUser,
+  onDeletePayout,
 }) => {
   const filteredPayouts = payoutRequests.filter((p) => payoutFilter === 'all' || p.status === payoutFilter);
 
@@ -281,6 +287,22 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                       >
                         <Eye className="w-3.5 h-3.5 text-amber-500" />
                         <span>استعراض حالة المندوب 👤</span>
+                      </button>
+                    )}
+
+                    {isSuperAdmin(currentUser) && onDeletePayout && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`⚠️ تأكيد الحذف النهائي:\nهل أنت متأكد من رغبتك في حذف هذا الطلب / المعاملة المالية نهائياً من المنظومة وقاعدة البيانات؟\nالمبلغ: ${payout.amount} ج.م - المندوب: ${payout.repName}`)) {
+                            onDeletePayout(payout.id);
+                          }
+                        }}
+                        className="bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white font-black px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-1 text-xs transition-colors cursor-pointer"
+                        title="حذف نهائي بات للمعاملة من قاعدة البيانات (حصري للـ Super Admin)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>حذف المعاملة 🗑️</span>
                       </button>
                     )}
                   </div>

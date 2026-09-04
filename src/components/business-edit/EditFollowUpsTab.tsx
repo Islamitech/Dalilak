@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus } from '../../types';
+import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus, User } from '../../types';
+import { isSuperAdmin } from '../../utils/permissions';
 import {
   ClipboardList,
   Plus,
@@ -10,12 +11,14 @@ import {
   Search,
   Calendar,
   Trash2,
+  Lock,
 } from 'lucide-react';
 
 interface EditFollowUpsTabProps {
   formData: Business;
   setFormData: React.Dispatch<React.SetStateAction<Business | null>>;
   onSave: (updatedBiz: Business) => void;
+  currentUser?: User | null;
   currentUserName?: string;
   currentUserId?: string;
   userRole?: string;
@@ -27,12 +30,18 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
   formData,
   setFormData,
   onSave,
+  currentUser,
   currentUserName,
   currentUserId,
   userRole,
   currentRoleTitle,
   onShowNotification,
 }) => {
+  const isSuperAdminViewer =
+    isSuperAdmin(currentUser) ||
+    Boolean(currentUser?.email && currentUser.email.toLowerCase() === 'ahmedhufne@gmail.com') ||
+    currentUserId === 'rep_ahmed_ezalden';
+
   const [newFollowUpText, setNewFollowUpText] = useState<string>('');
   const [newFollowUpType, setNewFollowUpType] = useState<AdminFollowUpType | null>(null);
   const [newFollowUpStatus, setNewFollowUpStatus] = useState<AdminFollowUpStatus | null>(null);
@@ -469,17 +478,30 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                         {tInfo.icon} {tInfo.label}
                       </span>
 
-                      <span className="text-[10.5px] font-extrabold text-[var(--text-primary)]">
-                        {note.authorName}
-                      </span>
+                      {isSuperAdminViewer ? (
+                        <>
+                          <span className="text-[10.5px] font-extrabold text-[var(--text-primary)]">
+                            {note.authorName}
+                          </span>
 
-                      <span className="text-[9px] bg-slate-500/15 text-[var(--text-secondary)] font-bold px-1.5 py-0.2 rounded">
-                        {note.authorRole === 'admin'
-                          ? 'الإدارة العامة'
-                          : note.authorRole === 'accountant'
-                          ? 'الحسابات'
-                          : 'المشرف'}
-                      </span>
+                          <span className="text-[9px] bg-slate-500/15 text-[var(--text-secondary)] font-bold px-1.5 py-0.2 rounded">
+                            {note.authorRole === 'admin'
+                              ? 'الإدارة العامة'
+                              : note.authorRole === 'accountant'
+                              ? 'الحسابات'
+                              : 'المشرف'}
+                          </span>
+
+                          <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                            <Lock className="w-2.5 h-2.5 text-amber-500" />
+                            <span>رقابة عليا</span>
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] font-bold text-[var(--text-muted)] bg-slate-500/10 px-2 py-0.5 rounded-md">
+                          ملاحظة إدارية معتمدة
+                        </span>
+                      )}
 
                       {/* Clickable Status Toggle */}
                       <button
@@ -499,9 +521,11 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                        {createdFormatted}
-                      </span>
+                      {isSuperAdminViewer && (
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                          {createdFormatted}
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleDeleteFollowUp(note.id)}

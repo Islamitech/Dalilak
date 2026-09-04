@@ -47,6 +47,7 @@ interface BusinessEditModalProps {
   onSave: (updatedBiz: Business) => void;
   userRole?: string;
   currentRoleTitle?: string;
+  currentUser?: User | null;
   currentUserName?: string;
   currentUserId?: string;
   initialTab?: string;
@@ -61,6 +62,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   business,
   onClose,
   onSave,
+  currentUser,
   userRole,
   currentRoleTitle,
   currentUserName,
@@ -767,6 +769,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               formData={formData}
               setFormData={setFormData}
               onSave={onSave}
+              currentUser={currentUser}
               currentUserName={currentUserName}
               currentUserId={currentUserId}
               userRole={userRole}

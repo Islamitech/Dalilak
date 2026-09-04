@@ -202,6 +202,98 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
   } catch {}
 }
 
+export function getDeletedRepresentatives(): Representative[] {
+  const raw = safeGetLocalStorageItem('dalelak_soft_deleted_reps');
+  return safeParseJson<Representative[]>(raw, []);
+}
+
+/**
+ * 📦 Soft Delete Representative (الأثر على السيرفر):
+ * Marks the rep as deleted so they disappear from normal users/admins,
+ * but preserves all data & KYC records in Supabase & server audit for the Super Admin.
+ */
+export async function softDeleteRepInDb(
+  rep: Representative,
+  deletedBy: string,
+  deletedByRole?: string
+): Promise<void> {
+  const updatedRep: Representative = {
+    ...rep,
+    isDeleted: true,
+    deletedAt: new Date().toISOString(),
+    deletedBy,
+    deletedByRole,
+    status: 'suspended',
+  };
+
+  // 1. Remove from active cache & add to blacklist, add to soft deleted list
+  try {
+    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
+    const filtered = cached.filter((r: Representative) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
+    safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(filtered));
+
+    const cachedReps = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []);
+    const filteredReps = cachedReps.filter((r: Representative) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
+    safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(filteredReps));
+
+    const deletedList = getDeletedRepresentatives().filter((r) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
+    safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify([updatedRep, ...deletedList]));
+  } catch {}
+
+  // 2. Persist to Supabase
+  await saveRepToDb(updatedRep);
+}
+
+/**
+ * 🟢 Restores a soft-deleted representative back to active state
+ */
+export async function restoreRepInDb(rep: Representative): Promise<Representative> {
+  const restored: Representative = {
+    ...rep,
+    isDeleted: false,
+    deletedAt: undefined,
+    deletedBy: undefined,
+    deletedByRole: undefined,
+    status: 'active',
+  };
+
+  // 1. Remove from soft deleted list and restore to active cache
+  try {
+    const deletedList = getDeletedRepresentatives().filter((r) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
+    safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(deletedList));
+
+    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
+    safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify([restored, ...cached.filter((r) => r.id !== rep.id)]));
+
+    const cachedReps = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []);
+    safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify([restored, ...cachedReps.filter((r) => r.id !== rep.id)]));
+
+    const delArr = safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []);
+    const delFiltered = (Array.isArray(delArr) ? delArr : []).filter(
+      (id) => id !== rep.id.toLowerCase() && id !== rep.email.toLowerCase()
+    );
+    safeSetLocalStorageItem('dalelak_deleted_rep_ids', JSON.stringify(delFiltered));
+  } catch {}
+
+  // 2. Save back to DB
+  await saveRepToDb(restored);
+  return restored;
+}
+
+/**
+ * 🔴 Permanent Purge (حذف نهائي بات):
+ * Completely deletes the rep record from Supabase, local server, and all local storage.
+ */
+export async function hardDeleteRepFromDb(id: string): Promise<void> {
+  // Purge from soft deleted list
+  try {
+    const deletedList = getDeletedRepresentatives().filter((r) => r.id !== id && r.email?.toLowerCase() !== id.toLowerCase());
+    safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(deletedList));
+  } catch {}
+
+  await deleteRepFromDb(id);
+}
+
 export async function deleteRepFromDb(id: string): Promise<void> {
   // 1. Blacklist in deleted reps registry
   try {

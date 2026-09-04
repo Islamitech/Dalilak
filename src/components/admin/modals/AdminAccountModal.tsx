@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Representative, User, UserRole, Business } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { compressImageFile } from '../../../utils/imageCompressor';
-import { canUserDeleteAccount } from '../../../utils/permissions';
+import { canUserDeleteAccount, isSuperAdmin, canModifyAccount, canUserChangeRoles } from '../../../utils/permissions';
 import { hashPassword } from '../../../utils/crypto';
 import { getRepReferralCode } from '../../../utils/referral';
 import {
@@ -99,8 +99,17 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isTargetSuperAdmin = editingRep ? isSuperAdmin(editingRep) : false;
+  const isActorSuperAdmin = isSuperAdmin(currentUser);
+  const canEditAccount = canModifyAccount(currentUser, editingRep);
+  const canChangeRoles = canUserChangeRoles(currentUser);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEditAccount) {
+      alert('⛔ حساب الإدارة العليا محمي بالكامل ولا يمكن تعديله إلا من خلال صاحبه مباشرة.');
+      return;
+    }
     if (!modalName.trim()) return;
 
     const finalRoleTitle =
@@ -564,6 +573,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                   نوع وتصنيف الحساب والصلاحية *
                 </label>
                 <select
+                  disabled={!canChangeRoles || (isTargetSuperAdmin && !isActorSuperAdmin)}
                   value={modalRole}
                   onChange={(e) => {
                     const newRole = e.target.value as UserRole;
@@ -573,13 +583,20 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                     else if (newRole === 'admin') setModalRoleTitle('مدير النظام المعتمد');
                     else setModalRoleTitle('مندوب مبيعات ميداني');
                   }}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-extrabold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                  className={`w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-extrabold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer ${
+                    (!canChangeRoles || (isTargetSuperAdmin && !isActorSuperAdmin)) ? 'opacity-60 cursor-not-allowed' : ''
+                  }`}
                 >
                   <option value="rep">💼 مندوب مبيعات ميداني (تسجيل المحلات والتحصيل)</option>
                   <option value="supervisor">👑 مشرف إدارة منطقة ومحافظة</option>
                   <option value="accountant">🧾 محاسب ومحصل فواتير إلكترونية</option>
                   <option value="admin">🛡️ مدير النظام (أدمن بجميع الصلاحيات)</option>
                 </select>
+                {!canChangeRoles && (
+                  <span className="text-[10.5px] text-slate-500 block mt-1 font-medium">
+                    تعديل الصلاحيات والرتب مقتصر حصرياً على الإدارة العليا.
+                  </span>
+                )}
               </div>
 
               {/* Role Title */}
@@ -748,7 +765,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
         </div>
 
         <div className="flex items-center justify-between gap-2 pt-3 border-t border-[var(--border-color)]">
-          {editingRep && canUserDeleteAccount(currentUser) && onDeleteRepresentative && (
+          {editingRep && !isTargetSuperAdmin && canUserDeleteAccount(currentUser) && onDeleteRepresentative && (
             <button
               type="button"
               onClick={() => {
