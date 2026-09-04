@@ -5,7 +5,7 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-const SAFE_REP_SELECT = 'id,name,email,phone,national_id,activation_face_photo,national_id_card_photo,national_id_card_back_photo,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,password,referral_code,referred_by_code,referral_unlocked,admin_bypass_referral,referral_reward_granted,created_at';
+const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,password,created_at';
 
 function filterOutDeletedReps(reps: Representative[]): { active: Representative[]; deleted: Representative[] } {
   const blacklist = new Set(
@@ -169,32 +169,26 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
   // 1. Direct Supabase Cloud Save / Upsert
   if (isSupabaseConfigured()) {
     try {
-      // First try update by ID if it already exists
-      const { error: updateErr, data } = await supabase
-        .from('representatives')
-        .update(dbRecord)
-        .eq('id', rep.id)
-        .select();
+      const res = await supabaseRestFetch('representatives', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(dbRecord),
+      });
 
-      if (updateErr || !data || data.length === 0) {
-        // Record doesn't exist yet or update error — perform upsert
-        const { error: upsertErr } = await supabase
-          .from('representatives')
-          .upsert(dbRecord, { onConflict: 'id' });
+      if (!res.ok) {
+        // Fallback: direct plain INSERT
+        const insertRes = await supabaseRestFetch('representatives', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(dbRecord),
+        });
 
-        if (upsertErr) {
-          const patchRes = await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
+        if (!insertRes.ok) {
+          // Fallback: PATCH by ID
+          await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
             method: 'PATCH',
             body: JSON.stringify(dbRecord),
           });
-
-          if (!patchRes.ok) {
-            await supabaseRestFetch('representatives', {
-              method: 'POST',
-              headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-              body: JSON.stringify(dbRecord),
-            });
-          }
         }
       }
     } catch (err) {

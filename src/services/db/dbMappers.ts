@@ -548,14 +548,6 @@ export function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
   if (rep.status !== undefined) record.status = rep.status;
   if (rep.password !== undefined) record.password = rep.password;
-  if (rep.activationFacePhoto !== undefined) record.activation_face_photo = rep.activationFacePhoto || null;
-  if (rep.nationalIdCardPhoto !== undefined) record.national_id_card_photo = rep.nationalIdCardPhoto || null;
-  if (rep.nationalIdCardBackPhoto !== undefined) record.national_id_card_back_photo = rep.nationalIdCardBackPhoto || null;
-  if (rep.referralCode !== undefined) record.referral_code = rep.referralCode || null;
-  if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode || null;
-  if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);
-  if (rep.adminBypassReferral !== undefined) record.admin_bypass_referral = Boolean(rep.adminBypassReferral);
-  if (rep.referralRewardGranted !== undefined) record.referral_reward_granted = Boolean(rep.referralRewardGranted);
 
   // Extract clean avatar if already packed
   let cleanAvatar = rep.avatar;
