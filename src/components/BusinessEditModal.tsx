@@ -422,15 +422,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
 
 
-  // 1. Directory Approval Status (خاص بالدليل فقط ومراجعة المسؤول)
+  // 1. Directory Approval Status
   const isDirectoryApproved = formData.verificationStatus === 'verified';
   const directoryBadge = isDirectoryApproved
-    ? { label: '🟢 معتمد بالدليل', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
+    ? { label: '🟢 معتمد', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
     : formData.verificationStatus === 'rejected'
-    ? { label: '🔴 مرفوض بالدليل', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold' }
-    : { label: '⏳ قيد مراجعة الدليل', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' };
+    ? { label: '🔴 مرفوض', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold' }
+    : { label: '⏳ قيد المراجعة', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' };
 
-  // 2. Google Maps Verification Status (خاص بخرائط Google فقط)
+  // 2. Google Maps Verification Status
   const hasVerifiedGoogleMap = Boolean(
     formData.googleMapsUrl &&
     formData.googleMapsUrl.trim().startsWith('http') &&
@@ -438,26 +438,26 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   );
   const isGoogleSynced = hasVerifiedGoogleMap || formData.googleSyncStatus === 'synced';
   const googleBadge = hasVerifiedGoogleMap
-    ? { label: '🌐 موثق على Google Maps ✓', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
+    ? { label: '🌐 موثق بـ Google', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
     : formData.googleSyncStatus === 'in_progress'
-    ? { label: '⏳ قيد توثيق Google', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold' }
-    : { label: 'غير مدرج بـ Google بعد', cls: 'bg-slate-800/80 text-slate-400 border-slate-700 font-medium' };
+    ? { label: '⏳ قيد التوثيق', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold' }
+    : { label: '⚪ غير مربوط', cls: 'bg-slate-800/80 text-slate-400 border-slate-700 font-medium' };
 
-  // 3. Payment Status & Alert (تنبيه السداد يرتبط بتوثيق خرائط Google)
+  // 3. Payment Status & Alert
   const isUnpaid = !isFeeExempt && (formData.amountPaid || 0) < (formData.packagePrice || 250);
   const isGoogleVerifiedAndUnpaid = hasVerifiedGoogleMap && isUnpaid;
 
   const paymentBadge = isAlreadyOnGoogle
-    ? { label: 'مسجل مسبقاً على Google Maps 📍 (مجاني 0 ج)', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
+    ? { label: 'معفى (مسجل بالخرائط) ✓', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
     : isFeeExempt
-    ? { label: 'معفى من الرسوم (مجاني 0 ج)', cls: 'bg-teal-500/20 text-teal-300 border-teal-500/40 font-black' }
+    ? { label: 'معفى من الرسوم ✓', cls: 'bg-teal-500/20 text-teal-300 border-teal-500/40 font-black' }
     : formData.paymentStatus === 'fully_paid'
-    ? { label: `مسدد بالكامل (${formData.amountPaid} ج)`, cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
+    ? { label: 'مدفوع ✓', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
     : isGoogleVerifiedAndUnpaid
-    ? { label: `🚨 موثق بـ Google ولم يُسدد! (${formData.packagePrice || 250} ج)`, cls: 'bg-rose-500/30 text-rose-200 border-rose-500/50 font-black animate-pulse shadow-xs' }
+    ? { label: '🚨 موثق ومطلوب التحصيل', cls: 'bg-rose-500/30 text-rose-200 border-rose-500/50 font-black animate-pulse shadow-xs' }
     : formData.paymentStatus === 'partially_paid'
-    ? { label: `متبقي دين (${remainingDebt} ج)`, cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' }
-    : { label: `⏳ الدفع عند توثيق Google (${formData.packagePrice || 250} ج)`, cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold' };
+    ? { label: `مقدم (متبقي ${remainingDebt} ج)`, cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' }
+    : { label: 'غير مدفوع ⏳', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold' };
 
 
   const primaryPhone = formData.phone || formData.ownerPhone || '';

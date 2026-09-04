@@ -931,7 +931,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                         : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                     }`}>
-                      {selectedBiz.verificationStatus === 'verified' ? 'معتمد بالدليل 🟢' : 'قيد المراجعة ⏳'}
+                      {selectedBiz.verificationStatus === 'verified' ? 'معتمد 🟢' : 'قيد المراجعة ⏳'}
                     </span>
                   </div>
                   <h3 className="text-sm sm:text-base font-black text-white mt-1.5">{selectedBiz.nameAr}</h3>

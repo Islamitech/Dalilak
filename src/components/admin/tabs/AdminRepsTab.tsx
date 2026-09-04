@@ -366,7 +366,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                       className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-xs cursor-pointer"
                     >
                       <Edit className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                      <span>عرض وتعديل البيانات ومراجعة الوثائق</span>
+                      <span>تعديل ومراجعة الوثائق 📝</span>
                     </button>
                   )}
                 </div>

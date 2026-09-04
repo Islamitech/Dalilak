@@ -200,15 +200,11 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                   <Clock className="w-6 h-6" />
                 </div>
                 <h4 className="font-black text-sm sm:text-base text-amber-800 dark:text-amber-300">
-                  تنبيه: الفاتورة مؤجلة السداد حتى توثيق النشاط ⏳
+                  فاتورة غير مدفوعة (مؤجلة لحين التوثيق) ⏳
                 </h4>
                 <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed max-w-md mx-auto">
-                  تم تأجيل سداد الفاتورة حتى يتم توثيق النشاط التجاري واكتمال اعتماده وربطه رسمياً على خرائط Google.
+                  يتم السداد إلكترونياً بعد اعتماد النشاط وربطه بالخرائط.
                 </p>
-                <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] font-bold text-sky-600 dark:text-sky-400 flex items-center justify-center gap-1.5 flex-wrap">
-                  <span>💳 طريقة السداد التلقائية:</span>
-                  <span className="font-black">تحويل إلكتروني مباشر للمنصة بعد اكتمال التوثيق ({selectedPackage.price} ج.م)</span>
-                </div>
               </div>
             ) : (
               <div className="space-y-3.5 animate-fade-in">
@@ -360,7 +356,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
             {paymentStatus === 'unpaid' ? (
               <>
                 <Clock className="w-5 h-5" />
-                <span>حفظ النشاط (فاتورة مؤجلة حتى التوثيق) 🚀</span>
+                <span>حفظ النشاط (غير مدفوع) 🚀</span>
               </>
             ) : (
               <>

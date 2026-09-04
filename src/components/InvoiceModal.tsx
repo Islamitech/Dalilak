@@ -269,7 +269,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
             <div className="border-t border-slate-200/80 pt-1.5 flex items-center justify-between">
               <span className={remaining > 0 ? (amtPaid === 0 ? 'text-amber-800 font-black' : 'text-rose-700 font-black') : 'text-slate-500 font-bold'}>
-                {remaining > 0 ? (amtPaid === 0 ? 'المبلغ المستحق (مؤجل حتى التوثيق):' : 'المبلغ المتبقي (دين):') : 'المبلغ المتبقي:'}
+                {remaining > 0 ? (amtPaid === 0 ? 'المبلغ المستحق:' : 'المبلغ المتبقي:') : 'المبلغ المتبقي:'}
               </span>
               <span className={`font-mono ${remaining > 0 ? (amtPaid === 0 ? 'text-amber-800 font-black text-sm' : 'text-rose-700 font-black text-sm') : 'text-slate-500'}`}>
                 {remaining} جنيه مصري
@@ -295,10 +295,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   : isFeeExempt
                   ? 'معفى بالكامل (مجاني) ✓'
                   : activeBusiness.paymentStatus === 'fully_paid'
-                  ? 'مدفوعة بالكامل ✓'
+                  ? 'مدفوعة ✓'
                   : activeBusiness.paymentStatus === 'partially_paid'
                   ? `متبقي ${remaining} ج`
-                  : 'مؤجلة حتى التوثيق ⏳'}
+                  : 'غير مدفوعة ⏳'}
               </span>
             </div>
 
@@ -358,7 +358,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
                   >
                     <DollarSign className="w-3.5 h-3.5" />
-                    <span>تحصيل ({remaining} ج)</span>
+                    <span>تحصيل الفاتورة 💳</span>
                   </button>
                 )}
               </div>
