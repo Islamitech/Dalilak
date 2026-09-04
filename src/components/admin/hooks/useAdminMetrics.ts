@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Business, Representative, PayoutRequest, InterestedLead, User } from '../../../types';
 import { calculateRepSettlement, calculateRepCommissionFromCash } from '../../../utils/commission';
 import { isReferredByInviter, getRepReferralSummary } from '../../../utils/referral';
+import { safeParseJson } from '../../../utils/storage';
+import { getDeletedRepresentatives } from '../../../services/db/repDb';
 
 interface UseAdminMetricsProps {
   currentUser?: User | null;
@@ -203,15 +205,32 @@ export const useAdminMetrics = ({
       .sort((a, b) => b.count - a.count);
   }, [businesses]);
 
-  // Merged & Strictly Deduplicated Representatives List
+  // Merged & Strictly Deduplicated Representatives List (Excluding deleted records)
   const mergedAdminReps = useMemo(() => {
     const seenIds = new Set<string>();
     const seenEmails = new Set<string>();
     const result: Representative[] = [];
 
+    const blacklist = new Set(
+      (safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []) || []).map((x) => String(x).toLowerCase())
+    );
+    const softDeletedList = getDeletedRepresentatives();
+    const softDeletedIds = new Set(softDeletedList.map((r) => (r.id || '').toLowerCase()));
+    const softDeletedEmails = new Set(softDeletedList.map((r) => (r.email || '').toLowerCase()).filter(Boolean));
+    const softDeletedPhones = new Set(softDeletedList.map((r) => (r.phone || '').trim()).filter(Boolean));
+
     representatives.forEach((r) => {
+      if (r.isDeleted) return;
+
       const cleanEmail = (r.email || '').trim().toLowerCase();
-      const id = r.id || '';
+      const id = (r.id || '').trim();
+      const idLower = id.toLowerCase();
+      const phoneTrim = (r.phone || '').trim();
+
+      if (idLower && (blacklist.has(idLower) || softDeletedIds.has(idLower))) return;
+      if (cleanEmail && (blacklist.has(cleanEmail) || softDeletedEmails.has(cleanEmail))) return;
+      if (phoneTrim && (blacklist.has(phoneTrim) || softDeletedPhones.has(phoneTrim))) return;
+
       if (id && seenIds.has(id)) return;
       if (cleanEmail && seenEmails.has(cleanEmail)) return;
       if (id) seenIds.add(id);

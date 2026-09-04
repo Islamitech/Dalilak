@@ -7,6 +7,39 @@ import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,password,created_at';
 
+function filterOutDeletedReps(reps: Representative[]): { active: Representative[]; deleted: Representative[] } {
+  const blacklist = new Set(
+    (safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []) || []).map((x) => String(x).toLowerCase())
+  );
+  const softDeletedList = getDeletedRepresentatives();
+  const softDeletedIds = new Set(softDeletedList.map((r) => (r.id || '').toLowerCase()));
+  const softDeletedEmails = new Set(softDeletedList.map((r) => (r.email || '').toLowerCase()).filter(Boolean));
+  const softDeletedPhones = new Set(softDeletedList.map((r) => (r.phone || '').trim()).filter(Boolean));
+
+  const active: Representative[] = [];
+  const deleted: Representative[] = [];
+
+  reps.forEach((r) => {
+    const idLower = (r.id || '').toLowerCase();
+    const emailLower = (r.email || '').toLowerCase();
+    const phoneTrim = (r.phone || '').trim();
+
+    const isExcluded =
+      Boolean(r.isDeleted) ||
+      (idLower && (blacklist.has(idLower) || softDeletedIds.has(idLower))) ||
+      (emailLower && (blacklist.has(emailLower) || softDeletedEmails.has(emailLower))) ||
+      (phoneTrim && (blacklist.has(phoneTrim) || softDeletedPhones.has(phoneTrim)));
+
+    if (isExcluded) {
+      deleted.push(r);
+    } else {
+      active.push(r);
+    }
+  });
+
+  return { active, deleted };
+}
+
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
   if (isSupabaseConfigured()) {
@@ -16,10 +49,23 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
           const freshList = restData.map(mapDbToRep);
+          const { active, deleted } = filterOutDeletedReps(freshList);
+
+          // If any soft-deleted reps were returned, sync them to soft deleted registry
+          if (deleted.length > 0) {
+            try {
+              const existingDeleted = getDeletedRepresentatives();
+              const delMap = new Map<string, Representative>();
+              deleted.forEach((d) => delMap.set(d.id, d));
+              existingDeleted.forEach((e) => delMap.set(e.id, e));
+              safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(Array.from(delMap.values())));
+            } catch {}
+          }
+
           try {
-            safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(freshList)));
+            safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
           } catch {}
-          return freshList;
+          return active;
         }
       } else {
         // Fallback to select=* if column selection encounters schema mismatch
@@ -28,10 +74,22 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
           const fallbackData = await fallbackRes.json();
           if (Array.isArray(fallbackData) && fallbackData.length > 0) {
             const freshList = fallbackData.map(mapDbToRep);
+            const { active, deleted } = filterOutDeletedReps(freshList);
+
+            if (deleted.length > 0) {
+              try {
+                const existingDeleted = getDeletedRepresentatives();
+                const delMap = new Map<string, Representative>();
+                deleted.forEach((d) => delMap.set(d.id, d));
+                existingDeleted.forEach((e) => delMap.set(e.id, e));
+                safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(Array.from(delMap.values())));
+              } catch {}
+            }
+
             try {
-              safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(freshList)));
+              safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
             } catch {}
-            return freshList;
+            return active;
           }
         }
       }
@@ -48,10 +106,22 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
       }
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToRep);
+        const { active, deleted } = filterOutDeletedReps(freshList);
+
+        if (deleted.length > 0) {
+          try {
+            const existingDeleted = getDeletedRepresentatives();
+            const delMap = new Map<string, Representative>();
+            deleted.forEach((d) => delMap.set(d.id, d));
+            existingDeleted.forEach((e) => delMap.set(e.id, e));
+            safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(Array.from(delMap.values())));
+          } catch {}
+        }
+
         try {
-          safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(freshList)));
+          safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
         } catch {}
-        return freshList;
+        return active;
       }
     } catch (err) {
       console.warn('Supabase fetch reps SDK error:', err);
@@ -70,7 +140,9 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     if (localRes.ok) {
       const localData = await localRes.json();
       if (Array.isArray(localData) && localData.length > 0) {
-        return localData.map(mapDbToRep);
+        const mapped = localData.map(mapDbToRep);
+        const { active } = filterOutDeletedReps(mapped);
+        return active;
       }
     }
   } catch {}
@@ -83,11 +155,13 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     cached.forEach((r) => map.set(r.id, r));
     custom.forEach((r) => map.set(r.id, r));
     if (map.size > 0) {
-      return Array.from(map.values());
+      const { active } = filterOutDeletedReps(Array.from(map.values()));
+      return active;
     }
   } catch {}
 
-  return [...MOCK_REPRESENTATIVES];
+  const { active } = filterOutDeletedReps([...MOCK_REPRESENTATIVES]);
+  return active;
 }
 
 export async function saveRepToDb(rep: Representative): Promise<void> {
@@ -223,25 +297,67 @@ export async function softDeleteRepInDb(
     deletedAt: new Date().toISOString(),
     deletedBy,
     deletedByRole,
-    status: 'suspended',
   };
 
-  // 1. Remove from active cache & add to blacklist, add to soft deleted list
+  const targetEmail = (rep.email || '').toLowerCase().trim();
+  const targetPhone = (rep.phone || '').trim();
+
+  // 1. Clean from ALL active caches immediately
   try {
-    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
-    const filtered = cached.filter((r: Representative) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
-    safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(filtered));
+    const purgeCache = (key: string) => {
+      const cached = safeParseJson<Representative[]>(localStorage.getItem(key), []);
+      if (Array.isArray(cached)) {
+        const filtered = cached.filter(
+          (r: Representative) =>
+            r.id !== rep.id &&
+            (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+            (!targetPhone || (r.phone || '').trim() !== targetPhone)
+        );
+        safeSetLocalStorageItem(key, JSON.stringify(filtered));
+      }
+    };
+    purgeCache('dalelak_custom_reps');
+    purgeCache('dalelak_cached_reps');
 
-    const cachedReps = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []);
-    const filteredReps = cachedReps.filter((r: Representative) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
-    safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(filteredReps));
-
-    const deletedList = getDeletedRepresentatives().filter((r) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
+    // Add to soft deleted list
+    const deletedList = getDeletedRepresentatives().filter(
+      (r) =>
+        r.id !== rep.id &&
+        (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+        (!targetPhone || (r.phone || '').trim() !== targetPhone)
+    );
     safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify([updatedRep, ...deletedList]));
   } catch {}
 
-  // 2. Persist to Supabase
-  await saveRepToDb(updatedRep);
+  // 2. Persist to Supabase directly without touching active local caches
+  const dbRecord = mapRepToDb(updatedRep);
+  delete dbRecord.id;
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('representatives')
+        .update(dbRecord)
+        .eq('id', rep.id);
+
+      if (error) {
+        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(dbRecord),
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase soft delete rep error:', err);
+    }
+  }
+
+  // 3. Sync to local server
+  try {
+    await fetch(`/api/representatives/${encodeURIComponent(rep.id)}`, {
+      method: 'PUT',
+      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(dbRecord),
+    });
+  } catch {}
 }
 
 /**
@@ -257,22 +373,34 @@ export async function restoreRepInDb(rep: Representative): Promise<Representativ
     status: 'active',
   };
 
-  // 1. Remove from soft deleted list and restore to active cache
+  const targetEmail = (rep.email || '').toLowerCase().trim();
+  const targetPhone = (rep.phone || '').trim();
+
+  // 1. Remove from soft deleted list and remove from blacklist
   try {
-    const deletedList = getDeletedRepresentatives().filter((r) => r.id !== rep.id && r.email?.toLowerCase() !== rep.email.toLowerCase());
+    const deletedList = getDeletedRepresentatives().filter(
+      (r) =>
+        r.id !== rep.id &&
+        (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+        (!targetPhone || (r.phone || '').trim() !== targetPhone)
+    );
     safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(deletedList));
-
-    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
-    safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify([restored, ...cached.filter((r) => r.id !== rep.id)]));
-
-    const cachedReps = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []);
-    safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify([restored, ...cachedReps.filter((r) => r.id !== rep.id)]));
 
     const delArr = safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []);
     const delFiltered = (Array.isArray(delArr) ? delArr : []).filter(
-      (id) => id !== rep.id.toLowerCase() && id !== rep.email.toLowerCase()
+      (id) =>
+        id !== rep.id.toLowerCase() &&
+        (!targetEmail || id !== targetEmail) &&
+        (!targetPhone || id !== targetPhone)
     );
     safeSetLocalStorageItem('dalelak_deleted_rep_ids', JSON.stringify(delFiltered));
+
+    // Restore to active caches
+    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []) || [];
+    safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify([restored, ...cached.filter((r) => r.id !== rep.id)]));
+
+    const cachedReps = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []) || [];
+    safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify([restored, ...cachedReps.filter((r) => r.id !== rep.id)]));
   } catch {}
 
   // 2. Save back to DB
@@ -285,55 +413,99 @@ export async function restoreRepInDb(rep: Representative): Promise<Representativ
  * Completely deletes the rep record from Supabase, local server, and all local storage.
  */
 export async function hardDeleteRepFromDb(id: string): Promise<void> {
-  // Purge from soft deleted list
+  // 1. Look up rep details across registries to capture email and phone for total eradication
+  const deletedList = getDeletedRepresentatives();
+  const cachedReps = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []) || [];
+  const customReps = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []) || [];
+
+  const targetRep =
+    deletedList.find((r) => r.id === id || (r.email && r.email.toLowerCase() === id.toLowerCase()) || r.phone === id) ||
+    cachedReps.find((r) => r.id === id || (r.email && r.email.toLowerCase() === id.toLowerCase()) || r.phone === id) ||
+    customReps.find((r) => r.id === id || (r.email && r.email.toLowerCase() === id.toLowerCase()) || r.phone === id);
+
+  const targetEmail = targetRep?.email ? targetRep.email.toLowerCase().trim() : (id.includes('@') ? id.toLowerCase().trim() : undefined);
+  const targetPhone = targetRep?.phone ? targetRep.phone.trim() : undefined;
+
+  // 2. Purge from soft deleted list
   try {
-    const deletedList = getDeletedRepresentatives().filter((r) => r.id !== id && r.email?.toLowerCase() !== id.toLowerCase());
-    safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(deletedList));
+    const filteredDeleted = deletedList.filter(
+      (r) =>
+        r.id !== id &&
+        (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+        (!targetPhone || (r.phone || '').trim() !== targetPhone)
+    );
+    safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(filteredDeleted));
   } catch {}
 
-  await deleteRepFromDb(id);
-}
-
-export async function deleteRepFromDb(id: string): Promise<void> {
-  // 1. Blacklist in deleted reps registry
+  // 3. Blacklist in deleted reps registry
   try {
     const delArr = safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []);
-    const delSet = new Set(Array.isArray(delArr) ? delArr : []);
+    const delSet = new Set(Array.isArray(delArr) ? delArr.map((x) => String(x).toLowerCase()) : []);
     delSet.add(id.toLowerCase());
+    if (targetEmail) delSet.add(targetEmail);
+    if (targetPhone) delSet.add(targetPhone);
     safeSetLocalStorageItem('dalelak_deleted_rep_ids', JSON.stringify(Array.from(delSet)));
   } catch {}
 
-  // 2. Remove from LocalStorage custom reps
+  // 4. Remove from ALL local caches (custom and cached reps)
   try {
-    const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
-    if (Array.isArray(cached)) {
-      const filtered = cached.filter((r: Representative) => r.id !== id && r.email?.toLowerCase() !== id.toLowerCase());
-      safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(filtered));
-    }
+    const purgeCache = (key: string) => {
+      const cached = safeParseJson<Representative[]>(localStorage.getItem(key), []);
+      if (Array.isArray(cached)) {
+        const filtered = cached.filter(
+          (r: Representative) =>
+            r.id !== id &&
+            (r.email || '').toLowerCase().trim() !== id.toLowerCase() &&
+            (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+            (!targetPhone || (r.phone || '').trim() !== targetPhone)
+        );
+        safeSetLocalStorageItem(key, JSON.stringify(filtered));
+      }
+    };
+    purgeCache('dalelak_custom_reps');
+    purgeCache('dalelak_cached_reps');
   } catch {}
 
-  // 3. Delete from Supabase Cloud
+  // 5. Delete from Supabase Cloud
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('representatives').delete().eq('id', id);
-      if (error) {
-        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
+      await supabase.from('representatives').delete().eq('id', id);
+      await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (targetEmail) {
+        await supabase.from('representatives').delete().ilike('email', targetEmail);
+        await supabaseRestFetch(`representatives?email=ilike.${encodeURIComponent(targetEmail)}`, {
+          method: 'DELETE',
+        });
+      }
+      if (targetPhone) {
+        await supabase.from('representatives').delete().eq('phone', targetPhone);
+        await supabaseRestFetch(`representatives?phone=eq.${encodeURIComponent(targetPhone)}`, {
           method: 'DELETE',
         });
       }
     } catch (err) {
-      console.error('Supabase delete rep error:', err);
+      console.error('Supabase hard delete rep error:', err);
     }
   }
 
-  // 4. Delete from Local Server
+  // 6. Delete from Local Server
   try {
     await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: getApiAuthHeaders(),
     });
+    if (targetEmail) {
+      await fetch(`/api/representatives/${encodeURIComponent(targetEmail)}`, {
+        method: 'DELETE',
+        headers: getApiAuthHeaders(),
+      });
+    }
   } catch {}
 }
+
+export const deleteRepFromDb = hardDeleteRepFromDb;
 
 export async function updateRepSessionInDb(id: string, sessionId?: string, timestamp?: number): Promise<void> {
   const now = timestamp || Date.now();

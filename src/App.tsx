@@ -115,9 +115,23 @@ export default function App() {
     getCachedBusinesses().filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'))
   );
 
-  const [representatives, setRepresentatives] = useState<Representative[]>(() =>
-    safeParseJson<Representative[]>(safeGetLocalStorageItem('dalelak_cached_reps'), [])
-  );
+  const [representatives, setRepresentatives] = useState<Representative[]>(() => {
+    const raw = safeParseJson<Representative[]>(safeGetLocalStorageItem('dalelak_cached_reps'), []) || [];
+    const softDel = getDeletedRepresentatives();
+    const softDelIds = new Set(softDel.map((r) => (r.id || '').toLowerCase()));
+    const softDelEmails = new Set(softDel.map((r) => (r.email || '').toLowerCase()).filter(Boolean));
+    const blacklist = new Set(
+      (safeParseJson<string[]>(safeGetLocalStorageItem('dalelak_deleted_rep_ids'), []) || []).map((x) => String(x).toLowerCase())
+    );
+    return raw.filter((r) => {
+      if (r.isDeleted) return false;
+      const idLower = (r.id || '').toLowerCase();
+      const emailLower = (r.email || '').toLowerCase();
+      if (idLower && (softDelIds.has(idLower) || blacklist.has(idLower))) return false;
+      if (emailLower && (softDelEmails.has(emailLower) || blacklist.has(emailLower))) return false;
+      return true;
+    });
+  });
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() =>
     safeParseJson<PayoutRequest[]>(safeGetLocalStorageItem('dalelak_cached_payouts'), [])
   );
@@ -1276,16 +1290,52 @@ export default function App() {
 
   const handleRestoreRepresentative = async (rep: Representative) => {
     const restored = await restoreRepInDb(rep);
-    setDeletedRepresentatives((prev) => prev.filter((r) => r.id !== rep.id));
-    setRepresentatives((prev) => [restored, ...prev.filter((r) => r.id !== rep.id)]);
+    const targetEmail = (rep.email || '').toLowerCase().trim();
+    const targetPhone = (rep.phone || '').trim();
+
+    setDeletedRepresentatives((prev) =>
+      prev.filter(
+        (r) =>
+          r.id !== rep.id &&
+          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+          (!targetPhone || (r.phone || '').trim() !== targetPhone)
+      )
+    );
+    setRepresentatives((prev) => [
+      restored,
+      ...prev.filter(
+        (r) =>
+          r.id !== rep.id &&
+          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+          (!targetPhone || (r.phone || '').trim() !== targetPhone)
+      ),
+    ]);
     addNotification(`🟢 تم استرجاع حساب "${rep.name}" وتفعيله بنجاح!`, 'success');
   };
 
   const handleHardDeleteRepresentative = async (id: string) => {
     const rep = deletedRepresentatives.find((r) => r.id === id) || representatives.find((r) => r.id === id);
+    const targetEmail = (rep?.email || '').toLowerCase().trim();
+    const targetPhone = (rep?.phone || '').trim();
+
     await hardDeleteRepFromDb(id);
-    setDeletedRepresentatives((prev) => prev.filter((r) => r.id !== id));
-    setRepresentatives((prev) => prev.filter((r) => r.id !== id));
+
+    setDeletedRepresentatives((prev) =>
+      prev.filter(
+        (r) =>
+          r.id !== id &&
+          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+          (!targetPhone || (r.phone || '').trim() !== targetPhone)
+      )
+    );
+    setRepresentatives((prev) =>
+      prev.filter(
+        (r) =>
+          r.id !== id &&
+          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+          (!targetPhone || (r.phone || '').trim() !== targetPhone)
+      )
+    );
     addNotification(`🗑️ تم الحذف النهائي البات لحساب "${rep?.name || 'المحدد'}" من قاعدة البيانات والسيرفر.`, 'warning');
   };
 
@@ -1309,8 +1359,16 @@ export default function App() {
     );
     if (!confirmed) return;
 
+    const targetEmail = (rep?.email || '').toLowerCase().trim();
+    const targetPhone = (rep?.phone || '').trim();
+
     setRepresentatives((prev) => {
-      const updated = prev.filter((r) => r.id !== id && (rep?.email ? r.email.toLowerCase() !== rep.email.toLowerCase() : true));
+      const updated = prev.filter(
+        (r) =>
+          r.id !== id &&
+          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+          (!targetPhone || (r.phone || '').trim() !== targetPhone)
+      );
       try {
         safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
         safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(updated));
@@ -1330,10 +1388,15 @@ export default function App() {
           deletedBy,
           deletedByRole,
         },
-        ...prev.filter((r) => r.id !== id),
+        ...prev.filter(
+          (r) =>
+            r.id !== id &&
+            (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
+            (!targetPhone || (r.phone || '').trim() !== targetPhone)
+        ),
       ]);
     } else {
-      await deleteRepFromDb(id);
+      await hardDeleteRepFromDb(id);
     }
 
     try {

@@ -14,7 +14,7 @@ export function getCachedBusinesses(): Business[] {
   const cached = safeParseJson<Business[]>(raw, []);
   if (Array.isArray(cached) && cached.length > 0) {
     return cached.filter(
-      (b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
+      (b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
     );
   }
   return [];
@@ -125,7 +125,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   } catch {}
 
   return resultList.filter(
-    (b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
+    (b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
   );
 }
 
@@ -299,7 +299,7 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
       if (Array.isArray(deltaData) && deltaData.length > 0) {
         const freshDeltaList = deltaData
           .map(mapDbToBusiness)
-          .filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
+          .filter((b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
         
         freshDeltaList.forEach((b) => map.set(b.id, b));
         freshDeltaCount = freshDeltaList.length;
