@@ -39,6 +39,7 @@ interface RepProfileProps {
   allReps?: Representative[];
   allBusinesses?: Business[];
   payoutRequests?: PayoutRequest[];
+  initialTab?: 'id_docs' | 'finance' | 'activities' | 'referral';
   onLogout: () => void;
   onUpdateRep: (updatedRep: Representative) => void;
   onRequestPayout?: (payout: PayoutRequest) => void;
@@ -54,18 +55,25 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   allReps = [],
   allBusinesses = [],
   payoutRequests = [],
+  initialTab,
   onLogout,
   onUpdateRep,
   onRequestPayout,
   isExternalView = false,
 }) => {
   // Navigation Tabs for Profile
-  const [activeTab, setActiveTab] = useState<'id_docs' | 'finance' | 'activities' | 'referral'>('activities');
+  const [activeTab, setActiveTab] = useState<'id_docs' | 'finance' | 'activities' | 'referral'>(initialTab || 'activities');
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [selectedDocType, setSelectedDocType] = useState<DocType | null>(null);
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const commissionPercentage = rep.commissionRate || 42.86;
   const referralSummary = getRepReferralSummary(rep, allReps, allBusinesses);
@@ -234,6 +242,10 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-mono text-amber-300 font-bold mt-2">
               <span className="bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10">
                 كود: {repCode}
+              </span>
+              <span className="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-500/40 font-sans text-[10px] sm:text-[11px] font-bold flex items-center gap-1 shadow-xs">
+                <Percent className="w-3 h-3 text-amber-400" />
+                <span>نسبة العمولة: {commissionPercentage}%</span>
               </span>
               <span className="bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10">
                 الرقم القومي: {rep.nationalId || '—'}

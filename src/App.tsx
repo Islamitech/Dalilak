@@ -121,6 +121,13 @@ export default function App() {
   });
 
   // Navigation Tabs: 'home' | 'map' | 'add' | 'invoices' | 'admin' | 'profile'
+  const [profileInitialTab, setProfileInitialTab] = useState<'id_docs' | 'finance' | 'activities' | 'referral'>('activities');
+
+  const handleNavigateToProfile = (subTab: 'id_docs' | 'finance' | 'activities' | 'referral' = 'activities') => {
+    setProfileInitialTab(subTab);
+    setActiveTab('profile');
+  };
+
   const [activeTab, setActiveTab] = useState<string>(() => {
     // 1. Check URL query string first (?tab=...)
     const urlParams = new URLSearchParams(window.location.search);
@@ -1606,6 +1613,7 @@ export default function App() {
                   onAddNewClick={() => setActiveTab('add')}
                   onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
                   onRequestPayout={handleCreatePayoutRequest}
+                  onNavigateToProfile={handleNavigateToProfile}
                 />
               </Suspense>
             )}
@@ -1737,6 +1745,7 @@ export default function App() {
                 allReps={representatives}
                 allBusinesses={businesses}
                 payoutRequests={payoutRequests}
+                initialTab={profileInitialTab}
                 onLogout={handleLogout}
                 onUpdateRep={handleUpdateRepresentative}
                 onRequestPayout={handleCreatePayoutRequest}
