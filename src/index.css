@@ -463,6 +463,32 @@ body.dark-mode .hover-card:hover {
   .print-only {
     display: block !important;
   }
+  body.printing-statement {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body.printing-statement * {
+    visibility: hidden;
+  }
+  body.printing-statement #official-statement-document,
+  body.printing-statement #official-statement-document * {
+    visibility: visible;
+  }
+  body.printing-statement #official-statement-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
 }
 
 /* ============================================
