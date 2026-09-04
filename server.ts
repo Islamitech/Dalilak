@@ -358,7 +358,7 @@ app.post('/api/test-mode/reset', (req, res) => {
 // 2. Auth endpoints with Single-Session Concurrent Login Protection
 const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds heartbeat threshold
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password, forceSession } = req.body || {};
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPassword = (password || '').trim();
@@ -420,6 +420,53 @@ app.post('/api/auth/login', (req, res) => {
         (r.id && r.id.toLowerCase() === cleanEmail)
       );
     });
+  }
+
+  // Cloud Supabase lookup if account not found in local file store
+  if (!rep) {
+    const sUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
+    const sKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
+    if (sUrl && sKey) {
+      try {
+        const queryUrl = `${sUrl.replace(/\/+$/, '')}/rest/v1/representatives?select=*&or=(email.ilike.${encodeURIComponent(cleanEmail)},phone.eq.${encodeURIComponent(cleanEmail)},id.eq.${encodeURIComponent(cleanEmail)})&limit=1`;
+        const sRes = await fetch(queryUrl, {
+          headers: {
+            'apikey': sKey,
+            'Authorization': `Bearer ${sKey}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (sRes.ok) {
+          const sRows: any = await sRes.json();
+          if (Array.isArray(sRows) && sRows.length > 0) {
+            const raw = sRows[0];
+            rep = {
+              id: raw.id,
+              name: raw.name || 'مندوب معتمد',
+              email: raw.email || '',
+              phone: raw.phone || '',
+              role: raw.role || 'rep',
+              roleTitle: raw.role_title || raw.roleTitle || 'مندوب مبيعات ميداني',
+              governorate: raw.governorate || 'القاهرة',
+              targetMonth: Number(raw.target_month || raw.targetMonth) || 25,
+              avatar: raw.avatar || '',
+              avatarStatus: raw.avatar_status || raw.avatarStatus || 'none',
+              commissionRate: Number(raw.commission_rate || raw.commissionRate) || 42.86,
+              status: raw.status || 'active',
+              password: raw.password || '',
+              referralCode: raw.referral_code || raw.referralCode || `DALIL-${Date.now().toString().slice(-4)}`,
+              referredByCode: raw.referred_by_code || raw.referredByCode || undefined,
+              referralUnlocked: Boolean(raw.referral_unlocked ?? raw.referralUnlocked),
+              adminBypassReferral: Boolean(raw.admin_bypass_referral ?? raw.adminBypassReferral),
+            };
+            representatives.push(rep);
+            persistStoredReps(representatives);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to query Supabase from server.ts login:', err);
+      }
+    }
   }
 
   // Strictly reject unregistered accounts

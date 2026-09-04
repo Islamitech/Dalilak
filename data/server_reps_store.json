@@ -2,7 +2,7 @@
   {
     "id": "rep_ahmed_ezalden",
     "name": "Ahmed Ezalden",
-    "email": "info@dalilaak.com",
+    "email": "ahmedhufne@gmail.com",
     "phone": "01143888355",
     "role": "admin",
     "roleTitle": "مدير النظام",
@@ -12,7 +12,7 @@
     "avatarStatus": "approved",
     "commissionRate": 42.86,
     "status": "active",
-    "password": "scrypt:6dda1363e43107c049b7d4f2b2f4a934:e2254436f27e8b385c85bc143b219121327f3629fd060ce791b0159fb4695bb81fed6d19236042e8a20774658b6141b97a1518065da86931ea76f87746546184",
+    "password": "sha256:1bd455df4d1c614f4187e90c9c9c5920d86f6b8a2ae9bcd12a9174b62c90f432",
     "referralCode": "DALIL-8355",
     "referralUnlocked": true,
     "adminBypassReferral": true

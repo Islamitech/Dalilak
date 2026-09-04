@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Representative } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../lib/supabase';
 import { updateRepSessionInDb, fetchRepsFromDb, saveRepToDb } from '../services/db';
+import { mapDbToRep } from '../services/db/dbMappers';
 import { compressImageFile } from '../utils/imageCompressor';
 import { getRepReferralCode } from '../utils/referral';
 import { hashPassword, verifyPassword, isPasswordHashed } from '../utils/crypto';
@@ -121,6 +122,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       const cleanPassword = password.trim();
 
       // Step 1: Server Authentication & Live Session Lock Verification
+      let loggedInUser: User | null = null;
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -128,31 +130,152 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           body: JSON.stringify({ email: cleanEmail, password: cleanPassword, forceSession: true }),
         });
 
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          setErrorMsg(data.error || '⚠️ فشل تسجيل الدخول. يرجى التأكد من صحة البيانات.');
-          setIsLoading(false);
-          return;
-        }
-
-        if (data && data.user) {
-          if (data.token) {
-            safeSetLocalStorageItem('dalelak_auth_token', data.token);
-            safeSetSessionItem('dalelak_auth_token', data.token);
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data && data.user) {
+            loggedInUser = data.user;
+            if (data.token) {
+              safeSetLocalStorageItem('dalelak_auth_token', data.token);
+              safeSetSessionItem('dalelak_auth_token', data.token);
+            }
+          } else if (res.status === 403) {
+            setErrorMsg(data.error || '⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.');
+            setIsLoading(false);
+            return;
+          } else if (res.status === 409) {
+            setErrorMsg(data.error || '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً.');
+            setIsLoading(false);
+            return;
+          } else if (res.status === 401 && data.error && !data.error.includes('غير مسجل')) {
+            setErrorMsg(data.error);
+            setIsLoading(false);
+            return;
           }
-          await updateRepSessionInDb(data.user.id, data.user.activeSessionId, data.user.lastActiveTimestamp);
-          onLoginSuccess(data.user);
-          if (onClose) onClose();
-          setIsLoading(false);
-          return;
         }
-      } catch (networkErr) {
-        console.warn('Authentication connection error:', networkErr);
-        setErrorMsg('⚠️ تعذر الاتصال بخادم المصادقة الآمن. يرجى التأكد من تشغيل الخادم والاتصال بالشبكة.');
+      } catch {
+        console.log('Server login unavailable, falling back to Supabase cloud...');
+      }
+
+      if (loggedInUser) {
+        await updateRepSessionInDb(loggedInUser.id, loggedInUser.activeSessionId, loggedInUser.lastActiveTimestamp);
+        onLoginSuccess(loggedInUser);
+        if (onClose) onClose();
         setIsLoading(false);
         return;
       }
+
+      // Step 2: Supabase Cloud Authentication (Authoritative fallback for Vercel / serverless deployments)
+      let foundRep: Representative | null = null;
+      if (isSupabaseConfigured()) {
+        try {
+          const { data, error } = await supabase
+            .from('representatives')
+            .select('*')
+            .or(`email.ilike.${cleanEmail},phone.eq.${cleanEmail},id.eq.${cleanEmail}`)
+            .limit(1);
+
+          if (!error && data && data.length > 0) {
+            foundRep = mapDbToRep(data[0]);
+          }
+        } catch (sdkErr) {
+          console.warn('Supabase SDK lookup failed:', sdkErr);
+        }
+
+        if (!foundRep) {
+          try {
+            const restRes = await supabaseRestFetch(
+              `representatives?select=*&or=(email.ilike.${encodeURIComponent(cleanEmail)},phone.eq.${encodeURIComponent(cleanEmail)},id.eq.${encodeURIComponent(cleanEmail)})&limit=1`
+            );
+            if (restRes.ok) {
+              const restData = await restRes.json();
+              if (Array.isArray(restData) && restData.length > 0) {
+                foundRep = mapDbToRep(restData[0]);
+              }
+            }
+          } catch (restErr) {
+            console.warn('Supabase REST lookup failed:', restErr);
+          }
+        }
+      }
+
+      // Fallback to local representatives list if still not found
+      if (!foundRep) {
+        const cleanPhone = cleanEmail.replace(/\D/g, '');
+        const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
+        foundRep = representatives.find((r) => {
+          const rEmail = (r.email || '').trim().toLowerCase();
+          const normR = rEmail.replace(/[^a-z0-9]/g, '');
+          const rPhone = (r.phone || '').replace(/\D/g, '');
+          return (
+            rEmail === cleanEmail ||
+            normR === normClean ||
+            (cleanPhone.length >= 8 && rPhone && (rPhone === cleanPhone || rPhone.endsWith(cleanPhone) || cleanPhone.endsWith(rPhone))) ||
+            r.id.toLowerCase() === cleanEmail
+          );
+        }) || null;
+      }
+
+      if (!foundRep) {
+        setErrorMsg(`⚠️ البريد الإلكتروني أو رقم الهاتف (${cleanEmail}) غير مسجل في قاعدة البيانات.`);
+        setIsLoading(false);
+        return;
+      }
+
+      // Verify Password strictly (supports both SHA-256 and legacy formats)
+      const storedPassword = (foundRep.password || '').trim();
+      let isPassValid = false;
+
+      if (storedPassword && storedPassword !== '••••••••') {
+        isPassValid = await verifyPassword(cleanPassword, storedPassword);
+      }
+
+      if (!isPassValid) {
+        setErrorMsg('⚠️ كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور وإعادة المحاولة.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check account review / suspension status
+      if (foundRep.status === 'suspended') {
+        if (foundRep.avatarStatus === 'rejected') {
+          setErrorMsg('❌ تم إيقاف أو رفض هذا الحساب من قِبل إدارة المنظومة.');
+        } else {
+          setErrorMsg(`⏳ حسابك (${foundRep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Auto-upgrade legacy plaintext passwords to SHA-256 upon successful login
+      if (!isPasswordHashed(storedPassword)) {
+        try {
+          const newHashed = await hashPassword(cleanPassword);
+          foundRep.password = newHashed;
+          saveRepToDb({ ...foundRep, password: newHashed }).catch(() => {});
+        } catch {}
+      }
+
+      const now = Date.now();
+      const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
+      foundRep.activeSessionId = newSessionId;
+      foundRep.lastActiveTimestamp = now;
+
+      await updateRepSessionInDb(foundRep.id, newSessionId, now);
+
+      if (onClose) onClose();
+
+      onLoginSuccess({
+        id: foundRep.id,
+        name: foundRep.name,
+        email: foundRep.email,
+        role: foundRep.role || 'rep',
+        repData: foundRep,
+        activeSessionId: newSessionId,
+        lastActiveTimestamp: now,
+      });
+      setIsLoading(false);
+      return;
     } catch (err) {
       console.error('Login error:', err);
       setErrorMsg('حدث خطأ أثناء التحقق من الجلسة، يرجى المحاولة لاحقاً.');
