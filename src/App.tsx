@@ -97,6 +97,7 @@ import {
   fetchPaymentConfigFromDb,
   savePaymentConfigToDb,
 } from './services/db';
+import { isReferredByInviter, getRepReferralCode } from './utils/referral';
 
 export default function App() {
   const [showSyncBadge, setShowSyncBadge] = useState<boolean>(false);
@@ -378,12 +379,20 @@ export default function App() {
     } catch {}
   };
 
+  const [selectedAdminDossierRep, setSelectedAdminDossierRep] = useState<Representative | null>(null);
+
   // Direct navigation handler for Notification preview clicks
   const handleNotificationNavigate = (tab: string, entityId?: string, entityType?: string) => {
     if (tab) setActiveTab(tab);
 
     if (entityId) {
-      if (entityType === 'business' || (!entityType && (tab === 'home' || tab === 'admin'))) {
+      if (entityType === 'rep' || (!entityType && tab === 'admin')) {
+        const foundRep = representatives.find((r) => r.id === entityId || (r.email && r.email.toLowerCase() === entityId.toLowerCase()));
+        if (foundRep) {
+          setSelectedAdminDossierRep(foundRep);
+          setActiveTab('admin');
+        }
+      } else if (entityType === 'business' || (!entityType && (tab === 'home' || tab === 'admin'))) {
         const foundBiz = businesses.find((b) => b.id === entityId || b.nameAr.includes(entityId));
         if (foundBiz) {
           setEditingBusiness(foundBiz);
@@ -398,6 +407,100 @@ export default function App() {
       }
     }
   };
+
+  // 🔔 Cross-device / DB sync for Admin notifications about pending registrations & inviter notifications
+  useEffect(() => {
+    if (!representatives || representatives.length === 0) return;
+
+    const isAdmin = user?.role === 'admin' || user?.role === 'supervisor';
+    const currentUserId = user?.id;
+
+    setSystemNotifications((prev) => {
+      let changed = false;
+      const updated = [...prev];
+
+      // 1. Sync for Admin: All suspended accounts awaiting activation
+      if (isAdmin) {
+        const suspendedReps = representatives.filter(
+          (r) => r.status === 'suspended' && !isRepAccountDeleted(r)
+        );
+
+        suspendedReps.forEach((rep) => {
+          const existing = updated.find(
+            (n) => (n.entityId === rep.id || n.id === `notif_pending_rep_${rep.id}`) && n.category === 'account'
+          );
+
+          if (!existing) {
+            updated.unshift({
+              id: `notif_pending_rep_${rep.id}`,
+              title: 'طلب تسجيل حساب مندوب جديد بحاجة للموافقة 👤',
+              message: `قام المندوب "${rep.name}" بتسجيل حساب جديد (${rep.governorate})، الحساب معلق بانتظار فحص وثائق الهوية وتفعيل الصلاحيات.`,
+              timestamp: (rep as any).created_at || (rep as any).createdDate || new Date().toISOString(),
+              type: 'warning',
+              category: 'account',
+              targetRole: 'admin',
+              linkTab: 'admin',
+              entityId: rep.id,
+              entityType: 'rep',
+              read: false,
+            });
+            changed = true;
+          }
+        });
+
+        // If an account has been activated, mark the corresponding approval notification as read
+        const activeRepIds = new Set(
+          representatives.filter((r) => r.status === 'active').map((r) => r.id)
+        );
+        updated.forEach((n, idx) => {
+          if (
+            !n.read &&
+            n.entityId &&
+            activeRepIds.has(n.entityId) &&
+            n.id.startsWith('notif_pending_rep_')
+          ) {
+            updated[idx] = { ...n, read: true };
+            changed = true;
+          }
+        });
+      }
+
+      // 2. Sync for Inviters: When someone registers using their referral code
+      if (currentUserId && user?.repData) {
+        const currentRep = user.repData;
+        const myReferralCode = getRepReferralCode(currentRep);
+
+        const myInvitedReps = representatives.filter(
+          (r) => r.id !== currentRep.id && isReferredByInviter(r, currentRep) && !isRepAccountDeleted(r)
+        );
+
+        myInvitedReps.forEach((invited) => {
+          const existing = updated.find(
+            (n) => n.id === `notif_rep_joined_${invited.id}` || (n.entityId === invited.id && n.targetUserId === currentUserId)
+          );
+
+          if (!existing) {
+            updated.unshift({
+              id: `notif_rep_joined_${invited.id}`,
+              title: 'عضو جديد انضم إلى فريقك! 🚀',
+              message: `انضم المندوب "${invited.name}" (${invited.governorate}) إلى فريقك عبر كود الدعوة (${myReferralCode}). ستكسب عمولات إضافية فور بدئه إنجاز الأنشطة الميدانية!`,
+              timestamp: (invited as any).created_at || (invited as any).createdDate || new Date().toISOString(),
+              type: 'success',
+              category: 'account',
+              targetUserId: currentUserId,
+              linkTab: 'profile',
+              entityId: invited.id,
+              entityType: 'rep',
+              read: false,
+            });
+            changed = true;
+          }
+        });
+      }
+
+      return changed ? updated : prev;
+    });
+  }, [representatives, user?.role, user?.id, user?.repData]);
 
   // Real System Notifications (Sorted newest first by timestamp)
   const allNotifications = useMemo(() => {
@@ -590,6 +693,14 @@ export default function App() {
       syncChannel.onmessage = (event) => {
         if (event.data?.type === 'SYNC_DATA' || event.data?.type === 'REP_UPDATED') {
           refreshLiveData(true);
+        } else if (event.data?.type === 'NEW_REP_REGISTERED') {
+          refreshLiveData(true);
+          const currentRole = userRef.current?.role || user?.role;
+          if (currentRole === 'admin' || currentRole === 'supervisor') {
+            const repName = event.data.name || 'مندوب جديد';
+            const repGov = event.data.governorate ? ` (${event.data.governorate})` : '';
+            addNotification(`🔔 طلب تسجيل جديد: قام المندوب "${repName}"${repGov} بتقديم طلب حساب جديد بانتظار مراجعتك وتفعيله.`, 'info');
+          }
         }
       };
     }
@@ -601,7 +712,20 @@ export default function App() {
         realtimeChannel = supabase
           .channel('dalelak_realtime_db_changes')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => refreshLiveData(true))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'representatives' }, () => refreshLiveData(true))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'representatives' }, (payload: any) => {
+            refreshLiveData(true);
+            if (payload?.eventType === 'INSERT' && payload.new) {
+              const repStatus = payload.new.status || 'suspended';
+              const repName = payload.new.name || 'مندوب جديد';
+              const repGov = payload.new.governorate ? ` (${payload.new.governorate})` : '';
+              if (repStatus === 'suspended') {
+                const currentRole = userRef.current?.role || user?.role;
+                if (currentRole === 'admin' || currentRole === 'supervisor') {
+                  addNotification(`🔔 طلب تسجيل جديد: قام المندوب "${repName}"${repGov} بتسجيل حساب جديد بانتظار التفعيل.`, 'info');
+                }
+              }
+            }
+          })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'payout_requests' }, () => refreshLiveData(true))
           .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => refreshLiveData(true))
           .subscribe();
@@ -1918,6 +2042,8 @@ export default function App() {
               leads={leads}
               deletedBusinesses={deletedBusinesses}
               deletedRepresentatives={deletedRepresentatives}
+              initialDossierRep={selectedAdminDossierRep}
+              onClearInitialDossierRep={() => setSelectedAdminDossierRep(null)}
               onUpdateLead={handleUpdateLead}
               onDeleteLead={handleDeleteLead}
               onConvertToBusiness={handleConvertToBusiness}

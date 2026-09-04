@@ -66,6 +66,8 @@ interface AdminDashboardProps {
   onUpdateLead?: (lead: InterestedLead) => void;
   onDeleteLead?: (leadId: string) => void;
   onConvertToBusiness?: (lead: InterestedLead) => void;
+  initialDossierRep?: Representative | null;
+  onClearInitialDossierRep?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -75,6 +77,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   paymentConfig,
   payoutRequests = [],
   leads = [],
+  initialDossierRep,
+  onClearInitialDossierRep,
   onUpdateBusiness,
   onDeleteBusiness,
   onAddRepresentative,
@@ -170,6 +174,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [editingBusinessInitialTab, setEditingBusinessInitialTab] = useState<string | undefined>(undefined);
   const [selectedDossierRep, setSelectedDossierRep] = useState<Representative | null>(null);
+
+  useEffect(() => {
+    if (initialDossierRep) {
+      setSelectedDossierRep(initialDossierRep);
+      setActiveAdminTab('reps');
+      if (onClearInitialDossierRep) onClearInitialDossierRep();
+    }
+  }, [initialDossierRep, onClearInitialDossierRep]);
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
   const [editingAccountRep, setEditingAccountRep] = useState<Representative | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);

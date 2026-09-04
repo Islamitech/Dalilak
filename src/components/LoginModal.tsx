@@ -127,7 +127,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 800, 800, 0.8, { applyWatermark: false });
+        const compressed = await compressImageFile(file, 800, 800, 0.75, { applyWatermark: false });
         setRegAvatar(compressed);
       } catch (err) {
         console.warn('Face photo compression error:', err);
@@ -139,7 +139,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 1200, 1200, 0.85, { applyWatermark: false });
+        const compressed = await compressImageFile(file, 1000, 1000, 0.75, { applyWatermark: false });
         setRegNationalIdCardPhoto(compressed);
       } catch (err) {
         console.warn('National ID Front compression error:', err);
@@ -151,7 +151,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 1200, 1200, 0.85, { applyWatermark: false });
+        const compressed = await compressImageFile(file, 1000, 1000, 0.75, { applyWatermark: false });
         setRegNationalIdCardBackPhoto(compressed);
       } catch (err) {
         console.warn('National ID Back compression error:', err);
@@ -561,6 +561,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     if (onAddRepresentative) {
       onAddRepresentative(newRepData);
     }
+
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('dalelak_app_channel');
+        channel.postMessage({
+          type: 'NEW_REP_REGISTERED',
+          name: newRepData.name,
+          id: newRepData.id,
+          governorate: newRepData.governorate,
+          referredByCode: newRepData.referredByCode,
+        });
+        channel.close();
+      }
+    } catch {}
 
     try {
       localStorage.removeItem('dalelak_pending_referral');

@@ -17,6 +17,7 @@ import {
   getRepReferralSummary,
   getRepReferralCode,
   isReferralSystemUnlocked,
+  isReferredByInviter,
 } from '../utils/referral';
 import { formatActivityDateTime } from '../utils/dateFormatters';
 import { UserAvatar } from './UserAvatar';
@@ -76,7 +77,7 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
   onUpdatePayoutRequest,
   currentUser,
 }) => {
-  const [activeTab, setActiveTab] = useState<'activities' | 'ledger' | 'referrals' | 'kyc'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'ledger' | 'referrals' | 'kyc'>(() => rep?.status === 'suspended' ? 'kyc' : 'activities');
   const [bizSearch, setBizSearch] = useState('');
   const [bizFilter, setBizFilter] = useState<'all' | 'verified' | 'pending' | 'cash' | 'online' | 'exempt'>('all');
   const [editingCommRate, setEditingCommRate] = useState<number>(rep?.commissionRate || 42.86);
@@ -89,6 +90,9 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
     if (rep) {
       setEditingCommRate(rep.commissionRate || 42.86);
       setEditingRoleTitle(rep.roleTitle || '');
+      if (rep.status === 'suspended') {
+        setActiveTab('kyc');
+      }
     }
   }, [rep]);
 
@@ -1110,47 +1114,122 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
 
                 {/* 2. Documents & National ID */}
                 <div className="bg-[var(--input-bg)] p-4 rounded-3xl border border-[var(--border-color)] space-y-3">
-                  <h4 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2 border-b border-[var(--border-color)] pb-2.5">
-                    <FileText className="w-4 h-4 text-amber-500" />
-                    <span>وثائق الهوية والتسجيل المرفوعة</span>
-                  </h4>
+                  <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
+                    <h4 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-500" />
+                      <span>وثائق الهوية والتسجيل المرفوعة (KYC)</span>
+                    </h4>
+                    <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                      اضغط على أي صورة لتكبيرها وفحصها
+                    </span>
+                  </div>
 
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="bg-[var(--bg-card)] p-2.5 rounded-2xl border border-[var(--border-color)] text-center space-y-1.5">
-                      <span className="text-[10px] font-bold text-[var(--text-muted)] block">صورة الوجه التوثيقية</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* Face Photo */}
+                    <div className="bg-[var(--bg-card)] p-2.5 rounded-2xl border border-[var(--border-color)] text-center space-y-1.5 group">
+                      <span className="text-[10px] font-bold text-[var(--text-muted)] block">1. صورة الوجه التوثيقية</span>
                       {rep.activationFacePhoto ? (
-                        <img
-                          src={rep.activationFacePhoto}
-                          alt="صورة الوجه"
-                          className="w-full h-24 object-cover rounded-xl border border-slate-700"
-                        />
+                        <div
+                          onClick={() => setSelectedReceiptPhoto(rep.activationFacePhoto || null)}
+                          className="relative h-28 rounded-xl overflow-hidden border border-slate-700 cursor-pointer"
+                          title="اضغط للتكبير"
+                        >
+                          <img
+                            src={rep.activationFacePhoto}
+                            alt="صورة الوجه التوثيقية"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity text-[10px] font-bold gap-1">
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>معاينة</span>
+                          </div>
+                        </div>
                       ) : (
-                        <div className="w-full h-24 bg-slate-800 rounded-xl flex items-center justify-center text-[10px] text-slate-500 font-bold">
+                        <div className="h-28 bg-slate-800 rounded-xl flex items-center justify-center text-[10px] text-slate-500 font-bold">
                           غير مرفوعة
                         </div>
                       )}
                     </div>
 
-                    <div className="bg-[var(--bg-card)] p-2.5 rounded-2xl border border-[var(--border-color)] text-center space-y-1.5">
-                      <span className="text-[10px] font-bold text-[var(--text-muted)] block">بطاقة الرقم القومي</span>
+                    {/* Front ID Card Photo */}
+                    <div className="bg-[var(--bg-card)] p-2.5 rounded-2xl border border-[var(--border-color)] text-center space-y-1.5 group">
+                      <span className="text-[10px] font-bold text-[var(--text-muted)] block">2. بطاقة الرقم القومي (الوجه)</span>
                       {rep.nationalIdCardPhoto ? (
-                        <img
-                          src={rep.nationalIdCardPhoto}
-                          alt="بطاقة الرقم القومي"
-                          className="w-full h-24 object-cover rounded-xl border border-slate-700"
-                        />
+                        <div
+                          onClick={() => setSelectedReceiptPhoto(rep.nationalIdCardPhoto || null)}
+                          className="relative h-28 rounded-xl overflow-hidden border border-slate-700 cursor-pointer"
+                          title="اضغط للتكبير"
+                        >
+                          <img
+                            src={rep.nationalIdCardPhoto}
+                            alt="بطاقة الرقم القومي - الوجه"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity text-[10px] font-bold gap-1">
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>معاينة</span>
+                          </div>
+                        </div>
                       ) : (
-                        <div className="w-full h-24 bg-slate-800 rounded-xl flex items-center justify-center text-[10px] text-slate-500 font-bold">
+                        <div className="h-28 bg-slate-800 rounded-xl flex items-center justify-center text-[10px] text-slate-500 font-bold">
+                          غير مرفوعة
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Back ID Card Photo */}
+                    <div className="bg-[var(--bg-card)] p-2.5 rounded-2xl border border-[var(--border-color)] text-center space-y-1.5 group">
+                      <span className="text-[10px] font-bold text-[var(--text-muted)] block">3. بطاقة الرقم القومي (الظهر)</span>
+                      {rep.nationalIdCardBackPhoto ? (
+                        <div
+                          onClick={() => setSelectedReceiptPhoto(rep.nationalIdCardBackPhoto || null)}
+                          className="relative h-28 rounded-xl overflow-hidden border border-slate-700 cursor-pointer"
+                          title="اضغط للتكبير"
+                        >
+                          <img
+                            src={rep.nationalIdCardBackPhoto}
+                            alt="بطاقة الرقم القومي - الظهر"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity text-[10px] font-bold gap-1">
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>معاينة</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-28 bg-slate-800 rounded-xl flex items-center justify-center text-[10px] text-slate-500 font-bold">
                           غير مرفوعة
                         </div>
                       )}
                     </div>
                   </div>
 
+                  {/* National ID details row */}
                   <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)] font-mono text-[11px] flex items-center justify-between">
-                    <span className="text-[var(--text-muted)]">الرقم القومي:</span>
-                    <span className="font-black text-[var(--text-primary)]">{rep.nationalId || 'غير مسجل'}</span>
+                    <span className="text-[var(--text-muted)] font-bold">الرقم القومي المسجل:</span>
+                    <span className="font-black text-[var(--text-primary)] text-xs tracking-wider">{rep.nationalId || 'غير مسجل'}</span>
                   </div>
+
+                  {/* Referral Link & Inviter info */}
+                  {rep.referredByCode && (
+                    <div className="bg-purple-500/10 border border-purple-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-purple-500 shrink-0" />
+                        <div>
+                          <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold block">انضم بدعوة من:</span>
+                          <span className="font-black text-[var(--text-primary)]">
+                            {(() => {
+                              const inviter = allReps.find((r) => isReferredByInviter(rep, r));
+                              return inviter ? `${inviter.name} (${inviter.phone})` : 'مندوب معتمد (كود مباشر)';
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="font-mono font-black bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[11px]">
+                        {rep.referredByCode}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

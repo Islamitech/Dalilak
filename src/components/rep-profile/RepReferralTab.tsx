@@ -208,7 +208,18 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                     className="bg-[var(--bg-surface)] p-3 rounded-xl border border-[var(--border-color)] flex items-center justify-between gap-2 shadow-xs"
                   >
                     <div>
-                      <p className="font-black text-[var(--text-primary)]">{invRep.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-black text-[var(--text-primary)]">{invRep.name}</p>
+                        {invRep.status === 'suspended' ? (
+                          <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-md font-bold">
+                            ⏳ قيد المراجعة
+                          </span>
+                        ) : (
+                          <span className="text-[9px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md font-bold">
+                            🟢 مفعل
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                         {invRep.governorate} • {bizCount} نشاط مسجل
                       </p>

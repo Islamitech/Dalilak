@@ -548,6 +548,9 @@ export function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
   if (rep.status !== undefined) record.status = rep.status;
   if (rep.password !== undefined) record.password = rep.password;
+  if (rep.activationFacePhoto !== undefined) record.activation_face_photo = rep.activationFacePhoto || null;
+  if (rep.nationalIdCardPhoto !== undefined) record.national_id_card_photo = rep.nationalIdCardPhoto || null;
+  if (rep.nationalIdCardBackPhoto !== undefined) record.national_id_card_back_photo = rep.nationalIdCardBackPhoto || null;
   if (rep.referralCode !== undefined) record.referral_code = rep.referralCode || null;
   if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode || null;
   if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);

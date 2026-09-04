@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Business, Representative } from '../../../types';
 import { UserAvatar } from '../../UserAvatar';
 import {
+  Bell,
   DollarSign,
   AlertCircle,
   CheckCircle2,
@@ -126,8 +127,51 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
   onSetVerificationFilter,
   onSelectDossierRep,
 }) => {
+  const pendingReps = useMemo(
+    () => (mergedAdminReps || []).filter((r) => r.status === 'suspended' && !(r as any).isDeleted),
+    [mergedAdminReps]
+  );
+
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* 🔔 Pending Account Registrations Alert Banner */}
+      {pendingReps.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-orange-500/15 border-2 border-amber-500/40 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in shadow-md">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-black border border-amber-500/30 shrink-0">
+              <Bell className="w-6 h-6 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                  طلبات تسجيل مناديب جديدة بانتظار الموافقة والتفعيل ({pendingReps.length})
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px]">
+                  مطلوب المراجعة
+                </span>
+              </div>
+              <p className="text-xs text-[var(--text-muted)] font-bold mt-1">
+                سجل مناديب جدد وثائق الهوية والوجه التوثيقي، بانتظار فحص البيانات وتفعيل الصلاحيات للبدء في العمل الميداني.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (pendingReps.length === 1 && onSelectDossierRep) {
+                onSelectDossierRep(pendingReps[0]);
+              } else {
+                onNavigateTab('reps');
+              }
+            }}
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95 shrink-0 self-stretch sm:self-auto justify-center"
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>مراجعة وتفعيل الحسابات ({pendingReps.length})</span>
+          </button>
+        </div>
+      )}
+
       {/* Top KPI Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* 1. Revenue & Collection Rate */}
