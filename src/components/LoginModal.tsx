@@ -22,7 +22,8 @@ import {
   Lock, 
   UploadCloud, 
   Trash2, 
-  Eye, 
+  Eye,
+  EyeOff,
   User as UserIcon,
   FileCheck
 } from 'lucide-react';
@@ -50,6 +51,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [regSuccessNotice, setRegSuccessNotice] = useState<boolean>(false);
+
+  // Password visibility states
+  const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
+  const [showRegPassword, setShowRegPassword] = useState<boolean>(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState<boolean>(false);
 
   // Login form state
   const [email, setEmail] = useState<string>('');
@@ -676,14 +682,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <input
                 id="login_password"
                 name="password"
-                type="password"
+                type={showLoginPassword ? 'text' : 'password'}
                 required
                 autoComplete="current-password"
-                placeholder="••••••••"
+                placeholder="أدخل كلمة المرور..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 font-mono shadow-sm"
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-10 py-2.5 focus:outline-none focus:border-amber-500 font-mono shadow-sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                className="absolute left-3 top-2.5 text-[var(--text-muted)] hover:text-amber-500 transition-colors cursor-pointer p-0.5"
+                title={showLoginPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+              >
+                {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
@@ -840,26 +854,46 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="block text-[var(--text-primary)] font-extrabold mb-1">كلمة المرور *</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
-              />
+              <div className="relative">
+                <input
+                  type={showRegPassword ? 'text' : 'password'}
+                  required
+                  placeholder="أدخل كلمة المرور..."
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 pl-9 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegPassword(!showRegPassword)}
+                  className="absolute left-2.5 top-2.5 text-[var(--text-muted)] hover:text-amber-500 transition-colors cursor-pointer p-0.5"
+                  title={showRegPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                >
+                  {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-[var(--text-primary)] font-extrabold mb-1">تأكيد كلمة المرور *</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={regConfirmPassword}
-                onChange={(e) => setRegConfirmPassword(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
-              />
+              <div className="relative">
+                <input
+                  type={showRegConfirmPassword ? 'text' : 'password'}
+                  required
+                  placeholder="أعد إدخال كلمة المرور..."
+                  value={regConfirmPassword}
+                  onChange={(e) => setRegConfirmPassword(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 pl-9 focus:outline-none focus:border-amber-500 shadow-sm placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                  className="absolute left-2.5 top-2.5 text-[var(--text-muted)] hover:text-amber-500 transition-colors cursor-pointer p-0.5"
+                  title={showRegConfirmPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                >
+                  {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
 
