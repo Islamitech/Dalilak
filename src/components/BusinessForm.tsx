@@ -149,7 +149,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [leadClientName, setLeadClientName] = useState<string>('');
   const [leadBizName, setLeadBizName] = useState<string>('');
   const [leadPhone, setLeadPhone] = useState<string>('');
-  const [leadGov, setLeadGov] = useState<string>('القاهرة');
+  const [leadGov, setLeadGov] = useState<string>('الجيزة');
   const [leadCity, setLeadCity] = useState<string>('');
   const [leadStreet, setLeadStreet] = useState<string>('');
   const [isSavingLead, setIsSavingLead] = useState<boolean>(false);
@@ -622,6 +622,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       setLeadClientName('');
       setLeadBizName('');
       setLeadPhone('');
+      setLeadGov('الجيزة');
       setLeadCity('');
       setLeadStreet('');
       setLeadNotes('');

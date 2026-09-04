@@ -3,6 +3,7 @@ import { InterestedLead, LeadInterestLevel, Representative } from '../../types';
 import { saveLeadToDb } from '../../services/db';
 import { InteractiveMap } from '../InteractiveMap';
 import { triggerHaptic } from '../../utils/haptics';
+import { EGYPT_GOVERNORATES } from '../../data/mockData';
 import {
   UserCheck,
   CheckCircle2,
@@ -28,7 +29,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   const [leadClientName, setLeadClientName] = useState<string>('');
   const [leadBizName, setLeadBizName] = useState<string>('');
   const [leadPhone, setLeadPhone] = useState<string>('');
-  const [leadGov, setLeadGov] = useState<string>('القاهرة');
+  const [leadGov, setLeadGov] = useState<string>('الجيزة');
   const [leadCity, setLeadCity] = useState<string>('');
   const [leadStreet, setLeadStreet] = useState<string>('');
   const [isSavingLead, setIsSavingLead] = useState<boolean>(false);
@@ -174,6 +175,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       setLeadClientName('');
       setLeadBizName('');
       setLeadPhone('');
+      setLeadGov('الجيزة');
       setLeadCity('');
       setLeadStreet('');
       setLeadNotes('');
@@ -272,12 +274,20 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="block font-bold mb-1 text-[var(--text-primary)]">المحافظة</label>
-            <input
-              type="text"
+            <select
               value={leadGov}
               onChange={(e) => setLeadGov(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500"
-            />
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
+            >
+              {leadGov && !EGYPT_GOVERNORATES.includes(leadGov) && (
+                <option value={leadGov}>{leadGov}</option>
+              )}
+              {EGYPT_GOVERNORATES.map((gov) => (
+                <option key={gov} value={gov}>
+                  {gov}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
