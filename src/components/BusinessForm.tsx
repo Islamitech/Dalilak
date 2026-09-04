@@ -39,6 +39,8 @@ import {
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
+import { safeGetLocalStorageItem, safeSetLocalStorageItem, safeRemoveLocalStorageItem } from '../utils/storage';
+import { triggerHaptic } from '../utils/haptics';
 
 interface BusinessFormProps {
   currentRep: Representative | null;
@@ -237,7 +239,86 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     document.body.scrollTop = 0;
   }, [submittedBusiness]);
 
+  // ── 📝 DRAFT AUTO-SAVE & RESTORATION (PROTECTS FIELD REPS FROM DATA LOSS) ──
+  const [draftRestored, setDraftRestored] = useState<boolean>(false);
+
+  // 1. Restore draft on initial mount if not provided initialLead
+  useEffect(() => {
+    if (initialLead) return;
+    try {
+      const savedDraftStr = safeGetLocalStorageItem('dalelak_business_form_draft');
+      if (savedDraftStr) {
+        const d = JSON.parse(savedDraftStr);
+        if (d && (d.nameAr || d.phone || d.street)) {
+          if (d.nameAr) setNameAr(d.nameAr);
+          if (d.nameEn) setNameEn(d.nameEn);
+          if (d.category) setCategory(d.category);
+          if (d.selectedGroup) setSelectedGroup(d.selectedGroup);
+          if (d.governorate) setGovernorate(d.governorate);
+          if (d.city) setCity(d.city);
+          if (d.street) setStreet(d.street);
+          if (d.landmark) setLandmark(d.landmark);
+          if (d.phone) setPhone(d.phone);
+          if (d.secondaryPhone) setSecondaryPhone(d.secondaryPhone);
+          if (d.workingHours) setWorkingHours(d.workingHours);
+          if (d.description) setDescription(d.description);
+          if (d.ownerName) setOwnerName(d.ownerName);
+          if (d.ownerPhone) setOwnerPhone(d.ownerPhone);
+          if (d.ownerEmail) setOwnerEmail(d.ownerEmail);
+          if (d.nationalId) setNationalId(d.nationalId);
+          if (d.notes) setNotes(d.notes);
+          if (d.lat && d.lng) {
+            setLat(d.lat);
+            setLng(d.lng);
+          }
+          setDraftRestored(true);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  // 2. Auto-save draft on any field change
+  useEffect(() => {
+    if (submittedBusiness) return;
+    if (!nameAr && !phone && !street && !ownerName) return;
+
+    const draft = {
+      nameAr,
+      nameEn,
+      category,
+      selectedGroup,
+      governorate,
+      city,
+      street,
+      landmark,
+      phone,
+      secondaryPhone,
+      workingHours,
+      description,
+      ownerName,
+      ownerPhone,
+      ownerEmail,
+      nationalId,
+      notes,
+      lat,
+      lng,
+      updatedAt: Date.now(),
+    };
+    safeSetLocalStorageItem('dalelak_business_form_draft', JSON.stringify(draft));
+  }, [
+    nameAr, nameEn, category, selectedGroup, governorate, city, street,
+    landmark, phone, secondaryPhone, workingHours, description,
+    ownerName, ownerPhone, ownerEmail, nationalId, notes, lat, lng,
+    submittedBusiness,
+  ]);
+
+  const clearDraft = () => {
+    safeRemoveLocalStorageItem('dalelak_business_form_draft');
+    setDraftRestored(false);
+  };
+
   const resetForm = () => {
+    clearDraft();
     setNameAr('');
     setNameEn('');
     setCategory(BUSINESS_CATEGORIES[0]);
@@ -502,6 +583,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       notes: notes || undefined,
     };
 
+    clearDraft();
+    triggerHaptic('success');
     onSubmitBusiness(newBusiness);
     setSubmittedBusiness(newBusiness);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -601,6 +684,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       notes: notes || undefined,
     };
 
+    clearDraft();
+    triggerHaptic('success');
     setShowPaymentModal(false);
     onSubmitBusiness(newBusiness);
     setSubmittedBusiness(newBusiness);
@@ -758,6 +843,28 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           <span>{errorMsg}</span>
         </div>
       )}
+
+      {/* 📋 Auto-Restored Draft Notification Banner */}
+      {draftRestored && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border-2 border-amber-500/40 text-amber-900 dark:text-amber-200 p-3.5 rounded-2xl flex items-center justify-between gap-2 text-xs font-bold animate-fade-in shadow-xs">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>تم استرجاع مسودة تسجيل غير مكتملة تلقائياً 📋</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              clearDraft();
+              resetForm();
+              triggerHaptic('medium');
+            }}
+            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/40 px-3 py-1.5 rounded-xl text-[11px] font-black transition-colors cursor-pointer shrink-0"
+          >
+            مسح المسودة
+          </button>
+        </div>
+      )}
+
       {/* Step Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 border border-amber-500/40 p-5 rounded-3xl shadow-xl flex items-center justify-between text-white">
         <div className="flex items-center gap-3">

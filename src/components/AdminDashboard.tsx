@@ -60,7 +60,9 @@ import {
   Sparkles,
   ArrowLeft,
   MessageSquare,
+  MessageCircle,
 } from 'lucide-react';
+import { triggerHaptic } from '../utils/haptics';
 
 interface AdminDashboardProps {
   currentUser?: User | null;
@@ -2059,6 +2061,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span className="badge-warning text-[9px] font-black px-2 py-0.5 rounded-full shrink-0">
                               متبقي {debtAmount.toLocaleString()} ج
                             </span>
+                          )}
+                        </div>
+
+                        {/* 🚀 1-Tap Quick Action Shortcuts (Call, WhatsApp, Maps) */}
+                        <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-[var(--border-color)]">
+                          {/* 1. Direct Call */}
+                          <a
+                            href={`tel:${biz.phone || biz.ownerPhone}`}
+                            onClick={() => triggerHaptic('light')}
+                            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-black text-[11px] py-1.5 px-2 rounded-xl flex items-center justify-center gap-1 transition-all active:scale-95 text-center"
+                            title="اتصال هاتفي مباشر"
+                          >
+                            <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
+                            <span className="truncate">اتصال</span>
+                          </a>
+
+                          {/* 2. Direct WhatsApp */}
+                          <a
+                            href={`https://wa.me/${(biz.phone || biz.ownerPhone || '').replace(/\D/g, '').replace(/^0/, '20')}?text=${encodeURIComponent(`مرحباً ${biz.ownerName || 'صاحب النشاط'}، بخصوص نشاطكم (${biz.nameAr}) على منصة دليلك...`)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => triggerHaptic('light')}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] py-1.5 px-2 rounded-xl flex items-center justify-center gap-1 transition-all active:scale-95 text-center shadow-2xs"
+                            title="محادثة واتساب سريعة"
+                          >
+                            <MessageCircle className="w-3 h-3 shrink-0" />
+                            <span className="truncate">واتساب</span>
+                          </a>
+
+                          {/* 3. Direct Google Maps or Invoice */}
+                          {hasGoogleMap ? (
+                            <a
+                              href={biz.googleMapsUrl!.trim()}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={() => triggerHaptic('light')}
+                              className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 font-black text-[11px] py-1.5 px-2 rounded-xl flex items-center justify-center gap-1 transition-all active:scale-95 text-center"
+                              title="فتح موقع النشاط على الخريطة"
+                            >
+                              <MapPin className="w-3 h-3 text-blue-500 shrink-0" />
+                              <span className="truncate">الخريطة</span>
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerHaptic('light');
+                                onShowInvoice(biz);
+                              }}
+                              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)] font-bold text-[11px] py-1.5 px-2 rounded-xl flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
+                              title="معاينة الفاتورة الإلكترونية"
+                            >
+                              <FileText className="w-3 h-3 text-amber-500 shrink-0" />
+                              <span className="truncate">الفاتورة</span>
+                            </button>
                           )}
                         </div>
 

@@ -27,6 +27,7 @@ import {
   generateUpgradeOffersWhatsAppMessage,
 } from '../utils/whatsappMessages';
 import { generateQrDataUrl } from '../utils/qrGenerator';
+import { triggerHaptic } from '../utils/haptics';
 
 interface InvoiceModalProps {
   business: Business | null;
@@ -75,8 +76,26 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
   const directoryUrl = 'https://www.dalilaak.com/';
 
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY === null) return;
+    const touchEndY = e.changedTouches[0].clientY;
+    const diff = touchEndY - touchStartY;
+    if (diff > 75) {
+      triggerHaptic('light');
+      onClose();
+    }
+    setTouchStartY(null);
+  };
+
   const handleCopyInvoice = () => {
     navigator.clipboard.writeText(generateInvoiceWhatsAppMessage(activeBusiness));
+    triggerHaptic('light');
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -86,20 +105,23 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const qrUrl = `${baseUrl}/?view=invoice&id=${activeBusiness.id}`;
   const qrImageUrl = generateQrDataUrl(qrUrl, 250);
 
-  // Pixel-Perfect DOM Screenshot Downloader using html-to-image
+  // Pixel-Perfect DOM Screenshot Downloader using html-to-image (Adaptive pixelRatio to protect mobile RAM)
   const handleSaveInvoiceImage = async () => {
     if (!invoiceRef.current) return;
     try {
       setIsSavingImage(true);
+      triggerHaptic('selection');
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
       const dataUrl = await toPng(invoiceRef.current, {
         cacheBust: true,
-        pixelRatio: 3, // Ultra-sharp resolution
+        pixelRatio: isMobile ? 2 : 2.5, // Protect mobile RAM while keeping high resolution
         backgroundColor: '#ffffff',
       });
       downloadSinglePhoto(
         dataUrl,
         `فاتورة-${activeBusiness.nameAr || 'نشاط'}-${activeBusiness.invoiceNumber || 'INV'}.png`
       );
+      triggerHaptic('success');
     } catch (err) {
       console.warn('html-to-image capture error, falling back to print:', err);
       window.print();
@@ -109,10 +131,19 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto" dir="rtl">
+    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
       <div 
-        className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300 overflow-y-auto max-h-[94vh]"
+        className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300 overflow-y-auto max-h-[94vh]"
       >
+        {/* Mobile Pull-Down Handle */}
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="w-full sm:hidden flex justify-center pt-1 pb-1 cursor-grab active:cursor-grabbing select-none"
+          title="اسحب لأسفل للإغلاق"
+        >
+          <div className="w-12 h-1.5 bg-slate-400/40 rounded-full" />
+        </div>
         {/* Header Action Bar */}
         <div className="flex items-center justify-between no-print border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2">
@@ -365,6 +396,20 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Mobile One-Hand Close Button */}
+        <div className="pt-1 sm:hidden no-print">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              onClose();
+            }}
+            className="w-full py-2.5 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] font-bold text-xs border border-[var(--border-color)] transition-colors cursor-pointer text-center"
+          >
+            إغلاق الفاتورة
+          </button>
+        </div>
       </div>
     </div>,
     document.body

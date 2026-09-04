@@ -24,6 +24,7 @@ import {
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { getGoogleMapsVerifiedWhatsAppUrl, generateGoogleMapsVerifiedWhatsAppMessage } from '../utils/whatsappMessages';
 import { fetchBusinessPhotosOnDemand } from '../services/db';
+import { triggerHaptic } from '../utils/haptics';
 
 interface GoogleMapsSyncModalProps {
   business: Business;
@@ -49,6 +50,21 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const [currentStatus, setCurrentStatus] = useState<VerificationStatus>(business.verificationStatus || 'pending');
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const [modalPhotos, setModalPhotos] = useState<string[]>(business.photos || []);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY === null) return;
+    const diff = e.changedTouches[0].clientY - touchStartY;
+    if (diff > 75) {
+      triggerHaptic('light');
+      onClose();
+    }
+    setTouchStartY(null);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -136,13 +152,12 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     setTimeout(() => setStatusFeedback(null), 3500);
   };
 
-  const remainingBalance = Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0));
-  const isFullyPaid = business.paymentStatus === 'fully_paid' || remainingBalance === 0;
-  const verifiedMapUrlDisplay = finalMapUrl.trim() || business.googleMapsUrl || 'لم يوثق بعد (بانتظار الاعتماد)';
-  const directoryUrl = 'https://www.dalilaak.com/';
+  const verifiedMapUrlDisplay = business.googleMapsUrl || 'لم يتم إدراج رابط التوثيق بعد';
   const targetAddress = verifiedAddress.trim() || business.street || (business.city ? `${business.city} (${business.governorate})` : business.governorate);
 
   const allDetailsText = 
+    `ملخص بيانات النشاط للتوثيق على خرائط Google:\n` +
+    `-----------------------------------------\n` +
     `اسم النشاط: ${business.nameAr}\n` +
     `التصنيف: ${business.category}\n` +
     `العنوان: ${targetAddress}\n` +
@@ -152,9 +167,10 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     `📍 رابط موقع المعاينة الميدانية (المندوب - غير موثق): ${repFieldMapUrl}\n` +
     `✅ رابط خرائط Google الموثق (الإدارة): ${verifiedMapUrlDisplay}`;
 
+  const remainingBalance = Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0));
+  const isFullyPaid = business.paymentStatus === 'fully_paid' || remainingBalance === 0;
   const cleanOwnerPhone = (business.ownerPhone || business.phone || '').replace(/\D/g, '').replace(/^0/, '');
   const targetWaPhone = cleanOwnerPhone.startsWith('20') ? cleanOwnerPhone : `20${cleanOwnerPhone}`;
-
   const verificationWhatsAppMessage = encodeURIComponent(generateGoogleMapsVerifiedWhatsAppMessage(business));
   const verificationWhatsAppUrl = getGoogleMapsVerifiedWhatsAppUrl(business);
 
@@ -162,6 +178,16 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
       <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] transition-all duration-300 max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         
+        {/* Mobile Pull-Down Handle Bar */}
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="w-full sm:hidden flex justify-center pt-0 pb-1 cursor-grab active:cursor-grabbing select-none"
+          title="اسحب لأسفل للإغلاق"
+        >
+          <div className="w-12 h-1.5 bg-slate-400/40 rounded-full" />
+        </div>
+
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -604,6 +630,20 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Mobile One-Hand Close Button */}
+        <div className="pt-2 sm:hidden no-print">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              onClose();
+            }}
+            className="w-full py-2.5 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] font-bold text-xs border border-[var(--border-color)] transition-colors cursor-pointer text-center"
+          >
+            إغلاق المساعد
+          </button>
+        </div>
 
         {/* ── PHOTO PREVIEW MODAL ───────────────────────────────────────────── */}
         {previewPhoto && (

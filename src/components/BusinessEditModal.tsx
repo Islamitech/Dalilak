@@ -52,6 +52,7 @@ import {
 
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
+import { triggerHaptic } from '../utils/haptics';
 import {
   CATEGORY_MOTIVATIONAL_DATA,
   getMotivationalGroupByBusiness,
@@ -604,12 +605,36 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const cleanPhone = primaryPhone.replace(/\D/g, '');
   const mapsUrl = hasVerifiedGoogleMap && formData.googleMapsUrl ? formData.googleMapsUrl.trim() : '';
 
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY === null) return;
+    const touchEndY = e.changedTouches[0].clientY;
+    const diff = touchEndY - touchStartY;
+    if (diff > 75) {
+      triggerHaptic('light');
+      onClose();
+    }
+    setTouchStartY(null);
+  };
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
       <div className="bg-[var(--bg-card)] border-t sm:border border-[var(--border-color)] rounded-t-[28px] sm:rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh] sm:max-h-[90vh] transition-all">
         
         {/* ── 0. MOBILE DRAG HANDLE ───────────────────────────────────── */}
-        <div className="w-10 h-1 bg-slate-700/60 rounded-full mx-auto mt-2 sm:hidden shrink-0" />
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="w-full sm:hidden flex justify-center pt-2 pb-1.5 cursor-grab active:cursor-grabbing select-none"
+          title="اسحب لأسفل للإغلاق"
+        >
+          <div className="w-12 h-1.5 bg-slate-500/60 rounded-full" />
+        </div>
 
         {/* ── 1. COMPACT & HIGH-CONTRAST HEADER ───────────────────────── */}
         <div className="p-3 sm:p-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-start justify-between gap-2 border-b border-slate-800 shrink-0">

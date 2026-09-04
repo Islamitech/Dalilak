@@ -34,6 +34,7 @@ import {
   Target,
   Sparkles,
 } from 'lucide-react';
+import { triggerHaptic } from '../utils/haptics';
 
 declare global {
   interface Window {
@@ -120,6 +121,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
   const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
+  
+  // Mobile Touch Scroll Lock: on touch devices, dragging is disabled by default so single-finger touch scrolls the page
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const [isTouchDraggingEnabled, setIsTouchDraggingEnabled] = useState<boolean>(!isTouchDevice);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<any>(null);
@@ -238,6 +243,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       markersGroupRef.current = window.L.layerGroup().addTo(map);
       leafletMapRef.current = map;
 
+      // On mobile touch devices, disable dragging initially so page scroll isn't trapped
+      if (isTouchDevice && !isExpanded && !isTouchDraggingEnabled) {
+        try {
+          map.dragging.disable();
+        } catch {}
+      }
+
       // Update zoom state on user zoom
       map.on('zoomend', () => {
         if (!isSubscribed) return;
@@ -276,6 +288,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       }
     };
   }, [mode]);
+
+  // Dynamically sync touch dragging with state
+  useEffect(() => {
+    if (!leafletMapRef.current) return;
+    try {
+      if (isExpanded || isTouchDraggingEnabled) {
+        leafletMapRef.current.dragging.enable();
+      } else if (isTouchDevice) {
+        leafletMapRef.current.dragging.disable();
+      }
+    } catch {}
+  }, [isExpanded, isTouchDraggingEnabled, isTouchDevice]);
 
   // Update Markers dynamically when business list, mode, or position changes
   useEffect(() => {
@@ -751,6 +775,27 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             ref={containerRef}
             className={`w-full ${mapHeight} z-10 cursor-crosshair`}
           />
+
+          {/* 🖐️ Mobile Touch Drag Toggle Pill (Prevents page scroll trap on touch devices) */}
+          {isTouchDevice && !isExpanded && (
+            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isTouchDraggingEnabled;
+                  setIsTouchDraggingEnabled(next);
+                  triggerHaptic('selection');
+                }}
+                className={`px-3 py-1.5 rounded-full text-[10.5px] font-black shadow-lg border backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isTouchDraggingEnabled
+                    ? 'bg-amber-500 text-slate-950 border-amber-400'
+                    : 'bg-slate-900/85 text-amber-400 border-amber-500/40 hover:bg-slate-900'
+                }`}
+              >
+                <span>{isTouchDraggingEnabled ? '🔒 قفل الخريطة (لتمرير الصفحة)' : '🖐️ تفعيل تحريك الخريطة باللمس'}</span>
+              </button>
+            </div>
+          )}
 
           {/* 🎯 Precision Center Reticle Crosshair (Overlay in center of screen) */}
           {centerReticleActive && mode === 'picker' && (

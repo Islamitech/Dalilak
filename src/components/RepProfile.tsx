@@ -47,8 +47,11 @@ import {
   History as HistoryIcon,
   Calendar,
   TrendingUp,
-  X
+  X,
+  Phone,
+  MessageCircle,
 } from 'lucide-react';
+import { triggerHaptic } from '../utils/haptics';
 
 interface RepProfileProps {
   user: User;
@@ -637,68 +640,100 @@ export const RepProfile: React.FC<RepProfileProps> = ({
               </div>
             </div>
 
-            {/* Activities Table */}
-            {repBusinesses.length === 0 ? (
-              <div className="p-8 text-center bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
-                لم تقم بتسجيل أي أنشطة بعد. اضغط على زر "تسجيل نشاط جديد" للبدء!
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
-                <table className="w-full text-xs text-right border-collapse min-w-[650px]">
-                  <thead>
-                    <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold text-[11px]">
-                      <th className="p-3">اسم النشاط والتصنيف</th>
-                      <th className="p-3">تاريخ الإضافة</th>
-                      <th className="p-3">الباقة والمبلغ</th>
-                      <th className="p-3">طريقة السداد</th>
-                      <th className="p-3">عمولتك المستحقة</th>
-                      <th className="p-3">حالة التوثيق</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border-color)]">
-                    {repBusinesses
-                      .filter((biz) => {
-                        const matchesSearch = !bizSearch.trim() || biz.nameAr?.toLowerCase().includes(bizSearch.toLowerCase()) || biz.city?.toLowerCase().includes(bizSearch.toLowerCase());
-                        if (!matchesSearch) return false;
-                        const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-                        const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
-                        const isCash = !isExempt && (biz.cashCollectedByRep !== undefined ? (biz.cashCollectedByRep || 0) > 0 : biz.paymentMethod === 'cash_by_rep');
-                        if (bizFilter === 'verified') return isVerified;
-                        if (bizFilter === 'pending') return !isVerified;
-                        if (bizFilter === 'cash') return isCash;
-                        if (bizFilter === 'exempt') return isExempt;
-                        return true;
-                      })
-                      .map((biz) => {
-                        const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-                        const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
-                        const isCash = !isExempt && (biz.cashCollectedByRep !== undefined ? (biz.cashCollectedByRep || 0) > 0 : biz.paymentMethod === 'cash_by_rep');
-                        const paid = isExempt ? 0 : Number(biz.amountPaid) || 0;
-                        const commEarned = isExempt ? 0 : Math.round((paid * commissionPercentage) / 100);
+            {/* Activities Table & Mobile Cards */}
+            {(() => {
+              const filteredBusinesses = repBusinesses.filter((biz) => {
+                const matchesSearch = !bizSearch.trim() || biz.nameAr?.toLowerCase().includes(bizSearch.toLowerCase()) || biz.city?.toLowerCase().includes(bizSearch.toLowerCase());
+                if (!matchesSearch) return false;
+                const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                const isCash = !isExempt && (biz.cashCollectedByRep !== undefined ? (biz.cashCollectedByRep || 0) > 0 : biz.paymentMethod === 'cash_by_rep');
+                if (bizFilter === 'verified') return isVerified;
+                if (bizFilter === 'pending') return !isVerified;
+                if (bizFilter === 'cash') return isCash;
+                if (bizFilter === 'exempt') return isExempt;
+                return true;
+              });
 
-                        return (
-                          <tr key={biz.id} className="hover:bg-amber-500/5 transition-colors">
-                            <td className="p-3">
+              if (repBusinesses.length === 0) {
+                return (
+                  <div className="p-8 text-center bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
+                    لم تقم بتسجيل أي أنشطة بعد. اضغط على زر "تسجيل نشاط جديد" للبدء!
+                  </div>
+                );
+              }
+
+              if (filteredBusinesses.length === 0) {
+                return (
+                  <div className="p-8 text-center bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
+                    لا توجد أنشطة تطابق معايير البحث أو التصفية الحالية.
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {/* Mobile View: High-efficiency touch cards (< md) */}
+                  <div className="md:hidden space-y-3">
+                    {filteredBusinesses.map((biz) => {
+                      const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                      const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                      const isCash = !isExempt && (biz.cashCollectedByRep !== undefined ? (biz.cashCollectedByRep || 0) > 0 : biz.paymentMethod === 'cash_by_rep');
+                      const paid = isExempt ? 0 : Number(biz.amountPaid) || 0;
+                      const commEarned = isExempt ? 0 : Math.round((paid * commissionPercentage) / 100);
+                      const phoneToCall = biz.phone || biz.ownerPhone;
+                      const cleanPhone = phoneToCall ? phoneToCall.replace(/[^0-9]/g, '') : '';
+                      const mapUrl = biz.googleMapsUrl || (biz.lat && biz.lng ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}` : null);
+
+                      return (
+                        <div key={biz.id} className="p-3.5 rounded-2xl border border-[var(--border-color)] bg-[var(--input-bg)] shadow-sm space-y-3">
+                          {/* Header: Name & Verification Status */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
                               <p className="font-extrabold text-sm text-[var(--text-primary)]">{biz.nameAr}</p>
-                              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">{biz.category} • {biz.city}</p>
-                            </td>
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">
+                                {biz.category} • {biz.city}
+                              </p>
+                            </div>
+                            {isVerified ? (
+                              <span className="badge-success text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>موثق ✅</span>
+                              </span>
+                            ) : (
+                              <span className="badge-warning text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 inline-flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>قيد التوثيق ⏳</span>
+                              </span>
+                            )}
+                          </div>
 
-                            <td className="p-3 text-[11px] font-mono text-[var(--text-muted)]">
-                              {biz.createdDate ? new Date(biz.createdDate).toLocaleDateString('ar-EG') : '—'}
-                            </td>
+                          {/* Stats Grid: Package, Paid, Commission */}
+                          <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-[var(--card-bg)] border border-[var(--border-color)] text-center text-xs">
+                            <div>
+                              <span className="text-[10px] text-[var(--text-muted)] block font-semibold">الباقة</span>
+                              <span className="font-extrabold text-[var(--text-primary)] text-xs">
+                                {isExempt ? 'معفى' : `${biz.packagePrice || 250} ج`}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[var(--text-muted)] block font-semibold">المدفوع</span>
+                              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">
+                                {isExempt ? '0 ج' : `${paid} ج`}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[var(--text-muted)] block font-semibold">عمولتك</span>
+                              <span className="font-black text-amber-600 dark:text-amber-400 text-xs">
+                                {isExempt ? '0 ج' : `${commEarned} ج`}
+                              </span>
+                            </div>
+                          </div>
 
-                            <td className="p-3 font-bold">
-                              {isExempt ? (
-                                <span className="text-teal-600 dark:text-teal-400 font-black">إدراج مجاني (0 ج)</span>
-                              ) : (
-                                <div>
-                                  <span className="text-[var(--text-primary)]">{biz.packagePrice || 250} ج.م</span>
-                                  <p className="text-[10px] text-emerald-600 font-black">مسدد: {paid} ج.م</p>
-                                </div>
-                              )}
-                            </td>
-
-                            <td className="p-3">
+                          {/* Payment Method Badge & Date */}
+                          <div className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[var(--text-muted)] font-bold">الدفع:</span>
                               {isExempt ? (
                                 <span className="text-[10px] font-bold text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded-md">معفى</span>
                               ) : isCash ? (
@@ -710,34 +745,141 @@ export const RepProfile: React.FC<RepProfileProps> = ({
                                   💳 تحويل للمنصة
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-md">لم يدفع بعد</span>
+                                <span className="text-[10px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-md">لم يدفع</span>
                               )}
-                            </td>
+                            </div>
+                            <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                              {biz.createdDate ? new Date(biz.createdDate).toLocaleDateString('ar-EG') : '—'}
+                            </span>
+                          </div>
 
-                            <td className="p-3 font-black text-emerald-600 dark:text-emerald-400 font-mono text-sm">
-                              {isExempt ? '0 ج.م' : `${commEarned} ج.م`}
-                            </td>
+                          {/* Mobile 1-Tap Quick Action Row */}
+                          <div className="flex items-center gap-2 pt-1 border-t border-[var(--border-color)]">
+                            {phoneToCall && (
+                              <a
+                                href={`tel:${phoneToCall}`}
+                                onClick={() => triggerHaptic('light')}
+                                className="flex-1 py-2 px-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>اتصال</span>
+                              </a>
+                            )}
+                            {cleanPhone && (
+                              <a
+                                href={`https://wa.me/2${cleanPhone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => triggerHaptic('light')}
+                                className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>واتساب</span>
+                              </a>
+                            )}
+                            {mapUrl && (
+                              <a
+                                href={mapUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => triggerHaptic('light')}
+                                className="flex-1 py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                              >
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span>الخريطة</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                            <td className="p-3">
-                              {isVerified ? (
-                                <span className="badge-success text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  <span>موثق رسمياً ✅</span>
-                                </span>
-                              ) : (
-                                <span className="badge-warning text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  <span>قيد التوثيق ⏳</span>
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  {/* Desktop View: Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto rounded-2xl border border-[var(--border-color)]">
+                    <table className="w-full text-xs text-right border-collapse min-w-[650px]">
+                      <thead>
+                        <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold text-[11px]">
+                          <th className="p-3">اسم النشاط والتصنيف</th>
+                          <th className="p-3">تاريخ الإضافة</th>
+                          <th className="p-3">الباقة والمبلغ</th>
+                          <th className="p-3">طريقة السداد</th>
+                          <th className="p-3">عمولتك المستحقة</th>
+                          <th className="p-3">حالة التوثيق</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-color)]">
+                        {filteredBusinesses.map((biz) => {
+                          const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+                          const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
+                          const isCash = !isExempt && (biz.cashCollectedByRep !== undefined ? (biz.cashCollectedByRep || 0) > 0 : biz.paymentMethod === 'cash_by_rep');
+                          const paid = isExempt ? 0 : Number(biz.amountPaid) || 0;
+                          const commEarned = isExempt ? 0 : Math.round((paid * commissionPercentage) / 100);
+
+                          return (
+                            <tr key={biz.id} className="hover:bg-amber-500/5 transition-colors">
+                              <td className="p-3">
+                                <p className="font-extrabold text-sm text-[var(--text-primary)]">{biz.nameAr}</p>
+                                <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">{biz.category} • {biz.city}</p>
+                              </td>
+
+                              <td className="p-3 text-[11px] font-mono text-[var(--text-muted)]">
+                                {biz.createdDate ? new Date(biz.createdDate).toLocaleDateString('ar-EG') : '—'}
+                              </td>
+
+                              <td className="p-3 font-bold">
+                                {isExempt ? (
+                                  <span className="text-teal-600 dark:text-teal-400 font-black">إدراج مجاني (0 ج)</span>
+                                ) : (
+                                  <div>
+                                    <span className="text-[var(--text-primary)]">{biz.packagePrice || 250} ج.م</span>
+                                    <p className="text-[10px] text-emerald-600 font-black">مسدد: {paid} ج.م</p>
+                                  </div>
+                                )}
+                              </td>
+
+                              <td className="p-3">
+                                {isExempt ? (
+                                  <span className="text-[10px] font-bold text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded-md">معفى</span>
+                                ) : isCash ? (
+                                  <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
+                                    💵 كاش بيدك ({paid} ج)
+                                  </span>
+                                ) : paid > 0 ? (
+                                  <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
+                                    💳 تحويل للمنصة
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-md">لم يدفع بعد</span>
+                                )}
+                              </td>
+
+                              <td className="p-3 font-black text-emerald-600 dark:text-emerald-400 font-mono text-sm">
+                                {isExempt ? '0 ج.م' : `${commEarned} ج.م`}
+                              </td>
+
+                              <td className="p-3">
+                                {isVerified ? (
+                                  <span className="badge-success text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>موثق رسمياً ✅</span>
+                                  </span>
+                                ) : (
+                                  <span className="badge-warning text-[10px] font-black px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    <span>قيد التوثيق ⏳</span>
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
