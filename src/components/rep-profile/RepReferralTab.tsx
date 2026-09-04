@@ -41,7 +41,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
               referralSummary.isUnlocked ? 'badge-success' : 'badge-warning'
             }`}
           >
-            {referralSummary.isUnlocked ? '✨ كود الإحالة مفعل' : '🔒 قيد الفتح (المهمة 2)'}
+            {referralSummary.isUnlocked ? '✨ كود الإحالة مفعل' : '🔒 مغلق حتى إتمام 25 نشاطاً'}
           </span>
         </div>
 
@@ -161,12 +161,26 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
             )}
           </div>
         ) : (
-          <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] text-xs text-[var(--text-secondary)] font-medium flex items-center gap-3">
-            <Lock className="w-5 h-5 text-amber-500 shrink-0" />
-            <p>
-              يفتح كود الإحالة الخاص بك تلقائياً بمجرد إتمام <strong>25 نشاطاً مسجلاً</strong> في
-              الميدان (أنجزت حالياً {businessesCount} نشاط)، أو يمكن لمدير النظام تفعيله وتجاوز
-              المهام مباشرة من لوحة الإدارة.
+          <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-500" />
+                <span>شرط فتح نظام الإحالة وظهور الكود:</span>
+              </span>
+              <span className="font-black font-mono text-amber-700 dark:text-amber-400">
+                {businessesCount} / 25 نشاط ({Math.min(100, Math.round((businessesCount / 25) * 100))}%)
+              </span>
+            </div>
+
+            <div className="w-full bg-[var(--input-bg)] h-2.5 rounded-full overflow-hidden border border-[var(--border-color)]">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (businessesCount / 25) * 100)}%` }}
+              />
+            </div>
+
+            <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
+              وفقاً لنظام العمل المعتمد، لا يمتلك المندوب نظام إحالة ولا يظهر كود الإحالة الخاص به إلا بعد تسجيل <strong className="text-[var(--text-primary)]">25 نشاطاً ميدانياً</strong> معتمداً في رصيده (أنجزت حالياً {businessesCount} نشاط، متبقي لك {Math.max(0, 25 - businessesCount)} نشاط)، أو بتجاوز يدوي وتفعيل مباشر من إدارة المنظومة.
             </p>
           </div>
         )}

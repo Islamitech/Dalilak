@@ -432,12 +432,24 @@ export const RepFinanceTab: React.FC<RepFinanceTabProps> = ({
                     كشف تفصيلي بعمولات ومكافآت الإحالة ({referralSummary.totalNetEarnings} ج.م):
                   </span>
                 </div>
-                <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  كودك: {referralCode}
-                </span>
+                {referralSummary.isUnlocked ? (
+                  <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                    كودك: {referralCode}
+                  </span>
+                ) : (
+                  <span className="bg-slate-500/20 text-slate-700 dark:text-slate-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                    🔒 مغلق (يتطلب 25 نشاطاً)
+                  </span>
+                )}
               </div>
 
-              {referralSummary.invitedRepsDetails.length === 0 ? (
+              {!referralSummary.isUnlocked ? (
+                <div className="text-center py-2.5 px-3 bg-[var(--bg-card)] rounded-xl border border-dashed border-[var(--border-color)]">
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                    نظام كود الإحالة مغلق للمندوب حتى تسجيل <strong>25 نشاطاً ميدانياً</strong> معتمداً (أنجزت حالياً {businessesCount} من 25 نشاطاً). عند استيفاء الشرط سيظهر كودك المعتمد وتُفعل كافة عمولات ومكافآت الفريق.
+                  </p>
+                </div>
+              ) : referralSummary.invitedRepsDetails.length === 0 ? (
                 <div className="text-center py-2 px-3 bg-[var(--bg-card)] rounded-xl border border-dashed border-[var(--border-color)]">
                   <p className="text-[11px] text-[var(--text-muted)] font-bold">
                     لم تقم بدعوة مناديب بعد. شارك كود الإحالة الخاص بك (

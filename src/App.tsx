@@ -934,9 +934,8 @@ export default function App() {
       // الآن: إذا لم تكن كلمة المرور محفوظة، نتركها undefined ولا نلمسها
       password: updatedData.password || existingRep?.password,
       referralCode: updatedData.referralCode || existingRep?.referralCode,
-      referredByCode: updatedData.referredByCode || existingRep?.referredByCode,
-      referralUnlocked: updatedData.referralUnlocked ?? existingRep?.referralUnlocked ?? true,
-      adminBypassReferral: updatedData.adminBypassReferral ?? existingRep?.adminBypassReferral ?? true,
+      referralUnlocked: updatedData.referralUnlocked ?? existingRep?.referralUnlocked ?? false,
+      adminBypassReferral: updatedData.adminBypassReferral ?? existingRep?.adminBypassReferral ?? false,
     };
 
     const updatedUser: User = {
@@ -1297,8 +1296,8 @@ export default function App() {
     status: user?.repData?.status || liveRep?.status || 'active',
     referralCode: user?.repData?.referralCode || liveRep?.referralCode || undefined,
     referredByCode: user?.repData?.referredByCode || liveRep?.referredByCode || undefined,
-    referralUnlocked: user?.repData?.referralUnlocked ?? liveRep?.referralUnlocked ?? true,
-    adminBypassReferral: user?.repData?.adminBypassReferral ?? liveRep?.adminBypassReferral ?? true,
+    referralUnlocked: user?.repData?.referralUnlocked ?? liveRep?.referralUnlocked ?? false,
+    adminBypassReferral: user?.repData?.adminBypassReferral ?? liveRep?.adminBypassReferral ?? false,
   };
 
   const isRepUser = user?.role === 'rep';

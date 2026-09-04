@@ -477,8 +477,8 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
         )}
       </div>
 
-      {/* Referral System Box (ONLY SHOWN IF UNLOCKED) */}
-      {referralSummary.isUnlocked && (
+      {/* Referral System Box */}
+      {referralSummary.isUnlocked ? (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
             <div className="flex items-center gap-2.5">
@@ -630,6 +630,49 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3 shadow-md transition-colors duration-300">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-slate-500/15 text-slate-600 dark:text-slate-400 flex items-center justify-center font-bold">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm text-[var(--text-primary)]">
+                  برنامج الإحالة وبناء فريق المبيعات
+                </h3>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                  دعوة المناديب والحصول على مكافآت وعمولات إضافية (3% - 7%)
+                </p>
+              </div>
+            </div>
+
+            <span className="text-[11px] font-black px-3 py-1 rounded-full badge-warning flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              <span>مغلق حتى إتمام 25 نشاطاً</span>
+            </span>
+          </div>
+
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-[var(--text-primary)]">شرط فتح نظام الإحالة وظهور الكود:</span>
+              <span className="font-black font-mono text-amber-700 dark:text-amber-400">
+                {myBusinesses.length} / 25 نشاط ({Math.min(100, Math.round((myBusinesses.length / 25) * 100))}%)
+              </span>
+            </div>
+
+            <div className="w-full bg-[var(--input-bg)] h-2.5 rounded-full overflow-hidden border border-[var(--border-color)]">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (myBusinesses.length / 25) * 100)}%` }}
+              />
+            </div>
+
+            <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
+              وفقاً لنظام العمل المعتمد، لا يمتلك المندوب نظام إحالة ولا يظهر كود الإحالة الخاص به إلا بعد تسجيل <strong className="text-[var(--text-primary)]">25 نشاطاً ميدانياً</strong> معتمداً في رصيده. متبقي لك <strong className="text-amber-600 dark:text-amber-400">{Math.max(0, 25 - myBusinesses.length)}</strong> نشاط لفتح النظام وظهور كودك المعتمد تلقائياً.
+            </p>
           </div>
         </div>
       )}

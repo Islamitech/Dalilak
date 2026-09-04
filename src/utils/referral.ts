@@ -28,17 +28,17 @@ export function getRepReferralCode(rep: Representative): string {
 
 /**
  * Checks if a representative's referral code is officially unlocked.
- * Active for all representatives across the platform by default,
- * unless explicitly locked by administration.
+ * Strictly requires registering at least 25 businesses in the field (mandatory milestone),
+ * or explicit administrator bypass.
  */
-export function isReferralSystemUnlocked(rep: Representative, _myBusinessesCount: number = 0): boolean {
+export function isReferralSystemUnlocked(rep: Representative, myBusinessesCount: number = 0): boolean {
   if (!rep) return false;
   if (rep.role === 'admin' || rep.role === 'supervisor') return true;
-  // If explicitly locked by admin:
-  if (rep.adminBypassReferral === false && rep.referralUnlocked === false) {
-    return false;
+  // If explicitly unlocked or bypassed by admin:
+  if (rep.adminBypassReferral === true || String(rep.adminBypassReferral) === 'true') {
+    return true;
   }
-  return true;
+  return (Number(myBusinessesCount) || 0) >= 25;
 }
 
 export interface RepReferralSummary {
@@ -122,10 +122,18 @@ export function getRepReferralSummary(
   allReps: Representative[],
   allBusinesses: Business[]
 ): RepReferralSummary {
-  const referralCode = getRepReferralCode(inviterRep);
-  const myBizCount = allBusinesses.filter(
-    (b) => b.repId === inviterRep.id || (inviterRep.name && b.repName === inviterRep.name) || (inviterRep.phone && b.repId === inviterRep.phone)
-  ).length;
+  const invId = (inviterRep.id || '').toLowerCase().trim();
+  const invName = (inviterRep.name || '').toLowerCase().trim();
+  const invPhone = (inviterRep.phone || '').replace(/\D/g, '');
+
+  const myBizCount = allBusinesses.filter((b) => {
+    const bRepId = (b.repId || '').toLowerCase().trim();
+    const bRepName = (b.repName || '').toLowerCase().trim();
+    const bRepPhone = (b.repPhone || '').replace(/\D/g, '');
+    return (invId && bRepId === invId) ||
+           (invName && bRepName === invName) ||
+           (invPhone && (bRepId === invPhone || bRepPhone === invPhone));
+  }).length;
   const isUnlocked = isReferralSystemUnlocked(inviterRep, myBizCount);
 
   // Find all reps who registered with this referral code using robust matching
@@ -173,15 +181,16 @@ export function getRepReferralSummary(
     };
   });
 
-  const totalGiftsEarned = qualifiedRepsCount * INVITATION_GIFT_BONUS;
-  const totalNetEarnings = totalReferralCommission + totalGiftsEarned;
+  const totalGiftsEarned = isUnlocked ? qualifiedRepsCount * INVITATION_GIFT_BONUS : 0;
+  const netCommission = isUnlocked ? totalReferralCommission : 0;
+  const totalNetEarnings = isUnlocked ? (netCommission + totalGiftsEarned) : 0;
 
   return {
     referralCode,
     isUnlocked,
     totalInvitedCount: invitedReps.length,
     qualifiedRepsCount,
-    totalReferralCommission,
+    totalReferralCommission: netCommission,
     totalGiftsEarned,
     totalNetEarnings,
     inviterInfo,

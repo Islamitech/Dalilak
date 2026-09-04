@@ -467,8 +467,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       password: await hashPassword(regPassword),
       referralCode: ownCode,
       referredByCode: resolvedReferredByCode,
-      referralUnlocked: true,
-      adminBypassReferral: true,
+      referralUnlocked: false,
+      adminBypassReferral: false,
     };
 
     // Save directly to Supabase Database immediately so Admin sees it across all sessions
