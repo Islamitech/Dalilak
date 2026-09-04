@@ -63,6 +63,7 @@ import {
   safeGetSessionItem, 
   safeRemoveSessionItem, 
   getSafeUserForStorage,
+  getSafeRepsForStorage,
   safeParseJson
 } from './utils/storage';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -1296,8 +1297,8 @@ export default function App() {
       const filtered = prev.filter((r) => r.id !== newRep.id && r.email.toLowerCase() !== newRep.email.toLowerCase());
       const updated = [newRep, ...filtered];
       try {
-        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
-        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(updated));
+        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(getSafeRepsForStorage(updated)));
+        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(updated)));
       } catch {}
       return updated;
     });

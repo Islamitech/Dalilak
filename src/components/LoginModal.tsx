@@ -127,7 +127,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 800, 800, 0.75, { applyWatermark: false });
+        const compressed = await compressImageFile(file, 600, 600, 0.70, { applyWatermark: false });
         setRegAvatar(compressed);
       } catch (err) {
         console.warn('Face photo compression error:', err);
@@ -139,7 +139,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 1000, 1000, 0.75, { applyWatermark: false });
+        const compressed = await compressImageFile(file, 800, 600, 0.70, { applyWatermark: false });
         setRegNationalIdCardPhoto(compressed);
       } catch (err) {
         console.warn('National ID Front compression error:', err);
@@ -151,7 +151,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImageFile(file, 1000, 1000, 0.75, { applyWatermark: false });
+        const compressed = await compressImageFile(file, 800, 600, 0.70, { applyWatermark: false });
         setRegNationalIdCardBackPhoto(compressed);
       } catch (err) {
         console.warn('National ID Back compression error:', err);
@@ -221,27 +221,48 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       // Step 2: Supabase Cloud Authentication (Authoritative fallback for Vercel / serverless deployments)
       let foundRep: Representative | null = null;
       if (isSupabaseConfigured()) {
-        try {
-          const { data, error } = await supabase
-            .from('representatives')
-            .select('*')
-            .or(`email.ilike.${cleanEmail},phone.eq.${cleanEmail},id.eq.${cleanEmail}`)
-            .limit(1);
+        // A. Primary direct email lookup if contains @
+        if (cleanEmail.includes('@')) {
+          try {
+            const { data, error } = await supabase
+              .from('representatives')
+              .select('*')
+              .ilike('email', cleanEmail)
+              .limit(1);
 
-          if (!error && data && data.length > 0) {
-            foundRep = mapDbToRep(data[0]);
+            if (!error && data && data.length > 0) {
+              foundRep = mapDbToRep(data[0]);
+            }
+          } catch (sdkErr) {
+            console.warn('Supabase direct email lookup warning:', sdkErr);
           }
-        } catch (sdkErr) {
-          console.warn('Supabase SDK lookup failed:', sdkErr);
         }
 
+        // B. Combined lookup by email, phone, or ID
+        if (!foundRep) {
+          try {
+            const { data, error } = await supabase
+              .from('representatives')
+              .select('*')
+              .or(`email.ilike.${cleanEmail},phone.eq.${cleanEmail},id.eq.${cleanEmail}`)
+              .limit(1);
+
+            if (!error && data && data.length > 0) {
+              foundRep = mapDbToRep(data[0]);
+            }
+          } catch (sdkErr) {
+            console.warn('Supabase SDK lookup failed:', sdkErr);
+          }
+        }
+
+        // C. Direct REST API lookup fallback
         if (!foundRep) {
           try {
             const restRes = await supabaseRestFetch(
               `representatives?select=*&or=(email.ilike.${encodeURIComponent(cleanEmail)},phone.eq.${encodeURIComponent(cleanEmail)},id.eq.${encodeURIComponent(cleanEmail)})&limit=1`
             );
             if (restRes.ok) {
-              const restData = await restRes.json();
+              const restData = await restRes.json().catch(() => null);
               if (Array.isArray(restData) && restData.length > 0) {
                 foundRep = mapDbToRep(restData[0]);
               }
@@ -446,15 +467,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     setIsLoading(true);
 
-    // 2. Supabase DB Async Query check
+    // 2. Supabase DB Async Query check (Duplicate email or phone)
     try {
       const { data: dbCheck } = await supabase
         .from('representatives')
-        .select('email')
-        .eq('email', cleanRegEmail);
+        .select('id, email, phone')
+        .or(`email.ilike.${cleanRegEmail},phone.eq.${regPhone}`)
+        .limit(1);
 
       if (dbCheck && dbCheck.length > 0) {
-        setErrorMsg(`⚠️ البريد الإلكتروني (${cleanRegEmail}) مسجل مسبقاً في قاعدة البيانات. يمكنك التوجه لتبويب "تسجيل الدخول" أو استخدام بريد إلكتروني آخر.`);
+        const found = dbCheck[0];
+        if (found.email && found.email.toLowerCase() === cleanRegEmail) {
+          setErrorMsg(`⚠️ البريد الإلكتروني (${cleanRegEmail}) مسجل مسبقاً في قاعدة البيانات. يمكنك التوجه لتبويب "تسجيل الدخول" أو استخدام بريد إلكتروني آخر.`);
+        } else {
+          setErrorMsg(`⚠️ رقم الهاتف (${regPhone}) مسجل مسبقاً في قاعدة البيانات لحساب آخر.`);
+        }
         setIsLoading(false);
         return;
       }
@@ -556,10 +583,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     };
 
     // Save directly to Supabase Database immediately so Admin sees it across all sessions
-    await saveRepToDb(newRepData);
+    const saveResult = await saveRepToDb(newRepData);
+
+    if (!saveResult.success) {
+      setIsLoading(false);
+      setErrorMsg(saveResult.error || '⚠️ حدث خطأ أثناء حفظ طلب التسجيل في السيرفر السحابي. يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.');
+      return;
+    }
+
+    const finalRep = saveResult.rep || newRepData;
 
     if (onAddRepresentative) {
-      onAddRepresentative(newRepData);
+      onAddRepresentative(finalRep);
     }
 
     try {
@@ -567,10 +602,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         const channel = new BroadcastChannel('dalelak_app_channel');
         channel.postMessage({
           type: 'NEW_REP_REGISTERED',
-          name: newRepData.name,
-          id: newRepData.id,
-          governorate: newRepData.governorate,
-          referredByCode: newRepData.referredByCode,
+          name: finalRep.name,
+          id: finalRep.id,
+          governorate: finalRep.governorate,
+          referredByCode: finalRep.referredByCode,
         });
         channel.close();
       }
@@ -585,7 +620,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setTimeout(() => {
       setRegSuccessNotice(false);
       setActiveTab('login');
-    }, 5000);
+    }, 4000);
   };
 
   // Helper render function for compact, streamlined upload items

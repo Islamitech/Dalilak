@@ -163,46 +163,110 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
   return active;
 }
 
-export async function saveRepToDb(rep: Representative): Promise<void> {
+export async function saveRepToDb(rep: Representative): Promise<{ success: boolean; error?: string; rep?: Representative }> {
   const dbRecord = mapRepToDb(rep);
+  let savedRep: Representative = rep;
+  let cloudSuccess = false;
+  let cloudErrorMsg: string | undefined = undefined;
 
-  // 1. Direct Supabase Cloud Save / Upsert
+  // 1. Direct Supabase Cloud Save
   if (isSupabaseConfigured()) {
+    // Attempt 1: Official Supabase SDK insert (Direct PLAIN INSERT - optimal for RLS)
     try {
-      const res = await supabaseRestFetch('representatives', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-        body: JSON.stringify(dbRecord),
-      });
+      const { data, error } = await supabase
+        .from('representatives')
+        .insert(dbRecord)
+        .select(SAFE_REP_SELECT);
 
-      if (!res.ok) {
-        // Fallback: direct plain INSERT
+      if (!error && Array.isArray(data) && data.length > 0) {
+        cloudSuccess = true;
+        savedRep = mapDbToRep(data[0]);
+      } else if (error) {
+        console.warn('Supabase SDK insert notice:', error);
+        if (error.code === '23505') {
+          return {
+            success: false,
+            error: '⚠️ البريد الإلكتروني أو البيانات الأساسية مسجلة مسبقاً في قاعدة البيانات السحابية.',
+          };
+        }
+        cloudErrorMsg = error.message;
+      }
+    } catch (sdkErr: any) {
+      console.warn('Supabase SDK insert exception:', sdkErr);
+      cloudErrorMsg = sdkErr?.message;
+    }
+
+    // Attempt 2: If insert failed (e.g. rep already exists), try SDK upsert
+    if (!cloudSuccess) {
+      try {
+        const { data, error } = await supabase
+          .from('representatives')
+          .upsert(dbRecord, { onConflict: 'id' })
+          .select(SAFE_REP_SELECT);
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          cloudSuccess = true;
+          savedRep = mapDbToRep(data[0]);
+        }
+      } catch (upsertErr) {
+        console.warn('Supabase SDK upsert exception:', upsertErr);
+      }
+    }
+
+    // Attempt 3: Direct PostgREST REST API fallback (Plain POST without merge-duplicates)
+    if (!cloudSuccess) {
+      try {
         const insertRes = await supabaseRestFetch('representatives', {
           method: 'POST',
           headers: { 'Prefer': 'return=representation' },
           body: JSON.stringify(dbRecord),
         });
 
-        if (!insertRes.ok) {
-          // Fallback: PATCH by ID
-          await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
-            method: 'PATCH',
-            body: JSON.stringify(dbRecord),
-          });
+        if (insertRes.ok) {
+          const restData = await insertRes.json().catch(() => null);
+          if (Array.isArray(restData) && restData.length > 0) {
+            cloudSuccess = true;
+            savedRep = mapDbToRep(restData[0]);
+          } else {
+            cloudSuccess = true;
+          }
+        } else {
+          const errBody = await insertRes.json().catch(() => null);
+          console.warn('Supabase REST insert error body:', errBody);
+          if (errBody?.code === '23505') {
+            return {
+              success: false,
+              error: '⚠️ البريد الإلكتروني مسجل مسبقاً في قاعدة البيانات.',
+            };
+          }
         }
+      } catch (restErr: any) {
+        console.warn('Supabase REST save fallback exception:', restErr);
       }
-    } catch (err) {
-      console.warn('Supabase save rep REST warning:', err);
+    }
+
+    // Attempt 4: Last-ditch REST PATCH if record ID already existed
+    if (!cloudSuccess) {
+      try {
+        const patchRes = await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(dbRecord),
+        });
+        if (patchRes.ok) {
+          cloudSuccess = true;
+        }
+      } catch {}
     }
   }
 
-  // 2. Update in LocalStorage cache (syncing both cached and custom reps keys)
+  // 2. Update in LocalStorage cache (syncing both cached and custom reps keys safely)
   try {
     const updateCache = (key: string) => {
       const cached = safeParseJson<Representative[]>(localStorage.getItem(key), []);
       const map = new Map<string, Representative>();
-      map.set(rep.id, rep);
-      if (rep.email) map.set(rep.email.toLowerCase(), rep);
+      map.set(savedRep.id, savedRep);
+      if (savedRep.email) map.set(savedRep.email.toLowerCase(), savedRep);
       if (Array.isArray(cached)) {
         cached.forEach((r: Representative) => {
           const emailKey = (r.email || '').toLowerCase();
@@ -223,9 +287,18 @@ export async function saveRepToDb(rep: Representative): Promise<void> {
     await fetch('/api/representatives', {
       method: 'POST',
       headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(rep),
+      body: JSON.stringify(savedRep),
     });
   } catch {}
+
+  if (isSupabaseConfigured() && !cloudSuccess) {
+    return {
+      success: false,
+      error: cloudErrorMsg || 'عذراً، تعذر حفظ بيانات الحساب في السيرفر السحابي. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.',
+    };
+  }
+
+  return { success: true, rep: savedRep };
 }
 
 export async function updateRepInDb(id: string, updates: Partial<Representative>): Promise<void> {
