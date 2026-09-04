@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, SystemNotification } from '../types';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationCenter } from './NotificationCenter';
-import { LogIn, LogOut, Info, FileText, ShieldCheck, Sparkles, Globe, Home, Map, PlusCircle, UserCheck, Shield } from 'lucide-react';
+import {
+  LogIn,
+  LogOut,
+  Info,
+  FileText,
+  ShieldCheck,
+  Sparkles,
+  Globe,
+  Home,
+  Map,
+  PlusCircle,
+  UserCheck,
+  Shield,
+  ChevronDown,
+} from 'lucide-react';
 
 interface NavbarProps {
   user: User | null;
@@ -44,6 +58,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPermissions,
   onOpenPackages,
 }) => {
+  const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
+  const servicesMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close services dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (servicesMenuRef.current && !servicesMenuRef.current.contains(e.target as Node)) {
+        setIsServicesMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
   const desktopTabs = [
     { id: 'home', label: 'الرئيسية', icon: Home, title: 'عرض الأنشطة المسجلة والبحث الميداني' },
     { id: 'map', label: 'الخريطة', icon: Map, title: 'استكشاف الأنشطة على الخريطة التفاعلية' },
@@ -56,84 +88,72 @@ export const Navbar: React.FC<NavbarProps> = ({
       title: isAdmin ? 'لوحة تحكم إدارة النظام' : 'الملف الشخصي وحساب العمولات',
     },
   ];
+
   return (
     <header className="sticky top-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-b border-[var(--border-color)] text-[var(--text-primary)] shadow-md transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-        {/* Left: Brand Logo & Links */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <Logo size="md" />
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+        {/* Right side (RTL start): Official Brand Logo with dedicated breathing room */}
+        <div className="flex items-center shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab ? setActiveTab('home') : window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="flex items-center focus:outline-none transition-transform hover:scale-[1.02] active:scale-95 text-right cursor-pointer"
+            title="دليلك - المنظومة الشاملة لإدارة وتوثيق الأنشطة الميدانية"
+          >
+            <Logo size="md" showSubtitle={false} className="shrink-0" />
+          </button>
+        </div>
 
-          {/* Quick Informational Links — shown on xl screens to give priority to main navigation */}
-          <div className="hidden xl:flex items-center gap-1 text-xs font-bold">
-            {user?.role !== 'rep' && (
-              <button
-                type="button"
-                onClick={() => {
-                  const repCode = user?.repData?.referralCode || (user?.role === 'rep' ? `DALIL-${user.id.replace(/\D/g, '')}` : '');
-                  const url = new URL('https://www.dalilaak.com/');
-                  if (repCode) url.searchParams.set('ref', repCode);
-                  window.open(url.toString(), '_blank');
-                }}
-                title="فتح رابط دليل الأنشطة العام للعملاء"
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-teal-700 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-colors cursor-pointer"
-              >
-                <Globe className="w-3.5 h-3.5 text-teal-500" />
-                <span>دليل الأنشطة العام 🌐</span>
-              </button>
-            )}
-
-            {user?.role !== 'rep' && onOpenPackages && (
+        {/* Informational Links for GUEST users (when not logged in) */}
+        {!user && (
+          <div className="hidden lg:flex items-center gap-1.5 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => window.open('https://www.dalilaak.com/', '_blank')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-teal-700 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-colors cursor-pointer"
+            >
+              <Globe className="w-3.5 h-3.5 text-teal-500" />
+              <span>دليل الأنشطة 🌐</span>
+            </button>
+            {onOpenPackages && (
               <button
                 type="button"
                 onClick={onOpenPackages}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                 <span>باقات دليلك 💎</span>
               </button>
             )}
-
             {onOpenAbout && (
               <button
                 type="button"
                 onClick={onOpenAbout}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
               >
                 <Info className="w-3.5 h-3.5" />
                 <span>من نحن</span>
               </button>
             )}
-
             {onOpenTerms && (
               <button
                 type="button"
                 onClick={onOpenTerms}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>شروط الاستخدام</span>
               </button>
             )}
-
-            {user?.role !== 'rep' && onOpenPermissions && (
-              <button
-                type="button"
-                onClick={onOpenPermissions}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                <span>دليل الصلاحيات</span>
-              </button>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Center: Desktop Page Navigation Tabs (Always prominent for Computers & Tablets >= md) */}
         {user && setActiveTab && (
           <nav
             role="navigation"
             aria-label="التنقل الرئيسي للكمبيوتر"
-            className="hidden md:flex items-center gap-1 sm:gap-1.5 bg-[var(--bg-secondary)]/80 backdrop-blur-md p-1 rounded-2xl border border-[var(--border-color)] shadow-xs shrink-0"
+            className="hidden md:flex items-center gap-1 sm:gap-1.5 bg-[var(--bg-secondary)]/80 backdrop-blur-md p-1 rounded-2xl border border-[var(--border-color)] shadow-xs shrink-0 mx-2"
           >
             {desktopTabs.map((tab) => {
               const Icon = tab.icon;
@@ -185,8 +205,107 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
         )}
 
-        {/* Right side controls: Notification Center + Theme Toggle + User Badge / Login */}
+        {/* Left side controls: Services Dropdown + Notification Center + Theme Toggle + User Badge / Login */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Services & Quick Links Dropdown for Authenticated Users */}
+          {user && (
+            <div className="relative" ref={servicesMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isServicesMenuOpen
+                    ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] border border-transparent'
+                }`}
+                title="الخدمات والروابط السريعة"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span className="hidden xl:inline">الخدمات</span>
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isServicesMenuOpen ? 'rotate-180 text-amber-500' : ''}`} />
+              </button>
+
+              {isServicesMenuOpen && (
+                <div className="absolute left-0 mt-2 w-52 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-color)] shadow-xl p-1.5 z-50 flex flex-col gap-1 backdrop-blur-md">
+                  {user?.role !== 'rep' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsServicesMenuOpen(false);
+                        const repCode = user?.repData?.referralCode || (user?.role === 'rep' ? `DALIL-${user.id.replace(/\D/g, '')}` : '');
+                        const url = new URL('https://www.dalilaak.com/');
+                        if (repCode) url.searchParams.set('ref', repCode);
+                        window.open(url.toString(), '_blank');
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-teal-600 dark:text-teal-400 hover:bg-teal-500/10 transition-colors text-right cursor-pointer"
+                    >
+                      <Globe className="w-4 h-4 shrink-0 text-teal-500" />
+                      <span>دليل الأنشطة العام 🌐</span>
+                    </button>
+                  )}
+
+                  {user?.role !== 'rep' && onOpenPackages && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsServicesMenuOpen(false);
+                        onOpenPackages();
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors text-right cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 shrink-0 text-amber-500" />
+                      <span>باقات دليلك 💎</span>
+                    </button>
+                  )}
+
+                  {user?.role !== 'rep' && onOpenPermissions && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsServicesMenuOpen(false);
+                        onOpenPermissions();
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors text-right cursor-pointer"
+                    >
+                      <ShieldCheck className="w-4 h-4 shrink-0 text-amber-500" />
+                      <span>دليل الصلاحيات</span>
+                    </button>
+                  )}
+
+                  <div className="h-px bg-[var(--border-color)] my-0.5" />
+
+                  {onOpenAbout && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsServicesMenuOpen(false);
+                        onOpenAbout();
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-right cursor-pointer"
+                    >
+                      <Info className="w-4 h-4 shrink-0" />
+                      <span>من نحن</span>
+                    </button>
+                  )}
+
+                  {onOpenTerms && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsServicesMenuOpen(false);
+                        onOpenTerms();
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-right cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4 shrink-0" />
+                      <span>شروط الاستخدام</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notification Center Bell Icon & Dropdown */}
           <NotificationCenter
             user={user}
