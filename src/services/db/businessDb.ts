@@ -20,7 +20,7 @@ export function getCachedBusinesses(): Business[] {
   return [];
 }
 
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,photos,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
 
 export { FAST_BUSINESS_SELECT };
 
@@ -30,6 +30,12 @@ export { FAST_BUSINESS_SELECT };
  */
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const cached = getCachedBusinesses();
+  const cachedPhotoMap = new Map<string, string[]>();
+  cached.forEach((b) => {
+    if (b.photos && b.photos.length > 0) {
+      cachedPhotoMap.set(b.id, b.photos);
+    }
+  });
   let resultList: Business[] = [];
 
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH - FAST HIGH-SPEED QUERY)
@@ -39,7 +45,13 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          resultList = restData.map(mapDbToBusiness);
+          resultList = restData.map((item) => {
+            const b = mapDbToBusiness(item);
+            if ((!b.photos || b.photos.length === 0) && cachedPhotoMap.has(b.id)) {
+              b.photos = cachedPhotoMap.get(b.id)!;
+            }
+            return b;
+          });
           try {
             const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
@@ -56,7 +68,13 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
       try {
         const { data, error } = await supabase.from('businesses').select(FAST_BUSINESS_SELECT).neq('package_id', 'pkg_interested_lead').order('created_at', { ascending: false });
         if (!error && data && Array.isArray(data) && data.length > 0) {
-          resultList = data.map(mapDbToBusiness);
+          resultList = data.map((item) => {
+            const b = mapDbToBusiness(item);
+            if ((!b.photos || b.photos.length === 0) && cachedPhotoMap.has(b.id)) {
+              b.photos = cachedPhotoMap.get(b.id)!;
+            }
+            return b;
+          });
           try {
             const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
@@ -301,7 +319,13 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
           .map(mapDbToBusiness)
           .filter((b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
         
-        freshDeltaList.forEach((b) => map.set(b.id, b));
+        freshDeltaList.forEach((b) => {
+          const existing = map.get(b.id);
+          if ((!b.photos || b.photos.length === 0) && existing && existing.photos && existing.photos.length > 0) {
+            b.photos = existing.photos;
+          }
+          map.set(b.id, b);
+        });
         freshDeltaCount = freshDeltaList.length;
         if (freshDeltaCount > 0) hasChanges = true;
       }
@@ -325,6 +349,10 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
             if (Array.isArray(missingData) && missingData.length > 0) {
               missingData.map(mapDbToBusiness).forEach((b) => {
                 if (b && !b.isDeleted && b.packageId !== 'pkg_interested_lead') {
+                  const existing = map.get(b.id);
+                  if ((!b.photos || b.photos.length === 0) && existing && existing.photos && existing.photos.length > 0) {
+                    b.photos = existing.photos;
+                  }
                   map.set(b.id, b);
                   hasChanges = true;
                   freshDeltaCount++;

@@ -9,9 +9,8 @@ const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publish
 // VERIFIED columns that exist in Supabase (whatsapp, google_maps_url, google_place_id, google_sync_status do NOT exist).
 // google_maps_url, google_place_id, google_sync_status are stored in the 'notes' JSON field.
 // whatsapp is read from phone field as fallback in mapRawToBusiness.
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,photos,created_at';
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,created_at';
 const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&order=created_at.desc`;
-// Photos are now included in main select — no need for a separate photos request
 const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&order=created_at.desc`;
 
 export default function App() {
@@ -62,7 +61,18 @@ export default function App() {
     }
 
     const isFeeExempt = Boolean(metaIsFeeExempt || r.package_price === 0 || r.packagePrice === 0 || r.package_id === 'pkg_exempt');
-    const rawPhotos = Array.isArray(r.photos) ? r.photos : [];
+    let rawPhotos: string[] = [];
+    if (Array.isArray(r.photos)) {
+      rawPhotos = r.photos;
+    } else if (typeof r.photos === 'string' && r.photos.trim().length > 0) {
+      try {
+        const p = JSON.parse(r.photos.trim());
+        if (Array.isArray(p)) rawPhotos = p;
+        else if (typeof p === 'string') rawPhotos = [p];
+      } catch {
+        if (r.photos.startsWith('http') || r.photos.startsWith('data:')) rawPhotos = [r.photos];
+      }
+    }
     const rawVideos = Array.isArray(r.videos) && r.videos.length > 0 ? r.videos : metaVideos;
 
     const lat = typeof r.lat === 'number' ? r.lat : 30.0444;
@@ -137,7 +147,7 @@ export default function App() {
       if (!force && typeof document !== 'undefined' && document.hidden) return;
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       try {
         const res = await fetch(SUPABASE_REST_URL, {
@@ -152,7 +162,29 @@ export default function App() {
         if (res.ok) {
           const raw = await res.json();
           if (Array.isArray(raw) && isMounted && raw.length > 0) {
-            const mapped: Business[] = raw.map(mapRawToBusiness);
+            // Merge existing cached photos instantly so cover images don't blink
+            const cachedPhotosMap = new Map<string, string[]>();
+            try {
+              const cached = localStorage.getItem('dalelak_directory_cache');
+              if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach((b: any) => {
+                    if (b && b.id && Array.isArray(b.photos) && b.photos.length > 0) {
+                      cachedPhotosMap.set(b.id, b.photos);
+                    }
+                  });
+                }
+              }
+            } catch {}
+
+            const mapped: Business[] = raw.map((r) => {
+              const b = mapRawToBusiness(r);
+              if ((!b.photos || b.photos.length === 0) && cachedPhotosMap.has(b.id)) {
+                b.photos = cachedPhotosMap.get(b.id)!;
+              }
+              return b;
+            });
 
             setBusinesses(() => {
               const updated = mapped.sort(
@@ -179,14 +211,29 @@ export default function App() {
                 if (Array.isArray(photosData) && photosData.length > 0 && isMounted) {
                   const photoMap = new Map<string, string[]>();
                   photosData.forEach((item: any) => {
-                    if (item.id && Array.isArray(item.photos) && item.photos.length > 0) {
-                      photoMap.set(item.id, item.photos);
+                    if (item.id) {
+                      let itemPhotos: string[] = [];
+                      if (Array.isArray(item.photos)) {
+                        itemPhotos = item.photos;
+                      } else if (typeof item.photos === 'string' && item.photos.trim().length > 0) {
+                        try {
+                          const p = JSON.parse(item.photos.trim());
+                          if (Array.isArray(p)) itemPhotos = p;
+                        } catch {}
+                      }
+                      if (itemPhotos.length > 0) {
+                        photoMap.set(item.id, itemPhotos);
+                      }
                     }
                   });
                   if (photoMap.size > 0) {
-                    setBusinesses((prev) =>
-                      prev.map((b) => (photoMap.has(b.id) ? { ...b, photos: photoMap.get(b.id)! } : b))
-                    );
+                    setBusinesses((prev) => {
+                      const updated = prev.map((b) => (photoMap.has(b.id) ? { ...b, photos: photoMap.get(b.id)! } : b));
+                      try {
+                        localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+                      } catch {}
+                      return updated;
+                    });
                   }
                 }
               })

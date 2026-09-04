@@ -347,7 +347,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     return businesses.filter((b) => {
       if (!b) return false;
       if (isPreviewMode || (initialBizId && b.id === initialBizId)) return true;
-      return b.verificationStatus === 'verified';
+      return b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
     });
   }, [businesses, isPreviewMode, initialBizId]);
 
