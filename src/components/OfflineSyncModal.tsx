@@ -13,6 +13,7 @@ import {
   X,
   Database,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { Business, InterestedLead } from '../types';
 import {
@@ -20,6 +21,8 @@ import {
   getOfflineLeads,
   syncAllPendingOfflineData,
   exportOfflineBackupJson,
+  removeOfflineLead,
+  removeOfflineBusiness,
 } from '../services/offlineSync';
 
 interface OfflineSyncModalProps {
@@ -259,17 +262,85 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>بانتظار المزامنة</span>
                       </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`هل أنت متأكد من حذف النشاط "${biz.nameAr}" من قائمة الانتظار المحلية؟`)) {
+                            await removeOfflineBusiness(biz.id);
+                            await loadOfflineData();
+                          }
+                        }}
+                        className="text-rose-500 hover:text-rose-600 p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                        title="حذف من قائمة الانتظار"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {/* Detailed Offline Leads List */}
+          {offlineLeads.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-black text-xs text-[var(--text-primary)] flex items-center justify-between">
+                <span>قائمة العملاء المهتمين المحفوظة محلياً على الهاتف:</span>
+                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 font-mono">
+                  {offlineLeads.length} عميل
+                </span>
+              </h4>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {offlineLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="p-3 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-black">
+                        👤
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-black text-[var(--text-primary)] truncate">
+                          {lead.clientName} {lead.businessName ? `(${lead.businessName})` : ''}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)] font-bold truncate">
+                          {lead.phone} • {lead.governorate} {lead.city ? `- ${lead.city}` : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-500/25 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>بانتظار الرفع</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`هل أنت متأكد من حذف العميل "${lead.clientName}" من قائمة الانتظار المحلية؟`)) {
+                            await removeOfflineLead(lead.id);
+                            await loadOfflineData();
+                          }
+                        }}
+                        className="text-rose-500 hover:text-rose-600 p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                        title="حذف من قائمة الانتظار"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Security Guarantee Note */}
           <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-300 font-bold">
