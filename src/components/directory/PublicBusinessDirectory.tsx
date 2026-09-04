@@ -55,14 +55,17 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list') || 'list');
 
+  const isRep = currentUser?.role === 'rep';
+  const hasRegisteredBiz = businesses.length > 0;
+
   // For normal public visitors: show only verified businesses.
   // For representatives: show all their registered businesses (both verified and pending) so they can monitor their field submissions.
   const displayableBusinesses = useMemo(() => {
-    if (currentUser?.role === 'rep') {
+    if (isRep) {
       return businesses;
     }
     return businesses.filter((b) => b.verificationStatus === 'verified');
-  }, [businesses, currentUser]);
+  }, [businesses, isRep]);
 
   const homeStats = useMemo(() => {
     const totalRegistered = businesses.length;
@@ -127,86 +130,139 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
   return (
     <div className="space-y-4">
-      {/* ── TOP KPI METRICS BAR ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-        {/* 1. إجمالي الأنشطة المسجلة */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-500/15 text-slate-600 dark:text-slate-300 flex items-center justify-center font-black shrink-0">
-            <Store className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي المسجل</div>
-            {isLoadingData && businesses.length === 0 ? (
-              <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-            ) : (
-              <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.totalRegistered}</div>
-            )}
-          </div>
-        </div>
-
-        {/* 2. معتمد بالدليل العام */}
-        <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
-            <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold truncate">معتمد 🟢</div>
-            {isLoadingData && businesses.length === 0 ? (
-              <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-            ) : (
-              <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.directoryApproved}</div>
-            )}
+      {/* ── TOP KPI METRICS BAR (PROGRESSIVE DISCLOSURE FOR REPRESENTATIVES) ── */}
+      {isRep && !hasRegisteredBiz ? (
+        <div className="max-w-md mx-auto w-full">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black shrink-0">
+              <Store className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[var(--text-muted)] font-bold">إجمالي المسجل</span>
+                <span className="text-xl font-black text-[var(--text-primary)] font-mono">0</span>
+              </div>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium mt-0.5">
+                رصيد البداية — سجّل أول نشاط تجاري في منطقتك لبدء تنشيط الإحصاءات وكسب عمولتك
+              </p>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+          {/* 1. إجمالي الأنشطة المسجلة */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-500/15 text-slate-600 dark:text-slate-300 flex items-center justify-center font-black shrink-0">
+              <Store className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي المسجل</div>
+              {isLoadingData && businesses.length === 0 ? (
+                <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+              ) : (
+                <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.totalRegistered}</div>
+              )}
+              {isRep && (
+                <span className="text-[9px] text-[var(--text-muted)] font-medium block truncate">
+                  كافة أنشطتك المسجلة
+                </span>
+              )}
+            </div>
+          </div>
 
-        {/* 3. موثق بـ Google Maps */}
-        <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
-            <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-[11px] text-blue-600 dark:text-blue-400 font-bold truncate">موثق بـ Google 🗺️</div>
-            {isLoadingData && businesses.length === 0 ? (
-              <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-            ) : (
-              <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.googleMapsVerified}</div>
-            )}
-          </div>
+          {/* 2. معتمد بالدليل العام - يظهر للمندوب عند اعتماد أول نشاط (أو دائماً لغير المندوب) */}
+          {(!isRep || homeStats.directoryApproved > 0) && (
+            <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
+                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10.5px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold truncate">معتمد 🟢</div>
+                {isLoadingData && businesses.length === 0 ? (
+                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                ) : (
+                  <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.directoryApproved}</div>
+                )}
+                {isRep && (
+                  <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-medium block truncate">
+                    أنشطة معتمدة ومطابقة بالدليل
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 3. موثق بـ Google Maps - يظهر للمندوب عند توثيق أول نشاط (أو دائماً لغير المندوب) */}
+          {(!isRep || homeStats.googleMapsVerified > 0) && (
+            <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10.5px] sm:text-[11px] text-blue-600 dark:text-blue-400 font-bold truncate">موثق بـ Google 🗺️</div>
+                {isLoadingData && businesses.length === 0 ? (
+                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                ) : (
+                  <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.googleMapsVerified}</div>
+                )}
+                {isRep && (
+                  <span className="text-[9px] text-blue-700 dark:text-blue-400 font-medium block truncate">
+                    أنشطة موثقة رسمياً على الخرائط
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 4. قيد مراجعة الدليل - يظهر بعد تسجيل أول نشاط */}
+          {(!isRep || hasRegisteredBiz) && (
+            <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10.5px] sm:text-[11px] text-amber-600 dark:text-amber-400 font-bold truncate">قيد المراجعة ⏳</div>
+                {isLoadingData && businesses.length === 0 ? (
+                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                ) : (
+                  <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{homeStats.pendingDirectory}</div>
+                )}
+                {isRep && (
+                  <span className="text-[9px] text-amber-700 dark:text-amber-400 font-medium block truncate">
+                    بانتظار تدقيق الإدارة للبيانات
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 5. المحافظات المغطاة - يظهر بعد تسجيل أول نشاط */}
+          {(!isRep || hasRegisteredBiz) && (
+            <div className="col-span-2 sm:col-span-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
+                {isLoadingData && businesses.length === 0 ? (
+                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                ) : (
+                  <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
+                )}
+                {isRep && (
+                  <span className="text-[9px] text-purple-700 dark:text-purple-400 font-medium block truncate">
+                    المناطق الجغرافية لعملك
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+      )}
 
-        {/* 4. قيد مراجعة الدليل */}
-        <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-[11px] text-amber-600 dark:text-amber-400 font-bold truncate">قيد المراجعة ⏳</div>
-            {isLoadingData && businesses.length === 0 ? (
-              <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-            ) : (
-              <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{homeStats.pendingDirectory}</div>
-            )}
-          </div>
-        </div>
-
-        {/* 5. المحافظات المغطاة */}
-        <div className="col-span-2 sm:col-span-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
-            <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
-            {isLoadingData && businesses.length === 0 ? (
-              <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-            ) : (
-              <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── UNIFIED DIRECTORY TOOLBAR & FILTERS ── */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 space-y-3.5 shadow-sm">
+      {/* ── UNIFIED DIRECTORY TOOLBAR & FILTERS (SHOWN FOR PUBLIC OR ONCE REP HAS REGISTERED BIZ) ── */}
+      {(!isRep || hasRegisteredBiz) && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 space-y-3.5 shadow-sm">
         {/* Row 1: Search + Governorate + View Switcher */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
           <div className="relative flex-1">
@@ -328,6 +384,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           ))}
         </div>
       </div>
+      )}
 
       {/* ── 1. LOADING SKELETON STATE (Shown ONLY on first cold visit with empty cache) ── */}
       {isLoadingData && businesses.length === 0 && (

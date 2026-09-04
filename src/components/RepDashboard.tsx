@@ -90,6 +90,13 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
     (p) => p.repId === rep.id && p.type === 'remittance' && p.status === 'pending'
   );
 
+  const showFinancialSection =
+    settlement.withdrawableBalance > 0 ||
+    settlement.isDebtToPlatform ||
+    settlement.totalEarnedCommissions > 0 ||
+    settlement.pendingVerificationCommission > 0 ||
+    myPayouts.length > 0;
+
   const targetProgress = Math.min(100, Math.round((myBusinesses.length / rep.targetMonth) * 100));
 
   const isMission1Complete = myBusinesses.length >= 10;
@@ -219,8 +226,80 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
         </div>
       </div>
 
-      {/* ── SECTION 1: MASTER FINANCIAL & SETTLEMENT ENGINE ────────────── */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-300">
+      {/* 🌟 ONBOARDING DIRECTIVE FOR NEW REPRESENTATIVE (0 REGISTERED BUSINESSES) */}
+      {myBusinesses.length === 0 && (
+        <div className="bg-gradient-to-br from-amber-500/15 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-500/40 rounded-3xl p-5 sm:p-6 space-y-4 shadow-lg text-right animate-fade-in">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-500/20 pb-3.5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xl shrink-0">
+                🚀
+              </div>
+              <div>
+                <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
+                  مرحباً بك يا {rep.name} في منظومة دليلك!
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] font-bold">
+                  خطوتك الأولى: توثيق أول نشاط تجاري في منطقتك لتفعيل حسابك واستحقاق عمولتك
+                </p>
+              </div>
+            </div>
+
+            <span className="text-xs font-black px-3.5 py-1.5 rounded-full badge-warning shrink-0">
+              ⚡ بانتظار أول نشاط
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="bg-[var(--bg-card)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 shadow-xs">
+              <div className="flex items-center gap-2 font-black text-[var(--text-primary)]">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-mono font-bold">1</span>
+                <span>الزيارة والاتفاق الميداني</span>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                توجّه للمحل التجاري في منطقتك واشرح لصاحبه مزايا التوثيق الرقمي وإدراجه في الخرائط والدليل.
+              </p>
+            </div>
+
+            <div className="bg-[var(--bg-card)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 shadow-xs">
+              <div className="flex items-center gap-2 font-black text-[var(--text-primary)]">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-mono font-bold">2</span>
+                <span>تسجيل وتصوير النشاط</span>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                اضغط على زر التسجيل، التقط صور واجهة المحل، ثبّت موقعه بدقة عبر الـ GPS، واختر الباقة المناسبة.
+              </p>
+            </div>
+
+            <div className="bg-[var(--bg-card)] p-3.5 rounded-2xl border border-[var(--border-color)] space-y-1.5 shadow-xs">
+              <div className="flex items-center gap-2 font-black text-[var(--text-primary)]">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-mono font-bold">3</span>
+                <span>المراجعة وكسب العمولة</span>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                يصل النشاط فوراً للإدارة للاعتماد والتوثيق، وفور السداد تنزل عمولتك المعتمدة بحسابك لسحبها.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-[11px] text-amber-800 dark:text-amber-300 font-bold">
+              💡 نصيحة للبداية: الأنشطة الرائجة والمحلات الحيوية تضمن لك سرعة الإنجاز وتحقيق أول عمولة اليوم.
+            </p>
+            <button
+              type="button"
+              onClick={onAddNewClick}
+              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs px-6 py-3 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer shrink-0"
+            >
+              <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+              <span>ابدأ تسجيل أول نشاط تجاري الآن</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION 1: MASTER FINANCIAL & SETTLEMENT ENGINE (SHOWN ONLY WHEN RELEVANT) ── */}
+      {showFinancialSection && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-300">
         {/* Card Header & Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2">
@@ -368,9 +447,11 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* ── SECTION 2: 📋 PAYOUTS & REMITTANCES HISTORY & TRACKER ────── */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-300">
+      {myPayouts.length > 0 && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-300">
         <div className="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
@@ -476,9 +557,11 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
           </div>
         )}
       </div>
+      )}
 
-      {/* Referral System Box */}
-      {referralSummary.isUnlocked ? (
+      {/* Referral System Box (Unlocked or Milestone progress, shown once rep has registered activities) */}
+      {myBusinesses.length > 0 && (
+        referralSummary.isUnlocked ? (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
             <div className="flex items-center gap-2.5">
@@ -675,6 +758,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             </p>
           </div>
         </div>
+      )
       )}
 
       {/* Payout Request Modal */}
