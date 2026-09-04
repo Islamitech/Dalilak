@@ -289,6 +289,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
             const repToInspect = rep || {
               id: payout.repId,
               name: payout.repName,
+              email: `${payout.repPhone || payout.repId}@dalelak.com`,
               phone: payout.repPhone || '',
               role: 'rep' as const,
               governorate: 'الجيزة',

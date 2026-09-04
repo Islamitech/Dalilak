@@ -26,6 +26,7 @@ import { getOfflineSyncStatus, OfflineSyncStatus, syncAllPendingOfflineData } fr
 import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';
 import { Logo } from './components/Logo';
 import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, isSuperAdmin } from './utils/permissions';
+import { isRepAccountDeleted } from './utils/accountStatus';
 import { 
   MapPin, 
   PlusCircle, 
@@ -405,11 +406,31 @@ export default function App() {
     );
   }, [systemNotifications]);
 
-  // Parse URL for deep linking (QR codes)
+  const [pendingReferralCode, setPendingReferralCode] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRef = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('inviter') || '';
+      if (urlRef) {
+        safeSetLocalStorageItem('dalelak_pending_referral', urlRef.trim().toUpperCase());
+        return urlRef.trim().toUpperCase();
+      }
+      return safeGetLocalStorageItem('dalelak_pending_referral') || '';
+    }
+    return '';
+  });
+
+  // Parse URL for deep linking (QR codes and referral codes)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const view = urlParams.get('view');
     const id = urlParams.get('id');
+    const refCode = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('inviter');
+
+    if (refCode) {
+      const cleanRef = refCode.trim().toUpperCase();
+      safeSetLocalStorageItem('dalelak_pending_referral', cleanRef);
+      setPendingReferralCode(cleanRef);
+    }
 
     if (view === 'invoice' && id) {
       setExternalView({ type: 'invoice', id });
@@ -620,8 +641,32 @@ export default function App() {
     };
   }, [user?.id, user?.email, user?.role]);
 
+  // 🛡️ CRITICAL GUARD: Immediately log out and terminate session if active user was deleted
+  useEffect(() => {
+    if (user && isRepAccountDeleted(user)) {
+      handleLogout();
+      addNotification('⛔ تم إنهاء الجلسة وإغلاق الحساب لأنه تم حذفه من قِبل إدارة المنظومة.', 'error');
+    }
+  }, [user, handleLogout, addNotification]);
+
   // Handlers synced with Supabase Database & Real-Time Lifecycle
   const handleAddBusiness = async (newBiz: Business) => {
+    // 🛡️ CRITICAL SECURITY GATE: Strictly reject submissions from deleted/blacklisted representatives
+    const targetRepId = newBiz.repId || currentRep.id || user?.id;
+    const targetRepName = newBiz.repName || currentRep.name || user?.name;
+    const isTargetDeleted =
+      isRepAccountDeleted(user) ||
+      isRepAccountDeleted(currentRep) ||
+      isRepAccountDeleted({ id: targetRepId, name: targetRepName });
+
+    if (isTargetDeleted) {
+      addNotification('⛔ تم رفض تسجيل النشاط: هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة.', 'error');
+      if (user && isRepAccountDeleted(user)) {
+        handleLogout();
+      }
+      return;
+    }
+
     // 1. Automatically calculate payment status from amountPaid and packagePrice
     const isExempt = Boolean(newBiz.isFeeExempt || newBiz.packagePrice === 0);
     const autoPaymentStatus = isExempt
@@ -1036,12 +1081,7 @@ export default function App() {
   const handleDeleteBusiness = async (id: string) => {
     const biz = businesses.find((b) => b.id === id);
 
-    // 🛡️ تأكيد الحذف: منع الحذف العرضي للبيانات
-    const confirmed = window.confirm(
-      `⚠️ تأكيد حذف النشاط\n\nهل أنت متأكد من حذف نشاط "${biz?.nameAr || 'المحدد'}" من المنظومة؟`
-    );
-    if (!confirmed) return;
-
+    // Confirmation is now handled by ConfirmDialog at the UI layer — proceed directly
     // 1. Immediately remove from businesses state and update cache
     setBusinesses((prev) => {
       const updated = prev.filter((b) => b.id !== id);
@@ -1372,12 +1412,7 @@ export default function App() {
       return;
     }
 
-    // 🛡️ تأكيد الحذف: منع الحذف العرضي للحسابات
-    const confirmed = window.confirm(
-      `⚠️ تأكيد حذف الحساب\n\nهل أنت متأكد من حذف حساب "${rep?.name || 'المحدد'}"؟`
-    );
-    if (!confirmed) return;
-
+    // Confirmation is now handled by ConfirmDialog at the UI layer — proceed directly
     const targetEmail = (rep?.email || '').toLowerCase().trim();
     const targetPhone = (rep?.phone || '').trim();
 
@@ -1582,6 +1617,7 @@ export default function App() {
             onLoginSuccess={handleLoginUser}
             representatives={representatives}
             onAddRepresentative={handleAddRepresentative}
+            initialReferralCode={pendingReferralCode}
           />
         </div>
 

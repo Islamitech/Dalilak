@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Business } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { exportBusinessesToCsv } from '../../../utils/exportCsv';
 import { sanitizeExternalUrl } from '../../../utils/urlSanitizer';
+import { formatEGP } from '../../../utils/formatCurrency';
+import { isRepAccountDeleted } from '../../../utils/accountStatus';
+import { ConfirmDialog } from '../../ConfirmDialog';
 import {
   Search,
   Download,
@@ -82,6 +85,9 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
   onShowInvoice,
   onDeleteBusiness,
 }) => {
+  // State for custom delete confirmation dialog
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-sm animate-fade-in transition-colors duration-300">
       {/* Quick Filter Pill Chips */}
@@ -342,7 +348,14 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                       <div className="min-w-0">
                         <span className="text-[9px] text-[var(--text-muted)] block font-bold">الموقع والمندوب:</span>
                         <span className="font-bold text-[var(--text-primary)] block truncate">{biz.governorate} ({biz.city})</span>
-                        <span className="text-[10px] text-[var(--text-secondary)] block truncate">مندوب: {biz.repName}</span>
+                        <span className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1 truncate">
+                          <span>مندوب: {biz.repName}</span>
+                          {isRepAccountDeleted({ id: biz.repId, name: biz.repName }) && (
+                            <span className="bg-rose-500/15 text-rose-500 text-[9px] font-black px-1.5 py-0.2 rounded-md border border-rose-500/30 shrink-0">
+                              محذوف ⚠️
+                            </span>
+                          )}
+                        </span>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                           <a
                             href={sanitizeExternalUrl(biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`)}
@@ -376,22 +389,22 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                     <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-xs space-y-1">
                       <div className="flex items-center justify-between font-mono">
                         <span className="text-[10.5px] text-[var(--text-secondary)]">سعر الباقة الإجمالي:</span>
-                        <span className="font-black text-amber-600 dark:text-amber-400">{isExempt ? 'مجاني 0 ج' : `${biz.packagePrice || 250} ج`}</span>
+                        <span className="font-black text-amber-600 dark:text-amber-400">{isExempt ? 'مجاني (0 ج.م)' : formatEGP(biz.packagePrice || 250)}</span>
                       </div>
                       <div className="flex items-center justify-between font-mono">
                         <span className="text-[10.5px] text-[var(--text-secondary)]">المبلغ المسدد:</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{biz.amountPaid || 0} ج</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatEGP(biz.amountPaid || 0)}</span>
                       </div>
                       {debtAmount > 0 && (
                         <div className="flex items-center justify-between font-mono font-bold text-rose-500">
                           <span className="text-[10.5px]">المتبقي للتحصيل:</span>
-                          <span>{debtAmount} ج</span>
+                          <span>{formatEGP(debtAmount)}</span>
                         </div>
                       )}
                       {isCash && (
                         <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] font-mono pt-1 border-t border-[var(--border-color)]">
-                          <span>نصيب المندوب: {repComm} ج</span>
-                          <span>مستحق للمنصة: {platDue} ج</span>
+                          <span>نصيب المندوب: {formatEGP(repComm)}</span>
+                          <span>مستحق للمنصة: {formatEGP(platDue)}</span>
                         </div>
                       )}
                     </div>
@@ -428,11 +441,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm(`هل أنت متأكد من رغبتك في حذف نشاط "${biz.nameAr}" نهائياً؟`)) {
-                            onDeleteBusiness(biz.id);
-                          }
-                        }}
+                        onClick={() => setConfirmDelete({ id: biz.id, name: biz.nameAr })}
                         className="bg-rose-500/15 hover:bg-rose-500 text-rose-500 hover:text-white p-2 rounded-xl border border-rose-500/30 cursor-pointer transition-colors"
                         title="حذف النشاط"
                       >
@@ -496,7 +505,14 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                         </td>
 
                         <td className="p-3">
-                          <p className="font-bold text-[var(--text-primary)]">{biz.repName}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-[var(--text-primary)]">{biz.repName}</p>
+                            {isRepAccountDeleted({ id: biz.repId, name: biz.repName }) && (
+                              <span className="bg-rose-500/15 text-rose-500 text-[9.5px] font-black px-1.5 py-0.5 rounded-md border border-rose-500/30 inline-block">
+                                حساب محذوف ⚠️
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.createdDate ? new Date(biz.createdDate).toLocaleDateString('ar-EG') : 'غير محدد'}</p>
                         </td>
 
@@ -517,11 +533,11 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                             ) : (
                               <>
                                 <span className="badge-warning text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
-                                  مقدم (متبقي {debtAmount} ج)
+                                  مقدم (متبقي {formatEGP(debtAmount)})
                                 </span>
                                 {isCash && (
                                   <p className="text-[9.5px] text-amber-700 dark:text-amber-300 font-bold font-mono">
-                                    💵 كاش (مستحق: {platDue} ج)
+                                    💵 كاش (مستحق: {formatEGP(platDue)})
                                   </p>
                                 )}
                               </>
@@ -647,6 +663,23 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* ── Custom Confirmation Dialog (replaces window.confirm) ── */}
+      <ConfirmDialog
+        isOpen={Boolean(confirmDelete)}
+        title="تأكيد حذف النشاط"
+        message={`هل أنت متأكد من حذف نشاط "${confirmDelete?.name || ''}" من المنظومة؟ سيتم نقله إلى سلة المحذوفات.`}
+        confirmLabel="حذف النشاط"
+        cancelLabel="إلغاء"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmDelete) {
+            onDeleteBusiness(confirmDelete.id);
+          }
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 };

@@ -484,6 +484,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     <img
                       src={coverPhoto}
                       alt={biz.nameAr}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
@@ -717,7 +719,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                         className="relative w-12 h-12 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
                       >
                         {coverPhoto ? (
-                          <img src={coverPhoto} alt={biz.nameAr} className="w-full h-full object-cover" />
+                          <img src={coverPhoto} alt={biz.nameAr} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-amber-500/60">
                             <Store className="w-5 h-5" />
@@ -883,7 +885,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                               className="relative w-10 h-10 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
                             >
                               {coverPhoto ? (
-                                <img src={coverPhoto} alt={biz.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                <img src={coverPhoto} alt={biz.nameAr} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-amber-500/50">
                                   <Store className="w-4 h-4" />

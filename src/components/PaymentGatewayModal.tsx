@@ -39,17 +39,19 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [receiptPhoto, setReceiptPhoto] = useState<string>(business?.paymentReceiptPhoto || '');
   const [isCompressingReceipt, setIsCompressingReceipt] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string>('');
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadError('');
     try {
       setIsCompressingReceipt(true);
       const compressed = await compressImageFile(file, 1400, 1400, 0.82, { applyWatermark: false });
       setReceiptPhoto(compressed);
     } catch (err) {
       console.error('Error compressing receipt image:', err);
-      alert('حدث خطأ أثناء معالجة الصورة');
+      setUploadError('حدث خطأ أثناء معالجة الصورة، حاول مرة أخرى.');
     } finally {
       setIsCompressingReceipt(false);
     }
@@ -511,6 +513,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                   className="hidden"
                 />
               </label>
+            )}
+            {/* Inline error message — replaces alert() */}
+            {uploadError && (
+              <p className="text-xs text-rose-500 font-bold flex items-center gap-1.5 mt-1" role="alert">
+                <span>⚠️</span>
+                <span>{uploadError}</span>
+              </p>
             )}
           </div>
         </div>

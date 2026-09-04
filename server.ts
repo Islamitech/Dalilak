@@ -541,8 +541,11 @@ app.post('/api/auth/login', async (req, res) => {
   loginRateLimit.delete(accKey);
 
   // Automatic secure password upgrade: If password was plaintext, upgrade to sha256 immediately
-  if (!isPasswordHashed(storedPassword)) {
-    rep.password = hashPassword(cleanPassword);
+  // 🛡️ Security Check: Prevent login for deleted or blacklisted accounts
+  if (rep.isDeleted === true || rep.status === 'deleted') {
+    return res.status(403).json({
+      error: '⛔ هذا الحساب تم حذفه وإلغاء صلاحيته من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به.'
+    });
   }
 
   if (rep.status !== 'active') {
@@ -663,6 +666,13 @@ app.post('/api/businesses', (req, res) => {
     const reqUser = getRequestUser(req);
     if (!reqUser) {
       return res.status(401).json({ error: 'غير مصرح: يرجى تسجيل الدخول لإضافة نشاط تجاري' });
+    }
+
+    // 🛡️ Security Check: Prevent business submission from deleted or suspended accounts
+    representatives = loadStoredReps();
+    const repCheck = representatives.find((r) => r.id === reqUser.userId);
+    if (repCheck && (repCheck.isDeleted || repCheck.status === 'deleted' || repCheck.status === 'suspended')) {
+      return res.status(403).json({ error: '⛔ غير مصرح: هذا الحساب معطل أو محذوف ولا يمكنه تسجيل أنشطة تجارية.' });
     }
 
     const newBiz: Business = req.body;
@@ -793,7 +803,9 @@ app.post('/api/representatives', (req, res) => {
   const assignedCommission = isManager ? (Number(repData.commissionRate) || 42.86) : 42.86;
 
   const newRep: Representative = {
-    id: repData.id && isManager ? repData.id : `rep_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+    id: (repData.id && typeof repData.id === 'string' && repData.id.startsWith('rep_'))
+      ? repData.id
+      : (repData.id && isManager ? repData.id : `rep_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`),
     name: repData.name,
     email: repData.email,
     phone: repData.phone,

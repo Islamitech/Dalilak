@@ -548,6 +548,11 @@ export function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
   if (rep.status !== undefined) record.status = rep.status;
   if (rep.password !== undefined) record.password = rep.password;
+  if (rep.referralCode !== undefined) record.referral_code = rep.referralCode || null;
+  if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode || null;
+  if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);
+  if (rep.adminBypassReferral !== undefined) record.admin_bypass_referral = Boolean(rep.adminBypassReferral);
+  if (rep.referralRewardGranted !== undefined) record.referral_reward_granted = Boolean(rep.referralRewardGranted);
 
   // Extract clean avatar if already packed
   let cleanAvatar = rep.avatar;
@@ -565,6 +570,7 @@ export function mapRepToDb(rep: Partial<Representative>): any {
     avatar: cleanAvatar || existingMeta.avatar || '',
     password: rep.password ?? existingMeta.password, // 🛡️ Triple-failsafe: preserves password inside avatar JSON
     referralCode: rep.referralCode ?? existingMeta.referralCode,
+    referredByCode: rep.referredByCode ?? existingMeta.referredByCode,
     referralUnlocked: rep.referralUnlocked ?? existingMeta.referralUnlocked,
     adminBypassReferral: rep.adminBypassReferral ?? existingMeta.adminBypassReferral,
     referralRewardGranted: rep.referralRewardGranted ?? existingMeta.referralRewardGranted,

@@ -3,6 +3,7 @@ import { Business } from '../../types';
 import { PACKAGES, EXEMPT_PACKAGE, ALREADY_ON_GOOGLE_PACKAGE } from '../../data/mockData';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { AdminReceiptModal } from '../admin/modals/AdminReceiptModal';
+import { ConfirmDialog } from '../ConfirmDialog';
 import {
   ShieldCheck,
   Sparkles,
@@ -38,10 +39,13 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
 }) => {
   const [isCompressingReceipt, setIsCompressingReceipt] = useState(false);
   const [selectedReceiptPreview, setSelectedReceiptPreview] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState<string>('');
+  const [showConfirmRemoveReceipt, setShowConfirmRemoveReceipt] = useState(false);
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setReceiptError('');
     try {
       setIsCompressingReceipt(true);
       const compressed = await compressImageFile(file, 1400, 1400, 0.82, { applyWatermark: false });
@@ -55,23 +59,14 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
       });
     } catch (err) {
       console.error('Error compressing receipt image:', err);
-      alert('حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى.');
+      setReceiptError('حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى.');
     } finally {
       setIsCompressingReceipt(false);
     }
   };
 
   const handleRemoveReceipt = () => {
-    if (window.confirm('هل أنت متأكد من حذف صورة إيصال السداد المرفقة؟')) {
-      setFormData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          paymentReceiptPhoto: undefined,
-          paymentReceiptDate: undefined,
-        };
-      });
-    }
+    setShowConfirmRemoveReceipt(true);
   };
   return (
     <div className="space-y-3.5 text-right">
@@ -404,6 +399,13 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
                 />
               </label>
             )}
+
+            {receiptError && (
+              <p className="text-xs text-rose-500 font-bold flex items-center gap-1.5 mt-1" role="alert">
+                <span>⚠️</span>
+                <span>{receiptError}</span>
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -412,6 +414,28 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
       <AdminReceiptModal
         receiptPhoto={selectedReceiptPreview}
         onClose={() => setSelectedReceiptPreview(null)}
+      />
+
+      {/* Confirm remove receipt dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmRemoveReceipt}
+        title="حذف إيصال السداد"
+        message="هل أنت متأكد من حذف صورة إيصال السداد المرفقة؟"
+        confirmLabel="حذف الإيصال"
+        cancelLabel="إلغاء"
+        variant="danger"
+        onConfirm={() => {
+          setFormData((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              paymentReceiptPhoto: undefined,
+              paymentReceiptDate: undefined,
+            };
+          });
+          setShowConfirmRemoveReceipt(false);
+        }}
+        onCancel={() => setShowConfirmRemoveReceipt(false)}
       />
     </div>
   );

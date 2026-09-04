@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus, User } from '../../types';
 import { isSuperAdmin } from '../../utils/permissions';
+import { ConfirmDialog } from '../ConfirmDialog';
 import {
   ClipboardList,
   Plus,
@@ -100,9 +101,15 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
     }
   };
 
+  const [noteToDeleteId, setNoteToDeleteId] = useState<string | null>(null);
+
   const handleDeleteFollowUp = (noteId: string) => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذه المتابعة الإدارية؟')) return;
-    const updatedFollowUps = (formData.adminFollowUps || []).filter((n) => n.id !== noteId);
+    setNoteToDeleteId(noteId);
+  };
+
+  const confirmDeleteNote = () => {
+    if (!noteToDeleteId) return;
+    const updatedFollowUps = (formData.adminFollowUps || []).filter((n) => n.id !== noteToDeleteId);
     const updatedBiz: Business = {
       ...formData,
       adminFollowUps: updatedFollowUps,
@@ -110,6 +117,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
     setFormData(updatedBiz);
     onSave(updatedBiz);
     onShowNotification?.('تم حذف الملاحظة الإدارية بنجاح');
+    setNoteToDeleteId(null);
   };
 
   const handleToggleFollowUpStatus = (noteId: string) => {
@@ -558,6 +566,18 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Confirm Delete Note Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(noteToDeleteId)}
+        title="حذف المتابعة الإدارية"
+        message="هل أنت متأكد من رغبتك في حذف هذه الملاحظة الإدارية؟"
+        confirmLabel="حذف الملاحظة"
+        cancelLabel="إلغاء"
+        variant="danger"
+        onConfirm={confirmDeleteNote}
+        onCancel={() => setNoteToDeleteId(null)}
+      />
     </div>
   );
 };

@@ -6,8 +6,12 @@ import { supabase } from './services/storage';
 
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
+// VERIFIED columns that exist in Supabase (whatsapp, google_maps_url, google_place_id, google_sync_status do NOT exist).
+// google_maps_url, google_place_id, google_sync_status are stored in the 'notes' JSON field.
+// whatsapp is read from phone field as fallback in mapRawToBusiness.
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,photos,created_at';
 const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&order=created_at.desc`;
+// Photos are now included in main select — no need for a separate photos request
 const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&order=created_at.desc`;
 
 export default function App() {
@@ -88,7 +92,7 @@ export default function App() {
       lng,
       phone: r.phone || '',
       secondaryPhone: r.secondary_phone || r.secondaryPhone || '',
-      whatsapp: r.whatsapp || '',
+      whatsapp: r.whatsapp || r.phone || '',
       workingHours: r.working_hours || r.workingHours || '',
       description: r.description || '',
       photos: rawPhotos,
@@ -101,17 +105,17 @@ export default function App() {
       googleSyncStatus: metaGoogleSyncStatus || r.google_sync_status || r.googleSyncStatus || 'not_synced',
       createdAt: r.created_at || r.createdAt || new Date().toISOString(),
       createdDate: r.created_at || r.createdDate || new Date().toISOString(),
-      amountPaid: isFeeExempt ? 0 : (typeof r.amount_paid === 'number' ? r.amount_paid : 0),
-      ownerName: r.owner_name || r.ownerName || '',
-      ownerPhone: r.owner_phone || r.ownerPhone || '',
-      repId: r.rep_id || r.repId || '',
-      repName: r.rep_name || r.repName || '',
+      amountPaid: 0,
+      ownerName: '',
+      ownerPhone: '',
+      repId: '',
+      repName: '',
       packageId: isFeeExempt ? 'pkg_exempt' : (r.package_id || r.packageId || 'pkg_basic'),
       packageName: isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (r.package_name || r.packageName || 'باقة التوثيق الأساسي'),
       packagePrice: isFeeExempt ? 0 : (typeof r.package_price === 'number' ? r.package_price : 250),
       paymentStatus: isFeeExempt ? 'fully_paid' : (r.payment_status || r.paymentStatus || 'fully_paid'),
-      invoiceNumber: r.invoice_number || r.invoiceNumber || '',
-      invoiceDate: r.invoice_date || r.invoiceDate || '',
+      invoiceNumber: '',
+      invoiceDate: '',
       isFeeExempt,
       feeExemptionReason: metaFeeExemptionReason,
     };

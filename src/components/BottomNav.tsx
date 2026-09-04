@@ -17,8 +17,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
   ];
 
   return (
-    <nav role="navigation" aria-label="التنقل الرئيسي" className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-t border-[var(--border-color)] px-2 pt-1.5 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.06)] transition-colors duration-300" style={{ paddingBottom: `max(0.375rem, env(safe-area-inset-bottom, 0.375rem))` }}>
-      <div className="max-w-md mx-auto flex items-center justify-around">
+    /* hidden on md+ screens — desktop/tablet users navigate via top Navbar */
+    <nav role="navigation" aria-label="التنقل الرئيسي" className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-t border-[var(--border-color)] px-2 pt-1.5 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.06)] transition-colors duration-300" style={{ paddingBottom: `max(0.375rem, env(safe-area-inset-bottom, 0.375rem))` }}>
+      <div className="flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -57,7 +58,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
               onClick={() => setActiveTab(tab.id)}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center py-1.5 px-2.5 rounded-xl transition-all duration-200 min-w-[48px] min-h-[44px] cursor-pointer ${
+              className={`flex flex-col items-center justify-center py-2 px-3 rounded-xl transition-all duration-200 min-w-[48px] min-h-[48px] cursor-pointer ${
                 isActive
                   ? 'text-amber-500 font-black bg-amber-500/10'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] font-bold'

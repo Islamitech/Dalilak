@@ -46,6 +46,7 @@ import { FormLocationSection } from './business-form/FormLocationSection';
 import { FormMediaSection } from './business-form/FormMediaSection';
 import { safeGetLocalStorageItem, safeSetLocalStorageItem, safeRemoveLocalStorageItem } from '../utils/storage';
 import { triggerHaptic } from '../utils/haptics';
+import { isRepAccountDeleted } from '../utils/accountStatus';
 
 interface BusinessFormProps {
   currentRep: Representative | null;
@@ -575,6 +576,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
 
   const handleSaveLeadSubmit = async () => {
+    // 🛡️ Security Check: Block submission if user or currentRep is deleted/blacklisted
+    if (isRepAccountDeleted(currentUser) || isRepAccountDeleted(currentRep)) {
+      setErrorMsg('⛔ هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة، ولا يمكنه رفع أو تسجيل أنشطة تجارية.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (!leadClientName.trim() && !leadBizName.trim()) {
       alert('يرجى إدخال اسم العميل أو اسم النشاط على الأقل');
       return;
@@ -661,6 +669,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       return;
     }
 
+    // 🛡️ Security Check: Block submission if user or currentRep is deleted/blacklisted
+    if (isRepAccountDeleted(currentUser) || isRepAccountDeleted(currentRep)) {
+      setErrorMsg('⛔ هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة، ولا يمكنه رفع أو تسجيل أنشطة تجارية.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     const timestamp = Date.now();
     const finalNameAr = (nameAr && nameAr.trim()) || (nameEn && nameEn.trim()) || 'نشاط تجاري قائم';
     const finalNameEn = nameEn?.trim() || undefined;
@@ -720,6 +735,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const handleInitiateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    // 🛡️ Security Check: Block submission if user or currentRep is deleted/blacklisted
+    if (isRepAccountDeleted(currentUser) || isRepAccountDeleted(currentRep)) {
+      setErrorMsg('⛔ هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة، ولا يمكنه رفع أو تسجيل أنشطة تجارية.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (registrationType === 'interested_lead') {
       handleSaveLeadSubmit();
       return;

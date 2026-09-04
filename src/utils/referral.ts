@@ -35,7 +35,12 @@ export function isReferralSystemUnlocked(rep: Representative, myBusinessesCount:
   if (!rep) return false;
   if (rep.role === 'admin' || rep.role === 'supervisor') return true;
   // If explicitly unlocked or bypassed by admin:
-  if (rep.adminBypassReferral === true || String(rep.adminBypassReferral) === 'true') {
+  if (
+    rep.adminBypassReferral === true ||
+    String(rep.adminBypassReferral) === 'true' ||
+    rep.referralUnlocked === true ||
+    String(rep.referralUnlocked) === 'true'
+  ) {
     return true;
   }
   return (Number(myBusinessesCount) || 0) >= 25;
@@ -87,6 +92,14 @@ export function isReferredByInviter(invitedRep: Representative, inviterRep: Repr
     rawRefBy.toUpperCase() === ownCode ||
     (customCode && rawRefBy.toUpperCase() === customCode)
   ) {
+    return true;
+  }
+
+  // 1.5. Suffix match for 4-digit codes (e.g., '8355' matches 'DALIL-8355' or custom code)
+  const refSuffix = cleanRefBy.slice(-4);
+  const ownSuffix = cleanOwnCode.slice(-4);
+  const customSuffix = cleanCustomCode ? cleanCustomCode.slice(-4) : '';
+  if (refSuffix.length === 4 && (refSuffix === ownSuffix || (customSuffix.length === 4 && refSuffix === customSuffix))) {
     return true;
   }
 
@@ -148,6 +161,24 @@ export function getRepReferralSummary(
       inviterInfo = {
         rep: parentRep,
         code: getRepReferralCode(parentRep),
+      };
+    } else {
+      inviterInfo = {
+        rep: {
+          id: 'inviter_pending',
+          name: 'المندوب الداعي المعتمد',
+          phone: '',
+          role: 'rep',
+          roleTitle: 'مندوب معتمد',
+          governorate: '',
+          targetMonth: 25,
+          avatar: '',
+          avatarStatus: 'approved',
+          commissionRate: 42.86,
+          status: 'active',
+          referralCode: inviterRep.referredByCode,
+        } as Representative,
+        code: inviterRep.referredByCode,
       };
     }
   }

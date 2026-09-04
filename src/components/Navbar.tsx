@@ -46,8 +46,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-3 sm:gap-4">
           <Logo size="md" />
 
-          {/* Quick Informational Links (About, Terms, Roles & Packages Guide) */}
-          <div className="hidden md:flex items-center gap-1 text-xs font-bold">
+          {/* Quick Informational Links — hidden until lg to prevent crowding on tablets (768-1024px) */}
+          <div className="hidden lg:flex items-center gap-1 text-xs font-bold">
             {user?.role !== 'rep' && (
               <button
                 type="button"

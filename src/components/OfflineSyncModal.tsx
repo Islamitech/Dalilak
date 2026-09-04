@@ -24,6 +24,7 @@ import {
   removeOfflineLead,
   removeOfflineBusiness,
 } from '../services/offlineSync';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface OfflineSyncModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; message: string } | null>(null);
   const [syncResult, setSyncResult] = useState<{ success: boolean; text: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'biz' | 'lead'; id: string; name: string } | null>(null);
 
   const effectiveUid = currentUser?.id || currentUser?.email;
 
@@ -269,12 +271,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                       </span>
                       <button
                         type="button"
-                        onClick={async () => {
-                          if (window.confirm(`هل أنت متأكد من حذف النشاط "${biz.nameAr}" من قائمة الانتظار المحلية؟`)) {
-                            await removeOfflineBusiness(biz.id);
-                            await loadOfflineData();
-                          }
-                        }}
+                        onClick={() => setConfirmDelete({ type: 'biz', id: biz.id, name: biz.nameAr })}
                         className="text-rose-500 hover:text-rose-600 p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
                         title="حذف من قائمة الانتظار"
                       >
@@ -324,12 +321,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                       </span>
                       <button
                         type="button"
-                        onClick={async () => {
-                          if (window.confirm(`هل أنت متأكد من حذف العميل "${lead.clientName}" من قائمة الانتظار المحلية؟`)) {
-                            await removeOfflineLead(lead.id);
-                            await loadOfflineData();
-                          }
-                        }}
+                        onClick={() => setConfirmDelete({ type: 'lead', id: lead.id, name: lead.clientName })}
                         className="text-rose-500 hover:text-rose-600 p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
                         title="حذف من قائمة الانتظار"
                       >
@@ -373,6 +365,27 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Confirmation Dialog for Offline Items Deletion */}
+      <ConfirmDialog
+        isOpen={Boolean(confirmDelete)}
+        title={confirmDelete?.type === 'biz' ? 'حذف النشاط من الانتظار' : 'حذف العميل من الانتظار'}
+        message={`هل أنت متأكد من حذف ${confirmDelete?.type === 'biz' ? 'نشاط' : 'عميل'} "${confirmDelete?.name || ''}" من قائمة الانتظار المحلية؟`}
+        confirmLabel="حذف من الانتظار"
+        cancelLabel="إلغاء"
+        variant="danger"
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          if (confirmDelete.type === 'biz') {
+            await removeOfflineBusiness(confirmDelete.id);
+          } else {
+            await removeOfflineLead(confirmDelete.id);
+          }
+          await loadOfflineData();
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 };

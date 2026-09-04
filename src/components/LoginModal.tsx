@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Representative } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
@@ -9,6 +9,7 @@ import { compressImageFile } from '../utils/imageCompressor';
 import { getRepReferralCode } from '../utils/referral';
 import { hashPassword, verifyPassword, isPasswordHashed } from '../utils/crypto';
 import { safeSetLocalStorageItem, safeSetSessionItem, safeParseJson } from '../utils/storage';
+import { isRepAccountDeleted } from '../utils/accountStatus';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { 
@@ -36,6 +37,7 @@ interface LoginModalProps {
   isInline?: boolean;
   onOpenAbout?: () => void;
   onOpenTerms?: () => void;
+  initialReferralCode?: string;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -46,8 +48,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   isInline = false,
   onOpenAbout,
   onOpenTerms,
+  initialReferralCode,
 }) => {
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const detectReferralCode = () => {
+    if (initialReferralCode && initialReferralCode.trim()) return initialReferralCode.trim().toUpperCase();
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const urlRef = p.get('ref') || p.get('referral') || p.get('inviter') || '';
+      if (urlRef) return urlRef.trim().toUpperCase();
+      const cached = localStorage.getItem('dalelak_pending_referral');
+      if (cached) return cached.trim().toUpperCase();
+    }
+    return '';
+  };
+
+  const detectedRef = detectReferralCode();
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(() => detectedRef ? 'register' : 'login');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [regSuccessNotice, setRegSuccessNotice] = useState<boolean>(false);
@@ -69,7 +85,33 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [regGovernorate, setRegGovernorate] = useState<string>('القاهرة');
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
-  const [regReferralCode, setRegReferralCode] = useState<string>('');
+  const [regReferralCode, setRegReferralCode] = useState<string>(() => detectedRef);
+
+  useEffect(() => {
+    if (initialReferralCode && initialReferralCode.trim()) {
+      setRegReferralCode(initialReferralCode.trim().toUpperCase());
+      setActiveTab('register');
+    }
+  }, [initialReferralCode]);
+
+  // Identify matched inviter in real-time
+  const matchedInviter = useMemo(() => {
+    const cleanRef = regReferralCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!cleanRef) return null;
+    return representatives.find((r) => {
+      const rCode = getRepReferralCode(r).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const rCustom = (r.referralCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const rPhone = (r.phone || '').replace(/\D/g, '');
+      const rSuffix = rCode.slice(-4);
+      const customSuffix = rCustom.slice(-4);
+      return (
+        rCode === cleanRef ||
+        (rCustom && rCustom === cleanRef) ||
+        (cleanRef.length >= 10 && rPhone && rPhone === cleanRef) ||
+        (cleanRef.length === 4 && (cleanRef === rSuffix || cleanRef === customSuffix))
+      );
+    });
+  }, [regReferralCode, representatives]);
   
   // Mandatory identity uploads:
   // 1. Clear face photo without filters
@@ -164,6 +206,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
 
       if (loggedInUser) {
+        if (isRepAccountDeleted(loggedInUser)) {
+          setErrorMsg('⛔ هذا الحساب تم حذفه وإلغاء تنشيطه نهائياً من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به.');
+          setIsLoading(false);
+          return;
+        }
         await updateRepSessionInDb(loggedInUser.id, loggedInUser.activeSessionId, loggedInUser.lastActiveTimestamp);
         onLoginSuccess(loggedInUser);
         if (onClose) onClose();
@@ -224,6 +271,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
       if (!foundRep) {
         setErrorMsg(`⚠️ البريد الإلكتروني أو رقم الهاتف (${cleanEmail}) غير مسجل في قاعدة البيانات.`);
+        setIsLoading(false);
+        return;
+      }
+
+      // 🛡️ Security Check: Prevent login if account was deleted or blacklisted
+      if (isRepAccountDeleted(foundRep)) {
+        setErrorMsg('⛔ هذا الحساب تم حذفه وإلغاء تنشيطه نهائياً من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به.');
         setIsLoading(false);
         return;
       }
@@ -507,6 +561,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     if (onAddRepresentative) {
       onAddRepresentative(newRepData);
     }
+
+    try {
+      localStorage.removeItem('dalelak_pending_referral');
+    } catch {}
 
     setIsLoading(false);
     setRegSuccessNotice(true);
@@ -793,6 +851,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 uppercase shadow-sm placeholder:text-slate-400"
             />
+            {matchedInviter && (
+              <div className="mt-1.5 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-bold animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>تم التعرف على الداعي: <strong>{matchedInviter.name}</strong> ({getRepReferralCode(matchedInviter)}) - سيتم ربطك بفريقه تلقائياً.</span>
+              </div>
+            )}
           </div>
 
           {/* ========================================================

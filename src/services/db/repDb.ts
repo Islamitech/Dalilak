@@ -5,7 +5,7 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,password,created_at';
+const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,password,referral_code,referred_by_code,referral_unlocked,admin_bypass_referral,referral_reward_granted,created_at';
 
 function filterOutDeletedReps(reps: Representative[]): { active: Representative[]; deleted: Representative[] } {
   const blacklist = new Set(
@@ -293,6 +293,9 @@ export async function softDeleteRepInDb(
   const updatedRep: Representative = {
     ...rep,
     isDeleted: true,
+    status: 'suspended',
+    activeSessionId: undefined,
+    lastActiveTimestamp: undefined,
     deletedAt: new Date().toISOString(),
     deletedBy,
     deletedByRole,
@@ -301,7 +304,7 @@ export async function softDeleteRepInDb(
   const targetEmail = (rep.email || '').toLowerCase().trim();
   const targetPhone = (rep.phone || '').trim();
 
-  // 1. Clean from ALL active caches immediately
+  // 1. Clean from ALL active caches immediately and Blacklist
   try {
     const purgeCache = (key: string) => {
       const cached = safeParseJson<Representative[]>(localStorage.getItem(key), []);
@@ -326,6 +329,37 @@ export async function softDeleteRepInDb(
         (!targetPhone || (r.phone || '').trim() !== targetPhone)
     );
     safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify([updatedRep, ...deletedList]));
+
+    // 🛡️ Blacklist account permanently to block login & actions everywhere
+    const delArr = safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []);
+    const delSet = new Set(Array.isArray(delArr) ? delArr.map((x) => String(x).toLowerCase().trim()) : []);
+    if (rep.id) delSet.add(rep.id.toLowerCase().trim());
+    if (targetEmail) delSet.add(targetEmail);
+    if (targetPhone) delSet.add(targetPhone);
+    safeSetLocalStorageItem('dalelak_deleted_rep_ids', JSON.stringify(Array.from(delSet)));
+
+    // ⚡ Terminate any active sessions on this browser if current user is this rep
+    const activeUserStr = safeGetLocalStorageItem('dalelak_logged_user') || safeGetLocalStorageItem('dalelak_active_user');
+    if (activeUserStr) {
+      try {
+        const parsed = JSON.parse(activeUserStr);
+        if (
+          parsed &&
+          (parsed.id === rep.id || (parsed.email && parsed.email.toLowerCase() === targetEmail))
+        ) {
+          localStorage.removeItem('dalelak_logged_user');
+          localStorage.removeItem('dalelak_active_user');
+          sessionStorage.removeItem('dalelak_active_user');
+        }
+      } catch {}
+    }
+
+    // ⚡ Broadcast immediate termination across all tabs
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_single_session_channel') : null;
+    if (channel) {
+      channel.postMessage({ type: 'ACCOUNT_TERMINATED', userId: rep.id, email: targetEmail });
+      channel.close();
+    }
   } catch {}
 
   // 2. Persist to Supabase directly without touching active local caches

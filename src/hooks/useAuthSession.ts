@@ -10,6 +10,7 @@ import {
   getSafeUserForStorage,
 } from '../utils/storage';
 import { updateRepSessionInDb, fetchBusinessesFromDb } from '../services/db';
+import { isRepAccountDeleted } from '../utils/accountStatus';
 
 const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
 
@@ -41,6 +42,14 @@ export function useAuthSession({
         try {
           const parsed = JSON.parse(savedUserStr);
           if (parsed && parsed.id && parsed.name) {
+            // 🛡️ Security Check: Never restore a deleted/suspended/blacklisted account!
+            if (isRepAccountDeleted(parsed)) {
+              safeRemoveLocalStorageItem('dalelak_logged_user');
+              safeRemoveLocalStorageItem('dalelak_last_interaction');
+              safeRemoveSessionItem('dalelak_active_user');
+              safeRemoveSessionItem('dalelak_session_last_active');
+              return null;
+            }
             safeSetLocalStorageItem('dalelak_last_interaction', String(now));
             safeSetSessionItem('dalelak_session_last_active', String(now));
             return parsed;
@@ -216,6 +225,13 @@ export function useAuthSession({
     updateRepSessionInDb(user.id, user.activeSessionId, initialNow);
 
     const interval = setInterval(() => {
+      // 🛡️ Security Check: Automatically terminate session if account was deleted
+      if (userRef.current && isRepAccountDeleted(userRef.current)) {
+        handleLogout();
+        onNotify('⛔ تم إنهاء الجلسة وإغلاق الحساب لأنه تم حذفه من قِبل إدارة المنظومة.', 'error');
+        return;
+      }
+
       const now = Date.now();
 
       setRepresentatives((prev) =>
@@ -237,13 +253,25 @@ export function useAuthSession({
           if (res.status === 409) {
             handleLogout();
             onNotify('⚠️ تم تسجيل الدخول لهذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.', 'warning');
+          } else if (res.status === 403) {
+            handleLogout();
+            onNotify('⛔ تم إنهاء الجلسة وإغلاق الحساب لعدم وجود صلاحية نشطة.', 'error');
           }
         })
         .catch(() => {});
-    }, 30000);
+    }, 15000);
 
     if (channel) {
       channel.onmessage = (event) => {
+        if (
+          event.data?.type === 'ACCOUNT_TERMINATED' &&
+          (event.data?.userId === user.id || (event.data?.email && user.email && event.data.email.toLowerCase() === user.email.toLowerCase()))
+        ) {
+          handleLogout();
+          onNotify('⛔ تم إنهاء الجلسة وإغلاق الحساب لأنه تم حذفه من قِبل إدارة المنظومة.', 'error');
+          return;
+        }
+
         if (
           event.data?.type === 'LOGIN' &&
           event.data?.userId === user.id &&

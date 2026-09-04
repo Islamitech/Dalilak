@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Business } from '../types';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
 import { 
@@ -10,6 +10,7 @@ import {
   Clock, 
   Sparkles,
   Share2,
+  Check,
   Film
 } from 'lucide-react';
 
@@ -43,6 +44,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   if (!activeVideo) return null;
 
   const isVerified = business.verificationStatus === 'verified' || business.googleSyncStatus === 'synced';
+  const [copied, setCopied] = useState<boolean>(false);
 
   const handleShare = () => {
     if (navigator.share) {
@@ -52,8 +54,11 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
         url: window.location.href,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('تم نسخ رابط الصفحة بنجاح!');
+      try {
+        navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } catch {}
     }
   };
 
@@ -91,10 +96,13 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleShare}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-              title="مشاركة"
+              className={`p-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
+                copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+              }`}
+              title={copied ? 'تم نسخ الرابط بنجاح!' : 'مشاركة'}
             >
-              <Share2 className="w-4 h-4" />
+              {copied ? <Check className="w-4 h-4 text-white" /> : <Share2 className="w-4 h-4" />}
+              {copied && <span className="text-[10px] font-bold">تم النسخ</span>}
             </button>
             <button
               onClick={onClose}

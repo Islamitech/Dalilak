@@ -300,7 +300,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="space-y-4 max-w-7xl mx-auto px-2 sm:px-4 py-4">
       {/* ── TOP OPERATIONAL TABS NAVIGATION BAR ── */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-3xl shadow-xs flex items-center gap-1.5 overflow-x-auto text-xs scrollbar-none">
+      {/* The relative wrapper + after/before pseudo-fade tells mobile users the bar is scrollable */}
+      <div className="relative">
+        {/* Fade mask edges — signals horizontal scroll on small screens */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[var(--bg-card)] to-transparent rounded-l-3xl" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-[var(--bg-card)] to-transparent rounded-r-3xl" />
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-3xl shadow-xs flex items-center gap-1.5 overflow-x-auto text-xs" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <style>{`.admin-tabs-bar::-webkit-scrollbar { display: none; }`}</style>
         <button
           type="button"
           onClick={() => setActiveAdminTab('overview')}
@@ -365,7 +371,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <DollarSign className="w-4 h-4" />
           <span>سحب الأرباح والتوريدات</span>
           {payoutRequests.filter((p) => p.status === 'pending').length > 0 && (
-            <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+            <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse" role="status" aria-label={`${payoutRequests.filter((p) => p.status === 'pending').length} طلبات معلقة`}>
               {payoutRequests.filter((p) => p.status === 'pending').length}
             </span>
           )}
@@ -383,7 +389,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <UserCheck className="w-4 h-4" />
           <span>المراجعات والعملاء المهتمين</span>
           {metrics.leadStats.pendingFollowup > 0 && (
-            <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
+            <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full" role="status" aria-label={`${metrics.leadStats.pendingFollowup} يحتاجون متابعة`}>
               {metrics.leadStats.pendingFollowup}
             </span>
           )}
@@ -404,6 +410,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span>سلة المحذوفات وأثر السيرفر ({deletedBusinesses.length + deletedRepresentatives.length})</span>
           </button>
         )}
+        </div>
       </div>
 
       {/* ── TAB 1: OVERVIEW ── */}

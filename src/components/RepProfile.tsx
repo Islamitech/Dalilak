@@ -166,7 +166,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
     if (isExternalView) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 border border-amber-500/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-6 text-white transform hover:scale-[1.02] transition-transform duration-300">
+        <div className="w-full max-w-md bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 border border-amber-500/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-6 text-white hover:border-amber-400/70 hover:shadow-amber-500/10 transition-all duration-300">
           <div className="flex items-center justify-between border-b border-amber-500/30 pb-4">
             <div className="flex items-center gap-2">
               <Logo size="sm" variant="icon" />
@@ -200,7 +200,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5 pb-24 tab-content-enter">
+    <div className="max-w-4xl mx-auto space-y-5 pb-6 md:pb-10 tab-content-enter">
       {/* Success Notification Banner */}
       {updateSuccess && (
         <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-300 p-4 rounded-2xl flex items-center justify-between text-xs font-bold shadow-lg animate-fade-in">
@@ -240,9 +240,23 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
             {/* Meta tags as clean responsive pills */}
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-mono text-amber-300 font-bold mt-2">
-              <span className="bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10">
-                كود: {repCode}
+              <span className="bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10" title="كود بطاقة التكليف الميداني">
+                بطاقة: {repCode}
               </span>
+              <span 
+                onClick={handleCopyReferral}
+                className="bg-amber-500/25 text-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-500/50 font-mono text-[10px] sm:text-[11px] font-black flex items-center gap-1 shadow-xs cursor-pointer hover:bg-amber-500/35 transition-all active:scale-95" 
+                title="اضغط لنسخ كود الإحالة الخاص بك"
+              >
+                <Users className="w-3 h-3 text-amber-400" />
+                <span>كود الإحالة: {referralCode}</span>
+                {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-amber-400" />}
+              </span>
+              {rep.referredByCode && (
+                <span className="bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-lg border border-purple-500/40 text-[10px] sm:text-[11px] font-bold flex items-center gap-1" title="كود المندوب الداعي">
+                  دعاه: {rep.referredByCode}
+                </span>
+              )}
               <span className="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-500/40 font-sans text-[10px] sm:text-[11px] font-bold flex items-center gap-1 shadow-xs">
                 <Percent className="w-3 h-3 text-amber-400" />
                 <span>نسبة العمولة: {commissionPercentage}%</span>

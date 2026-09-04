@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Business, VerificationStatus } from '../types';
+import { Business, VerificationStatus, User } from '../types';
 import { PACKAGES, EXEMPT_PACKAGE } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
@@ -40,6 +40,7 @@ import { EditFollowUpsTab } from './business-edit/EditFollowUpsTab';
 
 
 import { fetchBusinessPhotosOnDemand } from '../services/db';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface BusinessEditModalProps {
   business: Business | null;
@@ -92,6 +93,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [isDownloadingPhotos, setIsDownloadingPhotos] = useState<boolean>(false);
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
   // Tab navigation: default to 'admin_followup' as requested for admins/supervisors/accountants
   const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp' | 'admin_followup'>(
@@ -788,12 +790,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             {onDeleteBusiness && (userRole === 'admin' || userRole === 'supervisor') && (
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm(`هل أنت متأكد من رغبتك في حذف نشاط "${formData.nameAr}" نهائياً من المنظومة؟`)) {
-                    onDeleteBusiness(formData.id);
-                    onClose();
-                  }
-                }}
+                onClick={() => setShowDeleteConfirm(true)}
                 className="text-rose-600 hover:text-rose-700 hover:bg-rose-500/15 border border-rose-500/20 text-xs font-bold p-2 sm:px-3 sm:py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
                 title="حذف النشاط"
               >
@@ -842,6 +839,23 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           </div>
         </div>
       )}
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="تأكيد حذف النشاط"
+        message={`هل أنت متأكد من رغبتك في حذف نشاط "${formData?.nameAr || ''}" نهائياً من المنظومة؟`}
+        confirmLabel="حذف نهائي"
+        cancelLabel="إلغاء"
+        variant="danger"
+        onConfirm={() => {
+          if (formData && onDeleteBusiness) {
+            onDeleteBusiness(formData.id);
+            onClose();
+          }
+          setShowDeleteConfirm(false);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>,
     document.body
   );
