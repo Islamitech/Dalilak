@@ -14,12 +14,13 @@ import { TermsModal } from './components/TermsModal';
 import { PublicBusinessDirectory } from './components/directory/PublicBusinessDirectory';
 import { AppModals } from './components/modals/AppModals';
 import { useAuthSession } from './hooks/useAuthSession';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// ⚡ Code Splitting: تحميل المكونات الضخمة عند الحاجة فقط (يقلّص حجم الـ Bundle الأولي بنسبة ~60%)
-const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const BusinessForm = lazy(() => import('./components/BusinessForm').then(m => ({ default: m.BusinessForm })));
-const RepProfile = lazy(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
-const RepDashboard = lazy(() => import('./components/RepDashboard').then(m => ({ default: m.RepDashboard })));
+// ⚡ Code Splitting: تحميل المكونات الضخمة عند الحاجة فقط مع معالجة ذكية لتحديثات السيرفر
+const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const BusinessForm = lazyWithRetry(() => import('./components/BusinessForm').then(m => ({ default: m.BusinessForm })));
+const RepProfile = lazyWithRetry(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
+const RepDashboard = lazyWithRetry(() => import('./components/RepDashboard').then(m => ({ default: m.RepDashboard })));
 
 import { getOfflineSyncStatus, OfflineSyncStatus } from './services/offlineSync';
 import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';

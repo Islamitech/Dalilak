@@ -9,11 +9,12 @@ import { PackagesModal } from '../PackagesModal';
 import { OfflineSyncModal } from '../OfflineSyncModal';
 import { canUserEditBusiness, canUserDeleteBusiness } from '../../utils/permissions';
 import { fetchBusinessesFromDb } from '../../services/db';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
 
-const BusinessEditModal = lazy(() => import('../BusinessEditModal').then((m) => ({ default: m.BusinessEditModal })));
-const PaymentGatewayModal = lazy(() => import('../PaymentGatewayModal').then((m) => ({ default: m.PaymentGatewayModal })));
-const AdminProfileModal = lazy(() => import('../AdminProfileModal').then((m) => ({ default: m.AdminProfileModal })));
-const VideoPlayerModal = lazy(() => import('../VideoPlayerModal').then((m) => ({ default: m.VideoPlayerModal })));
+const BusinessEditModal = lazyWithRetry(() => import('../BusinessEditModal').then((m) => ({ default: m.BusinessEditModal })));
+const PaymentGatewayModal = lazyWithRetry(() => import('../PaymentGatewayModal').then((m) => ({ default: m.PaymentGatewayModal })));
+const AdminProfileModal = lazyWithRetry(() => import('../AdminProfileModal').then((m) => ({ default: m.AdminProfileModal })));
+const VideoPlayerModal = lazyWithRetry(() => import('../VideoPlayerModal').then((m) => ({ default: m.VideoPlayerModal })));
 
 interface AppModalsProps {
   user: User | null;

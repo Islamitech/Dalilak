@@ -26,6 +26,25 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught React error:', error, errorInfo);
+
+    // Auto-recover from stale chunks after new deployments without showing crash UI
+    const msg = error?.message || String(error || '');
+    const isChunkLoadError =
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('error loading dynamically imported module') ||
+      msg.includes('Loading chunk');
+
+    if (isChunkLoadError && typeof window !== 'undefined') {
+      const lastReload = sessionStorage.getItem('dalelak_eb_chunk_reload');
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 15000) {
+        sessionStorage.setItem('dalelak_eb_chunk_reload', String(now));
+        window.location.reload();
+        return;
+      }
+    }
+
     // Save crash report for admin review
     try {
       const report = {
