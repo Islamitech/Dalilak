@@ -48,6 +48,7 @@ interface AdminOverviewTabProps {
   totalCashInRepsHands: number;
   totalCommissionsRetainedInCash: number;
   totalApprovedPayouts: number;
+  totalRemittancesReceived?: number;
   totalEarnedCommissions: number;
   monthlyFinancialStats: Array<{
     monthKey: string;
@@ -111,6 +112,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
   totalCashInRepsHands,
   totalCommissionsRetainedInCash,
   totalApprovedPayouts,
+  totalRemittancesReceived = 0,
   totalEarnedCommissions,
   monthlyFinancialStats,
   notSubmittedCount,
@@ -322,6 +324,14 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               {totalApprovedPayouts.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)]">إلكتروني / إنستاباي / فودافون</span>
+          </div>
+
+          <div className="bg-blue-500/10 p-3 rounded-2xl border border-blue-500/30 space-y-1">
+            <span className="text-[10px] text-blue-700 dark:text-blue-300 font-bold block">توريدات استلمتها المنصة</span>
+            <span className="font-black text-base text-blue-600 dark:text-blue-400 font-mono block">
+              {totalRemittancesReceived.toLocaleString()} <span className="text-[10px]">ج</span>
+            </span>
+            <span className="text-[9px] text-blue-600/80 dark:text-blue-300/80 font-bold">سداد محصل من المناديب</span>
           </div>
 
           <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">

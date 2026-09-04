@@ -425,6 +425,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           totalCashInRepsHands={metrics.totalCashInRepsHands}
           totalCommissionsRetainedInCash={metrics.totalCommissionsRetainedInCash}
           totalApprovedPayouts={metrics.totalApprovedPayouts}
+          totalRemittancesReceived={metrics.totalRemittancesReceived}
           totalEarnedCommissions={metrics.totalEarnedCommissions}
           monthlyFinancialStats={metrics.monthlyFinancialStats}
           notSubmittedCount={metrics.notSubmittedCount}

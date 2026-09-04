@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { PayoutRequest, Representative, User } from '../../../types';
 import { PAYOUT_METHOD_LABELS } from '../../../utils/commission';
 import { isSuperAdmin } from '../../../utils/permissions';
@@ -14,6 +14,9 @@ import {
   Eye,
   FileCheck,
   Trash2,
+  Search,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react';
 
 interface AdminPayoutsTabProps {
@@ -39,74 +42,237 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
   currentUser,
   onDeletePayout,
 }) => {
-  const filteredPayouts = payoutRequests.filter((p) => payoutFilter === 'all' || p.status === payoutFilter);
+  const [typeFilter, setTypeFilter] = useState<'all' | 'payout' | 'remittance'>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // ── Financial Stats Separated Accurately by Type ──
+  // 1. Outgoing Payouts (العمولات المصروفة للمناديب - صادر من المنصة)
+  const approvedPayouts = useMemo(
+    () => payoutRequests.filter((p) => p.status === 'approved' && (!p.type || p.type === 'payout')),
+    [payoutRequests]
+  );
+  const totalApprovedPayoutsAmount = useMemo(
+    () => approvedPayouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+    [approvedPayouts]
+  );
+
+  const pendingPayouts = useMemo(
+    () => payoutRequests.filter((p) => p.status === 'pending' && (!p.type || p.type === 'payout')),
+    [payoutRequests]
+  );
+  const totalPendingPayoutsAmount = useMemo(
+    () => pendingPayouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+    [pendingPayouts]
+  );
+
+  // 2. Incoming Remittances (التوريدات والمبالغ المحصلة للمنصة - وارد إلى المنصة)
+  const approvedRemittances = useMemo(
+    () => payoutRequests.filter((p) => p.status === 'approved' && p.type === 'remittance'),
+    [payoutRequests]
+  );
+  const totalApprovedRemittancesAmount = useMemo(
+    () => approvedRemittances.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+    [approvedRemittances]
+  );
+
+  const pendingRemittances = useMemo(
+    () => payoutRequests.filter((p) => p.status === 'pending' && p.type === 'remittance'),
+    [payoutRequests]
+  );
+  const totalPendingRemittancesAmount = useMemo(
+    () => pendingRemittances.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+    [pendingRemittances]
+  );
+
+  // 3. Totals & Counts
+  const totalPendingCount = pendingPayouts.length + pendingRemittances.length;
+  const totalPendingAmount = totalPendingPayoutsAmount + totalPendingRemittancesAmount;
+  const totalPayoutsCount = useMemo(
+    () => payoutRequests.filter((p) => !p.type || p.type === 'payout').length,
+    [payoutRequests]
+  );
+  const totalRemittancesCount = useMemo(
+    () => payoutRequests.filter((p) => p.type === 'remittance').length,
+    [payoutRequests]
+  );
+
+  // Filtered List
+  const filteredPayouts = useMemo(() => {
+    return payoutRequests.filter((p) => {
+      // Status Filter
+      if (payoutFilter !== 'all' && p.status !== payoutFilter) return false;
+
+      // Type Filter
+      if (typeFilter === 'payout' && p.type === 'remittance') return false;
+      if (typeFilter === 'remittance' && p.type !== 'remittance') return false;
+
+      // Search Filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const repNameMatch = p.repName?.toLowerCase().includes(query);
+        const repPhoneMatch = p.repPhone?.includes(query);
+        const accMatch = p.accountDetails?.toLowerCase().includes(query);
+        const refMatch = p.transactionRef?.toLowerCase().includes(query);
+        const amountMatch = String(p.amount).includes(query);
+        if (!repNameMatch && !repPhoneMatch && !accMatch && !refMatch && !amountMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [payoutRequests, payoutFilter, typeFilter, searchQuery]);
 
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Header Summary & Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-[var(--bg-card)] border border-amber-500/40 p-4 rounded-3xl shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-xs text-amber-500 font-bold">
-            <span>الطلبات المعلقة قيد التحويل</span>
-            <Clock className="w-4 h-4" />
-          </div>
-          <p className="text-2xl font-black text-amber-500 font-mono">
-            {payoutRequests.filter((p) => p.status === 'pending').reduce((sum, p) => sum + (Number(p.amount) || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
-          </p>
-          <p className="text-[10px] text-[var(--text-muted)] font-bold">
-            {payoutRequests.filter((p) => p.status === 'pending').length} طلب بانتظار الاعتماد
-          </p>
-        </div>
-
-        <div className="bg-[var(--bg-card)] border border-emerald-500/40 p-4 rounded-3xl shadow-sm space-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Card 1: العمولات المصروفة للمناديب (صادر) */}
+        <div className="bg-[var(--bg-card)] border border-emerald-500/40 p-4 rounded-3xl shadow-sm space-y-1 relative overflow-hidden group">
           <div className="flex items-center justify-between text-xs text-emerald-500 font-bold">
-            <span>إجمالي العمولات المصروفة</span>
-            <CheckCircle2 className="w-4 h-4" />
+            <span className="flex items-center gap-1.5">
+              <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+              <span>العمولات المصروفة (صادر)</span>
+            </span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-black text-emerald-500 font-mono">
-            {payoutRequests.filter((p) => p.status === 'approved').reduce((sum, p) => sum + (Number(p.amount) || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
+            {totalApprovedPayoutsAmount.toLocaleString()} <span className="text-xs">ج.م</span>
           </p>
           <p className="text-[10px] text-[var(--text-muted)] font-bold">
-            {payoutRequests.filter((p) => p.status === 'approved').length} حوالة مكتملة
+            {approvedPayouts.length} حوالة عمولة منصرفة للمناديب
           </p>
         </div>
 
+        {/* Card 2: التوريدات المحصلة للمنصة (وارد) */}
+        <div className="bg-[var(--bg-card)] border border-blue-500/40 p-4 rounded-3xl shadow-sm space-y-1 relative overflow-hidden group">
+          <div className="flex items-center justify-between text-xs text-blue-500 font-bold">
+            <span className="flex items-center gap-1.5">
+              <ArrowDownLeft className="w-4 h-4 text-blue-500" />
+              <span>التوريدات المحصلة (وارد)</span>
+            </span>
+            <CheckCircle2 className="w-4 h-4 text-blue-500" />
+          </div>
+          <p className="text-2xl font-black text-blue-500 font-mono">
+            {totalApprovedRemittancesAmount.toLocaleString()} <span className="text-xs">ج.م</span>
+          </p>
+          <p className="text-[10px] text-[var(--text-muted)] font-bold">
+            {approvedRemittances.length} توريد سداد معتمد للمنصة
+          </p>
+        </div>
+
+        {/* Card 3: المعاملات المعلقة قيد المراجعة */}
+        <div className="bg-[var(--bg-card)] border border-amber-500/40 p-4 rounded-3xl shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-xs text-amber-500 font-bold">
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              <span>معاملات معلقة قيد التحويل</span>
+            </span>
+            {totalPendingCount > 0 && (
+              <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                {totalPendingCount} معلق
+              </span>
+            )}
+          </div>
+          <p className="text-2xl font-black text-amber-500 font-mono">
+            {totalPendingAmount.toLocaleString()} <span className="text-xs">ج.م</span>
+          </p>
+          <p className="text-[10px] text-[var(--text-muted)] font-bold">
+            {pendingPayouts.length} سحب معلق • {pendingRemittances.length} توريد بانتظار الاعتماد
+          </p>
+        </div>
+
+        {/* Card 4: إجمالي حركة المعاملات المسجلة */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-3xl shadow-sm space-y-1">
           <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-bold">
-            <span>إجمالي طلبات السحب المسجلة</span>
-            <FileText className="w-4 h-4 text-blue-500" />
+            <span className="flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-indigo-500" />
+              <span>إجمالي حركة المعاملات</span>
+            </span>
+            <span className="text-[10px] bg-slate-500/10 px-2 py-0.5 rounded-full font-bold">
+              {payoutRequests.length} مسجل
+            </span>
           </div>
           <p className="text-2xl font-black text-[var(--text-primary)] font-mono">
             {payoutRequests.length}
           </p>
           <p className="text-[10px] text-[var(--text-muted)] font-bold">
-            من جميع المناديب الميدانيين
+            {totalPayoutsCount} طلب سحب عمولة • {totalRemittancesCount} توريد سداد
           </p>
         </div>
       </div>
 
-      {/* Filter Pills */}
-      <div className="flex items-center gap-2 bg-[var(--bg-card)] p-2 rounded-2xl border border-[var(--border-color)] text-xs flex-wrap">
-        <span className="font-bold text-[var(--text-muted)] px-2 text-[11px]">تصفية الطلبات:</span>
-        {[
-          { key: 'all', label: `الكل (${payoutRequests.length})` },
-          { key: 'pending', label: `قيد المراجعة ⏳ (${payoutRequests.filter((p) => p.status === 'pending').length})` },
-          { key: 'approved', label: `تم الصرف والتحويل ✅ (${payoutRequests.filter((p) => p.status === 'approved').length})` },
-          { key: 'rejected', label: `مرفوضة ❌ (${payoutRequests.filter((p) => p.status === 'rejected').length})` },
-        ].map((f) => (
-          <button
-            type="button"
-            key={f.key}
-            onClick={() => setPayoutFilter(f.key as any)}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${
-              payoutFilter === f.key
-                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* Filters & Search Toolbar */}
+      <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] space-y-3">
+        {/* Row 1: Search Bar */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="بحث سريع باسم المندوب، رقم الهاتف، رقم المعاملة، أو الحساب..."
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl py-2 pr-9 pl-4 text-xs text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs cursor-pointer"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Row 2: Type Filter and Status Filter */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1 border-t border-[var(--border-color)]">
+          {/* Type Filter Pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-bold text-[var(--text-muted)] text-[11px] ml-1">نوع المعاملة:</span>
+            {[
+              { key: 'all', label: `الكل (${payoutRequests.length})` },
+              { key: 'payout', label: `💵 سحب عمولات (${totalPayoutsCount})` },
+              { key: 'remittance', label: `📥 توريدات للمنصة (${totalRemittancesCount})` },
+            ].map((t) => (
+              <button
+                type="button"
+                key={t.key}
+                onClick={() => setTypeFilter(t.key as any)}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors cursor-pointer text-[11px] ${
+                  typeFilter === t.key
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Status Filter Pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-bold text-[var(--text-muted)] text-[11px] ml-1">الحالة:</span>
+            {[
+              { key: 'all', label: `الكل` },
+              { key: 'pending', label: `قيد المراجعة ⏳ (${payoutRequests.filter((p) => p.status === 'pending').length})` },
+              { key: 'approved', label: `معتمدة ومكتملة ✅ (${payoutRequests.filter((p) => p.status === 'approved').length})` },
+              { key: 'rejected', label: `مرفوضة ❌ (${payoutRequests.filter((p) => p.status === 'rejected').length})` },
+            ].map((f) => (
+              <button
+                type="button"
+                key={f.key}
+                onClick={() => setPayoutFilter(f.key as any)}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors cursor-pointer text-[11px] ${
+                  payoutFilter === f.key
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Payouts List */}
