@@ -162,8 +162,12 @@ export function mapDbToBusiness(item: any): Business {
     ? amountPaid
     : 0);
 
-  const lat = Number(item.lat) || 30.0444;
-  const lng = Number(item.lng) || 31.2357;
+  // 🔐 BUG-16 FIX: Number(item.lat) || 30.0444 يُحوّل lat=0 لمركز القاهرة بصمت
+  // لأن 0 قيمة falsy في JS — الآن نتحقق صراحةً من وجود قيمة صالحة
+  const rawLat = item.lat !== null && item.lat !== undefined ? Number(item.lat) : NaN;
+  const rawLng = item.lng !== null && item.lng !== undefined ? Number(item.lng) : NaN;
+  const lat = (!isNaN(rawLat) && rawLat !== 0) ? rawLat : 30.0444;
+  const lng = (!isNaN(rawLng) && rawLng !== 0) ? rawLng : 31.2357;
 
   // 1. Rep Field Location URL (Unverified - for Admin Review/Upload use only - strictly omitted for already on google!)
   const repLocationUrl = isAlreadyOnGoogle
@@ -261,7 +265,9 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.verification_status = isAlreadyOnGoogle ? 'verified' : (biz.verificationStatus || 'pending');
   record.rep_id = biz.repId || 'rep_1';
   record.rep_name = biz.repName || 'مندوب معتمد';
-  record.invoice_number = biz.invoiceNumber || `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
+  // 🔐 BUG-15 FIX: Math.random() من نطاق 900 فقط يُسبب تكرار أرقام الفواتير
+  // الآن: timestamp + random suffix = تفرد فعلي وعملي
+  record.invoice_number = biz.invoiceNumber || `INV-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
   record.invoice_date = biz.invoiceDate || new Date().toISOString().split('T')[0];
   record.created_at = biz.createdDate || new Date().toISOString();
 
@@ -309,7 +315,7 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     repLocationUrl: cleanRepLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl,
     videos: Array.isArray(biz.videos)
-      ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))
+      ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http') || v.startsWith('data:') || v.startsWith('blob:')))
       : [],
     adminFollowUps: Array.isArray(biz.adminFollowUps) ? biz.adminFollowUps : [],
     userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,

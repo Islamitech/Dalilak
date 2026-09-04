@@ -66,7 +66,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
         type: newFollowUpType,
         status: newFollowUpStatus,
         authorName: currentUserName || 'المسؤول',
-        authorId: currentUserId,
+        authorId: currentUserId || 'admin',
         authorRole: (userRole as any) || 'admin',
         createdAt: new Date().toISOString(),
         nextFollowUpDate: newFollowUpNextDate ? newFollowUpNextDate : undefined,

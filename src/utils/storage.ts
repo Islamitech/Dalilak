@@ -59,12 +59,12 @@ export function getSafeBusinessesForStorage(businesses: any[]): any[] {
   return businesses.map((b) => {
     const cleanPhotos = Array.isArray(b.photos)
       ? b.photos
-          .map((p: string) => {
+          .map((p: string, idx: number) => {
             if (typeof p !== 'string') return '';
             // Always keep hosted web URLs (clean, lightweight ~80 bytes)
             if (p.startsWith('http://') || p.startsWith('https://')) return p;
-            // For data/blob URLs in local cache, only keep if small (< 35KB)
-            if ((p.startsWith('data:') || p.startsWith('blob:')) && p.length < 35000) return p;
+            // For data/blob URLs: preserve cover photos (up to 250KB each) so business media does not disappear
+            if ((p.startsWith('data:') || p.startsWith('blob:')) && idx < 2 && p.length < 250000) return p;
             return '';
           })
           .filter(Boolean)
@@ -75,7 +75,7 @@ export function getSafeBusinessesForStorage(businesses: any[]): any[] {
       ...b,
       photos: cleanPhotos,
       videos: Array.isArray(b.videos) 
-        ? b.videos.filter((v: string) => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))).slice(0, 5) 
+        ? b.videos.filter((v: string) => typeof v === 'string' && (v.startsWith('http') || v.startsWith('data:') || v.startsWith('blob:'))).slice(0, 5) 
         : [],
     };
   });
@@ -93,9 +93,9 @@ export function safeSetLocalStorageItem(key: string, value: string): boolean {
     console.warn(`localStorage.setItem failed for key "${key}", attempting non-critical cache eviction...`, err);
 
     // Evict non-essential bulky caches to free space
+    // 🔐 BUG-10 FIX: لا نحذف إشعارات المستخدم - نحذف فقط caches الضخمة الأقل أهمية
     try {
       localStorage.removeItem('dalelak_server_sync_cache');
-      localStorage.removeItem('dalelak_system_notifications');
       localStorage.removeItem('dalelak_cached_reps');
       localStorage.removeItem('dalelak_custom_reps');
       localStorage.setItem(key, value);

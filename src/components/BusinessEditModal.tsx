@@ -756,7 +756,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           {activeSection === 'whatsapp' && (
             <EditMarketingTab
               formData={formData}
-              currentRoleTitle={currentRoleTitle}
+              isAdminOrFinancial={isAdminOrFinancial}
+              isAlreadyOnGoogle={Boolean(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google')}
+              hasVerifiedGoogleMap={Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().startsWith('http'))}
+              isGoogleVerifiedAndUnpaid={Boolean(formData.verificationStatus === 'verified' && formData.paymentStatus !== 'fully_paid')}
+              copiedField={copiedField}
+              handleCopyText={handleCopyText}
             />
           )}
 

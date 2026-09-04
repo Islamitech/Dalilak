@@ -265,7 +265,7 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     const lastSyncDate = new Date(lastSync);
     const safeTime = new Date(Math.max(0, lastSyncDate.getTime() - 5 * 60 * 1000)).toISOString();
     const encLastSync = encodeURIComponent(safeTime);
-    // Query newly created rows
+    // Note: Live Supabase table only has created_at column (updated_at does not exist)
     const query = `businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`;
     const res = await supabaseRestFetch(query);
 
@@ -525,12 +525,21 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
 }
 
 export async function deleteBusinessFromDb(id: string): Promise<void> {
-  // 1. Delete from LocalStorage cache immediately
+  // 1. Delete from LocalStorage cache immediately (both cache keys)
+  // 🔐 BUG-02 FIX: ننظف كلا الـ cache keys لأن getCachedBusinesses() تقرأ من الاثنين
   try {
     const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
     if (Array.isArray(cached)) {
       const filtered = cached.filter((b: Business) => b.id !== id);
       safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(filtered));
+    }
+  } catch {}
+
+  try {
+    const directoryCache = safeParseJson<Business[]>(localStorage.getItem('dalelak_directory_cache'), []);
+    if (Array.isArray(directoryCache)) {
+      const filtered = directoryCache.filter((b: Business) => b.id !== id);
+      safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(filtered));
     }
   } catch {}
 

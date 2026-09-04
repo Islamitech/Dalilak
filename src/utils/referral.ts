@@ -36,13 +36,13 @@ export function getRepReferralCode(rep: Representative): string {
 export function isReferralSystemUnlocked(rep: Representative, myBusinessesCount: number): boolean {
   if (!rep) return false;
   if (rep.role === 'admin' || rep.role === 'supervisor') return true;
+  // 🔐 BUG-08 FIX: استخدام المقارنة الصارمة فقط لمنع Boolean("0") === true
+  // قيمة "0" من PostgreSQL كانت تُفسَّر كـ true بسبب Boolean() coercion
   if (
     rep.adminBypassReferral === true ||
     rep.referralUnlocked === true ||
     String(rep.adminBypassReferral) === 'true' ||
-    String(rep.referralUnlocked) === 'true' ||
-    Boolean(rep.adminBypassReferral) ||
-    Boolean(rep.referralUnlocked)
+    String(rep.referralUnlocked) === 'true'
   ) {
     return true;
   }

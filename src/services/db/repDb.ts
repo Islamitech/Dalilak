@@ -236,27 +236,22 @@ export async function updateRepSessionInDb(id: string, sessionId?: string, times
     }
   } catch {}
 
-  // 2. Real-time active session synchronization to Supabase Cloud via avatar JSON packing
+  // 2. Real-time active session synchronization to Supabase Cloud via dedicated columns
+  // 🔐 BUG-04 FIX: استخدام عمودي active_session_id و last_active_timestamp مباشرة
+  // بدلاً من تخزين بيانات الجلسة داخل حقل avatar (كان يُسبب تلف صور المندوبين في DB)
   if (isSupabaseConfigured()) {
     try {
-      const res = await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}&select=id,avatar`);
-      if (res.ok) {
-        const rows = await res.json();
-        const row = rows[0];
-        let meta: any = {};
-        if (row?.avatar && typeof row.avatar === 'string' && row.avatar.startsWith('{')) {
-          try { meta = JSON.parse(row.avatar); } catch {}
-        } else if (row?.avatar) {
-          meta.avatar = row.avatar;
-        }
-        meta.lastActiveTimestamp = now;
-        if (sessionId !== undefined) meta.activeSessionId = sessionId;
-
-        await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ avatar: JSON.stringify(meta) }),
-        });
+      const sessionUpdates: Record<string, any> = {
+        last_active_timestamp: now,
+      };
+      if (sessionId !== undefined) {
+        sessionUpdates.active_session_id = sessionId;
       }
+
+      await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(sessionUpdates),
+      });
     } catch (err) {
       console.warn('Supabase session sync warning:', err);
     }

@@ -407,13 +407,19 @@ export default function App() {
               (r) => r.id === currentLoggedInId || (userRef.current?.email && r.email.toLowerCase() === userRef.current.email.toLowerCase())
             );
             if (freshUserRep && userRef.current && userRef.current.id === currentLoggedInId) {
-              const updatedUser = { ...userRef.current, repData: freshUserRep };
-              userRef.current = updatedUser;
-              setUser(updatedUser);
-              safeSetSessionItem(
-                'dalelak_active_user',
-                JSON.stringify(getSafeUserForStorage(updatedUser))
-              );
+              // 🔐 BUG-01 FIX: تحقق من تغيير البيانات فعلاً قبل setUser
+              // كان Race Condition بين الـ initial fetch والـ realtime sync يُسبب re-renders متكررة
+              const prevRepDataStr = JSON.stringify(userRef.current.repData);
+              const newRepDataStr = JSON.stringify(freshUserRep);
+              if (prevRepDataStr !== newRepDataStr) {
+                const updatedUser = { ...userRef.current, repData: freshUserRep };
+                userRef.current = updatedUser;
+                setUser(updatedUser);
+                safeSetSessionItem(
+                  'dalelak_active_user',
+                  JSON.stringify(getSafeUserForStorage(updatedUser))
+                );
+              }
             }
           }
         }
@@ -474,13 +480,18 @@ export default function App() {
                 (r) => r.id === currentLoggedInId || (userRef.current?.email && r.email.toLowerCase() === userRef.current.email.toLowerCase())
               );
               if (myFreshRep && userRef.current && userRef.current.id === currentLoggedInId) {
-                const updatedUser = { ...userRef.current, repData: myFreshRep };
-                userRef.current = updatedUser;
-                setUser(updatedUser);
-                safeSetSessionItem(
-                  'dalelak_active_user',
-                  JSON.stringify(getSafeUserForStorage(updatedUser))
-                );
+                // 🔐 BUG-01 FIX (second location): نفس الحماية في الـ realtime sync
+                const prevStr = JSON.stringify(userRef.current.repData);
+                const newStr = JSON.stringify(myFreshRep);
+                if (prevStr !== newStr) {
+                  const updatedUser = { ...userRef.current, repData: myFreshRep };
+                  userRef.current = updatedUser;
+                  setUser(updatedUser);
+                  safeSetSessionItem(
+                    'dalelak_active_user',
+                    JSON.stringify(getSafeUserForStorage(updatedUser))
+                  );
+                }
               }
             }
           }
@@ -918,7 +929,10 @@ export default function App() {
       avatarStatus: 'approved',
       commissionRate: isCallerAdmin && updatedData.commissionRate !== undefined ? (Number(updatedData.commissionRate) || 42.86) : (existingRep?.commissionRate || 42.86),
       status: isCallerAdmin && updatedData.status ? updatedData.status : (existingRep?.status || 'active'),
-      password: updatedData.password || existingRep?.password || 'Aa123456',
+      // 🔐 BUG-11 FIX: إزالة كلمة المرور الافتراضية Aa123456
+      // كانت تُضبط صامتاً عند أي تحديث لبيانات المندوب حتى لو مجرد تغيير الصورة
+      // الآن: إذا لم تكن كلمة المرور محفوظة، نتركها undefined ولا نلمسها
+      password: updatedData.password || existingRep?.password,
       referralCode: updatedData.referralCode || existingRep?.referralCode,
       referredByCode: updatedData.referredByCode || existingRep?.referredByCode,
       referralUnlocked: updatedData.referralUnlocked ?? existingRep?.referralUnlocked ?? true,
@@ -1194,7 +1208,14 @@ export default function App() {
       addNotification(`💾 تم حفظ وتحديث صلاحيات وبيانات "${secureRep.name}" بنجاح! ${secureRep.roleTitle ? `(${secureRep.roleTitle})` : ''}`, 'success');
     }
 
-    await saveRepToDb(secureRep);
+    // 🔐 BUG-07 FIX: إضافة error handling لحفظ بيانات المندوب
+    // كان يُعرض "تم الحفظ" قبل الحفظ الفعلي — الفشل الصامت لا يُخطر المستخدم
+    try {
+      await saveRepToDb(secureRep);
+    } catch (saveErr) {
+      console.error('Failed to save rep to DB:', saveErr);
+      addNotification(`⚠️ تحذير: تم الحفظ محلياً لكن حدث خطأ في رفع البيانات للسحابة. سيتم إعادة المحاولة تلقائياً عند الاتصال.`, 'warning');
+    }
 
     try {
       const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
@@ -1254,8 +1275,10 @@ export default function App() {
     await savePaymentConfigToDb(newConfig);
   };
 
+  // 🔐 BUG-06 FIX: إزالة المطابقة بالاسم — اسمان متشابهان يُسببان انتحال هوية
+  // المطابقة الآمنة: ID فقط أو إيميل فقط
   const liveRep = user
-    ? representatives.find((r) => r.id === user.id || (user.email && r.email.toLowerCase() === user.email.toLowerCase()) || r.name === user.name)
+    ? representatives.find((r) => r.id === user.id || (user.email && r.email && r.email.toLowerCase() === user.email.toLowerCase()))
     : null;
 
   const currentRep: Representative = {
@@ -1668,9 +1691,11 @@ export default function App() {
               <RepProfile
                 user={user}
                 rep={currentRep}
-                businessesCount={scopedBusinesses.length}
-                totalRevenue={scopedBusinesses.reduce((acc, b) => acc + b.amountPaid, 0)}
-                totalCommission={calculateTotalRepCommission(scopedBusinesses, currentRep.commissionRate)}
+                // 🔐 BUG-12 FIX: استخدام جميع أنشطة المندوب بدلاً من scopedBusinesses (الموثقة فقط)
+                // كان المندوب يرى أرقاماً ناقصة تمنعه من فتح نظام الإحالة (يحتاج 25 نشاطاً)
+                businessesCount={businesses.filter(b => b.repId === currentRep.id).length}
+                totalRevenue={businesses.filter(b => b.repId === currentRep.id).reduce((acc, b) => acc + (b.amountPaid || 0), 0)}
+                totalCommission={calculateTotalRepCommission(businesses.filter(b => b.repId === currentRep.id), currentRep.commissionRate)}
                 allReps={representatives}
                 allBusinesses={businesses}
                 payoutRequests={payoutRequests}

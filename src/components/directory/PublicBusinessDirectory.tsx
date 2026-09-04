@@ -636,26 +636,58 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               const isVerified = biz.verificationStatus === 'verified';
               const ownerPhone = biz.ownerPhone || biz.phone || '';
 
+              const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
+              const coverPhoto = hasPhotos ? biz.photos[0] : null;
+              const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
+
               return (
                 <div
                   key={`mob_${biz.id}`}
                   className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs space-y-2"
                 >
-                  {/* Row 1: Name + Badges */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
+                  {/* Row 1: Photo + Name + Badges */}
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      {/* Photo Thumbnail */}
                       <div
                         onClick={() => onEditBusiness(biz)}
-                        className="font-black text-sm text-[var(--text-primary)] hover:text-amber-500 cursor-pointer"
+                        className="relative w-12 h-12 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
                       >
-                        {biz.nameAr}
+                        {coverPhoto ? (
+                          <img src={coverPhoto} alt={biz.nameAr} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-amber-500/60">
+                            <Store className="w-5 h-5" />
+                          </div>
+                        )}
+                        {hasVideos && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectVideoBiz(biz);
+                            }}
+                            className="absolute inset-0 bg-slate-950/50 flex items-center justify-center cursor-pointer hover:bg-amber-500/80 transition-colors"
+                            title="مشاهدة فيديو النشاط"
+                          >
+                            <Play className="w-3.5 h-3.5 text-amber-400 fill-current" />
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
-                        <span>{biz.governorate}</span>
-                        <span>•</span>
-                        <span>{biz.city}</span>
-                        <span>•</span>
-                        <span className="text-[var(--text-muted)]">{biz.category}</span>
+
+                      <div className="min-w-0 flex-1">
+                        <div
+                          onClick={() => onEditBusiness(biz)}
+                          className="font-black text-sm text-[var(--text-primary)] hover:text-amber-500 cursor-pointer truncate"
+                        >
+                          {biz.nameAr}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
+                          <span>{biz.governorate}</span>
+                          <span>•</span>
+                          <span>{biz.city}</span>
+                          <span>•</span>
+                          <span className="text-[var(--text-muted)]">{biz.category}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -774,16 +806,62 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     const isVerified = biz.verificationStatus === 'verified';
                     const ownerPhone = biz.ownerPhone || biz.phone || '';
 
+                    const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
+                    const coverPhoto = hasPhotos ? biz.photos[0] : null;
+                    const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
+
                     return (
                       <tr key={`desktop_list_${biz.id}`} className="hover:bg-[var(--input-bg)]/50 transition-colors">
                         <td className="py-3 px-4">
-                          <div
-                            onClick={() => onEditBusiness(biz)}
-                            className="font-black text-[var(--text-primary)] hover:text-amber-500 cursor-pointer text-sm truncate max-w-[180px]"
-                          >
-                            {biz.nameAr}
+                          <div className="flex items-center gap-2.5">
+                            {/* Photo Thumbnail */}
+                            <div
+                              onClick={() => onEditBusiness(biz)}
+                              className="relative w-10 h-10 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
+                            >
+                              {coverPhoto ? (
+                                <img src={coverPhoto} alt={biz.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-amber-500/50">
+                                  <Store className="w-4 h-4" />
+                                </div>
+                              )}
+                              {hasVideos && (
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectVideoBiz(biz);
+                                  }}
+                                  className="absolute inset-0 bg-slate-950/50 flex items-center justify-center cursor-pointer hover:bg-amber-500/80 transition-colors"
+                                  title="مشاهدة فيديو النشاط"
+                                >
+                                  <Play className="w-3.5 h-3.5 text-amber-400 fill-current" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div
+                                onClick={() => onEditBusiness(biz)}
+                                className="font-black text-[var(--text-primary)] hover:text-amber-500 cursor-pointer text-sm truncate max-w-[160px]"
+                              >
+                                {biz.nameAr}
+                              </div>
+                              <div className="text-[10px] font-mono text-[var(--text-muted)] flex items-center gap-1">
+                                <span>{biz.invoiceNumber}</span>
+                                {hasPhotos && (
+                                  <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 rounded">
+                                    📷 {biz.photos.length}
+                                  </span>
+                                )}
+                                {hasVideos && (
+                                  <span className="text-[9px] font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-1 rounded">
+                                    🎬 فيديو
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-[10px] font-mono text-[var(--text-muted)]">{biz.invoiceNumber}</div>
                         </td>
 
                         <td className="py-3 px-3">

@@ -72,15 +72,15 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   const referralCode = getRepReferralCode(rep);
 
   const repBusinesses = (allBusinesses && allBusinesses.length > 0)
-    ? allBusinesses.filter((b) => b.salesRepId === rep.id || b.salesRepName === rep.name)
+    ? allBusinesses.filter((b) => b.repId === rep.id || (rep.name && b.repName === rep.name))
     : [];
 
   const settlement = calculateRepSettlement(
+    rep.id,
     repBusinesses,
     commissionPercentage,
     payoutRequests || [],
-    referralSummary.totalReferralCommission,
-    referralSummary.totalGiftsEarned
+    referralSummary.totalReferralCommission
   );
 
   const pendingRemittance = payoutRequests?.find(
@@ -253,15 +253,6 @@ export const RepProfile: React.FC<RepProfileProps> = ({
         <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 shrink-0">
           <button
             onClick={() => {
-              setEditName(rep.name);
-              setEditPhone(rep.phone);
-              setEditEmail(rep.email);
-              setEditAvatar(rep.avatar || '');
-              setCurrentPassword('');
-              setNewPassword('');
-              setConfirmPassword('');
-              setShowPasswordChange(false);
-              setValidationError(null);
               setShowEditModal(true);
             }}
             className="flex-1 sm:flex-initial bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-4 py-2 sm:py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"

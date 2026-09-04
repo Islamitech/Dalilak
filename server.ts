@@ -432,7 +432,7 @@ app.post('/api/auth/login', (req, res) => {
   loginRateLimit.delete(rateLimitKey);
 
   // Automatic secure password upgrade: If password was plaintext, hash it immediately
-  if (!storedPassword.startsWith('scrypt:')) {
+  if (!storedPassword.startsWith('scrypt:') && !storedPassword.startsWith('sha256:')) {
     rep.password = hashPassword(cleanPassword);
   }
 
