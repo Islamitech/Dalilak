@@ -101,28 +101,6 @@ export default function App() {
     lastSyncTime: null,
   });
 
-  // Reactive IndexedDB Offline Sync Status Listener (Strictly User-Scoped)
-  useEffect(() => {
-    const updateSyncStatus = async () => {
-      try {
-        const effectiveUid = user?.id || user?.email || null;
-        const status = await getOfflineSyncStatus(effectiveUid);
-        setOfflineSyncStatus(status);
-      } catch {}
-    };
-
-    updateSyncStatus();
-
-    window.addEventListener('dalelak_offline_state_changed', updateSyncStatus);
-    window.addEventListener('online', updateSyncStatus);
-    window.addEventListener('offline', updateSyncStatus);
-
-    return () => {
-      window.removeEventListener('dalelak_offline_state_changed', updateSyncStatus);
-      window.removeEventListener('online', updateSyncStatus);
-      window.removeEventListener('offline', updateSyncStatus);
-    };
-  }, [user]);
 
   const [businesses, setBusinesses] = useState<Business[]>(() =>
     getCachedBusinesses().filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'))
@@ -234,7 +212,7 @@ export default function App() {
   };
 
   // User Authentication & Session Management
-  const { user, setUser, handleLoginUser, handleLogout } = useAuthSession({
+  const { user, setUser, userRef, handleLoginUser, handleLogout } = useAuthSession({
     onNotify: addNotification,
     onLogoutCleanup: () => {
       setEditingBusiness(null);
@@ -251,6 +229,29 @@ export default function App() {
     setActiveTab,
     setBusinesses,
   });
+
+  // Reactive IndexedDB Offline Sync Status Listener (Strictly User-Scoped, initialized after user exists)
+  useEffect(() => {
+    const updateSyncStatus = async () => {
+      try {
+        const effectiveUid = user?.id || user?.email || null;
+        const status = await getOfflineSyncStatus(effectiveUid);
+        setOfflineSyncStatus(status);
+      } catch {}
+    };
+
+    updateSyncStatus();
+
+    window.addEventListener('dalelak_offline_state_changed', updateSyncStatus);
+    window.addEventListener('online', updateSyncStatus);
+    window.addEventListener('offline', updateSyncStatus);
+
+    return () => {
+      window.removeEventListener('dalelak_offline_state_changed', updateSyncStatus);
+      window.removeEventListener('online', updateSyncStatus);
+      window.removeEventListener('offline', updateSyncStatus);
+    };
+  }, [user]);
 
   // Persistent System Notifications for Bell Notification Center
   const [systemNotifications, setSystemNotifications] = useState<SystemNotification[]>(() => {

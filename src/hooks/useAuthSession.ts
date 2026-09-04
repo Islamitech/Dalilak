@@ -303,6 +303,7 @@ export function useAuthSession({
   return {
     user,
     setUser,
+    userRef,
     handleLoginUser,
     handleLogout,
   };
