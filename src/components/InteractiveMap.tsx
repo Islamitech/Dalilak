@@ -7,6 +7,7 @@ import {
   LocationAddressData,
   PlaceSearchResult,
 } from '../utils/geocoding';
+import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 import {
   MapPin,
   Navigation,
@@ -967,7 +968,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   )}
                   {selectedBiz.ownerPhone && (
                     <a
-                      href={`https://wa.me/20${selectedBiz.ownerPhone.replace(/^0/, '')}`}
+                      href={`https://wa.me/20${selectedBiz.ownerPhone.replace(/\D/g, '').replace(/^0/, '')}`}
                       target="_blank"
                       rel="noreferrer"
                       className="flex-1 sm:flex-none bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 transition-colors"
@@ -978,7 +979,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   {/* Google Maps Verified Link: Only active when official verified URL exists */}
                   {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
                     <a
-                      href={selectedBiz.googleMapsUrl.trim()}
+                      href={sanitizeExternalUrl(selectedBiz.googleMapsUrl.trim())}
                       target="_blank"
                       rel="noreferrer"
                       className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow transition-colors"

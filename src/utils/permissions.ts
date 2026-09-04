@@ -123,14 +123,13 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
  * Checks if a user has permission to edit a specific business
  */
 export function canUserEditBusiness(user: User | null | undefined, business: Business): boolean {
-  if (!user) return false;
+  if (!user || !business) return false;
   if (user.role === 'admin' || user.role === 'supervisor' || user.role === 'accountant') return true;
 
-  // Representative can only edit their own registered businesses
+  // Representative can only edit their own registered businesses matching their verified ID
   if (
-    business.repId === user.id ||
-    business.repId === user.repData?.id ||
-    business.repName === user.name
+    business.repId &&
+    (business.repId === user.id || business.repId === user.repData?.id)
   ) {
     return true;
   }
@@ -149,14 +148,15 @@ export function canUserDeleteBusiness(user: User | null | undefined, business: B
   // 1. Admin and Supervisor have unrestricted deletion privileges
   if (user.role === 'admin' || user.role === 'supervisor') return true;
 
-  // 2. Representative or Creator can delete their OWN business if not verified or synced yet
-  const isOwnBusiness =
-    business.repId === user.id ||
-    business.repId === user.repData?.id ||
-    (user.email && business.repId?.toLowerCase() === user.email.toLowerCase()) ||
-    (user.repData?.phone && business.repId === user.repData.phone) ||
-    business.repName === user.name ||
-    (user.repData?.name && business.repName === user.repData.name);
+  // 2. Representative or Creator can delete their OWN business if not verified or synced yet (strictly by ID)
+  const isOwnBusiness = Boolean(
+    business.repId && (
+      business.repId === user.id ||
+      business.repId === user.repData?.id ||
+      (user.email && business.repId.toLowerCase() === user.email.toLowerCase()) ||
+      (user.repData?.phone && business.repId === user.repData.phone)
+    )
+  );
 
   if (isOwnBusiness) {
     const isAlreadyVerifiedOrSynced =

@@ -12,7 +12,7 @@
     "avatarStatus": "approved",
     "commissionRate": 42.86,
     "status": "active",
-    "password": "admin",
+    "password": "scrypt:6dda1363e43107c049b7d4f2b2f4a934:e2254436f27e8b385c85bc143b219121327f3629fd060ce791b0159fb4695bb81fed6d19236042e8a20774658b6141b97a1518065da86931ea76f87746546184",
     "referralCode": "DALIL-8355",
     "referralUnlocked": true,
     "adminBypassReferral": true

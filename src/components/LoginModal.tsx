@@ -128,128 +128,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           body: JSON.stringify({ email: cleanEmail, password: cleanPassword, forceSession: true }),
         });
 
-        if (res.status === 403) {
-          const data = await res.json();
-          setErrorMsg(data.error || '⚠️ حسابك قيد المراجعة وبانتظار تفعيل مدير النظام المسؤول.');
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setErrorMsg(data.error || '⚠️ فشل تسجيل الدخول. يرجى التأكد من صحة البيانات.');
           setIsLoading(false);
           return;
         }
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.user) {
-            if (data.token) {
-              safeSetLocalStorageItem('dalelak_auth_token', data.token);
-              safeSetSessionItem('dalelak_auth_token', data.token);
-            }
-            await updateRepSessionInDb(data.user.id, data.user.activeSessionId, data.user.lastActiveTimestamp);
-            onLoginSuccess(data.user);
-            onClose();
-            setIsLoading(false);
-            return;
+        if (data && data.user) {
+          if (data.token) {
+            safeSetLocalStorageItem('dalelak_auth_token', data.token);
+            safeSetSessionItem('dalelak_auth_token', data.token);
           }
-        }
-      } catch {
-        console.log('Server login fallback to Supabase real-time database');
-      }
-
-      // Step 2: Fresh Cloud Supabase Validation (Cloud DB is strictly authoritative!)
-      const freshDbReps = await fetchRepsFromDb();
-      const allRepsMap = new Map<string, Representative>();
-      representatives.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), r));
-      freshDbReps.forEach((r) => allRepsMap.set(r.email.trim().toLowerCase(), { ...allRepsMap.get(r.email.trim().toLowerCase()), ...r }));
-
-      let foundRep = allRepsMap.get(cleanEmail);
-      if (!foundRep) {
-        const cleanPhone = cleanEmail.replace(/\D/g, '');
-        const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
-        for (const [, r] of allRepsMap) {
-          const normR = r.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          const rPhone = (r.phone || '').replace(/\D/g, '');
-          if (
-            normR === normClean ||
-            (cleanPhone.length >= 8 && rPhone && (rPhone === cleanPhone || rPhone.endsWith(cleanPhone) || cleanPhone.endsWith(rPhone))) ||
-            r.id.toLowerCase() === cleanEmail
-          ) {
-            foundRep = r;
-            break;
-          }
-        }
-      }
-
-      // STRICT: Account MUST exist in the database!
-      if (!foundRep) {
-        setErrorMsg(`⚠️ البريد الإلكتروني أو الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات. لا يُسمح بتسجيل الدخول لأي حساب غير مسجل بالمنظومة.`);
-        setIsLoading(false);
-        return;
-      }
-
-      const now = Date.now();
-      const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
-      const SESSION_ACTIVE_THRESHOLD_MS = 60 * 1000; // 60 seconds active session threshold
-
-      // Verify Password strictly (supports both SHA-256 and legacy plaintext)
-      const storedPassword = (foundRep.password || '').trim();
-      let isPasswordCorrect = false;
-
-      if (storedPassword && storedPassword !== '••••••••') {
-        if (storedPassword.startsWith('scrypt:')) {
-          setErrorMsg('⚠️ كلمة المرور محمية بنظام تشفير الخادم، يرجى تشغيل الخادم المحلي لتسجيل الدخول.');
+          await updateRepSessionInDb(data.user.id, data.user.activeSessionId, data.user.lastActiveTimestamp);
+          onLoginSuccess(data.user);
+          if (onClose) onClose();
           setIsLoading(false);
           return;
         }
-        isPasswordCorrect = await verifyPassword(cleanPassword, storedPassword);
-      }
-
-      if (!isPasswordCorrect) {
-        setErrorMsg('⚠️ كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور وإعادة المحاولة.');
+      } catch (networkErr) {
+        console.warn('Authentication connection error:', networkErr);
+        setErrorMsg('⚠️ تعذر الاتصال بخادم المصادقة الآمن. يرجى التأكد من تشغيل الخادم والاتصال بالشبكة.');
         setIsLoading(false);
         return;
       }
-
-      // Auto-upgrade legacy plaintext passwords to SHA-256 upon successful login
-      if (!isPasswordHashed(storedPassword)) {
-        try {
-          const newHashed = await hashPassword(cleanPassword);
-          foundRep.password = newHashed;
-          saveRepToDb({ ...foundRep, password: newHashed }).catch(() => {});
-        } catch {}
-      }
-
-      // Check account review / suspension status
-      if (foundRep.status === 'suspended') {
-        if (foundRep.avatarStatus === 'rejected') {
-          setErrorMsg(`❌ تم إيقاف أو رفض هذا الحساب من قِبل إدارة المنظومة.`);
-        } else {
-          setErrorMsg(`⏳ حسابك (${foundRep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`);
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      // Set active session ID and takeover cleanly
-      foundRep.activeSessionId = newSessionId;
-      foundRep.lastActiveTimestamp = now;
-
-      foundRep.activeSessionId = newSessionId;
-      foundRep.lastActiveTimestamp = now;
-
-      await updateRepSessionInDb(foundRep.id, newSessionId, now);
-
-      if (onClose) {
-        onClose();
-      }
-
-      onLoginSuccess({
-        id: foundRep.id,
-        name: foundRep.name,
-        email: foundRep.email,
-        role: foundRep.role || 'rep',
-        repData: foundRep,
-        activeSessionId: newSessionId,
-        lastActiveTimestamp: now,
-      });
-      return;
     } catch (err) {
       console.error('Login error:', err);
       setErrorMsg('حدث خطأ أثناء التحقق من الجلسة، يرجى المحاولة لاحقاً.');

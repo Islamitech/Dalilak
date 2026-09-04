@@ -2,8 +2,19 @@
  * Utility to download business photos easily for manual Google Maps upload
  */
 
+const isSafePhotoUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim().toLowerCase();
+  return trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('blob:') || trimmed.startsWith('data:image/');
+};
+
 export const downloadSinglePhoto = async (dataUrlOrUrl: string, filename: string): Promise<void> => {
   try {
+    if (!isSafePhotoUrl(dataUrlOrUrl)) {
+      console.warn('Rejected unsafe photo URL for download');
+      return;
+    }
+
     const cleanFilename = filename.endsWith('.jpg') || filename.endsWith('.png') ? filename : `${filename}.jpg`;
     
     // If it's a remote URL, fetch as blob to bypass browser cross-origin download filename restrictions
@@ -59,6 +70,9 @@ export const downloadAllBusinessPhotos = async (photos: string[], businessName: 
 
 export const copyImageToClipboard = async (dataUrlOrUrl: string): Promise<boolean> => {
   try {
+    if (!isSafePhotoUrl(dataUrlOrUrl)) {
+      return false;
+    }
     if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
       return false;
     }

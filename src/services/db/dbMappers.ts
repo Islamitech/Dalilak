@@ -476,9 +476,8 @@ export function mapDbToRep(item: any): Representative {
     avatar: parsedAvatar,
     avatarStatus: item.avatar_status || item.avatarStatus || 'none',
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
-    status: item.status || 'active',
-    password: item.password || (item.role === 'admin' ? 'admin' : 'Aa123456'),
-    activeSessionId: metaActiveSessionId,
+    password: item.password || undefined,
+    activeSessionId: undefined, // Never populate activeSessionId from DB into public rep state
     lastActiveTimestamp: metaLastActiveTimestamp,
     referralCode: metaReferralCode || defaultRefCode,
     referredByCode: metaReferredByCode || undefined,

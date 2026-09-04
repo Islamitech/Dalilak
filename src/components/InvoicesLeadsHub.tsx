@@ -25,6 +25,7 @@ import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User } f
 import { EGYPT_GOVERNORATES } from '../data/mockData';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { formatActivityDateTime } from '../utils/dateFormatters';
+import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 
 interface InvoicesLeadsHubProps {
   leads: InterestedLead[];
@@ -440,7 +441,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           <span>{lead.governorate} {lead.city ? `- ${lead.city}` : ''} {lead.street ? `(${lead.street})` : ''}</span>
                           {((lead.lat && lead.lng) || lead.locationUrl) && (
                             <a
-                              href={lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`}
+                              href={sanitizeExternalUrl(lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10.5px] font-bold"

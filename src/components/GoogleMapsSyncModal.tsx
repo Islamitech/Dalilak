@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { getGoogleMapsVerifiedWhatsAppUrl, generateGoogleMapsVerifiedWhatsAppMessage } from '../utils/whatsappMessages';
+import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 import { fetchBusinessPhotosOnDemand } from '../services/db';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -428,7 +429,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             {/* Rep Unverified Field Location Link for Admin Upload/Review */}
             <div className="space-y-1.5 pt-1">
               <a
-                href={repFieldMapUrl || `https://www.google.com/maps?q=${business.lat},${business.lng}`}
+                href={sanitizeExternalUrl(repFieldMapUrl || (business.lat && business.lng ? `https://www.google.com/maps?q=${business.lat},${business.lng}` : ''))}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer text-center"
@@ -503,7 +504,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   </label>
                   {finalMapUrl && (
                     <a
-                      href={finalMapUrl}
+                      href={sanitizeExternalUrl(finalMapUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="text-blue-500 hover:underline text-[10.5px] font-bold flex items-center gap-1"

@@ -175,7 +175,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
             config={paymentConfig}
             onClose={() => setSelectedPayBiz(null)}
             onPaymentSuccess={(newPaid, method = 'gateway_online') => {
-              if (selectedPayBiz) {
+              if (selectedPayBiz && (user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant')) {
                 const status = newPaid >= (selectedPayBiz.packagePrice || 250) ? 'fully_paid' : 'partially_paid';
                 const updatedBiz: Business = {
                   ...selectedPayBiz,

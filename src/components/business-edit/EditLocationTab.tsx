@@ -1,6 +1,7 @@
 import React from 'react';
 import { Business, VerificationStatus } from '../../types';
 import { EGYPT_GOVERNORATES } from '../../data/mockData';
+import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import {
   CloudUpload,
   Copy,
@@ -276,7 +277,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   <a
-                    href={formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '#')}
+                    href={sanitizeExternalUrl(formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '#'))}
                     target="_blank"
                     rel="noreferrer"
                     className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-transform active:scale-95"
@@ -336,7 +337,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
               {formData.googleMapsUrl ? (
                 <div className="flex items-center gap-2 flex-wrap">
                   <a
-                    href={formData.googleMapsUrl}
+                    href={sanitizeExternalUrl(formData.googleMapsUrl)}
                     target="_blank"
                     rel="noreferrer"
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3.5 py-1.5 rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-transform active:scale-95"

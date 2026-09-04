@@ -5,6 +5,7 @@ import { formatActivityDateTime, sortBusinessesNewestFirst } from '../../utils/d
 import { matchesBusinessSearch } from '../../utils/arabicSearch';
 import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsappMessages';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
+import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import {
   Store,
   ShieldCheck,
@@ -546,7 +547,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     <div className="grid grid-cols-4 gap-1.5 text-center">
                       {/* Call */}
                       <a
-                        href={`tel:${biz.phone || biz.ownerPhone}`}
+                        href={sanitizeExternalUrl(`tel:${(biz.phone || biz.ownerPhone || '').replace(/[^\d+]/g, '')}`, '#')}
                         className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
                         title="اتصال هاتفي"
                       >
@@ -556,7 +557,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                       {/* WhatsApp */}
                       <a
-                        href={getRepFieldIntroWhatsAppUrl(biz, currentUser?.name)}
+                        href={sanitizeExternalUrl(getRepFieldIntroWhatsAppUrl(biz, currentUser?.name), '#')}
                         target="_blank"
                         rel="noreferrer"
                         className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
@@ -569,7 +570,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       {/* Google Maps */}
                       {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') ? (
                         <a
-                          href={biz.googleMapsUrl.trim()}
+                          href={sanitizeExternalUrl(biz.googleMapsUrl.trim(), '#')}
                           target="_blank"
                           rel="noreferrer"
                           className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
@@ -722,7 +723,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                     {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
                       <a
-                        href={biz.googleMapsUrl.trim()}
+                        href={sanitizeExternalUrl(biz.googleMapsUrl.trim(), '#')}
                         target="_blank"
                         rel="noreferrer"
                         className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
@@ -764,7 +765,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                     {ownerPhone && (
                       <a
-                        href={`tel:${ownerPhone}`}
+                        href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
                         className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
                         title="اتصال هاتفي"
                       >
@@ -921,7 +922,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                             {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
                               <a
-                                href={biz.googleMapsUrl.trim()}
+                                href={sanitizeExternalUrl(biz.googleMapsUrl.trim(), '#')}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
@@ -960,7 +961,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                             )}
                             {ownerPhone && (
                               <a
-                                href={`tel:${ownerPhone}`}
+                                href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
                                 className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border border-blue-500/30 transition-colors"
                                 title="اتصال هاتفي"
                               >

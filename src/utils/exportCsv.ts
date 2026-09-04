@@ -26,8 +26,9 @@ export function sanitizeCsvCell(value: any): string {
   if (value === null || value === undefined) return '""';
   const str = String(value);
   const trimmed = str.trimStart();
-  const dangerousChars = ['=', '+', '-', '@', '\t', '\r'];
-  const safeStr = dangerousChars.some((c) => trimmed.startsWith(c)) ? `'${str}` : str;
+  const dangerousChars = ['=', '+', '-', '@', '\t', '\r', '%', '|'];
+  const isDangerous = dangerousChars.some((c) => trimmed.startsWith(c));
+  const safeStr = isDangerous ? `'${str}` : str;
   return `"${safeStr.replace(/"/g, '""')}"`;
 }
 
@@ -80,8 +81,8 @@ export function exportBusinessesToCsv(businesses: Business[]) {
       sanitizeCsvCell(isExempt ? 'معفى من الرسوم (مجاني)' : b.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل' : b.paymentStatus === 'partially_paid' ? 'مدفوع جزئياً' : 'غير مسدد'),
       sanitizeCsvCell(b.verificationStatus === 'verified' ? 'موثق' : b.verificationStatus === 'in_progress' ? 'قيد المراجعة' : b.verificationStatus === 'rejected' ? 'مرفوض' : 'غير مرسل'),
       sanitizeCsvCell(b.googleSyncStatus === 'synced' ? 'تمت المزامنة بنجاح' : b.googleSyncStatus === 'in_progress' ? 'قيد المزامنة' : 'لم تتم'),
-      b.lat || '',
-      b.lng || '',
+      sanitizeCsvCell(b.lat ?? ''),
+      sanitizeCsvCell(b.lng ?? ''),
       sanitizeCsvCell(mapsLink),
     ].join(',');
   });

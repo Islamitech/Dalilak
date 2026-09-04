@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { InterestedLead, User } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { formatActivityDateTime } from '../../../utils/dateFormatters';
+import { sanitizeExternalUrl } from '../../../utils/urlSanitizer';
 import {
   UserCheck,
   Sparkles,
@@ -334,7 +335,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                     )}
                     {(lead.locationUrl || (lead.lat && lead.lng)) && (
                       <a
-                        href={lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`}
+                        href={sanitizeExternalUrl(lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold text-xs flex items-center gap-1 transition-colors"

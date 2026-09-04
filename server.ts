@@ -9,8 +9,9 @@ import { Business, Representative, PaymentGatewayConfig, PayoutRequest, Interest
 const app = express();
 const DEFAULT_PORT = Number(process.env.PORT) || 3001;
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
 // 🛡️ Security Headers Middleware — يُطبَّق على جميع الاستجابات
 app.use((_req, res, next) => {
@@ -18,7 +19,11 @@ app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self)');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; img-src 'self' https: data: blob:; media-src 'self' https: data: blob:; connect-src 'self' https: wss:;"
+  );
   // CORS: السماح فقط من المصادر الموثوقة
   const allowedOrigins = [
     process.env.APP_URL,
@@ -32,7 +37,7 @@ app.use((_req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else if (!origin) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0] || 'http://localhost:5173');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id');
@@ -42,33 +47,23 @@ app.use((_req, res, next) => {
   next();
 });
 
-// 🛡️ Security Helpers: Cross-Platform Universal Password Hashing & Verification
+// 🛡️ Security Helpers: Cryptographically Strong Password Hashing (scrypt with unique salt)
 function hashPassword(password: string): string {
   if (!password) return '';
-  // منع إعادة تشفير الهاشات الموجودة مسبقاً (Account Lockout Protection)
-  if (password.startsWith('sha256:') || password.startsWith('scrypt:')) {
+  if (password.startsWith('scrypt:')) {
     return password;
   }
-  const hash = crypto.createHash('sha256').update(password.trim()).digest('hex');
-  return `sha256:${hash}`;
+  const clean = password.trim();
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(clean, salt, 64).toString('hex');
+  return `scrypt:${salt}:${hash}`;
 }
 
 function verifyPassword(password: string, storedHash?: string): boolean {
   if (!storedHash || !password) return false;
   const cleanPassword = password.trim();
 
-  // 1. Universal SHA-256 Hash Verification (Matches client Web Crypto API 100%)
-  if (storedHash.startsWith('sha256:')) {
-    const hash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
-    const computed = `sha256:${hash}`;
-    try {
-      return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(storedHash));
-    } catch {
-      return computed === storedHash;
-    }
-  }
-
-  // 2. Legacy scrypt Hash Verification (Backward compatibility)
+  // 1. Primary: High-security salted scrypt verification
   if (storedHash.startsWith('scrypt:')) {
     const parts = storedHash.split(':');
     if (parts.length !== 3) return false;
@@ -82,7 +77,18 @@ function verifyPassword(password: string, storedHash?: string): boolean {
     }
   }
 
-  // 3. Backward-compatible Plaintext Verification
+  // 2. Legacy SHA-256 Hash Verification (Auto-upgraded to scrypt upon successful login)
+  if (storedHash.startsWith('sha256:')) {
+    const hash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
+    const computed = `sha256:${hash}`;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(storedHash));
+    } catch {
+      return computed === storedHash;
+    }
+  }
+
+  // 3. Backward-compatible Plaintext Verification (Auto-upgraded to scrypt upon successful login)
   return storedHash === cleanPassword;
 }
 
@@ -90,7 +96,7 @@ function verifyPassword(password: string, storedHash?: string): boolean {
 function atomicWriteFileSync(filePath: string, data: string): void {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmpPath = `${filePath}.${Date.now()}.${Math.random().toString(36).substring(2, 7)}.tmp`;
+  const tmpPath = `${filePath}.${Date.now()}.${crypto.randomBytes(6).toString('hex')}.tmp`;
   fs.writeFileSync(tmpPath, data, 'utf-8');
   fs.renameSync(tmpPath, filePath);
 }
@@ -103,10 +109,11 @@ interface ActiveSession {
 }
 const activeSessions = new Map<string, ActiveSession>();
 
-// 🛡️ Rate Limiting: منع هجمات Brute Force على تسجيل الدخول
+// 🛡️ Rate Limiting: Dual-layer protection (IP + Account) against Brute Force & Password Spraying
 interface RateLimitRecord { count: number; resetAt: number; }
 const loginRateLimit = new Map<string, RateLimitRecord>();
-const MAX_LOGIN_ATTEMPTS = 5;
+const MAX_LOGIN_ATTEMPTS_PER_ACCOUNT = 5;
+const MAX_LOGIN_ATTEMPTS_PER_IP = 25;
 const LOGIN_RATE_WINDOW_MS = 60 * 1000; // نافذة دقيقة واحدة
 
 // تنظيف دوري لإدخالات Rate Limit المنتهية كل 5 دقائق لمنع تسرب الذاكرة
@@ -140,7 +147,7 @@ function getRequestUser(req: express.Request): ActiveSession | null {
     }
   }
 
-  // 2. Active Session ID lookup
+  // 2. Active Session ID lookup from active verified sessions
   if (sessionId && activeSessions.has(sessionId)) {
     const session = activeSessions.get(sessionId)!;
     if (Date.now() < session.expiresAt) {
@@ -150,28 +157,14 @@ function getRequestUser(req: express.Request): ActiveSession | null {
     }
   }
 
-  // 3. Representative live session verification strictly via valid activeSessionId
-  if (sessionId && sessionId.startsWith('sess_')) {
-    const reps = representatives.length > 0 ? representatives : loadStoredReps();
-    const rep = reps.find((r) => r.activeSessionId === sessionId);
-    if (rep && rep.status !== 'suspended') {
-      const sessionObj: ActiveSession = {
-        userId: rep.id,
-        role: rep.role || 'rep',
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-      };
-      activeSessions.set(sessionId, sessionObj);
-      return sessionObj;
-    }
-  }
-
   return null;
 }
 
-// 🛡️ Representative Data Sanitization (Hides sensitive credentials & KYC documents from public)
+// 🛡️ Representative Data Sanitization (Hides sensitive credentials, active session IDs & KYC documents from public)
 function sanitizeRep(rep: Representative, isPrivileged: boolean = false): Partial<Representative> {
   const copy = { ...rep };
   delete copy.password;
+  delete copy.activeSessionId; // 🛡️ CRITICAL FIX: Never expose active session ID to avoid session hijacking!
   if (!isPrivileged) {
     delete copy.nationalId;
     delete copy.nationalIdCardPhoto;
@@ -370,27 +363,42 @@ app.post('/api/auth/login', (req, res) => {
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPassword = (password || '').trim();
   const now = Date.now();
-  const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
+  const newSessionId = `sess_${now}_${crypto.randomBytes(16).toString('hex')}`;
 
-  // 🛡️ Rate Limiting Check: منع هجمات Brute Force
+  // 🛡️ Rate Limiting Check: IP + Account dual layer
   const clientIp = (req.ip || req.socket?.remoteAddress || 'unknown').replace(/^::ffff:/, '');
-  const rateLimitKey = `login_${clientIp}_${cleanEmail}`;
-  const attempts = loginRateLimit.get(rateLimitKey);
+  const ipKey = `ip_${clientIp}`;
+  const accKey = `acc_${cleanEmail}`;
 
-  if (attempts && now < attempts.resetAt && attempts.count >= MAX_LOGIN_ATTEMPTS) {
-    const retryAfterSeconds = Math.ceil((attempts.resetAt - now) / 1000);
+  const ipAttempts = loginRateLimit.get(ipKey);
+  const accAttempts = loginRateLimit.get(accKey);
+
+  if (
+    (ipAttempts && now < ipAttempts.resetAt && ipAttempts.count >= MAX_LOGIN_ATTEMPTS_PER_IP) ||
+    (accAttempts && now < accAttempts.resetAt && accAttempts.count >= MAX_LOGIN_ATTEMPTS_PER_ACCOUNT)
+  ) {
+    const resetTime = Math.max(ipAttempts?.resetAt || 0, accAttempts?.resetAt || 0);
+    const retryAfterSeconds = Math.ceil((resetTime - now) / 1000);
     return res.status(429).json({
-      error: `⏳ تم تجاوز الحد المسموح من محاولات تسجيل الدخول (${MAX_LOGIN_ATTEMPTS} محاولات). يرجى الانتظار ${retryAfterSeconds} ثانية قبل المحاولة مجدداً.`,
+      error: `⏳ تم تجاوز الحد المسموح من محاولات تسجيل الدخول. يرجى الانتظار ${retryAfterSeconds} ثانية قبل المحاولة مجدداً.`,
     });
   }
 
-  // دالة داخلية لتسجيل محاولة فاشلة
   const recordFailedAttempt = () => {
-    const current = loginRateLimit.get(rateLimitKey);
-    if (!current || now >= current.resetAt) {
-      loginRateLimit.set(rateLimitKey, { count: 1, resetAt: now + LOGIN_RATE_WINDOW_MS });
+    const curIp = loginRateLimit.get(ipKey);
+    if (!curIp || now >= curIp.resetAt) {
+      loginRateLimit.set(ipKey, { count: 1, resetAt: now + LOGIN_RATE_WINDOW_MS });
     } else {
-      current.count++;
+      curIp.count++;
+    }
+
+    if (cleanEmail) {
+      const curAcc = loginRateLimit.get(accKey);
+      if (!curAcc || now >= curAcc.resetAt) {
+        loginRateLimit.set(accKey, { count: 1, resetAt: now + LOGIN_RATE_WINDOW_MS });
+      } else {
+        curAcc.count++;
+      }
     }
   };
 
@@ -420,7 +428,7 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: `⚠️ الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات. لا يُسمح بتسجيل الدخول لأي حساب غير مسجل.` });
   }
 
-  // Verify password strictly with cryptographic hash & backward-compatible plaintext check
+  // Verify password strictly with cryptographic hash & backward-compatible check
   const storedPassword = (rep.password || '').trim();
   const isPassValid = verifyPassword(cleanPassword, storedPassword);
 
@@ -429,11 +437,11 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: '⚠️ كلمة المرور غير صحيحة، يرجى التأكد وإعادة المحاولة.' });
   }
 
-  // ✅ تسجيل دخول ناجح — مسح سجل المحاولات الفاشلة
-  loginRateLimit.delete(rateLimitKey);
+  // ✅ تسجيل دخول ناجح — مسح سجل المحاولات الفاشلة للحساب
+  loginRateLimit.delete(accKey);
 
-  // Automatic secure password upgrade: If password was plaintext, hash it immediately
-  if (!storedPassword.startsWith('scrypt:') && !storedPassword.startsWith('sha256:')) {
+  // Automatic secure password upgrade: If password was plaintext or legacy sha256, upgrade to salted scrypt immediately
+  if (!storedPassword.startsWith('scrypt:')) {
     rep.password = hashPassword(cleanPassword);
   }
 
@@ -460,13 +468,15 @@ app.post('/api/auth/login', (req, res) => {
   rep.lastActiveTimestamp = now;
   persistStoredReps(representatives);
 
-  // Register session token with 24-hour expiration
-  const authToken = `dalil_tok_${now}_${crypto.randomBytes(24).toString('hex')}`;
-  activeSessions.set(authToken, {
+  // Register session token and session ID in memory registry
+  const sessionData: ActiveSession = {
     userId: rep.id,
     role: rep.role || 'rep',
     expiresAt: now + 24 * 60 * 60 * 1000,
-  });
+  };
+  const authToken = `dalil_tok_${now}_${crypto.randomBytes(24).toString('hex')}`;
+  activeSessions.set(authToken, sessionData);
+  activeSessions.set(newSessionId, sessionData);
 
   const sanitizedRepData = sanitizeRep(rep, rep.role === 'admin' || rep.role === 'supervisor');
 
@@ -486,17 +496,20 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Heartbeat endpoint to maintain active session lock
-
 app.post('/api/auth/heartbeat', (req, res) => {
+  const reqUser = getRequestUser(req);
   const { userId, sessionId } = req.body;
   if (!userId || !sessionId) {
     return res.status(400).json({ error: 'Missing userId or sessionId' });
   }
 
-  const rep = representatives.find((r) => r.id === userId || (userId === 'admin_1' && r.role === 'admin'));
+  if (!reqUser || reqUser.userId !== userId) {
+    return res.status(403).json({ error: 'غير مصرح: تجديد الجلسة مقتصر على صاحب الحساب حصراً' });
+  }
+
+  const rep = representatives.find((r) => r.id === userId);
   if (rep) {
     if (rep.activeSessionId && rep.activeSessionId !== sessionId) {
-      // Another session took over
       return res.status(409).json({ error: 'Session superseded', superseded: true });
     }
     rep.activeSessionId = sessionId;
@@ -509,12 +522,21 @@ app.post('/api/auth/heartbeat', (req, res) => {
 
 // Logout endpoint to release active session lock
 app.post('/api/auth/logout', (req, res) => {
+  const reqUser = getRequestUser(req);
   const { userId, sessionId } = req.body;
-  const rep = representatives.find((r) => r.id === userId || (userId === 'admin_1' && r.role === 'admin'));
-  if (rep && (!sessionId || rep.activeSessionId === sessionId)) {
-    rep.activeSessionId = undefined;
-    rep.lastActiveTimestamp = undefined;
-    persistStoredReps(representatives);
+
+  if (sessionId) activeSessions.delete(sessionId);
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace(/^Bearer\s+/i, '');
+  if (token) activeSessions.delete(token);
+
+  if (reqUser && (reqUser.userId === userId || reqUser.role === 'admin')) {
+    const rep = representatives.find((r) => r.id === userId);
+    if (rep && (!sessionId || rep.activeSessionId === sessionId)) {
+      rep.activeSessionId = undefined;
+      rep.lastActiveTimestamp = undefined;
+      persistStoredReps(representatives);
+    }
   }
   res.json({ status: 'logged_out' });
 });
@@ -537,17 +559,28 @@ app.get('/api/businesses/:id', (req, res) => {
 
 app.post('/api/businesses', (req, res) => {
   try {
+    const reqUser = getRequestUser(req);
+    if (!reqUser) {
+      return res.status(401).json({ error: 'غير مصرح: يرجى تسجيل الدخول لإضافة نشاط تجاري' });
+    }
+
     const newBiz: Business = req.body;
 
     // 🛡️ Input Validation: التحقق من الحقول المطلوبة
-    const validationError = validateRequiredFields(req.body, ['nameAr', 'phone', 'repId']);
+    const validationError = validateRequiredFields(req.body, ['nameAr', 'phone']);
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
     if (!newBiz.id) {
-      newBiz.id = `biz_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      newBiz.id = `biz_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     }
+
+    // Force repId to authenticated user for representatives
+    if (reqUser.role === 'rep' || !newBiz.repId) {
+      newBiz.repId = reqUser.userId;
+    }
+
     if (!newBiz.invoiceNumber) {
       newBiz.invoiceNumber = `INV-${new Date().getFullYear()}-${String(businesses.length + 1).padStart(3, '0')}`;
     }
@@ -560,6 +593,12 @@ app.post('/api/businesses', (req, res) => {
 
     const existingIdx = businesses.findIndex((b) => b.id === newBiz.id);
     if (existingIdx >= 0) {
+      // If updating an existing business via POST, ensure owner or manager
+      const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor' || reqUser.role === 'accountant';
+      const isOwner = businesses[existingIdx].repId === reqUser.userId;
+      if (!isManager && !isOwner) {
+        return res.status(403).json({ error: 'غير مصرح بتعديل هذا النشاط' });
+      }
       businesses[existingIdx] = { ...businesses[existingIdx], ...newBiz };
     } else {
       businesses.unshift(newBiz);
@@ -576,10 +615,11 @@ app.put('/api/businesses/:id', (req, res) => {
   const index = businesses.findIndex((b) => b.id === id);
 
   const reqUser = getRequestUser(req);
-  if (!isServerTestMode && index >= 0) {
-    if (!reqUser) {
-      return res.status(401).json({ error: 'يرجى تسجيل الدخول لتعديل النشاط' });
-    }
+  if (!reqUser) {
+    return res.status(401).json({ error: 'يرجى تسجيل الدخول لتعديل النشاط' });
+  }
+
+  if (index >= 0) {
     const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor' || reqUser.role === 'accountant';
     const isOwner = businesses[index].repId === reqUser.userId;
     if (!isManager && !isOwner) {
@@ -588,7 +628,7 @@ app.put('/api/businesses/:id', (req, res) => {
   }
 
   if (index === -1) {
-    businesses.unshift({ ...req.body, id });
+    businesses.unshift({ ...req.body, id, repId: req.body.repId || reqUser.userId });
   } else {
     businesses[index] = { ...businesses[index], ...req.body, id };
   }
@@ -605,17 +645,16 @@ app.delete('/api/businesses/:id', (req, res) => {
   }
 
   const reqUser = getRequestUser(req);
-  if (!isServerTestMode) {
-    if (!reqUser) {
-      return res.status(401).json({ error: 'يرجى تسجيل الدخول لحذف النشاط' });
-    }
-    const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor';
-    const isCreator = targetBiz.repId === reqUser.userId;
-    const isUnverified = targetBiz.verificationStatus !== 'verified' && targetBiz.googleSyncStatus !== 'synced';
+  if (!reqUser) {
+    return res.status(401).json({ error: 'يرجى تسجيل الدخول لحذف النشاط' });
+  }
 
-    if (!isManager && !(isCreator && isUnverified)) {
-      return res.status(403).json({ error: 'غير مصرح بحذف هذا النشاط' });
-    }
+  const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor';
+  const isCreator = targetBiz.repId === reqUser.userId;
+  const isUnverified = targetBiz.verificationStatus !== 'verified' && targetBiz.googleSyncStatus !== 'synced';
+
+  if (!isManager && !(isCreator && isUnverified)) {
+    return res.status(403).json({ error: 'غير مصرح بحذف هذا النشاط' });
   }
 
   businesses = businesses.filter((b) => b.id !== id);
@@ -638,14 +677,22 @@ app.get('/api/representatives', (req, res) => {
 });
 
 app.post('/api/representatives', (req, res) => {
+  const reqUser = getRequestUser(req);
+  const isManager = Boolean(reqUser && (reqUser.role === 'admin' || reqUser.role === 'supervisor'));
+
   const repData = req.body;
   const rawPassword = (repData.password || '').trim();
   const securePassword = rawPassword
     ? (rawPassword.startsWith('scrypt:') ? rawPassword : hashPassword(rawPassword))
     : hashPassword('Aa123456');
 
+  // Prevent role escalation by unauthenticated or non-manager users
+  const assignedRole = isManager ? (repData.role || 'rep') : 'rep';
+  const assignedStatus = isManager ? (repData.status || 'suspended') : 'suspended';
+  const assignedCommission = isManager ? (Number(repData.commissionRate) || 42.86) : 42.86;
+
   const newRep: Representative = {
-    id: repData.id || `rep_${Date.now()}`,
+    id: repData.id && isManager ? repData.id : `rep_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
     name: repData.name,
     email: repData.email,
     phone: repData.phone,
@@ -655,26 +702,30 @@ app.post('/api/representatives', (req, res) => {
     activationFacePhoto: repData.activationFacePhoto || repData.avatar || '',
     nationalIdCardPhoto: repData.nationalIdCardPhoto || '',
     nationalIdCardBackPhoto: repData.nationalIdCardBackPhoto || '',
-    role: repData.role || 'rep',
-    roleTitle: repData.roleTitle || (repData.role === 'admin' ? 'مدير نظام' : repData.role === 'supervisor' ? 'مشرف منطقة' : repData.role === 'accountant' ? 'محاسب' : 'مندوب مبيعات ميداني'),
+    role: assignedRole,
+    roleTitle: repData.roleTitle || (assignedRole === 'admin' ? 'مدير نظام' : assignedRole === 'supervisor' ? 'مشرف منطقة' : assignedRole === 'accountant' ? 'محاسب' : 'مندوب مبيعات ميداني'),
     governorate: repData.governorate || 'القاهرة',
     targetMonth: Number(repData.targetMonth) || 25,
     avatar: repData.avatar || '',
     avatarStatus: repData.avatarStatus || 'none',
-    commissionRate: Number(repData.commissionRate) || 42.86,
-    status: repData.status || 'suspended',
+    commissionRate: assignedCommission,
+    status: assignedStatus,
     password: securePassword,
     referralCode: repData.referralCode || `DALIL-${Date.now().toString().slice(-4)}`,
     referredByCode: repData.referredByCode || undefined,
-    referralUnlocked: Boolean(repData.referralUnlocked),
-    adminBypassReferral: Boolean(repData.adminBypassReferral),
-    referralRewardGranted: Boolean(repData.referralRewardGranted),
+    referralUnlocked: isManager ? Boolean(repData.referralUnlocked) : false,
+    adminBypassReferral: isManager ? Boolean(repData.adminBypassReferral) : false,
+    referralRewardGranted: isManager ? Boolean(repData.referralRewardGranted) : false,
   };
 
   const existingIdx = representatives.findIndex(
-    (r) => r.id === newRep.id || r.email.toLowerCase() === newRep.email.toLowerCase()
+    (r) => r.id === newRep.id || (newRep.email && r.email.toLowerCase() === newRep.email.toLowerCase())
   );
+
   if (existingIdx >= 0) {
+    if (!isManager && reqUser?.userId !== representatives[existingIdx].id) {
+      return res.status(409).json({ error: 'الحساب مسجل بالفعل في المنظومة' });
+    }
     if (!rawPassword && representatives[existingIdx].password) {
       newRep.password = representatives[existingIdx].password;
     }
@@ -684,7 +735,7 @@ app.post('/api/representatives', (req, res) => {
   }
 
   persistStoredReps(representatives);
-  res.status(201).json(sanitizeRep(newRep, true));
+  res.status(201).json(sanitizeRep(newRep, isManager));
 });
 
 app.put('/api/representatives/:id', (req, res) => {
@@ -695,16 +746,16 @@ app.put('/api/representatives/:id', (req, res) => {
   }
 
   const reqUser = getRequestUser(req);
-  const isSelf = reqUser && reqUser.userId === id;
-  const isManager = reqUser && (reqUser.role === 'admin' || reqUser.role === 'supervisor');
+  const isSelf = Boolean(reqUser && reqUser.userId === id);
+  const isManager = Boolean(reqUser && (reqUser.role === 'admin' || reqUser.role === 'supervisor'));
 
-  if (!isServerTestMode && !isSelf && !isManager) {
+  if (!isSelf && !isManager) {
     return res.status(403).json({ error: 'غير مصرح: ليس لديك صلاحية لتعديل هذا الحساب' });
   }
 
   const updates = { ...req.body };
   // Non-managers cannot escalate roles, change commission rates, or alter status
-  if (!isManager && !isServerTestMode) {
+  if (!isManager) {
     delete updates.role;
     delete updates.commissionRate;
     delete updates.status;
@@ -715,7 +766,7 @@ app.put('/api/representatives/:id', (req, res) => {
   }
   representatives[index] = { ...representatives[index], ...updates };
   persistStoredReps(representatives);
-  res.json(sanitizeRep(representatives[index], true));
+  res.json(sanitizeRep(representatives[index], isManager));
 });
 
 app.delete('/api/representatives/:id', (req, res) => {
@@ -730,23 +781,33 @@ app.delete('/api/representatives/:id', (req, res) => {
 });
 
 // 5. Payout Requests API
-app.get('/api/payouts', (_req, res) => {
+app.get('/api/payouts', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser) {
+    return res.status(401).json({ error: 'يرجى تسجيل الدخول لعرض طلبات الصرف' });
+  }
   payoutRequests = loadStoredPayouts();
-  res.json(payoutRequests);
+  const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor' || reqUser.role === 'accountant';
+  if (isManager) {
+    return res.json(payoutRequests);
+  }
+  // Reps can only view their own payout requests
+  res.json(payoutRequests.filter((p) => p.repId === reqUser.userId));
 });
 
 app.post('/api/payouts', (req, res) => {
   try {
+    const reqUser = getRequestUser(req);
+    if (!reqUser) {
+      return res.status(401).json({ error: 'يرجى تسجيل الدخول لتقديم طلب سحب' });
+    }
+
     const newPayout = req.body;
-    if (!newPayout.id) {
-      newPayout.id = `payout_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    }
-    if (!newPayout.requestDate) {
-      newPayout.requestDate = new Date().toISOString();
-    }
-    if (!newPayout.status) {
-      newPayout.status = 'pending';
-    }
+    newPayout.id = `payout_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    newPayout.repId = reqUser.userId;
+    newPayout.requestDate = new Date().toISOString();
+    newPayout.status = 'pending'; // Always pending on creation
+
     payoutRequests.unshift(newPayout);
     persistStoredPayouts(payoutRequests);
     res.status(201).json(newPayout);
@@ -757,7 +818,7 @@ app.post('/api/payouts', (req, res) => {
 
 app.put('/api/payouts/:id', (req, res) => {
   const reqUser = getRequestUser(req);
-  if (!isServerTestMode && (!reqUser || (reqUser.role !== 'admin' && reqUser.role !== 'supervisor' && reqUser.role !== 'accountant'))) {
+  if (!reqUser || (reqUser.role !== 'admin' && reqUser.role !== 'supervisor' && reqUser.role !== 'accountant')) {
     return res.status(403).json({ error: 'غير مصرح: اعتماد أو تعديل طلبات الصرف والتوريد مقتصر على الإدارة والمحاسبين فقط' });
   }
   const { id } = req.params;
@@ -771,19 +832,32 @@ app.put('/api/payouts/:id', (req, res) => {
 });
 
 // 6. Interested Leads API (العملاء المحتملين والمتابعات الميدانية)
-app.get('/api/leads', (_req, res) => {
+app.get('/api/leads', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser) {
+    return res.status(401).json({ error: 'يرجى تسجيل الدخول لعرض العملاء المهتمين' });
+  }
   leadsStore = loadStoredLeads();
-  res.json(leadsStore);
+  const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor' || reqUser.role === 'accountant';
+  if (isManager) {
+    return res.json(leadsStore);
+  }
+  res.json(leadsStore.filter((l) => l.repId === reqUser.userId));
 });
 
 app.post('/api/leads', (req, res) => {
   try {
+    const reqUser = getRequestUser(req);
+    if (!reqUser) {
+      return res.status(401).json({ error: 'يرجى تسجيل الدخول لإضافة عميل مهتم' });
+    }
     const newLead = {
-      id: req.body.id || `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: `lead_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
       createdDate: new Date().toISOString(),
       status: req.body.status || 'pending_followup',
       interestLevel: req.body.interestLevel || 'medium',
       ...req.body,
+      repId: reqUser.userId,
     };
     leadsStore.unshift(newLead);
     persistStoredLeads(leadsStore);
@@ -794,18 +868,40 @@ app.post('/api/leads', (req, res) => {
 });
 
 app.put('/api/leads/:id', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser) {
+    return res.status(401).json({ error: 'يرجى تسجيل الدخول لتعديل بيانات العميل' });
+  }
   const { id } = req.params;
   const idx = leadsStore.findIndex((l) => l.id === id);
   if (idx === -1) {
     return res.status(404).json({ error: 'العميل المهتم غير موجود' });
   }
+  const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor' || reqUser.role === 'accountant';
+  if (!isManager && leadsStore[idx].repId !== reqUser.userId) {
+    return res.status(403).json({ error: 'غير مصرح بتعديل هذا العميل' });
+  }
+
   leadsStore[idx] = { ...leadsStore[idx], ...req.body };
   persistStoredLeads(leadsStore);
   res.json(leadsStore[idx]);
 });
 
 app.delete('/api/leads/:id', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser) {
+    return res.status(401).json({ error: 'يرجى تسجيل الدخول لحذف العميل' });
+  }
   const { id } = req.params;
+  const target = leadsStore.find((l) => l.id === id);
+  if (!target) {
+    return res.status(404).json({ error: 'العميل غير موجود' });
+  }
+  const isManager = reqUser.role === 'admin' || reqUser.role === 'supervisor';
+  if (!isManager && target.repId !== reqUser.userId) {
+    return res.status(403).json({ error: 'غير مصرح بحذف هذا العميل' });
+  }
+
   leadsStore = leadsStore.filter((l) => l.id !== id);
   persistStoredLeads(leadsStore);
   res.json({ success: true });

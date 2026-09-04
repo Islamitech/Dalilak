@@ -56,5 +56,8 @@ export async function verifyPassword(plainText: string, storedPassword?: string)
  * Checks if a stored password is already in hashed format.
  */
 export function isPasswordHashed(storedPassword?: string): boolean {
-  return typeof storedPassword === 'string' && storedPassword.startsWith(HASH_PREFIX);
+  return (
+    typeof storedPassword === 'string' &&
+    (storedPassword.startsWith('scrypt:') || storedPassword.startsWith(HASH_PREFIX))
+  );
 }

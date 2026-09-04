@@ -2,6 +2,7 @@ import React from 'react';
 import { Business } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { exportBusinessesToCsv } from '../../../utils/exportCsv';
+import { sanitizeExternalUrl } from '../../../utils/urlSanitizer';
 import {
   Search,
   Download,
@@ -344,7 +345,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                         <span className="text-[10px] text-[var(--text-secondary)] block truncate">مندوب: {biz.repName}</span>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                           <a
-                            href={biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`}
+                            href={sanitizeExternalUrl(biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`)}
                             target="_blank"
                             rel="noreferrer"
                             className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline"
@@ -353,7 +354,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           </a>
                           {hasGoogleMap && (
                             <a
-                              href={biz.googleMapsUrl!.trim()}
+                              href={sanitizeExternalUrl(biz.googleMapsUrl)}
                               target="_blank"
                               rel="noreferrer"
                               className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"

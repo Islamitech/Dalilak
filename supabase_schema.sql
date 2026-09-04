@@ -248,23 +248,38 @@ ALTER TABLE public.representatives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 
--- 8.1 businesses: Public can read verified/active listings; creation allowed
+-- 8.0 Column-Level Security on representatives: hide sensitive credentials from public
+REVOKE ALL ON public.representatives FROM anon, authenticated;
+GRANT SELECT (
+    id, name, email, phone, role, role_title, governorate,
+    avatar, avatar_status, commission_rate, status, referral_code,
+    referred_by_code, referral_unlocked, target_month, created_at, updated_at
+) ON public.representatives TO anon, authenticated;
+GRANT ALL ON public.representatives TO service_role;
+
+-- 8.1 businesses: Public can read active listings; creation allowed; updates protected
 DROP POLICY IF EXISTS "Public full access to businesses" ON public.businesses;
 DROP POLICY IF EXISTS "Businesses public read" ON public.businesses;
 DROP POLICY IF EXISTS "Businesses rep insert" ON public.businesses;
 DROP POLICY IF EXISTS "Businesses rep update" ON public.businesses;
+DROP POLICY IF EXISTS "Businesses delete restricted" ON public.businesses;
 
 CREATE POLICY "Businesses public read" ON public.businesses 
-    FOR SELECT USING (true);
+    FOR SELECT USING (deleted_at IS NULL);
 
 CREATE POLICY "Businesses rep insert" ON public.businesses 
     FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Businesses rep update" ON public.businesses 
-    FOR UPDATE USING (true) WITH CHECK (true);
+    FOR UPDATE USING (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL)
+    WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL);
 
--- 8.2 payment_config: Public can READ active payment methods, only admins can MODIFY
+CREATE POLICY "Businesses delete restricted" ON public.businesses
+    FOR DELETE USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
+
+-- 8.2 payment_config: Public can READ active payment methods, only admins/service_role can MODIFY
 DROP POLICY IF EXISTS "Public full access to payment_config" ON public.payment_config;
 DROP POLICY IF EXISTS "Payment config public read" ON public.payment_config;
 DROP POLICY IF EXISTS "Payment config restricted write" ON public.payment_config;
@@ -273,48 +288,68 @@ CREATE POLICY "Payment config public read" ON public.payment_config
     FOR SELECT USING (true);
 
 CREATE POLICY "Payment config restricted write" ON public.payment_config 
-    FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role')
-    WITH CHECK (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+    FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated')
+    WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
--- 8.3 payout_requests: Controlled access
+-- 8.3 payout_requests: Controlled access (prevents unauthorized payout status alteration)
 DROP POLICY IF EXISTS "Public full access to payout_requests" ON public.payout_requests;
 DROP POLICY IF EXISTS "Payout requests read" ON public.payout_requests;
 DROP POLICY IF EXISTS "Payout requests insert" ON public.payout_requests;
 DROP POLICY IF EXISTS "Payout requests update" ON public.payout_requests;
+DROP POLICY IF EXISTS "Payouts insert restricted" ON public.payout_requests;
+DROP POLICY IF EXISTS "Payouts update restricted" ON public.payout_requests;
 
 CREATE POLICY "Payout requests read" ON public.payout_requests 
     FOR SELECT USING (true);
 
-CREATE POLICY "Payout requests insert" ON public.payout_requests 
-    FOR INSERT WITH CHECK (true);
+CREATE POLICY "Payouts insert restricted" ON public.payout_requests 
+    FOR INSERT WITH CHECK (status = 'pending' OR status IS NULL OR auth.role() = 'service_role');
 
-CREATE POLICY "Payout requests update" ON public.payout_requests 
-    FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Payouts update restricted" ON public.payout_requests 
+    FOR UPDATE USING (auth.role() = 'service_role' OR auth.role() = 'authenticated')
+    WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
 -- 8.4 leads: Field follow-up records
 DROP POLICY IF EXISTS "Public full access to leads" ON public.leads;
-CREATE POLICY "Public full access to leads" ON public.leads 
-    FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Leads read access" ON public.leads;
+DROP POLICY IF EXISTS "Leads write access" ON public.leads;
 
--- 8.5 representatives: Sync access with restricted deletion
+CREATE POLICY "Leads read access" ON public.leads 
+    FOR SELECT USING (deleted_at IS NULL);
+
+CREATE POLICY "Leads write access" ON public.leads 
+    FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL)
+    WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL);
+
+-- 8.5 representatives: Sync access with restricted deletion and privilege escalation prevention
 DROP POLICY IF EXISTS "Public full access to representatives" ON public.representatives;
 DROP POLICY IF EXISTS "Representatives sync access" ON public.representatives;
 DROP POLICY IF EXISTS "Representatives select access" ON public.representatives;
 DROP POLICY IF EXISTS "Representatives insert access" ON public.representatives;
 DROP POLICY IF EXISTS "Representatives update access" ON public.representatives;
 DROP POLICY IF EXISTS "Representatives delete restricted" ON public.representatives;
+DROP POLICY IF EXISTS "Reps read basic safe info" ON public.representatives;
+DROP POLICY IF EXISTS "Reps registration restricted" ON public.representatives;
+DROP POLICY IF EXISTS "Reps self update restricted" ON public.representatives;
 
-CREATE POLICY "Representatives select access" ON public.representatives 
-    FOR SELECT USING (true);
+CREATE POLICY "Reps read basic safe info" ON public.representatives 
+    FOR SELECT USING (deleted_at IS NULL);
 
-CREATE POLICY "Representatives insert access" ON public.representatives 
-    FOR INSERT WITH CHECK (true);
+CREATE POLICY "Reps registration restricted" ON public.representatives 
+    FOR INSERT WITH CHECK (
+        (role = 'rep' OR role IS NULL) AND
+        (status = 'suspended' OR status = 'pending' OR status IS NULL)
+    );
 
-CREATE POLICY "Representatives update access" ON public.representatives 
-    FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Reps self update restricted" ON public.representatives 
+    FOR UPDATE USING (auth.uid()::text = id OR auth.role() = 'service_role')
+    WITH CHECK (
+        auth.role() = 'service_role' OR
+        (auth.uid()::text = id AND role = 'rep')
+    );
 
 CREATE POLICY "Representatives delete restricted" ON public.representatives 
-    FOR DELETE USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+    FOR DELETE USING (auth.role() = 'service_role');
 
 
 -- =============================================================================
@@ -376,7 +411,7 @@ FOR INSERT WITH CHECK (bucket_id = 'business-media');
 
 DROP POLICY IF EXISTS "Allow updates to business-media" ON storage.objects;
 CREATE POLICY "Allow updates to business-media" ON storage.objects
-FOR UPDATE USING (bucket_id = 'business-media');
+FOR UPDATE USING (bucket_id = 'business-media' AND auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Allow deletes to business-media" ON storage.objects;
 CREATE POLICY "Allow deletes to business-media" ON storage.objects

@@ -5,11 +5,13 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
+const SAFE_REP_SELECT = 'id,name,email,phone,governorate,role,role_title,target_month,commission_rate,status,avatar,avatar_status,referral_code,referred_by_code,referral_unlocked,admin_bypass_referral,created_at,updated_at';
+
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
   if (isSupabaseConfigured()) {
     try {
-      const res = await supabaseRestFetch('representatives?select=*&order=created_at.desc');
+      const res = await supabaseRestFetch(`representatives?select=${SAFE_REP_SELECT}&order=created_at.desc`);
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
@@ -25,7 +27,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     }
 
     try {
-      const { data, error } = await supabase.from('representatives').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('representatives').select(SAFE_REP_SELECT).order('created_at', { ascending: false });
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToRep);
         try {
