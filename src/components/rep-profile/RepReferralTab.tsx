@@ -91,7 +91,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center text-xs">
               <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
                 <span className="text-[10px] text-[var(--text-muted)] font-bold block">
-                  إجمالي المناديب
+                  المناديب المنضمين
                 </span>
                 <span className="font-black text-lg text-[var(--text-primary)]">
                   {referralSummary.totalInvitedCount}
@@ -100,7 +100,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
 
               <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
                 <span className="text-[10px] text-[var(--text-muted)] font-bold block">
-                  مكتملي المهمة 1 (10+)
+                  المؤهلين (10+ أنشطة)
                 </span>
                 <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
                   {referralSummary.qualifiedRepsCount}
@@ -109,10 +109,19 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
 
               <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
                 <span className="text-[10px] text-[var(--text-muted)] font-bold block">
-                  مكافآت الدعوة
+                  عمولات مستمرة (3%-7%)
+                </span>
+                <span className="font-black text-lg text-amber-600 dark:text-amber-400">
+                  +{referralSummary.totalReferralCommission.toLocaleString()} ج.م
+                </span>
+              </div>
+
+              <div className="bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-color)]">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold block">
+                  إجمالي أرباح الإحالة
                 </span>
                 <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
-                  {referralSummary.totalReferralCommission.toLocaleString()} ج.م
+                  +{referralSummary.totalNetEarnings.toLocaleString()} ج.م
                 </span>
               </div>
             </div>

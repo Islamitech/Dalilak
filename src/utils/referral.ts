@@ -28,25 +28,17 @@ export function getRepReferralCode(rep: Representative): string {
 
 /**
  * Checks if a representative's referral code is officially unlocked.
- * Unlocked if:
- * 1. Admin explicitly enabled/bypassed it (adminBypassReferral === true)
- * 2. Marked as referralUnlocked === true
- * 3. Has registered >= 25 businesses
+ * Active for all representatives across the platform by default,
+ * unless explicitly locked by administration.
  */
-export function isReferralSystemUnlocked(rep: Representative, myBusinessesCount: number): boolean {
+export function isReferralSystemUnlocked(rep: Representative, _myBusinessesCount: number = 0): boolean {
   if (!rep) return false;
   if (rep.role === 'admin' || rep.role === 'supervisor') return true;
-  // 🔐 BUG-08 FIX: استخدام المقارنة الصارمة فقط لمنع Boolean("0") === true
-  // قيمة "0" من PostgreSQL كانت تُفسَّر كـ true بسبب Boolean() coercion
-  if (
-    rep.adminBypassReferral === true ||
-    rep.referralUnlocked === true ||
-    String(rep.adminBypassReferral) === 'true' ||
-    String(rep.referralUnlocked) === 'true'
-  ) {
-    return true;
+  // If explicitly locked by admin:
+  if (rep.adminBypassReferral === false && rep.referralUnlocked === false) {
+    return false;
   }
-  return (Number(myBusinessesCount) || 0) >= 25;
+  return true;
 }
 
 export interface RepReferralSummary {
@@ -132,7 +124,7 @@ export function getRepReferralSummary(
 ): RepReferralSummary {
   const referralCode = getRepReferralCode(inviterRep);
   const myBizCount = allBusinesses.filter(
-    (b) => b.repId === inviterRep.id || b.repName === inviterRep.name
+    (b) => b.repId === inviterRep.id || (inviterRep.name && b.repName === inviterRep.name) || (inviterRep.phone && b.repId === inviterRep.phone)
   ).length;
   const isUnlocked = isReferralSystemUnlocked(inviterRep, myBizCount);
 
@@ -155,7 +147,9 @@ export function getRepReferralSummary(
   let qualifiedRepsCount = 0;
 
   const invitedRepsDetails = invitedReps.map((rep) => {
-    const repBiz = allBusinesses.filter((b) => b.repId === rep.id || b.repName === rep.name);
+    const repBiz = allBusinesses.filter(
+      (b) => b.repId === rep.id || (rep.name && b.repName === rep.name) || (rep.phone && b.repId === rep.phone)
+    );
     const bizCount = repBiz.length;
     const totalRevenue = repBiz.reduce((sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + (b.amountPaid || 0), 0);
     const currentRate = calculateReferralCommissionRate(bizCount);

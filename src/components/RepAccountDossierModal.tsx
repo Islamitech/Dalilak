@@ -103,17 +103,23 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
 
   const effectiveRate = rep?.commissionRate && rep.commissionRate < 100 ? rep.commissionRate : 42.86;
 
-  // Calculate master financial settlement
-  const settlement = useMemo(() => {
-    if (!rep) return null;
-    return calculateRepSettlement(rep.id, repBusinesses, effectiveRate, payoutRequests);
-  }, [rep?.id, repBusinesses, effectiveRate, payoutRequests]);
-
   // Referral Network Summary
   const referralSummary = useMemo(() => {
     if (!rep) return null;
     return getRepReferralSummary(rep, allReps, businesses);
   }, [rep, allReps, businesses]);
+
+  // Calculate master financial settlement
+  const settlement = useMemo(() => {
+    if (!rep) return null;
+    return calculateRepSettlement(
+      rep.id,
+      repBusinesses,
+      effectiveRate,
+      payoutRequests,
+      referralSummary?.totalNetEarnings || 0
+    );
+  }, [rep?.id, repBusinesses, effectiveRate, payoutRequests, referralSummary?.totalNetEarnings]);
 
   // Payout and Remittance Requests for this rep
   const repPayouts = useMemo(() => {

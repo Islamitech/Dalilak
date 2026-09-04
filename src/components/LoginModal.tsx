@@ -382,24 +382,29 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const cleanReferral = regReferralCode.trim().toUpperCase();
     const ownCode = `DALIL-${timestamp.toString().slice(-4)}`;
 
-    // Smart referral resolver: supports DALIL-XXXX codes, 4-digit codes (8355), emails, and phone numbers
+    // Smart referral resolver: supports DALIL-XXXX codes, 4-digit codes, emails, and phone numbers
     let resolvedReferredByCode: string | undefined = undefined;
     if (cleanReferral) {
+      if (cleanReferral === ownCode || cleanReferral === regPhone || (cleanRegEmail && cleanReferral === cleanRegEmail.toUpperCase())) {
+        setErrorMsg('⚠️ لا يمكن استخدام كود الإحالة أو رقم الهاتف الخاص بك ككود دعوة لنفسك.');
+        setIsLoading(false);
+        return;
+      }
+
       const cleanRefNorm = cleanReferral.replace(/[^A-Z0-9]/g, '');
       const refDigits = cleanReferral.replace(/\D/g, '').slice(-4);
 
+      // 1. Exact match on official code, custom code, phone, email, or id
       let matchRep = representatives.find((r) => {
         const rCode = getRepReferralCode(r).toUpperCase().replace(/[^A-Z0-9]/g, '');
         const rCustom = (r.referralCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-        const rDigits = (r.referralCode || '').replace(/\D/g, '').slice(-4) || (r.phone || '').replace(/\D/g, '').slice(-4);
         const rPhone = (r.phone || '').replace(/\D/g, '');
         const rEmail = (r.email || '').trim().toLowerCase();
 
         return (
           rCode === cleanRefNorm ||
           (rCustom && rCustom === cleanRefNorm) ||
-          (rDigits && refDigits && rDigits === refDigits) ||
-          (rPhone && (rPhone === cleanReferral.replace(/\D/g, '') || rPhone.endsWith(cleanReferral.replace(/\D/g, '')))) ||
+          (cleanReferral.length >= 10 && rPhone && rPhone === cleanReferral.replace(/\D/g, '')) ||
           rEmail === cleanReferral.toLowerCase() ||
           r.id.toLowerCase() === cleanReferral.toLowerCase()
         );
@@ -411,20 +416,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           matchRep = freshReps.find((r) => {
             const rCode = getRepReferralCode(r).toUpperCase().replace(/[^A-Z0-9]/g, '');
             const rCustom = (r.referralCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-            const rDigits = (r.referralCode || '').replace(/\D/g, '').slice(-4) || (r.phone || '').replace(/\D/g, '').slice(-4);
             const rPhone = (r.phone || '').replace(/\D/g, '');
             const rEmail = (r.email || '').trim().toLowerCase();
 
             return (
               rCode === cleanRefNorm ||
               (rCustom && rCustom === cleanRefNorm) ||
-              (rDigits && refDigits && rDigits === refDigits) ||
-              (rPhone && (rPhone === cleanReferral.replace(/\D/g, '') || rPhone.endsWith(cleanReferral.replace(/\D/g, '')))) ||
+              (cleanReferral.length >= 10 && rPhone && rPhone === cleanReferral.replace(/\D/g, '')) ||
               rEmail === cleanReferral.toLowerCase() ||
               r.id.toLowerCase() === cleanReferral.toLowerCase()
             );
           });
         } catch {}
+      }
+
+      // 2. Suffix match only if exact was not found
+      if (!matchRep && refDigits && refDigits.length === 4) {
+        matchRep = representatives.find((r) => {
+          const rDigits = (r.referralCode || '').replace(/\D/g, '').slice(-4) || (r.phone || '').replace(/\D/g, '').slice(-4);
+          return rDigits === refDigits;
+        });
       }
 
       if (matchRep) {
@@ -456,7 +467,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       password: await hashPassword(regPassword),
       referralCode: ownCode,
       referredByCode: resolvedReferredByCode,
-      referralUnlocked: false,
+      referralUnlocked: true,
+      adminBypassReferral: true,
     };
 
     // Save directly to Supabase Database immediately so Admin sees it across all sessions

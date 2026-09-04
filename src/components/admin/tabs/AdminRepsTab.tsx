@@ -1,7 +1,7 @@
 import React from 'react';
 import { Representative, Business, PayoutRequest, User, UserRole } from '../../../types';
 import { calculateRepSettlement } from '../../../utils/commission';
-import { getRepReferralCode, isReferralSystemUnlocked, isReferredByInviter } from '../../../utils/referral';
+import { getRepReferralCode, isReferralSystemUnlocked, isReferredByInviter, getRepReferralSummary } from '../../../utils/referral';
 import { exportRepsToCsv } from '../../../utils/exportCsv';
 import { UserAvatar } from '../../UserAvatar';
 import {
@@ -272,8 +272,9 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
               <div className="pt-2 border-t border-[var(--border-color)] flex flex-col gap-2 text-xs">
                 {/* Financial Settlement & Cash Indicator Row */}
                 {(() => {
-                  const repBiz = businesses.filter((b) => b.repId === acc.id || b.repName === acc.name);
-                  const repSettlement = calculateRepSettlement(acc.id, repBiz, acc.commissionRate || 42.86, payoutRequests);
+                  const repBiz = businesses.filter((b) => b.repId === acc.id || b.repName === acc.name || b.repId === acc.phone);
+                  const repReferral = getRepReferralSummary(acc, mergedAdminReps, businesses);
+                  const repSettlement = calculateRepSettlement(acc.id, repBiz, acc.commissionRate || 42.86, payoutRequests, repReferral.totalNetEarnings);
 
                   return (
                     <div className="bg-[var(--input-bg)] p-2 rounded-xl border border-[var(--border-color)] flex flex-wrap items-center justify-between gap-1 text-[11px]">

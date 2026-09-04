@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Business, Representative, PayoutRequest, InterestedLead, User } from '../../../types';
 import { calculateRepSettlement, calculateRepCommissionFromCash } from '../../../utils/commission';
-import { isReferredByInviter } from '../../../utils/referral';
+import { isReferredByInviter, getRepReferralSummary } from '../../../utils/referral';
 
 interface UseAdminMetricsProps {
   currentUser?: User | null;
@@ -258,7 +258,8 @@ export const useAdminMetrics = ({
         }
 
         const effectiveRate = rep.commissionRate && rep.commissionRate < 100 ? rep.commissionRate : 42.86;
-        const settlement = calculateRepSettlement(rep.id, repBiz, effectiveRate, payoutRequests);
+        const repReferral = getRepReferralSummary(rep, mergedAdminReps, businesses);
+        const settlement = calculateRepSettlement(rep.id, repBiz, effectiveRate, payoutRequests, repReferral.totalNetEarnings);
         const invitedCount = mergedAdminReps.filter((r) => isReferredByInviter(r, rep)).length;
 
         return {
@@ -277,6 +278,7 @@ export const useAdminMetrics = ({
           withdrawableBalance: settlement.withdrawableBalance,
           isDebt: settlement.isDebtToPlatform,
           invitedCount,
+          referralEarnings: repReferral.totalNetEarnings,
         };
       })
       .sort((a, b) => b.totalBiz - a.totalBiz);
@@ -319,7 +321,8 @@ export const useAdminMetrics = ({
       if (rep.role !== 'rep') return sum;
       const repBiz = businesses.filter((b) => b.repId === rep.id || b.repName === rep.name || b.repId === rep.phone);
       const repRate = (rep.commissionRate && rep.commissionRate < 100) ? rep.commissionRate : 42.86;
-      const settlement = calculateRepSettlement(rep.id, repBiz, repRate, payoutRequests);
+      const repReferral = getRepReferralSummary(rep, mergedAdminReps, businesses);
+      const settlement = calculateRepSettlement(rep.id, repBiz, repRate, payoutRequests, repReferral.totalNetEarnings);
       return sum + settlement.totalEarnedCommission;
     }, 0);
   }, [mergedAdminReps, businesses, payoutRequests]);
@@ -344,7 +347,8 @@ export const useAdminMetrics = ({
       if (rep.role !== 'rep') return;
       const repBiz = businesses.filter((b) => b.repId === rep.id || b.repName === rep.name || b.repId === rep.phone);
       const repRate = (rep.commissionRate && rep.commissionRate < 100) ? rep.commissionRate : 42.86;
-      const settlement = calculateRepSettlement(rep.id, repBiz, repRate, payoutRequests);
+      const repReferral = getRepReferralSummary(rep, mergedAdminReps, businesses);
+      const settlement = calculateRepSettlement(rep.id, repBiz, repRate, payoutRequests, repReferral.totalNetEarnings);
 
       totalRepCashInHand += settlement.totalCashInHand;
       if (settlement.isDebtToPlatform) {

@@ -80,7 +80,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
     repBusinesses,
     commissionPercentage,
     payoutRequests || [],
-    referralSummary.totalReferralCommission
+    referralSummary.totalNetEarnings
   );
 
   const pendingRemittance = payoutRequests?.find(
