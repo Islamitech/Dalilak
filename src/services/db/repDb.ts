@@ -5,7 +5,7 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-const SAFE_REP_SELECT = 'id,name,email,phone,governorate,role,role_title,target_month,commission_rate,status,avatar,avatar_status,referral_code,referred_by_code,referral_unlocked,admin_bypass_referral,created_at,updated_at';
+const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,created_at';
 
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)
@@ -21,13 +21,31 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
           } catch {}
           return freshList;
         }
+      } else {
+        // Fallback to select=* if column selection encounters schema mismatch
+        const fallbackRes = await supabaseRestFetch('representatives?select=*&order=created_at.desc');
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          if (Array.isArray(fallbackData) && fallbackData.length > 0) {
+            const freshList = fallbackData.map(mapDbToRep);
+            try {
+              safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(freshList)));
+            } catch {}
+            return freshList;
+          }
+        }
       }
     } catch (err) {
       console.warn('Supabase fetch reps REST error:', err);
     }
 
     try {
-      const { data, error } = await supabase.from('representatives').select(SAFE_REP_SELECT).order('created_at', { ascending: false });
+      let { data, error } = await supabase.from('representatives').select(SAFE_REP_SELECT).order('created_at', { ascending: false });
+      if (error || !data || data.length === 0) {
+        const fallback = await supabase.from('representatives').select('*').order('created_at', { ascending: false });
+        data = fallback.data;
+        error = fallback.error;
+      }
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToRep);
         try {
@@ -44,7 +62,10 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const localRes = await fetch('/api/representatives', { signal: controller.signal });
+    const localRes = await fetch('/api/representatives', {
+      headers: getApiAuthHeaders(),
+      signal: controller.signal,
+    });
     clearTimeout(timeoutId);
     if (localRes.ok) {
       const localData = await localRes.json();

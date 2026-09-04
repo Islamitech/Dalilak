@@ -190,8 +190,11 @@ function loadStoredReps(): Representative[] {
       const data = JSON.parse(fs.readFileSync(REPS_STORE_PATH, 'utf-8'));
       if (Array.isArray(data) && data.length > 0) {
         const map = new Map<string, Representative>();
-        MOCK_REPRESENTATIVES.forEach((r) => map.set(r.email.toLowerCase(), r));
-        data.forEach((r) => map.set(r.email.toLowerCase(), { ...map.get(r.email.toLowerCase()), ...r }));
+        MOCK_REPRESENTATIVES.forEach((r) => map.set(r.id || r.email.toLowerCase(), r));
+        data.forEach((r) => {
+          const key = r.id || (r.email || '').toLowerCase();
+          map.set(key, { ...map.get(key), ...r });
+        });
         return Array.from(map.values());
       }
     }

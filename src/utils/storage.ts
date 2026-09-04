@@ -24,36 +24,36 @@ export function getSafeUserForStorage(user: User | null): User | null {
   if (user.repData) {
     safeRepData = {
       ...user.repData,
-      // Strip large base64 documents from session storage
-      nationalIdCardPhoto: undefined,
-      nationalIdCardBackPhoto: undefined,
-      activationFacePhoto: undefined,
-      // If avatar is abnormally large (> 100KB), truncate or keep clean
-      avatar: user.repData.avatar && user.repData.avatar.length > 150000 ? '' : user.repData.avatar,
+      // Preserve KYC documents and avatar unless excessively large (> 250KB)
+      nationalIdCardPhoto: user.repData.nationalIdCardPhoto && user.repData.nationalIdCardPhoto.length > 250000 ? undefined : user.repData.nationalIdCardPhoto,
+      nationalIdCardBackPhoto: user.repData.nationalIdCardBackPhoto && user.repData.nationalIdCardBackPhoto.length > 250000 ? undefined : user.repData.nationalIdCardBackPhoto,
+      activationFacePhoto: user.repData.activationFacePhoto && user.repData.activationFacePhoto.length > 250000 ? undefined : user.repData.activationFacePhoto,
+      avatar: user.repData.avatar && user.repData.avatar.length > 250000 ? '' : user.repData.avatar,
     };
   }
 
   return {
     ...user,
-    avatar: user.avatar && user.avatar.length > 150000 ? '' : user.avatar,
+    avatar: user.avatar && user.avatar.length > 250000 ? '' : user.avatar,
     repData: safeRepData,
   };
 }
 
 /**
- * Strips heavy base64 documents from representative lists before persisting to localStorage.
+ * Strips password and session tokens from representative lists before persisting to localStorage,
+ * while preserving nationalId, avatars, and verified documents within safe size boundaries.
  */
 export function getSafeRepsForStorage(reps: Representative[]): Representative[] {
   if (!Array.isArray(reps)) return [];
   return reps.map((r) => ({
     ...r,
     password: undefined, // 🛡️ Strip sensitive password hashes from client localStorage
-    nationalId: undefined, // 🛡️ Strip sensitive national ID numbers from client localStorage
+    nationalId: r.nationalId, // Keep national ID (clean 14-digit number)
     activeSessionId: undefined, // 🛡️ Strip session IDs from client localStorage
-    nationalIdCardPhoto: undefined,
-    nationalIdCardBackPhoto: undefined,
-    activationFacePhoto: undefined,
-    avatar: r.avatar && r.avatar.length > 120000 ? '' : r.avatar,
+    nationalIdCardPhoto: r.nationalIdCardPhoto && r.nationalIdCardPhoto.length > 250000 ? undefined : r.nationalIdCardPhoto,
+    nationalIdCardBackPhoto: r.nationalIdCardBackPhoto && r.nationalIdCardBackPhoto.length > 250000 ? undefined : r.nationalIdCardBackPhoto,
+    activationFacePhoto: r.activationFacePhoto && r.activationFacePhoto.length > 250000 ? undefined : r.activationFacePhoto,
+    avatar: r.avatar && r.avatar.length > 250000 ? '' : r.avatar,
   }));
 }
 

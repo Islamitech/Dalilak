@@ -134,17 +134,36 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="الملف الشخصي وتعديل الصورة"
                 className="flex items-center gap-1 sm:gap-2 bg-[var(--bg-card)] hover:bg-amber-500/10 border border-[var(--border-color)] hover:border-amber-500/40 rounded-full py-1 px-1.5 sm:px-3 shadow-xs transition-all duration-300 cursor-pointer group shrink-0"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-400/60 shrink-0 flex items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-xs shadow-xs">
-                  {user.repData?.avatar || user.avatar ? (
-                    <img
-                      src={user.repData?.avatar || user.avatar}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span>{user.name ? user.name.trim().charAt(0) : 'م'}</span>
-                  )}
-                </div>
+                {(() => {
+                  let rawAvatar = user.repData?.avatar || user.avatar;
+                  if (typeof rawAvatar === 'string' && rawAvatar.trim().startsWith('{')) {
+                    try {
+                      const parsed = JSON.parse(rawAvatar.trim());
+                      if (parsed && typeof parsed.avatar === 'string') {
+                        rawAvatar = parsed.avatar;
+                      }
+                    } catch {}
+                  }
+                  const hasValidAvatar =
+                    rawAvatar &&
+                    typeof rawAvatar === 'string' &&
+                    rawAvatar.trim().length > 5 &&
+                    (rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://') || rawAvatar.startsWith('data:') || rawAvatar.startsWith('blob:') || rawAvatar.startsWith('/'));
+
+                  return (
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-400/60 shrink-0 flex items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-xs shadow-xs">
+                      {hasValidAvatar ? (
+                        <img
+                          src={rawAvatar}
+                          alt={user.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{user.name ? user.name.trim().charAt(0) : 'م'}</span>
+                      )}
+                    </div>
+                  );
+                })()}
                 <div className="text-right flex flex-col">
                   <p className="text-[11px] sm:text-xs font-black text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[70px] xs:max-w-[100px] sm:max-w-[150px] leading-tight">
                     {user.name}

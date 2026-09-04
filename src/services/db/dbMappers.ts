@@ -453,7 +453,7 @@ export function mapDbToRep(item: any): Representative {
     pendingPhone: metaPendingPhone,
     phoneStatus: metaPhoneStatus,
     nationalId: item.national_id || item.nationalId,
-    activationFacePhoto: metaActivationFacePhoto || '',
+    activationFacePhoto: metaActivationFacePhoto || parsedAvatar || '',
     nationalIdCardPhoto: metaNationalIdCardPhoto || '',
     nationalIdCardBackPhoto: metaNationalIdCardBackPhoto || '',
     role: (item.role || 'rep') as UserRole,
@@ -503,30 +503,35 @@ export function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.commissionRate !== undefined) record.commission_rate = Number(rep.commissionRate) || 42.86;
   if (rep.status !== undefined) record.status = rep.status;
   if (rep.password !== undefined) record.password = rep.password;
-  if (rep.referralCode !== undefined) record.referral_code = rep.referralCode;
-  if (rep.referredByCode !== undefined) record.referred_by_code = rep.referredByCode;
-  if (rep.referralUnlocked !== undefined) record.referral_unlocked = Boolean(rep.referralUnlocked);
-  if (rep.adminBypassReferral !== undefined) record.admin_bypass_referral = Boolean(rep.adminBypassReferral);
-  if (rep.referralRewardGranted !== undefined) record.referral_reward_granted = Boolean(rep.referralRewardGranted);
-  if (rep.activationFacePhoto !== undefined) record.activation_face_photo = rep.activationFacePhoto || null;
-  if (rep.nationalIdCardPhoto !== undefined) record.national_id_card_photo = rep.nationalIdCardPhoto || null;
-  if (rep.nationalIdCardBackPhoto !== undefined) record.national_id_card_back_photo = rep.nationalIdCardBackPhoto || null;
-  if (rep.pendingPhone !== undefined) record.pending_phone = rep.pendingPhone || null;
-  if (rep.phoneStatus !== undefined) record.phone_status = rep.phoneStatus || 'none';
-  if (rep.lastActiveTimestamp !== undefined) record.last_active_timestamp = rep.lastActiveTimestamp || null;
-  if (rep.activeSessionId !== undefined) record.active_session_id = rep.activeSessionId || null;
 
-  // Avatar strictly contains only the clean profile avatar URL/base64, never bundled PII documents!
+  // Extract clean avatar if already packed
   let cleanAvatar = rep.avatar;
+  let existingMeta: any = {};
   if (typeof cleanAvatar === 'string' && cleanAvatar.trim().startsWith('{')) {
     try {
-      const parsed = JSON.parse(cleanAvatar.trim());
-      cleanAvatar = parsed.avatar || null;
+      existingMeta = JSON.parse(cleanAvatar.trim()) || {};
+      cleanAvatar = existingMeta.avatar || '';
     } catch {}
   }
-  if (cleanAvatar !== undefined) {
-    record.avatar = cleanAvatar || null;
-  }
+
+  // Pack metadata into avatar JSON to preserve face photo, KYC documents, and referral settings in Supabase
+  const avatarBundle = {
+    ...existingMeta,
+    avatar: cleanAvatar || existingMeta.avatar || '',
+    referralCode: rep.referralCode ?? existingMeta.referralCode,
+    referralUnlocked: rep.referralUnlocked ?? existingMeta.referralUnlocked,
+    adminBypassReferral: rep.adminBypassReferral ?? existingMeta.adminBypassReferral,
+    referralRewardGranted: rep.referralRewardGranted ?? existingMeta.referralRewardGranted,
+    activationFacePhoto: rep.activationFacePhoto ?? existingMeta.activationFacePhoto ?? '',
+    nationalIdCardPhoto: rep.nationalIdCardPhoto ?? existingMeta.nationalIdCardPhoto ?? '',
+    nationalIdCardBackPhoto: rep.nationalIdCardBackPhoto ?? existingMeta.nationalIdCardBackPhoto ?? '',
+    pendingPhone: rep.pendingPhone ?? existingMeta.pendingPhone,
+    phoneStatus: rep.phoneStatus ?? existingMeta.phoneStatus ?? 'none',
+    lastActiveTimestamp: rep.lastActiveTimestamp ?? existingMeta.lastActiveTimestamp,
+    activeSessionId: rep.activeSessionId ?? existingMeta.activeSessionId,
+  };
+
+  record.avatar = JSON.stringify(avatarBundle);
 
   return record;
 }
