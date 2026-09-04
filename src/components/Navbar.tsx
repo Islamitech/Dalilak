@@ -3,7 +3,7 @@ import { User, SystemNotification } from '../types';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationCenter } from './NotificationCenter';
-import { LogIn, LogOut, Info, FileText, ShieldCheck, Sparkles, Globe } from 'lucide-react';
+import { LogIn, LogOut, Info, FileText, ShieldCheck, Sparkles, Globe, Home, Map, PlusCircle, UserCheck, Shield } from 'lucide-react';
 
 interface NavbarProps {
   user: User | null;
@@ -12,6 +12,8 @@ interface NavbarProps {
   onLogout: () => void;
   onOpenProfile?: () => void;
   activeTab?: string;
+  setActiveTab?: (tab: string) => void;
+  isAdmin?: boolean;
   systemNotifications: SystemNotification[];
   onMarkAllNotificationsAsRead: () => void;
   onMarkNotificationAsRead: (id: string) => void;
@@ -29,6 +31,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLogin,
   onLogout,
   onOpenProfile,
+  activeTab = 'home',
+  setActiveTab,
+  isAdmin = false,
   systemNotifications,
   onMarkAllNotificationsAsRead,
   onMarkNotificationAsRead,
@@ -39,6 +44,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPermissions,
   onOpenPackages,
 }) => {
+  const desktopTabs = [
+    { id: 'home', label: 'الرئيسية', icon: Home, title: 'عرض الأنشطة المسجلة والبحث الميداني' },
+    { id: 'map', label: 'الخريطة', icon: Map, title: 'استكشاف الأنشطة على الخريطة التفاعلية' },
+    { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true, title: 'إضافة نشاط تجاري جديد وتوثيقه' },
+    { id: 'invoices', label: 'المراجعات', icon: UserCheck, title: 'كشف الحساب والمراجعات المالية والتحصيلات' },
+    {
+      id: isAdmin ? 'admin' : 'profile',
+      label: isAdmin ? 'لوحة الإدارة' : 'ملفي الشخصي',
+      icon: isAdmin ? Shield : ShieldCheck,
+      title: isAdmin ? 'لوحة تحكم إدارة النظام' : 'الملف الشخصي وحساب العمولات',
+    },
+  ];
   return (
     <header className="sticky top-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-b border-[var(--border-color)] text-[var(--text-primary)] shadow-md transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
@@ -46,8 +63,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-3 sm:gap-4">
           <Logo size="md" />
 
-          {/* Quick Informational Links — hidden until lg to prevent crowding on tablets (768-1024px) */}
-          <div className="hidden lg:flex items-center gap-1 text-xs font-bold">
+          {/* Quick Informational Links — shown on xl screens to give priority to main navigation */}
+          <div className="hidden xl:flex items-center gap-1 text-xs font-bold">
             {user?.role !== 'rep' && (
               <button
                 type="button"
@@ -110,6 +127,63 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
         </div>
+
+        {/* Center: Desktop Page Navigation Tabs (Always prominent for Computers & Tablets >= md) */}
+        {user && setActiveTab && (
+          <nav
+            role="navigation"
+            aria-label="التنقل الرئيسي للكمبيوتر"
+            className="hidden md:flex items-center gap-1 sm:gap-1.5 bg-[var(--bg-secondary)]/80 backdrop-blur-md p-1 rounded-2xl border border-[var(--border-color)] shadow-xs shrink-0"
+          >
+            {desktopTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              if (tab.isPrimary) {
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      if (activeTab === 'add') {
+                        window.dispatchEvent(new CustomEvent('dalelak_submit_business_form'));
+                      } else {
+                        setActiveTab(tab.id);
+                      }
+                    }}
+                    title={tab.title}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all duration-300 shadow-sm cursor-pointer ${
+                      isActive
+                        ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 ring-2 ring-amber-500/40 scale-102'
+                        : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 hover:brightness-105 active:scale-95'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 stroke-[2.5]" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  title={tab.title}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-black border border-amber-500/30 shadow-xs'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 transition-all duration-200 ${isActive ? 'stroke-[2.5] text-amber-500 scale-105' : 'stroke-[1.8]'}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
 
         {/* Right side controls: Notification Center + Theme Toggle + User Badge / Login */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">

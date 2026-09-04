@@ -1844,6 +1844,9 @@ export default function App() {
       {/* Top App Bar - Fixed */}
       <Navbar
         user={user}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isAdmin={canUserAccessAdminPanel(user)}
         onOpenLogin={() => setShowLoginModal(true)}
         onLogout={handleLogout}
         onOpenProfile={() => {
@@ -1853,7 +1856,6 @@ export default function App() {
             setActiveTab('profile');
           }
         }}
-        activeTab={activeTab}
         systemNotifications={allNotifications}
         onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
         onMarkNotificationAsRead={handleMarkNotificationAsRead}
@@ -2084,6 +2086,7 @@ export default function App() {
                 onLogout={handleLogout}
                 onUpdateRep={handleUpdateRepresentative}
                 onRequestPayout={handleCreatePayoutRequest}
+                onNavigateHome={() => setActiveTab('home')}
               />
             </Suspense>
           ) : (

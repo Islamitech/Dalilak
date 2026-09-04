@@ -28,6 +28,7 @@ import {
   IdCard,
   Phone,
   X,
+  Home,
 } from 'lucide-react';
 
 interface RepProfileProps {
@@ -43,6 +44,7 @@ interface RepProfileProps {
   onLogout: () => void;
   onUpdateRep: (updatedRep: Representative) => void;
   onRequestPayout?: (payout: PayoutRequest) => void;
+  onNavigateHome?: () => void;
   isExternalView?: boolean;
 }
 
@@ -59,6 +61,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   onLogout,
   onUpdateRep,
   onRequestPayout,
+  onNavigateHome,
   isExternalView = false,
 }) => {
   // Navigation Tabs for Profile
@@ -276,7 +279,19 @@ export const RepProfile: React.FC<RepProfileProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 shrink-0">
+        <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 shrink-0 flex-wrap sm:flex-nowrap">
+          {onNavigateHome && (
+            <button
+              type="button"
+              onClick={onNavigateHome}
+              title="العودة إلى الصفحة الرئيسية للأنشطة"
+              className="bg-slate-800/90 hover:bg-slate-700 text-amber-300 font-bold text-xs px-3.5 py-2 sm:py-2.5 rounded-xl border border-amber-500/30 flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 cursor-pointer shrink-0"
+            >
+              <Home className="w-4 h-4 text-amber-400 stroke-[2.5]" />
+              <span>الرئيسية</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               setShowEditModal(true);
