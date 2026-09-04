@@ -17,6 +17,8 @@ import {
   X,
   MapPin,
   Flame,
+  ExternalLink,
+  Navigation,
 } from 'lucide-react';
 import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
@@ -429,9 +431,21 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-0.5 flex items-center gap-1.5">
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">
                           <MapPin className="w-3 h-3" />
-                          <span>{lead.governorate} {lead.city ? `- ${lead.city}` : ''}</span>
+                          <span>{lead.governorate} {lead.city ? `- ${lead.city}` : ''} {lead.street ? `(${lead.street})` : ''}</span>
+                          {((lead.lat && lead.lng) || lead.locationUrl) && (
+                            <a
+                              href={lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10.5px] font-bold"
+                            >
+                              <Navigation className="w-2.5 h-2.5" />
+                              <span>نقطة الخريطة 📍</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
                         </p>
                       </div>
                     </div>

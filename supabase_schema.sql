@@ -373,6 +373,10 @@ ALTER TABLE public.businesses      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP
 ALTER TABLE public.businesses      ADD COLUMN IF NOT EXISTS deleted_by TEXT;
 ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS street TEXT;
+ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS location_url TEXT;
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_by TEXT;
 

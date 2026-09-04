@@ -35,7 +35,8 @@ import {
   EyeOff,
   Map as MapIcon,
   Share2,
-  ShieldCheck
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
@@ -101,8 +102,26 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         setPhone(initialLead.phone);
         setOwnerPhone(initialLead.phone);
       }
-      if (initialLead.governorate) setGovernorate(initialLead.governorate);
-      if (initialLead.city) setCity(initialLead.city);
+      if (initialLead.governorate) {
+        setGovernorate(initialLead.governorate);
+        setLeadGov(initialLead.governorate);
+      }
+      if (initialLead.city) {
+        setCity(initialLead.city);
+        setLeadCity(initialLead.city);
+      }
+      if (initialLead.street) {
+        setStreet(initialLead.street);
+        setLeadStreet(initialLead.street);
+      }
+      if (initialLead.lat && initialLead.lng) {
+        setLat(initialLead.lat);
+        setLng(initialLead.lng);
+        setShowMap(true);
+        setLeadLat(initialLead.lat);
+        setLeadLng(initialLead.lng);
+        setHasLeadLocation(true);
+      }
       if (initialLead.businessCategory) {
         setCategory(initialLead.businessCategory);
         const found = getGroupFromCategory(initialLead.businessCategory);
@@ -205,6 +224,82 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       }, 4500);
     } else {
       setIsLocating(false);
+      alert('خدمة GPS غير مدعومة على متصفحك.');
+    }
+  };
+
+  // 📍 Interested Lead Location States & GPS
+  const [leadLat, setLeadLat] = useState<number>(29.9753);
+  const [leadLng, setLeadLng] = useState<number>(31.1120);
+  const [hasLeadLocation, setHasLeadLocation] = useState<boolean>(false);
+  const [showLeadMap, setShowLeadMap] = useState<boolean>(false);
+  const [isLocatingLead, setIsLocatingLead] = useState<boolean>(false);
+  const [leadLocationNotice, setLeadLocationNotice] = useState<string | null>(null);
+
+  const handleGetLeadLocation = () => {
+    setIsLocatingLead(true);
+    triggerHaptic('light');
+    if ('geolocation' in navigator) {
+      let bestPosition: GeolocationPosition | null = null;
+      let watchId: number | null = null;
+      let sampleCount = 0;
+
+      const finalizeLeadPosition = async (pos: GeolocationPosition) => {
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        setIsLocatingLead(false);
+
+        const userLat = Number(pos.coords.latitude.toFixed(6));
+        const userLng = Number(pos.coords.longitude.toFixed(6));
+        const acc = Math.round(pos.coords.accuracy);
+
+        setLeadLat(userLat);
+        setLeadLng(userLng);
+        setHasLeadLocation(true);
+        triggerHaptic('success');
+
+        const addrDetails = await fetchLocationAddress(userLat, userLng);
+        if (addrDetails.governorate) setLeadGov(addrDetails.governorate);
+        if (addrDetails.city) setLeadCity(addrDetails.city);
+        if (addrDetails.street && !leadStreet) setLeadStreet(addrDetails.street);
+        else if (addrDetails.landmark && !leadStreet) setLeadStreet(addrDetails.landmark);
+
+        setLeadLocationNotice(`🎯 تم تحديد موقع العميل بدقة (±${acc}م) - الإحداثيات: ${userLat}, ${userLng}`);
+        setTimeout(() => setLeadLocationNotice(null), 6000);
+      };
+
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          sampleCount++;
+          if (!bestPosition || position.coords.accuracy < bestPosition.coords.accuracy) {
+            bestPosition = position;
+          }
+          if (position.coords.accuracy <= 8 || sampleCount >= 4) {
+            finalizeLeadPosition(bestPosition || position);
+          }
+        },
+        (error) => {
+          console.warn('Geolocation lead error / fallback:', error);
+          if (bestPosition) {
+            finalizeLeadPosition(bestPosition);
+          } else {
+            setIsLocatingLead(false);
+            setLeadLocationNotice('⚠️ تعذر جلب GPS تلقائياً، يمكنك فتح الخريطة لتحديد الموقع يدوياً.');
+            setTimeout(() => setLeadLocationNotice(null), 5000);
+          }
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+
+      setTimeout(() => {
+        if (isLocatingLead && bestPosition) {
+          finalizeLeadPosition(bestPosition);
+        } else if (isLocatingLead) {
+          if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+          setIsLocatingLead(false);
+        }
+      }, 4500);
+    } else {
+      setIsLocatingLead(false);
       alert('خدمة GPS غير مدعومة على متصفحك.');
     }
   };
@@ -473,6 +568,12 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
     setIsSavingLead(true);
     try {
+      const locationMapUrl = hasLeadLocation ? `https://www.google.com/maps?q=${leadLat},${leadLng}` : undefined;
+      const cleanNotes = leadNotes.trim();
+      const combinedNotes = hasLeadLocation && locationMapUrl
+        ? (cleanNotes ? `${cleanNotes}\n\n📍 موقع الخريطة: ${locationMapUrl}` : `📍 موقع الخريطة: ${locationMapUrl}`)
+        : cleanNotes || undefined;
+
       const lead: InterestedLead = {
         id: `lead_${Date.now()}`,
         clientName: leadClientName.trim() || 'عميل مهتم',
@@ -480,9 +581,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         phone: leadPhone.trim(),
         governorate: leadGov,
         city: leadCity.trim() || undefined,
+        street: leadStreet.trim() || undefined,
+        lat: hasLeadLocation ? leadLat : undefined,
+        lng: hasLeadLocation ? leadLng : undefined,
+        locationUrl: locationMapUrl,
         interestLevel: leadInterest,
         followUpDate: leadFollowDate || undefined,
-        notes: leadNotes.trim() || undefined,
+        notes: combinedNotes,
         createdDate: new Date().toISOString(),
         repId: currentRep?.id || 'rep_1',
         repName: currentRep?.name || 'مندوب معتمد',
@@ -502,6 +607,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       setLeadCity('');
       setLeadStreet('');
       setLeadNotes('');
+      setHasLeadLocation(false);
+      setShowLeadMap(false);
+      setLeadLocationNotice(null);
     } catch (err) {
       console.error(err);
     } finally {
@@ -1051,6 +1159,105 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
                 onChange={(e) => setLeadStreet(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-medium focus:outline-none focus:border-emerald-500"
               />
+            </div>
+
+            {/* 📍 GPS Coordinates & Interactive Map for Lead */}
+            <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 sm:p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-[var(--border-color)]">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-extrabold text-xs text-[var(--text-primary)]">نقطة موقع المحل / النشاط على الخريطة (GPS)</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* GPS Locator Button */}
+                  <button
+                    type="button"
+                    onClick={handleGetLeadLocation}
+                    disabled={isLocatingLead}
+                    className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[11px] font-black px-3 py-1.5 rounded-xl shadow transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                  >
+                    {isLocatingLead ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                    <span>{isLocatingLead ? 'جاري التحديد...' : '📍 تحديد موقعي الحالي'}</span>
+                  </button>
+
+                  {/* Map Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setShowLeadMap(!showLeadMap);
+                      if (!hasLeadLocation) setHasLeadLocation(true);
+                    }}
+                    className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer shadow-xs ${
+                      showLeadMap
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                        : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-emerald-500/10'
+                    }`}
+                  >
+                    {showLeadMap ? <EyeOff className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <MapIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+                    <span>{showLeadMap ? 'إخفاء الخريطة' : 'تحديد على الخريطة'}</span>
+                    {showLeadMap ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Status / Coordinates pill */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-[var(--text-muted)] font-bold">حالة الموقع:</span>
+                  {hasLeadLocation ? (
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold dir-ltr bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                      {leadLat.toFixed(6)}, {leadLng.toFixed(6)}
+                    </span>
+                  ) : (
+                    <span className="text-[var(--text-muted)] font-medium">لم يتم تثبيت نقطة GPS بعد (اختياري)</span>
+                  )}
+                </div>
+                {hasLeadLocation && (
+                  <a
+                    href={`https://www.google.com/maps?q=${leadLat},${leadLng}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold text-[10.5px] inline-flex items-center gap-1"
+                  >
+                    <span>معاينة على Google Maps</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              {leadLocationNotice && (
+                <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>{leadLocationNotice}</span>
+                </div>
+              )}
+
+              {/* Interactive Map Picker Container */}
+              {showLeadMap && (
+                <div className="animate-fade-in pt-1">
+                  <InteractiveMap
+                    mode="picker"
+                    lat={leadLat}
+                    lng={leadLng}
+                    onLocationSelect={(newLat, newLng, details) => {
+                      setLeadLat(newLat);
+                      setLeadLng(newLng);
+                      setHasLeadLocation(true);
+                      if (details) {
+                        if (details.governorate) setLeadGov(details.governorate);
+                        if (details.city) setLeadCity(details.city);
+                        if (details.street && !leadStreet) setLeadStreet(details.street);
+                        else if (details.landmark && !leadStreet) setLeadStreet(details.landmark);
+                        setLeadLocationNotice(`✨ تم تحديد موقع النشاط: ${details.governorate || ''} - ${details.city || ''}`);
+                        setTimeout(() => setLeadLocationNotice(null), 5000);
+                      }
+                    }}
+                    heightClass="h-[260px]"
+                  />
+                </div>
+              )}
             </div>
 
             <div>

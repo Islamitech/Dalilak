@@ -1076,6 +1076,13 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
         const { error } = await supabase.from('leads').upsert([dbRecord], { onConflict: 'id' });
         if (!error) {
           await removeOfflineLead(lead.id);
+        } else {
+          // Resilient fallback: in case remote schema lacks newly added columns (street, lat, lng, location_url)
+          const { street, lat, lng, location_url, ...baseDbRecord } = dbRecord;
+          const { error: fallbackErr } = await supabase.from('leads').upsert([baseDbRecord], { onConflict: 'id' });
+          if (!fallbackErr) {
+            await removeOfflineLead(lead.id);
+          }
         }
       }
     } catch (err) {
@@ -1739,6 +1746,19 @@ function mapPayoutToDb(payout: PayoutRequest): any {
 }
 
 function mapDbToLead(item: any): InterestedLead {
+  let lat = item.lat ? Number(item.lat) : undefined;
+  let lng = item.lng ? Number(item.lng) : undefined;
+  let locationUrl = item.location_url || item.locationUrl;
+
+  if ((!lat || !lng) && item.notes && typeof item.notes === 'string') {
+    const match = item.notes.match(/https:\/\/www\.google\.com\/maps\?q=([0-9.]+),([0-9.]+)/);
+    if (match) {
+      lat = Number(match[1]);
+      lng = Number(match[2]);
+      if (!locationUrl) locationUrl = match[0];
+    }
+  }
+
   return {
     id: item.id || `lead_${Date.now()}`,
     clientName: item.client_name || item.clientName || item.name || 'عميل محتمل',
@@ -1748,6 +1768,10 @@ function mapDbToLead(item: any): InterestedLead {
     secondaryPhone: item.secondary_phone || item.secondaryPhone,
     governorate: item.governorate || 'القاهرة',
     city: item.city || 'القاهرة',
+    street: item.street || undefined,
+    lat,
+    lng,
+    locationUrl: locationUrl || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined),
     interestLevel: item.interest_level || item.interestLevel || 'high',
     notes: item.notes,
     followUpDate: item.follow_up_date || item.followUpDate,
@@ -1769,6 +1793,10 @@ function mapLeadToDb(lead: InterestedLead): any {
     secondary_phone: lead.secondaryPhone || null,
     governorate: lead.governorate,
     city: lead.city || null,
+    street: lead.street || null,
+    lat: lead.lat ?? null,
+    lng: lead.lng ?? null,
+    location_url: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
     interest_level: lead.interestLevel,
     notes: lead.notes || null,
     follow_up_date: lead.followUpDate || null,

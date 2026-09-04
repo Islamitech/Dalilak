@@ -198,6 +198,10 @@ export interface InterestedLead {
   secondaryPhone?: string;
   governorate: string;
   city?: string;
+  street?: string;
+  lat?: number;
+  lng?: number;
+  locationUrl?: string;
   interestLevel: LeadInterestLevel;
   notes?: string;
   followUpDate?: string;
