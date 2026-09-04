@@ -264,7 +264,6 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.invoice_number = biz.invoiceNumber || `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
   record.invoice_date = biz.invoiceDate || new Date().toISOString().split('T')[0];
   record.created_at = biz.createdDate || new Date().toISOString();
-  record.updated_at = new Date().toISOString();
 
   let cleanGoogleMapsUrl: string | null = null;
   if (biz.googleMapsUrl && typeof biz.googleMapsUrl === 'string') {
@@ -435,7 +434,6 @@ export function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.phoneStatus !== undefined) record.phone_status = rep.phoneStatus || 'none';
   if (rep.lastActiveTimestamp !== undefined) record.last_active_timestamp = rep.lastActiveTimestamp || null;
   if (rep.activeSessionId !== undefined) record.active_session_id = rep.activeSessionId || null;
-  record.updated_at = new Date().toISOString();
 
   // Avatar strictly contains only the clean profile avatar URL/base64, never bundled PII documents!
   let cleanAvatar = rep.avatar;

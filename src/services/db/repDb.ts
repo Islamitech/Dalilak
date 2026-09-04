@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../../lib/supabase';
 import { Representative } from '../../types';
 import { MOCK_REPRESENTATIVES } from '../../data/mockData';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage, safeParseJson, getApiAuthHeaders } from '../../utils/storage';

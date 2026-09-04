@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../../lib/supabase';
 import { PayoutRequest } from '../../types';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem, safeParseJson, getApiAuthHeaders } from '../../utils/storage';
 import {

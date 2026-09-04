@@ -20,7 +20,7 @@ export function getCachedBusinesses(): Business[] {
   return [];
 }
 
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at,updated_at';
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
 
 export { FAST_BUSINESS_SELECT };
 
@@ -263,11 +263,10 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
 
   try {
     const lastSyncDate = new Date(lastSync);
-    // 5-minute safety overlap buffer to absorb cross-device clock drift
     const safeTime = new Date(Math.max(0, lastSyncDate.getTime() - 5 * 60 * 1000)).toISOString();
     const encLastSync = encodeURIComponent(safeTime);
-    // Query both updated rows AND newly created rows
-    const query = `businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&or=(updated_at.gte.${encLastSync},created_at.gte.${encLastSync})&order=created_at.desc`;
+    // Query newly created rows
+    const query = `businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`;
     const res = await supabaseRestFetch(query);
 
     // Also prune deleted records: lightweight fetch of active IDs
