@@ -313,6 +313,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           ...formData,
           photos: [...currentPhotos, ...newCompressed],
         });
+        setStatusNotification('تمت إضافة الصور بنجاح! اضغط على "حفظ التعديلات" بالأسفل لتأكيد الحفظ في السحابة 💾');
+        setTimeout(() => setStatusNotification(null), 5000);
       }
       e.target.value = '';
       setIsUploading(false);

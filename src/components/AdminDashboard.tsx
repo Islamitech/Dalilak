@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, User, InterestedLead } from '../types';
 import { sortBusinessesNewestFirst } from '../utils/dateFormatters';
+import { matchesBusinessSearch } from '../utils/arabicSearch';
 import { triggerHaptic } from '../utils/haptics';
 
 // Custom Hook for all financial and metric calculations
@@ -189,15 +190,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     () =>
       sortBusinessesNewestFirst(
         metrics.realBusinesses.filter((b) => {
-          if (
-            bizSearchQuery &&
-            !b.nameAr.includes(bizSearchQuery) &&
-            !b.ownerName.includes(bizSearchQuery) &&
-            !b.ownerPhone.includes(bizSearchQuery)
-          ) {
+          if (bizSearchQuery && !matchesBusinessSearch(b, bizSearchQuery)) {
             return false;
           }
-          if (governorateFilter !== 'all' && !b.governorate.includes(governorateFilter)) {
+          if (governorateFilter !== 'all' && !(b.governorate || '').includes(governorateFilter)) {
             return false;
           }
           if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {

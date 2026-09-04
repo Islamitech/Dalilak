@@ -9,6 +9,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
+import { matchesBusinessSearch } from '../../utils/arabicSearch';
 
 interface RepActivitiesTabProps {
   repBusinesses: Business[];
@@ -23,11 +24,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
   const [bizFilter, setBizFilter] = useState<'all' | 'verified' | 'pending' | 'cash' | 'online' | 'exempt'>('all');
 
   const filteredBusinesses = repBusinesses.filter((biz) => {
-    const matchesSearch =
-      !bizSearch.trim() ||
-      biz.nameAr?.toLowerCase().includes(bizSearch.toLowerCase()) ||
-      biz.city?.toLowerCase().includes(bizSearch.toLowerCase());
-    if (!matchesSearch) return false;
+    if (bizSearch && !matchesBusinessSearch(biz, bizSearch)) return false;
     const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
     const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
     const isCash =

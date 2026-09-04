@@ -368,7 +368,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       // View Mode: Render ONLY verified Businesses as native Leaflet markers
       const filteredBusinesses = businesses.filter((b) => {
         if (b.verificationStatus !== 'verified') return false;
-        if (selectedGovFilter !== 'all' && !b.governorate.includes(selectedGovFilter)) {
+        if (selectedGovFilter !== 'all' && !(b.governorate || '').includes(selectedGovFilter)) {
           return false;
         }
         return true;

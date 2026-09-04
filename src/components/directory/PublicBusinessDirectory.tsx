@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Business, User } from '../../types';
 import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../../data/mockData';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../../utils/dateFormatters';
+import { matchesBusinessSearch } from '../../utils/arabicSearch';
 import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsappMessages';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import {
@@ -89,18 +90,10 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const filteredBusinesses = useMemo(() => {
     return sortBusinessesNewestFirst(
       verifiedPublicBusinesses.filter((b) => {
-        if (searchQuery) {
-          const q = searchQuery.trim().toLowerCase();
-          const matchName = (b.nameAr || '').toLowerCase().includes(q) || (b.nameEn || '').toLowerCase().includes(q);
-          const matchCity = (b.city || '').toLowerCase().includes(q) || (b.governorate || '').toLowerCase().includes(q);
-          const matchOwner = (b.ownerName || '').toLowerCase().includes(q) || (b.ownerPhone || '').includes(q);
-          const matchRep = (b.repName || '').toLowerCase().includes(q);
-          const matchInvoice = (b.invoiceNumber || '').toLowerCase().includes(q);
-          if (!matchName && !matchCity && !matchOwner && !matchRep && !matchInvoice) {
-            return false;
-          }
+        if (searchQuery && !matchesBusinessSearch(b, searchQuery)) {
+          return false;
         }
-        if (govFilter !== 'all' && !b.governorate.includes(govFilter)) {
+        if (govFilter !== 'all' && !(b.governorate || '').includes(govFilter)) {
           return false;
         }
         if (categoryFilter !== 'all') {
