@@ -455,7 +455,7 @@ app.post('/api/auth/login', async (req, res) => {
               avatar: raw.avatar || '',
               avatarStatus: raw.avatar_status || raw.avatarStatus || 'none',
               commissionRate: Number(raw.commission_rate || raw.commissionRate) || 42.86,
-              status: raw.status || 'active',
+              status: raw.status || 'suspended',
               password: raw.password || '',
               referralCode: raw.referral_code || raw.referralCode || `DALIL-${Date.now().toString().slice(-4)}`,
               referredByCode: raw.referred_by_code || raw.referredByCode || undefined,
@@ -495,14 +495,14 @@ app.post('/api/auth/login', async (req, res) => {
     rep.password = hashPassword(cleanPassword);
   }
 
-  if (rep.status === 'suspended') {
+  if (rep.status !== 'active') {
     if (rep.avatarStatus === 'rejected') {
       return res.status(403).json({
-        error: `❌ تم إيقاف أو رفض هذا الحساب من قِبل إدارة المنظومة.`
+        error: `❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة.`
       });
     }
     return res.status(403).json({
-      error: `⏳ حسابك (${rep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`
+      error: `⏳ حسابك (${rep.name}) مسجل بنجاح وهو حالياً "قيد مراجعة وتدقيق المستندات" من قبل الإدارة. يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`
     });
   }
 

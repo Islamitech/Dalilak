@@ -14,6 +14,7 @@ import {
   FileSignature,
   Trash2,
   Users,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface AdminAccountModalProps {
@@ -129,6 +130,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
           targetMonth: Number(modalTarget) || 25,
           commissionRate: Number(modalCommission) || 42.86,
           status: modalStatus,
+          avatarStatus: modalStatus === 'active' ? 'approved' : (editingRep.avatarStatus || 'none'),
           password: finalPassword,
           referralCode: modalReferralCode.trim().toUpperCase() || editingRep.referralCode,
           referredByCode: modalReferredByCode.trim().toUpperCase() || undefined,
@@ -444,6 +446,70 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                         }}
                       />
                     </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── ACCOUNT APPROVAL & STATUS CONTROLS ── */}
+              <div className={`p-4 rounded-3xl border space-y-3 transition-all ${
+                modalStatus === 'active'
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : 'bg-amber-500/10 border-amber-500/30'
+              }`}>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <span className="font-black text-xs sm:text-sm text-[var(--text-primary)] block">
+                      حالة اعتماد وصلاحية الحساب في المنظومة
+                    </span>
+                    <p className="text-[11px] text-[var(--text-muted)] font-medium mt-0.5">
+                      {modalStatus === 'active'
+                        ? '🟢 الحساب معتمد ومفعل بالكامل ويحق له تسجيل الدخول وتوثيق الأنشطة.'
+                        : '⏳ الحساب معلق وبانتظار موافقة الإدارة بعد مراجعة وثائق الهوية (KYC).'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {modalStatus !== 'active' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalStatus('active');
+                            if (editingRep && onUpdateRepresentative) {
+                              onUpdateRepresentative({ ...editingRep, status: 'active', avatarStatus: 'approved' });
+                            }
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2 px-3.5 rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>اعتماد وتفعيل الحساب فوراً 🟢</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalStatus('suspended');
+                            if (editingRep && onUpdateRepresentative) {
+                              onUpdateRepresentative({ ...editingRep, status: 'suspended', avatarStatus: 'rejected' });
+                            }
+                          }}
+                          className="bg-rose-500/20 hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-black text-xs py-2 px-3 rounded-xl border border-rose-500/40 cursor-pointer transition-colors"
+                        >
+                          <span>رفض الحساب 🔴</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalStatus('suspended');
+                          if (editingRep && onUpdateRepresentative) {
+                            onUpdateRepresentative({ ...editingRep, status: 'suspended' });
+                          }
+                        }}
+                        className="bg-amber-500/20 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black text-xs py-2 px-3.5 rounded-xl border border-amber-500/40 cursor-pointer transition-colors"
+                      >
+                        <span>تعليق الحساب مؤقتاً ⏳</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

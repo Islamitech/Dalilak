@@ -237,11 +237,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
 
       // Check account review / suspension status
-      if (foundRep.status === 'suspended') {
+      if (foundRep.status !== 'active') {
         if (foundRep.avatarStatus === 'rejected') {
-          setErrorMsg('❌ تم إيقاف أو رفض هذا الحساب من قِبل إدارة المنظومة.');
+          setErrorMsg('❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة.');
         } else {
-          setErrorMsg(`⏳ حسابك (${foundRep.name}) مسجل بنجاح وهو حالياً "قيد المراجعة والتدقيق الإداري". يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`);
+          setErrorMsg(`⏳ حسابك (${foundRep.name}) مسجل بنجاح وهو حالياً "قيد مراجعة وتدقيق المستندات" من قبل الإدارة. يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`);
         }
         setIsLoading(false);
         return;
@@ -607,7 +607,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {regSuccessNotice && (
         <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>✅ تم تقديم طلب إنشاء الحساب بنجاح وإرفاق المستندات الشخصية! حسابك قيد المراجعة والتحقق وسيتم تفعيله قريباً بواسطة مدير النظام.</span>
+          <span>✅ تم تقديم طلب تسجيل الحساب وإرفاق المستندات بنجاح! حسابك قيد مراجعة وتدقيق الإدارة، وسيتم تفعيله بعد التحقق من وثائق الهوية الرسمية.</span>
         </div>
       )}
 

@@ -17,6 +17,8 @@ import {
   Crown,
   Calculator,
   Briefcase,
+  X,
+  Eye,
 } from 'lucide-react';
 
 interface AdminRepsTabProps {
@@ -255,12 +257,14 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                   {renderRoleBadge(role, acc.roleTitle)}
                   <span
                     className={`text-[10px] font-black px-2.5 py-0.5 rounded-lg border shadow-xs ${
-                      isSuspended
+                      acc.avatarStatus === 'rejected'
+                        ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-500/50'
+                        : isSuspended
                         ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-500/50'
                         : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-400 border-emerald-500/40'
                     }`}
                   >
-                    {isSuspended ? '⏳ تحت المراجعة' : '🟢 فعال ومصرح'}
+                    {acc.avatarStatus === 'rejected' ? '🔴 مرفوض' : isSuspended ? '⏳ تحت المراجعة' : '🟢 فعال ومصرح'}
                   </span>
                 </div>
               </div>
@@ -340,24 +344,36 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                   );
                 })()}
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {isSuspended ? (
                     <>
                       <button
                         onClick={() => {
-                          if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'active' });
+                          if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'active', avatarStatus: 'approved' });
                         }}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-xl shadow flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-xl shadow flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 text-[11px]"
+                        title="الموافقة وتفعيل الحساب فوراً"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>قبول وتفعيل</span>
                       </button>
                       <button
-                        onClick={() => onOpenEditAccountModal(acc)}
-                        className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-3 py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'suspended', avatarStatus: 'rejected' });
+                        }}
+                        className="bg-rose-500/15 hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-black px-2.5 py-2 rounded-xl border border-rose-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
+                        title="رفض طلب تسجيل الحساب"
                       >
-                        <Edit className="w-3.5 h-3.5" />
-                        <span>تعديل</span>
+                        <X className="w-3.5 h-3.5" />
+                        <span>رفض</span>
+                      </button>
+                      <button
+                        onClick={() => onOpenEditAccountModal(acc)}
+                        className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-2.5 py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
+                        title="معاينة وفحص وثائق الهوية والبيانات"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>معاينة</span>
                       </button>
                     </>
                   ) : (

@@ -1303,14 +1303,29 @@ export default function App() {
 
   const isRepUser = user?.role === 'rep';
 
-  // 100% STRICT DIRECTORY FILTER (قاعدة صارمة: لا يظهر أي نشاط غير معتمد من الإدارة في الدليل نهائياً):
+  // 🔐 الأنشطة المخصصة للمستخدم: إذا كان الحساب مندوباً، تقتصر الأنشطة المعروضة على المسجلة بواسطته فقط
+  const visibleBusinesses = useMemo(() => {
+    if (user?.role === 'rep') {
+      const myId = (currentRep.id || user.id || '').toLowerCase().trim();
+      const myName = (currentRep.name || user.name || '').toLowerCase().trim();
+      return businesses.filter((b) => {
+        const bRepId = (b.repId || '').toLowerCase().trim();
+        const bRepName = (b.repName || '').toLowerCase().trim();
+        return (myId && bRepId === myId) || (myName && bRepName === myName);
+      });
+    }
+    return businesses;
+  }, [businesses, user, currentRep]);
+
+  // 100% STRICT DIRECTORY FILTER (قاعدة صارمة: لا يظهر أي نشاط غير معتمد من الإدارة في الدليل نهائياً للزوار العامين):
   const verifiedPublicBusinesses = useMemo(() => {
-    return businesses.filter((b) => b.verificationStatus === 'verified');
-  }, [businesses]);
+    return visibleBusinesses.filter((b) => b.verificationStatus === 'verified');
+  }, [visibleBusinesses]);
 
   const scopedBusinesses = useMemo(() => {
-    return sortBusinessesNewestFirst(verifiedPublicBusinesses);
-  }, [verifiedPublicBusinesses]);
+    const base = user?.role === 'rep' ? visibleBusinesses : verifiedPublicBusinesses;
+    return sortBusinessesNewestFirst(base);
+  }, [user, visibleBusinesses, verifiedPublicBusinesses]);
 
 
   // -------------------------------------------------------------
@@ -1586,7 +1601,7 @@ export default function App() {
               <Suspense fallback={<div className="flex items-center justify-center py-6"><div className="w-8 h-8 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
                 <RepDashboard
                   rep={currentRep}
-                  businesses={businesses}
+                  businesses={visibleBusinesses}
                   allReps={representatives}
                   payoutRequests={payoutRequests}
                   onAddNewClick={() => setActiveTab('add')}
@@ -1598,14 +1613,26 @@ export default function App() {
 
             {/* Modern Global Directory Container */}
             <PublicBusinessDirectory
-              businesses={businesses}
+              businesses={visibleBusinesses}
               isLoadingData={isLoadingData}
               hasInitialCloudSynced={hasInitialCloudSynced}
               currentUser={user}
               scopedBusinesses={scopedBusinesses}
               onAddNewClick={() => setActiveTab('add')}
               onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-              onEditBusiness={(b) => setEditingBusiness(b)}
+              onEditBusiness={(b) => {
+                if (user?.role === 'rep') {
+                  const myId = (currentRep.id || user.id || '').toLowerCase().trim();
+                  const myName = (currentRep.name || user.name || '').toLowerCase().trim();
+                  const bRepId = (b.repId || '').toLowerCase().trim();
+                  const bRepName = (b.repName || '').toLowerCase().trim();
+                  if ((myId && bRepId === myId) || (myName && bRepName === myName)) {
+                    setEditingBusiness(b);
+                  }
+                } else {
+                  setEditingBusiness(b);
+                }
+              }}
               onSelectVideoBiz={(b) => setSelectedVideoBiz(b)}
             />
           </div>
@@ -1618,7 +1645,19 @@ export default function App() {
               mode="view"
               businesses={scopedBusinesses}
               onSelectBusiness={(b) => setSelectedInvoiceBiz(b)}
-              onEditBusiness={(b) => setEditingBusiness(b)}
+              onEditBusiness={(b) => {
+                if (user?.role === 'rep') {
+                  const myId = (currentRep.id || user.id || '').toLowerCase().trim();
+                  const myName = (currentRep.name || user.name || '').toLowerCase().trim();
+                  const bRepId = (b.repId || '').toLowerCase().trim();
+                  const bRepName = (b.repName || '').toLowerCase().trim();
+                  if ((myId && bRepId === myId) || (myName && bRepName === myName)) {
+                    setEditingBusiness(b);
+                  }
+                } else {
+                  setEditingBusiness(b);
+                }
+              }}
               heightClass="h-[520px]"
             />
           </div>

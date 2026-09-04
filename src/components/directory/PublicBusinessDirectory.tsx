@@ -55,14 +55,18 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list') || 'list');
 
-  // 100% STRICT DIRECTORY FILTER (Only verified businesses in public directory)
-  const verifiedPublicBusinesses = useMemo(() => {
+  // For normal public visitors: show only verified businesses.
+  // For representatives: show all their registered businesses (both verified and pending) so they can monitor their field submissions.
+  const displayableBusinesses = useMemo(() => {
+    if (currentUser?.role === 'rep') {
+      return businesses;
+    }
     return businesses.filter((b) => b.verificationStatus === 'verified');
-  }, [businesses]);
+  }, [businesses, currentUser]);
 
   const homeStats = useMemo(() => {
     const totalRegistered = businesses.length;
-    const directoryApproved = verifiedPublicBusinesses.length;
+    const directoryApproved = businesses.filter((b) => b.verificationStatus === 'verified').length;
     const pendingDirectory = businesses.filter((b) => b.verificationStatus !== 'verified').length;
 
     const googleMapsVerified = businesses.filter((b) => {
@@ -73,8 +77,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     }).length;
 
     const govs = new Set(businesses.map((b) => b.governorate).filter(Boolean)).size;
-    const fullyPaid = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
-    const exempt = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
+    const fullyPaid = businesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
+    const exempt = businesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
 
     return {
       totalRegistered,
@@ -86,11 +90,11 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       exempt,
       total: directoryApproved,
     };
-  }, [verifiedPublicBusinesses, businesses]);
+  }, [businesses]);
 
   const filteredBusinesses = useMemo(() => {
     return sortBusinessesNewestFirst(
-      verifiedPublicBusinesses.filter((b) => {
+      displayableBusinesses.filter((b) => {
         if (searchQuery && !matchesBusinessSearch(b, searchQuery)) {
           return false;
         }
@@ -111,11 +115,15 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           if (!b.isFeeExempt && b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
         } else if (verificationFilter === 'unpaid') {
           if (b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)) return false;
+        } else if (verificationFilter === 'verified') {
+          if (b.verificationStatus !== 'verified') return false;
+        } else if (verificationFilter === 'in_progress') {
+          if (b.verificationStatus === 'verified') return false;
         }
         return true;
       })
     );
-  }, [verifiedPublicBusinesses, searchQuery, govFilter, categoryFilter, verificationFilter]);
+  }, [displayableBusinesses, searchQuery, govFilter, categoryFilter, verificationFilter]);
 
   return (
     <div className="space-y-4">
