@@ -49,10 +49,18 @@ export async function uploadMediaToSupabaseStorage(
     let ext = 'jpg';
 
     if (typeof media === 'string' && media.startsWith('data:')) {
-      const parsed = dataUrlToBlob(media);
-      blob = parsed.blob;
-      mimeType = parsed.mimeType;
-      ext = parsed.ext;
+      try {
+        // High-performance asynchronous conversion off the main JS thread (no UI freezing)
+        const fetchRes = await fetch(media);
+        blob = await fetchRes.blob();
+        mimeType = blob.type || 'image/jpeg';
+        ext = mimeType.includes('video') ? (mimeType.includes('webm') ? 'webm' : 'mp4') : (mimeType.includes('png') ? 'png' : 'jpg');
+      } catch {
+        const parsed = dataUrlToBlob(media);
+        blob = parsed.blob;
+        mimeType = parsed.mimeType;
+        ext = parsed.ext;
+      }
     } else if (media instanceof File) {
       blob = media;
       mimeType = media.type || 'image/jpeg';

@@ -204,6 +204,7 @@ export interface InterestedLead {
   locationUrl?: string;
   interestLevel: LeadInterestLevel;
   notes?: string;
+  adminFollowUps?: AdminFollowUpNote[];
   followUpDate?: string;
   createdDate: string;
   repId: string;

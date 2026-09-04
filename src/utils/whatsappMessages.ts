@@ -95,20 +95,17 @@ export function cleanWhatsAppText(text: string): string {
 }
 
 /**
- * Standard encodeURIComponent leaves *, !, (, ), ', ~ unencoded (RFC 3986 unreserved).
- * When WhatsApp Web parses unencoded asterisks alongside UTF-8 percent-encoded Arabic bytes,
- * it inserts a replacement character () before each asterisk.
- * Fully percent-encoding these characters guarantees 100% clean rendering across all platforms.
+ * Safe WhatsApp message encoder.
+ * Standard encodeURIComponent safely converts spaces and Unicode characters for URLs.
+ * Asterisks (*) are preserved so WhatsApp's native markdown renders bold formatting (*text*) correctly.
  */
 export function safeWhatsAppEncode(text: string): string {
   const cleaned = cleanWhatsAppText(text);
   return encodeURIComponent(cleaned)
-    .replace(/\*/g, '%2A')
     .replace(/!/g, '%21')
     .replace(/'/g, '%27')
     .replace(/\(/g, '%28')
-    .replace(/\)/g, '%29')
-    .replace(/~/g, '%7E');
+    .replace(/\)/g, '%29');
 }
 
 // -----------------------------------------------------------------------------

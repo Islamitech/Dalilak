@@ -19,9 +19,12 @@ import {
   Flame,
   ExternalLink,
   Navigation,
+  FileText,
 } from 'lucide-react';
 import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
+import { LeadFollowUpModal } from './LeadFollowUpModal';
+import { formatActivityDateTime } from '../utils/dateFormatters';
 
 interface InvoicesLeadsHubProps {
   leads: InterestedLead[];
@@ -51,6 +54,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   // Modals
   const [showAddLeadModal, setShowAddLeadModal] = useState<boolean>(false);
   const [editingLead, setEditingLead] = useState<InterestedLead | null>(null);
+  const [selectedFollowUpLead, setSelectedFollowUpLead] = useState<InterestedLead | null>(null);
   const [whatsAppModalLead, setWhatsAppModalLead] = useState<InterestedLead | null>(null);
   const [customMsgType, setCustomMsgType] = useState<'intro' | 'followup' | 'offer'>('intro');
 
@@ -486,8 +490,22 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   {/* Notes snippet */}
                   {lead.notes && (
                     <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 rounded-xl text-xs text-[var(--text-secondary)] leading-relaxed">
-                      <strong className="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mb-0.5">ملاحظات المتابعة:</strong>
+                      <strong className="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mb-0.5">ملاحظات الزيارة الميدانية:</strong>
                       {lead.notes}
+                    </div>
+                  )}
+
+                  {/* Latest Admin Follow-up Note Snippet */}
+                  {lead.adminFollowUps && lead.adminFollowUps.length > 0 && (
+                    <div className="bg-purple-500/10 border border-purple-500/25 p-2.5 rounded-xl text-xs text-purple-950 dark:text-purple-200 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-[10px] text-purple-700 dark:text-purple-300">
+                        <span className="flex items-center gap-1">
+                          <span>آخر متابعة إدارية:</span>
+                          <strong className="text-[var(--text-primary)]">{lead.adminFollowUps[0].authorName}</strong>
+                        </span>
+                        <span className="font-mono text-[9px]">{formatActivityDateTime(lead.adminFollowUps[0].createdAt)}</span>
+                      </div>
+                      <p className="line-clamp-2 font-medium">{lead.adminFollowUps[0].text}</p>
                     </div>
                   )}
 
@@ -514,7 +532,18 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                         <span>اتصال</span>
                       </a>
 
-                      {/* 3. Convert to Registered Business */}
+                      {/* 3. Follow-up Notes (Admins & Reps) */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFollowUpLead(lead)}
+                        className="bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 font-black px-3 py-1.5 rounded-xl border border-purple-500/30 shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                        title="عرض وتسجيل المتابعات والملاحظات الإدارية"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>متابعات ({lead.adminFollowUps?.length || 0})</span>
+                      </button>
+
+                      {/* 4. Convert to Registered Business */}
                       <button
                         type="button"
                         onClick={() => onConvertToBusiness(lead)}
@@ -927,6 +956,22 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
           </div>,
           document.body
         )}
+
+      {/* ========================================================
+          MODAL: LEAD ADMINISTRATIVE FOLLOW-UPS & NOTES
+          ======================================================== */}
+      {selectedFollowUpLead && (
+        <LeadFollowUpModal
+          lead={selectedFollowUpLead}
+          currentUser={currentUser}
+          onClose={() => setSelectedFollowUpLead(null)}
+          onSaveLead={(updated) => {
+            onUpdateLead(updated);
+            setSelectedFollowUpLead(updated);
+          }}
+          onConvertToBusiness={onConvertToBusiness}
+        />
+      )}
     </div>
   );
 };

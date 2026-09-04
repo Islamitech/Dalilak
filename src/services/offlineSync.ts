@@ -510,7 +510,9 @@ export async function syncAllPendingOfflineData(
 
         // Step A: Upload any base64/blob photos to Supabase Storage
         let cleanPhotos: string[] = [];
+        let updatedOfflinePhotos: string[] = [];
         let uploadFailed = false;
+
         if (Array.isArray(biz.photos) && biz.photos.length > 0) {
           for (const photo of biz.photos) {
             if (typeof photo === 'string' && photo.startsWith('data:')) {
@@ -518,23 +520,30 @@ export async function syncAllPendingOfflineData(
                 const publicUrl = await uploadMediaToSupabaseStorage(photo, 'photos');
                 if (publicUrl && (publicUrl.startsWith('http://') || publicUrl.startsWith('https://'))) {
                   cleanPhotos.push(publicUrl);
+                  updatedOfflinePhotos.push(publicUrl); // Save the successfully uploaded hosted URL
                 } else {
                   uploadFailed = true;
+                  updatedOfflinePhotos.push(photo); // Keep the base64 to retry later
                 }
               } catch {
                 uploadFailed = true;
+                updatedOfflinePhotos.push(photo); // Keep the base64 to retry later
               }
             } else if (typeof photo === 'string' && (photo.startsWith('http://') || photo.startsWith('https://'))) {
               cleanPhotos.push(photo);
+              updatedOfflinePhotos.push(photo);
             }
           }
         }
 
-        // If a photo upload failed, avoid dumping giant Base64 into the DB!
-        // Skip for now so it remains in offline queue to retry when connection is stronger
-        if (uploadFailed && cleanPhotos.length === 0) {
+        // If ANY photo upload failed, save the updated photos (with succeeded URLs) to IndexedDB
+        // and keep the business in the offline queue so failed photos are NOT permanently lost!
+        if (uploadFailed) {
+          try {
+            await saveOfflineBusiness({ ...biz, photos: updatedOfflinePhotos });
+          } catch {}
           failedCount++;
-          continue;
+          continue; // Do NOT delete from offline queue or save partial photos
         }
 
         // Step B: Sanitize videos array (must be valid hosted URLs only)
@@ -586,6 +595,7 @@ export async function syncAllPendingOfflineData(
           invoice_number: cleanBizToSave.invoiceNumber,
           invoice_date: cleanBizToSave.invoiceDate,
           created_at: cleanBizToSave.createdDate || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           notes: JSON.stringify({
             paymentMethod: cleanBizToSave.paymentMethod,
             cashCollectedByRep: cleanBizToSave.cashCollectedByRep,
@@ -658,8 +668,13 @@ export async function syncAllPendingOfflineData(
           secondary_phone: lead.secondaryPhone || null,
           governorate: lead.governorate || 'الجيزة',
           city: lead.city || null,
+          street: lead.street || null,
+          lat: lead.lat ?? null,
+          lng: lead.lng ?? null,
+          location_url: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
           interest_level: lead.interestLevel || 'high',
           notes: lead.notes || null,
+          admin_follow_ups: Array.isArray(lead.adminFollowUps) ? lead.adminFollowUps : [],
           follow_up_date: lead.followUpDate || null,
           created_at: lead.createdDate || new Date().toISOString(),
           rep_id: lead.repId || 'rep_1',
@@ -680,7 +695,14 @@ export async function syncAllPendingOfflineData(
             leadSaved = true;
           } else {
             const { error } = await supabase.from('leads').upsert([leadPayload], { onConflict: 'id' });
-            if (!error) leadSaved = true;
+            if (!error) {
+              leadSaved = true;
+            } else {
+              // Resilient fallback: in case remote schema lacks newly added columns
+              const { street, lat, lng, location_url, admin_follow_ups, ...baseLeadPayload } = leadPayload;
+              const { error: fallbackErr } = await supabase.from('leads').upsert([baseLeadPayload], { onConflict: 'id' });
+              if (!fallbackErr) leadSaved = true;
+            }
           }
         } catch {}
 

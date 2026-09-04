@@ -105,6 +105,22 @@ CREATE TABLE IF NOT EXISTS public.representatives (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Idempotent column check for existing databases
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS national_id TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS activation_face_photo TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS national_id_card_photo TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS national_id_card_back_photo TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS pending_phone TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS phone_status TEXT DEFAULT 'none';
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS referral_code TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS referred_by_code TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS referral_unlocked BOOLEAN DEFAULT false;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS admin_bypass_referral BOOLEAN DEFAULT false;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS referral_reward_granted BOOLEAN DEFAULT false;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS active_session_id TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS last_active_timestamp BIGINT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
 -- =============================================================================
 -- 3. TABLE: payout_requests (طلبات الصرف والتوريد المالي)
 -- =============================================================================
@@ -377,6 +393,7 @@ ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS street TEXT;
 ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS location_url TEXT;
+ALTER TABLE public.leads           ADD COLUMN IF NOT EXISTS admin_follow_ups JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_by TEXT;
 

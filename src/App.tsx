@@ -11,19 +11,15 @@ import { InvoicesLeadsHub } from './components/InvoicesLeadsHub';
 import { LoginModal } from './components/LoginModal';
 import { AboutUsModal } from './components/AboutUsModal';
 import { TermsModal } from './components/TermsModal';
-import { PermissionsModal } from './components/PermissionsModal';
-import { PackagesModal } from './components/PackagesModal';
-import { OfflineSyncModal } from './components/OfflineSyncModal';
+import { PublicBusinessDirectory } from './components/directory/PublicBusinessDirectory';
+import { AppModals } from './components/modals/AppModals';
+import { useAuthSession } from './hooks/useAuthSession';
 
 // ⚡ Code Splitting: تحميل المكونات الضخمة عند الحاجة فقط (يقلّص حجم الـ Bundle الأولي بنسبة ~60%)
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const AdminProfileModal = lazy(() => import('./components/AdminProfileModal').then(m => ({ default: m.AdminProfileModal })));
 const BusinessForm = lazy(() => import('./components/BusinessForm').then(m => ({ default: m.BusinessForm })));
-const BusinessEditModal = lazy(() => import('./components/BusinessEditModal').then(m => ({ default: m.BusinessEditModal })));
 const RepProfile = lazy(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
 const RepDashboard = lazy(() => import('./components/RepDashboard').then(m => ({ default: m.RepDashboard })));
-const PaymentGatewayModal = lazy(() => import('./components/PaymentGatewayModal').then(m => ({ default: m.PaymentGatewayModal })));
-const VideoPlayerModal = lazy(() => import('./components/VideoPlayerModal').then(m => ({ default: m.VideoPlayerModal })));
 
 import { getOfflineSyncStatus, OfflineSyncStatus } from './services/offlineSync';
 import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';
@@ -64,7 +60,8 @@ import {
   safeSetSessionItem, 
   safeGetSessionItem, 
   safeRemoveSessionItem, 
-  getSafeUserForStorage 
+  getSafeUserForStorage,
+  safeParseJson
 } from './utils/storage';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import {
@@ -90,80 +87,7 @@ import {
   savePaymentConfigToDb,
 } from './services/db';
 
-// Session Persistence: 20 minutes of idle inactivity auto-logout
-const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
-
 export default function App() {
-  // Application State - Persisted session (Stays open upon quick reload/reopening, auto-logs out after 20 mins of inactivity)
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUserStr = safeGetLocalStorageItem('dalelak_logged_user') || safeGetSessionItem('dalelak_active_user');
-    const lastActiveStr = safeGetLocalStorageItem('dalelak_last_interaction') || safeGetSessionItem('dalelak_session_last_active');
-    const now = Date.now();
-
-    if (savedUserStr) {
-      const lastActiveTimestamp = Number(lastActiveStr) || now;
-      const isNotIdle = (now - lastActiveTimestamp) < INACTIVITY_TIMEOUT_MS;
-
-      if (isNotIdle) {
-        try {
-          const parsed = JSON.parse(savedUserStr);
-          if (parsed && parsed.id && parsed.name) {
-            safeSetLocalStorageItem('dalelak_last_interaction', String(now));
-            safeSetSessionItem('dalelak_session_last_active', String(now));
-            return parsed;
-          }
-        } catch (e) {}
-      }
-    }
-
-    // Clean expired session
-    safeRemoveLocalStorageItem('dalelak_logged_user');
-    safeRemoveLocalStorageItem('dalelak_last_interaction');
-    safeRemoveSessionItem('dalelak_active_user');
-    safeRemoveSessionItem('dalelak_session_last_active');
-    return null;
-  });
-
-  const userRef = useRef<User | null>(user);
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
-
-  // Sync user state with localStorage and sessionStorage
-  useEffect(() => {
-    if (user) {
-      const safeUserStr = JSON.stringify(getSafeUserForStorage(user));
-      safeSetLocalStorageItem('dalelak_logged_user', safeUserStr);
-      safeSetSessionItem('dalelak_active_user', safeUserStr);
-      safeSetLocalStorageItem('dalelak_last_interaction', String(Date.now()));
-      safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
-    } else {
-      safeRemoveLocalStorageItem('dalelak_logged_user');
-      safeRemoveLocalStorageItem('dalelak_last_interaction');
-      safeRemoveSessionItem('dalelak_active_user');
-      safeRemoveSessionItem('dalelak_session_last_active');
-    }
-  }, [user]);
-
-  // Keep track of user interactions to maintain active session activity
-  useEffect(() => {
-    if (!user) return;
-
-    const handleUserActivity = () => {
-      safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
-    };
-
-    window.addEventListener('mousedown', handleUserActivity, { passive: true });
-    window.addEventListener('keydown', handleUserActivity, { passive: true });
-    window.addEventListener('touchstart', handleUserActivity, { passive: true });
-
-    return () => {
-      window.removeEventListener('mousedown', handleUserActivity);
-      window.removeEventListener('keydown', handleUserActivity);
-      window.removeEventListener('touchstart', handleUserActivity);
-    };
-  }, [user]);
-
   const [showSyncBadge, setShowSyncBadge] = useState<boolean>(false);
   const [showOfflineSyncModal, setShowOfflineSyncModal] = useState<boolean>(false);
   const [offlineSyncStatus, setOfflineSyncStatus] = useState<OfflineSyncStatus>({
@@ -203,27 +127,16 @@ export default function App() {
     getCachedBusinesses().filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'))
   );
 
-  const [representatives, setRepresentatives] = useState<Representative[]>(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem('dalelak_cached_reps') || '[]');
-      if (Array.isArray(cached) && cached.length > 0) return cached;
-    } catch {}
-    return [];
-  });
-  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem('dalelak_cached_payouts') || '[]');
-      if (Array.isArray(cached) && cached.length > 0) return cached;
-    } catch {}
-    return [];
-  });
+  const [representatives, setRepresentatives] = useState<Representative[]>(() =>
+    safeParseJson<Representative[]>(safeGetLocalStorageItem('dalelak_cached_reps'), [])
+  );
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() =>
+    safeParseJson<PayoutRequest[]>(safeGetLocalStorageItem('dalelak_cached_payouts'), [])
+  );
   const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(() => {
-    const saved = localStorage.getItem('dalelak_payment_config');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return { ...DEFAULT_PAYMENT_CONFIG, ...parsed, instaPayHandle: parsed.instaPayHandle || '@daz31181' };
-      } catch (e) {}
+    const parsed = safeParseJson<any>(safeGetLocalStorageItem('dalelak_payment_config'), null);
+    if (parsed) {
+      return { ...DEFAULT_PAYMENT_CONFIG, ...parsed, instaPayHandle: parsed.instaPayHandle || '@daz31181' };
     }
     return DEFAULT_PAYMENT_CONFIG;
   });
@@ -252,10 +165,8 @@ export default function App() {
     // 4. Default fallback check for logged user role in active session
     const savedUserStr = safeGetSessionItem('dalelak_active_user');
     if (savedUserStr) {
-      try {
-        const parsed = JSON.parse(savedUserStr);
-        if (parsed?.role === 'admin') return 'admin';
-      } catch (e) {}
+      const parsed = safeParseJson<any>(savedUserStr, null);
+      if (parsed?.role === 'admin') return 'admin';
     }
 
     return 'home';
@@ -296,21 +207,11 @@ export default function App() {
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
 
   // Interested Leads State & Conversion
-  const [leads, setLeads] = useState<InterestedLead[]>(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem('dalelak_cached_leads') || '[]');
-      if (Array.isArray(cached) && cached.length > 0) return cached;
-    } catch {}
-    return [];
-  });
+  const [leads, setLeads] = useState<InterestedLead[]>(() =>
+    safeParseJson<InterestedLead[]>(safeGetLocalStorageItem('dalelak_cached_leads'), [])
+  );
   const [convertingLead, setConvertingLead] = useState<InterestedLead | null>(null);
 
-  // Home Feed Search & Modern Directory Filters
-  const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
-  const [homeGovFilter, setHomeGovFilter] = useState<string>('all');
-  const [homeCategoryFilter, setHomeCategoryFilter] = useState<string>('all');
-  const [homeVerificationFilter, setHomeVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
-  const [homeViewMode, setHomeViewMode] = useState<'grid' | 'list'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list') || 'list');
 
   // External View State (from QR code scanning)
   const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
@@ -330,6 +231,25 @@ export default function App() {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 5500);
   };
+
+  // User Authentication & Session Management
+  const { user, setUser, handleLoginUser, handleLogout } = useAuthSession({
+    onNotify: addNotification,
+    onLogoutCleanup: () => {
+      setEditingBusiness(null);
+      setSelectedInvoiceBiz(null);
+      setSelectedPayBiz(null);
+      setSelectedVideoBiz(null);
+      setConvertingLead(null);
+      setShowAdminProfileModal(false);
+      setShowLoginModal(false);
+      setShowPackagesModal(false);
+      setShowPermissionsModal(false);
+    },
+    setRepresentatives,
+    setActiveTab,
+    setBusinesses,
+  });
 
   // Persistent System Notifications for Bell Notification Center
   const [systemNotifications, setSystemNotifications] = useState<SystemNotification[]>(() => {
@@ -444,137 +364,6 @@ export default function App() {
       setExternalView({ type: 'rep', id });
     }
   }, []);
-
-  // Comprehensive, clean session termination handler
-  const handleLogout = useCallback(() => {
-    // 1. Immediately invalidate userRef so no pending background fetches resurrect the user
-    userRef.current = null;
-
-    if (user?.id) {
-      // Release DB session lock
-      updateRepSessionInDb(user.id, undefined, undefined);
-
-      // Release server session lock
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
-      }).catch(() => {});
-
-      // Clear lock on representatives in local state
-      setRepresentatives((prev) =>
-        prev.map((r) =>
-          r.id === user.id || (user.role === 'admin' && r.role === 'admin')
-            ? { ...r, activeSessionId: undefined, lastActiveTimestamp: undefined }
-            : r
-        )
-      );
-    }
-
-    // 2. Close ALL active modals & sensitive administrative views immediately
-    setEditingBusiness(null);
-    setSelectedInvoiceBiz(null);
-    setSelectedPayBiz(null);
-    setSelectedVideoBiz(null);
-    setConvertingLead(null);
-    setShowAdminProfileModal(false);
-    setShowLoginModal(false);
-    setShowPackagesModal(false);
-    setShowPermissionsModal(false);
-
-    // 3. Clear user state and reset navigation tab
-    setUser(null);
-    setActiveTab('home');
-
-    // 4. Thoroughly purge all auth & session keys from storage
-    safeRemoveSessionItem('dalelak_active_user');
-    safeRemoveSessionItem('dalelak_session_last_active');
-    safeRemoveSessionItem('dalelak_auth_token');
-    safeRemoveLocalStorageItem('dalelak_auth_token');
-    safeRemoveLocalStorageItem('dalelak_logged_user');
-    safeRemoveLocalStorageItem('dalelak_session_expires_at');
-    safeRemoveLocalStorageItem('dalelak_last_interaction');
-    safeRemoveLocalStorageItem('dalelak_active_tab');
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete('tab');
-    url.searchParams.delete('view');
-    url.searchParams.delete('id');
-    window.history.replaceState({}, '', url.toString());
-
-    addNotification('🔒 تم تسجيل الخروج بنجاح من الحساب.', 'info');
-    window.dispatchEvent(new CustomEvent('dalelak_offline_state_changed'));
-
-    // Refresh full cloud database list on logout so public view shows all businesses immediately
-    fetchBusinessesFromDb().then((freshData) => {
-      if (Array.isArray(freshData) && freshData.length > 0) {
-        setBusinesses(freshData);
-      }
-    }).catch(() => {});
-  }, [user]);
-
-  // Live Session Expiration & Idle Inactivity Auto-Logout Watcher (Strict 20-minute inactivity timer)
-  useEffect(() => {
-    if (!user) return;
-
-    const checkAndHandleInactivity = () => {
-      if (!userRef.current) return false;
-      const now = Date.now();
-      const lastInteraction = Number(
-        safeGetLocalStorageItem('dalelak_last_interaction') ||
-        safeGetSessionItem('dalelak_session_last_active')
-      ) || now;
-
-      if (now - lastInteraction >= INACTIVITY_TIMEOUT_MS) {
-        handleLogout();
-        addNotification(
-          '⏳ تم تسجيل الخروج تلقائياً لعدم التفاعل مع الحساب لمدة 20 دقيقة. يرجى تسجيل الدخول مجدداً.',
-          'warning'
-        );
-        return true;
-      }
-      return false;
-    };
-
-    const updateActivity = () => {
-      if (!userRef.current) return;
-      const isExpired = checkAndHandleInactivity();
-      if (!isExpired) {
-        const now = Date.now();
-        safeSetLocalStorageItem('dalelak_last_interaction', String(now));
-        safeSetSessionItem('dalelak_session_last_active', String(now));
-      }
-    };
-
-    window.addEventListener('click', updateActivity, { passive: true });
-    window.addEventListener('touchstart', updateActivity, { passive: true });
-    window.addEventListener('keydown', updateActivity, { passive: true });
-    window.addEventListener('scroll', updateActivity, { passive: true });
-    window.addEventListener('mousemove', updateActivity, { passive: true });
-
-    // Check inactivity every 10 seconds
-    const interval = setInterval(() => {
-      checkAndHandleInactivity();
-    }, 10000);
-
-    // Also check immediately when tab/phone becomes visible (after phone lock or switching apps)
-    const handleVisibility = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
-        checkAndHandleInactivity();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('click', updateActivity);
-      window.removeEventListener('touchstart', updateActivity);
-      window.removeEventListener('keydown', updateActivity);
-      window.removeEventListener('scroll', updateActivity);
-      window.removeEventListener('mousemove', updateActivity);
-    };
-  }, [user, handleLogout]);
 
   // Fetch initial data with fast independent parallel fetches
   useEffect(() => {
@@ -695,13 +484,15 @@ export default function App() {
           }
         }).catch(() => {});
 
-        const isManagerialNow = ['admin', 'supervisor', 'accountant'].includes(user?.role || '');
-        const currentTargetRepId = isManagerialNow ? undefined : user?.id;
+        const activeUserRole = userRef.current?.role || user?.role || '';
+        const isManagerialNow = ['admin', 'supervisor', 'accountant'].includes(activeUserRole);
+        const currentTargetRepId = isManagerialNow ? undefined : (userRef.current?.id || user?.id);
         fetchPayoutRequestsFromDb(currentTargetRepId).then((freshPayouts) => {
           if (Array.isArray(freshPayouts)) setPayoutRequests(freshPayouts);
         }).catch(() => {});
 
-        fetchLeadsFromDb(currentTargetRepId).then((freshLeads) => {
+        // Always fetch the complete leads dataset from DB; UI scopes by repId cleanly for reps, while admins see all
+        fetchLeadsFromDb().then((freshLeads) => {
           if (Array.isArray(freshLeads)) setLeads(freshLeads);
         }).catch(() => {});
       } catch (err) {
@@ -794,11 +585,6 @@ export default function App() {
       safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(allUpdated));
     } catch {}
 
-    // Reset filters to ensure the newly added business is 100% visible immediately
-    setHomeSearchQuery('');
-    setHomeGovFilter('all');
-    setHomeCategoryFilter('all');
-    setHomeVerificationFilter('all');
     setActiveTab('home');
 
     // ⚡ Open the invoice immediately so the representative and client can view and photograph it
@@ -1501,176 +1287,6 @@ export default function App() {
     return sortBusinessesNewestFirst(verifiedPublicBusinesses);
   }, [verifiedPublicBusinesses]);
 
-  const homeStats = useMemo(() => {
-    const totalRegistered = businesses.length;
-    const directoryApproved = verifiedPublicBusinesses.length; // معتمد بالدليل العام
-    const pendingDirectory = businesses.filter((b) => b.verificationStatus !== 'verified').length; // قيد مراجعة الدليل
-    
-    // موثق بـ Google Maps فعلياً: له رابط خريطة Google صالح ورسمي
-    const googleMapsVerified = businesses.filter((b) => {
-      const url = (b.googleMapsUrl || '').trim();
-      const hasRealUrl = url.startsWith('http') && !url.includes('search/?api=1&query=');
-      const isAlreadyOnGooglePkg = b.isAlreadyOnGoogle || b.packageId === 'pkg_already_on_google';
-      return hasRealUrl || isAlreadyOnGooglePkg;
-    }).length;
-
-    const govs = new Set(businesses.map((b) => b.governorate).filter(Boolean)).size;
-    const fullyPaid = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
-    const exempt = verifiedPublicBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
-
-    return {
-      totalRegistered,
-      directoryApproved,
-      googleMapsVerified,
-      pendingDirectory,
-      govs,
-      fullyPaid,
-      exempt,
-      total: directoryApproved, // for directory filter count
-    };
-  }, [verifiedPublicBusinesses, businesses]);
-
-  const filteredHomeBusinesses = useMemo(() => {
-    return sortBusinessesNewestFirst(
-      verifiedPublicBusinesses.filter((b) => {
-        if (homeSearchQuery) {
-          const q = homeSearchQuery.trim().toLowerCase();
-          const matchName = (b.nameAr || '').toLowerCase().includes(q) || (b.nameEn || '').toLowerCase().includes(q);
-          const matchCity = (b.city || '').toLowerCase().includes(q) || (b.governorate || '').toLowerCase().includes(q);
-          const matchOwner = (b.ownerName || '').toLowerCase().includes(q) || (b.ownerPhone || '').includes(q);
-          const matchRep = (b.repName || '').toLowerCase().includes(q);
-          const matchInvoice = (b.invoiceNumber || '').toLowerCase().includes(q);
-          if (!matchName && !matchCity && !matchOwner && !matchRep && !matchInvoice) {
-            return false;
-          }
-        }
-        if (homeGovFilter !== 'all' && !b.governorate.includes(homeGovFilter)) {
-          return false;
-        }
-        if (homeCategoryFilter !== 'all') {
-          const grp = CATEGORY_GROUPS.find((g) => g.group === homeCategoryFilter);
-          if (grp) {
-            if (!grp.items.includes(b.category) && !b.category.includes(homeCategoryFilter)) {
-              return false;
-            }
-          } else if (!b.category.includes(homeCategoryFilter)) {
-            return false;
-          }
-        }
-        if (homeVerificationFilter === 'fully_paid') {
-          if (!b.isFeeExempt && b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
-        } else if (homeVerificationFilter === 'unpaid') {
-          if (b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)) return false;
-        }
-        return true;
-      })
-    );
-  }, [verifiedPublicBusinesses, homeSearchQuery, homeGovFilter, homeCategoryFilter, homeVerificationFilter]);
-
-  // Single-Session Active Heartbeat & Cross-Tab Invalidation Listener
-  useEffect(() => {
-    if (!user || !user.activeSessionId) return;
-
-    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_single_session_channel') : null;
-
-    // Send immediate heartbeat on session start
-    const initialNow = Date.now();
-    updateRepSessionInDb(user.id, user.activeSessionId, initialNow);
-
-    // Send periodic heartbeat every 30 seconds
-    const interval = setInterval(() => {
-      const now = Date.now();
-      
-      // Update local rep active timestamp in state
-      setRepresentatives((prev) =>
-        prev.map((r) =>
-          r.id === user.id || (user.role === 'admin' && r.role === 'admin')
-            ? { ...r, activeSessionId: user.activeSessionId, lastActiveTimestamp: now }
-            : r
-        )
-      );
-
-      // Sync active session timestamp in Supabase DB
-      updateRepSessionInDb(user.id, user.activeSessionId, now);
-
-      // Notify server to keep session alive
-      fetch('/api/auth/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
-      })
-        .then((res) => {
-          if (res.status === 409) {
-            // Session was superseded by a newer login
-            handleLogout();
-            addNotification('⚠️ تم تسجيل الدخول لهذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.', 'warning');
-          }
-        })
-        .catch(() => {});
-    }, 30000);
-
-    // Cross-tab broadcast listener (Prevent simultaneous tabs on same device)
-    if (channel) {
-      channel.onmessage = (event) => {
-        if (
-          event.data?.type === 'LOGIN' &&
-          event.data?.userId === user.id &&
-          event.data?.sessionId !== user.activeSessionId
-        ) {
-          handleLogout();
-          addNotification('⚠️ تم فتح هذا الحساب في تبويب آخر.', 'warning');
-        }
-      };
-    }
-
-    // Release session lock immediately on page close / unload
-    const handleUnload = () => {
-      if (user?.id && user.activeSessionId) {
-        updateRepSessionInDb(user.id, undefined, undefined);
-        try {
-          const payload = JSON.stringify({ userId: user.id, sessionId: user.activeSessionId });
-          const blob = new Blob([payload], { type: 'application/json' });
-          navigator.sendBeacon('/api/auth/logout', blob);
-        } catch {}
-      }
-    };
-    window.addEventListener('beforeunload', handleUnload);
-
-    return () => {
-      clearInterval(interval);
-      if (channel) channel.close();
-      window.removeEventListener('beforeunload', handleUnload);
-    };
-  }, [user]);
-
-
-
-  // Unified Clean Login Handler with Role Specification
-  const handleLoginUser = useCallback((u: User) => {
-    setUser(u);
-    setShowLoginModal(false);
-    safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(u)));
-    safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
-    window.dispatchEvent(new CustomEvent('dalelak_offline_state_changed'));
-
-    const roleLabels: Record<string, string> = {
-      admin: 'مدير النظام (صلاحيات كاملة) 🛡️',
-      supervisor: 'مشرف الإدارة ⚡',
-      accountant: 'محاسب ومحصل 💳',
-      rep: 'مندوب ميداني معتمد 💼',
-    };
-    const roleTitle = u.repData?.roleTitle || u.roleTitle || roleLabels[u.role] || u.role;
-    addNotification(`🟢 مرحباً بك يا أستاذ ${u.name} — تم تسجيل الدخول بصلاحية: ${roleTitle}`, 'success');
-
-    const savedTab = localStorage.getItem('dalelak_active_tab');
-    if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
-      setActiveTab(savedTab);
-    } else if (u.role === 'admin' || u.role === 'supervisor') {
-      setActiveTab('admin');
-    } else {
-      setActiveTab('home');
-    }
-  }, []);
 
   // -------------------------------------------------------------
   // EXTERNAL READ-ONLY VIEWS (For QR Codes)
@@ -1956,819 +1572,17 @@ export default function App() {
             )}
 
             {/* Modern Global Directory Container */}
-            <div className="space-y-4">
-              
-              {/* ── TOP KPI METRICS BAR (DECOUPLED DIRECTORY VS GOOGLE MAPS) ── */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                {/* 1. إجمالي الأنشطة المسجلة */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-500/15 text-slate-600 dark:text-slate-300 flex items-center justify-center font-black shrink-0">
-                    <Store className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي المسجل</div>
-                    {isLoadingData && businesses.length === 0 ? (
-                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-                    ) : (
-                      <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.totalRegistered}</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 2. معتمد بالدليل العام (يظهر للعملاء) */}
-                <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
-                    <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10.5px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold truncate">معتمد بالدليل 🟢</div>
-                    {isLoadingData && businesses.length === 0 ? (
-                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-                    ) : (
-                      <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.directoryApproved}</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 3. موثق بـ Google Maps فعلياً (رابط الخريطة مفعل) */}
-                <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
-                    <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10.5px] sm:text-[11px] text-blue-600 dark:text-blue-400 font-bold truncate">موثق بـ Google 🗺️</div>
-                    {isLoadingData && businesses.length === 0 ? (
-                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-                    ) : (
-                      <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.googleMapsVerified}</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 4. قيد مراجعة الدليل */}
-                <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
-                    <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10.5px] sm:text-[11px] text-amber-600 dark:text-amber-400 font-bold truncate">قيد مراجعة الدليل ⏳</div>
-                    {isLoadingData && businesses.length === 0 ? (
-                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-                    ) : (
-                      <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{homeStats.pendingDirectory}</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 5. المحافظات المغطاة */}
-                <div className="col-span-2 sm:col-span-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
-                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
-                    {isLoadingData && businesses.length === 0 ? (
-                      <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
-                    ) : (
-                      <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ── UNIFIED DIRECTORY TOOLBAR & FILTERS ────────────────────────── */}
-              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 space-y-3.5 shadow-sm">
-                
-                {/* Row 1: Search + Governorate + View Switcher */}
-                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-3" />
-                    <input
-                      type="text"
-                      placeholder="ابحث باسم المحل، المالك، الهاتف، أو المدينة..."
-                      value={homeSearchQuery}
-                      onChange={(e) => setHomeSearchQuery(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs sm:text-sm rounded-2xl pr-10 pl-8 py-2.5 focus:outline-none focus:border-amber-500 font-bold shadow-inner placeholder:text-[var(--text-muted)]"
-                    />
-                    {homeSearchQuery && (
-                      <button
-                        onClick={() => setHomeSearchQuery('')}
-                        className="absolute left-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={homeGovFilter}
-                      onChange={(e) => setHomeGovFilter(e.target.value)}
-                      className="flex-1 sm:flex-initial bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-2xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
-                    >
-                      <option value="all">📍 كل المحافظات</option>
-                      {EGYPT_GOVERNORATES.map((gov) => (
-                        <option key={gov} value={gov}>
-                          {gov}
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* View Switcher: Grid vs List */}
-                    <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0">
-                      <button
-                        onClick={() => { setHomeViewMode('grid'); safeSetLocalStorageItem('dalelak_home_view_mode', 'grid'); }}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          homeViewMode === 'grid'
-                            ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                        }`}
-                        title="عرض البطاقات العصرية"
-                      >
-                        <LayoutGrid className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => { setHomeViewMode('list'); safeSetLocalStorageItem('dalelak_home_view_mode', 'list'); }}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          homeViewMode === 'list'
-                            ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                        }`}
-                        title="عرض القائمة المجدولة"
-                      >
-                        <List className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Row 2: Status Quick Filter Tabs */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
-                  {[
-                    { key: 'all', label: '⭐ جميع الأنشطة المعتمدة', count: homeStats.total },
-                    { key: 'fully_paid', label: '💳 مسددة بالكامل', count: homeStats.fullyPaid },
-                    { key: 'unpaid', label: '⚠️ بانتظار السداد', count: Math.max(0, homeStats.total - homeStats.fullyPaid) },
-                  ].map((tab) => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setHomeVerificationFilter(tab.key as any)}
-                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 border ${
-                        homeVerificationFilter === tab.key
-                          ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black'
-                          : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      {isLoadingData && businesses.length === 0 ? (
-                        <span className="w-3.5 h-3 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-full" />
-                      ) : (
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
-                          homeVerificationFilter === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
-                        }`}>
-                          {tab.count}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Row 3: Category Quick Chips Bar */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-bold border-t border-[var(--border-color)]/50 pt-2.5">
-                  <button
-                    onClick={() => setHomeCategoryFilter('all')}
-                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                      homeCategoryFilter === 'all'
-                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black border border-amber-500/40'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-                    }`}
-                  >
-                    ⭐ جميع التصنيفات
-                  </button>
-                  {CATEGORY_GROUPS.map((grp) => (
-                    <button
-                      key={grp.group}
-                      onClick={() => setHomeCategoryFilter(grp.group === homeCategoryFilter ? 'all' : grp.group)}
-                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-                        homeCategoryFilter === grp.group
-                          ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black border border-amber-500/40 shadow-2xs'
-                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-                      }`}
-                    >
-                      <span>{grp.icon}</span>
-                      <span>{grp.group}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── 1. LOADING SKELETON STATE (Shown ONLY on first cold visit with empty cache) ───────────────── */}
-              {isLoadingData && businesses.length === 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
-                    <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
-                    <span>جاري جلب وتحديث الأنشطة التجارية والبيانات من السحابة...</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div
-                        key={`skel-${i}`}
-                        className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col justify-between animate-pulse"
-                      >
-                        <div className="relative aspect-[16/8.5] bg-slate-200 dark:bg-slate-800" />
-                        <div className="p-4 space-y-3">
-                          <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
-                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
-                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-2/3" />
-                          <div className="pt-3 border-t border-[var(--border-color)] flex items-center justify-between">
-                            <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
-                            <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded-xl w-24" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ── 2. EMPTY STATE (Only shown when initial cloud check is completed & 0 results) ─────── */}
-              {hasInitialCloudSynced && filteredHomeBusinesses.length === 0 && (
-                <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3.5 shadow-sm">
-                  <div className="w-16 h-16 rounded-3xl bg-amber-500/15 text-amber-500 flex items-center justify-center mx-auto text-2xl shadow-inner">
-                    🏪
-                  </div>
-                  {user?.role === 'rep' && scopedBusinesses.length === 0 ? (
-                    <>
-                      <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
-                        لم تقم بتسجيل أي نشاط تجاري حتى الآن
-                      </h3>
-                      <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
-                        هذه المساحة مخصصة لعرض وإدارة الأنشطة والزيارات الميدانية الخاصة بك. ابدأ الآن بتوثيق أول محل تجاري لتفعيل حسابك وكسب عمولتك فوراً!
-                      </p>
-                      <button
-                        onClick={() => setActiveTab('add')}
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer mt-1"
-                      >
-                        <PlusCircle className="w-4 h-4" />
-                        <span>تسجيل أول نشاط تجاري الآن ➕</span>
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
-                        لا توجد أنشطة تجارية مطابقة للبحث أو التصفية الحالية
-                      </h3>
-                      <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
-                        جرب تغيير خيارات التصفية أو البحث، أو اضغط على "تسجيل نشاط جديد" للبدء في توثيق المحلات.
-                      </p>
-                      <button
-                        onClick={() => {
-                          setHomeSearchQuery('');
-                          setHomeGovFilter('all');
-                          setHomeCategoryFilter('all');
-                          setHomeVerificationFilter('all');
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
-                      >
-                        إعادة ضبط الفلاتر 🔄
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* ── 3. GRID MODE (WORLD-CLASS DIRECTORY CARDS - Instant 0ms Render) ─────────────────── */}
-              {(!isLoadingData || businesses.length > 0) && homeViewMode === 'grid' && filteredHomeBusinesses.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-                  {filteredHomeBusinesses.map((biz) => {
-                    const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-                    const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                    const isVerified = biz.verificationStatus === 'verified';
-                    const hasPhotos = biz.photos && biz.photos.length > 0;
-                    const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
-                    const coverPhoto = hasPhotos ? biz.photos[0] : null;
-
-                    return (
-                      <div
-                        key={biz.id}
-                        className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between group"
-                      >
-                        {/* Visual Header / Cover */}
-                        <div className="relative aspect-[16/8.5] bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-slate-900/10 overflow-hidden">
-                          {coverPhoto ? (
-                            <img
-                              src={coverPhoto}
-                              alt={biz.nameAr}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-amber-500/60 bg-[var(--bg-surface)]">
-                              <Store className="w-8 h-8 opacity-40 group-hover:scale-110 transition-transform" />
-                              <span className="text-[10px] font-bold text-[var(--text-muted)] opacity-70">منظومة دليلك الميدانية</span>
-                            </div>
-                          )}
-
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
-
-                          {/* Center Play Button Overlay for Videos */}
-                          {hasVideos && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedVideoBiz(biz);
-                              }}
-                              className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-slate-950/75 hover:bg-amber-500 text-amber-400 hover:text-slate-950 flex items-center justify-center backdrop-blur-md border border-amber-500/60 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer group-hover:scale-105"
-                              title="تشغيل فيديو النشاط (30 ثانية)"
-                            >
-                              <Play className="w-5 h-5 fill-current ml-0.5" />
-                            </button>
-                          )}
-
-                          {/* Floating Verified & Video Badges */}
-                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-                            <span
-                              className={`text-[9.5px] font-black px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm border ${
-                                isVerified
-                                  ? 'bg-emerald-500/90 text-white border-emerald-400/40'
-                                  : 'bg-amber-500/90 text-slate-950 border-amber-400/40'
-                              }`}
-                            >
-                              {isVerified ? '✓ معتمد بالدليل' : '⏳ قيد المراجعة'}
-                            </span>
-
-                            {hasVideos && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedVideoBiz(biz);
-                                }}
-                                className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-black shadow-md hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
-                                title="مشاهدة فيديو النشاط الميداني"
-                              >
-                                <Play className="w-2.5 h-2.5 fill-slate-950" />
-                                <span>فيديو 30ث</span>
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1">
-                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-950/70 text-slate-200 backdrop-blur-md border border-white/10">
-                              {biz.invoiceNumber || 'INV'}
-                            </span>
-                          </div>
-
-                          {/* Bottom info on photo */}
-                          <div className="absolute bottom-2 right-2.5 left-2.5 flex items-center justify-between text-white">
-                            <span className="text-[10px] font-bold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 truncate max-w-[170px]">
-                              {biz.category}
-                            </span>
-                            {biz.workingHours && (
-                              <span className="text-[9px] font-medium opacity-80 truncate max-w-[130px] flex items-center gap-1">
-                                <Clock className="w-2.5 h-2.5" /> {biz.workingHours}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Card Content Body */}
-                        <div className="p-3.5 sm:p-4 space-y-3 flex-1 flex flex-col justify-between">
-                          <div className="space-y-2">
-                            <div>
-                              <h4 className="font-black text-sm sm:text-base text-[var(--text-primary)] group-hover:text-amber-500 transition-colors line-clamp-1">
-                                {biz.nameAr}
-                              </h4>
-                              <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
-                                <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                <span className="truncate">{biz.governorate} • {biz.city} {biz.street ? `• ${biz.street}` : ''}</span>
-                              </div>
-                            </div>
-
-                            {/* Representative & Date Strip */}
-                            <div className="flex items-center justify-between text-[10.5px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
-                              <span className="truncate max-w-[140px] text-[var(--text-secondary)]">👤 {biz.repName || 'مندوب ميداني'}</span>
-                              <span className="font-mono text-[9.5px] shrink-0">{formatActivityDateTime(biz.createdDate || biz.invoiceDate)}</span>
-                            </div>
-
-                            {/* Financial Package & Payment Row */}
-                            <div className="flex items-center justify-between text-xs pt-1">
-                              <div className="flex items-center gap-1">
-                                {isExempt ? (
-                                  <span className="text-[11px] font-black text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-md border border-teal-500/20">
-                                    🆓 نشاط رائج (مجاني 0 ج)
-                                  </span>
-                                ) : (
-                                  <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                                    {biz.packagePrice || 250} ج.م
-                                  </span>
-                                )}
-                              </div>
-                              <div>
-                                {isExempt ? (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30">
-                                    ✓ إدراج مجاني
-                                  </span>
-                                ) : remaining === 0 ? (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                    ✓ مسدد بالكامل
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                                    متبقي {remaining} ج
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Quick Interactive Actions */}
-                          <div className="pt-2 border-t border-[var(--border-color)]/60 space-y-2">
-                            {/* Fast Action Buttons Bar */}
-                            <div className="grid grid-cols-4 gap-1.5 text-center">
-                              {/* Call */}
-                              <a
-                                href={`tel:${biz.phone || biz.ownerPhone}`}
-                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                                title="اتصال هاتفي"
-                              >
-                                <Phone className="w-3.5 h-3.5 text-emerald-500" />
-                                <span>اتصال</span>
-                              </a>
-
-                              {/* WhatsApp */}
-                              <a
-                                href={getRepFieldIntroWhatsAppUrl(biz, user?.name)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                                title="محادثة واتساب ميدانية"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-                                <span>واتساب</span>
-                              </a>
-
-                              {/* Google Maps: Active if official live googleMapsUrl is present */}
-                              {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') ? (
-                                <a
-                                  href={biz.googleMapsUrl.trim()}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                                  title="الموقع موثق رسمياً: فتح على خرائط Google"
-                                >
-                                  <Navigation className="w-3.5 h-3.5 text-emerald-500" />
-                                  <span>الخريطة</span>
-                                </a>
-                              ) : (
-                                <button
-                                  type="button"
-                                  disabled
-                                  className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 dark:border-slate-700/80 cursor-not-allowed opacity-60"
-                                  title="النشاط غير موثق بعد (قيد مراجعة واعتماد خرائط Google)"
-                                >
-                                  <Navigation className="w-3.5 h-3.5 opacity-40" />
-                                  <span>غير مدرج</span>
-                                </button>
-                              )}
-
-                              {/* Invoice Preview */}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedInvoiceBiz(biz)}
-                                className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-purple-500/15 text-[var(--text-secondary)] hover:text-purple-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)] cursor-pointer"
-                                title="عرض الفاتورة الإلكترونية"
-                              >
-                                <FileText className="w-3.5 h-3.5 text-purple-500" />
-                                <span>فاتورة</span>
-                              </button>
-                            </div>
-
-                            {/* Primary Details / Edit Button */}
-                            <button
-                              onClick={() => setEditingBusiness(biz)}
-                              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
-                            >
-                              <Eye className="w-4 h-4 stroke-[2.5]" />
-                              <span>تفاصيل وتعديل النشاط</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* ── LIST / TABLE MODE (HIGH DENSITY PRODUCTIVITY VIEW - Instant 0ms Render) ─────────── */}
-              {(!isLoadingData || businesses.length > 0) && homeViewMode === 'list' && filteredHomeBusinesses.length > 0 && (
-                <div className="space-y-3">
-                  {/* ── TOP MICRO-LEGEND BAR (دليل الرموز والمؤشرات المعتمدة) ── */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-[11px] font-bold text-[var(--text-secondary)] shadow-2xs text-right">
-                    <div className="flex items-center gap-1.5 text-[var(--text-primary)] font-black">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span>دليل الحالات والمؤشرات:</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2.5 text-[10.5px]">
-                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-subtle"></span>
-                        <span>موثق رسمي</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        <span>قيد التوثيق</span>
-                      </span>
-                      <span className="text-[var(--border-color)] opacity-70">|</span>
-                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                        <span>مسدد بالكامل</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
-                        <AlertCircle className="w-3 h-3 text-rose-500" />
-                        <span>متبقي تحصيل (دين)</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-lg border border-blue-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        <span>إدراج مجاني (0 ج)</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* MOBILE VIEW (< md): High-Density Fast Action Rows */}
-                  <div className="md:hidden space-y-2.5">
-                    {filteredHomeBusinesses.map((biz) => {
-                      const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-                      const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                      const isVerified = biz.verificationStatus === 'verified';
-                      const ownerPhone = biz.ownerPhone || biz.phone || '';
-
-                      return (
-                        <div
-                          key={`mobile_row_${biz.id}`}
-                          className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-3 space-y-2 shadow-2xs hover:border-amber-500/40 transition-all text-right"
-                        >
-                          {/* Row 1: Name, Category, Verification */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <h4
-                                onClick={() => setEditingBusiness(biz)}
-                                className="font-black text-sm text-[var(--text-primary)] hover:text-amber-500 cursor-pointer truncate"
-                              >
-                                {biz.nameAr}
-                              </h4>
-                              <div className="flex items-center gap-1.5 text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
-                                <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/20 truncate max-w-[120px]">
-                                  {biz.category}
-                                </span>
-                                <span>•</span>
-                                <span className="truncate">{biz.governorate} - {biz.city}</span>
-                              </div>
-                            </div>
-
-                            <span
-                              className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-xl shrink-0 border whitespace-nowrap shadow-2xs ${
-                                isVerified
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                              <span>{isVerified ? 'معتمد بالدليل' : 'قيد المراجعة'}</span>
-                            </span>
-                          </div>
-
-                          {/* Row 2: Financial & Operational Status */}
-                          <div className="flex items-center justify-between text-[11px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] font-bold">
-                            <div className="flex items-center gap-1 whitespace-nowrap">
-                              {isExempt ? (
-                                <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-black">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                  <span>مجاني (0 ج)</span>
-                                </span>
-                              ) : remaining === 0 ? (
-                                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-black">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                  <span>خالص ({biz.packagePrice || 250} ج)</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-black">
-                                  <AlertCircle className="w-3 h-3 text-rose-500" />
-                                  <span>متبقي ({remaining} ج)</span>
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[130px]">
-                              👤 {biz.repName || 'مندوب'}
-                            </span>
-                          </div>
-
-                          {/* Row 3: Fast Quick Actions */}
-                          <div className="flex items-center justify-between gap-1.5 pt-0.5">
-                            <button
-                              onClick={() => setEditingBusiness(biz)}
-                              className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black py-1.5 px-2 rounded-xl shadow-2xs transition-transform active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>التفاصيل</span>
-                            </button>
-
-                            {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
-                              <a
-                                href={biz.googleMapsUrl.trim()}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-                                title="فتح موقع النشاط على خرائط Google"
-                              >
-                                <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                              </a>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled
-                                className="bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
-                                title="الخريطة غير مفعلة (لم يتم إضافة الرابط بعد)"
-                              >
-                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => setSelectedInvoiceBiz(biz)}
-                              className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                              title="عرض الفاتورة"
-                            >
-                              <FileText className="w-3.5 h-3.5 text-amber-500" />
-                              <span>فاتورة</span>
-                            </button>
-
-                            {ownerPhone && (
-                              <a
-                                href={`https://wa.me/2${ownerPhone.replace(/\D/g, '')}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-                                title="مراسلة واتساب"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-
-                            {ownerPhone && (
-                              <a
-                                href={`tel:${ownerPhone}`}
-                                className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-                                title="اتصال هاتفي"
-                              >
-                                <Phone className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* DESKTOP VIEW (>= md): High-Speed Clean Data Table */}
-                  <div className="hidden md:block bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-right text-xs table-auto">
-                        <thead className="bg-[var(--input-bg)] border-b border-[var(--border-color)] text-[var(--text-muted)] font-black text-[11px]">
-                          <tr>
-                            <th className="py-3 px-4 min-w-[170px]">النشاط التجاري</th>
-                            <th className="py-3 px-3 min-w-[130px]">التصنيف</th>
-                            <th className="py-3 px-3 min-w-[130px]">الموقع</th>
-                            <th className="py-3 px-3 min-w-[110px]">حالة التوثيق</th>
-                            <th className="py-3 px-3 min-w-[125px]">الموقف المالي</th>
-                            <th className="py-3 px-3 min-w-[120px]">المندوب المسجل</th>
-                            <th className="py-3 px-4 text-center min-w-[140px]">الإجراءات السريعة</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-color)]/60">
-                          {filteredHomeBusinesses.map((biz) => {
-                            const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-                            const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                            const isVerified = biz.verificationStatus === 'verified';
-                            const ownerPhone = biz.ownerPhone || biz.phone || '';
-
-                            return (
-                              <tr key={`desktop_list_${biz.id}`} className="hover:bg-[var(--input-bg)]/50 transition-colors">
-                                <td className="py-3 px-4">
-                                  <div
-                                    onClick={() => setEditingBusiness(biz)}
-                                    className="font-black text-[var(--text-primary)] hover:text-amber-500 cursor-pointer text-sm truncate max-w-[180px]"
-                                  >
-                                    {biz.nameAr}
-                                  </div>
-                                  <div className="text-[10px] font-mono text-[var(--text-muted)]">{biz.invoiceNumber}</div>
-                                </td>
-                                <td className="py-3 px-3">
-                                  <span className="inline-block bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold px-2 py-0.5 rounded-lg border border-amber-500/20 truncate max-w-[140px]">
-                                    {biz.category}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-3 text-[var(--text-secondary)] font-bold whitespace-nowrap">
-                                  {biz.governorate} • {biz.city}
-                                </td>
-                                <td className="py-3 px-3 whitespace-nowrap">
-                                  <span className={`inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl border whitespace-nowrap shadow-2xs ${
-                                    isVerified ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                                  }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                    <span>{isVerified ? 'معتمد بالدليل' : 'قيد المراجعة'}</span>
-                                  </span>
-                                </td>
-                                <td className="py-3 px-3 whitespace-nowrap">
-                                  {isExempt ? (
-                                    <span className="inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 whitespace-nowrap shadow-2xs">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                      <span>مجاني (0 ج)</span>
-                                    </span>
-                                  ) : remaining === 0 ? (
-                                    <span className="inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap shadow-2xs">
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                      <span>خالص ({biz.packagePrice || 250} ج)</span>
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 whitespace-nowrap shadow-2xs">
-                                      <AlertCircle className="w-3 h-3 text-rose-500" />
-                                      <span>متبقي ({remaining} ج)</span>
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="py-3 px-3 text-[11px] text-[var(--text-muted)] font-bold whitespace-nowrap">
-                                  {biz.repName || '—'}
-                                </td>
-                                <td className="py-3 px-4 text-center whitespace-nowrap">
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <button
-                                      onClick={() => setEditingBusiness(biz)}
-                                      className="py-1 px-2.5 rounded-xl bg-amber-500 text-slate-950 font-black hover:bg-amber-600 transition-transform active:scale-95 cursor-pointer text-xs flex items-center gap-1 shadow-2xs"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                      <span>تفاصيل</span>
-                                    </button>
-                                    {/* Google Maps Official Link Button */}
-                                    {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
-                                      <a
-                                        href={biz.googleMapsUrl.trim()}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
-                                        title="فتح موقع النشاط المعتمد على خرائط Google 🗺️"
-                                      >
-                                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                                      </a>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        disabled
-                                        className="p-1.5 rounded-xl bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] opacity-40 cursor-not-allowed flex items-center justify-center"
-                                        title="الخريطة غير مفعلة - لم يتم إضافة وتوثيق رابط Google بعد"
-                                      >
-                                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                      </button>
-                                    )}
-
-                                    <button
-                                      onClick={() => setSelectedInvoiceBiz(biz)}
-                                      className="p-1.5 rounded-xl bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)] transition-colors cursor-pointer"
-                                      title="عرض الفاتورة"
-                                    >
-                                      <FileText className="w-3.5 h-3.5 text-amber-500" />
-                                    </button>
-                                    {ownerPhone && (
-                                      <a
-                                        href={`https://wa.me/2${ownerPhone.replace(/\D/g, '')}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors"
-                                        title="مراسلة واتساب"
-                                      >
-                                        <MessageCircle className="w-3.5 h-3.5" />
-                                      </a>
-                                    )}
-                                    {ownerPhone && (
-                                      <a
-                                        href={`tel:${ownerPhone}`}
-                                        className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border border-blue-500/30 transition-colors"
-                                        title="اتصال هاتفي"
-                                      >
-                                        <Phone className="w-3.5 h-3.5" />
-                                      </a>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <PublicBusinessDirectory
+              businesses={businesses}
+              isLoadingData={isLoadingData}
+              hasInitialCloudSynced={hasInitialCloudSynced}
+              currentUser={user}
+              scopedBusinesses={scopedBusinesses}
+              onAddNewClick={() => setActiveTab('add')}
+              onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+              onEditBusiness={(b) => setEditingBusiness(b)}
+              onSelectVideoBiz={(b) => setSelectedVideoBiz(b)}
+            />
           </div>
         )}
 
@@ -2994,170 +1808,40 @@ export default function App() {
         isAdmin={canUserAccessAdminPanel(user)}
       />
 
-      {/* MODAL: ABOUT US */}
-      {showAboutModal && (
-        <AboutUsModal
-          onClose={() => setShowAboutModal(false)}
-          onOpenTerms={() => {
-            setShowAboutModal(false);
-            setShowTermsModal(true);
-          }}
-        />
-      )}
-
-      {/* MODAL: TERMS OF SERVICE */}
-      {showTermsModal && (
-        <TermsModal
-          onClose={() => setShowTermsModal(false)}
-          onOpenAbout={() => {
-            setShowTermsModal(false);
-            setShowAboutModal(true);
-          }}
-        />
-      )}
-
-      {/* MODAL: PERMISSIONS & ROLES MATRIX */}
-      {showPermissionsModal && (
-        <PermissionsModal
-          onClose={() => setShowPermissionsModal(false)}
-        />
-      )}
-
-      {/* MODAL: PACKAGES & OFFERS GUIDE */}
-      {showPackagesModal && (
-        <PackagesModal
-          onClose={() => setShowPackagesModal(false)}
-        />
-      )}
-
-      {/* MODAL: FULL BUSINESS DATA VIEW & EDITING POP-UP */}
-      {editingBusiness && user && (
-        <Suspense fallback={null}>
-          <BusinessEditModal
-            business={editingBusiness}
-            onClose={() => setEditingBusiness(null)}
-            onSave={(updatedBiz) => {
-              handleUpdateBusiness(updatedBiz);
-              setEditingBusiness(updatedBiz);
-            }}
-            userRole={user?.role}
-            currentRoleTitle={user?.repData?.roleTitle || user?.roleTitle}
-            currentUserName={user?.name}
-            currentUserId={user?.id}
-            canEdit={canUserEditBusiness(user, editingBusiness)}
-            onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-            onCollectPayment={
-              user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
-                ? (b) => setSelectedPayBiz(b)
-                : undefined
-            }
-            businesses={businesses}
-            onDeleteBusiness={
-              canUserDeleteBusiness(user, editingBusiness)
-                ? handleDeleteBusiness
-                : undefined
-            }
-          />
-        </Suspense>
-      )}
-
-      {/* MODAL: INVOICE VIEWER & WHATSAPP DISPATCH */}
-      {selectedInvoiceBiz && user && (
-        <InvoiceModal
-          business={selectedInvoiceBiz}
-          onClose={() => setSelectedInvoiceBiz(null)}
-          onUpdateBusiness={handleUpdateBusiness}
-          onCollectPayment={
-            user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
-              ? (b) => {
-                  setSelectedPayBiz(b);
-                }
-              : undefined
-          }
-          userRole={user?.role}
-          isAdmin={user?.role === 'admin' || user?.role === 'supervisor'}
-        />
-      )}
-
-      {/* MODAL: PAYMENT GATEWAY SIMULATION */}
-      {selectedPayBiz && user && (
-        <Suspense fallback={null}>
-          <PaymentGatewayModal
-            business={selectedPayBiz}
-            config={paymentConfig}
-            onClose={() => setSelectedPayBiz(null)}
-            onPaymentSuccess={(newPaid, method = 'gateway_online') => {
-              if (selectedPayBiz) {
-                const status = newPaid >= (selectedPayBiz.packagePrice || 250) ? 'fully_paid' : 'partially_paid';
-                const updatedBiz: Business = {
-                  ...selectedPayBiz,
-                  amountPaid: newPaid,
-                  paymentStatus: status,
-                  paymentMethod: method,
-                  cashCollectedByRep: method === 'cash_by_rep' ? newPaid : 0, // Received directly via platform payment gateway / wallets
-                };
-                handleUpdateBusiness(updatedBiz);
-
-                // Keep open modals in sync with the payment update
-                if (editingBusiness && editingBusiness.id === updatedBiz.id) {
-                  setEditingBusiness(updatedBiz);
-                }
-                if (selectedInvoiceBiz && selectedInvoiceBiz.id === updatedBiz.id) {
-                  setSelectedInvoiceBiz(updatedBiz);
-                }
-              }
-            }}
-          />
-        </Suspense>
-      )}
-
-      {/* MODAL: LOGIN DIALOG */}
-      {showLoginModal && user && (
-        <LoginModal
-          onClose={() => setShowLoginModal(false)}
-          onOpenAbout={() => setShowAboutModal(true)}
-          onOpenTerms={() => setShowTermsModal(true)}
-          onLoginSuccess={handleLoginUser}
-          representatives={representatives}
-          onAddRepresentative={handleAddRepresentative}
-        />
-      )}
-
-      {/* MODAL: ADMIN & USER PROFILE / AVATAR MODAL (STRICT ADMIN ONLY) */}
-      {showAdminProfileModal && user && user.role === 'admin' && (
-        <Suspense fallback={null}>
-          <AdminProfileModal
-            user={user}
-            onClose={() => setShowAdminProfileModal(false)}
-            onUpdateProfile={handleUpdateUserProfile}
-          />
-        </Suspense>
-      )}
-
-      {/* MODAL: SHORT VIDEO PLAYER */}
-      {selectedVideoBiz && (
-        <Suspense fallback={null}>
-          <VideoPlayerModal
-            business={selectedVideoBiz}
-            onClose={() => setSelectedVideoBiz(null)}
-          />
-        </Suspense>
-      )}
-
-
-      {/* MODAL: OFFLINE SYNC HUB (INDEXEDDB & ZERO DATA LOSS) */}
-      <OfflineSyncModal
-        isOpen={showOfflineSyncModal}
-        currentUser={user}
-        onClose={() => setShowOfflineSyncModal(false)}
-        onSyncComplete={async () => {
-          try {
-            const fresh = await fetchBusinessesFromDb();
-            if (fresh && fresh.length > 0) {
-              setBusinesses(fresh);
-            }
-          } catch {}
-        }}
+      {/* All Application Modals Encapsulated */}
+      <AppModals
+        user={user}
+        showAboutModal={showAboutModal}
+        setShowAboutModal={setShowAboutModal}
+        showTermsModal={showTermsModal}
+        setShowTermsModal={setShowTermsModal}
+        showPermissionsModal={showPermissionsModal}
+        setShowPermissionsModal={setShowPermissionsModal}
+        showPackagesModal={showPackagesModal}
+        setShowPackagesModal={setShowPackagesModal}
+        showLoginModal={showLoginModal}
+        setShowLoginModal={setShowLoginModal}
+        showAdminProfileModal={showAdminProfileModal}
+        setShowAdminProfileModal={setShowAdminProfileModal}
+        showOfflineSyncModal={showOfflineSyncModal}
+        setShowOfflineSyncModal={setShowOfflineSyncModal}
+        editingBusiness={editingBusiness}
+        setEditingBusiness={setEditingBusiness}
+        selectedInvoiceBiz={selectedInvoiceBiz}
+        setSelectedInvoiceBiz={setSelectedInvoiceBiz}
+        selectedPayBiz={selectedPayBiz}
+        setSelectedPayBiz={setSelectedPayBiz}
+        selectedVideoBiz={selectedVideoBiz}
+        setSelectedVideoBiz={setSelectedVideoBiz}
+        businesses={businesses}
+        setBusinesses={setBusinesses}
+        representatives={representatives}
+        paymentConfig={paymentConfig}
+        onUpdateBusiness={handleUpdateBusiness}
+        onDeleteBusiness={handleDeleteBusiness}
+        onLoginUser={handleLoginUser}
+        onAddRepresentative={handleAddRepresentative}
+        onUpdateUserProfile={handleUpdateUserProfile}
       />
     </div>
   );

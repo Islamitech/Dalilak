@@ -1,6 +1,19 @@
 import { User, Representative } from '../types';
 
 /**
+ * Safe JSON parser with type fallback that will never throw an uncaught error.
+ */
+export function safeParseJson<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw || typeof raw !== 'string') return fallback;
+  try {
+    const val = JSON.parse(raw);
+    return val !== undefined && val !== null ? val : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Strips heavy base64 documents (national ID cards, face verification photos)
  * before persisting to localStorage to avoid exceeding the browser 5MB quota.
  */
@@ -25,6 +38,20 @@ export function getSafeUserForStorage(user: User | null): User | null {
     avatar: user.avatar && user.avatar.length > 150000 ? '' : user.avatar,
     repData: safeRepData,
   };
+}
+
+/**
+ * Strips heavy base64 documents from representative lists before persisting to localStorage.
+ */
+export function getSafeRepsForStorage(reps: Representative[]): Representative[] {
+  if (!Array.isArray(reps)) return [];
+  return reps.map((r) => ({
+    ...r,
+    nationalIdCardPhoto: undefined,
+    nationalIdCardBackPhoto: undefined,
+    activationFacePhoto: undefined,
+    avatar: r.avatar && r.avatar.length > 120000 ? '' : r.avatar,
+  }));
 }
 
 export function getSafeBusinessesForStorage(businesses: any[]): any[] {
