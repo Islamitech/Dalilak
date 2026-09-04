@@ -533,6 +533,10 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                             ✓ مسدد بالكامل
                           </span>
+                        ) : (biz.amountPaid || 0) === 0 ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                            مؤجل حتى التوثيق ⏳
+                          </span>
                         ) : (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                             متبقي {remaining} ج
@@ -703,7 +707,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       {isExempt ? (
                         <span className="text-teal-600 dark:text-teal-400">مجاني 0 ج</span>
                       ) : (
-                        <span>{biz.packagePrice || 250} ج.م ({remaining === 0 ? 'مسدد' : `متبقي ${remaining}`})</span>
+                        <span>{biz.packagePrice || 250} ج.م ({remaining === 0 ? 'مسدد' : (biz.amountPaid || 0) === 0 ? 'مؤجل حتى التوثيق ⏳' : `متبقي ${remaining}`})</span>
                       )}
                     </span>
                     <span className="text-[10px] text-[var(--text-muted)] font-mono">
@@ -894,6 +898,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                               <span className="text-teal-600 dark:text-teal-400">إدراج ترويجي</span>
                             ) : remaining === 0 ? (
                               <span className="text-emerald-600 dark:text-emerald-400">مسدد بالكامل ✓</span>
+                            ) : (biz.amountPaid || 0) === 0 ? (
+                              <span className="text-amber-700 dark:text-amber-300 font-bold">مؤجل حتى التوثيق ⏳</span>
                             ) : (
                               <span className="text-amber-600 dark:text-amber-400 font-mono">متبقي {remaining} ج</span>
                             )}

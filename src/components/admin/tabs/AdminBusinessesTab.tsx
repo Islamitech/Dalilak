@@ -502,22 +502,42 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
 
                         <td className="p-3">
                           <div className="space-y-1">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${
-                              debtAmount === 0 ? 'badge-success' : 'badge-warning'
-                            }`}>
-                              {debtAmount === 0 ? 'مدفوع بالكامل' : `مدفوع ${biz.amountPaid || 0} (متبقي ${debtAmount})`}
-                            </span>
-                            <p className="text-[10.5px] font-extrabold text-[var(--text-primary)]">
-                              {isCash ? (
-                                <span className="text-amber-700 dark:text-amber-300">💵 كاش بيد المندوب</span>
-                              ) : (
-                                <span className="text-purple-700 dark:text-purple-300">💳 تحويل إلكتروني</span>
-                              )}
-                            </p>
-                            {isCash && (
-                              <p className="text-[9.5px] text-[var(--text-muted)] font-mono">
-                                المندوب: {repComm} ج • مستحق: {platDue} ج
-                              </p>
+                            {isExempt ? (
+                              <span className="badge-success text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
+                                معفى (مجاني)
+                              </span>
+                            ) : debtAmount > 0 && (biz.amountPaid || 0) === 0 ? (
+                              <>
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full inline-block bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                  فاتورة مؤجلة حتى التوثيق ⏳
+                                </span>
+                                <p className="text-[10.5px] font-extrabold text-purple-700 dark:text-purple-300">
+                                  💳 تحويل إلكتروني ({debtAmount} ج)
+                                </p>
+                                <p className="text-[9px] text-[var(--text-muted)] font-medium">
+                                  سداد إلكتروني بعد اكتمال التوثيق
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${
+                                  debtAmount === 0 ? 'badge-success' : 'badge-warning'
+                                }`}>
+                                  {debtAmount === 0 ? 'مدفوع بالكامل' : `مدفوع ${biz.amountPaid || 0} (متبقي ${debtAmount})`}
+                                </span>
+                                <p className="text-[10.5px] font-extrabold text-[var(--text-primary)]">
+                                  {isCash ? (
+                                    <span className="text-amber-700 dark:text-amber-300">💵 كاش بيد المندوب</span>
+                                  ) : (
+                                    <span className="text-purple-700 dark:text-purple-300">💳 تحويل إلكتروني</span>
+                                  )}
+                                </p>
+                                {isCash && (
+                                  <p className="text-[9.5px] text-[var(--text-muted)] font-mono">
+                                    المندوب: {repComm} ج • مستحق: {platDue} ج
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
                         </td>

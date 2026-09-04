@@ -268,10 +268,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               </span>
             </div>
             <div className="border-t border-slate-200/80 pt-1.5 flex items-center justify-between">
-              <span className={remaining > 0 ? 'text-rose-700 font-black' : 'text-slate-500 font-bold'}>
-                {remaining > 0 ? 'المبلغ المتبقي (دين):' : 'المبلغ المتبقي:'}
+              <span className={remaining > 0 ? (amtPaid === 0 ? 'text-amber-800 font-black' : 'text-rose-700 font-black') : 'text-slate-500 font-bold'}>
+                {remaining > 0 ? (amtPaid === 0 ? 'المبلغ المستحق (مؤجل حتى التوثيق):' : 'المبلغ المتبقي (دين):') : 'المبلغ المتبقي:'}
               </span>
-              <span className={`font-mono ${remaining > 0 ? 'text-rose-700 font-black text-sm' : 'text-slate-500'}`}>
+              <span className={`font-mono ${remaining > 0 ? (amtPaid === 0 ? 'text-amber-800 font-black text-sm' : 'text-rose-700 font-black text-sm') : 'text-slate-500'}`}>
                 {remaining} جنيه مصري
               </span>
             </div>
@@ -288,7 +288,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                   : activeBusiness.paymentStatus === 'partially_paid'
                   ? 'bg-amber-50 text-amber-900 border-amber-300'
-                  : 'bg-rose-50 text-rose-800 border-rose-300'
+                  : 'bg-amber-50 text-amber-900 border-amber-300'
               }`}>
                 {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
                   ? 'مفعل ومدرج مجاناً بالكامل ✓'
@@ -298,7 +298,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   ? 'مدفوعة بالكامل ✓'
                   : activeBusiness.paymentStatus === 'partially_paid'
                   ? `متبقي ${remaining} ج`
-                  : 'غير مسددة'}
+                  : 'مؤجلة حتى التوثيق ⏳'}
               </span>
             </div>
 
