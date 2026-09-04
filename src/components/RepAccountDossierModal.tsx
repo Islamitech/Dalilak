@@ -197,8 +197,20 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
     onUpdateRepresentative({
       ...rep,
       status: newStatus,
+      avatarStatus: newStatus === 'active' ? 'approved' : rep.avatarStatus,
     });
     showToast(newStatus === 'active' ? 'تم تفعيل الحساب والموافقة عليه 🟢' : 'تم تعليق الحساب مؤقتاً ⏳');
+  };
+
+  // Handle Reject Account
+  const handleRejectAccount = () => {
+    if (!onUpdateRepresentative) return;
+    onUpdateRepresentative({
+      ...rep,
+      status: 'suspended',
+      avatarStatus: 'rejected',
+    });
+    showToast('تم رفض طلب تسجيل الحساب وإرسال أسباب الرفض عبر البريد الإلكتروني 🔴');
   };
 
   // Handle Referral Unlock Toggle
@@ -316,6 +328,18 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{rep.status === 'suspended' ? 'قبول وتفعيل الحساب' : 'تعليق الحساب'}</span>
+              </button>
+            )}
+
+            {onUpdateRepresentative && rep.status === 'suspended' && rep.avatarStatus !== 'rejected' && (
+              <button
+                type="button"
+                onClick={handleRejectAccount}
+                className="text-xs font-black px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                title="رفض طلب تسجيل الحساب"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>رفض الحساب</span>
               </button>
             )}
 

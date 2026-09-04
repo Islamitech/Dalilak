@@ -497,8 +497,9 @@ app.post('/api/auth/login', async (req, res) => {
 
   if (rep.status !== 'active') {
     if (rep.avatarStatus === 'rejected') {
+      const emailNotice = rep.email ? ` عبر البريد الإلكتروني (${rep.email})` : ' عبر البريد الإلكتروني';
       return res.status(403).json({
-        error: `❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة.`
+        error: `❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`
       });
     }
     return res.status(403).json({

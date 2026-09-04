@@ -239,7 +239,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       // Check account review / suspension status
       if (foundRep.status !== 'active') {
         if (foundRep.avatarStatus === 'rejected') {
-          setErrorMsg('❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة.');
+          const emailNotice = foundRep.email ? ` عبر البريد الإلكتروني (${foundRep.email})` : ' عبر البريد الإلكتروني';
+          setErrorMsg(`❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`);
         } else {
           setErrorMsg(`⏳ حسابك (${foundRep.name}) مسجل بنجاح وهو حالياً "قيد مراجعة وتدقيق المستندات" من قبل الإدارة. يرجى الانتظار حتى يقوم مدير المنظومة باعتماد وتفعيل الحساب.`);
         }
