@@ -22,7 +22,7 @@ const BusinessForm = lazyWithRetry(() => import('./components/BusinessForm').the
 const RepProfile = lazyWithRetry(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
 const RepDashboard = lazyWithRetry(() => import('./components/RepDashboard').then(m => ({ default: m.RepDashboard })));
 
-import { getOfflineSyncStatus, OfflineSyncStatus } from './services/offlineSync';
+import { getOfflineSyncStatus, OfflineSyncStatus, syncAllPendingOfflineData } from './services/offlineSync';
 import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';
 import { Logo } from './components/Logo';
 import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, isSuperAdmin } from './utils/permissions';
@@ -264,11 +264,29 @@ export default function App() {
 
   // Reactive IndexedDB Offline Sync Status Listener (Strictly User-Scoped, initialized after user exists)
   useEffect(() => {
+    let autoSyncTimer: any = null;
+
     const updateSyncStatus = async () => {
       try {
         const effectiveUid = user?.id || user?.email || null;
         const status = await getOfflineSyncStatus(effectiveUid);
         setOfflineSyncStatus(status);
+
+        // 🚀 Auto-sync in background if online and pending items exist
+        if (status.isOnline && status.totalPendingCount > 0 && !status.isSyncing) {
+          clearTimeout(autoSyncTimer);
+          autoSyncTimer = setTimeout(async () => {
+            try {
+              const res = await syncAllPendingOfflineData(effectiveUid);
+              if (res.syncedCount > 0) {
+                const freshLeads = await fetchLeadsFromDb();
+                if (freshLeads && freshLeads.length > 0) setLeads(freshLeads);
+                const freshBiz = await fetchBusinessesFromDb();
+                if (freshBiz && freshBiz.length > 0) setBusinesses(freshBiz);
+              }
+            } catch {}
+          }, 1200);
+        }
       } catch {}
     };
 
@@ -279,6 +297,7 @@ export default function App() {
     window.addEventListener('offline', updateSyncStatus);
 
     return () => {
+      clearTimeout(autoSyncTimer);
       window.removeEventListener('dalelak_offline_state_changed', updateSyncStatus);
       window.removeEventListener('online', updateSyncStatus);
       window.removeEventListener('offline', updateSyncStatus);

@@ -202,6 +202,8 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
         const bizLeadPayload = {
           id: lead.id,
           name_ar: lead.businessName || lead.clientName || 'عميل مهتم',
+          name_en: lead.clientName || null,
+          category: lead.businessCategory || 'عملاء مهتمون',
           owner_name: lead.clientName || 'صاحب النشاط',
           phone: cleanPhone,
           owner_phone: cleanPhone, // Required not-null constraint
@@ -219,7 +221,6 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
           amount_paid: 0,
           payment_status: 'unpaid',
           verification_status: 'lead',
-          is_fee_exempt: true,
           notes: JSON.stringify({
             isLead: true,
             clientName: lead.clientName,
@@ -234,7 +235,6 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
             locationUrl: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
           }),
           created_at: lead.createdDate || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         };
 
         const { error: bizErr } = await supabase.from('businesses').upsert([bizLeadPayload], { onConflict: 'id' });
@@ -328,7 +328,6 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
           adminFollowUps: Array.isArray(lead.adminFollowUps) ? lead.adminFollowUps : [],
           locationUrl: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
         }),
-        updated_at: new Date().toISOString(),
       };
       await supabase.from('businesses').update(bizUpdates).eq('id', lead.id);
     } catch {}

@@ -614,7 +614,6 @@ export async function syncAllPendingOfflineData(
           invoice_number: cleanBizToSave.invoiceNumber,
           invoice_date: cleanBizToSave.invoiceDate,
           created_at: cleanBizToSave.createdDate || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
           notes: JSON.stringify({
             paymentMethod: cleanBizToSave.paymentMethod,
             cashCollectedByRep: cleanBizToSave.cashCollectedByRep,
@@ -725,6 +724,8 @@ export async function syncAllPendingOfflineData(
             const bizLeadPayload = {
               id: lead.id,
               name_ar: lead.businessName || lead.clientName || 'عميل مهتم',
+              name_en: lead.clientName || null,
+              category: lead.businessCategory || 'عملاء مهتمون',
               owner_name: lead.clientName || 'صاحب النشاط',
               phone: cleanPhone,
               owner_phone: cleanPhone, // Required not-null constraint
@@ -742,7 +743,6 @@ export async function syncAllPendingOfflineData(
               amount_paid: 0,
               payment_status: 'unpaid',
               verification_status: 'lead',
-              is_fee_exempt: true,
               notes: JSON.stringify({
                 isLead: true,
                 clientName: lead.clientName,
@@ -757,7 +757,6 @@ export async function syncAllPendingOfflineData(
                 locationUrl: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
               }),
               created_at: lead.createdDate || new Date().toISOString(),
-              updated_at: new Date().toISOString(),
             };
 
             const { error: bizErr } = await supabase.from('businesses').upsert([bizLeadPayload], { onConflict: 'id' });
@@ -908,30 +907,44 @@ export async function exportOfflineBackupJson(): Promise<void> {
 }
 
 // -----------------------------------------------------------------------------
-// AUTOMATIC EVENT LISTENERS INITIALIZATION (WITH THROTTLING & DATA PROTECTION)
+// AUTOMATIC EVENT LISTENERS INITIALIZATION (WITH PERIODIC CHECK & DATA PROTECTION)
 // -----------------------------------------------------------------------------
 
 let lastOnlineSyncTime = 0;
 
 if (typeof window !== 'undefined') {
-  // Purge any stale confirmed records on app startup
+  // Purge any stale confirmed records and auto-sync on app startup
   setTimeout(() => {
     purgeConfirmedOfflineRecords().catch(() => {});
-  }, 1000);
+    // Auto-sync after initial app boot if online
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      syncAllPendingOfflineData().catch(() => {});
+    }
+  }, 2000);
 
   window.addEventListener('online', () => {
     dispatchOfflineStateChangeEvent();
     const now = Date.now();
-    // Only auto-trigger if at least 2 minutes passed since last attempt to protect mobile data
-    if (now - lastOnlineSyncTime > 2 * 60 * 1000) {
+    if (now - lastOnlineSyncTime > 15 * 1000) {
       lastOnlineSyncTime = now;
       setTimeout(() => {
         syncAllPendingOfflineData().catch(() => {});
-      }, 3000);
+      }, 1500);
     }
   });
 
   window.addEventListener('offline', () => {
     dispatchOfflineStateChangeEvent();
   });
+
+  // Periodic heartbeat sync every 45s if online and pending items exist
+  setInterval(() => {
+    if (typeof navigator !== 'undefined' && navigator.onLine && !isCurrentlySyncing) {
+      getOfflineSyncStatus().then((status) => {
+        if (status.totalPendingCount > 0) {
+          syncAllPendingOfflineData().catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  }, 45000);
 }
