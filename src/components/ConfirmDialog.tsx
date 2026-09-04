@@ -49,8 +49,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay"
-      style={{ background: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-[100100] flex items-center justify-center p-4 modal-overlay animate-fade-in"
+      style={{ background: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(6px)' }}
       onClick={onCancel}
       aria-modal="true"
       role="alertdialog"
