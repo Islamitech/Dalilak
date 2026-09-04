@@ -582,7 +582,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MASTER DOSSIER MODAL: Representative Financial Ledger */}
       {selectedDossierRep && (
         <RepAccountDossierModal
-          rep={selectedDossierRep}
+          rep={metrics.mergedAdminReps.find((r) => r.id === selectedDossierRep.id) || selectedDossierRep}
           onClose={() => setSelectedDossierRep(null)}
           businesses={businesses}
           allReps={metrics.mergedAdminReps}
@@ -634,7 +634,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <AdminAccountModal
         isOpen={showAccountModal}
         onClose={() => setShowAccountModal(false)}
-        editingRep={editingAccountRep}
+        editingRep={editingAccountRep ? (metrics.mergedAdminReps.find((r) => r.id === editingAccountRep.id) || editingAccountRep) : undefined}
         currentUser={currentUser}
         businesses={businesses}
         onAddRepresentative={onAddRepresentative}

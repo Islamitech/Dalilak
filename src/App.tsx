@@ -1457,7 +1457,11 @@ export default function App() {
     // 🔐 BUG-07 FIX: إضافة error handling لحفظ بيانات المندوب
     // كان يُعرض "تم الحفظ" قبل الحفظ الفعلي — الفشل الصامت لا يُخطر المستخدم
     try {
-      await saveRepToDb(secureRep);
+      const saveRes = await saveRepToDb(secureRep);
+      if (saveRes && !saveRes.success) {
+        console.error('Failed to save rep to DB:', saveRes.error);
+        addNotification(`⚠️ تحذير: ${saveRes.error || 'تعذر حفظ البيانات في السحابة'}`, 'warning');
+      }
     } catch (saveErr) {
       console.error('Failed to save rep to DB:', saveErr);
       addNotification(`⚠️ تحذير: تم الحفظ محلياً لكن حدث خطأ في رفع البيانات للسحابة. سيتم إعادة المحاولة تلقائياً عند الاتصال.`, 'warning');

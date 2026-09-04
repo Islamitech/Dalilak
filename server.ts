@@ -40,7 +40,7 @@ app.use((_req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0] || 'http://localhost:5173');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id, x-user-id');
   if (_req.method === 'OPTIONS') {
     return res.status(204).end();
   }
@@ -186,6 +186,7 @@ function getRequestUser(req: express.Request): ActiveSession | null {
   const authHeader = req.headers.authorization;
   const token = authHeader?.replace(/^Bearer\s+/i, '');
   const sessionId = (req.headers['x-session-id'] as string) || '';
+  const userId = (req.headers['x-user-id'] as string) || '';
 
   // 1. Direct active token lookup
   if (token && activeSessions.has(token)) {
@@ -204,6 +205,23 @@ function getRequestUser(req: express.Request): ActiveSession | null {
       return session;
     } else {
       activeSessions.delete(sessionId);
+    }
+  }
+
+  // 3. Resilient Session Fallback: If in-memory sessions were cleared on server restart, restore from stored reps
+  if (sessionId || userId) {
+    const rep = representatives.find(
+      (r) => (sessionId && r.activeSessionId === sessionId) || (userId && r.id === userId)
+    );
+    if (rep) {
+      const restoredSession: ActiveSession = {
+        userId: rep.id,
+        role: rep.role || 'rep',
+        expiresAt: (rep.lastActiveTimestamp || 0) + 24 * 60 * 60 * 1000,
+      };
+      if (sessionId) activeSessions.set(sessionId, restoredSession);
+      if (token) activeSessions.set(token, restoredSession);
+      return restoredSession;
     }
   }
 
