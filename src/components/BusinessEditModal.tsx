@@ -1738,31 +1738,17 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     </a>
                   )}
 
-                  {/* 3. Debt Warning */}
-                  {isUnpaid && (
+                  {/* 3. Debt Warning / Judicial notice */}
+                  {isGoogleVerifiedAndUnpaid && (
                     <a
                       href={getOverdueWarningWhatsAppUrl(formData)}
                       target="_blank"
                       rel="noreferrer"
-                      className="bg-gradient-to-r from-rose-600 to-red-600 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center"
-                      title="إرسال إنذار سداد المستحقات والمهلة 24 ساعة"
+                      className="bg-gradient-to-r from-rose-600 to-red-600 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center animate-pulse"
+                      title="إرسال إنذار سداد المستحقات"
                     >
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">إنذار سداد ⚠️</span>
-                    </a>
-                  )}
-
-                  {/* 4. Judicial Action Execution Notice */}
-                  {isUnpaid && (
-                    <a
-                      href={getLegalActionExecutedWhatsAppUrl(formData)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="bg-gradient-to-r from-red-700 to-rose-900 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center animate-pulse"
-                      title="إرسال إشعار تنفيذ الإجراءات والتحذير القضائي"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">تنفيذ الإجراءات 🛑</span>
                     </a>
                   )}
 
@@ -1998,8 +1984,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     </div>
                   )}
 
-                  {/* Message 3: Overdue Warning (When business is Unpaid) */}
-                  {isUnpaid && (!waSearchQuery || 'إنذار تحذير سداد مستحقات ديون مهلة'.includes(waSearchQuery)) && (
+                  {/* Message 3: Overdue Warning (Strictly Google Verified and Unpaid) */}
+                  {isGoogleVerifiedAndUnpaid && (!waSearchQuery || 'إنذار تحذير سداد مستحقات ديون مهلة'.includes(waSearchQuery)) && (
                     <div className="bg-rose-500/10 border border-rose-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
                       <div className="flex items-center justify-between gap-1.5">
                         <div className="flex items-center gap-1.5 font-black text-xs text-rose-700 dark:text-rose-300 truncate">
@@ -2050,7 +2036,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   )}
 
                   {/* Message 4: Post-Deadline Executed Actions & Judicial Escalation */}
-                  {isUnpaid && (!waSearchQuery || 'إشعار تنفيذ إجراءات تحذير قضائي محكمة تروكلر'.includes(waSearchQuery)) && (
+                  {isGoogleVerifiedAndUnpaid && (!waSearchQuery || 'إشعار تنفيذ إجراءات تحذير قضائي محكمة تروكلر'.includes(waSearchQuery)) && (
                     <div className="bg-red-500/15 border border-red-500/50 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
                       <div className="flex items-center justify-between gap-1.5">
                         <div className="flex items-center gap-1.5 font-black text-xs text-red-700 dark:text-red-400 truncate">
