@@ -174,7 +174,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
             business={selectedPayBiz}
             config={paymentConfig}
             onClose={() => setSelectedPayBiz(null)}
-            onPaymentSuccess={(newPaid, method = 'gateway_online') => {
+            onPaymentSuccess={(newPaid, method = 'gateway_online', receiptPhoto) => {
               if (selectedPayBiz && (user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant')) {
                 const status = newPaid >= (selectedPayBiz.packagePrice || 250) ? 'fully_paid' : 'partially_paid';
                 const updatedBiz: Business = {
@@ -183,6 +183,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
                   paymentStatus: status,
                   paymentMethod: method,
                   cashCollectedByRep: method === 'cash_by_rep' ? newPaid : 0,
+                  ...(receiptPhoto ? {
+                    paymentReceiptPhoto: receiptPhoto,
+                    paymentReceiptDate: new Date().toISOString(),
+                  } : {}),
                 };
                 onUpdateBusiness(updatedBiz);
 

@@ -21,6 +21,7 @@ interface AdminPayoutsTabProps {
   setPayoutFilter: (filter: 'all' | 'pending' | 'approved' | 'rejected') => void;
   onOpenPayoutActionModal: (payout: PayoutRequest, action: 'approve' | 'reject') => void;
   onSelectReceiptPhoto: (photo: string) => void;
+  onInspectRep?: (rep: Representative) => void;
 }
 
 export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
@@ -30,6 +31,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
   setPayoutFilter,
   onOpenPayoutActionModal,
   onSelectReceiptPhoto,
+  onInspectRep,
 }) => {
   const filteredPayouts = payoutRequests.filter((p) => payoutFilter === 'all' || p.status === payoutFilter);
 
@@ -112,6 +114,16 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
               `مرحباً زميلنا ${payout.repName}، بخصوص طلب سحب العمولة بقيمة ${payout.amount} ج.م...`
             )}`;
             const isRemittance = payout.type === 'remittance';
+            const repToInspect = rep || {
+              id: payout.repId,
+              name: payout.repName,
+              phone: payout.repPhone || '',
+              role: 'rep' as const,
+              governorate: 'الجيزة',
+              targetMonth: 25,
+              commissionRate: 42.86,
+              status: 'active' as const,
+            };
 
             return (
               <div
@@ -258,6 +270,18 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                         <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
                         <span>مراسلة واتساب</span>
                       </a>
+                    )}
+
+                    {onInspectRep && (
+                      <button
+                        type="button"
+                        onClick={() => onInspectRep(repToInspect)}
+                        className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 font-black px-3.5 py-1.5 rounded-xl border border-amber-500/40 flex items-center gap-1.5 text-xs transition-transform active:scale-95 cursor-pointer shadow-xs"
+                        title="استعراض حالة المندوب، كشف الحساب والأنشطة المسجلة"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-amber-500" />
+                        <span>استعراض حالة المندوب 👤</span>
+                      </button>
                     )}
                   </div>
 

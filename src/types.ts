@@ -33,6 +33,8 @@ export interface Business {
   paymentMethod?: 'cash_by_rep' | 'platform_collected' | 'gateway_online' | 'bank_transfer' | 'other'; // طريقة الاستلام
   cashCollectedByRep?: number; // المبلغ الكاش المستلم في يد المندوب
   paymentStatus: PaymentStatus;
+  paymentReceiptPhoto?: string; // صورة إيصال / تحويل / لقطة شاشة سداد النشاط
+  paymentReceiptDate?: string;  // تاريخ تسجيل إيصال السداد
   verificationStatus: VerificationStatus;
   repLocationUrl?: string; // رابط موقع النقطة الميداني المرسل من المندوب (غير موثق - للاستخدام الإداري والمراجعة والرفع فقط)
   googleMapsUrl?: string;  // رابط خرائط Google المعتمد والموثق رسمياً (تضيفه الإدارة بعد التوثيق والظهور على خرائط Google)

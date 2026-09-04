@@ -489,6 +489,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setPayoutFilter={setPayoutFilter}
           onOpenPayoutActionModal={(payout, action) => setActivePayoutModal({ payout, action })}
           onSelectReceiptPhoto={(photo) => setSelectedReceiptPhoto(photo)}
+          onInspectRep={(rep) => setSelectedDossierRep(rep)}
         />
       )}
 

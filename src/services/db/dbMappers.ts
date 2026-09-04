@@ -79,6 +79,8 @@ export function mapDbToBusiness(item: any): Business {
   let metaRegistrationType = item.registration_type || item.registrationType;
   let metaVideos: string[] | undefined = undefined;
   let metaAdminFollowUps: AdminFollowUpNote[] | undefined = undefined;
+  let metaPaymentReceiptPhoto = item.payment_receipt_photo || item.paymentReceiptPhoto;
+  let metaPaymentReceiptDate = item.payment_receipt_date || item.paymentReceiptDate;
   let pureNotes = item.notes;
 
   if (typeof item.notes === 'string' && item.notes.trim().startsWith('{')) {
@@ -87,6 +89,8 @@ export function mapDbToBusiness(item: any): Business {
       if (parsed && typeof parsed === 'object') {
         if (parsed.paymentMethod && !metaPaymentMethod) metaPaymentMethod = parsed.paymentMethod;
         if (parsed.cashCollectedByRep !== undefined && metaCashCollectedByRep === undefined) metaCashCollectedByRep = Number(parsed.cashCollectedByRep);
+        if (parsed.paymentReceiptPhoto && !metaPaymentReceiptPhoto) metaPaymentReceiptPhoto = parsed.paymentReceiptPhoto;
+        if (parsed.paymentReceiptDate && !metaPaymentReceiptDate) metaPaymentReceiptDate = parsed.paymentReceiptDate;
         if (parsed.googleSyncStatus && !metaGoogleSyncStatus) metaGoogleSyncStatus = parsed.googleSyncStatus;
         if (parsed.googlePlaceId && !metaGooglePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
         if (parsed.googleSyncDate && !metaGoogleSyncDate) metaGoogleSyncDate = parsed.googleSyncDate;
@@ -216,6 +220,8 @@ export function mapDbToBusiness(item: any): Business {
     paymentMethod,
     cashCollectedByRep,
     paymentStatus,
+    paymentReceiptPhoto: metaPaymentReceiptPhoto,
+    paymentReceiptDate: metaPaymentReceiptDate,
     verificationStatus: item.verification_status || item.verificationStatus || 'pending',
     repLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl,
@@ -336,6 +342,8 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googleMapsUrl: cleanGoogleMapsUrl || existingMeta.googleMapsUrl,
     videos: finalVideos,
     adminFollowUps: finalAdminFollowUps,
+    paymentReceiptPhoto: biz.paymentReceiptPhoto !== undefined ? biz.paymentReceiptPhoto : existingMeta.paymentReceiptPhoto,
+    paymentReceiptDate: biz.paymentReceiptDate !== undefined ? biz.paymentReceiptDate : existingMeta.paymentReceiptDate,
     userNotes: finalUserNotes,
   };
   record.notes = JSON.stringify(metaObj);
@@ -383,6 +391,8 @@ export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Bus
     updates.notes !== undefined ||
     updates.adminFollowUps !== undefined ||
     updates.videos !== undefined ||
+    updates.paymentReceiptPhoto !== undefined ||
+    updates.paymentReceiptDate !== undefined ||
     updates.googleMapsUrl !== undefined ||
     updates.googleSyncStatus !== undefined ||
     updates.googlePlaceId !== undefined ||

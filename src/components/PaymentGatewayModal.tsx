@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, PaymentGatewayConfig } from '../types';
-import { CheckCircle2, ShieldCheck, Copy, Check, Smartphone, Clock } from 'lucide-react';
+import { compressImageFile } from '../utils/imageCompressor';
+import { CheckCircle2, ShieldCheck, Copy, Check, Smartphone, Clock, Camera, FileCheck, Trash2, Loader2 } from 'lucide-react';
 
 interface PaymentGatewayModalProps {
   business: Business;
   config: PaymentGatewayConfig;
   onClose: () => void;
-  onPaymentSuccess: (amountPaid: number, method?: Business['paymentMethod']) => void;
+  onPaymentSuccess: (amountPaid: number, method?: Business['paymentMethod'], receiptPhoto?: string) => void;
 }
 
 export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
@@ -36,6 +37,23 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [simulatedPayAmount, setSimulatedPayAmount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [receiptPhoto, setReceiptPhoto] = useState<string>(business?.paymentReceiptPhoto || '');
+  const [isCompressingReceipt, setIsCompressingReceipt] = useState<boolean>(false);
+
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingReceipt(true);
+      const compressed = await compressImageFile(file, 1400, 1400, 0.82, { applyWatermark: false });
+      setReceiptPhoto(compressed);
+    } catch (err) {
+      console.error('Error compressing receipt image:', err);
+      alert('حدث خطأ أثناء معالجة الصورة');
+    } finally {
+      setIsCompressingReceipt(false);
+    }
+  };
 
   if (!business) return null;
 
@@ -74,7 +92,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     setTimeout(() => {
       setIsProcessing(false);
       const method: Business['paymentMethod'] = selectedMethod === 'instapay' ? 'platform_collected' : 'gateway_online';
-      onPaymentSuccess(amtPaid + Number(simulatedPayAmount), method);
+      onPaymentSuccess(amtPaid + Number(simulatedPayAmount), method, receiptPhoto || undefined);
       onClose();
     }, 600);
   };
@@ -436,6 +454,64 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               onChange={(e) => setSimulatedPayAmount(Math.max(0, Number(e.target.value)))}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-600 dark:text-emerald-400 font-black rounded-xl p-2.5 text-sm focus:outline-none focus:border-emerald-500 disabled:opacity-50 shadow-inner"
             />
+          </div>
+
+          {/* Receipt Photo Upload in Payment Gateway Modal */}
+          <div className="pt-2 border-t border-[var(--border-color)] space-y-2">
+            <label className="block text-xs font-bold text-[var(--text-secondary)]">
+              إرفاق صورة إيصال / لقطة شاشة التحويل (اختياري):
+            </label>
+
+            {receiptPhoto ? (
+              <div className="bg-[var(--input-bg)] border border-emerald-500/40 p-2.5 rounded-2xl flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src={receiptPhoto}
+                    alt="إيصال التحويل"
+                    className="w-12 h-12 object-cover rounded-xl border border-slate-600"
+                  />
+                  <div>
+                    <p className="text-xs font-black text-emerald-500 flex items-center gap-1">
+                      <FileCheck className="w-3.5 h-3.5" />
+                      <span>تم إرفاق صورة الإيصال</span>
+                    </p>
+                    <p className="text-[10px] text-[var(--text-muted)]">ستسجل في قسم المالية للنشاط</p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setReceiptPhoto('')}
+                  className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 p-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>إزالة</span>
+                </button>
+              </div>
+            ) : (
+              <label className="border border-dashed border-amber-500/40 hover:border-amber-500 rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer bg-[var(--input-bg)]/60 hover:bg-amber-500/5 transition-colors">
+                {isCompressingReceipt ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
+                    <span className="text-xs text-amber-500 font-bold">جارٍ معالجة الصورة...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Camera className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span className="text-xs font-bold text-[var(--text-primary)]">
+                      اضغط لرفع لقطة شاشة أو صورة إيصال التحويل
+                    </span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReceiptUpload}
+                  disabled={isCompressingReceipt}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
         </div>
       </div>

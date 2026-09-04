@@ -20,6 +20,7 @@ import {
 } from '../utils/referral';
 import { formatActivityDateTime } from '../utils/dateFormatters';
 import { UserAvatar } from './UserAvatar';
+import { AdminReceiptModal } from './admin/modals/AdminReceiptModal';
 import {
   X,
   Store,
@@ -48,6 +49,8 @@ import {
   Lock,
   Unlock,
   Percent,
+  Camera,
+  FileCheck,
 } from 'lucide-react';
 
 interface RepAccountDossierModalProps {
@@ -80,6 +83,7 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
   const [editingRoleTitle, setEditingRoleTitle] = useState<string>(rep?.roleTitle || '');
   const [isSavingRate, setIsSavingRate] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [selectedReceiptPhoto, setSelectedReceiptPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     if (rep) {
@@ -615,13 +619,39 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                               {isExempt ? (
                                 <span className="text-[10px] font-bold text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded-md">معفى</span>
                               ) : isCash ? (
-                                <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
-                                  💵 كاش باليد ({paid} ج)
-                                </span>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30 inline-block">
+                                    💵 كاش باليد ({paid} ج)
+                                  </span>
+                                  {biz.paymentReceiptPhoto && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedReceiptPhoto(biz.paymentReceiptPhoto!)}
+                                      className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                      title="معاينة وتدقيق صورة إيصال / لقطة شاشة التحصيل"
+                                    >
+                                      <Camera className="w-3 h-3 text-emerald-500" />
+                                      <span>صورة التحصيل</span>
+                                    </button>
+                                  )}
+                                </div>
                               ) : paid > 0 ? (
-                                <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
-                                  💳 تحويل للمنصة
-                                </span>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30 inline-block">
+                                    💳 تحويل للمنصة
+                                  </span>
+                                  {biz.paymentReceiptPhoto && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedReceiptPhoto(biz.paymentReceiptPhoto!)}
+                                      className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                      title="معاينة وتدقيق صورة إيصال / لقطة شاشة التحصيل"
+                                    >
+                                      <Camera className="w-3 h-3 text-emerald-500" />
+                                      <span>صورة التحصيل</span>
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-[10px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-md">لم يدفع بعد</span>
                               )}
@@ -646,16 +676,29 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                             </td>
 
                             <td className="p-3 text-center">
-                              {onEditBusiness && (
-                                <button
-                                  type="button"
-                                  onClick={() => onEditBusiness(biz)}
-                                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1 mx-auto"
-                                >
-                                  <Eye className="w-3 h-3" />
-                                  <span>تفاصيل</span>
-                                </button>
-                              )}
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                {biz.paymentReceiptPhoto && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedReceiptPhoto(biz.paymentReceiptPhoto!)}
+                                    className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-black text-[11px] px-2 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+                                    title="معاينة صورة التحصيل الخاصة بالنشاط"
+                                  >
+                                    <Camera className="w-3 h-3 text-emerald-500" />
+                                    <span>الإيصال</span>
+                                  </button>
+                                )}
+                                {onEditBusiness && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onEditBusiness(biz)}
+                                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>تفاصيل</span>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1139,6 +1182,12 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
             إغلاق الملف
           </button>
         </div>
+
+        {/* ── 6. LIGHTBOX MODAL: Activity Payment Receipt Photo Preview ── */}
+        <AdminReceiptModal
+          receiptPhoto={selectedReceiptPhoto}
+          onClose={() => setSelectedReceiptPhoto(null)}
+        />
       </div>
     </div>,
     document.body
