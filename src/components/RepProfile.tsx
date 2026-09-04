@@ -216,7 +216,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
       )}
 
       {/* 🌟 1. EXECUTIVE PROFILE HEADER BANNER */}
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white">
+      <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
         <div className="flex items-start sm:items-center gap-3.5 sm:gap-4">
           <div className="relative group shrink-0">
             <UserAvatar
@@ -232,83 +232,140 @@ export const RepProfile: React.FC<RepProfileProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-xl font-black text-white truncate">{rep.name}</h2>
-              <span className="bg-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1 shrink-0">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              <span className="bg-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span>مندوب معتمد 2026</span>
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 font-medium">
-              {rep.roleTitle || 'مندوب مبيعات وتوثيق ميداني'} • نطاق محافظة {rep.governorate}
+            <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 font-medium flex items-center gap-1.5 flex-wrap">
+              <span>{rep.roleTitle || 'مندوب مبيعات وتوثيق ميداني'}</span>
+              <span className="text-amber-500/60">•</span>
+              <span className="text-amber-300/90 font-bold">محافظة {rep.governorate}</span>
             </p>
 
-            {/* Meta tags as clean responsive pills */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-mono text-amber-300 font-bold mt-2">
-              <span className="bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10" title="كود بطاقة التكليف الميداني">
-                بطاقة: {repCode}
-              </span>
-              <span 
+            {/* Distinctive & Useful Executive Badges */}
+            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+              {/* Copyable Referral Code */}
+              <button
+                type="button"
                 onClick={handleCopyReferral}
-                className="bg-amber-500/25 text-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-500/50 font-mono text-[10px] sm:text-[11px] font-black flex items-center gap-1 shadow-xs cursor-pointer hover:bg-amber-500/35 transition-all active:scale-95" 
-                title="اضغط لنسخ كود الإحالة الخاص بك"
+                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1 rounded-xl border border-amber-500/40 font-mono text-[11px] font-black flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95 group"
+                title="اضغط لنسخ كود الإحالة المعتمد الخاص بك"
               >
-                <Users className="w-3 h-3 text-amber-400" />
-                <span>كود الإحالة: {referralCode}</span>
-                {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-amber-400" />}
+                <Users className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span>كود الإحالة: <span className="font-extrabold text-white">{referralCode}</span></span>
+                {copiedCode ? (
+                  <span className="flex items-center gap-0.5 text-emerald-400 font-bold text-[9px] bg-emerald-500/20 px-1 py-0.2 rounded border border-emerald-500/30 animate-pulse">
+                    <Check className="w-2.5 h-2.5" /> تم النسخ!
+                  </span>
+                ) : (
+                  <Copy className="w-3 h-3 text-amber-400 opacity-70 group-hover:opacity-100" />
+                )}
+              </button>
+
+              {/* Official Commission Rate */}
+              <span className="bg-emerald-500/15 text-emerald-300 px-2.5 py-1 rounded-xl border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 shadow-xs">
+                <Percent className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
+                <span>عمولة فورية: <strong className="text-white font-black">{commissionPercentage}%</strong></span>
               </span>
-              {rep.referredByCode && (
-                <span className="bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-lg border border-purple-500/40 text-[10px] sm:text-[11px] font-bold flex items-center gap-1" title="كود المندوب الداعي">
-                  دعاه: {rep.referredByCode}
-                </span>
-              )}
-              <span className="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-500/40 font-sans text-[10px] sm:text-[11px] font-bold flex items-center gap-1 shadow-xs">
-                <Percent className="w-3 h-3 text-amber-400" />
-                <span>نسبة العمولة: {commissionPercentage}%</span>
+
+              {/* Verified Contact Phone */}
+              <span className="bg-black/35 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-white/10 text-[11px] text-slate-300 flex items-center gap-1.5">
+                <Phone className="w-3 h-3 text-slate-400" />
+                <span dir="ltr" className="font-mono text-slate-200">{rep.phone}</span>
+                {rep.phoneStatus === 'pending_approval' && (
+                  <span className="text-[9px] text-amber-400 font-bold bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-500/30">
+                    قيد مراجعة التعديل
+                  </span>
+                )}
               </span>
-              <span className="bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10">
-                الرقم القومي: {rep.nationalId || '—'}
-              </span>
-              <span className="bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10 flex items-center gap-1">
-                هاتف: <span dir="ltr">{rep.phone}</span>
-              </span>
-              {rep.phoneStatus === 'pending_approval' && rep.pendingPhone && (
-                <span className="bg-amber-500/25 text-amber-300 px-2 py-0.5 rounded-lg border border-amber-500/40 font-sans text-[10px] font-bold">
-                  ⏳ قيد تعديل إلى (<span dir="ltr">{rep.pendingPhone}</span>)
-                </span>
-              )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 shrink-0 flex-wrap sm:flex-nowrap">
-          {onNavigateHome && (
-            <button
-              type="button"
-              onClick={onNavigateHome}
-              title="العودة إلى الصفحة الرئيسية للأنشطة"
-              className="bg-slate-800/90 hover:bg-slate-700 text-amber-300 font-bold text-xs px-3.5 py-2 sm:py-2.5 rounded-xl border border-amber-500/30 flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 cursor-pointer shrink-0"
-            >
-              <Home className="w-4 h-4 text-amber-400 stroke-[2.5]" />
-              <span>الرئيسية</span>
-            </button>
-          )}
-
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 pt-2 md:pt-0 border-t border-white/10 md:border-t-0 shrink-0">
           <button
-            onClick={() => {
-              setShowEditModal(true);
-            }}
-            className="flex-1 sm:flex-initial bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-4 py-2 sm:py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            type="button"
+            onClick={() => setShowEditModal(true)}
+            className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
           >
             <Edit3 className="w-4 h-4 stroke-[2.5]" />
             <span>تعديل البيانات</span>
           </button>
 
+          {onNavigateHome && (
+            <button
+              type="button"
+              onClick={onNavigateHome}
+              title="العودة إلى الصفحة الرئيسية للأنشطة"
+              className="bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-bold text-xs px-3 py-2.5 rounded-xl border border-amber-500/30 flex items-center justify-center gap-1 shadow transition-all active:scale-95 cursor-pointer shrink-0"
+            >
+              <Home className="w-3.5 h-3.5 text-amber-400 stroke-[2.2]" />
+              <span>الرئيسية</span>
+            </button>
+          )}
+
           <button
+            type="button"
             onClick={onLogout}
-            className="bg-rose-600/20 hover:bg-rose-600/30 text-rose-600 dark:text-rose-300 font-bold text-xs px-3.5 py-2 sm:py-2.5 rounded-xl border border-rose-500/30 flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 cursor-pointer shrink-0"
+            title="تسجيل الخروج"
+            className="bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold text-xs px-3 py-2.5 rounded-xl border border-rose-500/30 flex items-center justify-center gap-1 shadow transition-all active:scale-95 cursor-pointer shrink-0"
           >
-            <LogOut className="w-4 h-4 text-rose-500" />
+            <LogOut className="w-3.5 h-3.5 text-rose-400" />
             <span>خروج</span>
           </button>
+        </div>
+      </div>
+
+      {/* 📊 1.5 EXECUTIVE KPI SUMMARY STRIP */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 stroke-[2.2]" />
+          </div>
+          <div>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">الأنشطة الموثقة</p>
+            <p className="text-sm sm:text-base font-black text-[var(--text-primary)] leading-tight">
+              {repBusinesses.length} <span className="text-[10px] text-[var(--text-muted)] font-normal">نشاط</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+            <CreditCard className="w-4 h-4 stroke-[2.2]" />
+          </div>
+          <div>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">صافي العمولات</p>
+            <p className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 leading-tight">
+              {settlement.netRepEarnings.toLocaleString()} <span className="text-[10px] font-normal">ج.م</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 stroke-[2.2]" />
+          </div>
+          <div>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">فريق الإحالة</p>
+            <p className="text-sm sm:text-base font-black text-blue-600 dark:text-blue-400 leading-tight">
+              {referralSummary.totalInvitedCount} <span className="text-[10px] font-normal">عضو</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center shrink-0">
+            <Gift className="w-4 h-4 stroke-[2.2]" />
+          </div>
+          <div>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold">الرصيد القابل للسحب</p>
+            <p className="text-sm sm:text-base font-black text-amber-500 leading-tight">
+              {settlement.balanceToClaim > 0 ? `${settlement.balanceToClaim.toLocaleString()} ج.م` : 'مسوى بالكامل'}
+            </p>
+          </div>
         </div>
       </div>
 
