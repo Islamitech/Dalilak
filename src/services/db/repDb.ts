@@ -5,7 +5,7 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,created_at';
+const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,password,created_at';
 
 export async function fetchRepsFromDb(): Promise<Representative[]> {
   // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH)

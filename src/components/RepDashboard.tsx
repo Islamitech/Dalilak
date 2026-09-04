@@ -93,7 +93,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
   const showFinancialSection =
     settlement.withdrawableBalance > 0 ||
     settlement.isDebtToPlatform ||
-    settlement.totalEarnedCommissions > 0 ||
+    settlement.totalEarnedCommission > 0 ||
     settlement.pendingVerificationCommission > 0 ||
     myPayouts.length > 0;
 

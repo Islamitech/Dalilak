@@ -8,7 +8,7 @@ import { mapDbToRep } from '../services/db/dbMappers';
 import { compressImageFile } from '../utils/imageCompressor';
 import { getRepReferralCode } from '../utils/referral';
 import { hashPassword, verifyPassword, isPasswordHashed } from '../utils/crypto';
-import { safeSetLocalStorageItem, safeSetSessionItem } from '../utils/storage';
+import { safeSetLocalStorageItem, safeSetSessionItem, safeParseJson } from '../utils/storage';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { 
@@ -223,7 +223,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
 
       // Verify Password strictly (supports both SHA-256 and legacy formats)
-      const storedPassword = (foundRep.password || '').trim();
+      let storedPassword = (foundRep.password || '').trim();
+
+      // Failsafe 1: If password field is blank, extract from avatar JSON metadata bundle
+      if (!storedPassword && foundRep.avatar && typeof foundRep.avatar === 'string' && foundRep.avatar.trim().startsWith('{')) {
+        try {
+          const parsedMeta = JSON.parse(foundRep.avatar.trim());
+          if (parsedMeta && parsedMeta.password) {
+            storedPassword = String(parsedMeta.password).trim();
+            foundRep.password = storedPassword;
+          }
+        } catch {}
+      }
+
+      // Failsafe 2: Check local custom and cached reps
+      if (!storedPassword) {
+        try {
+          const localCustom = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
+          const matchCustom = localCustom.find((cr) => cr.id === foundRep!.id || (cr.email && cr.email.toLowerCase() === cleanEmail));
+          if (matchCustom?.password) {
+            storedPassword = matchCustom.password.trim();
+            foundRep.password = storedPassword;
+          }
+        } catch {}
+      }
+
       let isPassValid = false;
 
       if (storedPassword && storedPassword !== '••••••••') {

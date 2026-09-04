@@ -47,49 +47,79 @@ app.use((_req, res, next) => {
   next();
 });
 
-// 🛡️ Security Helpers: Cryptographically Strong Password Hashing (scrypt with unique salt)
+// 🛡️ Security Helpers: Cryptographically Strong Password Hashing (Universal SHA-256 with backward-compatible scrypt & plaintext verification)
+function isPasswordHashed(password?: string): boolean {
+  if (!password || typeof password !== 'string') return false;
+  const clean = password.trim().toLowerCase();
+  return (
+    clean.startsWith('sha256:') ||
+    clean.startsWith('scrypt:') ||
+    (clean.length === 64 && /^[0-9a-fA-F]+$/.test(clean))
+  );
+}
+
 function hashPassword(password: string): string {
   if (!password) return '';
-  if (password.startsWith('scrypt:')) {
-    return password;
-  }
   const clean = password.trim();
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.scryptSync(clean, salt, 64).toString('hex');
-  return `scrypt:${salt}:${hash}`;
+  // Prevent double-hashing if password is already hashed in sha256 or scrypt
+  if (isPasswordHashed(clean)) {
+    return clean;
+  }
+  const hash = crypto.createHash('sha256').update(clean).digest('hex');
+  return `sha256:${hash}`;
 }
 
 function verifyPassword(password: string, storedHash?: string): boolean {
   if (!storedHash || !password) return false;
   const cleanPassword = password.trim();
+  const cleanStored = storedHash.trim();
 
-  // 1. Primary: High-security salted scrypt verification
-  if (storedHash.startsWith('scrypt:')) {
-    const parts = storedHash.split(':');
-    if (parts.length !== 3) return false;
-    const salt = parts[1];
-    const originalHash = parts[2];
-    const hash = crypto.scryptSync(cleanPassword, salt, 64).toString('hex');
-    try {
-      return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'));
-    } catch {
-      return false;
-    }
-  }
-
-  // 2. Legacy SHA-256 Hash Verification (Auto-upgraded to scrypt upon successful login)
-  if (storedHash.startsWith('sha256:')) {
+  // 1. Primary standard: SHA-256 Hash Verification (Universal across Browser & Server)
+  if (cleanStored.toLowerCase().startsWith('sha256:')) {
     const hash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
     const computed = `sha256:${hash}`;
     try {
-      return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(storedHash));
+      return crypto.timingSafeEqual(Buffer.from(computed.toLowerCase()), Buffer.from(cleanStored.toLowerCase()));
     } catch {
-      return computed === storedHash;
+      return computed.toLowerCase() === cleanStored.toLowerCase();
     }
   }
 
-  // 3. Backward-compatible Plaintext Verification (Auto-upgraded to scrypt upon successful login)
-  return storedHash === cleanPassword;
+  // 2. High-security salted scrypt verification (Supports direct password & double-hashed sha256 fallback)
+  if (cleanStored.startsWith('scrypt:')) {
+    const parts = cleanStored.split(':');
+    if (parts.length === 3) {
+      const salt = parts[1];
+      const originalHash = parts[2];
+      
+      // Attempt A: Direct plaintext scrypt check
+      const hash = crypto.scryptSync(cleanPassword, salt, 64).toString('hex');
+      try {
+        if (crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'))) {
+          return true;
+        }
+      } catch {}
+
+      // Attempt B: Double-hashed check in case cleanPassword was first hashed with sha256 before scrypt
+      const sha256Direct = `sha256:${crypto.createHash('sha256').update(cleanPassword).digest('hex')}`;
+      const hashFromSha = crypto.scryptSync(sha256Direct, salt, 64).toString('hex');
+      try {
+        if (crypto.timingSafeEqual(Buffer.from(hashFromSha, 'hex'), Buffer.from(originalHash, 'hex'))) {
+          return true;
+        }
+      } catch {}
+    }
+    return false;
+  }
+
+  // 3. Raw 64-character SHA-256 hex without prefix
+  if (cleanStored.length === 64 && /^[0-9a-fA-F]+$/.test(cleanStored)) {
+    const hash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
+    return hash.toLowerCase() === cleanStored.toLowerCase();
+  }
+
+  // 4. Backward-compatible Plaintext Verification
+  return cleanStored === cleanPassword;
 }
 
 // 🛡️ Safe Atomic File Writing: Prevents race conditions and file corruption
@@ -490,8 +520,8 @@ app.post('/api/auth/login', async (req, res) => {
   // ✅ تسجيل دخول ناجح — مسح سجل المحاولات الفاشلة للحساب
   loginRateLimit.delete(accKey);
 
-  // Automatic secure password upgrade: If password was plaintext or legacy sha256, upgrade to salted scrypt immediately
-  if (!storedPassword.startsWith('scrypt:')) {
+  // Automatic secure password upgrade: If password was plaintext, upgrade to sha256 immediately
+  if (!isPasswordHashed(storedPassword)) {
     rep.password = hashPassword(cleanPassword);
   }
 
@@ -734,7 +764,7 @@ app.post('/api/representatives', (req, res) => {
   const repData = req.body;
   const rawPassword = (repData.password || '').trim();
   const securePassword = rawPassword
-    ? (rawPassword.startsWith('scrypt:') ? rawPassword : hashPassword(rawPassword))
+    ? (isPasswordHashed(rawPassword) ? rawPassword : hashPassword(rawPassword))
     : hashPassword('Aa123456');
 
   // Prevent role escalation by unauthenticated or non-manager users

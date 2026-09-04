@@ -417,6 +417,7 @@ export function mapDbToRep(item: any): Representative {
   let metaNationalIdCardBackPhoto: string | undefined = item.national_id_card_back_photo || item.nationalIdCardBackPhoto;
   let metaPendingPhone: string | undefined = item.pending_phone || item.pendingPhone;
   let metaPhoneStatus = item.phone_status || item.phoneStatus || 'none';
+  let metaPassword: string | undefined = item.password;
   let metaLastActiveTimestamp: number | undefined = item.last_active_timestamp ? Number(item.last_active_timestamp) : (item.lastActiveTimestamp ? Number(item.lastActiveTimestamp) : undefined);
   let metaActiveSessionId: string | undefined = item.active_session_id || item.activeSessionId;
 
@@ -426,6 +427,7 @@ export function mapDbToRep(item: any): Representative {
       const parsed = JSON.parse(parsedAvatar.trim());
       if (parsed && typeof parsed === 'object') {
         parsedAvatar = parsed.avatar || '';
+        if (parsed.password && !metaPassword) metaPassword = parsed.password;
         if (parsed.referralCode && !metaReferralCode) metaReferralCode = parsed.referralCode;
         if (parsed.referredByCode && !metaReferredByCode) metaReferredByCode = parsed.referredByCode;
         if (parsed.referralUnlocked !== undefined && metaReferralUnlocked === undefined) metaReferralUnlocked = parsed.referralUnlocked;
@@ -477,7 +479,7 @@ export function mapDbToRep(item: any): Representative {
     avatarStatus: item.avatar_status || item.avatarStatus || 'none',
     commissionRate: Number(item.commission_rate || item.commissionRate) || 42.86,
     status: (item.status as any) || 'suspended',
-    password: item.password || undefined,
+    password: item.password || metaPassword || undefined,
     activeSessionId: undefined, // Never populate activeSessionId from DB into public rep state
     lastActiveTimestamp: metaLastActiveTimestamp,
     referralCode: metaReferralCode || defaultRefCode,
@@ -519,6 +521,7 @@ export function mapRepToDb(rep: Partial<Representative>): any {
   const avatarBundle = {
     ...existingMeta,
     avatar: cleanAvatar || existingMeta.avatar || '',
+    password: rep.password ?? existingMeta.password, // 🛡️ Triple-failsafe: preserves password inside avatar JSON
     referralCode: rep.referralCode ?? existingMeta.referralCode,
     referralUnlocked: rep.referralUnlocked ?? existingMeta.referralUnlocked,
     adminBypassReferral: rep.adminBypassReferral ?? existingMeta.adminBypassReferral,

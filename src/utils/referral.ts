@@ -122,6 +122,7 @@ export function getRepReferralSummary(
   allReps: Representative[],
   allBusinesses: Business[]
 ): RepReferralSummary {
+  const referralCode = getRepReferralCode(inviterRep);
   const invId = (inviterRep.id || '').toLowerCase().trim();
   const invName = (inviterRep.name || '').toLowerCase().trim();
   const invPhone = (inviterRep.phone || '').replace(/\D/g, '');
@@ -129,7 +130,7 @@ export function getRepReferralSummary(
   const myBizCount = allBusinesses.filter((b) => {
     const bRepId = (b.repId || '').toLowerCase().trim();
     const bRepName = (b.repName || '').toLowerCase().trim();
-    const bRepPhone = (b.repPhone || '').replace(/\D/g, '');
+    const bRepPhone = ((b as any).repPhone || '').replace(/\D/g, '');
     return (invId && bRepId === invId) ||
            (invName && bRepName === invName) ||
            (invPhone && (bRepId === invPhone || bRepPhone === invPhone));

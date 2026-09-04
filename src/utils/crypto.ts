@@ -13,7 +13,7 @@ export async function hashPassword(plainText: string): Promise<string> {
   if (!clean) return '';
 
   // Prevent double-hashing if password is already hashed
-  if (clean.startsWith(HASH_PREFIX) || clean.startsWith('scrypt:')) {
+  if (clean.startsWith(HASH_PREFIX) || clean.startsWith('scrypt:') || (clean.length === 64 && /^[0-9a-fA-F]+$/.test(clean))) {
     return clean;
   }
 
@@ -34,7 +34,8 @@ export async function hashPassword(plainText: string): Promise<string> {
  * Verifies a plaintext password against a stored password string.
  * Supports:
  * 1. Hashed passwords ('sha256:...')
- * 2. Legacy plaintext passwords for seamless backward compatibility
+ * 2. Raw 64-character SHA-256 hashes
+ * 3. Legacy plaintext passwords for seamless backward compatibility
  */
 export async function verifyPassword(plainText: string, storedPassword?: string): Promise<boolean> {
   const cleanPlain = (plainText || '').trim();
@@ -42,13 +43,20 @@ export async function verifyPassword(plainText: string, storedPassword?: string)
 
   if (!cleanPlain || !cleanStored) return false;
 
-  // If stored password is a SHA-256 hash
-  if (cleanStored.startsWith(HASH_PREFIX)) {
+  // 1. If stored password is a SHA-256 hash with prefix
+  if (cleanStored.toLowerCase().startsWith(HASH_PREFIX)) {
     const inputHash = await hashPassword(cleanPlain);
-    return inputHash === cleanStored;
+    return inputHash.toLowerCase() === cleanStored.toLowerCase();
   }
 
-  // Legacy fallback: direct plaintext equality (allows existing reps to log in seamlessly)
+  // 2. If stored password is a raw 64-character hex hash without prefix
+  if (cleanStored.length === 64 && /^[0-9a-fA-F]+$/.test(cleanStored)) {
+    const inputHash = await hashPassword(cleanPlain);
+    const rawInputHex = inputHash.replace(HASH_PREFIX, '');
+    return rawInputHex.toLowerCase() === cleanStored.toLowerCase();
+  }
+
+  // 3. Legacy fallback: direct plaintext equality (allows existing reps to log in seamlessly)
   return cleanStored === cleanPlain;
 }
 
@@ -56,8 +64,11 @@ export async function verifyPassword(plainText: string, storedPassword?: string)
  * Checks if a stored password is already in hashed format.
  */
 export function isPasswordHashed(storedPassword?: string): boolean {
+  if (!storedPassword || typeof storedPassword !== 'string') return false;
+  const clean = storedPassword.trim().toLowerCase();
   return (
-    typeof storedPassword === 'string' &&
-    (storedPassword.startsWith('scrypt:') || storedPassword.startsWith(HASH_PREFIX))
+    clean.startsWith('scrypt:') ||
+    clean.startsWith(HASH_PREFIX) ||
+    (clean.length === 64 && /^[0-9a-fA-F]+$/.test(clean))
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Representative, User } from '../../types';
+import { verifyPassword, hashPassword } from '../../utils/crypto';
 import {
   User as UserIcon,
   AlertCircle,
@@ -43,9 +44,9 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSaveProfileData = (e: React.FormEvent) => {
+  const handleSaveProfileData = async (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError(null);
+    setValidationError('');
 
     // Only validate name if user is admin editing it
     if (isAdmin) {
@@ -70,14 +71,18 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
 
     // Password verification logic
     let shouldUpdatePassword = false;
+    let hashedNewPassword = '';
     if (showPasswordChange || currentPassword || newPassword || confirmPassword) {
       if (!currentPassword) {
         setValidationError('لتغيير كلمة المرور، يجب إدخال كلمة المرور الحالية أولاً لتأكيد هويتك.');
         return;
       }
-      if (rep.password && currentPassword !== rep.password) {
-        setValidationError('كلمة المرور الحالية غير صحيحة! يرجى إدخال كلمة المرور الحالية بدقة.');
-        return;
+      if (rep.password) {
+        const isCurrentValid = await verifyPassword(currentPassword, rep.password);
+        if (!isCurrentValid) {
+          setValidationError('كلمة المرور الحالية غير صحيحة! يرجى إدخال كلمة المرور الحالية بدقة.');
+          return;
+        }
       }
       if (!newPassword || newPassword.length < 6) {
         setValidationError('كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف أو أرقام.');
@@ -88,6 +93,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
         return;
       }
       shouldUpdatePassword = true;
+      hashedNewPassword = await hashPassword(newPassword.trim());
     }
 
     const isNewAvatar = editAvatar !== rep.avatar && editAvatar.length > 0;
@@ -118,7 +124,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
       email: editEmail.trim(),
       avatar: editAvatar || rep.avatar,
       avatarStatus: isNewAvatar ? 'pending_approval' : rep.avatarStatus || 'none',
-      ...(shouldUpdatePassword ? { password: newPassword.trim() } : {}),
+      ...(shouldUpdatePassword && hashedNewPassword ? { password: hashedNewPassword } : {}),
     });
 
     if (shouldUpdatePassword) {
