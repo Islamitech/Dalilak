@@ -300,25 +300,43 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     }
   }
 
+  // Safely parse existing meta from notes if present to prevent clobbering during partial saves
+  let existingMeta: any = {};
+  if (typeof biz.notes === 'string' && biz.notes.trim().startsWith('{')) {
+    try {
+      existingMeta = JSON.parse(biz.notes.trim()) || {};
+    } catch {}
+  }
+
+  const finalVideos = Array.isArray(biz.videos)
+    ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http') || v.startsWith('data:') || v.startsWith('blob:')))
+    : (Array.isArray(existingMeta.videos) ? existingMeta.videos : []);
+
+  const finalAdminFollowUps = Array.isArray(biz.adminFollowUps)
+    ? biz.adminFollowUps
+    : (Array.isArray(existingMeta.adminFollowUps) ? existingMeta.adminFollowUps : []);
+
+  const finalUserNotes = typeof biz.notes === 'string' && !biz.notes.trim().startsWith('{')
+    ? biz.notes
+    : (existingMeta.userNotes || undefined);
+
   // Safely preserve financial, sync, video, and admin follow-up metadata in notes JSON
   const metaObj = {
-    paymentMethod: isExempt ? 'platform_collected' : biz.paymentMethod,
-    cashCollectedByRep: isExempt ? 0 : biz.cashCollectedByRep,
-    repCommissionRate: isExempt ? 0 : biz.repCommissionRate,
+    paymentMethod: isExempt ? 'platform_collected' : (biz.paymentMethod !== undefined ? biz.paymentMethod : existingMeta.paymentMethod),
+    cashCollectedByRep: isExempt ? 0 : (biz.cashCollectedByRep !== undefined ? biz.cashCollectedByRep : existingMeta.cashCollectedByRep),
+    repCommissionRate: isExempt ? 0 : (biz.repCommissionRate !== undefined ? biz.repCommissionRate : existingMeta.repCommissionRate),
     isFeeExempt: isExempt,
-    feeExemptionReason: biz.feeExemptionReason,
+    feeExemptionReason: biz.feeExemptionReason !== undefined ? biz.feeExemptionReason : existingMeta.feeExemptionReason,
     isAlreadyOnGoogle,
-    registrationType: isAlreadyOnGoogle ? 'already_on_google' : (biz.registrationType || 'new_verification'),
-    googleSyncStatus: isAlreadyOnGoogle ? 'synced' : biz.googleSyncStatus,
-    googlePlaceId: biz.googlePlaceId,
-    googleSyncDate: isAlreadyOnGoogle ? (biz.googleSyncDate || new Date().toISOString().split('T')[0]) : biz.googleSyncDate,
-    repLocationUrl: cleanRepLocationUrl,
-    googleMapsUrl: cleanGoogleMapsUrl,
-    videos: Array.isArray(biz.videos)
-      ? biz.videos.filter(v => typeof v === 'string' && (v.startsWith('http') || v.startsWith('data:') || v.startsWith('blob:')))
-      : [],
-    adminFollowUps: Array.isArray(biz.adminFollowUps) ? biz.adminFollowUps : [],
-    userNotes: typeof biz.notes === 'string' && biz.notes.trim().startsWith('{') ? undefined : biz.notes,
+    registrationType: isAlreadyOnGoogle ? 'already_on_google' : (biz.registrationType || existingMeta.registrationType || 'new_verification'),
+    googleSyncStatus: isAlreadyOnGoogle ? 'synced' : (biz.googleSyncStatus || existingMeta.googleSyncStatus),
+    googlePlaceId: biz.googlePlaceId || existingMeta.googlePlaceId,
+    googleSyncDate: isAlreadyOnGoogle ? (biz.googleSyncDate || new Date().toISOString().split('T')[0]) : (biz.googleSyncDate || existingMeta.googleSyncDate),
+    repLocationUrl: cleanRepLocationUrl || existingMeta.repLocationUrl,
+    googleMapsUrl: cleanGoogleMapsUrl || existingMeta.googleMapsUrl,
+    videos: finalVideos,
+    adminFollowUps: finalAdminFollowUps,
+    userNotes: finalUserNotes,
   };
   record.notes = JSON.stringify(metaObj);
 
@@ -327,6 +345,64 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
 
 export function mapBusinessToDb(biz: Partial<Business>): any {
   return getSafeCoreBusinessDbRecord(biz);
+}
+
+export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Business): any {
+  const record: any = {};
+  if (updates.nameAr !== undefined) record.name_ar = updates.nameAr.trim();
+  if (updates.nameEn !== undefined) record.name_en = updates.nameEn?.trim() || null;
+  if (updates.category !== undefined) record.category = updates.category;
+  if (updates.governorate !== undefined) record.governorate = updates.governorate;
+  if (updates.city !== undefined) record.city = updates.city;
+  if (updates.street !== undefined) record.street = updates.street;
+  if (updates.landmark !== undefined) record.landmark = updates.landmark?.trim() || null;
+  if (updates.phone !== undefined) record.phone = updates.phone.trim();
+  if (updates.secondaryPhone !== undefined) record.secondary_phone = updates.secondaryPhone?.trim() || null;
+  if (updates.workingHours !== undefined) record.working_hours = updates.workingHours;
+  if (updates.description !== undefined) record.description = updates.description;
+  if (updates.lat !== undefined) record.lat = Number(updates.lat);
+  if (updates.lng !== undefined) record.lng = Number(updates.lng);
+  if (updates.ownerName !== undefined) record.owner_name = updates.ownerName.trim();
+  if (updates.ownerPhone !== undefined) record.owner_phone = updates.ownerPhone.trim();
+  if (updates.ownerEmail !== undefined) record.owner_email = updates.ownerEmail?.trim() || null;
+  if (updates.nationalId !== undefined) record.national_id = updates.nationalId?.trim() || null;
+  if (updates.photos !== undefined && Array.isArray(updates.photos)) record.photos = updates.photos;
+  if (updates.packageId !== undefined) record.package_id = updates.packageId;
+  if (updates.packageName !== undefined) record.package_name = updates.packageName;
+  if (updates.packagePrice !== undefined) record.package_price = Number(updates.packagePrice);
+  if (updates.amountPaid !== undefined) record.amount_paid = Number(updates.amountPaid);
+  if (updates.paymentStatus !== undefined) record.payment_status = updates.paymentStatus;
+  if (updates.verificationStatus !== undefined) record.verification_status = updates.verificationStatus;
+  if (updates.repId !== undefined) record.rep_id = updates.repId;
+  if (updates.repName !== undefined) record.rep_name = updates.repName;
+  if (updates.invoiceNumber !== undefined) record.invoice_number = updates.invoiceNumber;
+  if (updates.invoiceDate !== undefined) record.invoice_date = updates.invoiceDate;
+
+  // If any metadata / notes field is updated, serialize notes safely merging with baseBiz
+  const hasMetaUpdates =
+    updates.notes !== undefined ||
+    updates.adminFollowUps !== undefined ||
+    updates.videos !== undefined ||
+    updates.googleMapsUrl !== undefined ||
+    updates.googleSyncStatus !== undefined ||
+    updates.googlePlaceId !== undefined ||
+    updates.googleSyncDate !== undefined ||
+    updates.repLocationUrl !== undefined ||
+    updates.paymentMethod !== undefined ||
+    updates.cashCollectedByRep !== undefined ||
+    updates.repCommissionRate !== undefined ||
+    updates.isFeeExempt !== undefined ||
+    updates.feeExemptionReason !== undefined ||
+    updates.isAlreadyOnGoogle !== undefined ||
+    updates.registrationType !== undefined;
+
+  if (hasMetaUpdates) {
+    const fullMerged = { ...(baseBiz || {}), ...updates } as Business;
+    const fullDbRecord = getSafeCoreBusinessDbRecord(fullMerged);
+    record.notes = fullDbRecord.notes;
+  }
+
+  return record;
 }
 
 export function mapDbToRep(item: any): Representative {

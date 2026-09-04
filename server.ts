@@ -302,7 +302,7 @@ function validateRequiredFields(obj: Record<string, unknown>, fields: string[]):
 // REST API Endpoints
 
 // 1. Health check & Test Mode check
-let isServerTestMode = true;
+let isServerTestMode = false;
 
 app.get('/api/health', (_req, res) => {
   res.json({ 
@@ -328,8 +328,8 @@ app.get('/api/test-mode', (_req, res) => {
 
 app.post('/api/test-mode', (req, res) => {
   const reqUser = getRequestUser(req);
-  if (process.env.NODE_ENV === 'production' && (!reqUser || reqUser.role !== 'admin')) {
-    return res.status(403).json({ error: 'غير مصرح: تفعيل أو تعطيل وضع الاختبار في بيئة الإنتاج مقتصر على مدير النظام' });
+  if (!reqUser || reqUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: تفعيل أو تعطيل وضع الاختبار مقتصر على مدير النظام حصراً' });
   }
   if (typeof req.body.testMode === 'boolean') {
     isServerTestMode = req.body.testMode;
@@ -343,8 +343,9 @@ app.post('/api/test-mode', (req, res) => {
 
 app.post('/api/test-mode/reset', (req, res) => {
   const reqUser = getRequestUser(req);
-  if (!isServerTestMode && (!reqUser || reqUser.role !== 'admin')) {
-    return res.status(403).json({ error: 'غير مصرح: إعادة ضبط البيانات تتطلب صلاحية مدير النظام' });
+  // 🛡️ STRICT: Resetting database requires authenticated admin session regardless of environment
+  if (!reqUser || reqUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: تصفية وإعادة ضبط بيانات النظام تتطلب تسجيل الدخول بصلاحية مدير النظام (Admin) حصراً' });
   }
   businesses = [...INITIAL_BUSINESSES];
   representatives = [...MOCK_REPRESENTATIVES];

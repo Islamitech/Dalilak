@@ -7,7 +7,7 @@ import {
   getOfflineBusinesses,
   removeOfflineBusiness,
 } from '../offlineSync';
-import { mapDbToBusiness, mapBusinessToDb, parsePhotosArray, parseVideosArray } from './dbMappers';
+import { mapDbToBusiness, mapBusinessToDb, mapPartialBusinessToDb, parsePhotosArray, parseVideosArray } from './dbMappers';
 
 export function getCachedBusinesses(): Business[] {
   const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
@@ -455,17 +455,24 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
         mergedObj.photos = uploaded;
       } catch {}
     }
-    const dbUpdates = mapBusinessToDb(updates as Business);
+    const partialDbUpdates = mapPartialBusinessToDb(updates, mergedObj);
     const fullRecord = mapBusinessToDb(mergedObj);
 
-    // A. Direct Client SDK Upsert
+    // A. Direct Client SDK Partial Update / Upsert
     try {
-      const { error } = await supabase
+      const { data: updateData, error: updateErr } = await supabase
         .from('businesses')
-        .upsert(fullRecord, { onConflict: 'id' });
+        .update(partialDbUpdates)
+        .eq('id', id)
+        .select('id');
 
-      if (!error) {
+      if (!updateErr && Array.isArray(updateData) && updateData.length > 0) {
         syncedSuccessfully = true;
+      } else {
+        const { error: upsertErr } = await supabase
+          .from('businesses')
+          .upsert(fullRecord, { onConflict: 'id' });
+        if (!upsertErr) syncedSuccessfully = true;
       }
     } catch (err) {
       console.warn('Supabase SDK update business warning:', err);
@@ -479,7 +486,7 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
           headers: {
             'Prefer': 'return=representation',
           },
-          body: JSON.stringify(dbUpdates),
+          body: JSON.stringify(partialDbUpdates),
         });
 
         const restData: any = res.ok ? await res.json().catch((): any => null) : null;

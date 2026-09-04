@@ -47,6 +47,7 @@ export function getSafeRepsForStorage(reps: Representative[]): Representative[] 
   if (!Array.isArray(reps)) return [];
   return reps.map((r) => ({
     ...r,
+    password: undefined, // 🛡️ Strip sensitive password hashes from client localStorage
     nationalIdCardPhoto: undefined,
     nationalIdCardBackPhoto: undefined,
     activationFacePhoto: undefined,

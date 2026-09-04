@@ -214,7 +214,9 @@ export function calculateRepSettlement(
 
   const totalPaidAll = businesses.reduce((s, b) => (b.isFeeExempt || b.packagePrice === 0) ? s : s + (Number(b.amountPaid) || 0), 0);
   const onlineCollectedAmount = Math.max(0, totalPaidAll - totalCashInHand);
-  const repShareFromOnline = Math.round((onlineCollectedAmount * commissionRate) / 100);
+  // 🛡️ FINANCIAL LEDGER INVARIANT: repShareFromCash + repShareFromOnline ≡ totalDirectEarned
+  // Guarantees zero drift or discrepancy between individual activity commissions and aggregate wallet balance
+  const repShareFromOnline = Math.max(0, totalDirectEarned - repShareFromCash);
 
   const pendingPayout = calculateRepPendingPayout(repId, payouts);
   const totalPaidOut = calculateRepTotalPaidOut(repId, payouts);
