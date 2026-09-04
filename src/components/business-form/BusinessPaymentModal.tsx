@@ -20,6 +20,8 @@ interface BusinessPaymentModalProps {
   notes: string;
   setNotes: (notes: string) => void;
   currentRep?: Representative | null;
+  userRole?: string;
+  isRep?: boolean;
   onConfirmPayment: () => void;
 }
 
@@ -40,9 +42,22 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
   notes,
   setNotes,
   currentRep,
+  userRole,
+  isRep,
   onConfirmPayment,
 }) => {
   if (!isOpen) return null;
+
+  const isRepUser = isRep || userRole === 'rep' || (!userRole && Boolean(currentRep));
+
+  // Automatically enforce deferred unpaid status for representatives
+  React.useEffect(() => {
+    if (isOpen && isRepUser && !isFeeExempt) {
+      setPaymentStatus('unpaid');
+      setAmountPaid(0);
+      setPaymentMethod('platform_collected');
+    }
+  }, [isOpen, isRepUser, isFeeExempt, setPaymentStatus, setAmountPaid, setPaymentMethod]);
 
   return createPortal(
     <div
@@ -58,10 +73,12 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
-                تأكيد حالة الدفع والتحصيل المالي
+                {isRepUser ? 'تأكيد تسجيل النشاط (فاتورة مؤجلة)' : 'تأكيد حالة الدفع والتحصيل المالي'}
               </h3>
               <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                يرجى مراجعة وتحديد حالة سداد الفاتورة بدقة قبل الحفظ
+                {isRepUser
+                  ? 'الفاتورة تصدر مؤجلة السداد لحين اعتماد النشاط وتوثيقه'
+                  : 'يرجى مراجعة وتحديد حالة سداد الفاتورة بدقة قبل الحفظ'}
               </p>
             </div>
           </div>
@@ -105,6 +122,18 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
             </h4>
             <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
               تم إعفاء هذا النشاط بقرار إداري. لا توجد أي مديونية أو مبالغ مستحقة للتحصيل أو عمولات.
+            </p>
+          </div>
+        ) : isRepUser ? (
+          <div className="bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 sm:p-5 text-center space-y-2.5 animate-fade-in shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+              <Clock className="w-6 h-6" />
+            </div>
+            <h4 className="font-black text-sm sm:text-base text-amber-800 dark:text-amber-300">
+              فاتورة غير مدفوعة (مؤجلة لحين التوثيق) ⏳
+            </h4>
+            <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed max-w-md mx-auto">
+              تنبيه: الفاتورة مؤجلة السداد لحين اكتمال التوثيق. التحصيل والسداد المالي يتم إلكترونياً ويُدار حصرياً من قِبل إدارة المنظومة ومسؤولي الحسابات.
             </p>
           </div>
         ) : (
@@ -353,10 +382,15 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
             onClick={onConfirmPayment}
             className="flex-1 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-sm"
           >
-            {paymentStatus === 'unpaid' ? (
+            {isFeeExempt ? (
+              <>
+                <CheckCircle2 className="w-5 h-5" />
+                <span>تأكيد تسجيل النشاط المعفى 🚀</span>
+              </>
+            ) : isRepUser || paymentStatus === 'unpaid' ? (
               <>
                 <Clock className="w-5 h-5" />
-                <span>حفظ النشاط (غير مدفوع) 🚀</span>
+                <span>حفظ النشاط (فاتورة مؤجلة) 🚀</span>
               </>
             ) : (
               <>

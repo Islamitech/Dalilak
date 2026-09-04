@@ -309,12 +309,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   // Package & Payments
+  const isRep = currentUser ? currentUser.role === 'rep' : Boolean(currentRep);
   const canExempt = canUserManageFeeExemption(currentUser || null) || currentRep?.role === 'admin' || currentRep?.role === 'supervisor' || currentRep?.role === 'accountant';
   const [isFeeExempt, setIsFeeExempt] = useState<boolean>(false);
   const [selectedPackage, setSelectedPackage] = useState<PackageOption>(PACKAGES[0]); // Default Package 1 (Basic 250 EGP)
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('fully_paid');
-  const [amountPaid, setAmountPaid] = useState<number>(PACKAGES[0].price);
-  const [paymentMethod, setPaymentMethod] = useState<Business['paymentMethod']>('cash_by_rep');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(() => isRep ? 'unpaid' : 'fully_paid');
+  const [amountPaid, setAmountPaid] = useState<number>(() => isRep ? 0 : PACKAGES[0].price);
+  const [paymentMethod, setPaymentMethod] = useState<Business['paymentMethod']>(() => isRep ? 'platform_collected' : 'cash_by_rep');
   const [notes, setNotes] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
 
@@ -435,8 +436,15 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setNationalId('');
     setIsFeeExempt(false);
     setSelectedPackage(PACKAGES[0]);
-    setPaymentStatus('fully_paid');
-    setAmountPaid(PACKAGES[0].price);
+    if (isRep) {
+      setPaymentStatus('unpaid');
+      setAmountPaid(0);
+      setPaymentMethod('platform_collected');
+    } else {
+      setPaymentStatus('fully_paid');
+      setAmountPaid(PACKAGES[0].price);
+      setPaymentMethod('cash_by_rep');
+    }
     setNotes('');
     setPhotos([]);
     setVideos([]);
@@ -447,6 +455,12 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   const handlePaymentStatusChange = (status: PaymentStatus) => {
+    if (isRep) {
+      setPaymentStatus('unpaid');
+      setAmountPaid(0);
+      setPaymentMethod('platform_collected');
+      return;
+    }
     if (isFeeExempt) {
       setPaymentStatus('fully_paid');
       setAmountPaid(0);
@@ -737,7 +751,11 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
 
     // Ensure amountPaid is synced with package if fully_paid
-    if (paymentStatus === 'fully_paid') {
+    if (isRep) {
+      setPaymentStatus('unpaid');
+      setAmountPaid(0);
+      setPaymentMethod('platform_collected');
+    } else if (paymentStatus === 'fully_paid') {
       setAmountPaid(selectedPackage.price);
     }
 
@@ -779,13 +797,13 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       packageId: isFeeExempt ? EXEMPT_PACKAGE.id : selectedPackage.id,
       packageName: isFeeExempt ? EXEMPT_PACKAGE.title : selectedPackage.title,
       packagePrice: isFeeExempt ? 0 : selectedPackage.price,
-      amountPaid: isFeeExempt ? 0 : (Number(amountPaid) || 0),
+      amountPaid: isFeeExempt || isRep ? 0 : (Number(amountPaid) || 0),
       isFeeExempt: isFeeExempt || undefined,
       feeExemptionReason: isFeeExempt ? 'نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)' : undefined,
       // Set payment method and cash in hand accurately:
-      paymentMethod: isFeeExempt ? 'platform_collected' : (paymentStatus === 'unpaid' ? 'platform_collected' : paymentMethod),
-      cashCollectedByRep: !isFeeExempt && paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
-      paymentStatus: isFeeExempt ? 'fully_paid' : paymentStatus,
+      paymentMethod: isFeeExempt || isRep || paymentStatus === 'unpaid' ? 'platform_collected' : paymentMethod,
+      cashCollectedByRep: !isFeeExempt && !isRep && paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
+      paymentStatus: isFeeExempt ? 'fully_paid' : (isRep ? 'unpaid' : paymentStatus),
       verificationStatus: 'pending', // Default: new registration, not submitted to Google yet
       repLocationUrl: `https://www.google.com/maps?q=${lat},${lng}`,
       googleMapsUrl: undefined, // Strictly verified by Admin only
@@ -1353,10 +1371,20 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             <CheckCircle2 className="w-5 h-5" />
             <span>إدراج النشاط المسجل وتوليد الفاتورة الترحيبية 📄✨</span>
           </>
+        ) : isFeeExempt ? (
+          <>
+            <CreditCard className="w-5 h-5 stroke-[2.5]" />
+            <span>تأكيد تسجيل النشاط الرائج (إدراج مجاني) 🌟</span>
+          </>
+        ) : isRep ? (
+          <>
+            <CreditCard className="w-5 h-5 stroke-[2.5]" />
+            <span>حفظ النشاط وإصدار الفاتورة المؤجلة 📄</span>
+          </>
         ) : (
           <>
             <CreditCard className="w-5 h-5 stroke-[2.5]" />
-            <span>{isFeeExempt ? 'تأكيد تسجيل النشاط الرائج (إدراج مجاني) 🌟' : 'حفظ النشاط وتحديد حالة الدفع والفاتورة 💳'}</span>
+            <span>حفظ النشاط وتحديد حالة الدفع والفاتورة 💳</span>
           </>
         )}
       </button>
@@ -1381,6 +1409,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         notes={notes}
         setNotes={setNotes}
         currentRep={currentRep}
+        userRole={currentUser?.role}
+        isRep={isRep}
         onConfirmPayment={handleFinalConfirmPayment}
       />
     </form>

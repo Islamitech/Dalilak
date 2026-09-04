@@ -30,6 +30,14 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
 }) => {
   return (
     <div className="space-y-3.5 text-right">
+      {/* 🔐 Notice for Representatives */}
+      {!isAdminOrFinancial && (
+        <div className="bg-sky-500/10 border border-sky-500/30 text-sky-800 dark:text-sky-300 p-3.5 rounded-2xl text-xs font-bold leading-relaxed flex items-center gap-2.5 shadow-2xs">
+          <ShieldCheck className="w-5 h-5 text-sky-500 shrink-0" />
+          <span>تنبيه: الفاتورة مؤجلة السداد لحين اكتمال التوثيق. التحصيل والسداد المالي يتم إلكترونياً ويُدار حصرياً من قِبل إدارة المنظومة ومسؤولي الحسابات.</span>
+        </div>
+      )}
+
       {/* 🌟 Special Fee Exemption Box for Responsible Accounts */}
       {isAdminOrFinancial && (
         <div
@@ -98,7 +106,7 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             <span>باقة التوثيق والخدمات</span>
           </span>
-          {isEditMode ? (
+          {isEditMode && isAdminOrFinancial ? (
             <select
               value={formData.packageId || (formData.isAlreadyOnGoogle ? ALREADY_ON_GOOGLE_PACKAGE.id : PACKAGES[0].id)}
               onChange={(e) => {
@@ -179,7 +187,7 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
             <span>المبلغ المسدد فعلياً</span>
           </span>
-          {isEditMode && !formData.isFeeExempt ? (
+          {isEditMode && isAdminOrFinancial && !formData.isFeeExempt ? (
             <input
               type="number"
               value={formData.amountPaid ?? 0}

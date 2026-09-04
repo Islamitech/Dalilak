@@ -636,16 +636,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </button>
           )}
 
-          {remainingDebt > 0 && (
+          {isAdminOrFinancial && remainingDebt > 0 && onCollectPayment && (
             <button
               type="button"
-              onClick={() => {
-                if (onCollectPayment) {
-                  onCollectPayment(formData);
-                } else {
-                  setActiveSection('payment');
-                }
-              }}
+              onClick={() => onCollectPayment(formData)}
               className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-[11px] px-3 py-1 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer mr-auto"
             >
               <DollarSign className="w-3 h-3" />
