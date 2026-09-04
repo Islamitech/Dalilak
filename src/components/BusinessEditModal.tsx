@@ -45,6 +45,9 @@ import {
   Search,
   Plus,
   CheckSquare,
+  Eye,
+  EyeOff,
+  Zap,
 } from 'lucide-react';
 
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
@@ -154,6 +157,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [followUpFilterType, setFollowUpFilterType] = useState<string>('all');
   const [followUpSearch, setFollowUpSearch] = useState<string>('');
   const [isSavingFollowUp, setIsSavingFollowUp] = useState<boolean>(false);
+
+  // Mobile-first WhatsApp Hub Sub-Tabs & Collapsible Preview State
+  const [waSubTab, setWaSubTab] = useState<'operational' | 'motivational' | 'marketing'>('operational');
+  const [expandedWaPreview, setExpandedWaPreview] = useState<string | null>(null);
+  const [waSearchQuery, setWaSearchQuery] = useState<string>('');
 
   // Keep internal formData in sync when parent business prop changes & load high-res photos on-demand
   useEffect(() => {
@@ -1654,9 +1662,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* ── TAB 6: مركز رسائل وإشعارات الواتساب الموحد ───────────── */}
+          {/* ── TAB 6: مركز رسائل وإشعارات الواتساب الموحد (MOBILE-FIRST REDESIGNED) ───────────── */}
           {activeSection === 'whatsapp' && isAdminOrFinancial && (
             <div className="space-y-3 text-right">
+              {/* Header Info */}
               <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-black shrink-0">
@@ -1664,40 +1673,480 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   </div>
                   <div>
                     <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
-                      مركز رسائل وإشعارات WhatsApp المعتمدة
+                      مركز رسائل WhatsApp المعتمدة
                     </h4>
                     <p className="text-[10px] text-[var(--text-muted)] font-bold">
-                      أزرار إرسال فورية ومنظمة بحسب الحدث وحالة النشاط
+                      أزرار إرسال سريعة ومنظمة بحسب الحدث وحالة النشاط
                     </p>
                   </div>
                 </div>
 
-                <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20" dir="ltr">
+                <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20" dir="ltr">
                   {formData.phone || formData.ownerPhone || 'لا يوجد هاتف'}
                 </span>
               </div>
 
-              {/* ── 🌟 CATEGORY-SPECIFIC MOTIVATIONAL CAMPAIGNS (FIRST & PROMINENT) ── */}
-              {(() => {
+              {/* ── 🚀 SMART 1-TAP QUICK ACTIONS BAR (TOP PRIORITY ON MOBILE) ── */}
+              <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/30 rounded-2xl p-2.5 space-y-1.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] font-black text-emerald-800 dark:text-emerald-300">
+                  <div className="flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <span>إجراءات فورية سريعة (ضغطة واحدة):</span>
+                  </div>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-md font-bold">
+                    إرسال فوري
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
+                  {/* 1. Quick Invoice or Welcome */}
+                  {isAlreadyOnGoogle ? (
+                    <a
+                      href={getWelcomeAlreadyOnGoogleWhatsAppUrl(formData)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center"
+                      title="إرسال رسالة الترحيب بالدليل"
+                    >
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">ترحيب الدليل 🎁</span>
+                    </a>
+                  ) : (
+                    <a
+                      href={getInvoiceWhatsAppUrl(formData)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center"
+                      title="إرسال الفاتورة الأولية وتأكيد التسجيل"
+                    >
+                      <FileText className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">الفاتورة الأولية 📄</span>
+                    </a>
+                  )}
+
+                  {/* 2. Google Maps Verified Notice */}
+                  {hasVerifiedGoogleMap && (
+                    <a
+                      href={getGoogleMapsVerifiedWhatsAppUrl(formData)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center"
+                      title="إرسال إشعار التوثيق على خرائط Google"
+                    >
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">توثيق Google 🗺️</span>
+                    </a>
+                  )}
+
+                  {/* 3. Debt Warning / Judicial notice */}
+                  {isGoogleVerifiedAndUnpaid && (
+                    <a
+                      href={getOverdueWarningWhatsAppUrl(formData)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-gradient-to-r from-rose-600 to-red-600 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center animate-pulse"
+                      title="إرسال إنذار سداد المستحقات"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">إنذار سداد ⚠️</span>
+                    </a>
+                  )}
+
+                  {/* 4. Payment Receipt */}
+                  <a
+                    href={getPaymentReceiptWhatsAppUrl(formData)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs transition-transform active:scale-95 text-center"
+                    title="إرسال إيصال السداد المالي والمخالصة"
+                  >
+                    <DollarSign className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">إيصال السداد ✅</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* ── 🏷️ SEGMENTED INTERNAL SUB-TABS ── */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)] text-[11px] font-black shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setWaSubTab('operational')}
+                  className={`py-2 px-1 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                    waSubTab === 'operational'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>⚡ إجرائية ومالية</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWaSubTab('motivational')}
+                  className={`py-2 px-1 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                    waSubTab === 'motivational'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>🌟 نصائح وتحفيز</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWaSubTab('marketing')}
+                  className={`py-2 px-1 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                    waSubTab === 'marketing'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5" />
+                  <span>🎁 تسويق ومتابعة</span>
+                </button>
+              </div>
+
+              {/* ── 🔍 OPTIONAL QUICK SEARCH IN MESSAGES ── */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="text"
+                  value={waSearchQuery}
+                  onChange={(e) => setWaSearchQuery(e.target.value)}
+                  placeholder="بحث سريع في عناوين الرسائل (مثل: فاتورة، إنذار، باركود)..."
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl pr-8 pl-8 py-1.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500/50 transition-colors"
+                />
+                {waSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setWaSearchQuery('')}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* ── 📑 SUB-TAB 1: OPERATIONAL & FINANCIAL MESSAGES ── */}
+              {waSubTab === 'operational' && (
+                <div className="space-y-2 pt-0.5">
+                  {/* Message 1: Welcome or Initial Invoice */}
+                  {isAlreadyOnGoogle ? (
+                    (!waSearchQuery || 'ترحيب الدليل إدراج مجانا'.includes(waSearchQuery)) && (
+                      <div className="bg-[var(--bg-card)] border border-blue-500/30 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                            <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                            <span className="truncate">1. الترحيب وإدراج النشاط بالدليل (مجاناً) 🎁</span>
+                          </div>
+                          <span className="text-[9px] bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                            مسجل مسبقاً
+                          </span>
+                        </div>
+
+                        {/* Collapsible Preview Box */}
+                        {expandedWaPreview === 'wa_welcome' && (
+                          <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-blue-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                            {generateWelcomeAlreadyOnGoogleWhatsAppMessage(formData)}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_welcome' ? null : 'wa_welcome')}
+                            className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                            title="معاينة نص الرسالة"
+                          >
+                            {expandedWaPreview === 'wa_welcome' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_welcome' ? 'إخفاء' : 'معاينة'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyText(generateWelcomeAlreadyOnGoogleWhatsAppMessage(formData), 'wa_welcome')}
+                            className="bg-[var(--input-bg)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                            title="نسخ نص الرسالة"
+                          >
+                            {copiedField === 'wa_welcome' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
+                          </button>
+                          <a
+                            href={getWelcomeAlreadyOnGoogleWhatsAppUrl(formData)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>إرسال عبر WhatsApp</span>
+                          </a>
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    (!waSearchQuery || 'فاتورة الكترونية تسجيل مبدئية'.includes(waSearchQuery)) && (
+                      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                            <FileText className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span className="truncate">1. الفاتورة الإلكترونية الأولية وتأكيد التسجيل 📄</span>
+                          </div>
+                          <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                            عند التسجيل
+                          </span>
+                        </div>
+
+                        {/* Collapsible Preview Box */}
+                        {expandedWaPreview === 'wa_inv' && (
+                          <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-amber-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                            {generateInvoiceWhatsAppMessage(formData)}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_inv' ? null : 'wa_inv')}
+                            className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                            title="معاينة نص الرسالة"
+                          >
+                            {expandedWaPreview === 'wa_inv' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_inv' ? 'إخفاء' : 'معاينة'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyText(generateInvoiceWhatsAppMessage(formData), 'wa_inv')}
+                            className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                            title="نسخ نص الفاتورة"
+                          >
+                            {copiedField === 'wa_inv' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+                          </button>
+                          <a
+                            href={getInvoiceWhatsAppUrl(formData)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>إرسال الفاتورة (WhatsApp)</span>
+                          </a>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {/* Message 2: Google Maps Verification Notice */}
+                  {(!waSearchQuery || 'توثيق اعتماد خرائط جوجل maps'.includes(waSearchQuery)) && (
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                          <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="truncate">2. إشعار التوثيق والاعتماد على خرائط Google 🗺️</span>
+                        </div>
+                        <span className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          بعد التوثيق
+                        </span>
+                      </div>
+
+                      {/* Collapsible Preview Box */}
+                      {expandedWaPreview === 'wa_maps' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-blue-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateGoogleMapsVerifiedWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_maps' ? null : 'wa_maps')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_maps' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_maps' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateGoogleMapsVerifiedWhatsAppMessage(formData), 'wa_maps')}
+                          className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الإشعار"
+                        >
+                          {copiedField === 'wa_maps' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
+                        </button>
+                        <a
+                          href={getGoogleMapsVerifiedWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>إرسال إشعار التوثيق (Google)</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message 3: Overdue Warning (Strictly Google Verified and Unpaid) */}
+                  {isGoogleVerifiedAndUnpaid && (!waSearchQuery || 'إنذار تحذير سداد مستحقات ديون مهلة'.includes(waSearchQuery)) && (
+                    <div className="bg-rose-500/10 border border-rose-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-rose-700 dark:text-rose-300 truncate">
+                          <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 stroke-[2.5]" />
+                          <span className="truncate">3. إنذار بسداد المستحقات ({remainingDebt} ج.م) ⚠️</span>
+                        </div>
+                        <span className="text-[9px] bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          مهلة 24 ساعة
+                        </span>
+                      </div>
+
+                      {/* Collapsible Preview Box */}
+                      {expandedWaPreview === 'wa_warn' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-rose-500/30 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateOverdueWarningWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_warn' ? null : 'wa_warn')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_warn' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_warn' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateOverdueWarningWhatsAppMessage(formData), 'wa_warn')}
+                          className="bg-[var(--bg-card)] hover:bg-rose-500/15 text-rose-600 border border-rose-500/30 text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الإنذار"
+                        >
+                          {copiedField === 'wa_warn' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-rose-500" />}
+                        </button>
+                        <a
+                          href={getOverdueWarningWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>إرسال إنذار السداد الرسمي</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message 4: Post-Deadline Executed Actions & Judicial Escalation */}
+                  {isGoogleVerifiedAndUnpaid && (!waSearchQuery || 'إشعار تنفيذ إجراءات تحذير قضائي محكمة تروكلر'.includes(waSearchQuery)) && (
+                    <div className="bg-red-500/15 border border-red-500/50 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-red-700 dark:text-red-400 truncate">
+                          <ShieldCheck className="w-3.5 h-3.5 text-red-500 shrink-0 stroke-[2.5]" />
+                          <span className="truncate">4. إشعار تنفيذ الإجراءات والتحذير القضائي 🛑</span>
+                        </div>
+                        <span className="text-[9px] bg-red-500/25 text-red-700 dark:text-red-300 font-black px-2 py-0.5 rounded-md animate-pulse shrink-0">
+                          بعد انتهاء المهلة
+                        </span>
+                      </div>
+
+                      {/* Collapsible Preview Box */}
+                      {expandedWaPreview === 'wa_legal' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-red-500/40 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateLegalActionExecutedWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_legal' ? null : 'wa_legal')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_legal' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_legal' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateLegalActionExecutedWhatsAppMessage(formData), 'wa_legal')}
+                          className="bg-[var(--bg-card)] hover:bg-red-500/15 text-red-600 border border-red-500/30 text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الإشعار القضائي"
+                        >
+                          {copiedField === 'wa_legal' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-red-500" />}
+                        </button>
+                        <a
+                          href={getLegalActionExecutedWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-red-700 to-rose-900 hover:from-red-600 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>إرسال إشعار التنفيذ والملاحقة</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message 5: Payment Receipt */}
+                  {(!waSearchQuery || 'إيصال سداد مخالصة دفع تحصيل'.includes(waSearchQuery)) && (
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span className="truncate">5. إيصال السداد المالي والمخالصة ✅</span>
+                        </div>
+                        <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          المخالصة
+                        </span>
+                      </div>
+
+                      {/* Collapsible Preview Box */}
+                      {expandedWaPreview === 'wa_pay' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-emerald-500/30 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generatePaymentReceiptWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_pay' ? null : 'wa_pay')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_pay' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_pay' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generatePaymentReceiptWhatsAppMessage(formData), 'wa_pay')}
+                          className="bg-[var(--bg-card)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الإيصال"
+                        >
+                          {copiedField === 'wa_pay' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-emerald-500" />}
+                        </button>
+                        <a
+                          href={getPaymentReceiptWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>إرسال إيصال السداد المالي</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── 🌟 SUB-TAB 2: MOTIVATIONAL & CUSTOMER LOYALTY CAMPAIGNS ── */}
+              {waSubTab === 'motivational' && (() => {
                 const autoGroup = getMotivationalGroupByBusiness(formData);
                 const currentGroupName = selectedMotiGroupName || autoGroup.groupName;
                 const activeGroupObj = CATEGORY_MOTIVATIONAL_DATA.find((g) => g.groupName === currentGroupName) || autoGroup;
 
                 return (
-                  <div className="bg-gradient-to-b from-emerald-500/10 via-[var(--input-bg)] to-[var(--input-bg)] border border-emerald-500/40 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-2xs">
-                    <div className="flex items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-base">🌟</span>
-                        <h4 className="font-black text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">
-                          نصائح ورسائل التحفيز
-                        </h4>
-                      </div>
-
-                      <span className="text-[10px] font-black bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-lg shadow-2xs">
-                        {activeGroupObj.groupIcon} {activeGroupObj.groupName}
-                      </span>
-                    </div>
-
+                  <div className="space-y-2 pt-0.5">
                     {/* Category Selector Tabs */}
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px] font-bold">
                       {CATEGORY_MOTIVATIONAL_DATA.map((grp) => {
@@ -1720,55 +2169,67 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                       })}
                     </div>
 
-                    {/* Render Active Category Models */}
-                    <div className="space-y-2 pt-1">
+                    {/* Render Active Category Models (Compact Cards) */}
+                    <div className="space-y-2">
                       {activeGroupObj.models.map((m, idx) => {
                         const msgText = m.generateText(formData);
                         const waUrl = getCategoryMotivationalWhatsAppUrl(m, formData);
                         const copyKey = `wa_cat_${m.id}`;
+                        const isExpanded = expandedWaPreview === copyKey;
+
+                        if (waSearchQuery && !m.title.includes(waSearchQuery) && !msgText.includes(waSearchQuery)) {
+                          return null;
+                        }
 
                         return (
                           <div
                             key={m.id}
-                            className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/50 rounded-xl p-2.5 space-y-1.5 transition-colors shadow-2xs"
+                            className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
                                 <span>{m.icon}</span>
-                                <span>{idx + 1}. {m.title}</span>
+                                <span className="truncate">{idx + 1}. {m.title}</span>
                               </div>
-                              <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                              <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md shrink-0">
                                 {m.badge}
                               </span>
                             </div>
 
-                            {/* Message Preview Box */}
-                            <div className="bg-[var(--input-bg)] p-2 rounded-lg border border-[var(--border-color)]/60 text-[10.5px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-24 overflow-y-auto font-sans">
-                              {msgText}
-                            </div>
+                            {/* Collapsible Preview Box */}
+                            {isExpanded && (
+                              <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-emerald-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                                {msgText}
+                              </div>
+                            )}
 
                             <div className="flex items-center gap-1.5 pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedWaPreview(isExpanded ? null : copyKey)}
+                                className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                                title="معاينة نص الرسالة"
+                              >
+                                {isExpanded ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                <span className="text-[10px] hidden sm:inline">{isExpanded ? 'إخفاء' : 'معاينة'}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(msgText, copyKey)}
+                                className="bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                                title="نسخ نص الرسالة"
+                              >
+                                {copiedField === copyKey ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-emerald-500" />}
+                              </button>
                               <a
                                 href={waUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-1.5 px-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
+                                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
                               >
                                 <Send className="w-3.5 h-3.5" />
-                                <span>إرسال عبر WhatsApp 🚀</span>
+                                <span>إرسال نصيحة التحفيز 🚀</span>
                               </a>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(msgText, copyKey)}
-                                className="bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                                title="نسخ نص الرسالة"
-                              >
-                                {copiedField === copyKey ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5 text-emerald-500" />
-                                )}
-                              </button>
                             </div>
                           </div>
                         );
@@ -1778,380 +2239,258 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 );
               })()}
 
-              {/* ── 4.6.2 CORE WORKFLOW / TRANSACTIONAL WHATSAPP MESSAGES ── */}
-              {isAlreadyOnGoogle ? (
-                <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-blue-500/10 border border-blue-500/30 rounded-2xl p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                      <MapPin className="w-4 h-4 text-blue-500" />
-                      <span>رسالة الترحيب وإدراج النشاط بالدليل (مجاناً) 🎁</span>
-                    </div>
-                    <span className="text-[9px] bg-blue-500/20 text-blue-900 dark:text-blue-300 font-black px-2 py-0.5 rounded-md">
-                      نشاط مسجل مسبقاً 📍
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <a
-                      href={getWelcomeAlreadyOnGoogleWhatsAppUrl(formData)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>إرسال رسالة الترحيب عبر WhatsApp</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText(generateWelcomeAlreadyOnGoogleWhatsAppMessage(formData), 'wa_welcome')}
-                      className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                      title="نسخ نص رسالة الترحيب"
-                    >
-                      {copiedField === 'wa_welcome' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-              {/* Message 1: Initial Invoice */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-2.5 space-y-1.5 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                    <FileText className="w-3.5 h-3.5 text-amber-500" />
-                    <span>1. الفاتورة الإلكترونية الأولية وتأكيد التسجيل</span>
-                  </div>
-                  <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
-                    عند التسجيل
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  <a
-                    href={getInvoiceWhatsAppUrl(formData)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>إرسال الفاتورة عبر WhatsApp</span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyText(generateInvoiceWhatsAppMessage(formData), 'wa_inv')}
-                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                    title="نسخ نص الفاتورة"
-                  >
-                    {copiedField === 'wa_inv' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Message 2: Google Maps Verification */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-2.5 space-y-1.5 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                    <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                    <span>2. إشعار التوثيق والاعتماد على خرائط Google 🗺️</span>
-                  </div>
-                  <span className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
-                    بعد التوثيق
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  <a
-                    href={getGoogleMapsVerifiedWhatsAppUrl(formData)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>إرسال إشعار التوثيق (Google Maps)</span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyText(generateGoogleMapsVerifiedWhatsAppMessage(formData), 'wa_maps')}
-                    className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                    title="نسخ نص الإشعار"
-                  >
-                    {copiedField === 'wa_maps' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Message 4: Overdue Warning (Strictly for activities verified on Google with valid Google link and unpaid) */}
-              {isGoogleVerifiedAndUnpaid && (
-                <div className="bg-rose-500/10 border border-rose-500/40 rounded-2xl p-2.5 space-y-1.5 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-black text-xs text-rose-700 dark:text-rose-300">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 stroke-[2.5]" />
-                      <span>3. إنذار بسداد المستحقات ({remainingDebt} ج.م) ⚠️</span>
-                    </div>
-                    <span className="text-[9px] bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold px-2 py-0.5 rounded-md">
-                      مهلة 24 ساعة
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <a
-                      href={getOverdueWarningWhatsAppUrl(formData)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>إرسال إنذار السداد الرسمي (WhatsApp)</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText(generateOverdueWarningWhatsAppMessage(formData), 'wa_warn')}
-                      className="bg-[var(--bg-card)] hover:bg-rose-500/15 text-rose-600 border border-rose-500/30 text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
-                      title="نسخ نص الإنذار"
-                    >
-                      {copiedField === 'wa_warn' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-rose-500" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Message 5: Post-Deadline Executed Actions & Judicial Warning (Strictly for activities verified on Google and still unpaid) */}
-              {isGoogleVerifiedAndUnpaid && (
-                <div className="bg-red-500/15 border border-red-500/50 rounded-2xl p-2.5 space-y-1.5 transition-all shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-black text-xs text-red-700 dark:text-red-400">
-                      <ShieldCheck className="w-3.5 h-3.5 text-red-500 shrink-0 stroke-[2.5]" />
-                      <span>4. إشعار تنفيذ الإجراءات والتحذير القضائي 🛑</span>
-                    </div>
-                    <span className="text-[9px] bg-red-500/25 text-red-700 dark:text-red-300 font-black px-2 py-0.5 rounded-md animate-pulse">
-                      بعد انتهاء المهلة
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <a
-                      href={getLegalActionExecutedWhatsAppUrl(formData)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 bg-gradient-to-r from-red-700 to-rose-900 hover:from-red-600 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>إرسال إشعار التنفيذ والملاحقة القضائية (WhatsApp)</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText(generateLegalActionExecutedWhatsAppMessage(formData), 'wa_legal')}
-                      className="bg-[var(--bg-card)] hover:bg-red-500/15 text-red-600 border border-red-500/30 text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
-                      title="نسخ نص الإشعار القضائي"
-                    >
-                      {copiedField === 'wa_legal' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-red-500" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Message 3: Payment Receipt */}
-              <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 rounded-2xl p-2.5 space-y-1.5 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>5. إيصال السداد المالي والمخالصة ✅</span>
-                  </div>
-                  <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
-                    المخالصة
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  <a
-                    href={getPaymentReceiptWhatsAppUrl(formData)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>إرسال إيصال السداد للعميل</span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyText(generatePaymentReceiptWhatsAppMessage(formData), 'wa_pay')}
-                    className="bg-[var(--bg-card)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                    title="نسخ نص الإيصال"
-                  >
-                    {copiedField === 'wa_pay' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-emerald-500" />}
-                  </button>
-                </div>
-              </div>
-                </>
-              )}
-
-              {/* ── STRICT ADMIN/SUPERVISOR ONLY: MONTHLY NURTURING CAMPAIGNS ── */}
-              {isAdminOrFinancial && (
-                <div className="pt-2 border-t border-[var(--border-color)] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs">🎁</span>
-                      <h5 className="font-black text-xs text-amber-700 dark:text-amber-300">
-                        حملات الرعاية والمتابعة الدورية
-                      </h5>
-                    </div>
-                    <span className="text-[9px] bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
-                      أدوات التسويق 4x
-                    </span>
-                  </div>
-
+              {/* ── 🎁 SUB-TAB 3: MARKETING & NURTURING CAMPAIGNS ── */}
+              {waSubTab === 'marketing' && (
+                <div className="space-y-2 pt-0.5">
                   {/* Campaign 1: Free QR Stand & 100 EGP Print Delivery */}
-                  <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                        <Gift className="w-3.5 h-3.5 text-amber-500" />
-                        <span>الحملة 1: 🎁 هدية باركود التقييمات + الطباعة (100 ج)</span>
+                  {(!waSearchQuery || 'هدية باركود استاند طباعة 100'.includes(waSearchQuery)) && (
+                    <div className="bg-[var(--bg-card)] border border-amber-500/30 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                          <Gift className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span className="truncate">الحملة 1: 🎁 هدية باركود التقييمات + الطباعة (100 ج)</span>
+                        </div>
+                        <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          هدية ومبيعات
+                        </span>
                       </div>
-                      <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
-                        هدية ومبيعات
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      <a
-                        href={getFreeQrGiftWhatsAppUrl(formData)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-slate-950 font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>إرسال هدية الـ QR وعرض الطباعة</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyText(generateFreeQrGiftWhatsAppMessage(formData), 'wa_qr_gift')}
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                        title="نسخ نص الرسالة"
-                      >
-                        {copiedField === 'wa_qr_gift' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
-                      </button>
-                    </div>
-                  </div>
 
-                  {/* Campaign: Importance of QR Code & Explanatory Video Guide */}
-                  <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-blue-500/10 border border-blue-500/30 rounded-xl p-2.5 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                        <QrCode className="w-3.5 h-3.5 text-blue-500" />
-                        <span>الحملة 2: 📲 أهمية الـ QR Code داخل النشاط</span>
-                      </div>
-                      <span className="text-[9px] bg-blue-500/20 text-blue-900 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
-                        مرفق فيديو توضيحي 🎥
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      <a
-                        href={getQrImportanceWhatsAppUrl(formData)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>إرسال رسالة الـ QR (واتساب)</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyText(generateQrImportanceWhatsAppMessage(formData), 'wa_qr_importance')}
-                        className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                        title="نسخ نص الرسالة"
-                      >
-                        {copiedField === 'wa_qr_importance' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
-                      </button>
-                    </div>
-                  </div>
+                      {expandedWaPreview === 'wa_qr_gift' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-amber-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateFreeQrGiftWhatsAppMessage(formData)}
+                        </div>
+                      )}
 
-                  {/* Campaign 2: Visual Merchandising & Free Consultation */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-xl p-2.5 space-y-1.5 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        <span>الحملة 3: 💡 استشارة العرض والتنسيق البصري المجانية</span>
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_qr_gift' ? null : 'wa_qr_gift')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_qr_gift' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_qr_gift' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateFreeQrGiftWhatsAppMessage(formData), 'wa_qr_gift')}
+                          className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الرسالة"
+                        >
+                          {copiedField === 'wa_qr_gift' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+                        </button>
+                        <a
+                          href={getFreeQrGiftWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-slate-950 font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>إرسال هدية الـ QR والطباعة</span>
+                        </a>
                       </div>
-                      <span className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
-                        استشارة مجانية
-                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      <a
-                        href={getVisualConsultingWhatsAppUrl(formData)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-1.5 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
-                      >
-                        <Send className="w-3.5 h-3.5 text-amber-400" />
-                        <span>إرسال استشارة العرض والتنسيق</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyText(generateVisualConsultingWhatsAppMessage(formData), 'wa_visual')}
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                        title="نسخ نص الرسالة"
-                      >
-                        {copiedField === 'wa_visual' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
-                      </button>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Campaign 3: Business Checkup & Working Hours Update */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-xl p-2.5 space-y-1.5 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                        <Clock className="w-3.5 h-3.5 text-blue-500" />
-                        <span>الحملة 4: ☕ فحص نبض النشاط وتحديث المواعيد</span>
+                  {/* Campaign 2: QR Importance & Video Guide */}
+                  {(!waSearchQuery || 'أهمية باركود فيديو توضيحي qr'.includes(waSearchQuery)) && (
+                    <div className="bg-[var(--bg-card)] border border-blue-500/30 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                          <QrCode className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="truncate">الحملة 2: 📲 أهمية الـ QR Code داخل النشاط (فيديو 🎥)</span>
+                        </div>
+                        <span className="text-[9px] bg-blue-500/20 text-blue-900 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          فيديو توضيحي
+                        </span>
                       </div>
-                      <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
-                        اطمئنان ودعم
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      <a
-                        href={getBusinessCheckupWhatsAppUrl(formData)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-1.5 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
-                      >
-                        <Send className="w-3.5 h-3.5 text-blue-400" />
-                        <span>إرسال رسالة الاطمئنان والمتابعة</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyText(generateBusinessCheckupWhatsAppMessage(formData), 'wa_checkup')}
-                        className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                        title="نسخ نص الرسالة"
-                      >
-                        {copiedField === 'wa_checkup' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
-                      </button>
-                    </div>
-                  </div>
 
-                  {/* Campaign 4: Social Proof & VIP Upgrade */}
-                  <div className="bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-purple-500/40 rounded-xl p-2.5 space-y-1.5 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
-                        <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
-                        <span>الحملة 5: 📈 قصة نجاح وترقية باقة VIP 🚀</span>
+                      {expandedWaPreview === 'wa_qr_importance' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-blue-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateQrImportanceWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_qr_importance' ? null : 'wa_qr_importance')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_qr_importance' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_qr_importance' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateQrImportanceWhatsAppMessage(formData), 'wa_qr_importance')}
+                          className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الرسالة"
+                        >
+                          {copiedField === 'wa_qr_importance' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
+                        </button>
+                        <a
+                          href={getQrImportanceWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>إرسال رسالة الـ QR والفيديو</span>
+                        </a>
                       </div>
-                      <span className="text-[9px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">
-                        ترقية باقات
-                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      <a
-                        href={getSocialProofUpgradeWhatsAppUrl(formData)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>إرسال قصة النجاح وباقة VIP</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyText(generateSocialProofUpgradeWhatsAppMessage(formData), 'wa_social')}
-                        className="bg-[var(--bg-card)] hover:bg-purple-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer"
-                        title="نسخ نص الرسالة"
-                      >
-                        {copiedField === 'wa_social' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-purple-500" />}
-                      </button>
+                  )}
+
+                  {/* Campaign 3: Visual Merchandising Consultation */}
+                  {(!waSearchQuery || 'استشارة عرض وتنسيق بصري مجانية تسويق'.includes(waSearchQuery)) && (
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span className="truncate">الحملة 3: 💡 استشارة العرض والتنسيق البصري المجانية</span>
+                        </div>
+                        <span className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          استشارة مجانية
+                        </span>
+                      </div>
+
+                      {expandedWaPreview === 'wa_visual' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateVisualConsultingWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_visual' ? null : 'wa_visual')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_visual' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_visual' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateVisualConsultingWhatsAppMessage(formData), 'wa_visual')}
+                          className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الرسالة"
+                        >
+                          {copiedField === 'wa_visual' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+                        </button>
+                        <a
+                          href={getVisualConsultingWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 text-white font-black text-xs py-1.5 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5 text-amber-400" />
+                          <span>إرسال استشارة التنسيق البصري</span>
+                        </a>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Campaign 4: Business Checkup & Working Hours */}
+                  {(!waSearchQuery || 'فحص نبض النشاط تحديث مواعيد اطمئنان'.includes(waSearchQuery)) && (
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-blue-500/40 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                          <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="truncate">الحملة 4: ☕ فحص نبض النشاط وتحديث المواعيد</span>
+                        </div>
+                        <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          اطمئنان ودعم
+                        </span>
+                      </div>
+
+                      {expandedWaPreview === 'wa_checkup' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateBusinessCheckupWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_checkup' ? null : 'wa_checkup')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_checkup' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_checkup' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateBusinessCheckupWhatsAppMessage(formData), 'wa_checkup')}
+                          className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الرسالة"
+                        >
+                          {copiedField === 'wa_checkup' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
+                        </button>
+                        <a
+                          href={getBusinessCheckupWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 text-white font-black text-xs py-1.5 px-3 rounded-xl border border-slate-700 shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5 text-blue-400" />
+                          <span>إرسال رسالة الاطمئنان</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Campaign 5: Social Proof & VIP Upgrade */}
+                  {(!waSearchQuery || 'قصة نجاح ترقية باقة vip ارباح عملاء'.includes(waSearchQuery)) && (
+                    <div className="bg-[var(--bg-card)] border border-purple-500/30 rounded-2xl p-2.5 space-y-2 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)] truncate">
+                          <TrendingUp className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                          <span className="truncate">الحملة 5: 📈 قصة نجاح وترقية باقة VIP 🚀</span>
+                        </div>
+                        <span className="text-[9px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                          ترقية باقات
+                        </span>
+                      </div>
+
+                      {expandedWaPreview === 'wa_social' && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-purple-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                          {generateSocialProofUpgradeWhatsAppMessage(formData)}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWaPreview(expandedWaPreview === 'wa_social' ? null : 'wa_social')}
+                          className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="معاينة نص الرسالة"
+                        >
+                          {expandedWaPreview === 'wa_social' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span className="text-[10px] hidden sm:inline">{expandedWaPreview === 'wa_social' ? 'إخفاء' : 'معاينة'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(generateSocialProofUpgradeWhatsAppMessage(formData), 'wa_social')}
+                          className="bg-[var(--bg-card)] hover:bg-purple-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="نسخ نص الرسالة"
+                        >
+                          {copiedField === 'wa_social' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-purple-500" />}
+                        </button>
+                        <a
+                          href={getSocialProofUpgradeWhatsAppUrl(formData)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95 text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>إرسال قصة النجاح وباقة VIP</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
