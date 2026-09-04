@@ -241,10 +241,11 @@ export function canUserAccessTrash(user?: User | null | undefined): boolean {
 }
 
 /**
- * Only Super Admin can freely change roles of other users
+ * Allows Super Admin and Managers (Admin/Supervisor) to change roles of users, as defined in ROLE_DEFINITIONS
  */
 export function canUserChangeRoles(user?: User | null | undefined): boolean {
-  return isSuperAdmin(user);
+  if (!user) return false;
+  return isSuperAdmin(user) || user.role === 'admin' || user.role === 'supervisor';
 }
 
 /**

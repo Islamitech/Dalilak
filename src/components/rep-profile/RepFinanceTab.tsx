@@ -1384,7 +1384,9 @@ export const RepFinanceTab: React.FC<RepFinanceTabProps> = ({
                   <div className="space-y-0.5">
                     <span className="text-[10px] text-slate-400 font-bold block">الصفة الوظيفية:</span>
                     <span className="font-black text-slate-900 text-xs block truncate">{rep.roleTitle || 'مندوب مبيعات وتوثيق ميداني'}</span>
-                    <span className="text-[10px] text-purple-700 font-mono font-bold block">إحالة: {referralCode || 'DALIL-8355'}</span>
+                    <span className="text-[10px] text-purple-700 font-mono font-bold block">
+                      إحالة: {referralSummary.isUnlocked ? (referralCode || 'DALIL-8355') : 'مقفل (قيد استكمال 25 نشاطاً)'}
+                    </span>
                   </div>
                 </div>
 

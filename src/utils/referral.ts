@@ -1,6 +1,33 @@
 import { Representative, Business } from '../types';
+import { isSuperAdmin } from './permissions';
 
-export const INVITATION_GIFT_BONUS = 250; // EGP bonus awarded to inviter when referred rep reaches 10 businesses milestone
+export const INVITATION_GIFT_BONUS = 250; // EGP bonus awarded directly to inviter when referred rep reaches 10 Google-verified businesses milestone
+
+/**
+ * Checks if a business activity is verified on Google Maps.
+ * Matches:
+ * 1. googleSyncStatus === 'synced'
+ * 2. verificationStatus === 'verified'
+ * 3. authentic Google Maps URL (starts with http and not an unverified search query)
+ */
+export function isBusinessGoogleVerified(b: {
+  googleSyncStatus?: string;
+  verificationStatus?: string;
+  googleMapsUrl?: string;
+}): boolean {
+  if (!b) return false;
+  if (b.googleSyncStatus === 'synced') return true;
+  if (b.verificationStatus === 'verified') return true;
+  if (
+    b.googleMapsUrl &&
+    typeof b.googleMapsUrl === 'string' &&
+    b.googleMapsUrl.trim().startsWith('http') &&
+    !b.googleMapsUrl.includes('search/?api=1&query=')
+  ) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Calculates dynamic referral commission rate based on the activity and efficiency
@@ -29,11 +56,11 @@ export function getRepReferralCode(rep: Representative): string {
 /**
  * Checks if a representative's referral code is officially unlocked.
  * Strictly requires registering at least 25 businesses in the field (mandatory milestone),
- * or explicit administrator bypass.
+ * or explicit administrator bypass. Only Super Admin has inherent system bypass.
  */
 export function isReferralSystemUnlocked(rep: Representative, myBusinessesCount: number = 0): boolean {
   if (!rep) return false;
-  if (rep.role === 'admin' || rep.role === 'supervisor') return true;
+  if (isSuperAdmin(rep)) return true;
   // If explicitly unlocked or bypassed by admin:
   if (
     rep.adminBypassReferral === true ||
@@ -49,18 +76,24 @@ export function isReferralSystemUnlocked(rep: Representative, myBusinessesCount:
 export interface RepReferralSummary {
   referralCode: string;
   isUnlocked: boolean;
+  myBusinessesCount: number;
+  myVerifiedBusinessesCount: number;
+  remainingForUnlock: number;
   totalInvitedCount: number;
-  qualifiedRepsCount: number; // reached 10+ businesses
+  qualifiedRepsCount: number; // reached 10+ Google-verified businesses
   totalReferralCommission: number; // from 3% to 7% of revenues
-  totalGiftsEarned: number; // 250 EGP per qualified rep
+  totalGiftsEarned: number; // 250 EGP per qualified rep awarded directly
   totalNetEarnings: number; // gifts + commission
   inviterInfo?: {
     rep: Representative;
     code: string;
+    myVerifiedCountForInviter: number;
+    isInviterGiftUnlocked: boolean;
   };
   invitedRepsDetails: Array<{
     rep: Representative;
     bizCount: number;
+    verifiedBizCount: number;
     totalRevenue: number;
     currentRate: number;
     commissionEarned: number;
@@ -140,27 +173,34 @@ export function getRepReferralSummary(
   const invName = (inviterRep.name || '').toLowerCase().trim();
   const invPhone = (inviterRep.phone || '').replace(/\D/g, '');
 
-  const myBizCount = allBusinesses.filter((b) => {
+  const myBiz = allBusinesses.filter((b) => {
     const bRepId = (b.repId || '').toLowerCase().trim();
     const bRepName = (b.repName || '').toLowerCase().trim();
     const bRepPhone = ((b as any).repPhone || '').replace(/\D/g, '');
     return (invId && bRepId === invId) ||
            (invName && bRepName === invName) ||
            (invPhone && (bRepId === invPhone || bRepPhone === invPhone));
-  }).length;
+  });
+  const myBizCount = myBiz.length;
+  const myVerifiedBizCount = myBiz.filter(isBusinessGoogleVerified).length;
   const isUnlocked = isReferralSystemUnlocked(inviterRep, myBizCount);
+  const remainingForUnlock = Math.max(0, 25 - myBizCount);
 
   // Find all reps who registered with this referral code using robust matching
   const invitedReps = allReps.filter((r) => isReferredByInviter(r, inviterRep));
 
   // Find who invited the current rep (if applicable)
-  let inviterInfo: { rep: Representative; code: string } | undefined = undefined;
+  let inviterInfo: RepReferralSummary['inviterInfo'] = undefined;
   if (inviterRep.referredByCode) {
     const parentRep = allReps.find((r) => isReferredByInviter(inviterRep, r));
+    const myVerifiedCountForInviter = myVerifiedBizCount;
+    const isInviterGiftUnlocked = myVerifiedCountForInviter >= 10;
     if (parentRep) {
       inviterInfo = {
         rep: parentRep,
         code: getRepReferralCode(parentRep),
+        myVerifiedCountForInviter,
+        isInviterGiftUnlocked,
       };
     } else {
       inviterInfo = {
@@ -179,6 +219,8 @@ export function getRepReferralSummary(
           referralCode: inviterRep.referredByCode,
         } as Representative,
         code: inviterRep.referredByCode,
+        myVerifiedCountForInviter,
+        isInviterGiftUnlocked,
       };
     }
   }
@@ -191,11 +233,13 @@ export function getRepReferralSummary(
       (b) => b.repId === rep.id || (rep.name && b.repName === rep.name) || (rep.phone && b.repId === rep.phone)
     );
     const bizCount = repBiz.length;
+    const verifiedBizCount = repBiz.filter(isBusinessGoogleVerified).length;
     const totalRevenue = repBiz.reduce((sum, b) => (b.isFeeExempt || b.packagePrice === 0) ? sum : sum + (b.amountPaid || 0), 0);
     const currentRate = calculateReferralCommissionRate(bizCount);
     const commissionEarned = Math.round(totalRevenue * (currentRate / 100));
 
-    const isMission1Complete = bizCount >= 10;
+    // 🎯 Milestone: 10 Google-verified businesses earns 250 EGP gift directly to inviter
+    const isMission1Complete = verifiedBizCount >= 10;
     if (isMission1Complete) {
       qualifiedRepsCount += 1;
     }
@@ -205,21 +249,26 @@ export function getRepReferralSummary(
     return {
       rep,
       bizCount,
+      verifiedBizCount,
       totalRevenue,
       currentRate,
       commissionEarned,
       isMission1Complete,
-      remainingForMission1: Math.max(0, 10 - bizCount),
+      remainingForMission1: Math.max(0, 10 - verifiedBizCount),
     };
   });
 
-  const totalGiftsEarned = isUnlocked ? qualifiedRepsCount * INVITATION_GIFT_BONUS : 0;
+  // 🎁 250 EGP gift is awarded directly to the inviter for each invited rep who reached 10 Google-verified businesses:
+  const totalGiftsEarned = qualifiedRepsCount * INVITATION_GIFT_BONUS;
   const netCommission = isUnlocked ? totalReferralCommission : 0;
-  const totalNetEarnings = isUnlocked ? (netCommission + totalGiftsEarned) : 0;
+  const totalNetEarnings = netCommission + totalGiftsEarned;
 
   return {
     referralCode,
     isUnlocked,
+    myBusinessesCount: myBizCount,
+    myVerifiedBusinessesCount: myVerifiedBizCount,
+    remainingForUnlock,
     totalInvitedCount: invitedReps.length,
     qualifiedRepsCount,
     totalReferralCommission: netCommission,

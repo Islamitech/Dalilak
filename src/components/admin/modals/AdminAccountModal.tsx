@@ -57,6 +57,8 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
   const [modalAdminBypassReferral, setModalAdminBypassReferral] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     if (editingRep) {
       setModalRole(editingRep.role || 'rep');
       setModalRoleTitle(
@@ -69,9 +71,9 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
             ? 'مدير النظام المعتمد'
             : 'مندوب مبيعات ميداني')
       );
-      setModalName(editingRep.name);
-      setModalEmail(editingRep.email);
-      setModalPhone(editingRep.phone);
+      setModalName(editingRep.name || '');
+      setModalEmail(editingRep.email || '');
+      setModalPhone(editingRep.phone || '');
       setModalGov(editingRep.governorate || 'القاهرة');
       setModalTarget(editingRep.targetMonth || 25);
       setModalCommission(editingRep.commissionRate || 42.86);
@@ -93,9 +95,9 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
       setModalPassword('Aa123456');
       setModalReferralCode(`DALIL-${Date.now().toString().slice(-4)}`);
       setModalReferredByCode('');
-      setModalAdminBypassReferral(true);
+      setModalAdminBypassReferral(false);
     }
-  }, [editingRep, isOpen]);
+  }, [editingRep?.id, isOpen]);
 
   if (!isOpen) return null;
 

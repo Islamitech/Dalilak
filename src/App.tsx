@@ -1342,6 +1342,7 @@ export default function App() {
     );
 
     const secureRep: Representative = {
+      ...(prevRep || {}),
       ...updatedRep,
       role: updatedRep.role || prevRep?.role || 'rep',
       roleTitle: updatedRep.roleTitle || (
@@ -1461,6 +1462,9 @@ export default function App() {
       if (saveRes && !saveRes.success) {
         console.error('Failed to save rep to DB:', saveRes.error);
         addNotification(`⚠️ تحذير: ${saveRes.error || 'تعذر حفظ البيانات في السحابة'}`, 'warning');
+      } else if (saveRes && saveRes.success && saveRes.rep) {
+        const freshSaved = saveRes.rep;
+        setRepresentatives((prev) => prev.map((r) => r.id === freshSaved.id ? freshSaved : r));
       }
     } catch (saveErr) {
       console.error('Failed to save rep to DB:', saveErr);

@@ -322,7 +322,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
 
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${isRefUnlocked ? 'badge-success' : 'badge-warning'}`}>
-                          {isRefUnlocked ? '✨ الإحالة مفتوحة' : '🔒 مقفولة'}
+                          {isRefUnlocked ? '✨ الإحالة مفتوحة' : `🔒 مقفولة (${repBizCount}/25)`}
                         </span>
                         <button
                           type="button"

@@ -217,7 +217,7 @@ function getRequestUser(req: express.Request): ActiveSession | null {
       const restoredSession: ActiveSession = {
         userId: rep.id,
         role: rep.role || 'rep',
-        expiresAt: (rep.lastActiveTimestamp || 0) + 24 * 60 * 60 * 1000,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       };
       if (sessionId) activeSessions.set(sessionId, restoredSession);
       if (token) activeSessions.set(token, restoredSession);
@@ -560,7 +560,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   // Automatic secure password upgrade: If password was plaintext, upgrade to sha256 immediately
   // 🛡️ Security Check: Prevent login for deleted or blacklisted accounts
-  if (rep.isDeleted === true || rep.status === 'deleted') {
+  if (rep.isDeleted === true || (rep.status as string) === 'deleted') {
     return res.status(403).json({
       error: '⛔ هذا الحساب تم حذفه وإلغاء صلاحيته من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به.'
     });
@@ -689,7 +689,7 @@ app.post('/api/businesses', (req, res) => {
     // 🛡️ Security Check: Prevent business submission from deleted or suspended accounts
     representatives = loadStoredReps();
     const repCheck = representatives.find((r) => r.id === reqUser.userId);
-    if (repCheck && (repCheck.isDeleted || repCheck.status === 'deleted' || repCheck.status === 'suspended')) {
+    if (repCheck && (repCheck.isDeleted || (repCheck.status as string) === 'deleted' || repCheck.status === 'suspended')) {
       return res.status(403).json({ error: '⛔ غير مصرح: هذا الحساب معطل أو محذوف ولا يمكنه تسجيل أنشطة تجارية.' });
     }
 
@@ -871,17 +871,32 @@ app.post('/api/representatives', (req, res) => {
 
 app.put('/api/representatives/:id', (req, res) => {
   const { id } = req.params;
+  representatives = loadStoredReps();
   const index = representatives.findIndex((r) => r.id === id);
-  if (index === -1) {
-    return res.status(404).json({ error: 'الحساب غير موجود' });
-  }
-
   const reqUser = getRequestUser(req);
   const isSelf = Boolean(reqUser && reqUser.userId === id);
   const isManager = Boolean(reqUser && (reqUser.role === 'admin' || reqUser.role === 'supervisor'));
 
   if (!isSelf && !isManager) {
     return res.status(403).json({ error: 'غير مصرح: ليس لديك صلاحية لتعديل هذا الحساب' });
+  }
+
+  if (index === -1) {
+    if (isManager) {
+      const rawPassword = (req.body.password || '').trim();
+      const securePassword = rawPassword
+        ? (isPasswordHashed(rawPassword) ? rawPassword : hashPassword(rawPassword))
+        : hashPassword('Aa123456');
+      const newRep: Representative = {
+        ...req.body,
+        id,
+        password: securePassword,
+      };
+      representatives.unshift(newRep);
+      persistStoredReps(representatives);
+      return res.status(201).json(sanitizeRep(newRep, isManager));
+    }
+    return res.status(404).json({ error: 'الحساب غير موجود' });
   }
 
   const updates = { ...req.body };

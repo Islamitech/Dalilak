@@ -30,6 +30,7 @@ import {
   X,
   Home,
   Clock,
+  Lock,
 } from 'lucide-react';
 
 interface RepProfileProps {
@@ -246,23 +247,33 @@ export const RepProfile: React.FC<RepProfileProps> = ({
 
             {/* Distinctive & Useful Executive Badges */}
             <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              {/* Copyable Referral Code */}
-              <button
-                type="button"
-                onClick={handleCopyReferral}
-                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1 rounded-xl border border-amber-500/40 font-mono text-[11px] font-black flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95 group"
-                title="اضغط لنسخ كود الإحالة المعتمد الخاص بك"
-              >
-                <Users className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                <span>كود الإحالة: <span className="font-extrabold text-white">{referralCode}</span></span>
-                {copiedCode ? (
-                  <span className="flex items-center gap-0.5 text-emerald-400 font-bold text-[9px] bg-emerald-500/20 px-1 py-0.2 rounded border border-emerald-500/30 animate-pulse">
-                    <Check className="w-2.5 h-2.5" /> تم النسخ!
-                  </span>
-                ) : (
-                  <Copy className="w-3 h-3 text-amber-400 opacity-70 group-hover:opacity-100" />
-                )}
-              </button>
+              {/* Copyable Referral Code (Only visible when unlocked) */}
+              {referralSummary.isUnlocked ? (
+                <button
+                  type="button"
+                  onClick={handleCopyReferral}
+                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1 rounded-xl border border-amber-500/40 font-mono text-[11px] font-black flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95 group"
+                  title="اضغط لنسخ كود الإحالة المعتمد الخاص بك"
+                >
+                  <Users className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>كود الإحالة: <span className="font-extrabold text-white">{referralCode}</span></span>
+                  {copiedCode ? (
+                    <span className="flex items-center gap-0.5 text-emerald-400 font-bold text-[9px] bg-emerald-500/20 px-1 py-0.2 rounded border border-emerald-500/30 animate-pulse">
+                      <Check className="w-2.5 h-2.5" /> تم النسخ!
+                    </span>
+                  ) : (
+                    <Copy className="w-3 h-3 text-amber-400 opacity-70 group-hover:opacity-100" />
+                  )}
+                </button>
+              ) : (
+                <div
+                  className="bg-slate-800/80 text-slate-300 px-3 py-1 rounded-xl border border-amber-500/30 font-mono text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                  title={`كود الإحالة مقفل لحين إتمام 25 نشاطاً مسجلاً (أنجزت ${repBusinesses.length}/25)`}
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>كود الإحالة: <span className="text-amber-300 font-black">مقفل ({repBusinesses.length}/25 نشاط)</span></span>
+                </div>
+              )}
 
               {/* Official Commission Rate */}
               <span className="bg-emerald-500/15 text-emerald-300 px-2.5 py-1 rounded-xl border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 shadow-xs">

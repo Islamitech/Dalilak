@@ -171,70 +171,15 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
 
   // 1. Direct Supabase Cloud Save
   if (isSupabaseConfigured()) {
-    // Attempt 1: Official Supabase SDK insert (Direct PLAIN INSERT - optimal for new registrations)
-    try {
-      const { data, error } = await supabase
-        .from('representatives')
-        .insert(dbRecord)
-        .select(SAFE_REP_SELECT);
+    const isExistingAccount = Boolean(rep.id && typeof rep.id === 'string' && rep.id.trim().length > 0);
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        cloudSuccess = true;
-        savedRep = mapDbToRep(data[0]);
-      } else if (error) {
-        console.warn('Supabase SDK insert notice:', error);
-        // Distinguish primary key conflict on 'id' (existing record) from duplicate email/phone conflict
-        const isIdConflict = error.code === '23505' && (
-          error.message?.includes('representatives_pkey') ||
-          error.details?.includes('(id)=') ||
-          error.details?.includes('Key (id)')
-        );
-
-        if (error.code === '23505' && !isIdConflict) {
-          return {
-            success: false,
-            error: '⚠️ البريد الإلكتروني أو البيانات الأساسية مسجلة مسبقاً في قاعدة البيانات السحابية.',
-          };
-        }
-        cloudErrorMsg = error.message;
-      }
-    } catch (sdkErr: any) {
-      console.warn('Supabase SDK insert exception:', sdkErr);
-      cloudErrorMsg = sdkErr?.message;
-    }
-
-    // Attempt 2: If insert failed because rep already exists (id conflict), try SDK upsert
-    if (!cloudSuccess) {
-      try {
-        const { data, error } = await supabase
-          .from('representatives')
-          .upsert(dbRecord, { onConflict: 'id' })
-          .select(SAFE_REP_SELECT);
-
-        if (!error && Array.isArray(data) && data.length > 0) {
-          cloudSuccess = true;
-          savedRep = mapDbToRep(data[0]);
-        } else if (error) {
-          console.warn('Supabase SDK upsert error:', error);
-          if (error.code === '23505') {
-            return {
-              success: false,
-              error: '⚠️ البريد الإلكتروني أو البيانات الأساسية مسجلة مسبقاً في قاعدة البيانات السحابية.',
-            };
-          }
-          cloudErrorMsg = error.message;
-        }
-      } catch (upsertErr: any) {
-        console.warn('Supabase SDK upsert exception:', upsertErr);
-        cloudErrorMsg = upsertErr?.message;
-      }
-    }
-
-    // Attempt 2.5: Direct SDK update if rep already exists by id
-    if (!cloudSuccess && rep.id) {
+    // ── STRATEGY A: For EXISTING accounts, execute direct UPDATE first ──
+    if (isExistingAccount) {
       try {
         const updatePayload = { ...dbRecord };
         delete updatePayload.id;
+        delete updatePayload.created_at;
+
         const { data, error } = await supabase
           .from('representatives')
           .update(updatePayload)
@@ -249,72 +194,117 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
           if (error.code === '23505') {
             return {
               success: false,
-              error: '⚠️ البريد الإلكتروني أو البيانات الأساسية مسجلة مسبقاً في قاعدة البيانات السحابية.',
+              error: '⚠️ البريد الإلكتروني أو رقم الهاتف مسجل بالفعل لحساب آخر في المنظومة.',
             };
           }
           cloudErrorMsg = error.message;
         }
       } catch (updateErr: any) {
         console.warn('Supabase SDK update exception:', updateErr);
+        cloudErrorMsg = updateErr?.message;
+      }
+
+      // Fallback via PostgREST REST PATCH if SDK update encountered network issue
+      if (!cloudSuccess) {
+        try {
+          const patchPayload = { ...dbRecord };
+          delete patchPayload.id;
+          delete patchPayload.created_at;
+          const patchRes = await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(patchPayload),
+          });
+          if (patchRes.ok) {
+            const patchData = await patchRes.json().catch(() => null);
+            if (Array.isArray(patchData) && patchData.length > 0) {
+              savedRep = mapDbToRep(patchData[0]);
+              cloudSuccess = true;
+            }
+          }
+        } catch (patchErr) {
+          console.warn('Supabase REST PATCH exception:', patchErr);
+        }
       }
     }
 
-    // Attempt 3: Direct PostgREST REST API fallback (Plain POST without merge-duplicates)
+    // ── STRATEGY B: For NEW accounts (or if rep.id was not found by update above), execute INSERT ──
     if (!cloudSuccess) {
       try {
-        const insertRes = await supabaseRestFetch('representatives', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(dbRecord),
-        });
+        const { data, error } = await supabase
+          .from('representatives')
+          .insert(dbRecord)
+          .select(SAFE_REP_SELECT);
 
-        if (insertRes.ok) {
-          const restData = await insertRes.json().catch(() => null);
-          if (Array.isArray(restData) && restData.length > 0) {
-            cloudSuccess = true;
-            savedRep = mapDbToRep(restData[0]);
-          } else {
-            cloudSuccess = true;
-          }
-        } else {
-          const errBody = await insertRes.json().catch(() => null);
-          console.warn('Supabase REST insert error body:', errBody);
-          const isIdConflict = errBody?.code === '23505' && (
-            errBody?.message?.includes('representatives_pkey') ||
-            errBody?.details?.includes('(id)=') ||
-            errBody?.details?.includes('Key (id)')
-          );
-          if (errBody?.code === '23505' && !isIdConflict) {
-            return {
-              success: false,
-              error: '⚠️ البريد الإلكتروني مسجل مسبقاً في قاعدة البيانات.',
-            };
-          }
-        }
-      } catch (restErr: any) {
-        console.warn('Supabase REST save fallback exception:', restErr);
-      }
-    }
-
-    // Attempt 4: Last-ditch REST PATCH if record ID already existed
-    if (!cloudSuccess && rep.id) {
-      try {
-        const patchPayload = { ...dbRecord };
-        delete patchPayload.id;
-        const patchRes = await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(rep.id)}`, {
-          method: 'PATCH',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(patchPayload),
-        });
-        if (patchRes.ok) {
-          const patchData = await patchRes.json().catch(() => null);
-          if (Array.isArray(patchData) && patchData.length > 0) {
-            savedRep = mapDbToRep(patchData[0]);
-          }
+        if (!error && Array.isArray(data) && data.length > 0) {
           cloudSuccess = true;
+          savedRep = mapDbToRep(data[0]);
+        } else if (error) {
+          console.warn('Supabase SDK insert notice:', error);
+          if (error.code === '23505') {
+            const isIdConflict = (
+              error.message?.includes('representatives_pkey') ||
+              error.details?.includes('(id)=') ||
+              error.details?.includes('Key (id)')
+            );
+            if (!isIdConflict) {
+              return {
+                success: false,
+                error: '⚠️ البريد الإلكتروني أو رقم الهاتف مسجل مسبقاً في المنظومة.',
+              };
+            }
+          }
+          cloudErrorMsg = error.message;
         }
-      } catch (patchErr) {
-        console.warn('Supabase REST PATCH exception:', patchErr);
+      } catch (sdkErr: any) {
+        console.warn('Supabase SDK insert exception:', sdkErr);
+        cloudErrorMsg = sdkErr?.message;
+      }
+
+      // Upsert fallback with onConflict: 'id' if insert reported id conflict
+      if (!cloudSuccess) {
+        try {
+          const { data, error } = await supabase
+            .from('representatives')
+            .upsert(dbRecord, { onConflict: 'id' })
+            .select(SAFE_REP_SELECT);
+
+          if (!error && Array.isArray(data) && data.length > 0) {
+            cloudSuccess = true;
+            savedRep = mapDbToRep(data[0]);
+          } else if (error) {
+            console.warn('Supabase SDK upsert error:', error);
+            if (error.code === '23505') {
+              return {
+                success: false,
+                error: '⚠️ البريد الإلكتروني أو رقم الهاتف مسجل مسبقاً في المنظومة.',
+              };
+            }
+            cloudErrorMsg = error.message;
+          }
+        } catch (upsertErr: any) {
+          console.warn('Supabase SDK upsert exception:', upsertErr);
+        }
+      }
+
+      // REST POST fallback
+      if (!cloudSuccess) {
+        try {
+          const insertRes = await supabaseRestFetch('representatives', {
+            method: 'POST',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(dbRecord),
+          });
+          if (insertRes.ok) {
+            const restData = await insertRes.json().catch(() => null);
+            if (Array.isArray(restData) && restData.length > 0) {
+              savedRep = mapDbToRep(restData[0]);
+            }
+            cloudSuccess = true;
+          }
+        } catch (restErr: any) {
+          console.warn('Supabase REST fallback exception:', restErr);
+        }
       }
     }
   }
@@ -343,15 +333,22 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
 
   // 3. Always sync to local server
   try {
-    const serverRes = await fetch('/api/representatives', {
-      method: 'POST',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(savedRep),
-    });
-    if (!serverRes.ok && rep.id) {
-      // If POST was rejected, fallback to PUT
-      await fetch(`/api/representatives/${encodeURIComponent(rep.id)}`, {
+    if (rep.id) {
+      const putRes = await fetch(`/api/representatives/${encodeURIComponent(rep.id)}`, {
         method: 'PUT',
+        headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(savedRep),
+      });
+      if (!putRes.ok) {
+        await fetch('/api/representatives', {
+          method: 'POST',
+          headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify(savedRep),
+        });
+      }
+    } else {
+      await fetch('/api/representatives', {
+        method: 'POST',
         headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(savedRep),
       });
@@ -385,6 +382,7 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
   // 2. Update in Supabase Cloud
   const dbUpdates = mapRepToDb(updates as Representative);
   delete dbUpdates.id;
+  delete dbUpdates.created_at;
   if (isSupabaseConfigured()) {
     try {
       const { error } = await supabase.from('representatives').update(dbUpdates).eq('id', id);

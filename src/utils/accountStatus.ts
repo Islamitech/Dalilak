@@ -12,11 +12,11 @@ export function isRepAccountDeleted(
   if (!target) return false;
 
   // 1. Direct object flag check
-  if (target.isDeleted === true) return true;
-  if (target.status === 'deleted') return true;
+  const anyTarget = target as any;
+  if (anyTarget.isDeleted === true) return true;
+  if (anyTarget.status === 'deleted') return true;
 
   // Check repData if target is a User
-  const anyTarget = target as any;
   if (anyTarget.repData) {
     if (anyTarget.repData.isDeleted === true) return true;
     if (anyTarget.repData.status === 'deleted') return true;

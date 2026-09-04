@@ -633,8 +633,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: USER ACCOUNT CREATION / EDITING POP-UP */}
       <AdminAccountModal
         isOpen={showAccountModal}
-        onClose={() => setShowAccountModal(false)}
-        editingRep={editingAccountRep ? (metrics.mergedAdminReps.find((r) => r.id === editingAccountRep.id) || editingAccountRep) : undefined}
+        onClose={() => {
+          setShowAccountModal(false);
+          setEditingAccountRep(null);
+        }}
+        editingRep={editingAccountRep}
         currentUser={currentUser}
         businesses={businesses}
         onAddRepresentative={onAddRepresentative}

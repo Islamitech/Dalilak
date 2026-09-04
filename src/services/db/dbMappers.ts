@@ -559,30 +559,46 @@ export function mapRepToDb(rep: Partial<Representative>): any {
     } catch {}
   }
 
-  // Pack metadata into avatar JSON to preserve face photo, KYC documents, and referral settings in Supabase
-  const avatarBundle = {
-    ...existingMeta,
-    avatar: cleanAvatar || existingMeta.avatar || '',
-    password: rep.password ?? existingMeta.password, // 🛡️ Triple-failsafe: preserves password inside avatar JSON
-    referralCode: rep.referralCode ?? existingMeta.referralCode,
-    referredByCode: rep.referredByCode ?? existingMeta.referredByCode,
-    referralUnlocked: rep.referralUnlocked ?? existingMeta.referralUnlocked,
-    adminBypassReferral: rep.adminBypassReferral ?? existingMeta.adminBypassReferral,
-    referralRewardGranted: rep.referralRewardGranted ?? existingMeta.referralRewardGranted,
-    activationFacePhoto: rep.activationFacePhoto ?? existingMeta.activationFacePhoto ?? '',
-    nationalIdCardPhoto: rep.nationalIdCardPhoto ?? existingMeta.nationalIdCardPhoto ?? '',
-    nationalIdCardBackPhoto: rep.nationalIdCardBackPhoto ?? existingMeta.nationalIdCardBackPhoto ?? '',
-    pendingPhone: rep.pendingPhone ?? existingMeta.pendingPhone,
-    phoneStatus: rep.phoneStatus ?? existingMeta.phoneStatus ?? 'none',
-    lastActiveTimestamp: rep.lastActiveTimestamp ?? existingMeta.lastActiveTimestamp,
-    activeSessionId: rep.activeSessionId ?? existingMeta.activeSessionId,
-    isDeleted: rep.isDeleted ?? existingMeta.isDeleted,
-    deletedAt: rep.deletedAt ?? existingMeta.deletedAt,
-    deletedBy: rep.deletedBy ?? existingMeta.deletedBy,
-    deletedByRole: rep.deletedByRole ?? existingMeta.deletedByRole,
-  };
+  // Check if avatar, photos, or referral metadata are being updated
+  const hasAvatarOrMeta =
+    rep.avatar !== undefined ||
+    rep.activationFacePhoto !== undefined ||
+    rep.nationalIdCardPhoto !== undefined ||
+    rep.nationalIdCardBackPhoto !== undefined ||
+    rep.referralCode !== undefined ||
+    rep.referredByCode !== undefined ||
+    rep.adminBypassReferral !== undefined ||
+    rep.referralUnlocked !== undefined ||
+    rep.pendingPhone !== undefined ||
+    rep.phoneStatus !== undefined ||
+    rep.name !== undefined; // On full records or name updates, bundle is safe to write
 
-  record.avatar = JSON.stringify(avatarBundle);
+  if (hasAvatarOrMeta) {
+    // Pack metadata into avatar JSON to preserve face photo, KYC documents, and referral settings in Supabase
+    const avatarBundle = {
+      ...existingMeta,
+      avatar: cleanAvatar !== undefined ? cleanAvatar : (existingMeta.avatar || ''),
+      password: rep.password ?? existingMeta.password, // 🛡️ Triple-failsafe: preserves password inside avatar JSON
+      referralCode: rep.referralCode ?? existingMeta.referralCode,
+      referredByCode: rep.referredByCode ?? existingMeta.referredByCode,
+      referralUnlocked: rep.referralUnlocked ?? existingMeta.referralUnlocked,
+      adminBypassReferral: rep.adminBypassReferral ?? existingMeta.adminBypassReferral,
+      referralRewardGranted: rep.referralRewardGranted ?? existingMeta.referralRewardGranted,
+      activationFacePhoto: rep.activationFacePhoto ?? existingMeta.activationFacePhoto ?? '',
+      nationalIdCardPhoto: rep.nationalIdCardPhoto ?? existingMeta.nationalIdCardPhoto ?? '',
+      nationalIdCardBackPhoto: rep.nationalIdCardBackPhoto ?? existingMeta.nationalIdCardBackPhoto ?? '',
+      pendingPhone: rep.pendingPhone ?? existingMeta.pendingPhone,
+      phoneStatus: rep.phoneStatus ?? existingMeta.phoneStatus ?? 'none',
+      lastActiveTimestamp: rep.lastActiveTimestamp ?? existingMeta.lastActiveTimestamp,
+      activeSessionId: rep.activeSessionId ?? existingMeta.activeSessionId,
+      isDeleted: rep.isDeleted ?? existingMeta.isDeleted,
+      deletedAt: rep.deletedAt ?? existingMeta.deletedAt,
+      deletedBy: rep.deletedBy ?? existingMeta.deletedBy,
+      deletedByRole: rep.deletedByRole ?? existingMeta.deletedByRole,
+    };
+
+    record.avatar = JSON.stringify(avatarBundle);
+  }
 
   return record;
 }

@@ -927,7 +927,7 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                 </div>
 
                 {/* Referral KPIs */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-center text-xs">
                   <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] space-y-0.5">
                     <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي المدعوين</span>
                     <span className="font-black text-base text-[var(--text-primary)] font-mono block">
@@ -936,20 +936,27 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                   </div>
 
                   <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] space-y-0.5">
-                    <span className="text-[10px] text-[var(--text-muted)] font-bold block">مناديب أنجزوا 10+ أنشطة</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-bold block">مؤهلون للهدية (10+ موثقة)</span>
                     <span className="font-black text-base text-emerald-600 font-mono block">
                       {referralSummary.qualifiedRepsCount} <span className="text-[10px]">مؤهل</span>
                     </span>
                   </div>
 
                   <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] space-y-0.5">
-                    <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات الإحالة (3%-7%)</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-bold block">هدايا الدعوة (+250 ج)</span>
+                    <span className="font-black text-base text-emerald-600 font-mono block">
+                      {referralSummary.totalGiftsEarned.toLocaleString()} <span className="text-[10px]">ج</span>
+                    </span>
+                  </div>
+
+                  <div className="bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] space-y-0.5">
+                    <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات الأنشطة (3%-7%)</span>
                     <span className="font-black text-base text-amber-600 font-mono block">
                       {referralSummary.totalReferralCommission.toLocaleString()} <span className="text-[10px]">ج</span>
                     </span>
                   </div>
 
-                  <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/30 space-y-0.5">
+                  <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/30 space-y-0.5 col-span-2 sm:col-span-1">
                     <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-black block">إجمالي أرباح الإحالة</span>
                     <span className="font-black text-base text-emerald-600 font-mono block">
                       {referralSummary.totalNetEarnings.toLocaleString()} <span className="text-[10px]">ج</span>
@@ -967,14 +974,14 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                   </p>
                 ) : (
                   <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)]">
-                    <table className="w-full text-xs text-right border-collapse min-w-[600px]">
+                    <table className="w-full text-xs text-right border-collapse min-w-[650px]">
                       <thead>
                         <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold">
                           <th className="p-2.5">المندوب المدعو</th>
                           <th className="p-2.5">المحافظة والهاتف</th>
-                          <th className="p-2.5">الأنشطة المسجلة</th>
+                          <th className="p-2.5 text-center">الأنشطة الميدانية والتوثيق</th>
+                          <th className="p-2.5 text-center">مكافأة الدعوة (250 ج)</th>
                           <th className="p-2.5">إيراد مبيعاته</th>
-                          <th className="p-2.5">نسبة العمولة</th>
                           <th className="p-2.5">العمولة المكتسبة</th>
                         </tr>
                       </thead>
@@ -983,10 +990,26 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
                           <tr key={inv.rep.id} className="hover:bg-amber-500/5">
                             <td className="p-2.5 font-bold text-[var(--text-primary)]">{inv.rep.name}</td>
                             <td className="p-2.5 text-[11px] text-[var(--text-muted)]">{inv.rep.governorate} • {inv.rep.phone}</td>
-                            <td className="p-2.5 font-mono font-bold text-center">{inv.bizCount}</td>
+                            <td className="p-2.5 font-mono text-center">
+                              <span className="font-bold">{inv.bizCount} مسجل</span>{' '}
+                              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">({inv.verifiedBizCount || 0} موثق بجوجل)</span>
+                            </td>
+                            <td className="p-2.5 text-center">
+                              {inv.isMission1Complete ? (
+                                <span className="text-[10px] font-black text-emerald-600 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                  🎁 تم الصرف (+250 ج)
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                  ⏳ متبقي {inv.remainingForMission1} موثق
+                                </span>
+                              )}
+                            </td>
                             <td className="p-2.5 font-mono text-emerald-600 font-bold">{inv.totalRevenue.toLocaleString()} ج.م</td>
-                            <td className="p-2.5 font-bold text-amber-600">{inv.currentRate}%</td>
-                            <td className="p-2.5 font-black text-emerald-600 font-mono">{inv.commissionEarned.toLocaleString()} ج.م</td>
+                            <td className="p-2.5">
+                              <span className="text-amber-600 font-bold ml-1">({inv.currentRate}%)</span>
+                              <span className="font-black text-emerald-600 font-mono">+{inv.commissionEarned.toLocaleString()} ج</span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
