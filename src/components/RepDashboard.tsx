@@ -3,7 +3,7 @@ import { Business, Representative, PayoutRequest } from '../types';
 import { calculateRepSettlement } from '../utils/commission';
 import { getRepReferralSummary, getRepReferralCode } from '../utils/referral';
 import { UserAvatar } from './UserAvatar';
-import { PlusCircle, FileCheck } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
 interface RepDashboardProps {
   rep: Representative;
@@ -43,7 +43,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-6">
       {/* ── HEADER WITH COMPACT SUMMARY WIDGETS ─────────────────────── */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm transition-colors duration-300">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm transition-colors duration-300">
         
         {/* Right side (RTL): Rep Profile Card */}
         <div className="flex items-center gap-3.5 shrink-0">
@@ -69,8 +69,8 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
           </div>
         </div>
 
-        {/* Middle Section: Simplified Compact Widgets (Balance & Referral) */}
-        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap flex-1 justify-start lg:justify-center">
+        {/* Left side (RTL): Simplified Compact Widgets (Balance & Referral) */}
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap justify-start md:justify-end">
           {/* 1. Compact Balance Chip -> Directly to 'finance' in RepProfile */}
           <button
             type="button"
@@ -180,27 +180,6 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                 </span>
               </div>
             </div>
-          </button>
-        </div>
-
-        {/* Left side (RTL): Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          <button
-            type="button"
-            onClick={() => onNavigateToProfile?.('activities')}
-            className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-300 font-black text-xs px-3.5 py-2.5 rounded-2xl border border-amber-500/40 shadow-xs flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer shrink-0"
-            title="فتح الملف المحاسبي والأنشطة"
-          >
-            <FileCheck className="w-4 h-4 text-amber-500" />
-            <span>الملف المحاسبي والأنشطة</span>
-          </button>
-
-          <button
-            onClick={onAddNewClick}
-            className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs px-4 py-2.5 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer shrink-0"
-          >
-            <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-            <span>تسجيل نشاط جديد</span>
           </button>
         </div>
       </div>
