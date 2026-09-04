@@ -124,7 +124,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   }, []);
 
   const isAdminOrFinancial = userRole === 'admin' || userRole === 'supervisor' || userRole === 'accountant';
-  const [formData, setFormData] = useState<Business | null>(null);
+  const [formData, setFormData] = useState<Business | null>(business);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -134,6 +134,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isDownloadingPhotos, setIsDownloadingPhotos] = useState<boolean>(false);
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   // Tab navigation: default to 'admin_followup' as requested for admins/supervisors/accountants
   const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp' | 'admin_followup'>(
@@ -604,8 +605,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const primaryPhone = formData.phone || formData.ownerPhone || '';
   const cleanPhone = primaryPhone.replace(/\D/g, '');
   const mapsUrl = hasVerifiedGoogleMap && formData.googleMapsUrl ? formData.googleMapsUrl.trim() : '';
-
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartY(e.touches[0].clientY);

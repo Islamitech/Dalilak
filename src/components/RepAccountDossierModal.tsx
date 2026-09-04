@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Representative,
@@ -73,15 +73,20 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
   onUpdatePayoutRequest,
   currentUser,
 }) => {
-  if (!rep) return null;
-
   const [activeTab, setActiveTab] = useState<'activities' | 'ledger' | 'referrals' | 'kyc'>('activities');
   const [bizSearch, setBizSearch] = useState('');
   const [bizFilter, setBizFilter] = useState<'all' | 'verified' | 'pending' | 'cash' | 'online' | 'exempt'>('all');
-  const [editingCommRate, setEditingCommRate] = useState<number>(rep.commissionRate || 42.86);
-  const [editingRoleTitle, setEditingRoleTitle] = useState<string>(rep.roleTitle || '');
+  const [editingCommRate, setEditingCommRate] = useState<number>(rep?.commissionRate || 42.86);
+  const [editingRoleTitle, setEditingRoleTitle] = useState<string>(rep?.roleTitle || '');
   const [isSavingRate, setIsSavingRate] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (rep) {
+      setEditingCommRate(rep.commissionRate || 42.86);
+      setEditingRoleTitle(rep.roleTitle || '');
+    }
+  }, [rep]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -90,25 +95,29 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
 
   // Extract all businesses registered by this representative
   const repBusinesses = useMemo(() => {
+    if (!rep) return [];
     return businesses.filter(
       (b) => b.repId === rep.id || b.repName === rep.name || b.repId === rep.phone
     );
   }, [businesses, rep]);
 
-  const effectiveRate = rep.commissionRate && rep.commissionRate < 100 ? rep.commissionRate : 42.86;
+  const effectiveRate = rep?.commissionRate && rep.commissionRate < 100 ? rep.commissionRate : 42.86;
 
   // Calculate master financial settlement
   const settlement = useMemo(() => {
+    if (!rep) return null;
     return calculateRepSettlement(rep.id, repBusinesses, effectiveRate, payoutRequests);
-  }, [rep.id, repBusinesses, effectiveRate, payoutRequests]);
+  }, [rep?.id, repBusinesses, effectiveRate, payoutRequests]);
 
   // Referral Network Summary
   const referralSummary = useMemo(() => {
+    if (!rep) return null;
     return getRepReferralSummary(rep, allReps, businesses);
   }, [rep, allReps, businesses]);
 
   // Payout and Remittance Requests for this rep
   const repPayouts = useMemo(() => {
+    if (!rep) return [];
     return payoutRequests.filter(
       (p) => p.repId === rep.id || p.repName === rep.name || p.repPhone === rep.phone
     );
@@ -145,6 +154,8 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
   const verifiedCount = repBusinesses.filter((b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced').length;
   const exemptCount = repBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
   const pendingReviewCount = repBusinesses.length - verifiedCount;
+
+  if (!rep || !settlement || !referralSummary) return null;
 
   // Handle Commission Rate Update
   const handleSaveCommissionRate = () => {

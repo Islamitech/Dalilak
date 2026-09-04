@@ -23,17 +23,25 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (business) {
+      const p = business.packagePrice || 0;
+      const a = business.amountPaid || 0;
+      setSimulatedPayAmount(Math.max(0, p - a) || p);
+    }
+  }, [business]);
+
+  // Default to vodafone cash as it is the only active payment method
+  const [selectedMethod, setSelectedMethod] = useState<'vodafone' | 'instapay' | 'fawry' | 'card' | 'aman'>('vodafone');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [simulatedPayAmount, setSimulatedPayAmount] = useState<number>(0);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
   if (!business) return null;
 
   const pkgPrice = business.packagePrice || 0;
   const amtPaid = business.amountPaid || 0;
   const remaining = Math.max(0, pkgPrice - amtPaid);
-
-  // Default to vodafone cash as it is the only active payment method
-  const [selectedMethod, setSelectedMethod] = useState<'vodafone' | 'instapay' | 'fawry' | 'card' | 'aman'>('vodafone');
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [simulatedPayAmount, setSimulatedPayAmount] = useState<number>(remaining || pkgPrice);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const activeVodafoneNumber = config.vodafoneCashNumber || '01143888355';
   const activeVodafoneNumber2 = config.vodafoneCashNumber2 || '01556221141';

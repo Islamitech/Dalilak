@@ -53,6 +53,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const [copiedOffers, setCopiedOffers] = useState<boolean>(false);
   const [currentBiz, setCurrentBiz] = useState<Business | null>(business);
   const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,8 +76,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const amtPaid = isFeeExempt ? 0 : (activeBusiness.amountPaid || 0);
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
   const directoryUrl = 'https://www.dalilaak.com/';
-
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartY(e.touches[0].clientY);
