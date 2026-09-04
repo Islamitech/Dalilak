@@ -450,6 +450,10 @@ export function mapDbToRep(item: any): Representative {
   let metaPassword: string | undefined = item.password;
   let metaLastActiveTimestamp: number | undefined = item.last_active_timestamp ? Number(item.last_active_timestamp) : (item.lastActiveTimestamp ? Number(item.lastActiveTimestamp) : undefined);
   let metaActiveSessionId: string | undefined = item.active_session_id || item.activeSessionId;
+  let metaIsDeleted: boolean | undefined = item.is_deleted !== undefined ? Boolean(item.is_deleted) : item.isDeleted !== undefined ? Boolean(item.isDeleted) : undefined;
+  let metaDeletedAt: string | undefined = item.deleted_at || item.deletedAt;
+  let metaDeletedBy: string | undefined = item.deleted_by || item.deletedBy;
+  let metaDeletedByRole: string | undefined = item.deleted_by_role || item.deletedByRole;
 
   // Backward compatibility check for JSON avatar packing
   if (typeof parsedAvatar === 'string' && parsedAvatar.trim().startsWith('{')) {

@@ -9,26 +9,29 @@ const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governo
 
 function filterOutDeletedReps(reps: Representative[]): { active: Representative[]; deleted: Representative[] } {
   const blacklist = new Set(
-    (safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []) || []).map((x) => String(x).toLowerCase())
+    (safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []) || [])
+      .filter(Boolean)
+      .map((x) => String(x).toLowerCase().trim())
+      .filter((x) => x.length > 0)
   );
   const softDeletedList = getDeletedRepresentatives();
-  const softDeletedIds = new Set(softDeletedList.map((r) => (r.id || '').toLowerCase()));
-  const softDeletedEmails = new Set(softDeletedList.map((r) => (r.email || '').toLowerCase()).filter(Boolean));
+  const softDeletedIds = new Set(softDeletedList.map((r) => (r.id || '').toLowerCase().trim()).filter(Boolean));
+  const softDeletedEmails = new Set(softDeletedList.map((r) => (r.email || '').toLowerCase().trim()).filter(Boolean));
   const softDeletedPhones = new Set(softDeletedList.map((r) => (r.phone || '').trim()).filter(Boolean));
 
   const active: Representative[] = [];
   const deleted: Representative[] = [];
 
   reps.forEach((r) => {
-    const idLower = (r.id || '').toLowerCase();
-    const emailLower = (r.email || '').toLowerCase();
+    const idLower = (r.id || '').toLowerCase().trim();
+    const emailLower = (r.email || '').toLowerCase().trim();
     const phoneTrim = (r.phone || '').trim();
 
     const isExcluded =
       Boolean(r.isDeleted) ||
-      (idLower && (blacklist.has(idLower) || softDeletedIds.has(idLower))) ||
-      (emailLower && (blacklist.has(emailLower) || softDeletedEmails.has(emailLower))) ||
-      (phoneTrim && (blacklist.has(phoneTrim) || softDeletedPhones.has(phoneTrim)));
+      (Boolean(idLower) && (blacklist.has(idLower) || softDeletedIds.has(idLower))) ||
+      (Boolean(emailLower) && (blacklist.has(emailLower) || softDeletedEmails.has(emailLower))) ||
+      (Boolean(phoneTrim) && (blacklist.has(phoneTrim) || softDeletedPhones.has(phoneTrim)));
 
     if (isExcluded) {
       deleted.push(r);
@@ -38,6 +41,30 @@ function filterOutDeletedReps(reps: Representative[]): { active: Representative[
   });
 
   return { active, deleted };
+}
+
+function syncSoftDeletedFromDb(deleted: Representative[]) {
+  const blacklist = new Set(
+    (safeParseJson<string[]>(localStorage.getItem('dalelak_deleted_rep_ids'), []) || [])
+      .filter(Boolean)
+      .map((x) => String(x).toLowerCase().trim())
+      .filter((x) => x.length > 0)
+  );
+  const genuinelySoft = deleted.filter(
+    (d) =>
+      d.isDeleted &&
+      !blacklist.has((d.id || '').toLowerCase().trim()) &&
+      (!d.email || !blacklist.has(d.email.toLowerCase().trim()))
+  );
+  if (genuinelySoft.length > 0) {
+    try {
+      const existingDeleted = getDeletedRepresentatives();
+      const delMap = new Map<string, Representative>();
+      existingDeleted.forEach((e) => delMap.set(e.id, e));
+      genuinelySoft.forEach((d) => delMap.set(d.id, d));
+      safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(Array.from(delMap.values())));
+    } catch {}
+  }
 }
 
 export async function fetchRepsFromDb(): Promise<Representative[]> {
@@ -50,17 +77,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
         if (Array.isArray(restData) && restData.length > 0) {
           const freshList = restData.map(mapDbToRep);
           const { active, deleted } = filterOutDeletedReps(freshList);
-
-          // If any soft-deleted reps were returned, sync them to soft deleted registry
-          if (deleted.length > 0) {
-            try {
-              const existingDeleted = getDeletedRepresentatives();
-              const delMap = new Map<string, Representative>();
-              deleted.forEach((d) => delMap.set(d.id, d));
-              existingDeleted.forEach((e) => delMap.set(e.id, e));
-              safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(Array.from(delMap.values())));
-            } catch {}
-          }
+          syncSoftDeletedFromDb(deleted);
 
           try {
             safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
@@ -75,16 +92,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
           if (Array.isArray(fallbackData) && fallbackData.length > 0) {
             const freshList = fallbackData.map(mapDbToRep);
             const { active, deleted } = filterOutDeletedReps(freshList);
-
-            if (deleted.length > 0) {
-              try {
-                const existingDeleted = getDeletedRepresentatives();
-                const delMap = new Map<string, Representative>();
-                deleted.forEach((d) => delMap.set(d.id, d));
-                existingDeleted.forEach((e) => delMap.set(e.id, e));
-                safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(Array.from(delMap.values())));
-              } catch {}
-            }
+            syncSoftDeletedFromDb(deleted);
 
             try {
               safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
@@ -107,16 +115,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
       if (!error && data && Array.isArray(data) && data.length > 0) {
         const freshList = data.map(mapDbToRep);
         const { active, deleted } = filterOutDeletedReps(freshList);
-
-        if (deleted.length > 0) {
-          try {
-            const existingDeleted = getDeletedRepresentatives();
-            const delMap = new Map<string, Representative>();
-            deleted.forEach((d) => delMap.set(d.id, d));
-            existingDeleted.forEach((e) => delMap.set(e.id, e));
-            safeSetLocalStorageItem('dalelak_soft_deleted_reps', JSON.stringify(Array.from(delMap.values())));
-          } catch {}
-        }
+        syncSoftDeletedFromDb(deleted);
 
         try {
           safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
