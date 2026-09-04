@@ -74,6 +74,8 @@ export interface PlaceItem {
   acceptedServices?: string[];
   merchantName?: string;
   phone?: string;
+  whatsapp?: string;
+  googleEmail?: string;
   notes?: string;
   rejectionDetails?: RejectionDetails;
   visitResult?: 'accepted' | 'rejected';

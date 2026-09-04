@@ -12,6 +12,7 @@ import {
   User, PlaceItem, ServiceOffer, RejectionDetails, AppStoreData,
   AVAILABLE_SERVICES, getStoredData, saveStoredData
 } from './components/store';
+import { supabase, savePlaceToCloud, fetchPlacesFromCloud } from '@/lib/supabase';
 
 export type { PlaceItem };
 
@@ -683,6 +684,58 @@ export default function FieldDocumentationApp() {
     saveStoredData(store);
   }, [store]);
 
+  // ⚡ Cloud Synchronization with Supabase Database & Real-Time Channel
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Initial Cloud Places Fetch
+    fetchPlacesFromCloud().then((cloudPlaces) => {
+      if (!isMounted || !Array.isArray(cloudPlaces) || cloudPlaces.length === 0) return;
+      setStore((prev) => {
+        const map = new Map<string, PlaceItem>();
+        // Add cloud places
+        cloudPlaces.forEach((p) => map.set(p.id, p));
+        // Merge with local places (preserve any unique local ones)
+        prev.places.forEach((p) => {
+          if (!map.has(p.id)) {
+            map.set(p.id, p);
+            // Sync un-uploaded local place to cloud
+            savePlaceToCloud(p).catch(() => {});
+          }
+        });
+        return {
+          ...prev,
+          places: Array.from(map.values()),
+        };
+      });
+    });
+
+    // 2. Real-Time Channel for instant cross-device updates
+    const channel = supabase
+      .channel('places_realtime_feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'places' }, () => {
+        fetchPlacesFromCloud().then((freshPlaces) => {
+          if (!isMounted || !Array.isArray(freshPlaces)) return;
+          setStore((prev) => {
+            const map = new Map<string, PlaceItem>();
+            freshPlaces.forEach((p) => map.set(p.id, p));
+            prev.places.forEach((p) => {
+              if (!map.has(p.id)) map.set(p.id, p);
+            });
+            return { ...prev, places: Array.from(map.values()) };
+          });
+        });
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  }, []);
+
   // Handle Login
   const handleLogin = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -797,6 +850,15 @@ export default function FieldDocumentationApp() {
       createdAt: new Date().toISOString()
     };
 
+    // ⚡ Save directly to Supabase Cloud Database (Multi-Device Sync)
+    savePlaceToCloud(newPlace).then((res) => {
+      if (res.success) {
+        console.log('Place saved to Supabase cloud successfully:', newPlace.id);
+      } else {
+        console.warn('Place saved locally, cloud error:', res.error);
+      }
+    });
+
     setStore(prev => {
       const updatedPlaces = [newPlace, ...prev.places];
       const updatedEmployees = prev.employees.map(emp =>
@@ -837,6 +899,15 @@ export default function FieldDocumentationApp() {
       documenterId: store.currentUser?.id || 'emp-1',
       createdAt: new Date().toISOString()
     };
+
+    // ⚡ Save directly to Supabase Cloud Database (Multi-Device Sync)
+    savePlaceToCloud(newPlace).then((res) => {
+      if (res.success) {
+        console.log('Rejected place saved to Supabase cloud:', newPlace.id);
+      } else {
+        console.warn('Rejected place saved locally, cloud error:', res.error);
+      }
+    });
 
     setStore(prev => {
       const updatedPlaces = [newPlace, ...prev.places];
@@ -895,13 +966,22 @@ export default function FieldDocumentationApp() {
     const amt = parseFloat(paymentAmountInput) || 0;
     if (amt <= 0) return;
 
+    const newPaid = (place.paidAmount || 0) + amt;
+    const newRem = Math.max(0, (place.totalAmount || 300) - newPaid);
+    const newStatus: 'مدفوعة بالكامل' | 'دفع جزء من المبلغ (عربون)' | 'غير مدفوعة' =
+      newRem === 0 ? 'مدفوعة بالكامل' : 'دفع جزء من المبلغ (عربون)';
+
+    // ⚡ Sync payment to Supabase Cloud Database
+    savePlaceToCloud({
+      ...place,
+      paidAmount: newPaid,
+      remainingAmount: newRem,
+      paymentStatus: newStatus
+    }).catch(() => {});
+
     setStore(prev => {
       const updatedPlaces = prev.places.map(p => {
         if (p.id === place.id) {
-          const newPaid = (p.paidAmount || 0) + amt;
-          const newRem = Math.max(0, (p.totalAmount || 300) - newPaid);
-          const newStatus: 'مدفوعة بالكامل' | 'دفع جزء من المبلغ (عربون)' | 'غير مدفوعة' =
-            newRem === 0 ? 'مدفوعة بالكامل' : 'دفع جزء من المبلغ (عربون)';
           return {
             ...p,
             paidAmount: newPaid,
