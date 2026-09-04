@@ -527,10 +527,9 @@ export async function syncAllPendingOfflineData(
           }
         } catch {}
 
-        // Step A: Upload any base64/blob photos to Supabase Storage
+        // Step A: Process photos (attempt upload to Supabase Storage, fallback to preserved photo data)
         let cleanPhotos: string[] = [];
         let updatedOfflinePhotos: string[] = [];
-        let uploadFailed = false;
 
         if (Array.isArray(biz.photos) && biz.photos.length > 0) {
           for (const photo of biz.photos) {
@@ -539,30 +538,21 @@ export async function syncAllPendingOfflineData(
                 const publicUrl = await uploadMediaToSupabaseStorage(photo, 'photos');
                 if (publicUrl && (publicUrl.startsWith('http://') || publicUrl.startsWith('https://'))) {
                   cleanPhotos.push(publicUrl);
-                  updatedOfflinePhotos.push(publicUrl); // Save the successfully uploaded hosted URL
+                  updatedOfflinePhotos.push(publicUrl);
                 } else {
-                  uploadFailed = true;
-                  updatedOfflinePhotos.push(photo); // Keep the base64 to retry later
+                  // Fallback: keep photo string so visual media is not lost, but do NOT block business sync
+                  cleanPhotos.push(photo);
+                  updatedOfflinePhotos.push(photo);
                 }
               } catch {
-                uploadFailed = true;
-                updatedOfflinePhotos.push(photo); // Keep the base64 to retry later
+                cleanPhotos.push(photo);
+                updatedOfflinePhotos.push(photo);
               }
             } else if (typeof photo === 'string' && (photo.startsWith('http://') || photo.startsWith('https://'))) {
               cleanPhotos.push(photo);
               updatedOfflinePhotos.push(photo);
             }
           }
-        }
-
-        // If ANY photo upload failed, save the updated photos (with succeeded URLs) to IndexedDB
-        // and keep the business in the offline queue so failed photos are NOT permanently lost!
-        if (uploadFailed) {
-          try {
-            await saveOfflineBusiness({ ...biz, photos: updatedOfflinePhotos });
-          } catch {}
-          failedCount++;
-          continue; // Do NOT delete from offline queue or save partial photos
         }
 
         // Step B: Sanitize videos array (must be valid hosted URLs only)

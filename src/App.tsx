@@ -640,7 +640,7 @@ export default function App() {
 
       try {
         syncDeltaBusinessesFromDb().then((res) => {
-          if (res.updated && res.count > 0) {
+          if (res.updated) {
             setBusinesses(res.businesses);
             setShowSyncBadge(true);
             setTimeout(() => setShowSyncBadge(false), 3200);
@@ -860,7 +860,13 @@ export default function App() {
     }
 
     // ⚡ 3. ASYNCHRONOUS DATABASE SYNC (Non-blocking background save to Supabase Cloud - Zero Refetch)
-    saveBusinessToDb(normalizedBiz).catch((err) => {
+    saveBusinessToDb(normalizedBiz).then((res) => {
+      if (res && res.cloudSaved) {
+        console.log('Business saved to Supabase cloud successfully:', normalizedBiz.id);
+      } else {
+        console.warn('Business saved locally/offline, awaiting background sync:', res?.error);
+      }
+    }).catch((err) => {
       console.warn('Background Supabase save notice:', err);
     });
   };
@@ -1641,9 +1647,13 @@ export default function App() {
   };
 
   const isRepUser = user?.role === 'rep';
+  const isManagerialUser = ['admin', 'supervisor', 'accountant'].includes(user?.role || '');
 
-  // 🔐 الأنشطة المخصصة للمستخدم: إذا كان الحساب مندوباً، تقتصر الأنشطة المعروضة على المسجلة بواسطته فقط
-  const visibleBusinesses = useMemo(() => {
+  // نطاق عرض الأنشطة للمندوب: 'my' (أنشطتي المسجلة) أو 'all' (جميع أنشطة المنظومة السحابية)
+  const [repViewScope, setRepViewScope] = useState<'my' | 'all'>('my');
+
+  // 🔐 الأنشطة الميدانية المسجلة بواسطة المندوب الحالي (لحساب عمولاته وإحصائياته الشخصية بدقة)
+  const myBusinesses = useMemo(() => {
     if (user?.role === 'rep') {
       const myId = (currentRep.id || user.id || '').toLowerCase().trim();
       const myName = (currentRep.name || user.name || '').toLowerCase().trim();
@@ -1656,15 +1666,18 @@ export default function App() {
     return businesses;
   }, [businesses, user, currentRep]);
 
-  // 100% STRICT DIRECTORY FILTER (قاعدة صارمة: لا يظهر أي نشاط غير معتمد من الإدارة في الدليل نهائياً للزوار العامين):
-  const verifiedPublicBusinesses = useMemo(() => {
-    return visibleBusinesses.filter((b) => b.verificationStatus === 'verified');
-  }, [visibleBusinesses]);
+  const visibleBusinesses = useMemo(() => {
+    if (user?.role === 'rep') {
+      return repViewScope === 'all' ? businesses : myBusinesses;
+    }
+    return businesses;
+  }, [user, repViewScope, businesses, myBusinesses]);
 
   const scopedBusinesses = useMemo(() => {
-    const base = user?.role === 'rep' ? visibleBusinesses : verifiedPublicBusinesses;
-    return sortBusinessesNewestFirst(base);
-  }, [user, visibleBusinesses, verifiedPublicBusinesses]);
+    if (isManagerialUser) return sortBusinessesNewestFirst(businesses);
+    if (user?.role === 'rep') return sortBusinessesNewestFirst(visibleBusinesses);
+    return sortBusinessesNewestFirst(businesses);
+  }, [user, isManagerialUser, visibleBusinesses, businesses]);
 
 
   // -------------------------------------------------------------
@@ -1943,7 +1956,7 @@ export default function App() {
               <Suspense fallback={<div className="flex items-center justify-center py-6"><div className="w-8 h-8 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
                 <RepDashboard
                   rep={currentRep}
-                  businesses={visibleBusinesses}
+                  businesses={myBusinesses}
                   allReps={representatives}
                   payoutRequests={payoutRequests}
                   onAddNewClick={() => setActiveTab('add')}
@@ -1956,11 +1969,14 @@ export default function App() {
 
             {/* Modern Global Directory Container */}
             <PublicBusinessDirectory
-              businesses={visibleBusinesses}
+              businesses={businesses}
               isLoadingData={isLoadingData}
               hasInitialCloudSynced={hasInitialCloudSynced}
               currentUser={user}
               scopedBusinesses={scopedBusinesses}
+              repScope={repViewScope}
+              myBusinessesCount={myBusinesses.length}
+              onToggleRepScope={setRepViewScope}
               onAddNewClick={() => setActiveTab('add')}
               onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
               onEditBusiness={(b) => {
@@ -1971,6 +1987,8 @@ export default function App() {
                   const bRepName = (b.repName || '').toLowerCase().trim();
                   if ((myId && bRepId === myId) || (myName && bRepName === myName)) {
                     setEditingBusiness(b);
+                  } else {
+                    addNotification('⚠️ لا يمكن تعديل نشاط مسجل بواسطة مندوب آخر إلا من قِبل إدارة النظام.', 'warning');
                   }
                 } else {
                   setEditingBusiness(b);

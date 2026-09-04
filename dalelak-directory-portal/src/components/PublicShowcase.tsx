@@ -309,15 +309,16 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       url.searchParams.delete('b');
       url.searchParams.delete('id');
       url.searchParams.delete('preview');
-      window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+      const cleanPath = url.pathname.startsWith('/biz') ? '/' : url.pathname;
+      window.history.replaceState(null, '', cleanPath + (url.search ? url.search : ''));
     } catch {}
   };
 
   // Share Business Direct Link
   const handleShareBusiness = (biz: Business, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const shareUrl = `${window.location.origin}${window.location.pathname}?biz=${biz.id}`;
-    const shareTitle = `نشاط ${biz.nameAr} على منصة دليلك المعتمدة 🗺️`;
+    const shareUrl = `${window.location.origin}/biz/${biz.id}`;
+    const shareTitle = `نشاط ${biz.nameAr} | منصة دليلك المعتمدة ✨`;
     const shareText = `شاهد تفاصيل وموقع نشاط "${biz.nameAr}" المعتمد في ${biz.governorate}:`;
 
     if (navigator.share) {

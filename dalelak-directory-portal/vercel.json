@@ -1,5 +1,33 @@
 {
+  "functions": {
+    "api/*.ts": {
+      "memory": 1024,
+      "maxDuration": 15
+    }
+  },
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "biz",
+          "value": "(?<bizId>[^&]+)"
+        }
+      ],
+      "destination": "/biz/:bizId",
+      "permanent": false
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/biz/:id",
+      "destination": "/api/share?biz=:id"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

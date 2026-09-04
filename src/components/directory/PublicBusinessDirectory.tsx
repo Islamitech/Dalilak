@@ -31,6 +31,9 @@ interface PublicBusinessDirectoryProps {
   hasInitialCloudSynced: boolean;
   currentUser: User | null;
   scopedBusinesses: Business[];
+  repScope?: 'my' | 'all';
+  myBusinessesCount?: number;
+  onToggleRepScope?: (scope: 'my' | 'all') => void;
   onAddNewClick: () => void;
   onShowInvoice: (biz: Business) => void;
   onEditBusiness: (biz: Business) => void;
@@ -43,6 +46,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   hasInitialCloudSynced,
   currentUser,
   scopedBusinesses,
+  repScope = 'my',
+  myBusinessesCount = 0,
+  onToggleRepScope,
   onAddNewClick,
   onShowInvoice,
   onEditBusiness,
@@ -56,32 +62,46 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list') || 'list');
 
   const isRep = currentUser?.role === 'rep';
-  const hasRegisteredBiz = businesses.length > 0;
+  const isManagerial = ['admin', 'supervisor', 'accountant'].includes(currentUser?.role || '');
 
-  // For normal public visitors: show only verified businesses.
-  // For representatives: show all their registered businesses (both verified and pending) so they can monitor their field submissions.
+  // Scope filter:
+  // - Admin & supervisors: see all businesses
+  // - Rep with 'my' scope: see own submissions
+  // - Rep with 'all' scope: see all cloud businesses across the network
+  // - Public visitors: see all businesses (pending ones show badge)
   const displayableBusinesses = useMemo(() => {
-    if (isRep) {
+    if (isManagerial) {
       return businesses;
     }
-    return businesses.filter((b) => b.verificationStatus === 'verified');
-  }, [businesses, isRep]);
+    if (isRep && repScope === 'my') {
+      const myId = (currentUser?.id || '').toLowerCase().trim();
+      const myName = (currentUser?.name || '').toLowerCase().trim();
+      return businesses.filter((b) => {
+        const bRepId = (b.repId || '').toLowerCase().trim();
+        const bRepName = (b.repName || '').toLowerCase().trim();
+        return (myId && bRepId === myId) || (myName && bRepName === myName);
+      });
+    }
+    return businesses;
+  }, [businesses, isRep, isManagerial, repScope, currentUser]);
+
+  const hasRegisteredBiz = displayableBusinesses.length > 0;
 
   const homeStats = useMemo(() => {
-    const totalRegistered = businesses.length;
-    const directoryApproved = businesses.filter((b) => b.verificationStatus === 'verified').length;
-    const pendingDirectory = businesses.filter((b) => b.verificationStatus !== 'verified').length;
+    const totalRegistered = displayableBusinesses.length;
+    const directoryApproved = displayableBusinesses.filter((b) => b.verificationStatus === 'verified').length;
+    const pendingDirectory = displayableBusinesses.filter((b) => b.verificationStatus !== 'verified').length;
 
-    const googleMapsVerified = businesses.filter((b) => {
+    const googleMapsVerified = displayableBusinesses.filter((b) => {
       const url = (b.googleMapsUrl || '').trim();
       const hasRealUrl = url.startsWith('http') && !url.includes('search/?api=1&query=');
       const isAlreadyOnGooglePkg = b.isAlreadyOnGoogle || b.packageId === 'pkg_already_on_google';
       return hasRealUrl || isAlreadyOnGooglePkg;
     }).length;
 
-    const govs = new Set(businesses.map((b) => b.governorate).filter(Boolean)).size;
-    const fullyPaid = businesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
-    const exempt = businesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
+    const govs = new Set(displayableBusinesses.map((b) => b.governorate).filter(Boolean)).size;
+    const fullyPaid = displayableBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
+    const exempt = displayableBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
 
     return {
       totalRegistered,
@@ -91,9 +111,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       govs,
       fullyPaid,
       exempt,
-      total: directoryApproved,
+      total: totalRegistered,
     };
-  }, [businesses]);
+  }, [displayableBusinesses]);
 
   const filteredBusinesses = useMemo(() => {
     return sortBusinessesNewestFirst(
@@ -260,9 +280,47 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         </div>
       )}
 
-      {/* ── UNIFIED DIRECTORY TOOLBAR & FILTERS (SHOWN FOR PUBLIC OR ONCE REP HAS REGISTERED BIZ) ── */}
-      {(!isRep || hasRegisteredBiz) && (
+      {/* ── UNIFIED DIRECTORY TOOLBAR & FILTERS ── */}
+      {(businesses.length > 0 || !isRep) && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 space-y-3.5 shadow-sm">
+          {/* Representative Cloud Scope Toggle Banner */}
+          {isRep && onToggleRepScope && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-2.5 sm:p-3 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-amber-600 dark:text-amber-400">🌐 استعراض الأنشطة:</span>
+                <span className="text-[11px] text-[var(--text-muted)] font-medium">
+                  {repScope === 'my' ? 'تعرض حالياً أنشطتك الميدانية المسجلة فقط' : 'تعرض حالياً جميع أنشطة الشبكة السحابية في مصر'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)] self-start sm:self-auto shrink-0 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => onToggleRepScope('my')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                    repScope === 'my'
+                      ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <span>📍 أنشطتي فقط</span>
+                  <span className="font-mono text-[10.5px]">({myBusinessesCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onToggleRepScope('all')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                    repScope === 'all'
+                      ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <span>☁️ شبكة السحابة</span>
+                  <span className="font-mono text-[10.5px]">({businesses.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
         {/* Row 1: Search + Governorate + View Switcher */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
           <div className="relative flex-1">
@@ -329,7 +387,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         {/* Row 2: Status Quick Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
           {[
-            { key: 'all', label: '⭐ جميع الأنشطة المعتمدة', count: homeStats.total },
+            { key: 'all', label: '⭐ جميع الأنشطة', count: homeStats.total },
+            { key: 'verified', label: '✅ موثقة ومعتمدة', count: homeStats.directoryApproved },
+            ...(homeStats.pendingDirectory > 0 ? [{ key: 'in_progress', label: '⏳ قيد المراجعة', count: homeStats.pendingDirectory }] : []),
             { key: 'fully_paid', label: '💳 مسددة بالكامل', count: homeStats.fullyPaid },
             { key: 'unpaid', label: '⚠️ بانتظار السداد', count: Math.max(0, homeStats.total - homeStats.fullyPaid) },
           ].map((tab) => (

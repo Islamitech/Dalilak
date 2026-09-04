@@ -269,7 +269,7 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     const query = `businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`;
     const res = await supabaseRestFetch(query);
 
-    // Also prune deleted records: lightweight fetch of active IDs
+    // Also prune deleted records & detect missing records: lightweight fetch of active IDs
     let activeIds: Set<string> | null = null;
     try {
       const idsRes = await supabaseRestFetch('businesses?select=id&package_id=neq.pkg_interested_lead');
@@ -307,6 +307,37 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
       }
     }
 
+    // ⚡ Self-Healing: Check for any newly added IDs on server that are not yet in local cache (independent of clock skew)
+    if (activeIds && activeIds.size > 0) {
+      const missingIds: string[] = [];
+      activeIds.forEach((id) => {
+        if (!map.has(id)) {
+          missingIds.push(id);
+        }
+      });
+
+      if (missingIds.length > 0) {
+        try {
+          const idFilter = encodeURIComponent(`(${missingIds.slice(0, 50).join(',')})`);
+          const missingRes = await supabaseRestFetch(`businesses?select=${FAST_BUSINESS_SELECT}&id=in.${idFilter}`);
+          if (missingRes.ok) {
+            const missingData = await missingRes.json();
+            if (Array.isArray(missingData) && missingData.length > 0) {
+              missingData.map(mapDbToBusiness).forEach((b) => {
+                if (b && !b.isDeleted && b.packageId !== 'pkg_interested_lead') {
+                  map.set(b.id, b);
+                  hasChanges = true;
+                  freshDeltaCount++;
+                }
+              });
+            }
+          }
+        } catch (missingErr) {
+          console.warn('Auto-healing fetch notice:', missingErr);
+        }
+      }
+    }
+
     if (hasChanges) {
       // Also merge pending offline businesses
       try {
@@ -339,7 +370,7 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
   return { updated: false, businesses: cached, count: 0 };
 }
 
-export async function saveBusinessToDb(biz: Business): Promise<void> {
+export async function saveBusinessToDb(biz: Business): Promise<{ success: boolean; cloudSaved: boolean; error?: string }> {
   // Convert any remaining raw Base64 photos into clean storage URLs
   let safePhotos = biz.photos || [];
   // Strictly filter videos to valid hosted URLs only (no giant base64 payloads)
@@ -370,9 +401,11 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       });
     }
     safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(Array.from(map.values())));
   } catch {}
 
   let savedToCloud = false;
+  let cloudError: string | undefined = undefined;
 
   // 2. Direct Supabase Cloud Save if Online
   if (isOnline && isSupabaseConfigured()) {
@@ -384,9 +417,13 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       if (!error) {
         savedToCloud = true;
         await removeOfflineBusiness(cleanBiz.id).catch(() => {});
-        return;
+        return { success: true, cloudSaved: true };
+      } else {
+        cloudError = error.message;
+        console.warn('Supabase SDK upsert error:', error);
       }
-    } catch (sdkErr) {
+    } catch (sdkErr: any) {
+      cloudError = sdkErr?.message || String(sdkErr);
       console.warn('Supabase SDK upsert notice:', sdkErr);
     }
 
@@ -402,9 +439,14 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       if (res.ok) {
         savedToCloud = true;
         await removeOfflineBusiness(cleanBiz.id).catch(() => {});
-        return;
+        return { success: true, cloudSaved: true };
+      } else {
+        const errText = await res.text().catch(() => '');
+        cloudError = errText || `HTTP ${res.status}`;
+        console.warn('Supabase REST save notice (saved offline):', res.status, errText);
       }
-    } catch (err) {
+    } catch (err: any) {
+      cloudError = err?.message || String(err);
       console.warn('Supabase REST save notice (saved offline):', err);
     }
   }
@@ -422,6 +464,8 @@ export async function saveBusinessToDb(biz: Business): Promise<void> {
       body: JSON.stringify(cleanBiz),
     });
   } catch {}
+
+  return { success: true, cloudSaved: savedToCloud, error: cloudError };
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {

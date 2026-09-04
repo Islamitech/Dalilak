@@ -310,7 +310,9 @@ export default function App() {
 
   // Parse direct business link, preview mode & referral code if present in URL
   const urlParams = new URLSearchParams(window.location.search);
-  const initialBizId = urlParams.get('biz') || urlParams.get('b') || urlParams.get('preview') || urlParams.get('id') || '';
+  const pathMatch = window.location.pathname.match(/\/biz\/([^/?#]+)/i);
+  const pathBizId = pathMatch ? decodeURIComponent(pathMatch[1]) : '';
+  const initialBizId = urlParams.get('biz') || urlParams.get('b') || urlParams.get('preview') || urlParams.get('id') || pathBizId || '';
   const isPreviewMode = urlParams.has('preview');
   const refCode = urlParams.get('ref') || urlParams.get('rep') || '';
 
