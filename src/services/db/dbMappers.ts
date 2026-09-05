@@ -82,6 +82,9 @@ export function mapDbToBusiness(item: any): Business {
   let metaPaymentReceiptPhoto = item.payment_receipt_photo || item.paymentReceiptPhoto;
   let metaPaymentReceiptDate = item.payment_receipt_date || item.paymentReceiptDate;
   let metaCoverPhoto = item.cover_photo || item.coverPhoto;
+  let metaGoogleRatingEnabled = item.google_rating_enabled !== undefined ? Boolean(item.google_rating_enabled) : (item.googleRatingEnabled !== undefined ? Boolean(item.googleRatingEnabled) : undefined);
+  let metaGoogleRating = item.google_rating !== undefined ? Number(item.google_rating) : (item.googleRating !== undefined ? Number(item.googleRating) : undefined);
+  let metaGoogleReviewsCount = item.google_reviews_count !== undefined ? Number(item.google_reviews_count) : (item.googleReviewsCount !== undefined ? Number(item.googleReviewsCount) : undefined);
   let metaAdditionalInvoices: AdditionalServiceInvoice[] | undefined =
     Array.isArray(item.additional_invoices) ? item.additional_invoices :
     Array.isArray(item.additionalInvoices) ? item.additionalInvoices : undefined;
@@ -103,6 +106,9 @@ export function mapDbToBusiness(item: any): Business {
         if (parsed.googleSyncStatus && !metaGoogleSyncStatus) metaGoogleSyncStatus = parsed.googleSyncStatus;
         if (parsed.googlePlaceId && !metaGooglePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
         if (parsed.googleSyncDate && !metaGoogleSyncDate) metaGoogleSyncDate = parsed.googleSyncDate;
+        if (parsed.googleRatingEnabled !== undefined && metaGoogleRatingEnabled === undefined) metaGoogleRatingEnabled = Boolean(parsed.googleRatingEnabled);
+        if (parsed.googleRating !== undefined && metaGoogleRating === undefined) metaGoogleRating = Number(parsed.googleRating);
+        if (parsed.googleReviewsCount !== undefined && metaGoogleReviewsCount === undefined) metaGoogleReviewsCount = Number(parsed.googleReviewsCount);
         if (parsed.repLocationUrl && !metaRepLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
         if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
@@ -250,6 +256,9 @@ export function mapDbToBusiness(item: any): Business {
     googlePlaceId: item.google_place_id || item.googlePlaceId || metaGooglePlaceId,
     googleSyncStatus: cleanGoogleMapsUrl ? 'synced' : ((item.google_sync_status === 'in_progress' || metaGoogleSyncStatus === 'in_progress') ? 'in_progress' : 'not_synced'),
     googleSyncDate: item.google_sync_date || item.googleSyncDate || metaGoogleSyncDate,
+    googleRatingEnabled: metaGoogleRatingEnabled !== undefined ? metaGoogleRatingEnabled : undefined,
+    googleRating: metaGoogleRating !== undefined ? metaGoogleRating : undefined,
+    googleReviewsCount: metaGoogleReviewsCount !== undefined ? metaGoogleReviewsCount : undefined,
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: pureNotes,
@@ -370,6 +379,9 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googleSyncStatus: isAlreadyOnGoogle ? 'synced' : (biz.googleSyncStatus || existingMeta.googleSyncStatus),
     googlePlaceId: biz.googlePlaceId || existingMeta.googlePlaceId,
     googleSyncDate: isAlreadyOnGoogle ? (biz.googleSyncDate || new Date().toISOString().split('T')[0]) : (biz.googleSyncDate || existingMeta.googleSyncDate),
+    googleRatingEnabled: biz.googleRatingEnabled !== undefined ? biz.googleRatingEnabled : existingMeta.googleRatingEnabled,
+    googleRating: biz.googleRating !== undefined ? biz.googleRating : existingMeta.googleRating,
+    googleReviewsCount: biz.googleReviewsCount !== undefined ? biz.googleReviewsCount : existingMeta.googleReviewsCount,
     repLocationUrl: cleanRepLocationUrl || existingMeta.repLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl || existingMeta.googleMapsUrl,
     videos: finalVideos,
@@ -438,6 +450,9 @@ export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Bus
     updates.googleSyncStatus !== undefined ||
     updates.googlePlaceId !== undefined ||
     updates.googleSyncDate !== undefined ||
+    updates.googleRatingEnabled !== undefined ||
+    updates.googleRating !== undefined ||
+    updates.googleReviewsCount !== undefined ||
     updates.repLocationUrl !== undefined ||
     updates.paymentMethod !== undefined ||
     updates.cashCollectedByRep !== undefined ||

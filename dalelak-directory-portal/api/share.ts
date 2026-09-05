@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const bizId = decodeURIComponent(rawBiz).trim();
 
     // Fetch business from Supabase
-    const apiUrl = `${SUPABASE_URL}/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,name_ar,name_en,category,governorate,city,street,phone,description,photos`;
+    const apiUrl = `${SUPABASE_URL}/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,name_ar,name_en,category,governorate,city,street,phone,secondary_phone,description,photos,notes`;
     const dbRes = await fetch(apiUrl, {
       headers: {
         apikey: SUPABASE_ANON_KEY,
@@ -87,14 +87,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.redirect(302, '/');
     }
 
+    let googleRatingEnabled = false;
+    let googleRating: number | null = null;
+    let googleReviewsCount: number | null = null;
+
+    if (typeof biz.notes === 'string' && biz.notes.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(biz.notes.trim());
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.googleRatingEnabled) googleRatingEnabled = Boolean(parsed.googleRatingEnabled);
+          if (parsed.googleRating !== undefined && parsed.googleRating !== null) googleRating = Number(parsed.googleRating);
+          if (parsed.googleReviewsCount !== undefined && parsed.googleReviewsCount !== null) googleReviewsCount = Number(parsed.googleReviewsCount);
+        }
+      } catch {}
+    }
+
     const nameAr = biz.name_ar || biz.name_en || 'نشاط تجاري معتمد';
     const category = biz.category || 'دليل الأنشطة والخدمات';
     const locationParts = [biz.city, biz.street, biz.governorate].filter(Boolean);
     const locationStr = locationParts.length > 0 ? locationParts.join(' - ') : 'مصر';
     const phone = biz.phone || '';
+    const secondaryPhone = biz.secondary_phone || '';
+    const phones = [phone, secondaryPhone].filter(Boolean).join(' / ');
 
-    const pageTitle = `نشاط ${nameAr} | منصة دليلك المعتمدة ✨`;
-    const shareDesc = `${category} • ${locationStr}${phone ? ` • تواصل: ${phone}` : ''} • اضغط لمشاهدة التفاصيل والموقع المباشر على الخريطة عبر منصة دليلك.`;
+    // Google rating snippet
+    let ratingPart = '';
+    let ratingTitlePart = '';
+    if (googleRatingEnabled && googleRating) {
+      const formattedRating = googleRating.toFixed(1);
+      ratingPart = `⭐ تقييم Google: ${formattedRating}${googleReviewsCount ? ` (${googleReviewsCount} تقييم)` : ''}`;
+      ratingTitlePart = ` ⭐ ${formattedRating}`;
+    }
+
+    const pageTitle = `نشاط ${nameAr}${ratingTitlePart} | منصة دليلك المعتمدة ✨`;
+
+    // Business Description from "وصف الأنشطة والخدمات"
+    const rawDesc = (biz.description || '').trim();
+
+    // If description is short (or empty), include phones and location
+    let descBody = '';
+    if (rawDesc.length >= 35) {
+      // Meaningful rich description entered by the user
+      descBody = rawDesc;
+      if (phones) {
+        descBody += ` • تواصل: ${phones}`;
+      }
+    } else {
+      // Short or empty description: prominently show phones + category + location
+      const parts: string[] = [];
+      if (rawDesc) parts.push(rawDesc);
+      if (phones) parts.push(`تواصل: ${phones}`);
+      parts.push(`${category} - ${locationStr}`);
+      descBody = parts.join(' • ');
+    }
+
+    const shareDesc = [ratingPart, descBody].filter(Boolean).join(' • ');
     const photoVer = Array.isArray(biz.photos) && biz.photos[0] ? biz.photos[0].length : (biz.created_at || '');
     const ogImageUrl = `${origin}/api/biz-og?biz=${encodeURIComponent(biz.id)}${photoVer ? `&v=${encodeURIComponent(photoVer)}` : ''}`;
     const pageUrl = `${origin}/?biz=${encodeURIComponent(biz.id)}`;

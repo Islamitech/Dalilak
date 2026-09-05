@@ -23,6 +23,7 @@ import {
   Navigation,
   FileText,
   Eye,
+  Star,
 } from 'lucide-react';
 
 interface PublicBusinessDirectoryProps {
@@ -608,9 +609,20 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                   {/* Bottom info on photo */}
                   <div className="absolute bottom-2 right-2.5 left-2.5 flex items-center justify-between text-white">
-                    <span className="text-[10px] font-bold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 truncate max-w-[170px]">
-                      {biz.category}
-                    </span>
+                    <div className="flex items-center gap-1.5 truncate max-w-[210px]">
+                      <span className="text-[10px] font-bold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 truncate">
+                        {biz.category}
+                      </span>
+                      {biz.googleRatingEnabled && biz.googleRating && (
+                        <span className="inline-flex items-center gap-1 bg-amber-500/25 border border-amber-400/40 text-amber-300 text-[9.5px] font-black px-1.5 py-0.5 rounded-md backdrop-blur-md">
+                          <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                          <span>{biz.googleRating.toFixed(1)}</span>
+                          {biz.googleReviewsCount !== undefined && (
+                            <span className="text-[8.5px] opacity-75">({biz.googleReviewsCount})</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                     {biz.workingHours && (
                       <span className="text-[9px] font-medium opacity-80 truncate max-w-[130px] flex items-center gap-1">
                         <Clock className="w-2.5 h-2.5" /> {biz.workingHours}

@@ -48,6 +48,9 @@ export default function App() {
     let metaIsFeeExempt = r.is_fee_exempt ?? r.isFeeExempt;
     let metaFeeExemptionReason = r.fee_exemption_reason || r.feeExemptionReason;
     let metaCoverPhoto: string | undefined = r.cover_photo || r.coverPhoto;
+    let metaGoogleRatingEnabled = r.google_rating_enabled !== undefined ? Boolean(r.google_rating_enabled) : (r.googleRatingEnabled !== undefined ? Boolean(r.googleRatingEnabled) : undefined);
+    let metaGoogleRating = r.google_rating !== undefined ? Number(r.google_rating) : (r.googleRating !== undefined ? Number(r.googleRating) : undefined);
+    let metaGoogleReviewsCount = r.google_reviews_count !== undefined ? Number(r.google_reviews_count) : (r.googleReviewsCount !== undefined ? Number(r.googleReviewsCount) : undefined);
 
     if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')) {
       try {
@@ -61,6 +64,9 @@ export default function App() {
           if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = parsed.isFeeExempt;
           if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
           if (parsed.coverPhoto && !metaCoverPhoto) metaCoverPhoto = parsed.coverPhoto;
+          if (parsed.googleRatingEnabled !== undefined && metaGoogleRatingEnabled === undefined) metaGoogleRatingEnabled = Boolean(parsed.googleRatingEnabled);
+          if (parsed.googleRating !== undefined && metaGoogleRating === undefined) metaGoogleRating = Number(parsed.googleRating);
+          if (parsed.googleReviewsCount !== undefined && metaGoogleReviewsCount === undefined) metaGoogleReviewsCount = Number(parsed.googleReviewsCount);
         }
       } catch {}
     }
@@ -119,6 +125,9 @@ export default function App() {
       googleMapsUrl: cleanGoogleMapsUrl,
       verificationStatus: r.verification_status || r.verificationStatus || 'pending',
       googleSyncStatus: metaGoogleSyncStatus || r.google_sync_status || r.googleSyncStatus || 'not_synced',
+      googleRatingEnabled: metaGoogleRatingEnabled !== undefined ? metaGoogleRatingEnabled : undefined,
+      googleRating: metaGoogleRating !== undefined ? metaGoogleRating : undefined,
+      googleReviewsCount: metaGoogleReviewsCount !== undefined ? metaGoogleReviewsCount : undefined,
       createdAt: r.created_at || r.createdAt || new Date().toISOString(),
       createdDate: r.created_at || r.createdDate || new Date().toISOString(),
       amountPaid: 0,

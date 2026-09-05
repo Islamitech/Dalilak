@@ -43,6 +43,9 @@ export interface Business {
   googlePlaceId?: string;
   googleSyncStatus?: 'synced' | 'in_progress' | 'failed' | 'not_synced';
   googleSyncDate?: string;
+  googleRatingEnabled?: boolean;
+  googleRating?: number;
+  googleReviewsCount?: number;
   invoiceNumber: string;
   invoiceDate: string;
   repCommissionRate?: number;

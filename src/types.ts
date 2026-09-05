@@ -42,6 +42,9 @@ export interface Business {
   googlePlaceId?: string;
   googleSyncStatus?: 'synced' | 'in_progress' | 'failed' | 'not_synced';
   googleSyncDate?: string;
+  googleRatingEnabled?: boolean; // تفعيل عرض تقييم Google Maps المعتمد
+  googleRating?: number;         // درجة التقييم الرقمية من 1.0 إلى 5.0 (مثال: 4.9)
+  googleReviewsCount?: number;   // إجمالي عدد التقييمات والمراجعات على Google (مثال: 128)
   invoiceNumber: string;
   invoiceDate: string;
   repCommissionRate?: number;
