@@ -359,9 +359,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   };
 
   // Share Business Direct Link
-  const handleShareBusiness = (biz: Business, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const handleShareBusiness = async (biz: Business, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     const shareUrl = `${window.location.origin}/biz/${biz.id}`;
+    const shareTitle = `نشاط ${biz.nameAr} | منصة دليلك المعتمدة ✨`;
+
     let ratingSnippet = '';
     if (biz.googleRatingEnabled && biz.googleRating) {
       ratingSnippet = `\n⭐ تقييم Google: ${biz.googleRating.toFixed(1)} (${biz.googleReviewsCount || 0} تقييم)`;
@@ -376,24 +381,59 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
     const shareText = `شاهد تفاصيل وموقع نشاط "${biz.nameAr}" المعتمد في ${biz.governorate}:${ratingSnippet}${descSnippet}`;
 
-    if (navigator.share) {
-      navigator
-        .share({
+    const copyToClipboardFallback = async () => {
+      let copied = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(shareUrl);
+          copied = true;
+        }
+      } catch {}
+
+      if (!copied) {
+        try {
+          const textArea = document.createElement('textarea');
+          textArea.value = shareUrl;
+          textArea.style.position = 'fixed';
+          textArea.style.opacity = '0';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          copied = document.execCommand('copy');
+          document.body.removeChild(textArea);
+        } catch {}
+      }
+
+      setCopiedBizId(biz.id);
+      setShareToastText('تم نسخ رابط النشاط بنجاح! جاهز للمشاركة 📋');
+      if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+        try { window.navigator.vibrate([15, 30, 15]); } catch {}
+      }
+      setTimeout(() => {
+        setCopiedBizId(null);
+        setShareToastText(null);
+      }, 3500);
+    };
+
+    // On mobile devices supporting Web Share API
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
           title: shareTitle,
           text: shareText,
           url: shareUrl,
-        })
-        .catch(() => {});
-    } else {
-      try {
-        navigator.clipboard.writeText(shareUrl);
+        });
         setCopiedBizId(biz.id);
-        setShareToastText('تم نسخ رابط النشاط المباشر بنجاح! 📋');
-        setTimeout(() => {
-          setCopiedBizId(null);
-          setShareToastText(null);
-        }, 3000);
-      } catch {}
+        setTimeout(() => setCopiedBizId(null), 3000);
+      } catch (err: any) {
+        // If user cancelled the share dialog, do nothing
+        if (err?.name === 'AbortError') return;
+        // If navigator.share failed for any reason (permissions, desktop, etc.), fallback to copy
+        await copyToClipboardFallback();
+      }
+    } else {
+      // Desktop / browsers without navigator.share
+      await copyToClipboardFallback();
     }
   };
 
