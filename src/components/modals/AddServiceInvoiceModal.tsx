@@ -123,7 +123,7 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
+    <div className="fixed inset-0 z-[10040] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto text-[var(--text-primary)] modal-content overflow-y-auto max-h-[94vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
