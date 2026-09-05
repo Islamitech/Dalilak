@@ -365,12 +365,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       e.preventDefault();
     }
     const shareUrl = `${window.location.origin}/biz/${biz.id}`;
-    const shareTitle = `نشاط ${biz.nameAr} | منصة دليلك المعتمدة ✨`;
-
-    let ratingSnippet = '';
-    if (biz.googleRatingEnabled && biz.googleRating) {
-      ratingSnippet = `\n⭐ تقييم Google: ${biz.googleRating.toFixed(1)} (${biz.googleReviewsCount || 0} تقييم)`;
-    }
+    const shareTitle = `نشاط ${biz.nameAr} | منصة دليلك المعتمدة`;
 
     let descSnippet = '';
     if (biz.description && biz.description.trim()) {
@@ -380,7 +375,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
 
     const specificArea = biz.city?.trim() || biz.governorate?.trim() || 'مصر';
-    const shareText = `تفاصيل "${biz.nameAr}" المعتمد في ${specificArea}:${ratingSnippet}${descSnippet}`;
+    const shareText = `تفاصيل "${biz.nameAr}" المعتمد في ${specificArea}:${descSnippet}`;
 
     const copyToClipboardFallback = async () => {
       let copied = false;
