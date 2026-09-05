@@ -379,7 +379,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       descSnippet = `\n📞 تواصل: ${biz.phone}`;
     }
 
-    const shareText = `شاهد تفاصيل وموقع نشاط "${biz.nameAr}" المعتمد في ${biz.governorate}:${ratingSnippet}${descSnippet}`;
+    const specificArea = biz.city?.trim() || biz.governorate?.trim() || 'مصر';
+    const shareText = `تفاصيل "${biz.nameAr}" المعتمد في ${specificArea}:${ratingSnippet}${descSnippet}`;
 
     const copyToClipboardFallback = async () => {
       let copied = false;
