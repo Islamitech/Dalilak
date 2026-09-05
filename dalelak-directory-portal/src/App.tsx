@@ -19,7 +19,10 @@ export default function App() {
       const cached = localStorage.getItem('dalelak_directory_cache') || localStorage.getItem('dalelak_cached_businesses');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Strip any old stale base64 photos so cards always display fresh live images
+          return parsed.map((b: any) => ({ ...b, photos: [] }));
+        }
       }
     } catch {}
     return [];
@@ -162,29 +165,7 @@ export default function App() {
         if (res.ok) {
           const raw = await res.json();
           if (Array.isArray(raw) && isMounted && raw.length > 0) {
-            // Merge existing cached photos instantly so cover images don't blink
-            const cachedPhotosMap = new Map<string, string[]>();
-            try {
-              const cached = localStorage.getItem('dalelak_directory_cache');
-              if (cached) {
-                const parsed = JSON.parse(cached);
-                if (Array.isArray(parsed)) {
-                  parsed.forEach((b: any) => {
-                    if (b && b.id && Array.isArray(b.photos) && b.photos.length > 0) {
-                      cachedPhotosMap.set(b.id, b.photos);
-                    }
-                  });
-                }
-              }
-            } catch {}
-
-            const mapped: Business[] = raw.map((r) => {
-              const b = mapRawToBusiness(r);
-              if ((!b.photos || b.photos.length === 0) && cachedPhotosMap.has(b.id)) {
-                b.photos = cachedPhotosMap.get(b.id)!;
-              }
-              return b;
-            });
+            const mapped: Business[] = raw.map((r) => mapRawToBusiness(r));
 
             setBusinesses(() => {
               const updated = mapped.sort(
@@ -192,52 +173,18 @@ export default function App() {
               );
 
               try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+                // Keep cache lightweight (metadata only, zero base64) so localStorage quota is never exceeded and loads in 0ms
+                const cacheable = updated.map((b) => ({
+                  ...b,
+                  photos: [],
+                }));
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(cacheable));
                 localStorage.setItem('dalelak_directory_last_sync', new Date().toISOString());
+                localStorage.removeItem('dalelak_cached_businesses');
               } catch {}
 
               return updated;
             });
-
-            // 📸 Non-blocking background photo hydration
-            fetch(SUPABASE_PHOTOS_URL, {
-              headers: {
-                apikey: SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-              },
-            })
-              .then((r) => (r.ok ? r.json() : []))
-              .then((photosData) => {
-                if (Array.isArray(photosData) && photosData.length > 0 && isMounted) {
-                  const photoMap = new Map<string, string[]>();
-                  photosData.forEach((item: any) => {
-                    if (item.id) {
-                      let itemPhotos: string[] = [];
-                      if (Array.isArray(item.photos)) {
-                        itemPhotos = item.photos;
-                      } else if (typeof item.photos === 'string' && item.photos.trim().length > 0) {
-                        try {
-                          const p = JSON.parse(item.photos.trim());
-                          if (Array.isArray(p)) itemPhotos = p;
-                        } catch {}
-                      }
-                      if (itemPhotos.length > 0) {
-                        photoMap.set(item.id, itemPhotos);
-                      }
-                    }
-                  });
-                  if (photoMap.size > 0) {
-                    setBusinesses((prev) => {
-                      const updated = prev.map((b) => (photoMap.has(b.id) ? { ...b, photos: photoMap.get(b.id)! } : b));
-                      try {
-                        localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
-                      } catch {}
-                      return updated;
-                    });
-                  }
-                }
-              })
-              .catch(() => {});
           }
         }
       } catch (e) {

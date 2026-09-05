@@ -217,6 +217,41 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     injectBusinessSchemaLd(selectedBiz);
   }, [selectedBiz]);
 
+  // On-demand full photo gallery loader for selected business
+  useEffect(() => {
+    if (!selectedBiz || (selectedBiz.photos && selectedBiz.photos.length > 1)) return;
+    let isCurrent = true;
+    const bizId = selectedBiz.id;
+
+    fetch(`https://xdqpbajymacpdccorjcj.supabase.co/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,photos`, {
+      headers: {
+        apikey: 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x',
+      },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => {
+        if (isCurrent && Array.isArray(rows) && rows.length > 0 && rows[0].photos) {
+          let itemPhotos: string[] = [];
+          if (Array.isArray(rows[0].photos)) {
+            itemPhotos = rows[0].photos;
+          } else if (typeof rows[0].photos === 'string' && rows[0].photos.trim().length > 0) {
+            try {
+              const p = JSON.parse(rows[0].photos.trim());
+              if (Array.isArray(p)) itemPhotos = p;
+            } catch {}
+          }
+          if (itemPhotos.length > 0) {
+            setSelectedBiz((prev) => (prev && prev.id === bizId ? { ...prev, photos: itemPhotos } : prev));
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedBiz?.id]);
+
   // Toggle Favorite
   const toggleFavorite = (bizId: string) => {
     setFavorites((prev) => {
@@ -1153,7 +1188,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   const mainPhoto =
                     biz.photos && biz.photos.length > 0
                       ? biz.photos[0]
-                      : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80';
+                      : `/api/biz-og?biz=${biz.id}&v=${encodeURIComponent(biz.createdDate || biz.createdAt || '')}`;
 
                   const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
                   const openStatus = getBusinessOpenStatus(biz.workingHours);
@@ -1899,7 +1934,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     src={
                       selectedBiz.photos && selectedBiz.photos.length > 0
                         ? selectedBiz.photos[0]
-                        : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'
+                        : `/api/biz-og?biz=${selectedBiz.id}&v=${encodeURIComponent(selectedBiz.createdDate || selectedBiz.createdAt || '')}`
                     }
                     alt={selectedBiz.nameAr}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

@@ -95,7 +95,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const pageTitle = `نشاط ${nameAr} | منصة دليلك المعتمدة ✨`;
     const shareDesc = `${category} • ${locationStr}${phone ? ` • تواصل: ${phone}` : ''} • اضغط لمشاهدة التفاصيل والموقع المباشر على الخريطة عبر منصة دليلك.`;
-    const ogImageUrl = `${origin}/api/biz-og?biz=${encodeURIComponent(biz.id)}`;
+    const photoVer = Array.isArray(biz.photos) && biz.photos[0] ? biz.photos[0].length : (biz.created_at || '');
+    const ogImageUrl = `${origin}/api/biz-og?biz=${encodeURIComponent(biz.id)}${photoVer ? `&v=${encodeURIComponent(photoVer)}` : ''}`;
     const pageUrl = `${origin}/?biz=${encodeURIComponent(biz.id)}`;
 
     let html = template;
@@ -160,7 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=120, stale-while-revalidate=600');
     return res.status(200).send(html);
 
   } catch (err) {

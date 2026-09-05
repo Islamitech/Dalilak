@@ -56,9 +56,30 @@ export interface Business {
   deletedBy?: string;  // اسم أو إيميل من قام بالحذف
   deletedByRole?: string; // دور المسؤول الذي حذف
   deletedReason?: string; // سبب الحذف إن وجد
+  additionalInvoices?: AdditionalServiceInvoice[]; // فواتير الخدمات الإضافية المخصصة الصادرة عن المنصة
   _offlineUserId?: string;
   _offlineTimestamp?: number;
   _isOfflinePending?: boolean;
+}
+
+export type ElectronicPaymentMethod = 'platform_collected' | 'vodafone_cash' | 'instapay' | 'bank_transfer' | 'gateway_online';
+
+export interface AdditionalServiceInvoice {
+  id: string;                      // معرف فريد للفاتورة
+  businessId: string;              // معرف النشاط التجاري التابع له
+  businessName: string;            // اسم النشاط التجاري
+  invoiceNumber: string;           // رقم الفاتورة المعتمد (مثل ADD-2026-XXXX)
+  serviceTitle: string;            // اسم ووصف الخدمة الإضافية
+  amount: number;                  // إجمالي قيمة الفاتورة بالجنيه
+  amountPaid: number;              // المبلغ المسدد إلكترونياً
+  paymentStatus: PaymentStatus;    // 'fully_paid' | 'partially_paid' | 'unpaid'
+  paymentMethod: ElectronicPaymentMethod; // التحصيل الإلكتروني للمنصة فقط
+  issueDate: string;               // تاريخ الإصدار (YYYY-MM-DD)
+  issuedByRole?: 'admin' | 'supervisor' | 'accountant'; // صادرة حصرياً عن المنصة
+  issuedByName?: string;            // اسم المسؤول الصادرة عنه الفاتورة
+  notes?: string;                  // ملاحظات إدارية / تفاصيل الخدمة
+  paymentReceiptPhoto?: string;    // لقطة شاشة التحويل الإلكتروني إن وجدت
+  createdAt: string;               // توقيت الإنشاء ISO
 }
 
 export type AdminFollowUpType = 'call' | 'visit' | 'payment' | 'verification' | 'general';

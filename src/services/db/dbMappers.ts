@@ -1,4 +1,4 @@
-import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote } from '../../types';
+import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote, AdditionalServiceInvoice } from '../../types';
 import { safeParseJson } from '../../utils/storage';
 
 export function parsePhotosArray(item: any): string[] {
@@ -81,6 +81,9 @@ export function mapDbToBusiness(item: any): Business {
   let metaAdminFollowUps: AdminFollowUpNote[] | undefined = undefined;
   let metaPaymentReceiptPhoto = item.payment_receipt_photo || item.paymentReceiptPhoto;
   let metaPaymentReceiptDate = item.payment_receipt_date || item.paymentReceiptDate;
+  let metaAdditionalInvoices: AdditionalServiceInvoice[] | undefined =
+    Array.isArray(item.additional_invoices) ? item.additional_invoices :
+    Array.isArray(item.additionalInvoices) ? item.additionalInvoices : undefined;
   let metaIsDeleted: boolean | undefined = item.is_deleted !== undefined ? Boolean(item.is_deleted) : item.isDeleted !== undefined ? Boolean(item.isDeleted) : undefined;
   let metaDeletedAt = item.deleted_at || item.deletedAt;
   let metaDeletedBy = item.deleted_by || item.deletedBy;
@@ -108,6 +111,7 @@ export function mapDbToBusiness(item: any): Business {
         if (parsed.registrationType !== undefined && !metaRegistrationType) metaRegistrationType = parsed.registrationType;
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
         if (parsed.adminFollowUps && Array.isArray(parsed.adminFollowUps)) metaAdminFollowUps = parsed.adminFollowUps;
+        if (parsed.additionalInvoices && Array.isArray(parsed.additionalInvoices) && !metaAdditionalInvoices) metaAdditionalInvoices = parsed.additionalInvoices;
         if (parsed.isDeleted !== undefined && metaIsDeleted === undefined) metaIsDeleted = Boolean(parsed.isDeleted);
         if (parsed.deletedAt && !metaDeletedAt) metaDeletedAt = parsed.deletedAt;
         if (parsed.deletedBy && !metaDeletedBy) metaDeletedBy = parsed.deletedBy;
@@ -122,6 +126,11 @@ export function mapDbToBusiness(item: any): Business {
     ? item.admin_follow_ups
     : (item.adminFollowUps && Array.isArray(item.adminFollowUps) ? item.adminFollowUps : undefined);
   const finalAdminFollowUps: AdminFollowUpNote[] = directAdminFollowUps || metaAdminFollowUps || [];
+
+  const directAdditionalInvoices = (item.additional_invoices && Array.isArray(item.additional_invoices))
+    ? item.additional_invoices
+    : (item.additionalInvoices && Array.isArray(item.additionalInvoices) ? item.additionalInvoices : undefined);
+  const finalAdditionalInvoices: AdditionalServiceInvoice[] = directAdditionalInvoices || metaAdditionalInvoices || [];
 
   const isAlreadyOnGoogle = Boolean(
     metaIsAlreadyOnGoogle ||
@@ -242,6 +251,7 @@ export function mapDbToBusiness(item: any): Business {
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: pureNotes,
     adminFollowUps: finalAdminFollowUps,
+    additionalInvoices: finalAdditionalInvoices,
     createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
     isFeeExempt,
     feeExemptionReason: metaFeeExemptionReason,
@@ -337,6 +347,10 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     ? biz.adminFollowUps
     : (Array.isArray(existingMeta.adminFollowUps) ? existingMeta.adminFollowUps : []);
 
+  const finalAdditionalInvoices = Array.isArray(biz.additionalInvoices)
+    ? biz.additionalInvoices
+    : (Array.isArray(existingMeta.additionalInvoices) ? existingMeta.additionalInvoices : []);
+
   const finalUserNotes = typeof biz.notes === 'string' && !biz.notes.trim().startsWith('{')
     ? biz.notes
     : (existingMeta.userNotes || undefined);
@@ -357,6 +371,7 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googleMapsUrl: cleanGoogleMapsUrl || existingMeta.googleMapsUrl,
     videos: finalVideos,
     adminFollowUps: finalAdminFollowUps,
+    additionalInvoices: finalAdditionalInvoices,
     paymentReceiptPhoto: biz.paymentReceiptPhoto !== undefined ? biz.paymentReceiptPhoto : existingMeta.paymentReceiptPhoto,
     paymentReceiptDate: biz.paymentReceiptDate !== undefined ? biz.paymentReceiptDate : existingMeta.paymentReceiptDate,
     isDeleted: biz.isDeleted !== undefined ? biz.isDeleted : existingMeta.isDeleted,
@@ -410,6 +425,7 @@ export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Bus
   const hasMetaUpdates =
     updates.notes !== undefined ||
     updates.adminFollowUps !== undefined ||
+    updates.additionalInvoices !== undefined ||
     updates.videos !== undefined ||
     updates.paymentReceiptPhoto !== undefined ||
     updates.paymentReceiptDate !== undefined ||

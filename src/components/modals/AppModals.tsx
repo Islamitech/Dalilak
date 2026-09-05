@@ -88,6 +88,8 @@ export const AppModals: React.FC<AppModalsProps> = ({
   onAddRepresentative,
   onUpdateUserProfile,
 }) => {
+  const [selectedAdditionalInvoiceId, setSelectedAdditionalInvoiceId] = React.useState<string | undefined>(undefined);
+
   return (
     <>
       {/* MODAL: ABOUT US */}
@@ -137,7 +139,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
             currentUserName={user?.name}
             currentUserId={user?.id}
             canEdit={canUserEditBusiness(user, editingBusiness)}
-            onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+            onShowInvoice={(b, additionalInvId) => {
+              setSelectedAdditionalInvoiceId(additionalInvId);
+              setSelectedInvoiceBiz(b);
+            }}
             onCollectPayment={
               user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
                 ? (b) => setSelectedPayBiz(b)
@@ -155,7 +160,11 @@ export const AppModals: React.FC<AppModalsProps> = ({
       {selectedInvoiceBiz && user && (
         <InvoiceModal
           business={selectedInvoiceBiz}
-          onClose={() => setSelectedInvoiceBiz(null)}
+          selectedAdditionalInvoiceId={selectedAdditionalInvoiceId}
+          onClose={() => {
+            setSelectedInvoiceBiz(null);
+            setSelectedAdditionalInvoiceId(undefined);
+          }}
           onUpdateBusiness={onUpdateBusiness}
           onCollectPayment={
             user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'accountant'
@@ -164,6 +173,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
           }
           userRole={user?.role}
           isAdmin={user?.role === 'admin' || user?.role === 'supervisor'}
+          currentUserName={user?.name}
         />
       )}
 

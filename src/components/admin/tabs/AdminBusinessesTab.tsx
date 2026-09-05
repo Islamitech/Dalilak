@@ -401,6 +401,14 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           <span>{formatEGP(debtAmount)}</span>
                         </div>
                       )}
+                      {biz.additionalInvoices && biz.additionalInvoices.length > 0 && (
+                        <div className="flex items-center justify-between text-[10.5px] font-bold text-sky-600 dark:text-sky-400 pt-1 border-t border-[var(--border-color)]">
+                          <span>خدمات إضافية ({biz.additionalInvoices.length}):</span>
+                          <span className="font-mono">
+                            {formatEGP(biz.additionalInvoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0))} محصل
+                          </span>
+                        </div>
+                      )}
                       {isCash && (
                         <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] font-mono pt-1 border-t border-[var(--border-color)]">
                           <span>نصيب المندوب: {formatEGP(repComm)}</span>
@@ -541,6 +549,11 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                                   </p>
                                 )}
                               </>
+                            )}
+                            {biz.additionalInvoices && biz.additionalInvoices.length > 0 && (
+                              <span className="text-[9.5px] bg-sky-500/15 text-sky-700 dark:text-sky-300 font-bold px-1.5 py-0.5 rounded-md border border-sky-500/30 inline-block">
+                                +{biz.additionalInvoices.length} خدمات إضافية ({formatEGP(biz.additionalInvoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0))})
+                              </span>
                             )}
                           </div>
                         </td>

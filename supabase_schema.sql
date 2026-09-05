@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     is_already_on_google BOOLEAN DEFAULT false,
     registration_type TEXT DEFAULT 'new_verification',
     admin_follow_ups JSONB DEFAULT '[]'::jsonb,
+    additional_invoices JSONB DEFAULT '[]'::jsonb,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -64,6 +65,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS videos JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS rep_location_url TEXT;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS admin_follow_ups JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS additional_invoices JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_fee_exempt BOOLEAN DEFAULT false;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS fee_exemption_reason TEXT;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_already_on_google BOOLEAN DEFAULT false;

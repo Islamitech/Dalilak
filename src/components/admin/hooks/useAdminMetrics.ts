@@ -26,19 +26,31 @@ export const useAdminMetrics = ({
     [businesses]
   );
 
-  // Financial KPI totals (excluding fee-exempt popular area activities)
+  // Financial KPI totals (excluding fee-exempt popular area activities, including platform additional invoices)
   const totalRevenue = useMemo(
-    () => realBusinesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.amountPaid || 0), 0),
+    () => realBusinesses.reduce((acc, b) => {
+      const basePaid = (b.isFeeExempt || b.packagePrice === 0) ? 0 : (b.amountPaid || 0);
+      const addInvsPaid = (b.additionalInvoices || []).reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
+      return acc + basePaid + addInvsPaid;
+    }, 0),
     [realBusinesses]
   );
 
   const totalContractValue = useMemo(
-    () => realBusinesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + (b.packagePrice || 0), 0),
+    () => realBusinesses.reduce((acc, b) => {
+      const basePrice = (b.isFeeExempt || b.packagePrice === 0) ? 0 : (b.packagePrice || 0);
+      const addInvsTotal = (b.additionalInvoices || []).reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+      return acc + basePrice + addInvsTotal;
+    }, 0),
     [realBusinesses]
   );
 
   const totalDebt = useMemo(
-    () => realBusinesses.reduce((acc, b) => (b.isFeeExempt || b.packagePrice === 0) ? acc : acc + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)), 0),
+    () => realBusinesses.reduce((acc, b) => {
+      const baseDebt = (b.isFeeExempt || b.packagePrice === 0) ? 0 : Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
+      const addInvsDebt = (b.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
+      return acc + baseDebt + addInvsDebt;
+    }, 0),
     [realBusinesses]
   );
 
@@ -174,6 +186,8 @@ export const useAdminMetrics = ({
       } else {
         existing.exempt += 1;
       }
+      const addInvsPaid = (b.additionalInvoices || []).reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
+      existing.revenue += addInvsPaid;
       if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') {
         existing.verified += 1;
       }
@@ -194,6 +208,16 @@ export const useAdminMetrics = ({
       existing.count += 1;
       existing.revenue += isExempt ? 0 : (b.packagePrice || 0);
       pkgMap.set(pkgTitle, existing);
+
+      if (b.additionalInvoices && b.additionalInvoices.length > 0) {
+        b.additionalInvoices.forEach((inv) => {
+          const invTitle = 'فواتير خدمات إضافية للمنصة';
+          const existingInv = pkgMap.get(invTitle) || { count: 0, revenue: 0 };
+          existingInv.count += 1;
+          existingInv.revenue += Number(inv.amount) || 0;
+          pkgMap.set(invTitle, existingInv);
+        });
+      }
     });
     return Array.from(pkgMap.entries())
       .map(([title, data]) => ({
@@ -448,6 +472,35 @@ export const useAdminMetrics = ({
           curRep.count += 1;
           m.repEarningsMap.set(repIdentifier, curRep);
         }
+      }
+
+      // Add platform electronic revenue from additional service invoices
+      if (b.additionalInvoices && b.additionalInvoices.length > 0) {
+        b.additionalInvoices.forEach((inv) => {
+          const invDate = inv.issueDate || inv.createdAt ? new Date(inv.issueDate || inv.createdAt) : d;
+          const invMonthKey = `${invDate.getFullYear()}-${String(invDate.getMonth() + 1).padStart(2, '0')}`;
+          const invMonthLabel = invDate.toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
+
+          if (!monthsMap.has(invMonthKey)) {
+            monthsMap.set(invMonthKey, {
+              monthKey: invMonthKey,
+              monthLabel: invMonthLabel,
+              grossRevenue: 0,
+              repCommissions: 0,
+              netPlatform: 0,
+              verifiedCount: 0,
+              totalBizCount: 0,
+              disbursedPayouts: 0,
+              repsActive: new Set(),
+              repEarningsMap: new Map(),
+            });
+          }
+
+          const invMonth = monthsMap.get(invMonthKey)!;
+          const invPaid = Number(inv.amountPaid) || 0;
+          invMonth.grossRevenue += invPaid;
+          invMonth.netPlatform += invPaid; // 100% platform electronic revenue
+        });
       }
     });
 

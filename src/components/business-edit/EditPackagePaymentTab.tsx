@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Business } from '../../types';
+import { Business, AdditionalServiceInvoice } from '../../types';
 import { PACKAGES, EXEMPT_PACKAGE, ALREADY_ON_GOOGLE_PACKAGE } from '../../data/mockData';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { AdminReceiptModal } from '../admin/modals/AdminReceiptModal';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { AddServiceInvoiceModal } from '../modals/AddServiceInvoiceModal';
+import { getAdditionalInvoiceWhatsAppUrl } from '../../utils/whatsappMessages';
 import {
   ShieldCheck,
   Sparkles,
@@ -16,6 +18,9 @@ import {
   FileCheck,
   Loader2,
   CreditCard,
+  FilePlus,
+  FileText,
+  Send,
 } from 'lucide-react';
 
 interface EditPackagePaymentTabProps {
@@ -26,6 +31,11 @@ interface EditPackagePaymentTabProps {
   canEdit: boolean;
   remainingDebt: number;
   handleToggleFeeExempt: (isExempt: boolean) => void;
+  onShowInvoice?: (business: Business, additionalInvoiceId?: string) => void;
+  onSaveAdditionalInvoice?: (newInv: AdditionalServiceInvoice) => void;
+  onDeleteAdditionalInvoice?: (invoiceId: string) => void;
+  currentUserName?: string;
+  currentUserRole?: string;
 }
 
 export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
@@ -36,7 +46,14 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
   canEdit,
   remainingDebt,
   handleToggleFeeExempt,
+  onShowInvoice,
+  onSaveAdditionalInvoice,
+  onDeleteAdditionalInvoice,
+  currentUserName,
+  currentUserRole,
 }) => {
+  const [showAddInvoiceModal, setShowAddInvoiceModal] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<AdditionalServiceInvoice | null>(null);
   const [isCompressingReceipt, setIsCompressingReceipt] = useState(false);
   const [selectedReceiptPreview, setSelectedReceiptPreview] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string>('');
@@ -409,6 +426,195 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* ── قسم فواتير الخدمات الإضافية الصادرة عن المنصة ───────────────────── */}
+      <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-4 space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-bold shrink-0">
+              <FilePlus className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                  فواتير الخدمات الإضافية الصادرة عن المنصة 🧾
+                </h4>
+                {formData.additionalInvoices && formData.additionalInvoices.length > 0 && (
+                  <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black px-2 py-0.5 rounded-full">
+                    {formData.additionalInvoices.length} فاتورة
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
+                فواتير إلكترونية لخدمات إضافية تم تحصيلها لحسابات المنصة وتُسجل بالتحصيل العام
+              </p>
+            </div>
+          </div>
+
+          {isAdminOrFinancial && (
+            <button
+              type="button"
+              onClick={() => setShowAddInvoiceModal(true)}
+              className="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0"
+            >
+              <FilePlus className="w-3.5 h-3.5" />
+              <span>إصدار فاتورة خدمة إضافية ➕</span>
+            </button>
+          )}
+        </div>
+
+        {/* List of Additional Invoices */}
+        {formData.additionalInvoices && formData.additionalInvoices.length > 0 ? (
+          <div className="space-y-2.5">
+            {formData.additionalInvoices.map((inv) => {
+              const remaining = Math.max(0, (inv.amount || 0) - (inv.amountPaid || 0));
+              const isPaid = inv.paymentStatus === 'fully_paid' || (inv.amountPaid || 0) >= (inv.amount || 0);
+              const waUrl = getAdditionalInvoiceWhatsAppUrl(formData, inv);
+
+              return (
+                <div
+                  key={inv.id}
+                  className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:border-amber-500/40 transition-colors"
+                >
+                  <div className="space-y-1 text-right">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                        {inv.serviceTitle}
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-400 font-bold bg-[var(--input-bg)] px-2 py-0.5 rounded-md" dir="ltr">
+                        {inv.invoiceNumber}
+                      </span>
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                          isPaid
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                            : (inv.amountPaid || 0) > 0
+                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                        }`}
+                      >
+                        {isPaid ? 'مدفوعة بالكامل إلكترونياً ✓' : (inv.amountPaid || 0) > 0 ? `متبقي ${remaining} ج` : 'غير مسددة ⏳'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] font-bold flex-wrap">
+                      <span>القيمة: <strong className="text-[var(--text-primary)] font-mono font-black">{inv.amount} ج.م</strong></span>
+                      <span>المسدد: <strong className="text-emerald-600 font-mono font-black">{inv.amountPaid || 0} ج.م</strong></span>
+                      {remaining > 0 && <span>المتبقي: <strong className="text-rose-600 font-mono font-black">{remaining} ج.م</strong></span>}
+                      <span>التاريخ: {inv.issueDate}</span>
+                      {inv.issuedByName && <span className="text-[10px] text-slate-400">بواسطة: {inv.issuedByName}</span>}
+                    </div>
+
+                    {inv.notes && (
+                      <p className="text-[10.5px] text-[var(--text-muted)] bg-[var(--input-bg)] p-1.5 rounded-lg">
+                        {inv.notes}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                    {onShowInvoice && (
+                      <button
+                        type="button"
+                        onClick={() => onShowInvoice(formData, inv.id)}
+                        className="bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-[var(--border-color)] px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        title="معاينة وطباعة الفاتورة"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>معاينة</span>
+                      </button>
+                    )}
+
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all shadow-2xs"
+                      title="مشاركة الفاتورة عبر واتساب"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>واتساب</span>
+                    </a>
+
+                    {isAdminOrFinancial && (
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceToDelete(inv)}
+                        className="p-1.5 text-rose-500 hover:bg-rose-500/15 rounded-xl transition-colors cursor-pointer"
+                        title="حذف الفاتورة"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-5 bg-[var(--bg-card)]/50 rounded-2xl border border-dashed border-[var(--border-color)] space-y-1">
+            <p className="text-xs font-bold text-[var(--text-muted)]">
+              لا توجد فواتير خدمات إضافية صادرة لهذا النشاط حتى الآن.
+            </p>
+            {isAdminOrFinancial && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
+                يمكن لإدارة المنصة إصدار فواتير للخدمات المستقلة والتحصيل الإلكتروني عبر الزر أعلاه.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal for issuing a new additional service invoice */}
+      <AddServiceInvoiceModal
+        business={formData}
+        isOpen={showAddInvoiceModal}
+        onClose={() => setShowAddInvoiceModal(false)}
+        onSaveInvoice={(newInv) => {
+          if (onSaveAdditionalInvoice) {
+            onSaveAdditionalInvoice(newInv);
+          } else {
+            setFormData((prev) => {
+              if (!prev) return prev;
+              const existing = prev.additionalInvoices || [];
+              return {
+                ...prev,
+                additionalInvoices: [newInv, ...existing],
+              };
+            });
+          }
+        }}
+        currentUserName={currentUserName}
+        currentUserRole={currentUserRole}
+      />
+
+      {/* Confirm Delete Additional Invoice */}
+      <ConfirmDialog
+        isOpen={Boolean(invoiceToDelete)}
+        title="حذف فاتورة الخدمة الإضافية"
+        message={`هل أنت متأكد من حذف فاتورة "${invoiceToDelete?.serviceTitle}" بقيمة ${invoiceToDelete?.amount} ج.م؟ سيتم خصمها من التحصيل العام للمنظومة.`}
+        confirmLabel="حذف الفاتورة"
+        cancelLabel="إلغاء"
+        variant="danger"
+        onConfirm={() => {
+          if (!invoiceToDelete) return;
+          if (onDeleteAdditionalInvoice) {
+            onDeleteAdditionalInvoice(invoiceToDelete.id);
+          } else {
+            setFormData((prev) => {
+              if (!prev) return prev;
+              const existing = prev.additionalInvoices || [];
+              return {
+                ...prev,
+                additionalInvoices: existing.filter((inv) => inv.id !== invoiceToDelete.id),
+              };
+            });
+          }
+          setInvoiceToDelete(null);
+        }}
+        onCancel={() => setInvoiceToDelete(null)}
+      />
 
       {/* Lightbox Modal for Receipt Photo Preview */}
       <AdminReceiptModal

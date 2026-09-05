@@ -19,7 +19,7 @@ function getActivePaymentConfig() {
   };
 }
 
-import { Business } from '../types';
+import { Business, AdditionalServiceInvoice } from '../types';
 
 // Using a cache-busting parameter forces WhatsApp servers to crawl and fetch the new 3D OpenGraph image immediately
 const DIRECTORY_URL = 'https://www.dalilaak.com/?ref=app';
@@ -154,6 +154,51 @@ export function generateInvoiceWhatsAppMessage(biz: Business): string {
 export function getInvoiceWhatsAppUrl(biz: Business): string {
   const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
   const text = safeWhatsAppEncode(generateInvoiceWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Event 1.5: Additional Service Electronic Invoice Message (Platform Issued & Collected Electronically)
+ */
+export function generateAdditionalInvoiceWhatsAppMessage(biz: Business, invoice: AdditionalServiceInvoice): string {
+  const cfg = getActivePaymentConfig();
+  const amt = Number(invoice.amount) || 0;
+  const paid = Number(invoice.amountPaid) || 0;
+  const remaining = Math.max(0, amt - paid);
+
+  const raw =
+    `*فاتورة خدمة إضافية معتمدة - منصة دليلك الرقمية*\n` +
+    `-----------------------------------------\n` +
+    `• *النشاط التجاري:* ${biz.nameAr || invoice.businessName || ''}\n` +
+    `• *العميل:* ${biz.ownerName || 'صاحب النشاط'}\n` +
+    `• *الجهة المصدرة:* إدارة منصة دليلك (${invoice.issuedByName || 'الإدارة'})\n` +
+    `• *رقم الفاتورة الإلكترونية:* ${invoice.invoiceNumber}\n` +
+    `• *تاريخ الإصدار:* ${invoice.issueDate}\n\n` +
+    `• *الخدمة المطلوبة:* ${invoice.serviceTitle}\n` +
+    `• *إجمالي قيمة الفاتورة:* ${amt} ج.م\n` +
+    `• *المبلغ المسدد إلكترونياً:* ${paid} ج.م\n` +
+    (remaining > 0 ? `• *المبلغ المتبقي:* ${remaining} ج.م\n` : '') +
+    `• *حالة الفاتورة:* ${
+      invoice.paymentStatus === 'fully_paid'
+        ? 'مدفوعة بالكامل إلكترونياً ✅'
+        : invoice.paymentStatus === 'partially_paid'
+        ? `مدفوع جزئياً إلكترونياً (متبقي ${remaining} ج.م) ⏳`
+        : 'بانتظار التحويل الإلكتروني ⏳'
+    }\n` +
+    (invoice.notes ? `• *ملاحظات وتفاصيل:* ${invoice.notes}\n` : '') +
+    `\n*قنوات التحصيل والسداد الإلكتروني المعتمدة لحسابات المنصة:* \n` +
+    `📱 فودافون كاش: ${cfg.vodafone1} أو ${cfg.vodafone2}\n` +
+    `⚡ إنستاباي InstaPay: ${cfg.instaPay}\n\n` +
+    `🔗 يمكنكم معاينة الفاتورة الإلكترونية والتحقق منها مباشرة عبر الرابط:\n` +
+    `https://www.dalilaak.com/?view=invoice&id=${biz.id}&invId=${invoice.id}\n\n` +
+    `شكرًا لتعاملكم مع منصة دليلك الرقمية!`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getAdditionalInvoiceWhatsAppUrl(biz: Business, invoice: AdditionalServiceInvoice): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateAdditionalInvoiceWhatsAppMessage(biz, invoice));
   return `https://wa.me/${phone}?text=${text}`;
 }
 

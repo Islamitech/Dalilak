@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Business, VerificationStatus, User } from '../types';
+import { Business, VerificationStatus, User, AdditionalServiceInvoice } from '../types';
 import { PACKAGES, EXEMPT_PACKAGE } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
@@ -53,7 +53,7 @@ interface BusinessEditModalProps {
   currentUserId?: string;
   initialTab?: string;
   canEdit?: boolean;
-  onShowInvoice?: (business: Business) => void;
+  onShowInvoice?: (business: Business, additionalInvoiceId?: string) => void;
   onCollectPayment?: (business: Business) => void;
   onDeleteBusiness?: (id: string) => void;
   businesses?: Business[];
@@ -263,6 +263,32 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     };
     setStatusNotification(labels[newStatus] || 'تم تحديث الحالة بنجاح');
     setTimeout(() => setStatusNotification(null), 3000);
+  };
+
+  const handleSaveAdditionalInvoice = (newInv: AdditionalServiceInvoice) => {
+    const existing = formData.additionalInvoices || [];
+    const updatedInvoices = [newInv, ...existing];
+    const updated: Business = {
+      ...formData,
+      additionalInvoices: updatedInvoices,
+    };
+    setFormData(updated);
+    onSave(updated);
+    setStatusNotification('تم إصدار وحفظ الفاتورة الإضافية في قاعدة البيانات بنجاح ✅');
+    setTimeout(() => setStatusNotification(null), 3500);
+  };
+
+  const handleDeleteAdditionalInvoice = (invId: string) => {
+    const existing = formData.additionalInvoices || [];
+    const updatedInvoices = existing.filter((inv) => inv.id !== invId);
+    const updated: Business = {
+      ...formData,
+      additionalInvoices: updatedInvoices,
+    };
+    setFormData(updated);
+    onSave(updated);
+    setStatusNotification('تم حذف الفاتورة الإضافية وتحديث قاعدة البيانات بنجاح ✅');
+    setTimeout(() => setStatusNotification(null), 3500);
   };
 
   const handleDownloadAllPhotos = async () => {
@@ -734,6 +760,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               canEdit={canEdit}
               remainingDebt={remainingDebt}
               handleToggleFeeExempt={handleToggleFeeExempt}
+              onShowInvoice={onShowInvoice}
+              onSaveAdditionalInvoice={handleSaveAdditionalInvoice}
+              onDeleteAdditionalInvoice={handleDeleteAdditionalInvoice}
+              currentUserName={currentUserName}
+              currentUserRole={userRole}
             />
           )}
 

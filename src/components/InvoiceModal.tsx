@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toPng } from 'html-to-image';
-import { Business } from '../types';
+import { Business, AdditionalServiceInvoice } from '../types';
 import { Logo } from './Logo';
+import { AddServiceInvoiceModal } from './modals/AddServiceInvoiceModal';
 import { 
   Printer, 
   Share2, 
@@ -18,6 +19,9 @@ import {
   DollarSign,
   Send,
   ExternalLink,
+  FilePlus,
+  CreditCard,
+  FileText,
 } from 'lucide-react';
 import { downloadSinglePhoto } from '../utils/photoDownloader';
 import {
@@ -25,26 +29,32 @@ import {
   generateInvoiceWhatsAppMessage,
   getUpgradeOffersWhatsAppUrl,
   generateUpgradeOffersWhatsAppMessage,
+  getAdditionalInvoiceWhatsAppUrl,
+  generateAdditionalInvoiceWhatsAppMessage,
 } from '../utils/whatsappMessages';
 import { generateQrDataUrl } from '../utils/qrGenerator';
 import { triggerHaptic } from '../utils/haptics';
 
 interface InvoiceModalProps {
   business: Business | null;
+  selectedAdditionalInvoiceId?: string;
   onClose: () => void;
   isExternalView?: boolean;
   userRole?: string;
   isAdmin?: boolean;
+  currentUserName?: string;
   onUpdateBusiness?: (updatedBusiness: Business) => void;
   onCollectPayment?: (business: Business) => void;
 }
 
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({ 
   business, 
+  selectedAdditionalInvoiceId,
   onClose, 
   isExternalView = false,
   userRole,
   isAdmin = false,
+  currentUserName,
   onUpdateBusiness,
   onCollectPayment,
 }) => {
@@ -52,6 +62,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [copiedOffers, setCopiedOffers] = useState<boolean>(false);
   const [currentBiz, setCurrentBiz] = useState<Business | null>(business);
+  const [selectedInvoiceTab, setSelectedInvoiceTab] = useState<string>(selectedAdditionalInvoiceId || 'primary');
+  const [showAddInvoiceModal, setShowAddInvoiceModal] = useState<boolean>(false);
   const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -59,6 +71,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   useEffect(() => {
     setCurrentBiz(business);
   }, [business]);
+
+  useEffect(() => {
+    if (selectedAdditionalInvoiceId) {
+      setSelectedInvoiceTab(selectedAdditionalInvoiceId);
+    }
+  }, [selectedAdditionalInvoiceId]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -71,10 +89,29 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const activeBusiness = business || currentBiz;
   if (!activeBusiness) return null;
 
-  const isFeeExempt = Boolean(activeBusiness.isFeeExempt || activeBusiness.packagePrice === 0);
-  const pkgPrice = isFeeExempt ? 0 : (activeBusiness.packagePrice || 250);
-  const amtPaid = isFeeExempt ? 0 : (activeBusiness.amountPaid || 0);
+  const currentAdditionalInvoice = activeBusiness.additionalInvoices?.find(
+    (inv) => inv.id === selectedInvoiceTab
+  );
+  const isAdditional = Boolean(currentAdditionalInvoice && selectedInvoiceTab !== 'primary');
+
+  const isFeeExempt = Boolean(!isAdditional && (activeBusiness.isFeeExempt || activeBusiness.packagePrice === 0));
+  const pkgPrice = isAdditional
+    ? (currentAdditionalInvoice?.amount || 0)
+    : isFeeExempt ? 0 : (activeBusiness.packagePrice || 250);
+  const amtPaid = isAdditional
+    ? (currentAdditionalInvoice?.amountPaid || 0)
+    : isFeeExempt ? 0 : (activeBusiness.amountPaid || 0);
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
+  const effectivePaymentStatus = isAdditional
+    ? (currentAdditionalInvoice?.paymentStatus || 'unpaid')
+    : activeBusiness.paymentStatus;
+  const effectiveInvoiceNumber = isAdditional
+    ? (currentAdditionalInvoice?.invoiceNumber || 'ADD-2026-000')
+    : activeBusiness.invoiceNumber;
+  const effectiveInvoiceDate = isAdditional
+    ? (currentAdditionalInvoice?.issueDate || new Date().toISOString().split('T')[0])
+    : (activeBusiness.invoiceDate || new Date().toISOString().split('T')[0]);
+
   const directoryUrl = 'https://www.dalilaak.com/';
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -93,15 +130,25 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   const handleCopyInvoice = () => {
-    navigator.clipboard.writeText(generateInvoiceWhatsAppMessage(activeBusiness));
+    if (isAdditional && currentAdditionalInvoice) {
+      navigator.clipboard.writeText(generateAdditionalInvoiceWhatsAppMessage(activeBusiness, currentAdditionalInvoice));
+    } else {
+      navigator.clipboard.writeText(generateInvoiceWhatsAppMessage(activeBusiness));
+    }
     triggerHaptic('light');
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const whatsappShareUrl = isAdditional && currentAdditionalInvoice
+    ? getAdditionalInvoiceWhatsAppUrl(activeBusiness, currentAdditionalInvoice)
+    : getInvoiceWhatsAppUrl(activeBusiness);
+
   // Dynamic QR Code URL to open the invoice online
   const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('localhost') ? window.location.origin : 'https://www.dalilaak.com';
-  const qrUrl = `${baseUrl}/?view=invoice&id=${activeBusiness.id}`;
+  const qrUrl = isAdditional && currentAdditionalInvoice
+    ? `${baseUrl}/?view=invoice&id=${activeBusiness.id}&invId=${currentAdditionalInvoice.id}`
+    : `${baseUrl}/?view=invoice&id=${activeBusiness.id}`;
   const qrImageUrl = generateQrDataUrl(qrUrl, 250);
 
   // Pixel-Perfect DOM Screenshot Downloader using html-to-image (Adaptive pixelRatio to protect mobile RAM)
@@ -175,6 +222,48 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </button>
         </div>
 
+        {/* Invoice Tabs Selector (When Additional Invoices Exist or for Privileged Users) */}
+        {activeBusiness.additionalInvoices && activeBusiness.additionalInvoices.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar no-print">
+            <button
+              type="button"
+              onClick={() => setSelectedInvoiceTab('primary')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                selectedInvoiceTab === 'primary'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              📋 الفاتورة الأساسية ({activeBusiness.invoiceNumber})
+            </button>
+            {activeBusiness.additionalInvoices.map((inv) => (
+              <button
+                key={inv.id}
+                type="button"
+                onClick={() => setSelectedInvoiceTab(inv.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  selectedInvoiceTab === inv.id
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                🧾 {inv.serviceTitle} ({inv.invoiceNumber})
+              </button>
+            ))}
+            {isPrivilegedUser && onUpdateBusiness && (
+              <button
+                type="button"
+                onClick={() => setShowAddInvoiceModal(true)}
+                className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                title="إصدار فاتورة خدمة إضافية جديدة"
+              >
+                <FilePlus className="w-3.5 h-3.5" />
+                <span>+ فاتورة خدمة</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ── PRINTABLE INVOICE CARD CONTAINER ────────────────────────── */}
         <div 
           ref={invoiceRef}
@@ -188,23 +277,27 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
             <div className="text-left space-y-1">
               <span className={`inline-block text-[10.5px] font-black px-3 py-1 rounded-full border shadow-2xs ${
-                activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                isAdditional
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                  : activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
                   ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                   : isFeeExempt
                   ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                   : 'bg-amber-50 text-amber-900 border-amber-300'
               }`}>
-                {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                {isAdditional
+                  ? 'فاتورة خدمة إضافية معتمدة (منصة دليلك) 🧾'
+                  : activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
                   ? 'فاتورة ترحيبية وإشعار انضمام بالدليل 🌟'
                   : isFeeExempt
                   ? 'فاتورة إلكترونية معتمدة (إدراج مجاني)'
                   : 'فاتورة إلكترونية معتمدة'}
               </span>
               <div className="text-xs font-mono font-black text-slate-700" dir="ltr">
-                {activeBusiness.invoiceNumber}
+                {effectiveInvoiceNumber}
               </div>
               <div className="text-[10.5px] font-bold text-slate-400">
-                {activeBusiness.invoiceDate || new Date().toISOString().split('T')[0]}
+                {effectiveInvoiceDate}
               </div>
             </div>
           </div>
@@ -222,7 +315,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <span className="text-[10.5px] text-slate-400 font-bold block">صاحب النشاط / العميل:</span>
               <span className="font-black text-slate-900 text-sm block truncate">{activeBusiness.ownerName || 'صاحب النشاط'}</span>
               <span className="text-xs text-slate-700 font-mono font-bold block" dir="ltr">{activeBusiness.ownerPhone || activeBusiness.phone}</span>
-              <span className="text-[10.5px] text-slate-500 font-bold block truncate">المندوب: {activeBusiness.repName || 'مندوب معتمد'}</span>
+              <span className="text-[10.5px] text-slate-500 font-bold block truncate">
+                {isAdditional 
+                  ? `الجهة المصدرة: إدارة منصة دليلك (${currentAdditionalInvoice?.issuedByName || 'الإدارة'})`
+                  : `المندوب: ${activeBusiness.repName || 'مندوب معتمد'}`}
+              </span>
             </div>
           </div>
 
@@ -235,12 +332,16 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             <div className="p-3.5 flex items-center justify-between bg-white">
               <div className="space-y-0.5">
                 <span className="font-black text-slate-900 text-xs sm:text-sm block">
-                  {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                  {isAdditional
+                    ? currentAdditionalInvoice?.serviceTitle
+                    : activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
                     ? 'إدراج وربط النشاط في دليل دليلك المعتمد'
                     : activeBusiness.packageName || (isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : 'باقة التوثيق الأساسي')}
                 </span>
                 <span className="text-[10.5px] text-slate-500 font-medium block">
-                  {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
+                  {isAdditional
+                    ? (currentAdditionalInvoice?.notes || 'خدمة إضافية معتمدة صادرة حصرياً عن إدارة منصة دليلك ومحصلة إلكترونياً')
+                    : activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
                     ? 'إدراج وتوثيق النشاط التجاري بالدليل الميداني مجاناً 100% بدون أي مقابل مالي لتعزيز وصول العملاء والزوار'
                     : isFeeExempt 
                     ? 'إدراج وتوثيق النشاط التجاري الرائج بالدليل والخرائط مجاناً وبدون أي مقابل مالي'
@@ -262,7 +363,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               </span>
             </div>
             <div className="flex items-center justify-between text-emerald-700 font-black">
-              <span>المبلغ المسدد:</span>
+              <span>المبلغ المسدد إلكترونياً:</span>
               <span className="font-mono">
                 {isFeeExempt ? '0 جنيه مصري (معفى بالكامل)' : `${amtPaid} جنيه مصري`}
               </span>
@@ -277,26 +378,36 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
           </div>
 
+          {/* Official Electronic Payment channels box for Additional Invoices */}
+          {isAdditional && (
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300 rounded-2xl p-3.5 text-xs text-emerald-950 font-bold shadow-2xs space-y-1 text-right">
+              <div className="flex items-center gap-1.5 text-emerald-900 font-black text-xs">
+                <CreditCard className="w-4 h-4 text-emerald-700" />
+                <span>قنوات التحصيل والسداد الإلكتروني المعتمدة لحسابات المنصة:</span>
+              </div>
+              <div className="text-[11px] text-emerald-800 space-y-0.5 pt-1 border-t border-emerald-200">
+                <div>📱 محفظة فودافون كاش: <span className="font-mono font-black" dir="ltr">01143888355 / 01556221141</span></div>
+                <div>⚡ إنستاباي InstaPay: <span className="font-mono font-black" dir="ltr">@daz31181</span></div>
+              </div>
+            </div>
+          )}
+
           {/* QR Code and Status Row */}
           <div className="flex items-center justify-between pt-0.5 gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-500">حالة الفاتورة:</span>
               <span className={`text-xs font-black px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-2xs ${
-                isFeeExempt
+                effectivePaymentStatus === 'fully_paid' || isFeeExempt
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                  : activeBusiness.paymentStatus === 'fully_paid'
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                  : activeBusiness.paymentStatus === 'partially_paid'
+                  : effectivePaymentStatus === 'partially_paid'
                   ? 'bg-amber-50 text-amber-900 border-amber-300'
                   : 'bg-amber-50 text-amber-900 border-amber-300'
               }`}>
-                {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
-                  ? 'مفعل ومدرج مجاناً بالكامل ✓'
-                  : isFeeExempt
+                {isFeeExempt
                   ? 'معفى بالكامل (مجاني) ✓'
-                  : activeBusiness.paymentStatus === 'fully_paid'
-                  ? 'مدفوعة ✓'
-                  : activeBusiness.paymentStatus === 'partially_paid'
+                  : effectivePaymentStatus === 'fully_paid'
+                  ? 'مدفوعة بالكامل إلكترونياً ✓'
+                  : effectivePaymentStatus === 'partially_paid'
                   ? `متبقي ${remaining} ج`
                   : 'غير مدفوعة ⏳'}
               </span>
@@ -324,18 +435,18 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </div>
         </div>
 
-        {/* ── WHATSAPP ACTION CENTER FOR INVOICE ──────────────────────── */}
-        <div className="no-print space-y-2 pt-1">
+        {/* Action Buttons Box */}
+        <div className="space-y-2 no-print">
           {isPrivilegedUser ? (
             <>
               <a
-                href={getInvoiceWhatsAppUrl(activeBusiness)}
+                href={whatsappShareUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 text-center cursor-pointer"
+                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-sm py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer"
               >
-                <Send className="w-4 h-4" />
-                <span>إرسال الفاتورة الرسمية للعميل عبر WhatsApp 💬</span>
+                <Share2 className="w-4 h-4" />
+                <span>إرسال الفاتورة عبر واتساب الرسمي</span>
               </a>
 
               <div className="grid grid-cols-2 gap-2">
@@ -348,7 +459,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   <span>{copied ? 'تم النسخ!' : 'نسخ نص الفاتورة'}</span>
                 </button>
 
-                {remaining > 0 && onCollectPayment && (
+                {remaining > 0 && onCollectPayment && !isAdditional && (
                   <button
                     type="button"
                     onClick={() => {
@@ -374,6 +485,27 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Modal for issuing new additional service invoice */}
+        {showAddInvoiceModal && (
+          <AddServiceInvoiceModal
+            business={activeBusiness}
+            isOpen={showAddInvoiceModal}
+            onClose={() => setShowAddInvoiceModal(false)}
+            onSaveInvoice={(newInv) => {
+              const updated = {
+                ...activeBusiness,
+                additionalInvoices: [newInv, ...(activeBusiness.additionalInvoices || [])],
+              };
+              if (onUpdateBusiness) {
+                onUpdateBusiness(updated);
+              }
+              setSelectedInvoiceTab(newInv.id);
+            }}
+            currentUserName={currentUserName}
+            currentUserRole={userRole}
+          />
+        )}
 
         {/* Upgrade Offers Box */}
         {isPrivilegedUser && (

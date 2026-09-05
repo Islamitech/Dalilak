@@ -123,7 +123,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const biz = rows[0];
-    const photo = (Array.isArray(biz.photos) && biz.photos.length > 0) ? biz.photos[0] : null;
+    let rawPhotos: string[] = [];
+    if (Array.isArray(biz.photos)) {
+      rawPhotos = biz.photos;
+    } else if (typeof biz.photos === 'string' && biz.photos.trim().length > 0) {
+      try {
+        const p = JSON.parse(biz.photos.trim());
+        if (Array.isArray(p)) rawPhotos = p;
+        else if (typeof p === 'string') rawPhotos = [p];
+      } catch {
+        if (biz.photos.startsWith('http') || biz.photos.startsWith('data:')) rawPhotos = [biz.photos];
+      }
+    }
+    const photo = rawPhotos.length > 0 ? rawPhotos[0] : null;
 
     // 2. Process Business Photo
     if (typeof photo === 'string' && photo.length > 0) {
@@ -138,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const pngBuffer = resvg.render().asPng();
 
           res.setHeader('Content-Type', 'image/png');
-          res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+          res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=300');
           return res.status(200).send(pngBuffer);
         } catch (svgErr) {
           console.warn('Failed rendering SVG photo:', svgErr);
@@ -151,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const imgBuffer = Buffer.from(b64, 'base64');
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Content-Length', imgBuffer.length);
-        res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=300');
         return res.status(200).send(imgBuffer);
       }
 
@@ -161,7 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const imgBuffer = Buffer.from(b64, 'base64');
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Length', imgBuffer.length);
-        res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=300');
         return res.status(200).send(imgBuffer);
       }
 
@@ -179,7 +191,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const pngBuffer = resvg.render().asPng();
 
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=300');
     return res.status(200).send(pngBuffer);
 
   } catch (err) {
