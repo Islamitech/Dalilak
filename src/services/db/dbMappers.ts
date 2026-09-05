@@ -81,6 +81,7 @@ export function mapDbToBusiness(item: any): Business {
   let metaAdminFollowUps: AdminFollowUpNote[] | undefined = undefined;
   let metaPaymentReceiptPhoto = item.payment_receipt_photo || item.paymentReceiptPhoto;
   let metaPaymentReceiptDate = item.payment_receipt_date || item.paymentReceiptDate;
+  let metaCoverPhoto = item.cover_photo || item.coverPhoto;
   let metaAdditionalInvoices: AdditionalServiceInvoice[] | undefined =
     Array.isArray(item.additional_invoices) ? item.additional_invoices :
     Array.isArray(item.additionalInvoices) ? item.additionalInvoices : undefined;
@@ -109,6 +110,7 @@ export function mapDbToBusiness(item: any): Business {
         if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
         if (parsed.isAlreadyOnGoogle !== undefined && metaIsAlreadyOnGoogle === undefined) metaIsAlreadyOnGoogle = Boolean(parsed.isAlreadyOnGoogle);
         if (parsed.registrationType !== undefined && !metaRegistrationType) metaRegistrationType = parsed.registrationType;
+        if (parsed.coverPhoto && !metaCoverPhoto) metaCoverPhoto = parsed.coverPhoto;
         if (parsed.videos && Array.isArray(parsed.videos)) metaVideos = parsed.videos;
         if (parsed.adminFollowUps && Array.isArray(parsed.adminFollowUps)) metaAdminFollowUps = parsed.adminFollowUps;
         if (parsed.additionalInvoices && Array.isArray(parsed.additionalInvoices) && !metaAdditionalInvoices) metaAdditionalInvoices = parsed.additionalInvoices;
@@ -228,6 +230,7 @@ export function mapDbToBusiness(item: any): Business {
     ownerEmail: item.owner_email || item.ownerEmail,
     nationalId: item.national_id || item.nationalId,
     photos: parsePhotosArray(item),
+    coverPhoto: metaCoverPhoto || (parsePhotosArray(item).length > 0 ? parsePhotosArray(item)[0] : undefined),
     videos: finalVideos,
     repId: item.rep_id || item.repId || 'rep_1',
     repName: item.rep_name || item.repName || 'مندوب معتمد',
@@ -370,6 +373,7 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     repLocationUrl: cleanRepLocationUrl || existingMeta.repLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl || existingMeta.googleMapsUrl,
     videos: finalVideos,
+    coverPhoto: biz.coverPhoto !== undefined ? biz.coverPhoto : existingMeta.coverPhoto,
     adminFollowUps: finalAdminFollowUps,
     additionalInvoices: finalAdditionalInvoices,
     paymentReceiptPhoto: biz.paymentReceiptPhoto !== undefined ? biz.paymentReceiptPhoto : existingMeta.paymentReceiptPhoto,
@@ -427,6 +431,7 @@ export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Bus
     updates.adminFollowUps !== undefined ||
     updates.additionalInvoices !== undefined ||
     updates.videos !== undefined ||
+    updates.coverPhoto !== undefined ||
     updates.paymentReceiptPhoto !== undefined ||
     updates.paymentReceiptDate !== undefined ||
     updates.googleMapsUrl !== undefined ||

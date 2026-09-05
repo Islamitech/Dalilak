@@ -24,6 +24,7 @@ export interface Business {
   nationalId?: string;
   photos: string[];
   videos?: string[];
+  coverPhoto?: string;
   logo?: string;
   createdAt?: string;
   repId: string;

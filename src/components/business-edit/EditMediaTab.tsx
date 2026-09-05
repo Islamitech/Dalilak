@@ -1,6 +1,6 @@
 import React from 'react';
 import { Business } from '../../types';
-import { UploadCloud, Film } from 'lucide-react';
+import { UploadCloud, Film, Star, Check } from 'lucide-react';
 import { VideoWatermarkBadge } from '../VideoWatermarkBadge';
 
 interface EditMediaTabProps {
@@ -13,6 +13,9 @@ interface EditMediaTabProps {
   handleRemovePhoto: (idx: number) => void;
   handleRemoveVideo: (idx: number) => void;
   setSelectedPhotoPreview: (photo: string | null) => void;
+  handleSetPrimaryPhoto?: (idx: number) => void;
+  handleReorderPhoto?: (fromIndex: number, toIndex: number) => void;
+  canEdit?: boolean;
 }
 
 export const EditMediaTab: React.FC<EditMediaTabProps> = ({
@@ -25,6 +28,9 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
   handleRemovePhoto,
   handleRemoveVideo,
   setSelectedPhotoPreview,
+  handleSetPrimaryPhoto,
+  handleReorderPhoto,
+  canEdit = true,
 }) => {
   return (
     <div className="space-y-3.5 text-right">
@@ -70,27 +76,106 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
       {/* Photos Grid */}
       {formData.photos && formData.photos.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-          {formData.photos.map((photo, idx) => (
-            <div
-              key={idx}
-              className="relative group rounded-2xl overflow-hidden border border-[var(--border-color)] bg-slate-950 h-28 sm:h-32 shadow-sm"
-            >
-              <img
-                src={photo}
-                alt={`صورة ${idx + 1}`}
-                onClick={() => setSelectedPhotoPreview(photo)}
-                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
-              />
-              <button
-                type="button"
-                onClick={() => handleRemovePhoto(idx)}
-                className="absolute top-1.5 right-1.5 bg-rose-600/90 hover:bg-rose-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow cursor-pointer transition-transform active:scale-90"
-                title="حذف الصورة"
+          {formData.photos.map((photo, idx) => {
+            const isCover = formData.coverPhoto ? photo === formData.coverPhoto : idx === 0;
+
+            return (
+              <div
+                key={idx}
+                className={`relative group rounded-2xl overflow-hidden bg-slate-950 h-32 sm:h-36 transition-all duration-200 ${
+                  isCover
+                    ? 'border-2 border-amber-400 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/30'
+                    : 'border border-[var(--border-color)] shadow-sm hover:border-amber-500/50'
+                }`}
               >
-                ✕
-              </button>
-            </div>
-          ))}
+                <img
+                  src={photo}
+                  alt={`صورة ${idx + 1}`}
+                  onClick={() => setSelectedPhotoPreview(photo)}
+                  className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                />
+
+                {/* Cover Photo Badge (Top-Left) */}
+                {isCover ? (
+                  <div className="absolute top-1.5 left-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[9.5px] font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1 z-10 pointer-events-none">
+                    <Star className="w-3 h-3 fill-slate-950" />
+                    <span>غلاف الدليل</span>
+                  </div>
+                ) : (
+                  canEdit && handleReorderPhoto && formData.photos.length > 1 && (
+                    <div className="absolute top-1.5 left-1.5 flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {idx > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReorderPhoto(idx, idx - 1);
+                          }}
+                          className="bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-white w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold border border-slate-700 cursor-pointer shadow-sm transition-transform active:scale-90"
+                          title="تحريك لليمين (للأمام)"
+                        >
+                          ▶
+                        </button>
+                      )}
+                      {idx < formData.photos.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReorderPhoto(idx, idx + 1);
+                          }}
+                          className="bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-white w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold border border-slate-700 cursor-pointer shadow-sm transition-transform active:scale-90"
+                          title="تحريك لليسار (للخلف)"
+                        >
+                          ◀
+                        </button>
+                      )}
+                    </div>
+                  )
+                )}
+
+                {/* Delete Photo Button (Top-Right) */}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemovePhoto(idx);
+                    }}
+                    className="absolute top-1.5 right-1.5 bg-rose-600/90 hover:bg-rose-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow cursor-pointer transition-transform active:scale-90 z-10"
+                    title="حذف الصورة"
+                  >
+                    ✕
+                  </button>
+                )}
+
+                {/* Bottom Cover Action / Indicator */}
+                {isCover ? (
+                  <div className="absolute bottom-1.5 inset-x-1.5 bg-slate-950/90 border border-amber-500/50 text-amber-400 text-[9.5px] font-black py-1 px-1.5 rounded-lg flex items-center justify-center gap-1 shadow backdrop-blur-xs z-10 pointer-events-none">
+                    <Check className="w-3 h-3" />
+                    <span>الصورة المعروضة بالدليل</span>
+                  </div>
+                ) : (
+                  canEdit && handleSetPrimaryPhoto && (
+                    <div className="absolute bottom-1.5 inset-x-1.5 z-10">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetPrimaryPhoto(idx);
+                        }}
+                        className="w-full bg-slate-950/85 hover:bg-amber-500 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-400 text-[10px] font-black py-1 px-1.5 rounded-lg transition-all flex items-center justify-center gap-1 backdrop-blur-xs shadow-md cursor-pointer active:scale-95"
+                        title="تعيين هذه الصورة لتظهر كغلاف رئيسي للنشاط في الدليل"
+                      >
+                        <Star className="w-3 h-3 text-amber-400" />
+                        <span>تعيين كغلاف للدليل</span>
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="border border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center text-xs text-[var(--text-muted)] font-bold">

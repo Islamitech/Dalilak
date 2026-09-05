@@ -105,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const bizId = decodeURIComponent(rawBiz).trim();
 
     // 1. Fetch business from Supabase REST API
-    const apiUrl = `${SUPABASE_URL}/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,name_ar,name_en,category,governorate,city,street,phone,photos`;
+    const apiUrl = `${SUPABASE_URL}/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,name_ar,name_en,category,governorate,city,street,phone,photos,notes`;
     const dbRes = await fetch(apiUrl, {
       headers: {
         apikey: SUPABASE_ANON_KEY,
@@ -123,6 +123,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const biz = rows[0];
+    let coverPhoto: string | null = null;
+    if (typeof biz.notes === 'string' && biz.notes.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(biz.notes.trim());
+        if (parsed && typeof parsed === 'object' && parsed.coverPhoto) {
+          coverPhoto = parsed.coverPhoto;
+        }
+      } catch {}
+    }
+
     let rawPhotos: string[] = [];
     if (Array.isArray(biz.photos)) {
       rawPhotos = biz.photos;
@@ -135,7 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (biz.photos.startsWith('http') || biz.photos.startsWith('data:')) rawPhotos = [biz.photos];
       }
     }
-    const photo = rawPhotos.length > 0 ? rawPhotos[0] : null;
+    const photo = coverPhoto || (rawPhotos.length > 0 ? rawPhotos[0] : null);
 
     // 2. Process Business Photo
     if (typeof photo === 'string' && photo.length > 0) {

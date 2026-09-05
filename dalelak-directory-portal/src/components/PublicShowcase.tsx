@@ -223,7 +223,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     let isCurrent = true;
     const bizId = selectedBiz.id;
 
-    fetch(`https://xdqpbajymacpdccorjcj.supabase.co/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,photos`, {
+    fetch(`https://xdqpbajymacpdccorjcj.supabase.co/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,photos,notes`, {
       headers: {
         apikey: 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x',
       },
@@ -240,8 +240,17 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               if (Array.isArray(p)) itemPhotos = p;
             } catch {}
           }
+
+          let fetchedCoverPhoto: string | undefined = undefined;
+          if (typeof rows[0].notes === 'string' && rows[0].notes.trim().startsWith('{')) {
+            try {
+              const parsed = JSON.parse(rows[0].notes.trim());
+              if (parsed?.coverPhoto) fetchedCoverPhoto = parsed.coverPhoto;
+            } catch {}
+          }
+
           if (itemPhotos.length > 0) {
-            setSelectedBiz((prev) => (prev && prev.id === bizId ? { ...prev, photos: itemPhotos } : prev));
+            setSelectedBiz((prev) => (prev && prev.id === bizId ? { ...prev, photos: itemPhotos, coverPhoto: prev.coverPhoto || fetchedCoverPhoto } : prev));
           }
         }
       })
@@ -1186,9 +1195,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredBusinesses.map((biz, idx) => {
                   const mainPhoto =
-                    biz.photos && biz.photos.length > 0
+                    biz.coverPhoto ||
+                    (biz.photos && biz.photos.length > 0
                       ? biz.photos[0]
-                      : `/api/biz-og?biz=${biz.id}&v=${encodeURIComponent(biz.createdDate || biz.createdAt || '')}`;
+                      : `/api/biz-og?biz=${biz.id}&v=${encodeURIComponent(biz.createdDate || biz.createdAt || '')}`);
 
                   const isVerified = biz.verificationStatus === 'verified' || biz.googleSyncStatus === 'synced';
                   const openStatus = getBusinessOpenStatus(biz.workingHours);
@@ -1932,9 +1942,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 >
                   <img
                     src={
-                      selectedBiz.photos && selectedBiz.photos.length > 0
+                      selectedBiz.coverPhoto ||
+                      (selectedBiz.photos && selectedBiz.photos.length > 0
                         ? selectedBiz.photos[0]
-                        : `/api/biz-og?biz=${selectedBiz.id}&v=${encodeURIComponent(selectedBiz.createdDate || selectedBiz.createdAt || '')}`
+                        : `/api/biz-og?biz=${selectedBiz.id}&v=${encodeURIComponent(selectedBiz.createdDate || selectedBiz.createdAt || '')}`)
                     }
                     alt={selectedBiz.nameAr}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

@@ -531,7 +531,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
             const isVerified = biz.verificationStatus === 'verified';
             const hasPhotos = biz.photos && biz.photos.length > 0;
             const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
-            const coverPhoto = hasPhotos ? biz.photos[0] : null;
+            const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
 
             return (
               <div
@@ -762,7 +762,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               const ownerPhone = biz.ownerPhone || biz.phone || '';
 
               const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
-              const coverPhoto = hasPhotos ? biz.photos[0] : null;
+              const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
               const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
 
               return (
@@ -932,7 +932,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     const ownerPhone = biz.ownerPhone || biz.phone || '';
 
                     const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
-                    const coverPhoto = hasPhotos ? biz.photos[0] : null;
+                    const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
                     const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
 
                     return (

@@ -353,10 +353,64 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   const handleRemovePhoto = (indexToRemove: number) => {
     const currentPhotos = formData.photos || [];
+    const removedPhoto = currentPhotos[indexToRemove];
+    const remaining = currentPhotos.filter((_, idx) => idx !== indexToRemove);
+    const newCover = (formData.coverPhoto && formData.coverPhoto !== removedPhoto)
+      ? formData.coverPhoto
+      : (remaining.length > 0 ? remaining[0] : undefined);
+
     setFormData({
       ...formData,
-      photos: currentPhotos.filter((_, idx) => idx !== indexToRemove),
+      photos: remaining,
+      coverPhoto: newCover,
     });
+  };
+
+  const handleSetPrimaryPhoto = (indexToMakePrimary: number) => {
+    const currentPhotos = formData.photos || [];
+    if (indexToMakePrimary < 0 || indexToMakePrimary >= currentPhotos.length) return;
+
+    const selectedPhoto = currentPhotos[indexToMakePrimary];
+    const remainingPhotos = currentPhotos.filter((_, idx) => idx !== indexToMakePrimary);
+    const reorderedPhotos = [selectedPhoto, ...remainingPhotos];
+
+    const updated: Business = {
+      ...formData,
+      photos: reorderedPhotos,
+      coverPhoto: selectedPhoto,
+    };
+    setFormData(updated);
+    onSave(updated);
+
+    if (window.navigator?.vibrate) {
+      try { window.navigator.vibrate([15, 30, 15]); } catch (_) {}
+    }
+    setStatusNotification('تم تعيين الصورة كغلاف رئيسي للنشاط في الدليل وتحديث قاعدة البيانات بنجاح 🌟');
+    setTimeout(() => setStatusNotification(null), 3500);
+  };
+
+  const handleReorderPhoto = (fromIndex: number, toIndex: number) => {
+    const currentPhotos = [...(formData.photos || [])];
+    if (
+      fromIndex < 0 ||
+      fromIndex >= currentPhotos.length ||
+      toIndex < 0 ||
+      toIndex >= currentPhotos.length
+    ) return;
+
+    const [moved] = currentPhotos.splice(fromIndex, 1);
+    currentPhotos.splice(toIndex, 0, moved);
+
+    const updated: Business = {
+      ...formData,
+      photos: currentPhotos,
+      coverPhoto: currentPhotos[0],
+    };
+    setFormData(updated);
+    onSave(updated);
+
+    setStatusNotification('تم تحديث ترتيب الصور وحفظ التغييرات بنجاح 🔄');
+    setTimeout(() => setStatusNotification(null), 2500);
   };
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -780,6 +834,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               handleRemovePhoto={handleRemovePhoto}
               handleRemoveVideo={handleRemoveVideo}
               setSelectedPhotoPreview={setSelectedPhotoPreview}
+              handleSetPrimaryPhoto={handleSetPrimaryPhoto}
+              handleReorderPhoto={handleReorderPhoto}
+              canEdit={canEdit}
             />
           )}
 

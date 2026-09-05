@@ -23,6 +23,7 @@ export interface Business {
   nationalId?: string;
   photos: string[];
   videos?: string[];
+  coverPhoto?: string; // رابط الصورة المحددة كغلاف رئيسي للنشاط في الدليل
   repId: string;
   repName: string;
   packageId: string;

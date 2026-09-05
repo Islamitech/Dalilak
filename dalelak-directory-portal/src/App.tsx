@@ -47,6 +47,7 @@ export default function App() {
     let metaGooglePlaceId = r.google_place_id;
     let metaIsFeeExempt = r.is_fee_exempt ?? r.isFeeExempt;
     let metaFeeExemptionReason = r.fee_exemption_reason || r.feeExemptionReason;
+    let metaCoverPhoto: string | undefined = r.cover_photo || r.coverPhoto;
 
     if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')) {
       try {
@@ -59,6 +60,7 @@ export default function App() {
           if (parsed.googlePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
           if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = parsed.isFeeExempt;
           if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
+          if (parsed.coverPhoto && !metaCoverPhoto) metaCoverPhoto = parsed.coverPhoto;
         }
       } catch {}
     }
@@ -109,6 +111,7 @@ export default function App() {
       workingHours: r.working_hours || r.workingHours || '',
       description: r.description || '',
       photos: rawPhotos,
+      coverPhoto: metaCoverPhoto || (rawPhotos.length > 0 ? rawPhotos[0] : undefined),
       videos: rawVideos,
       logo: r.logo || '',
       repLocationUrl,
