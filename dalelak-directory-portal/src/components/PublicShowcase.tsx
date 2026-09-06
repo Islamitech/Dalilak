@@ -1307,7 +1307,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             </span>
                           )}
 
-                          <PhotoWatermarkBadge position="top-left" className="!relative !top-auto !left-auto scale-90 origin-top-left" />
+                          <PhotoWatermarkBadge position="top-left" size="sm" className="!relative !top-auto !left-auto" />
                         </div>
 
                         {/* Photo count badge */}
@@ -2055,7 +2055,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       <span className="bg-slate-950/80 backdrop-blur-md text-amber-400 text-[11px] font-black px-3 py-1 rounded-full border border-amber-500/30 shadow-md">
                         {selectedBiz.category}
                       </span>
-                      <PhotoWatermarkBadge position="top-right" className="!relative !top-auto !right-auto scale-95" />
+                      <PhotoWatermarkBadge position="top-right" size="md" className="!relative !top-auto !right-auto" />
                     </div>
 
                     {selectedBiz.videos && selectedBiz.videos.length > 0 && (
@@ -2487,7 +2487,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain animate-fade-in-scale"
               onClick={(e) => e.stopPropagation()}
             />
-            <PhotoWatermarkBadge position="bottom-right" className="!bottom-4 !right-4 scale-95 origin-bottom-right" />
+            <PhotoWatermarkBadge position="bottom-right" size="xl" className="!bottom-4 !right-4 sm:!bottom-6 sm:!right-6 shadow-2xl" />
           </div>
 
           <button
