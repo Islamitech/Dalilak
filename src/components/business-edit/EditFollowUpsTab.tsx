@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus, User } from '../../types';
 import { isSuperAdmin } from '../../utils/permissions';
+import { formatStandardDateTime } from '../../utils/dateFormatters';
+import { getFollowUpUrgency } from '../../utils/followUpUtils';
 import { ConfirmDialog } from '../ConfirmDialog';
 import {
   ClipboardList,
@@ -458,22 +460,19 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
           <div className="space-y-3">
             {filtered.map((note) => {
               const tInfo = getTypeInfo(note.type);
+              const urgencyInfo = getFollowUpUrgency(note);
               const isPending = note.status === 'pending';
               const isUrgent = note.status === 'urgent';
-              const createdFormatted = new Date(note.createdAt).toLocaleDateString('ar-EG', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              });
+              const createdFormatted = formatStandardDateTime(note.createdAt);
 
               return (
                 <div
                   key={note.id}
                   className={`bg-[var(--bg-card)] border-2 rounded-2xl p-3.5 sm:p-4 space-y-2.5 transition-all shadow-xs ${
-                    isUrgent
+                    urgencyInfo.urgency === 'overdue'
                       ? 'border-rose-500/50 bg-rose-500/5'
+                      : urgencyInfo.urgency === 'due_today'
+                      ? 'border-amber-500/50 bg-amber-500/5'
                       : isPending
                       ? 'border-amber-500/40 bg-amber-500/5'
                       : 'border-[var(--border-color)] hover:border-amber-500/30'
@@ -511,6 +510,11 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                         </span>
                       )}
 
+                      {/* Urgency Traffic-Light Pill */}
+                      <span className={`text-[9.5px] px-2 py-0.5 rounded-full border ${urgencyInfo.badgeClass}`}>
+                        {urgencyInfo.label}
+                      </span>
+
                       {/* Clickable Status Toggle */}
                       <button
                         type="button"
@@ -529,11 +533,9 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {isSuperAdminViewer && (
-                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                          {createdFormatted}
-                        </span>
-                      )}
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono dir-ltr">
+                        {createdFormatted}
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleDeleteFollowUp(note.id)}

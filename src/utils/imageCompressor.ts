@@ -288,7 +288,7 @@ export async function compressImageFile(
   maxWidth = 1200,
   maxHeight = 1200,
   quality = 0.8,
-  watermarkOptions: WatermarkOptions = { applyWatermark: true }
+  watermarkOptions: WatermarkOptions = { applyWatermark: false }
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

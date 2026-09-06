@@ -235,20 +235,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               !b.googleMapsUrl.includes('search/?api=1&query=')
           );
 
-          if (verificationFilter === 'not_submitted') {
+          if (verificationFilter === 'not_submitted' || verificationFilter === 'google_not_submitted') {
             const isNotSubmitted = !hasGoogleMap && b.googleSyncStatus !== 'in_progress';
             if (!isNotSubmitted) return false;
-          } else if (verificationFilter === 'in_progress') {
+          } else if (verificationFilter === 'in_progress' || verificationFilter === 'google_pending') {
             const isInProgress = !hasGoogleMap && b.googleSyncStatus === 'in_progress';
             if (!isInProgress) return false;
           } else if (verificationFilter === 'overdue') {
             return metrics.overdueReviewBusinesses.some((ov) => ov.id === b.id);
+          } else if (verificationFilter === 'overdue_followup') {
+            return metrics.overdueFollowUpBusinesses.some((of) => of.id === b.id);
           } else if (verificationFilter === 'verified_debt') {
             return metrics.verifiedWithDebtBusinesses.some((vd) => vd.id === b.id);
-          } else if (verificationFilter === 'verified') {
+          } else if (verificationFilter === 'verified' || verificationFilter === 'google_synced') {
             if (!hasGoogleMap) return false;
-          } else if (verificationFilter === 'directory_verified') {
+          } else if (verificationFilter === 'directory_verified' || verificationFilter === 'directory_approved') {
             if (b.verificationStatus !== 'verified') return false;
+          } else if (verificationFilter === 'pending_approval' || verificationFilter === 'directory_pending') {
+            if (b.verificationStatus === 'verified') return false;
           } else if (verificationFilter === 'rejected') {
             if (b.verificationStatus !== 'rejected') return false;
           } else if (verificationFilter !== 'all') {
@@ -257,7 +261,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           return true;
         })
       ),
-    [metrics.realBusinesses, bizSearchQuery, governorateFilter, paymentFilter, verificationFilter, metrics.overdueReviewBusinesses, metrics.verifiedWithDebtBusinesses]
+    [metrics.realBusinesses, bizSearchQuery, governorateFilter, paymentFilter, verificationFilter, metrics.overdueReviewBusinesses, metrics.overdueFollowUpBusinesses, metrics.verifiedWithDebtBusinesses]
   );
 
   // Paginated Businesses
@@ -487,14 +491,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           notSubmittedCount={metrics.notSubmittedCount}
           overdueReviewCount={metrics.overdueReviewCount}
           overdueReviewBusinesses={metrics.overdueReviewBusinesses}
+          overdueFollowUpCount={metrics.overdueFollowUpCount}
           verifiedWithDebtCount={metrics.verifiedWithDebtCount}
           directoryApprovedCount={metrics.directoryApprovedCount}
+          pendingApprovalCount={metrics.pendingApprovalCount}
           onCollectPayment={onCollectPayment}
           onSetSyncModalBiz={setSyncModalBiz}
           onSetEditingBusiness={setEditingBusiness}
           onSetEditingBusinessInitialTab={setEditingBusinessInitialTab}
+          onUpdateBusiness={onUpdateBusiness}
+          currentUser={currentUser}
           onShowInvoice={onShowInvoice}
           onDeleteBusiness={onDeleteBusiness}
+          onResetFilters={() => {
+            setBizSearchQuery('');
+            setGovernorateFilter('all');
+            setPaymentFilter('all');
+            setVerificationFilter('all');
+            setBizPage(1);
+          }}
         />
       )}
 

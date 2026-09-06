@@ -8,6 +8,7 @@ import { Logo } from '../Logo';
 import { toPng } from 'html-to-image';
 import { generateQrDataUrl } from '../../utils/qrGenerator';
 import { downloadSinglePhoto } from '../../utils/photoDownloader';
+import { formatStandardDateTime, formatStandardDate } from '../../utils/dateFormatters';
 import {
   CreditCard,
   Percent,
@@ -310,7 +311,7 @@ export const RepFinanceTab: React.FC<RepFinanceTabProps> = ({
                   <p className="text-[10.5px] text-[var(--text-secondary)] mt-0.5">
                     طريقة التحويل: <strong>{PAYOUT_METHOD_LABELS[pendingPayout.method]}</strong> (
                     {pendingPayout.accountDetails}) • تاريخ الطلب:{' '}
-                    {new Date(pendingPayout.requestDate).toLocaleString('ar-EG')}
+                    <span className="font-mono dir-ltr">{formatStandardDateTime(pendingPayout.requestDate)}</span>
                   </p>
                 </div>
               </div>
@@ -755,7 +756,7 @@ export const RepFinanceTab: React.FC<RepFinanceTabProps> = ({
                           </div>
                           <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                             {PAYOUT_METHOD_LABELS[payout.method]} • {payout.accountDetails} •{' '}
-                            {new Date(payout.requestDate).toLocaleString('ar-EG')}
+                            <span className="font-mono dir-ltr">{formatStandardDateTime(payout.requestDate)}</span>
                           </p>
                         </div>
                       </div>
@@ -970,8 +971,8 @@ export const RepFinanceTab: React.FC<RepFinanceTabProps> = ({
 
                     <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
                       <span className="text-[var(--text-muted)] font-bold">تاريخ الإرسال:</span>
-                      <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                        {new Date(pendingRemittance.requestDate).toLocaleString('ar-EG')}
+                      <span className="font-mono text-[11px] text-[var(--text-muted)] dir-ltr">
+                        {formatStandardDateTime(pendingRemittance.requestDate)}
                       </span>
                     </div>
 
@@ -1242,11 +1243,7 @@ export const RepFinanceTab: React.FC<RepFinanceTabProps> = ({
         const isDebt = Boolean(settlement?.isDebtToPlatform);
         const debtAmount = settlement?.debtToPlatformAmount || 0;
         const statementSerial = `DALIL-STMT-2026-${(rep.id || 'REP').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(-8) || '8355'}`;
-        const issueDateFormatted = new Date().toLocaleDateString('ar-EG', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
+        const issueDateFormatted = formatStandardDate(new Date());
         const statementVerifyUrl = `https://www.dalilaak.com/?view=statement&rep=${encodeURIComponent(rep.id)}&serial=${statementSerial}`;
         const qrCodeDataUrl = generateQrDataUrl(statementVerifyUrl, 200);
 

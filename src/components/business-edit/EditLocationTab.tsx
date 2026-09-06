@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Business, VerificationStatus } from '../../types';
 import { EGYPT_GOVERNORATES } from '../../data/mockData';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
@@ -12,7 +12,18 @@ import {
   Navigation,
   ExternalLink,
   CheckCircle2,
+  MessageCircle,
+  Send,
+  Eye,
+  EyeOff,
+  KeyRound,
 } from 'lucide-react';
+import {
+  generateGoogleVerificationOtpWhatsAppMessage,
+  getGoogleVerificationOtpWhatsAppUrl,
+  generateGoogleMapsVerifiedWhatsAppMessage,
+  getGoogleMapsVerifiedWhatsAppUrl,
+} from '../../utils/whatsappMessages';
 
 interface EditLocationTabProps {
   formData: Business;
@@ -24,6 +35,7 @@ interface EditLocationTabProps {
   handleDownloadAllPhotos: () => void;
   handleSetVerificationStatus: (status: VerificationStatus) => void;
   copiedField: string | null;
+  handleCopyText?: (text: string, fieldName: string) => void;
   isDownloadingPhotos: boolean;
 }
 
@@ -37,8 +49,10 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
   handleDownloadAllPhotos,
   handleSetVerificationStatus,
   copiedField,
+  handleCopyText,
   isDownloadingPhotos,
 }) => {
+  const [expandedMapWaPreview, setExpandedMapWaPreview] = useState<string | null>(null);
   return (
     <div className="space-y-3.5 text-right">
       {/* Google Maps Smart Verification & Sync Hub */}
@@ -290,7 +304,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                   </span>
                 </div>
                 <p className="text-[10px] text-[var(--text-muted)] font-medium leading-relaxed">
-                  ⚠️ هذا الرابط مخصص حصرياً للمراجعة الإدارية ولرفع بيانات النشاط، ولا يُعتبر توثيقاً رسمياً ولا يظهر في الدليل العام للجمهور.
+                  📍 إحداثيات موقع المندوب الميدانية (GPS): تُفعّل زر الخريطة والتوجيه للنشاط في الدليل لتسهيل التحصيل الفوري، ولا تمنح النشاط حالة "موثق" ولا تقييمات حتى اعتماد الرابط الرسمي.
                 </p>
               </div>
             )}
@@ -311,14 +325,21 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
 
           {isEditMode ? (
             isAdminOrFinancial ? (
-              <input
-                type="url"
-                dir="ltr"
-                value={formData.googleMapsUrl || ''}
-                onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
-                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-emerald-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
-                placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..."
-              />
+              <div className="space-y-1.5">
+                <input
+                  type="url"
+                  dir="ltr"
+                  value={formData.googleMapsUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
+                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-emerald-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
+                  placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..."
+                />
+                {Boolean(formData.googleMapsUrl && (formData.googleMapsUrl.includes('maps?q=') || formData.googleMapsUrl.includes('search/?api=1&query='))) && (
+                  <p className="text-[10.5px] font-bold text-rose-500 flex items-center gap-1">
+                    ⚠️ تنبيه: الرابط المدخل إحداثيات ميدانية خام (GPS) وليس رابط نشاط معتمد من خرائط Google.
+                  </p>
+                )}
+              </div>
             ) : (
               <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-xs text-[var(--text-muted)] space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
@@ -355,7 +376,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                     ⏳ لم يتم إدخال رابط خرائط Google الموثق بعد.
                   </span>
                   <span className="text-[10.5px] block leading-relaxed">
-                    🔒 لا يتم تفعيل عرض موقع النشاط على الدليل العام للجمهور إلا بعد إدخال هذا الرابط المعتمد بعد توثيق النشاط وظهوره في خرائط Google.
+                    🔒 عند إدخال هذا الرابط المعتمد، يتحول النشاط تلقائياً إلى "موثق ومعتمد" ويحل محل موقع المندوب الميداني في كارت الدليل العام.
                   </span>
                 </div>
               )}
@@ -363,6 +384,148 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
           )}
         </div>
       </div>
+
+      {/* ── 🗺️ قسم رسائل وتنبيهات WhatsApp لرحلة توثيق الخريطة ── */}
+      {isAdminOrFinancial && (
+        <div className="bg-[var(--bg-card)] border border-blue-500/30 rounded-2xl p-3.5 space-y-3 shadow-2xs">
+          <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
+                <MessageCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                  رسائل وتنبيهات WhatsApp لتوثيق الخريطة 🗺️
+                </h4>
+                <p className="text-[10px] text-[var(--text-muted)] font-bold">
+                  رسائل التواصل السريع لطلب كود تفعيل Google SMS والتهنئة باعتماد التوثيق
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {/* 1. رسالة طلب كود التفعيل السريع (Google Verification OTP) */}
+            <div className="bg-[var(--input-bg)]/80 border border-blue-500/30 rounded-xl p-3 space-y-2 transition-all">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                  <KeyRound className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span>1. رسالة طلب كود التفعيل السريع (Google SMS OTP) 📲</span>
+                </div>
+                <span className="text-[9.5px] bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
+                  أثناء طلب الكود
+                </span>
+              </div>
+
+              {expandedMapWaPreview === 'map_otp' && (
+                <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-blue-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                  {generateGoogleVerificationOtpWhatsAppMessage(formData)}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setExpandedMapWaPreview(expandedMapWaPreview === 'map_otp' ? null : 'map_otp')}
+                  className="bg-[var(--bg-card)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title="معاينة نص الرسالة"
+                >
+                  {expandedMapWaPreview === 'map_otp' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  <span className="text-[10px] hidden sm:inline">{expandedMapWaPreview === 'map_otp' ? 'إخفاء' : 'معاينة'}</span>
+                </button>
+                {handleCopyText && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(generateGoogleVerificationOtpWhatsAppMessage(formData), 'map_otp')}
+                    className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                    title="نسخ نص الرسالة"
+                  >
+                    {copiedField === 'map_otp' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-500" />}
+                  </button>
+                )}
+                <a
+                  href={getGoogleVerificationOtpWhatsAppUrl(formData)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>إرسال تنبيه الكود للعميل عبر WhatsApp</span>
+                </a>
+              </div>
+            </div>
+
+            {/* 2. رسالة التهنئة بالتوثيق وظهور النشاط على الخريطة */}
+            <div className={`border rounded-xl p-3 space-y-2 transition-all ${
+              formData.googleMapsUrl
+                ? 'bg-[var(--input-bg)]/80 border-emerald-500/40 shadow-xs'
+                : 'bg-[var(--input-bg)]/40 border-[var(--border-color)] opacity-60'
+            }`}>
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>2. إشعار التوثيق وظهور النشاط على Google Maps 🗺️</span>
+                </div>
+                <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md ${
+                  formData.googleMapsUrl
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-500/20 text-slate-500 dark:text-slate-400'
+                }`}>
+                  {formData.googleMapsUrl ? 'جاهز للإرسال ✓' : 'بانتظار الرابط ⏳'}
+                </span>
+              </div>
+
+              {expandedMapWaPreview === 'map_verified' && (
+                <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-emerald-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                  {generateGoogleMapsVerifiedWhatsAppMessage(formData)}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setExpandedMapWaPreview(expandedMapWaPreview === 'map_verified' ? null : 'map_verified')}
+                  className="bg-[var(--bg-card)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title="معاينة نص الرسالة"
+                >
+                  {expandedMapWaPreview === 'map_verified' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  <span className="text-[10px] hidden sm:inline">{expandedMapWaPreview === 'map_verified' ? 'إخفاء' : 'معاينة'}</span>
+                </button>
+                {handleCopyText && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(generateGoogleMapsVerifiedWhatsAppMessage(formData), 'map_verified')}
+                    className="bg-[var(--bg-card)] hover:bg-emerald-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                    title="نسخ نص الرسالة"
+                  >
+                    {copiedField === 'map_verified' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-emerald-500" />}
+                  </button>
+                )}
+                {formData.googleMapsUrl ? (
+                  <a
+                    href={getGoogleMapsVerifiedWhatsAppUrl(formData)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>إرسال إشعار التوثيق للعميل</span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex-1 bg-slate-800/60 text-slate-400 font-bold text-xs py-1.5 px-3 rounded-xl border border-slate-700/50 cursor-not-allowed text-center"
+                    title="يتطلب إضافة رابط خرائط Google المعتمد أولاً"
+                  >
+                    <span>🔒 يتاح فور إدخال رابط خرائط Google المعتمد</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

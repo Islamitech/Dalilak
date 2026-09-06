@@ -163,9 +163,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
           trimmed = `https://${trimmed}`;
         }
-        if (!trimmed.includes('search/?api=1&query=')) {
-          cleanGoogleMapsUrl = trimmed;
+        if (trimmed.includes('search/?api=1&query=') || trimmed.includes('maps?q=') || trimmed.includes('google.com/maps?q=')) {
+          setErrorMsg('رابط خرائط Google المعتمد لا يمكن أن يكون رابط إحداثيات (GPS). يُرجى إدخال رابط المكان الرسمي أو تركه في خانة المعاينة الميدانية.');
+          return;
         }
+        cleanGoogleMapsUrl = trimmed;
       }
     }
 
@@ -280,6 +282,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   const handleDeleteAdditionalInvoice = (invId: string) => {
     const existing = formData.additionalInvoices || [];
+    const target = existing.find((inv) => inv.id === invId);
+    if (target && (target.paymentStatus === 'fully_paid' || (target.amountPaid || 0) > 0)) {
+      setStatusNotification('⚠️ لا يمكن حذف فاتورة تم تحصيلها أو سدادها حفاظاً على النزاهة المحاسبية');
+      setTimeout(() => setStatusNotification(null), 3500);
+      return;
+    }
     const updatedInvoices = existing.filter((inv) => inv.id !== invId);
     const updated: Business = {
       ...formData,
@@ -288,6 +296,29 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     setFormData(updated);
     onSave(updated);
     setStatusNotification('تم حذف الفاتورة الإضافية وتحديث قاعدة البيانات بنجاح ✅');
+    setTimeout(() => setStatusNotification(null), 3500);
+  };
+
+  const handlePayAdditionalInvoice = (invId: string) => {
+    const existing = formData.additionalInvoices || [];
+    const updatedInvoices = existing.map((inv) => {
+      if (inv.id === invId) {
+        return {
+          ...inv,
+          amountPaid: inv.amount,
+          paymentStatus: 'fully_paid' as const,
+          paymentMethod: 'platform_collected' as const,
+        };
+      }
+      return inv;
+    });
+    const updated: Business = {
+      ...formData,
+      additionalInvoices: updatedInvoices,
+    };
+    setFormData(updated);
+    onSave(updated);
+    setStatusNotification('تم تسجيل سداد الفاتورة الإضافية بنجاح وخصمها من المديونية 🟢');
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
@@ -327,9 +358,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       const newCompressed: string[] = [];
       for (let i = 0; i < files.length; i++) {
         try {
-          const compressed = await compressImageFile(files[i], 1000, 1000, 0.72, {
-            applyWatermark: true,
-            position: 'bottom-right',
+          const compressed = await compressImageFile(files[i], 1200, 1200, 0.80, {
+            applyWatermark: false,
           });
           const publicUrl = await uploadMediaToSupabaseStorage(compressed, 'photos');
           newCompressed.push(publicUrl);
@@ -472,7 +502,12 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   const isAlreadyOnGoogle = Boolean(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google');
   const isFeeExempt = Boolean(isAlreadyOnGoogle || formData.isFeeExempt || formData.packagePrice === 0);
-  const remainingDebt = isFeeExempt ? 0 : Math.max(0, (formData.packagePrice || 0) - (formData.amountPaid || 0));
+  const packageDebt = isFeeExempt ? 0 : Math.max(0, (formData.packagePrice || 0) - (formData.amountPaid || 0));
+  const additionalDebt = isFeeExempt ? 0 : (formData.additionalInvoices || []).reduce(
+    (sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)),
+    0
+  );
+  const remainingDebt = packageDebt + additionalDebt;
   const totalMediaCount = (formData.photos?.length || 0) + (formData.videos?.length || 0);
 
   interface TabItem {
@@ -528,18 +563,18 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     : { label: '⚪ غير مربوط', cls: 'bg-slate-800/80 text-slate-400 border-slate-700 font-medium' };
 
   // 3. Payment Status & Alert
-  const isUnpaid = !isFeeExempt && (formData.amountPaid || 0) < (formData.packagePrice || 250);
+  const isUnpaid = !isFeeExempt && remainingDebt > 0;
   const isGoogleVerifiedAndUnpaid = hasVerifiedGoogleMap && isUnpaid;
 
   const paymentBadge = isAlreadyOnGoogle
     ? { label: 'معفى (مسجل بالخرائط) ✓', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
     : isFeeExempt
     ? { label: 'معفى من الرسوم ✓', cls: 'bg-teal-500/20 text-teal-300 border-teal-500/40 font-black' }
-    : formData.paymentStatus === 'fully_paid'
-    ? { label: 'مدفوع ✓', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
+    : remainingDebt === 0
+    ? { label: 'مدفوع بالكامل ✓', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
     : isGoogleVerifiedAndUnpaid
     ? { label: '🚨 موثق ومطلوب التحصيل', cls: 'bg-rose-500/30 text-rose-200 border-rose-500/50 font-black animate-pulse shadow-xs' }
-    : formData.paymentStatus === 'partially_paid'
+    : (formData.amountPaid || 0) > 0
     ? { label: `مقدم (متبقي ${remainingDebt} ج)`, cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' }
     : { label: 'غير مدفوع ⏳', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold' };
 
@@ -720,10 +755,16 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </button>
           )}
 
-          {isAdminOrFinancial && remainingDebt > 0 && onCollectPayment && (
+          {isAdminOrFinancial && remainingDebt > 0 && (
             <button
               type="button"
-              onClick={() => onCollectPayment(formData)}
+              onClick={() => {
+                if (packageDebt > 0 && onCollectPayment) {
+                  onCollectPayment(formData);
+                } else {
+                  setActiveSection('payment');
+                }
+              }}
               className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-[11px] px-3 py-1 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer mr-auto"
             >
               <DollarSign className="w-3 h-3" />
@@ -800,6 +841,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               handleDownloadAllPhotos={handleDownloadAllPhotos}
               handleSetVerificationStatus={handleSetVerificationStatus}
               copiedField={copiedField}
+              handleCopyText={handleCopyText}
               isDownloadingPhotos={isDownloadingPhotos}
             />
           )}
@@ -817,6 +859,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               onShowInvoice={onShowInvoice}
               onSaveAdditionalInvoice={handleSaveAdditionalInvoice}
               onDeleteAdditionalInvoice={handleDeleteAdditionalInvoice}
+              onPayAdditionalInvoice={handlePayAdditionalInvoice}
+              copiedField={copiedField}
+              handleCopyText={handleCopyText}
               currentUserName={currentUserName}
               currentUserRole={userRole}
             />
@@ -845,9 +890,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <EditMarketingTab
               formData={formData}
               isAdminOrFinancial={isAdminOrFinancial}
-              isAlreadyOnGoogle={Boolean(formData.isAlreadyOnGoogle || formData.packageId === 'pkg_already_on_google' || formData.registrationType === 'already_on_google')}
-              hasVerifiedGoogleMap={Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().startsWith('http'))}
-              isGoogleVerifiedAndUnpaid={Boolean(formData.verificationStatus === 'verified' && formData.paymentStatus !== 'fully_paid')}
               copiedField={copiedField}
               handleCopyText={handleCopyText}
             />

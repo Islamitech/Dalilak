@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
 import { matchesBusinessSearch } from '../../utils/arabicSearch';
+import { formatStandardDateTime } from '../../utils/dateFormatters';
 
 interface RepActivitiesTabProps {
   repBusinesses: Business[];
@@ -232,8 +233,8 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                        {biz.createdDate ? new Date(biz.createdDate).toLocaleDateString('ar-EG') : '—'}
+                      <span className="text-[10px] font-mono text-[var(--text-muted)] dir-ltr">
+                        {formatStandardDateTime(biz.createdDate)}
                       </span>
                     </div>
 
@@ -316,10 +317,8 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                           </p>
                         </td>
 
-                        <td className="p-3 text-[11px] font-mono text-[var(--text-muted)]">
-                          {biz.createdDate
-                            ? new Date(biz.createdDate).toLocaleDateString('ar-EG')
-                            : '—'}
+                        <td className="p-3 text-[11px] font-mono text-[var(--text-muted)] dir-ltr">
+                          {formatStandardDateTime(biz.createdDate)}
                         </td>
 
                         <td className="p-3 font-bold">

@@ -6,6 +6,7 @@ import { Logo } from './Logo';
 import { Printer, Download, ShieldCheck, FileSignature, Loader2 } from 'lucide-react';
 import { downloadSinglePhoto } from '../utils/photoDownloader';
 import { generateQrDataUrl } from '../utils/qrGenerator';
+import { formatStandardDate } from '../utils/dateFormatters';
 
 export type DocType = 'field_letter' | 'digital_badge' | 'rep_contract';
 
@@ -86,7 +87,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
                 وثيقة قانونية رسمية
               </span>
               <p className="font-mono font-bold text-slate-700 mt-1 text-[11px]">كود المندوب: {repCode}</p>
-              <p className="text-[10px] text-slate-500">التاريخ: {new Date().toLocaleDateString('ar-EG')}</p>
+              <p className="text-[10px] text-slate-500">التاريخ: {formatStandardDate(new Date())}</p>
             </div>
           </div>
 
@@ -545,7 +546,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
                       <span className="text-slate-600 font-bold block">توقيع وإقرار المتعاقد (الطرف الثاني):</span>
                       <p className="font-black text-amber-950 font-mono text-xs">{rep.name} ✔</p>
                       <span className="text-[10px] text-emerald-800 font-bold block">توقيع إلكتروني موثق برقم الهوية</span>
-                      <span className="text-[10px] text-slate-500 font-mono block">التاريخ: {new Date().toLocaleDateString('ar-EG')}</span>
+                      <span className="text-[10px] text-slate-500 font-mono block">التاريخ: {formatStandardDate(new Date())}</span>
                     </div>
 
                     <div className="space-y-1 border-t sm:border-t-0 sm:border-r border-amber-300 pt-2 sm:pt-0 sm:pr-3">

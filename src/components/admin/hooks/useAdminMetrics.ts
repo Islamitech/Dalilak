@@ -4,6 +4,7 @@ import { calculateRepSettlement, calculateRepCommissionFromCash } from '../../..
 import { isReferredByInviter, getRepReferralSummary } from '../../../utils/referral';
 import { safeParseJson } from '../../../utils/storage';
 import { getDeletedRepresentatives } from '../../../services/db/repDb';
+import { isBusinessFollowUpOverdue } from '../../../utils/followUpUtils';
 
 interface UseAdminMetricsProps {
   currentUser?: User | null;
@@ -96,6 +97,11 @@ export const useAdminMetrics = ({
     [realBusinesses]
   );
 
+  const pendingApprovalCount = useMemo(
+    () => realBusinesses.filter((b) => b.verificationStatus !== 'verified').length,
+    [realBusinesses]
+  );
+
   const verificationRate = useMemo(
     () => realBusinesses.length > 0 ? ((verifiedCount / realBusinesses.length) * 100).toFixed(1) : '0',
     [verifiedCount, realBusinesses.length]
@@ -140,6 +146,13 @@ export const useAdminMetrics = ({
 
   const overdueReviewCount = overdueReviewBusinesses.length;
 
+  // Overdue CRM Follow-ups
+  const overdueFollowUpBusinesses = useMemo(() => {
+    return realBusinesses.filter(isBusinessFollowUpOverdue);
+  }, [realBusinesses]);
+
+  const overdueFollowUpCount = overdueFollowUpBusinesses.length;
+
   // Activities with Google Maps placed & Unpaid / Remaining Balance
   const verifiedWithDebtBusinesses = useMemo(() => {
     return businesses.filter((b) => {
@@ -160,15 +173,27 @@ export const useAdminMetrics = ({
       );
       if (!hasGoogleMap) return false;
 
-      const remaining = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
-      return remaining > 0 && b.paymentStatus !== 'fully_paid';
+      const pkgDebt = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
+      const addDebt = (b.additionalInvoices || []).reduce(
+        (sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)),
+        0
+      );
+      const totalRemaining = pkgDebt + addDebt;
+      return totalRemaining > 0;
     });
   }, [businesses]);
 
   const verifiedWithDebtCount = verifiedWithDebtBusinesses.length;
   const verifiedWithDebtTotal = useMemo(
     () => verifiedWithDebtBusinesses.reduce(
-      (sum, b) => sum + Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0)),
+      (sum, b) => {
+        const pkgDebt = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
+        const addDebt = (b.additionalInvoices || []).reduce(
+          (s, inv) => s + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)),
+          0
+        );
+        return sum + pkgDebt + addDebt;
+      },
       0
     ),
     [verifiedWithDebtBusinesses]
@@ -543,10 +568,13 @@ export const useAdminMetrics = ({
     inProgressCount,
     notSubmittedCount,
     directoryApprovedCount,
+    pendingApprovalCount,
     verificationRate,
     leadStats,
     overdueReviewBusinesses,
     overdueReviewCount,
+    overdueFollowUpBusinesses,
+    overdueFollowUpCount,
     verifiedWithDebtBusinesses,
     verifiedWithDebtCount,
     verifiedWithDebtTotal,

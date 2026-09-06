@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Business } from '../../../types';
+import { Business, User } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { exportBusinessesToCsv } from '../../../utils/exportCsv';
 import { sanitizeExternalUrl } from '../../../utils/urlSanitizer';
 import { formatEGP } from '../../../utils/formatCurrency';
+import { formatStandardDateTime } from '../../../utils/dateFormatters';
 import { isRepAccountDeleted } from '../../../utils/accountStatus';
+import { getBusinessFollowUpSummary } from '../../../utils/followUpUtils';
+import { BusinessFollowUpModal } from '../modals/BusinessFollowUpModal';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import {
   Search,
@@ -20,6 +23,7 @@ import {
   ChevronLeft,
   Trash2,
   FileText,
+  RotateCcw,
 } from 'lucide-react';
 
 interface AdminBusinessesTabProps {
@@ -44,14 +48,19 @@ interface AdminBusinessesTabProps {
   notSubmittedCount: number;
   overdueReviewCount: number;
   overdueReviewBusinesses: Business[];
+  overdueFollowUpCount?: number;
   verifiedWithDebtCount: number;
   directoryApprovedCount: number;
+  pendingApprovalCount?: number;
   onCollectPayment?: (biz: Business) => void;
   onSetSyncModalBiz: (biz: Business | null) => void;
   onSetEditingBusiness: (biz: Business | null) => void;
   onSetEditingBusinessInitialTab: (tab: string | undefined) => void;
+  onUpdateBusiness?: (updated: Business) => void;
+  currentUser?: User | null;
   onShowInvoice: (biz: Business) => void;
   onDeleteBusiness: (id: string) => void;
+  onResetFilters?: () => void;
 }
 
 export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
@@ -76,17 +85,24 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
   notSubmittedCount,
   overdueReviewCount,
   overdueReviewBusinesses,
+  overdueFollowUpCount,
   verifiedWithDebtCount,
   directoryApprovedCount,
+  pendingApprovalCount,
   onCollectPayment,
   onSetSyncModalBiz,
   onSetEditingBusiness,
   onSetEditingBusinessInitialTab,
+  onUpdateBusiness,
+  currentUser,
   onShowInvoice,
   onDeleteBusiness,
+  onResetFilters,
 }) => {
   // State for custom delete confirmation dialog
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  // State for fast CRM Follow-up modal
+  const [selectedFollowUpBiz, setSelectedFollowUpBiz] = useState<Business | null>(null);
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-sm animate-fade-in transition-colors duration-300">
@@ -103,26 +119,26 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           الكل ({businesses.length})
         </button>
         <button
-          onClick={() => setVerificationFilter('in_progress')}
+          onClick={() => setVerificationFilter('pending_approval')}
           className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
-            verificationFilter === 'in_progress'
+            verificationFilter === 'pending_approval'
               ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
               : 'bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>⏳ قيد المراجعة ({inProgressCount})</span>
+          <span>⏳ قيد مراجعة المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</span>
         </button>
         <button
-          onClick={() => setVerificationFilter('verified')}
+          onClick={() => setVerificationFilter('directory_approved')}
           className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
-            verificationFilter === 'verified'
+            verificationFilter === 'directory_approved'
               ? 'bg-emerald-600 text-white font-black shadow-xs'
               : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30'
           }`}
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>🟢 معتمدة ({verifiedCount})</span>
+          <span>🟢 معتمدة بالدليل ({directoryApprovedCount})</span>
         </button>
         <button
           onClick={() => setVerificationFilter('google_synced')}
@@ -132,7 +148,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
               : 'bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-500/20 border border-blue-500/30'
           }`}
         >
-          <span>🌐 خرائط Google ({businesses.filter((b) => b.googleSyncStatus === 'synced' || Boolean(b.googleMapsUrl)).length})</span>
+          <span>🌐 خرائط Google ({verifiedCount})</span>
         </button>
         <button
           onClick={() => setVerificationFilter('google_pending')}
@@ -142,8 +158,21 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
               : 'bg-purple-500/10 text-purple-800 dark:text-purple-300 hover:bg-purple-500/20 border border-purple-500/30'
           }`}
         >
-          <span>⏳ قيد التوثيق ({businesses.filter((b) => b.googleSyncStatus === 'in_progress').length})</span>
+          <span>⏳ قيد توثيق Google ({inProgressCount})</span>
         </button>
+        {(overdueFollowUpCount !== undefined && overdueFollowUpCount > 0) && (
+          <button
+            onClick={() => setVerificationFilter(verificationFilter === 'overdue_followup' ? 'all' : 'overdue_followup')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+              verificationFilter === 'overdue_followup'
+                ? 'bg-rose-600 text-white font-black shadow-xs'
+                : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>🚨 متابعات متأخرة ({overdueFollowUpCount})</span>
+          </button>
+        )}
       </div>
 
       {/* Search and Dropdown Filters */}
@@ -186,23 +215,46 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           onChange={(e) => setVerificationFilter(e.target.value)}
           className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
         >
-          <option value="all">كل حالات التوثيق ({businesses.length})</option>
-          <option value="not_submitted">🚨 لم تُرسل لجوجل بعد ({notSubmittedCount})</option>
-          <option value="in_progress">⏳ بانتظار موافقة جوجل ({inProgressCount})</option>
+          <option value="all">كل حالات التوثيق والاعتماد ({businesses.length})</option>
+          <option value="pending_approval">⏳ بانتظار اعتماد المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</option>
+          <option value="directory_approved">🟢 معتمدة بالدليل العام ({directoryApprovedCount})</option>
+          <option value="google_synced">🌐 موثقة بخرائط Google ({verifiedCount})</option>
+          <option value="google_pending">⏳ قيد توثيق خرائط Google ({inProgressCount})</option>
+          <option value="google_not_submitted">🚨 لم تُرسل لجوجل بعد ({notSubmittedCount})</option>
           <option value="overdue">⏱️ تجاوزت مدة المراجعة ({overdueReviewCount})</option>
-          <option value="verified_debt">⚠️ موثقة على الخريطة ولها متبقي سداد ({verifiedWithDebtCount})</option>
-          <option value="verified">✅ موثقة بخرائط Google ({verifiedCount})</option>
-          <option value="directory_verified">🟢 معتمدة بالدليل العام ({directoryApprovedCount})</option>
+          <option value="overdue_followup">🚨 متابعات متأخرة ({overdueFollowUpCount || 0})</option>
+          <option value="verified_debt">⚠️ موثقة ولها متبقي سداد ({verifiedWithDebtCount})</option>
           <option value="rejected">❌ مرفوضة بالدليل</option>
         </select>
       </div>
 
-      {/* Header Action Toolbar: Export CSV & Count & Page Size */}
+      {/* Header Action Toolbar: Export CSV & Count & Page Size & Reset */}
       <div className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] text-xs">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[var(--text-secondary)]">
             إجمالي الأنشطة المطابقة: <strong className="font-mono font-black text-amber-600 dark:text-amber-400">{filteredBusinesses.length}</strong> نشاط
           </span>
+          {(bizSearchQuery || governorateFilter !== 'all' || paymentFilter !== 'all' || verificationFilter !== 'all') && (
+            <button
+              type="button"
+              onClick={() => {
+                if (onResetFilters) {
+                  onResetFilters();
+                } else {
+                  setBizSearchQuery('');
+                  setGovernorateFilter('all');
+                  setPaymentFilter('all');
+                  setVerificationFilter('all');
+                  setBizPage(1);
+                }
+              }}
+              className="text-[11px] text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 font-bold flex items-center gap-1 px-2.5 py-1 rounded-xl transition-colors border border-rose-500/30 cursor-pointer"
+              title="إلغاء وتصفير كافة الفلاتر والبحث"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>إعادة ضبط ↺</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 mr-auto sm:mr-0">
@@ -254,8 +306,13 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                 const isInGoogleReview = !hasGoogleMap && biz.googleSyncStatus === 'in_progress';
                 const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
                 const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
-                const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                const isPaid = isExempt ? true : (biz.paymentStatus === 'fully_paid' || (biz.amountPaid || 0) >= (biz.packagePrice || 250));
+                const packageDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                const additionalDebt = isExempt ? 0 : (biz.additionalInvoices || []).reduce(
+                  (sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)),
+                  0
+                );
+                const debtAmount = packageDebt + additionalDebt;
+                const isPaid = isExempt ? true : debtAmount === 0;
                 const isCash = !isExempt && (biz.cashCollectedByRep !== undefined
                   ? (biz.cashCollectedByRep || 0) > 0
                   : biz.paymentMethod !== 'gateway_online' && isPaid);
@@ -263,6 +320,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                 const repComm = isExempt ? 0 : Math.round(((biz.amountPaid || 0) * rate) / 100);
                 const platDue = isExempt ? 0 : (biz.amountPaid || 0) - repComm;
                 const isGoogleVerifiedWithDebt = hasGoogleMap && !isPaid && !isExempt && debtAmount > 0;
+                const fuSummary = getBusinessFollowUpSummary(biz);
 
                 return (
                   <div key={`m-${biz.id}`} className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl space-y-3 shadow-sm hover:border-amber-500/40 transition-all">
@@ -303,20 +361,37 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           </span>
                         ) : null}
 
-                        {Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) && (
+                        {fuSummary.isOverdue ? (
                           <button
                             type="button"
-                            onClick={() => {
-                              onSetEditingBusinessInitialTab('admin_followup');
-                              onSetEditingBusiness(biz);
-                            }}
+                            onClick={() => setSelectedFollowUpBiz(biz)}
+                            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-[9px] font-black px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer animate-pulse"
+                            title="متابعات متأخرة تحتاج تدخلاً عاجلاً"
+                          >
+                            <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
+                            <span>🚨 {fuSummary.overdueCount} متأخرة</span>
+                          </button>
+                        ) : fuSummary.dueTodayCount > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFollowUpBiz(biz)}
+                            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[9px] font-black px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer"
+                            title="متابعات مستحقة اليوم"
+                          >
+                            <Clock className="w-2.5 h-2.5 text-amber-500" />
+                            <span>🟡 اليوم ({fuSummary.dueTodayCount})</span>
+                          </button>
+                        ) : Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFollowUpBiz(biz)}
                             className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer transition-colors"
                             title="عرض وسجل المتابعات الإدارية"
                           >
                             <ClipboardList className="w-2.5 h-2.5 text-amber-500" />
                             <span>{biz.adminFollowUps!.length} متابعة</span>
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </div>
 
@@ -330,9 +405,10 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            if (onCollectPayment) {
+                            if (packageDebt > 0 && onCollectPayment) {
                               onCollectPayment(biz);
                             } else {
+                              onSetEditingBusinessInitialTab('payment');
                               onSetEditingBusiness(biz);
                             }
                           }}
@@ -421,6 +497,30 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                     <div className="flex items-center justify-end gap-1.5 pt-1">
                       <button
                         type="button"
+                        onClick={() => setSelectedFollowUpBiz(biz)}
+                        className={`font-bold text-xs p-2 rounded-xl border cursor-pointer relative ${
+                          fuSummary.isOverdue
+                            ? 'bg-rose-500/20 border-rose-500 text-rose-600 animate-pulse'
+                            : fuSummary.dueTodayCount > 0
+                            ? 'bg-amber-500/20 border-amber-500 text-amber-600'
+                            : 'bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] border-[var(--border-color)]'
+                        }`}
+                        title={`سجل المتابعات الإدارية (${biz.adminFollowUps?.length || 0})`}
+                      >
+                        <ClipboardList className="w-4 h-4 text-amber-500" />
+                        {fuSummary.isOverdue ? (
+                          <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs animate-bounce">
+                            {fuSummary.overdueCount}
+                          </span>
+                        ) : Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) ? (
+                          <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                            {biz.adminFollowUps!.length}
+                          </span>
+                        ) : null}
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => onShowInvoice(biz)}
                         className="bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs p-2 rounded-xl border border-[var(--border-color)] cursor-pointer"
                         title="عرض وإصدار الفاتورة"
@@ -470,7 +570,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                     <th className="p-3">المسؤول والموقع</th>
                     <th className="p-3">المندوب وتاريخ التسجيل</th>
                     <th className="p-3">الباقة والموقف المالي</th>
-                    <th className="p-3">حالة التوثيق</th>
+                    <th className="p-3">الاعتماد والتوثيق</th>
                     <th className="p-3 text-center">الإجراءات</th>
                   </tr>
                 </thead>
@@ -485,14 +585,20 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                     );
                     const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
                     const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
-                    const debtAmount = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                    const isPaid = isExempt ? true : (biz.paymentStatus === 'fully_paid' || (biz.amountPaid || 0) >= (biz.packagePrice || 250));
+                    const packageDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                    const additionalDebt = isExempt ? 0 : (biz.additionalInvoices || []).reduce(
+                      (sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)),
+                      0
+                    );
+                    const debtAmount = packageDebt + additionalDebt;
+                    const isPaid = isExempt ? true : debtAmount === 0;
                     const isCash = !isExempt && (biz.cashCollectedByRep !== undefined
                       ? (biz.cashCollectedByRep || 0) > 0
                       : biz.paymentMethod !== 'gateway_online' && isPaid);
                     const rate = biz.repCommissionRate || 42.86;
                     const repComm = isExempt ? 0 : Math.round(((biz.amountPaid || 0) * rate) / 100);
                     const platDue = isExempt ? 0 : (biz.amountPaid || 0) - repComm;
+                    const fuSummary = getBusinessFollowUpSummary(biz);
 
                     return (
                       <tr key={biz.id} className="hover:bg-amber-500/5 transition-colors">
@@ -510,6 +616,17 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           <p className="font-bold text-[var(--text-primary)]">{biz.ownerName}</p>
                           <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.ownerPhone}</p>
                           <p className="text-[10px] text-[var(--text-secondary)]">{biz.governorate} - {biz.city}</p>
+                          {biz.repLocationUrl && (
+                            <a
+                              href={sanitizeExternalUrl(biz.repLocationUrl)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-0.5 mt-0.5"
+                              title="معاينة إحداثيات موقع المندوب الميداني"
+                            >
+                              <span>📍 موقع المندوب</span>
+                            </a>
+                          )}
                         </td>
 
                         <td className="p-3">
@@ -521,7 +638,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.createdDate ? new Date(biz.createdDate).toLocaleDateString('ar-EG') : 'غير محدد'}</p>
+                          <p className="text-[10px] text-[var(--text-muted)] font-mono dir-ltr">{formatStandardDateTime(biz.createdDate)}</p>
                         </td>
 
                         <td className="p-3">
@@ -560,75 +677,139 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
 
                         <td className="p-3">
                           <div className="space-y-1">
-                            {isDirectoryApproved ? (
-                              <span className="badge-success text-[10.5px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                <span>معتمد 🟢</span>
-                              </span>
-                            ) : (
-                              <span className="badge-warning text-[10.5px] font-black px-2.5 py-1 rounded-full inline-flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-amber-500" />
-                                <span>قيد المراجعة ⏳</span>
-                              </span>
-                            )}
-                            {hasGoogleMap ? (
-                              <span className="text-[9.5px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md border border-blue-500/30 flex items-center gap-1 w-fit">
-                                <span>📍 خرائط Google</span>
-                              </span>
-                            ) : (
-                              <span className="text-[9.5px] text-slate-500 font-medium px-1.5 py-0.5 rounded border border-slate-700/40 flex items-center gap-1 w-fit opacity-70">
-                                <span>⚪ غير مربوطة</span>
-                              </span>
-                            )}
+                            <div>
+                              {isDirectoryApproved ? (
+                                <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                                  <span>معتمد بالدليل 🟢</span>
+                                </span>
+                              ) : (
+                                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5 text-amber-500" />
+                                  <span>قيد المراجعة ⏳</span>
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              {hasGoogleMap ? (
+                                <a
+                                  href={sanitizeExternalUrl(biz.googleMapsUrl)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[9.5px] bg-blue-500/15 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md border border-blue-500/30 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="فتح رابط النشاط المعتمد على خرائط Google"
+                                >
+                                  <span>📍 خرائط Google</span>
+                                </a>
+                              ) : (
+                                <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium px-1.5 py-0.5 rounded border border-slate-700/40 inline-flex items-center gap-1 opacity-70">
+                                  <span>⚪ غير مربوطة</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
 
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-1.5">
-                            {!isExempt && !isPaid && onCollectPayment && (
-                              <button
-                                type="button"
-                                onClick={() => onCollectPayment(biz)}
-                                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-[10px] px-2.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1"
-                                title="تحصيل الفاتورة والمبلغ المتبقي"
-                              >
-                                <DollarSign className="w-3 h-3" />
-                                <span>تحصيل</span>
-                              </button>
-                            )}
-
-                            {!isDirectoryApproved && (
+                            {/* 1. زر رفع ومزامنة Google (⚡) */}
+                            {!hasGoogleMap ? (
                               <button
                                 type="button"
                                 onClick={() => onSetSyncModalBiz(biz)}
-                                className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] px-2.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1"
-                                title="رفع وتوثيق النشاط مباشرة إلى Google Maps"
+                                className="w-8 h-8 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+                                title="رفع ومزامنة النشاط مباشرة إلى Google Maps"
                               >
-                                <Zap className="w-3 h-3" />
-                                <span>رفع لجوجل</span>
+                                <Zap className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="w-8 h-8 rounded-xl bg-slate-500/10 text-slate-400 dark:text-slate-600 border border-slate-500/20 flex items-center justify-center cursor-not-allowed opacity-50 shrink-0"
+                                title="النشاط موثق ومربوط بخرائط Google بالفعل"
+                              >
+                                <Zap className="w-3.5 h-3.5" />
                               </button>
                             )}
 
+                            {/* 2. زر التحصيل المالي (💲) */}
+                            {!isExempt && debtAmount > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (packageDebt > 0 && onCollectPayment) {
+                                    onCollectPayment(biz);
+                                  } else {
+                                    onSetEditingBusinessInitialTab('payment');
+                                    onSetEditingBusiness(biz);
+                                  }
+                                }}
+                                className="w-8 h-8 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+                                title={`تحصيل متبقي السداد: ${formatEGP(debtAmount)}`}
+                              >
+                                <DollarSign className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="w-8 h-8 rounded-xl bg-slate-500/10 text-slate-400 dark:text-slate-600 border border-slate-500/20 flex items-center justify-center cursor-not-allowed opacity-50 shrink-0"
+                                title={isExempt ? 'نشاط معفى مجاناً من الرسوم' : 'الحساب مسدد بالكامل'}
+                              >
+                                <DollarSign className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {/* 3. زر سجل الملاحظات والمتابعات (🗒️) */}
                             <button
                               type="button"
-                              onClick={() => {
-                                onSetEditingBusinessInitialTab('admin_followup');
-                                onSetEditingBusiness(biz);
-                              }}
-                              className="bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] hover:text-amber-600 border border-[var(--border-color)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer inline-flex items-center gap-1"
-                              title="فتح سجل المتابعات والملاحظات الإدارية"
+                              onClick={() => setSelectedFollowUpBiz(biz)}
+                              className={`w-8 h-8 rounded-xl border flex items-center justify-center relative transition-all shadow-2xs cursor-pointer hover:scale-105 active:scale-95 shrink-0 ${
+                                fuSummary.isOverdue
+                                  ? 'bg-rose-500/20 border-rose-500 text-rose-600 animate-pulse'
+                                  : fuSummary.dueTodayCount > 0
+                                  ? 'bg-amber-500/20 border-amber-500 text-amber-600'
+                                  : 'bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] hover:text-amber-600 border-[var(--border-color)]'
+                              }`}
+                              title={
+                                fuSummary.isOverdue
+                                  ? `🚨 هناك ${fuSummary.overdueCount} متابعة متأخرة!`
+                                  : fuSummary.dueTodayCount > 0
+                                  ? `🟡 متابعة مستحقة اليوم (${fuSummary.dueTodayCount})`
+                                  : `سجل الملاحظات والمتابعات الإدارية (${biz.adminFollowUps?.length || 0})`
+                              }
                             >
                               <ClipboardList className="w-3.5 h-3.5 text-amber-500" />
-                              <span>ملاحظات ({biz.adminFollowUps?.length || 0})</span>
+                              {fuSummary.isOverdue ? (
+                                <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs animate-bounce">
+                                  {fuSummary.overdueCount}
+                                </span>
+                              ) : (biz.adminFollowUps && biz.adminFollowUps.length > 0) ? (
+                                <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                                  {biz.adminFollowUps.length}
+                                </span>
+                              ) : null}
                             </button>
 
+                            {/* 4. زر معاينة وإصدار الفاتورة (📄) */}
                             <button
+                              type="button"
+                              onClick={() => onShowInvoice(biz)}
+                              className="w-8 h-8 rounded-xl bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] hover:text-amber-600 border border-[var(--border-color)] flex items-center justify-center transition-all shadow-2xs cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+                              title="معاينة وإصدار الفاتورة"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-sky-500" />
+                            </button>
+
+                            {/* 5. زر عرض وتعديل التفاصيل (👁️) */}
+                            <button
+                              type="button"
                               onClick={() => onSetEditingBusiness(biz)}
-                              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-                              title="عرض التفاصيل والتعديل"
+                              className="w-8 h-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center justify-center shadow-2xs transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+                              title="عرض وتعديل التفاصيل الكاملة (مع خيارات الحذف الإداري)"
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              <span>التفاصيل</span>
                             </button>
                           </div>
                         </td>
@@ -675,6 +856,27 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Fast CRM Follow-up Modal ── */}
+      {selectedFollowUpBiz && (
+        <BusinessFollowUpModal
+          business={selectedFollowUpBiz}
+          currentUser={currentUser || null}
+          isOpen={Boolean(selectedFollowUpBiz)}
+          onClose={() => setSelectedFollowUpBiz(null)}
+          onUpdateBusiness={(updated) => {
+            setSelectedFollowUpBiz(updated);
+            if (onUpdateBusiness) {
+              onUpdateBusiness(updated);
+            }
+          }}
+          onOpenFullEdit={(biz) => {
+            setSelectedFollowUpBiz(null);
+            onSetEditingBusinessInitialTab('admin_followup');
+            onSetEditingBusiness(biz);
+          }}
+        />
       )}
 
       {/* ── Custom Confirmation Dialog (replaces window.confirm) ── */}

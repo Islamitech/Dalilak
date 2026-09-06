@@ -203,6 +203,121 @@ export function getAdditionalInvoiceWhatsAppUrl(biz: Business, invoice: Addition
 }
 
 /**
+ * Event 1.6: Consolidated Master Collection WhatsApp Message (Package Remainder + All Unpaid Additional Invoices)
+ */
+export function generateConsolidatedCollectionWhatsAppMessage(biz: Business): string {
+  const cfg = getActivePaymentConfig();
+  const owner = biz.ownerName || 'صاحب النشاط';
+  const name = biz.nameAr || 'النشاط التجاري';
+  const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
+
+  const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
+  const pkgPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
+  const pkgRemaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - pkgPaid);
+
+  const additionalInvoices = biz.additionalInvoices || [];
+  const unpaidAdditionalInvoices = additionalInvoices.filter((inv) => {
+    const amt = Number(inv.amount) || 0;
+    const paid = Number(inv.amountPaid) || 0;
+    return inv.paymentStatus !== 'fully_paid' && (amt - paid) > 0;
+  });
+
+  const additionalDebt = isFeeExempt ? 0 : unpaidAdditionalInvoices.reduce((sum, inv) => {
+    const amt = Number(inv.amount) || 0;
+    const paid = Number(inv.amountPaid) || 0;
+    return sum + Math.max(0, amt - paid);
+  }, 0);
+
+  const totalRemaining = pkgRemaining + additionalDebt;
+
+  // If completely paid or exempt
+  if (totalRemaining === 0) {
+    const rawClearance = 
+      `*مخالصة وكشف حساب مالي - منصة دليلك الرقمية*\n` +
+      `-----------------------------------------\n` +
+      `• *النشاط التجاري:* ${name}\n` +
+      `• *العميل:* ${owner}\n` +
+      `• *رقم الملف:* ${biz.invoiceNumber || '---'}\n\n` +
+      `نحيطكم علماً بأن جميع الالتزامات والفواتير المالية الخاصة بنشاطكم (باقة الاشتراك والخدمات الإضافية) مسددة بالكامل وخالصة الطرف طرفنا ✅.\n\n` +
+      `نشكركم على حسن تعاونكم ونتمنى لكم دوام التوفيق والازدهار!\n` +
+      `منظومة دليلك`;
+    return cleanWhatsAppText(rawClearance);
+  }
+
+  let itemsList = '';
+  if (pkgRemaining > 0) {
+    itemsList += `1. *${biz.packageName || 'باقة توثيق وتسجيل النشاط'}:*\n`;
+    itemsList += `   - إجمالي الباقة: ${pkgPrice} ج.م\n`;
+    itemsList += `   - المسدد: ${pkgPaid} ج.م\n`;
+    itemsList += `   - المتبقي: ${pkgRemaining} ج.م\n\n`;
+  }
+
+  if (unpaidAdditionalInvoices.length > 0) {
+    itemsList += `*فواتير الخدمات الإضافية المستحقة:*\n`;
+    unpaidAdditionalInvoices.forEach((inv, index) => {
+      const amt = Number(inv.amount) || 0;
+      const paid = Number(inv.amountPaid) || 0;
+      const rem = Math.max(0, amt - paid);
+      itemsList += `${pkgRemaining > 0 ? index + 2 : index + 1}. *${inv.serviceTitle}* (${inv.invoiceNumber}):\n`;
+      itemsList += `   - القيمة: ${amt} ج.م | المسدد: ${paid} ج.م | *المتبقي: ${rem} ج.م*\n`;
+    });
+    itemsList += '\n';
+  }
+
+  const raw = 
+    `*مطالبة مالية شاملة وكشف حساب - منصة دليلك الرقمية*\n` +
+    `-----------------------------------------\n` +
+    `عناية الأستاذ/ *${owner}* المحترم (${name})\n` +
+    `رقم الملف المالي: *${biz.invoiceNumber || '---'}*\n\n` +
+    `نود إحاطتكم ببيان المطالبات المالية المستحقة والمعلقة على نشاطكم التجاري وفقاً للسجلات المحاسبية:\n\n` +
+    itemsList +
+    `💰 *إجمالي المبلغ المستحق للسداد:* ${totalRemaining} ج.م\n` +
+    `-----------------------------------------\n\n` +
+    `*قنوات التحصيل والسداد الإلكتروني المعتمدة رسمياً:* \n` +
+    `📱 فودافون كاش / المحافظ: ${cfg.vodafone1} أو ${cfg.vodafone2}\n` +
+    `⚡ إنستاباي InstaPay: ${cfg.instaPay}\n\n` +
+    `🔗 يمكنكم معاينة رابط نشاطكم على الدليل الإلكتروني:\n` +
+    `https://www.dalilaak.com/?view=invoice&id=${biz.id}\n\n` +
+    `يرجى إرسال صورة التحويل أو إشعار الإيداع بعد السداد لإصدار إيصال المخالصة فوراً.\n` +
+    `شاكرين ومقدرين حسن تعاونكم،\n` +
+    `إدارة الحسابات - منظومة دليلك`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getConsolidatedCollectionWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateConsolidatedCollectionWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
+ * Event 1.8: Google Verification OTP Request Message (Sent to client while admin requests SMS code from Google)
+ */
+export function generateGoogleVerificationOtpWhatsAppMessage(biz: Business): string {
+  const owner = biz.ownerName || 'صاحب النشاط';
+  const name = biz.nameAr || 'نشاطكم التجاري';
+
+  const raw =
+    `*تنبيه هام وعاجل: كود تفعيل نشاطك التجاري على خرائط Google 🗺️*\n` +
+    `-----------------------------------------\n` +
+    `مرحباً أستاذ *${owner}* (${name})،\n\n` +
+    `نحيطكم علماً بأن فريق العمل في *منظومة دليلك* يقوم الآن بربط وتوثيق نشاطكم التجاري رسمياً على خرائط Google.\n\n` +
+    `📲 *ستصلك الآن رسالة نصية قصيرة (SMS) رسمية من Google على هاتفك تحتوي على كود تأكيد مكون من 6 أرقام.*\n\n` +
+    `⏳ صلاحية الكود مؤقتة (دقائق معدودة)، يرجى التكرم بنسخ الكود وإرساله لنا هنا فوراً في هذه المحادثة لنتمكن من إتمام تثبيت وتوثيق النشاط على الخريطة بنجاح.\n\n` +
+    `شاكرين ومقدرين سرعة تعاونكم،\n` +
+    `فريق توثيق خرائط Google - منظومة دليلك`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getGoogleVerificationOtpWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateGoogleVerificationOtpWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+/**
  * Event 2: Google Maps Live Verification & Approval Notification Message
  */
 export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string {

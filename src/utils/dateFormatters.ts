@@ -37,6 +37,61 @@ export function formatActivityDateTime(dateStr?: string): string {
 }
 
 /**
+ * Format a date string or Date object to standardized YYYY-MM-DD
+ * e.g. "2026-09-05"
+ */
+export function formatStandardDate(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return 'غير محدد';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  } catch {
+    return String(dateInput);
+  }
+}
+
+/**
+ * Format time to standardized hh:mm A
+ * e.g. "04:50 AM"
+ */
+export function formatStandardTime(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return '';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const paddedHours = String(hours).padStart(2, '0');
+    return `${paddedHours}:${minutes} ${ampm}`;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Format date & time combined to standardized "YYYY-MM-DD | hh:mm A"
+ * e.g. "2026-09-05 | 04:50 AM"
+ */
+export function formatStandardDateTime(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return 'غير محدد';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const datePart = formatStandardDate(d);
+    const timePart = formatStandardTime(d);
+    return timePart ? `${datePart} | ${timePart}` : datePart;
+  } catch {
+    return String(dateInput);
+  }
+}
+
+/**
  * Sort businesses in descending order based on creation date/time (Newest on top, Oldest at the bottom)
  */
 export function sortBusinessesNewestFirst(list: Business[]): Business[] {

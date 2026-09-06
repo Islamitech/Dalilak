@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { PayoutRequest, Representative, User } from '../../../types';
 import { PAYOUT_METHOD_LABELS } from '../../../utils/commission';
 import { isSuperAdmin } from '../../../utils/permissions';
+import { formatStandardDateTime } from '../../../utils/dateFormatters';
 import {
   Clock,
   CheckCircle2,
@@ -329,8 +330,8 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                             {rep.roleTitle || `مندوب ${rep.governorate}`}
                           </span>
                         )}
-                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                          • {new Date(payout.requestDate).toLocaleString('ar-EG')}
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono dir-ltr">
+                          • {formatStandardDateTime(payout.requestDate)}
                         </span>
                       </div>
                       <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">

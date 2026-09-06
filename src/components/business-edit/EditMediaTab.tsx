@@ -2,6 +2,7 @@ import React from 'react';
 import { Business } from '../../types';
 import { UploadCloud, Film, Star, Check } from 'lucide-react';
 import { VideoWatermarkBadge } from '../VideoWatermarkBadge';
+import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 
 interface EditMediaTabProps {
   formData: Business;
@@ -40,7 +41,7 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
             معرض صور وفيديوهات النشاط ({totalMediaCount})
           </h4>
           <p className="text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
-            الصور موثقة بعلامة دليلك المائية الرسمية
+            تخزين نقي متوافق مع معايير Google مع شارة توثيق دليلك في الدليل
           </p>
         </div>
 
@@ -94,6 +95,8 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
                   onClick={() => setSelectedPhotoPreview(photo)}
                   className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                 />
+
+                <PhotoWatermarkBadge position="bottom-right" className="scale-75 origin-bottom-right" />
 
                 {/* Cover Photo Badge (Top-Left) */}
                 {isCover ? (

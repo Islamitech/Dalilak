@@ -479,7 +479,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
 
-  // Compressed Photo upload handler with mandatory automatic Daleelek Watermark branding
+  // Compressed Photo upload handler (clean storage for Google Vision AI compliance)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -487,9 +487,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       const newCompressedPhotos: string[] = [];
       for (let i = 0; i < files.length; i++) {
         try {
-          const compressed = await compressImageFile(files[i], 1000, 1000, 0.72, {
-            applyWatermark: true,
-            position: 'bottom-right',
+          const compressed = await compressImageFile(files[i], 1200, 1200, 0.80, {
+            applyWatermark: false,
           });
           // Upload directly to Supabase Storage 'business-media' bucket
           const publicUrl = await uploadMediaToSupabaseStorage(compressed, 'photos');

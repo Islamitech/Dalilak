@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Download,
   Eye,
+  EyeOff,
+  KeyRound,
   MessageCircle,
   Share2,
   FileText,
@@ -22,7 +24,12 @@ import {
   Phone,
 } from 'lucide-react';
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
-import { getGoogleMapsVerifiedWhatsAppUrl, generateGoogleMapsVerifiedWhatsAppMessage } from '../utils/whatsappMessages';
+import { 
+  getGoogleMapsVerifiedWhatsAppUrl, 
+  generateGoogleMapsVerifiedWhatsAppMessage,
+  getGoogleVerificationOtpWhatsAppUrl,
+  generateGoogleVerificationOtpWhatsAppMessage,
+} from '../utils/whatsappMessages';
 import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 import { fetchBusinessPhotosOnDemand } from '../services/db';
 import { triggerHaptic } from '../utils/haptics';
@@ -51,6 +58,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const [currentStatus, setCurrentStatus] = useState<VerificationStatus>(business.verificationStatus || 'pending');
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const [modalPhotos, setModalPhotos] = useState<string[]>(business.photos || []);
+  const [expandedOtpPreview, setExpandedOtpPreview] = useState<boolean>(false);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -108,6 +116,17 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     setIsDownloadingAll(false);
   };
 
+  const isRawCoordinatesUrl = (url?: string | null): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim().toLowerCase();
+    return (
+      trimmed.includes('search/?api=1&query=') ||
+      trimmed.includes('maps?q=') ||
+      trimmed.includes('google.com/maps?q=') ||
+      /[?&]q=[-0-9.,]+/.test(trimmed)
+    );
+  };
+
   const formatValidGoogleMapsUrl = (url?: string | null): string | undefined => {
     if (!url || typeof url !== 'string') return undefined;
     let trimmed = url.trim();
@@ -116,11 +135,19 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
       trimmed = `https://${trimmed}`;
     }
     if (trimmed.includes('search/?api=1&query=')) return undefined;
+    if (isRawCoordinatesUrl(trimmed)) return undefined;
     return trimmed;
   };
 
   const handleSaveVerification = (targetStatus?: VerificationStatus) => {
     const newStatus = targetStatus || currentStatus;
+
+    if (newStatus === 'verified' && finalMapUrl && isRawCoordinatesUrl(finalMapUrl)) {
+      setStatusFeedback('🚨 تنبيه أمان: الرابط المدخل إحداثيات موقع ميداني (GPS) وليس رابط نشاط معتمد من خرائط Google. يُرجى إدخال رابط المكان الرسمي.');
+      setTimeout(() => setStatusFeedback(null), 5000);
+      return;
+    }
+
     let gStatus: 'synced' | 'in_progress' | 'not_synced' | 'failed' = 'not_synced';
     if (newStatus === 'verified') gStatus = 'synced';
     else if (newStatus === 'in_progress') gStatus = 'in_progress';
@@ -303,6 +330,66 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               {copiedKey === 'all' ? <Check className="w-4 h-4 text-slate-950 stroke-[3]" /> : <Copy className="w-4 h-4" />}
               <span>{copiedKey === 'all' ? 'تم نسخ جميع بيانات النشاط بنجاح!' : 'نسخ جميع بيانات النشاط كنص كامل بنقرة واحدة 📋'}</span>
             </button>
+
+            {/* ── 🔑 GOOGLE VERIFICATION OTP REQUEST CARD ── */}
+            <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-blue-950/40 border border-blue-500/40 rounded-2xl p-3 space-y-2.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs text-[var(--text-primary)]">
+                      طلب كود التحقق السريع من Google (SMS OTP) 🔑
+                    </h4>
+                    <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
+                      تنبيه صاحب النشاط بوصول رسالة SMS من Google بكود 6 أرقام لتزويدك به فوراً
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[9.5px] bg-blue-500/20 text-blue-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                  صلاحية مؤقتة ⏳
+                </span>
+              </div>
+
+              {expandedOtpPreview && (
+                <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-blue-500/30 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                  {generateGoogleVerificationOtpWhatsAppMessage(business)}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setExpandedOtpPreview(!expandedOtpPreview)}
+                  className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title="معاينة نص الرسالة"
+                >
+                  {expandedOtpPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  <span className="text-[10px] hidden sm:inline">{expandedOtpPreview ? 'إخفاء' : 'معاينة'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(generateGoogleVerificationOtpWhatsAppMessage(business), 'otp_msg')}
+                  className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                  title="نسخ نص رسالة الكود"
+                >
+                  {copiedKey === 'otp_msg' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-400" />}
+                  <span className="text-[10px]">{copiedKey === 'otp_msg' ? 'تم النسخ!' : 'نسخ النص'}</span>
+                </button>
+
+                <a
+                  href={getGoogleVerificationOtpWhatsAppUrl(business)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-98 text-center"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 fill-white/20" />
+                  <span>طلب الكود عبر WhatsApp 💬</span>
+                </a>
+              </div>
+            </div>
 
             {/* Compact Copy Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
@@ -522,6 +609,14 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   onChange={(e) => setFinalMapUrl(e.target.value)}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs font-bold text-left"
                 />
+                {Boolean(finalMapUrl && isRawCoordinatesUrl(finalMapUrl)) && (
+                  <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2 rounded-xl text-[10.5px] font-bold flex items-start gap-1.5 mt-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      ⚠️ تنبيه: هذا الرابط عبارة عن إحداثيات موقع ميداني (GPS) وليس رابط نشاط معتمد من خرائط Google. يُرجى استخدام رابط النشاط الرسمي (مثل maps.app.goo.gl أو رابط صفحة المكان على الخريطة).
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -549,7 +644,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             </button>
 
             {/* Direct WhatsApp Verification Message Dispatch Button */}
-            {currentStatus === 'verified' && (
+            {currentStatus === 'verified' ? (
               <a
                 href={`https://wa.me/${targetWaPhone}?text=${verificationWhatsAppMessage}`}
                 target="_blank"
@@ -558,6 +653,16 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>إرسال رسالة التوثيق والموقع المفعل للعميل عبر WhatsApp 💬</span>
+              </a>
+            ) : (
+              <a
+                href={getGoogleVerificationOtpWhatsAppUrl(business)}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>طلب كود التحقق من Google (SMS OTP) من العميل عبر WhatsApp 💬</span>
               </a>
             )}
 

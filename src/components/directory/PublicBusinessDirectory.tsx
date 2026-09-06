@@ -6,6 +6,7 @@ import { matchesBusinessSearch } from '../../utils/arabicSearch';
 import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsappMessages';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
+import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   Store,
   ShieldCheck,
@@ -40,6 +41,36 @@ interface PublicBusinessDirectoryProps {
   onEditBusiness: (biz: Business) => void;
   onSelectVideoBiz: (biz: Business) => void;
 }
+
+const getBusinessMapDetails = (biz: Business) => {
+  const officialUrl =
+    biz.googleMapsUrl &&
+    typeof biz.googleMapsUrl === 'string' &&
+    biz.googleMapsUrl.trim().startsWith('http') &&
+    !biz.googleMapsUrl.includes('search/?api=1&query=') &&
+    !biz.googleMapsUrl.includes('maps?q=') &&
+    !biz.googleMapsUrl.includes('google.com/maps?q=')
+      ? biz.googleMapsUrl.trim()
+      : null;
+
+  const repUrl =
+    biz.repLocationUrl &&
+    typeof biz.repLocationUrl === 'string' &&
+    biz.repLocationUrl.trim().startsWith('http')
+      ? biz.repLocationUrl.trim()
+      : biz.lat && biz.lng
+      ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}`
+      : null;
+
+  const effectiveUrl = officialUrl || repUrl;
+  const isOfficial = Boolean(officialUrl);
+
+  return {
+    effectiveUrl,
+    isOfficial,
+    hasLocation: Boolean(effectiveUrl),
+  };
+};
 
 export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = ({
   businesses,
@@ -601,10 +632,13 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     )}
                   </div>
 
-                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1">
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
                     <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-950/70 text-slate-200 backdrop-blur-md border border-white/10">
                       {biz.invoiceNumber || 'INV'}
                     </span>
+                    {coverPhoto && (
+                      <PhotoWatermarkBadge position="top-left" className="!relative !top-auto !left-auto" />
+                    )}
                   </div>
 
                   {/* Bottom info on photo */}
@@ -710,29 +744,35 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                         <span>واتساب</span>
                       </a>
 
-                      {/* Google Maps */}
-                      {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') ? (
-                        <a
-                          href={sanitizeExternalUrl(biz.googleMapsUrl.trim(), '#')}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                          title="الموقع موثق رسمياً: فتح على خرائط Google"
-                        >
-                          <Navigation className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>الخريطة</span>
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled
-                          className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 dark:border-slate-700/80 cursor-not-allowed opacity-60"
-                          title="النشاط غير موثق بعد (قيد مراجعة واعتماد خرائط Google)"
-                        >
-                          <Navigation className="w-3.5 h-3.5 opacity-40" />
-                          <span>غير مدرج</span>
-                        </button>
-                      )}
+                      {/* Google Maps / Direction */}
+                      {(() => {
+                        const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
+                        if (effectiveUrl) {
+                          return (
+                            <a
+                              href={sanitizeExternalUrl(effectiveUrl, '#')}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+                              title={isOfficial ? 'الموقع موثق رسمياً: فتح على خرائط Google' : 'الموقع الجغرافي الميداني للنشاط على الخريطة'}
+                            >
+                              <Navigation className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>الخريطة</span>
+                            </a>
+                          );
+                        }
+                        return (
+                          <button
+                            type="button"
+                            disabled
+                            className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 dark:border-slate-700/80 cursor-not-allowed opacity-60"
+                            title="لم يتم تحديد الموقع الجغرافي بعد"
+                          >
+                            <Navigation className="w-3.5 h-3.5 opacity-40" />
+                            <span>غير محدد</span>
+                          </button>
+                        );
+                      })()}
 
                       {/* Invoice Preview */}
                       <button
@@ -864,26 +904,32 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       <span>التفاصيل</span>
                     </button>
 
-                    {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
-                      <a
-                        href={sanitizeExternalUrl(biz.googleMapsUrl.trim(), '#')}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-                        title="فتح موقع النشاط على خرائط Google"
-                      >
-                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
-                        title="الخريطة غير مفعلة (لم يتم إضافة الرابط بعد)"
-                      >
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      </button>
-                    )}
+                    {(() => {
+                      const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
+                      if (effectiveUrl) {
+                        return (
+                          <a
+                            href={sanitizeExternalUrl(effectiveUrl, '#')}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                            title={isOfficial ? 'فتح موقع النشاط المعتمد على خرائط Google' : 'معاينة الموقع الجغرافي الميداني للنشاط على الخريطة'}
+                          >
+                            <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                          </a>
+                        );
+                      }
+                      return (
+                        <button
+                          type="button"
+                          disabled
+                          className="bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
+                          title="لم يتم تحديد الموقع الجغرافي بعد"
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+                      );
+                    })()}
 
                     <button
                       onClick={() => onShowInvoice(biz)}
@@ -1065,26 +1111,32 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                               <span>عرض</span>
                             </button>
 
-                            {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') && !biz.googleMapsUrl.includes('search/?api=1&query=') ? (
-                              <a
-                                href={sanitizeExternalUrl(biz.googleMapsUrl.trim(), '#')}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
-                                title="فتح موقع النشاط المعتمد على خرائط Google 🗺️"
-                              >
-                                <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                              </a>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled
-                                className="p-1.5 rounded-xl bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] opacity-40 cursor-not-allowed flex items-center justify-center"
-                                title="الخريطة غير مفعلة - لم يتم إضافة وتوثيق رابط Google بعد"
-                              >
-                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                              </button>
-                            )}
+                            {(() => {
+                              const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
+                              if (effectiveUrl) {
+                                return (
+                                  <a
+                                    href={sanitizeExternalUrl(effectiveUrl, '#')}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
+                                    title={isOfficial ? 'فتح موقع النشاط المعتمد على خرائط Google 🗺️' : 'معاينة الموقع الجغرافي الميداني للنشاط 🗺️'}
+                                  >
+                                    <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                                  </a>
+                                );
+                              }
+                              return (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="p-1.5 rounded-xl bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] opacity-40 cursor-not-allowed flex items-center justify-center"
+                                  title="لم يتم تحديد الموقع الجغرافي بعد"
+                                >
+                                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                </button>
+                              );
+                            })()}
 
                             <button
                               onClick={() => onShowInvoice(biz)}

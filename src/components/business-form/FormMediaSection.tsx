@@ -1,5 +1,6 @@
 import React from 'react';
 import { Camera, Loader2, UploadCloud } from 'lucide-react';
+import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 
 interface FormMediaSectionProps {
   photos: string[];
@@ -85,6 +86,7 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
                 alt={`صورة النشاط ${i + 1}`}
                 className="w-full h-full object-cover"
               />
+              <PhotoWatermarkBadge position="bottom-right" className="scale-75 origin-bottom-right" />
               <button
                 type="button"
                 onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}

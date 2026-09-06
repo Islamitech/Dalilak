@@ -1,5 +1,6 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Business, Representative, InterestedLead, AdminFollowUpNote } from '../../../types';
+import { formatStandardDateTime } from '../../../utils/dateFormatters';
 import {
   Trash2,
   RotateCcw,
@@ -223,9 +224,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredBusinesses.map((biz) => {
-                const deletedDate = biz.deletedAt
-                  ? new Date(biz.deletedAt).toLocaleString('ar-EG')
-                  : 'تاريخ غير محدد';
+                const deletedDate = formatStandardDateTime(biz.deletedAt);
 
                 return (
                   <div
@@ -315,9 +314,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredReps.map((rep) => {
-                const deletedDate = rep.deletedAt
-                  ? new Date(rep.deletedAt).toLocaleString('ar-EG')
-                  : 'تاريخ غير محدد';
+                const deletedDate = formatStandardDateTime(rep.deletedAt);
 
                 return (
                   <div
@@ -404,13 +401,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
           ) : (
             <div className="space-y-2.5">
               {filteredFollowUps.map((item) => {
-                const dateStr = new Date(item.note.createdAt).toLocaleString('ar-EG', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
+                const dateStr = formatStandardDateTime(item.note.createdAt);
 
                 return (
                   <div
