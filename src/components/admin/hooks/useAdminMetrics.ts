@@ -87,7 +87,8 @@ export const useAdminMetrics = ({
     () => realBusinesses.filter((b) => {
       const url = (b.googleMapsUrl || '').trim();
       const hasMap = url.startsWith('http') && !url.includes('search/?api=1&query=');
-      return !hasMap && b.googleSyncStatus !== 'in_progress';
+      // Strict Filter: Only approved directory businesses that haven't been submitted to Google yet
+      return b.verificationStatus === 'verified' && !hasMap && b.googleSyncStatus !== 'in_progress';
     }).length,
     [realBusinesses]
   );
@@ -435,6 +436,11 @@ export const useAdminMetrics = ({
 
   // Monthly Financial Breakdown
   const monthlyFinancialStats = useMemo(() => {
+    const ARABIC_MONTH_NAMES = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+
     const monthsMap = new Map<string, {
       monthKey: string;
       monthLabel: string;
@@ -444,6 +450,7 @@ export const useAdminMetrics = ({
       verifiedCount: number;
       totalBizCount: number;
       disbursedPayouts: number;
+      cashRetainedCommissions: number;
       repsActive: Set<string>;
       repEarningsMap: Map<string, { name: string; earnings: number; count: number }>;
     }>();
@@ -451,7 +458,7 @@ export const useAdminMetrics = ({
     realBusinesses.forEach((b) => {
       const d = b.createdDate ? new Date(b.createdDate) : new Date();
       const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const monthLabel = d.toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
+      const monthLabel = `${ARABIC_MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 
       if (!monthsMap.has(monthKey)) {
         monthsMap.set(monthKey, {
@@ -463,6 +470,7 @@ export const useAdminMetrics = ({
           verifiedCount: 0,
           totalBizCount: 0,
           disbursedPayouts: 0,
+          cashRetainedCommissions: 0,
           repsActive: new Set(),
           repEarningsMap: new Map(),
         });
@@ -488,6 +496,10 @@ export const useAdminMetrics = ({
         m.repCommissions += repShare;
         m.netPlatform += (paid - repShare);
 
+        if (b.paymentMethod === 'cash_by_rep' && repShare > 0) {
+          m.cashRetainedCommissions += repShare;
+        }
+
         if (isFieldRep && repShare > 0) {
           const repIdentifier = b.repId || b.repName || 'rep';
           m.repsActive.add(repIdentifier);
@@ -504,7 +516,7 @@ export const useAdminMetrics = ({
         b.additionalInvoices.forEach((inv) => {
           const invDate = inv.issueDate || inv.createdAt ? new Date(inv.issueDate || inv.createdAt) : d;
           const invMonthKey = `${invDate.getFullYear()}-${String(invDate.getMonth() + 1).padStart(2, '0')}`;
-          const invMonthLabel = invDate.toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
+          const invMonthLabel = `${ARABIC_MONTH_NAMES[invDate.getMonth()]} ${invDate.getFullYear()}`;
 
           if (!monthsMap.has(invMonthKey)) {
             monthsMap.set(invMonthKey, {
@@ -516,6 +528,7 @@ export const useAdminMetrics = ({
               verifiedCount: 0,
               totalBizCount: 0,
               disbursedPayouts: 0,
+              cashRetainedCommissions: 0,
               repsActive: new Set(),
               repEarningsMap: new Map(),
             });
@@ -541,17 +554,27 @@ export const useAdminMetrics = ({
 
     return Array.from(monthsMap.values())
       .map((m) => {
-        let topRep = { name: 'لا يوجد', earnings: 0 };
+        let topRep = { name: '', earnings: 0 };
         m.repEarningsMap.forEach((val) => {
           if (val.earnings > topRep.earnings) topRep = val;
         });
+
         const activeRepsCount = Math.max(1, m.repsActive.size);
         const avgRepIncome = Math.round(m.repCommissions / activeRepsCount);
+        
+        let topRepName = topRep.name;
+        if (!topRepName) {
+          topRepName = m.grossRevenue > 0 && m.repCommissions === 0 ? 'تسجيل إداري (100% للمنصة)' : '-';
+        }
+
+        const totalActualDisbursed = m.cashRetainedCommissions + m.disbursedPayouts;
+
         return {
           ...m,
-          topRepName: topRep.name,
+          topRepName,
           topRepEarnings: topRep.earnings,
           avgRepIncome,
+          totalActualDisbursed,
         };
       })
       .sort((a, b) => b.monthKey.localeCompare(a.monthKey));

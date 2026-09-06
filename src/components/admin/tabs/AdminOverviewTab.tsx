@@ -60,6 +60,8 @@ interface AdminOverviewTabProps {
     verifiedCount: number;
     totalBizCount: number;
     disbursedPayouts: number;
+    cashRetainedCommissions?: number;
+    totalActualDisbursed?: number;
     topRepName: string;
     topRepEarnings: number;
     avgRepIncome: number;
@@ -172,7 +174,105 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         </div>
       )}
 
-      {/* Top KPI Metrics Cards */}
+      {/* ── TIER 1: ACTIONABLE EMERGENCY & OPERATIONAL ALERTS ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Notice 1: Unsubmitted Activities */}
+        {notSubmittedCount > 0 ? (
+          <div className="alert-card-danger p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="alert-icon-box w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="alert-title font-black text-sm">
+                  يوجد ({notSubmittedCount}) أنشطة مسجلة لم تُرفع لخرائط جوجل بعد
+                </p>
+                <p className="alert-desc text-[11px] font-bold mt-0.5">
+                  تتطلب توليد بيانات ورفعها للتوثيق الميداني.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                onNavigateTab('businesses');
+                onSetVerificationFilter('not_submitted');
+              }}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] px-3 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95"
+            >
+              عرض وفحص
+            </button>
+          </div>
+        ) : (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+            <span className="font-bold">كافة الأنشطة المسجلة تم رفعها للتوثيق ولا توجد أنشطة متأخرة.</span>
+          </div>
+        )}
+
+        {/* Notice 2: Overdue Google Review Notice (> 48h) */}
+        {overdueReviewCount > 0 ? (
+          <div className="alert-card-warning p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="alert-icon-box w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="alert-title font-black text-sm">
+                  تنبيه مراجعة: ({overdueReviewCount}) أنشطة تجاوزت مدة مراجعة جوجل المتوقعة
+                </p>
+                <p className="alert-desc text-[11px] font-bold mt-0.5">
+                  أُرسلت للتوثيق منذ أكثر من 48 ساعة دون اعتماد؛ يُنصح بمراجعتها وتدقيق الـ Place ID.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                onNavigateTab('businesses');
+                onSetVerificationFilter('overdue');
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95"
+            >
+              متابعة التوثيق
+            </button>
+          </div>
+        ) : (
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-[var(--text-secondary)]">
+            <Clock className="w-5 h-5 text-amber-500 shrink-0" />
+            <span className="font-bold">مراجعات جوجل تسير ضمن النطاق الزمني الطبيعي.</span>
+          </div>
+        )}
+
+        {/* Notice 3: Verified Businesses with Remaining Unpaid Debt */}
+        {verifiedWithDebtCount > 0 && (
+          <div className="md:col-span-2 alert-card-warning border-2 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs animate-fade-in">
+            <div className="flex items-center gap-2.5">
+              <div className="alert-icon-box w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="alert-title font-black text-sm">
+                  تنبيه مالي مهم: ({verifiedWithDebtCount}) أنشطة موثقة على الخريطة ولها متبقي سداد!
+                </p>
+                <p className="alert-desc text-[11px] font-bold mt-0.5">
+                  تم وضع ونشر خرائط Google لهذه الأنشطة بنجاح، وما زال عليها مبالغ معلقة بإجمالي <strong className="font-mono font-black">{verifiedWithDebtTotal.toLocaleString()} ج.م</strong> بانتظار استكمال التحصيل.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                onNavigateTab('businesses');
+                onSetVerificationFilter('verified_debt');
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95 flex items-center gap-1"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>عرض الأنشطة الموثقة ذات المتبقي</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── TIER 2: TOP KPI METRIC CARDS ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* 1. Revenue & Collection Rate */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-3xl shadow-xs space-y-1.5">
@@ -237,82 +337,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         </div>
       </div>
 
-      {/* 🌟 5. Field Leads & Reviews Performance Hub */}
-      <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border border-emerald-500/30 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
-                <span>مؤشرات العملاء المحتملين والمراجعات الميدانية (CRM Leads)</span>
-                <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/25">
-                  {leadStats.total} عميل مهتم
-                </span>
-              </h3>
-              <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                متابعة زيارات المناديب الميدانية للأنشطة غير المشتركة بعد وتحويلها إلى اشتراكات رسمية
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => onNavigateTab('leads')}
-            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-          >
-            <span>إدارة ومتابعة المراجعات</span>
-            <ArrowLeft className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <div className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-between">
-              <span>إجمالي الزيارات المسجلة</span>
-              <ClipboardList className="w-3.5 h-3.5 text-emerald-500" />
-            </div>
-            <div className="text-lg sm:text-xl font-black text-[var(--text-primary)] font-mono">
-              {leadStats.total}
-            </div>
-          </div>
-
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center justify-between">
-              <span>بانتظار المتابعة</span>
-              <Clock className="w-3.5 h-3.5 text-amber-500" />
-            </div>
-            <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 font-mono">
-              {leadStats.pendingFollowup}
-            </div>
-          </div>
-
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between">
-              <span>تم التواصل معهم</span>
-              <Phone className="w-3.5 h-3.5 text-blue-500" />
-            </div>
-            <div className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400 font-mono">
-              {leadStats.contacted}
-            </div>
-          </div>
-
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-              <span>تحولوا لمشتركين فعليين</span>
-              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-            </div>
-            <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
-              <span>{leadStats.converted}</span>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                ({leadStats.conversionRate}%)
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── 🏛️ MASTER FINANCIAL ACCOUNTING & REVENUE BREAKDOWN ── */}
+      {/* ── TIER 3: MASTER FINANCIAL ACCOUNTING & REVENUE BREAKDOWN ── */}
       <div className="bg-gradient-to-br from-[var(--bg-card)] via-[var(--bg-surface)] to-[var(--bg-card)] border-2 border-amber-500/30 rounded-3xl p-5 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2.5">
@@ -455,7 +480,14 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                     {m.netPlatform.toLocaleString()} ج.م
                   </td>
                   <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    {m.disbursedPayouts.toLocaleString()} ج.م
+                    <div>{(m.totalActualDisbursed ?? m.disbursedPayouts).toLocaleString()} ج.م</div>
+                    {((m.cashRetainedCommissions || 0) > 0 || m.disbursedPayouts > 0) && (
+                      <div className="text-[10px] text-[var(--text-muted)] font-normal mt-0.5">
+                        {(m.cashRetainedCommissions || 0) > 0 && <span>كاش: {m.cashRetainedCommissions} ج</span>}
+                        {(m.cashRetainedCommissions || 0) > 0 && m.disbursedPayouts > 0 && <span> + </span>}
+                        {m.disbursedPayouts > 0 && <span>حوالات: {m.disbursedPayouts} ج</span>}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-center">
                     {m.topRepEarnings > 0 ? (
@@ -464,6 +496,10 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                         <span className="font-bold text-amber-800 dark:text-amber-300">{m.topRepName}</span>
                         <span className="font-mono font-bold text-amber-600">({m.topRepEarnings} ج)</span>
                       </div>
+                    ) : m.topRepName && m.topRepName !== '-' ? (
+                      <span className="text-[10.5px] font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-lg">
+                        {m.topRepName}
+                      </span>
                     ) : (
                       <span className="text-[10px] text-[var(--text-muted)]">-</span>
                     )}
@@ -475,102 +511,80 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         </div>
       </div>
 
-      {/* SMART OPERATIONAL NOTICES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Notice 1: Unsubmitted Activities */}
-        {notSubmittedCount > 0 ? (
-          <div className="alert-card-danger p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="alert-icon-box w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="alert-title font-black text-sm">
-                  يوجد ({notSubmittedCount}) أنشطة مسجلة لم تُرفع لخرائط جوجل بعد
-                </p>
-                <p className="alert-desc text-[11px] font-bold mt-0.5">
-                  تتطلب توليد بيانات ورفعها للتوثيق الميداني.
-                </p>
-              </div>
+      {/* ── TIER 5: SPECIALIZED MARKET ANALYTICS, LEADS & REP PERFORMANCE ── */}
+      {/* 1. Field Leads & Reviews Performance Hub (CRM Leads) */}
+      <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border border-emerald-500/30 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <UserCheck className="w-5 h-5" />
             </div>
-            <button
-              onClick={() => {
-                onNavigateTab('businesses');
-                onSetVerificationFilter('not_submitted');
-              }}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] px-3 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95"
-            >
-              عرض وفحص
-            </button>
+            <div>
+              <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <span>مؤشرات العملاء المحتملين والمراجعات الميدانية (CRM Leads)</span>
+                <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/25">
+                  {leadStats.total} عميل مهتم
+                </span>
+              </h3>
+              <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                متابعة زيارات المناديب الميدانية للأنشطة غير المشتركة بعد وتحويلها إلى اشتراكات رسمية
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-            <span className="font-bold">كافة الأنشطة المسجلة تم رفعها للتوثيق ولا توجد أنشطة متأخرة.</span>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => onNavigateTab('leads')}
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          >
+            <span>إدارة ومتابعة المراجعات</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-        {/* Notice 2: Overdue Google Review Notice (> 48h) */}
-        {overdueReviewCount > 0 ? (
-          <div className="alert-card-warning p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="alert-icon-box w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="alert-title font-black text-sm">
-                  تنبيه مراجعة: ({overdueReviewCount}) أنشطة تجاوزت مدة مراجعة جوجل المتوقعة
-                </p>
-                <p className="alert-desc text-[11px] font-bold mt-0.5">
-                  أُرسلت للتوثيق منذ أكثر من 48 ساعة دون اعتماد؛ يُنصح بمراجعتها وتدقيق الـ Place ID.
-                </p>
-              </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+            <div className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-between">
+              <span>إجمالي الزيارات المسجلة</span>
+              <ClipboardList className="w-3.5 h-3.5 text-emerald-500" />
             </div>
-            <button
-              onClick={() => {
-                onNavigateTab('businesses');
-                onSetVerificationFilter('overdue');
-              }}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95"
-            >
-              متابعة التوثيق
-            </button>
+            <div className="text-lg sm:text-xl font-black text-[var(--text-primary)] font-mono">
+              {leadStats.total}
+            </div>
           </div>
-        ) : (
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-[var(--text-secondary)]">
-            <Clock className="w-5 h-5 text-amber-500 shrink-0" />
-            <span className="font-bold">مراجعات جوجل تسير ضمن النطاق الزمني الطبيعي.</span>
-          </div>
-        )}
 
-        {/* Notice 3: Verified Businesses with Remaining Unpaid Debt */}
-        {verifiedWithDebtCount > 0 && (
-          <div className="md:col-span-2 alert-card-warning border-2 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs animate-fade-in">
-            <div className="flex items-center gap-2.5">
-              <div className="alert-icon-box w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold">
-                <DollarSign className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="alert-title font-black text-sm">
-                  تنبيه مالي مهم: ({verifiedWithDebtCount}) أنشطة موثقة على الخريطة ولها متبقي سداد!
-                </p>
-                <p className="alert-desc text-[11px] font-bold mt-0.5">
-                  تم وضع ونشر خرائط Google لهذه الأنشطة بنجاح، وما زال عليها مبالغ معلقة بإجمالي <strong className="font-mono font-black">{verifiedWithDebtTotal.toLocaleString()} ج.م</strong> بانتظار استكمال التحصيل.
-                </p>
-              </div>
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+            <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center justify-between">
+              <span>بانتظار المتابعة</span>
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
             </div>
-            <button
-              onClick={() => {
-                onNavigateTab('businesses');
-                onSetVerificationFilter('verified_debt');
-              }}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95 flex items-center gap-1"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>عرض الأنشطة الموثقة ذات المتبقي</span>
-            </button>
+            <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 font-mono">
+              {leadStats.pendingFollowup}
+            </div>
           </div>
-        )}
+
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+            <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between">
+              <span>تم التواصل معهم</span>
+              <Phone className="w-3.5 h-3.5 text-blue-500" />
+            </div>
+            <div className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400 font-mono">
+              {leadStats.contacted}
+            </div>
+          </div>
+
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
+            <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+              <span>تحولوا لمشتركين فعليين</span>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
+              <span>{leadStats.converted}</span>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                ({leadStats.conversionRate}%)
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Detailed Statistics Grids */}

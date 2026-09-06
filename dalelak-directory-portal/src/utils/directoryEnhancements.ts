@@ -274,3 +274,42 @@ export function injectBusinessSchemaLd(biz: Business | null): void {
 
   script.textContent = JSON.stringify(schemaData);
 }
+
+/**
+ * Resolves the appropriate map link and status for a business
+ * Prioritizes official Google Maps URL for verified businesses,
+ * falling back to rep GPS field location or latitude/longitude coordinates.
+ */
+export function getBusinessMapDetails(biz: Business): {
+  effectiveUrl: string | null;
+  isOfficial: boolean;
+  hasLocation: boolean;
+} {
+  const officialUrl =
+    biz.googleMapsUrl &&
+    typeof biz.googleMapsUrl === 'string' &&
+    biz.googleMapsUrl.trim().startsWith('http') &&
+    !biz.googleMapsUrl.includes('search/?api=1&query=') &&
+    !biz.googleMapsUrl.includes('maps?q=') &&
+    !biz.googleMapsUrl.includes('google.com/maps?q=')
+      ? biz.googleMapsUrl.trim()
+      : null;
+
+  const repUrl =
+    biz.repLocationUrl &&
+    typeof biz.repLocationUrl === 'string' &&
+    biz.repLocationUrl.trim().startsWith('http')
+      ? biz.repLocationUrl.trim()
+      : biz.lat && biz.lng
+      ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}`
+      : null;
+
+  const effectiveUrl = officialUrl || repUrl;
+  const isOfficial = Boolean(officialUrl);
+
+  return {
+    effectiveUrl,
+    isOfficial,
+    hasLocation: Boolean(effectiveUrl),
+  };
+}

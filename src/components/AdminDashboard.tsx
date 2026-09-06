@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, User, InterestedLead } from '../types';
 import { sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { matchesBusinessSearch } from '../utils/arabicSearch';
@@ -38,6 +38,8 @@ import {
   UserCheck,
   Store,
   ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -236,7 +238,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           );
 
           if (verificationFilter === 'not_submitted' || verificationFilter === 'google_not_submitted') {
-            const isNotSubmitted = !hasGoogleMap && b.googleSyncStatus !== 'in_progress';
+            const isNotSubmitted = b.verificationStatus === 'verified' && !hasGoogleMap && b.googleSyncStatus !== 'in_progress';
             if (!isNotSubmitted) return false;
           } else if (verificationFilter === 'in_progress' || verificationFilter === 'google_pending') {
             const isInProgress = !hasGoogleMap && b.googleSyncStatus === 'in_progress';
@@ -313,119 +315,210 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setShowAccountModal(true);
   };
 
+  // ── Responsive Horizontal Tabs Scrolling Engine ──
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScrollButtons = useCallback(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const isOverflowing = el.scrollWidth > el.clientWidth + 4;
+    if (!isOverflowing) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const currentScroll = Math.abs(el.scrollLeft);
+    setCanScrollRight(currentScroll > 6);
+    setCanScrollLeft(currentScroll < maxScroll - 6);
+  }, []);
+
+  useEffect(() => {
+    checkScrollButtons();
+    const handleResize = () => checkScrollButtons();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [checkScrollButtons]);
+
+  useEffect(() => {
+    // Auto-scroll active tab into view smoothly
+    const activeBtn = tabsRef.current?.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+    checkScrollButtons();
+  }, [activeAdminTab, checkScrollButtons]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const el = tabsRef.current;
+    if (!el) return;
+    triggerHaptic();
+    const scrollAmount = 220;
+    el.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+    setTimeout(checkScrollButtons, 300);
+  };
+
   return (
     <div className="space-y-4 max-w-7xl mx-auto px-2 sm:px-4 py-4">
       {/* ── TOP OPERATIONAL TABS NAVIGATION BAR ── */}
-      {/* The relative wrapper + after/before pseudo-fade tells mobile users the bar is scrollable */}
-      <div className="relative">
-        {/* Fade mask edges — signals horizontal scroll on small screens */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[var(--bg-card)] to-transparent rounded-l-3xl" />
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-[var(--bg-card)] to-transparent rounded-r-3xl" />
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-3xl shadow-xs flex items-center gap-1.5 overflow-x-auto text-xs" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          <style>{`.admin-tabs-bar::-webkit-scrollbar { display: none; }`}</style>
-        <button
-          type="button"
-          onClick={() => setActiveAdminTab('overview')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
-            activeAdminTab === 'overview'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>نظرة عامة وإحصائيات</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveAdminTab('businesses')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
-            activeAdminTab === 'businesses'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-          }`}
-        >
-          <Store className="w-4 h-4" />
-          <span>إدارة الأنشطة ({metrics.realBusinesses.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveAdminTab('reps')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
-            activeAdminTab === 'reps'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>فريق العمل والمناديب ({metrics.mergedAdminReps.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveAdminTab('gateways')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
-            activeAdminTab === 'gateways'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          <span>بوابات الدفع</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveAdminTab('payouts')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer relative ${
-            activeAdminTab === 'payouts'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-          }`}
-        >
-          <DollarSign className="w-4 h-4" />
-          <span>سحب الأرباح والتوريدات</span>
-          {payoutRequests.filter((p) => p.status === 'pending').length > 0 && (
-            <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse" role="status" aria-label={`${payoutRequests.filter((p) => p.status === 'pending').length} طلبات معلقة`}>
-              {payoutRequests.filter((p) => p.status === 'pending').length}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveAdminTab('leads')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer relative ${
-            activeAdminTab === 'leads'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
-          }`}
-        >
-          <UserCheck className="w-4 h-4" />
-          <span>المراجعات والعملاء المهتمين</span>
-          {metrics.leadStats.pendingFollowup > 0 && (
-            <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full" role="status" aria-label={`${metrics.leadStats.pendingFollowup} يحتاجون متابعة`}>
-              {metrics.leadStats.pendingFollowup}
-            </span>
-          )}
-        </button>
-
-        {/* ── SUPER ADMIN EXCLUSIVE TAB BUTTON (مخفي تماماً عن باقي الحسابات) ── */}
-        {isSuperAdmin(currentUser) && (
+      <div className="relative group">
+        {/* Right Arrow (scrolls towards beginning in RTL) */}
+        {canScrollRight && (
           <button
             type="button"
-            onClick={() => setActiveAdminTab('audit_trash')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
-              activeAdminTab === 'audit_trash'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md'
-                : 'text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:bg-[var(--input-bg)] border border-amber-500/30'
-            }`}
+            onClick={() => handleScroll('right')}
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-[var(--bg-card)]/90 backdrop-blur-md border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-amber-500 hover:text-slate-950 flex items-center justify-center transition-all shadow-md cursor-pointer active:scale-95"
+            title="تمرير لليمين"
+            aria-label="تمرير التبويبات لليمين"
           >
-            <ShieldAlert className="w-4 h-4" />
-            <span>سلة المحذوفات وأثر السيرفر ({deletedBusinesses.length + deletedRepresentatives.length})</span>
+            <ChevronRight className="w-4 h-4" />
           </button>
         )}
+
+        {/* Left Arrow (scrolls towards end in RTL) */}
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => handleScroll('left')}
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-[var(--bg-card)]/90 backdrop-blur-md border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-amber-500 hover:text-slate-950 flex items-center justify-center transition-all shadow-md cursor-pointer active:scale-95"
+            title="تمرير لليسار"
+            aria-label="تمرير التبويبات لليسار"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Scrollable Tabs Bar (clean edges without slicing gradient masks) */}
+        <div
+          ref={tabsRef}
+          onScroll={checkScrollButtons}
+          className="admin-tabs-bar bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-3xl shadow-xs flex items-center gap-1.5 overflow-x-auto text-xs scroll-smooth select-none"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <style>{`.admin-tabs-bar::-webkit-scrollbar { display: none; }`}</style>
+          
+          <button
+            type="button"
+            data-active={activeAdminTab === 'overview'}
+            onClick={() => setActiveAdminTab('overview')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+              activeAdminTab === 'overview'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+            }`}
+            title="نظرة عامة وإحصائيات المنصة"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>الإحصائيات</span>
+          </button>
+
+          <button
+            type="button"
+            data-active={activeAdminTab === 'businesses'}
+            onClick={() => setActiveAdminTab('businesses')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+              activeAdminTab === 'businesses'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+            }`}
+            title="إدارة كافة الأنشطة والمحلات"
+          >
+            <Store className="w-4 h-4" />
+            <span>الأنشطة ({metrics.realBusinesses.length})</span>
+          </button>
+
+          <button
+            type="button"
+            data-active={activeAdminTab === 'reps'}
+            onClick={() => setActiveAdminTab('reps')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+              activeAdminTab === 'reps'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+            }`}
+            title="فريق العمل والمناديب الميدانيين"
+          >
+            <Users className="w-4 h-4" />
+            <span>فريق العمل ({metrics.mergedAdminReps.length})</span>
+          </button>
+
+          <button
+            type="button"
+            data-active={activeAdminTab === 'gateways'}
+            onClick={() => setActiveAdminTab('gateways')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+              activeAdminTab === 'gateways'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+            }`}
+            title="إعدادات بوابات الدفع الإلكتروني"
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>بوابات الدفع</span>
+          </button>
+
+          <button
+            type="button"
+            data-active={activeAdminTab === 'payouts'}
+            onClick={() => setActiveAdminTab('payouts')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer relative ${
+              activeAdminTab === 'payouts'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+            }`}
+            title="سحب الأرباح وتوريدات المناديب"
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>سحب الأرباح</span>
+            {payoutRequests.filter((p) => p.status === 'pending').length > 0 && (
+              <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse" role="status" aria-label={`${payoutRequests.filter((p) => p.status === 'pending').length} طلبات معلقة`}>
+                {payoutRequests.filter((p) => p.status === 'pending').length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            data-active={activeAdminTab === 'leads'}
+            onClick={() => setActiveAdminTab('leads')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer relative ${
+              activeAdminTab === 'leads'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+            }`}
+            title="المراجعات والعملاء المهتمين والـ CRM"
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>العملاء المحتملين</span>
+            {metrics.leadStats.pendingFollowup > 0 && (
+              <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full" role="status" aria-label={`${metrics.leadStats.pendingFollowup} يحتاجون متابعة`}>
+                {metrics.leadStats.pendingFollowup}
+              </span>
+            )}
+          </button>
+
+          {/* ── SUPER ADMIN EXCLUSIVE TAB BUTTON (مخفي تماماً عن باقي الحسابات) ── */}
+          {isSuperAdmin(currentUser) && (
+            <button
+              type="button"
+              data-active={activeAdminTab === 'audit_trash'}
+              onClick={() => setActiveAdminTab('audit_trash')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+                activeAdminTab === 'audit_trash'
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md'
+                  : 'text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:bg-[var(--input-bg)] border border-amber-500/30'
+              }`}
+              title="سلة المحذوفات وسجل أثر السيرفر"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>المحذوفات والسيرفر ({deletedBusinesses.length + deletedRepresentatives.length})</span>
+            </button>
+          )}
         </div>
       </div>
 

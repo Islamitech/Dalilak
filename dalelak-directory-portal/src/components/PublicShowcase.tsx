@@ -57,6 +57,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
+import { PhotoWatermarkBadge } from './PhotoWatermarkBadge';
 import { VideoPlayerModal } from './VideoPlayerModal';
 import { PackagesModal } from './PackagesModal';
 import {
@@ -66,6 +67,7 @@ import {
   downloadBusinessVCard,
   getSmartWhatsAppUrl,
   injectBusinessSchemaLd,
+  getBusinessMapDetails,
 } from '../utils/directoryEnhancements';
 
 interface PublicShowcaseProps {
@@ -1304,6 +1306,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                               <span>{formatDistanceString(distanceKm)}</span>
                             </span>
                           )}
+
+                          <PhotoWatermarkBadge position="top-left" className="!relative !top-auto !left-auto scale-90 origin-top-left" />
                         </div>
 
                         {/* Photo count badge */}
@@ -1388,17 +1392,25 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             </a>
                           )}
 
-                          {biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http') ? (
-                            <a
-                              href={biz.googleMapsUrl.trim()}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-9 h-9 rounded-xl bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-blue-500/30"
-                              title="فتح على خرائط Google 🗺️"
-                            >
-                              <Navigation className="w-4 h-4" />
-                            </a>
-                          ) : null}
+                          {(() => {
+                            const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
+                            if (!effectiveUrl) return null;
+                            return (
+                              <a
+                                href={effectiveUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border ${
+                                  isOfficial
+                                    ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border-blue-500/30'
+                                    : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/30'
+                                }`}
+                                title={isOfficial ? 'فتح على خرائط Google 🗺️' : 'الموقع الجغرافي الميداني للنشاط على الخريطة 📍'}
+                              >
+                                {isOfficial ? <Navigation className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                              </a>
+                            );
+                          })()}
 
                           <button
                             type="button"
@@ -1944,6 +1956,34 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {/* 🗺️ Map Pin / Navigation Button in Header (Red Circle Placement) */}
+                {(() => {
+                  const { effectiveUrl, isOfficial } = getBusinessMapDetails(selectedBiz);
+                  if (!effectiveUrl) return null;
+                  return (
+                    <a
+                      href={effectiveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`px-3 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                        isOfficial
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+                          : 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-500/30'
+                      }`}
+                      title={isOfficial ? 'فتح على خرائط Google الرسمية 🗺️' : 'الموقع الجغرافي الميداني للنشاط على الخريطة 📍'}
+                    >
+                      {isOfficial ? (
+                        <Navigation className="w-3.5 h-3.5" />
+                      ) : (
+                        <MapPin className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden xs:inline sm:inline">
+                        {isOfficial ? 'Google Maps 🚀' : 'موقع النشاط 📍'}
+                      </span>
+                    </a>
+                  );
+                })()}
+
                 <button
                   type="button"
                   onClick={() => toggleFavorite(selectedBiz.id)}
@@ -2011,9 +2051,12 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
 
                   <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
-                    <span className="bg-slate-950/80 backdrop-blur-md text-amber-400 text-[11px] font-black px-3 py-1 rounded-full border border-amber-500/30 shadow-md">
-                      {selectedBiz.category}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-slate-950/80 backdrop-blur-md text-amber-400 text-[11px] font-black px-3 py-1 rounded-full border border-amber-500/30 shadow-md">
+                        {selectedBiz.category}
+                      </span>
+                      <PhotoWatermarkBadge position="top-right" className="!relative !top-auto !right-auto scale-95" />
+                    </div>
 
                     {selectedBiz.videos && selectedBiz.videos.length > 0 && (
                       <button
@@ -2083,36 +2126,24 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               <div className="space-y-3">
                 {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
                   <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-emerald-500/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-white shadow-md p-2 flex items-center justify-center shrink-0 border border-slate-200">
-                          <svg className="w-7 h-7" viewBox="0 0 48 48">
-                            <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                            <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                            <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-black text-sm text-[var(--text-primary)]">تقييمات ومراجعات خرائط Google</span>
-                            <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full">موثق ✓</span>
-                          </div>
-                          <p className="text-[11px] text-[var(--text-muted)] font-bold pt-0.5">
-                            التقييمات الحية الصادرة من زوار وعملاء النشاط
-                          </p>
-                        </div>
+                    <div className="flex items-center gap-3 pb-3 border-b border-emerald-500/20">
+                      <div className="w-11 h-11 rounded-2xl bg-white shadow-md p-2 flex items-center justify-center shrink-0 border border-slate-200">
+                        <svg className="w-7 h-7" viewBox="0 0 48 48">
+                          <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                          <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                          <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                        </svg>
                       </div>
-
-                      <a
-                        href={selectedBiz.googleMapsUrl.trim()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer shrink-0"
-                      >
-                        <Navigation className="w-4 h-4" />
-                        <span>فتح على Google Maps 🚀</span>
-                      </a>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-black text-sm text-[var(--text-primary)]">تقييمات ومراجعات خرائط Google</span>
+                          <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full">موثق ✓</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-muted)] font-bold pt-0.5">
+                          التقييمات الحية الصادرة من زوار وعملاء النشاط
+                        </p>
+                      </div>
                     </div>
 
                     {/* Google Authentic Rating & Reviews Breakdown */}
@@ -2449,12 +2480,15 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <img
-            src={currentPhotos[previewPhotoIndex]}
-            alt={`صورة ${previewPhotoIndex + 1}`}
-            className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain animate-fade-in-scale"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="relative inline-block max-w-full max-h-[85vh]">
+            <img
+              src={currentPhotos[previewPhotoIndex]}
+              alt={`صورة ${previewPhotoIndex + 1}`}
+              className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain animate-fade-in-scale"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <PhotoWatermarkBadge position="bottom-right" className="!bottom-4 !right-4 scale-95 origin-bottom-right" />
+          </div>
 
           <button
             onClick={(e) => { e.stopPropagation(); handleNextPhoto(); }}
