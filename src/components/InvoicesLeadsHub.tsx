@@ -26,6 +26,10 @@ import { EGYPT_GOVERNORATES } from '../data/mockData';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { formatActivityDateTime } from '../utils/dateFormatters';
 import { sanitizeExternalUrl } from '../utils/urlSanitizer';
+import {
+  generateTrendingVenuePermissionWhatsAppMessage,
+  getTrendingVenuePermissionWhatsAppUrl,
+} from '../utils/whatsappMessages';
 
 interface InvoicesLeadsHubProps {
   leads: InterestedLead[];
@@ -57,7 +61,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   const [editingLead, setEditingLead] = useState<InterestedLead | null>(null);
   const [selectedFollowUpLead, setSelectedFollowUpLead] = useState<InterestedLead | null>(null);
   const [whatsAppModalLead, setWhatsAppModalLead] = useState<InterestedLead | null>(null);
-  const [customMsgType, setCustomMsgType] = useState<'intro' | 'followup' | 'offer'>('intro');
+  const [customMsgType, setCustomMsgType] = useState<'intro' | 'followup' | 'offer' | 'permission'>('intro');
 
   // Quick New Lead Form States (Inside Modal)
   const [newClientName, setNewClientName] = useState<string>('');
@@ -66,6 +70,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   const [newGovernorate, setNewGovernorate] = useState<string>('القاهرة');
   const [newCity, setNewCity] = useState<string>('');
   const [newInterestLevel, setNewInterestLevel] = useState<LeadInterestLevel>('medium');
+  const [newIsTrending, setNewIsTrending] = useState<boolean>(false);
+  const [newLocationUrl, setNewLocationUrl] = useState<string>('');
   const [newFollowUpDate, setNewFollowUpDate] = useState<string>(
     new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
@@ -105,7 +111,10 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
         (l.city || '').toLowerCase().includes(q);
 
       const matchStatus = leadStatusFilter === 'all' || l.status === leadStatusFilter;
-      const matchInterest = leadInterestFilter === 'all' || l.interestLevel === leadInterestFilter;
+      const matchInterest =
+        leadInterestFilter === 'all' ||
+        l.interestLevel === leadInterestFilter ||
+        (leadInterestFilter === 'trending_free' && Boolean(l.isTrending));
       const matchGov = leadGovFilter === 'all' || l.governorate === leadGovFilter;
 
       return matchSearch && matchStatus && matchInterest && matchGov;
@@ -145,7 +154,9 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
       phone: cleanPhone,
       governorate: newGovernorate,
       city: newCity.trim() || undefined,
-      interestLevel: newInterestLevel,
+      interestLevel: newIsTrending ? 'trending_free' : newInterestLevel,
+      isTrending: newIsTrending || undefined,
+      locationUrl: newLocationUrl.trim() || undefined,
       followUpDate: newFollowUpDate || undefined,
       notes: newNotes.trim() || undefined,
       createdDate: new Date().toISOString(),
@@ -165,22 +176,31 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     setNewPhone('');
     setNewCity('');
     setNewInterestLevel('medium');
+    setNewIsTrending(false);
+    setNewLocationUrl('');
     setNewNotes('');
     setFormError('');
   };
 
   // WhatsApp Message Generator (مختصرة، طبيعية، بدون طابع ترويجي مع توضيح الدفع بعد التوثيق)
-  const generateWhatsAppMessage = (lead: InterestedLead, type: 'intro' | 'followup' | 'offer') => {
-    const clientName = lead.clientName?.trim() || 'صاحب النشاط';
-    const bizTitle = lead.businessName?.trim() ? `نشاطكم (${lead.businessName.trim()})` : 'نشاطكم التجاري';
+  const generateWhatsAppMessage = (lead: InterestedLead, type: 'intro' | 'followup' | 'offer' | 'permission') => {
+    const clientName = lead.clientName?.trim() || 'صاحب المنشأة';
+    const bizTitle = lead.businessName?.trim() ? `منشأتكم (${lead.businessName.trim()})` : 'مكانكم';
+
+    if (type === 'permission' || (lead.isTrending && type === 'intro')) {
+      return generateTrendingVenuePermissionWhatsAppMessage({
+        clientName: lead.clientName,
+        businessName: lead.businessName,
+      });
+    }
 
     if (type === 'intro') {
       return `السلام عليكم ورحمة الله،
 أهلاً بحضرتك أستاذ ${clientName}، بخصوص ${bizTitle}:
 
-قام مندوبنا بزيارة المنطقة المتواجد بها نشاطكم وقام بعرض باقة التوثيق على سيادتكم (أو أحد العاملين بالمكان).
+قام مندوبنا بزيارة المنطقة المتواجد بها مكانكم وقام بعرض باقة التوثيق على سيادتكم (أو أحد العاملين بالمكان).
 
-الباقة تشمل تثبيت وتوثيق الموقع الجغرافي للنشاط بدقة على خرائط Google، وإضافة أرقام التواصل ومواعيد العمل والصور الرسمية، برسوم 250 جنيه (سداد لمرة واحدة بدون اشتراكات، ويمكن أن يتم السداد بعد إتمام التوثيق والظهور على الخريطة).
+الباقة تشمل تثبيت وتوثيق الموقع الجغرافي للمنشأة بدقة على خرائط Google، وإضافة أرقام التواصل ومواعيد العمل والصور الرسمية، برسوم 250 جنيه (سداد لمرة واحدة بدون اشتراكات، ويمكن أن يتم السداد بعد إتمام التوثيق والظهور على الخريطة).
 
 في حال رغبتكم في استكمال التوثيق أو وجود أي استفسار، يسعدنا تواصلكم معنا عبر هذه المحادثة.`;
     }
@@ -193,19 +213,27 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
     // Offer / Service details
     return `السلام عليكم ورحمة الله،
-توضيح لخدمات التوثيق المتاحة لنشاط ${bizTitle}:
+توضيح لخدمات التوثيق المتاحة لـ ${bizTitle}:
 
-1. باقة التوثيق الأساسي (250 ج): تثبيت وتوثيق النشاط على خرائط Google مع إضافة بيانات الاتصال ومواعيد العمل والصور (ويمكن السداد بعد إتمام التوثيق والظهور على الخريطة).
+1. باقة التوثيق الأساسي (250 ج): تثبيت وتوثيق المنشأة على خرائط Google مع إضافة بيانات الاتصال ومواعيد العمل والصور (ويمكن السداد بعد إتمام التوثيق والظهور على الخريطة).
 2. باقة التأسيس والربط (750 ج): توثيق الخريطة + تأسيس وتنسيق الصفحات وتصميم الإعلان ومتابعة مستمرة.
 
 متاحين لأي استفسار أو لترتيب موعد الزيارة والتنفيذ.`;
   };
 
-  const handleOpenWhatsApp = (lead: InterestedLead, type: 'intro' | 'followup' | 'offer') => {
-    const msg = generateWhatsAppMessage(lead, type);
-    const phoneClean = lead.phone.replace(/\D/g, '');
-    const internationalPhone = phoneClean.startsWith('0') ? `2${phoneClean}` : phoneClean;
-    const url = `https://wa.me/${internationalPhone}?text=${encodeURIComponent(msg)}`;
+  const handleOpenWhatsApp = (lead: InterestedLead, type: 'intro' | 'followup' | 'offer' | 'permission') => {
+    let url: string;
+    if (type === 'permission') {
+      url = getTrendingVenuePermissionWhatsAppUrl(lead.phone, {
+        clientName: lead.clientName,
+        businessName: lead.businessName,
+      });
+    } else {
+      const msg = generateWhatsAppMessage(lead, type);
+      const phoneClean = lead.phone.replace(/\D/g, '');
+      const internationalPhone = phoneClean.startsWith('0') ? `2${phoneClean}` : phoneClean;
+      url = `https://wa.me/${internationalPhone}?text=${encodeURIComponent(msg)}`;
+    }
     window.open(url, '_blank');
 
     // Update lead contact date
@@ -219,6 +247,13 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
   const getInterestBadge = (level: LeadInterestLevel) => {
     switch (level) {
+      case 'trending_free':
+        return (
+          <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-xs">
+            <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
+            <span>منشأة رائجة (إدراج مجاني) 🌟</span>
+          </span>
+        );
       case 'high':
         return (
           <span className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
@@ -376,6 +411,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
             className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 shadow-xs"
           >
             <option value="all">كل درجات الاهتمام</option>
+            <option value="trending_free">🌟 منشآت رائجة (إدراج مجاني)</option>
             <option value="high">🔥 مهتم جداً (أولوية قصوى)</option>
             <option value="medium">⏳ يحتاج تفكير ومتابعة</option>
             <option value="need_visit">📅 طلب زيارة ميدانية</option>
@@ -404,7 +440,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
               <UserCheck className="w-14 h-14 text-[var(--text-muted)] mx-auto opacity-30" />
               <h4 className="font-black text-sm text-[var(--text-secondary)]">لا توجد سجلات لأشخاص مهتمين حالياً</h4>
               <p className="text-xs text-[var(--text-muted)] font-bold max-w-md mx-auto leading-relaxed">
-                عند زيارتك الميدانية لمحل أو صاحب نشاط يرغب في التفكير أو المراسلة لاحقاً، اضغط على زر "تسجيل شخص مهتم جديد" لحفظ بياناته ومراجعته هنا.
+                عند زيارتك الميدانية لمحل أو صاحب منشأة يرغب في التفكير أو المراسلة لاحقاً، اضغط على زر "تسجيل شخص مهتم جديد" لحفظ بياناته ومراجعته هنا.
               </p>
               <button
                 type="button"
@@ -433,6 +469,12 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           {lead.businessName && (
                             <span className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold text-[11px] px-2 py-0.5 rounded-md border border-[var(--border-color)]">
                               {lead.businessName}
+                            </span>
+                          )}
+                          {(lead.isTrending || lead.interestLevel === 'trending_free') && (
+                            <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                              <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
+                              <span>منشأة رائجة (إدراج مجاني)</span>
                             </span>
                           )}
                         </div>
@@ -513,16 +555,42 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   {/* Action Buttons Toolbar */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)] text-xs">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* 1. Send WhatsApp Intro Button */}
-                      <button
-                        type="button"
-                        onClick={() => setWhatsAppModalLead(lead)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
-                        title="إرسال رسالة تعريفية أو عرض عبر واتساب"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                        <span>مراسلة واتساب</span>
-                      </button>
+                      {/* 1. Send WhatsApp Intro or Permission Button */}
+                      {lead.isTrending || lead.interestLevel === 'trending_free' ? (
+                        <a
+                          href={getTrendingVenuePermissionWhatsAppUrl(lead.phone, {
+                            clientName: lead.clientName,
+                            businessName: lead.businessName,
+                          })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => {
+                            onUpdateLead({
+                              ...lead,
+                              lastContactedDate: new Date().toISOString(),
+                              status: lead.status === 'pending_followup' ? 'contacted' : lead.status,
+                            });
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
+                          title="إرسال رسالة طلب السماح بالإدراج المجاني التام عبر واتساب"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>طلب سماح بالإدراج (واتساب) 🌟</span>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWhatsAppModalLead(lead);
+                            setCustomMsgType('intro');
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
+                          title="إرسال رسالة تعريفية أو عرض عبر واتساب"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>مراسلة واتساب</span>
+                        </button>
+                      )}
 
                       {/* 2. Direct Call */}
                       <a
@@ -548,11 +616,23 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                       <button
                         type="button"
                         onClick={() => onConvertToBusiness(lead)}
-                        className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-                        title="تحويل بيانات العميل فوراً إلى نموذج تسجيل نشاط جديد"
+                        className={`font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 ${
+                          lead.isTrending || lead.interestLevel === 'trending_free'
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
+                            : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950'
+                        }`}
+                        title={
+                          lead.isTrending || lead.interestLevel === 'trending_free'
+                            ? 'موافقة المنشأة: تحويل لإدراج شرفي مجاني بالدليل'
+                            : 'تحويل بيانات العميل فوراً إلى استكمال التسجيل'
+                        }
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>⭐ تحويل إلى نشاط مسجل</span>
+                        <span>
+                          {lead.isTrending || lead.interestLevel === 'trending_free'
+                            ? '⭐ موافقة العميل: تحويل لإدراج شرفي مجاني بالدليل'
+                            : '⭐ تحويل لتسجيل معتمد'}
+                        </span>
                       </button>
                     </div>
 
@@ -626,8 +706,57 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
               )}
 
               <form onSubmit={handleAddLeadSubmit} className="space-y-3">
+                {/* Mode Selector: Normal Lead vs Trending Free Directory */}
+                <div className="grid grid-cols-2 gap-2 bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--border-color)]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewIsTrending(false);
+                      if (newInterestLevel === 'trending_free') setNewInterestLevel('medium');
+                    }}
+                    className={`py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      !newIsTrending
+                        ? 'bg-amber-500 text-slate-950 shadow-md'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>عميل مهتم عادي</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewIsTrending(true);
+                      setNewInterestLevel('trending_free');
+                    }}
+                    className={`py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      newIsTrending
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>منشأة رائجة (إدراج مجاني) 🌟</span>
+                  </button>
+                </div>
+
+                {newIsTrending && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3 text-xs text-emerald-950 dark:text-emerald-200 space-y-1">
+                    <div className="font-black flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                      <Sparkles className="w-4 h-4 text-emerald-500" />
+                      <span>منشأة أكثر رواجاً بالمنطقة (طلب سماح بإدراج شرفي مجاني)</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                      يتم حفظ المنشأة في سجل المراجعات للتواصل وطلب الإذن بنشر المكان بالدليل مجاناً تماماً وبدون أي رسوم أو اشتراكات.
+                    </p>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم الشخص / صاحب النشاط *</label>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">
+                    {newIsTrending ? 'اسم المسؤول / صاحب المكان *' : 'اسم الشخص / صاحب المنشأة *'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -640,10 +769,11 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم النشاط / المحل (اختياري)</label>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم المكان / المحل *</label>
                     <input
                       type="text"
-                      placeholder="مثال: سوبر ماركت الأمل"
+                      required={newIsTrending}
+                      placeholder="مثال: مطعم أو كافيه أو متجر..."
                       value={newBizName}
                       onChange={(e) => setNewBizName(e.target.value)}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
@@ -696,9 +826,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     <label className="block font-bold mb-1 text-[var(--text-primary)]">درجة الاهتمام</label>
                     <select
                       value={newInterestLevel}
-                      onChange={(e) => setNewInterestLevel(e.target.value as LeadInterestLevel)}
+                      onChange={(e) => {
+                        const val = e.target.value as LeadInterestLevel;
+                        setNewInterestLevel(val);
+                        if (val === 'trending_free') setNewIsTrending(true);
+                      }}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
                     >
+                      <option value="trending_free">🌟 منشأة رائجة (طلب سماح بإدراج مجاني)</option>
                       <option value="high">🔥 مهتم جداً (أولوية عالية)</option>
                       <option value="medium">⏳ يحتاج تفكير ومتابعة</option>
                       <option value="need_visit">📅 طلب زيارة ميدانية قادمة</option>
@@ -717,6 +852,21 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     />
                   </div>
                 </div>
+
+                {newIsTrending && (
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">
+                      رابط خرائط Google للمنشأة أو موقعها (اختياري)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://maps.google.com/?q=..."
+                      value={newLocationUrl}
+                      onChange={(e) => setNewLocationUrl(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block font-bold mb-1 text-[var(--text-primary)]">ملاحظات المتابعة (اختياري)</label>
@@ -797,11 +947,17 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     <label className="block font-bold mb-1 text-[var(--text-primary)]">درجة الاهتمام</label>
                     <select
                       value={editingLead.interestLevel}
-                      onChange={(e) =>
-                        setEditingLead({ ...editingLead, interestLevel: e.target.value as LeadInterestLevel })
-                      }
+                      onChange={(e) => {
+                        const val = e.target.value as LeadInterestLevel;
+                        setEditingLead({
+                          ...editingLead,
+                          interestLevel: val,
+                          isTrending: val === 'trending_free' ? true : editingLead.isTrending,
+                        });
+                      }}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
                     >
+                      <option value="trending_free">🌟 منشأة رائجة (طلب سماح بإدراج مجاني)</option>
                       <option value="high">🔥 مهتم جداً</option>
                       <option value="medium">⏳ يحتاج تفكير ومتابعة</option>
                       <option value="need_visit">📅 طلب زيارة</option>
@@ -888,7 +1044,19 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
               {/* Message Template Chooser */}
               <div className="space-y-2">
                 <label className="block font-bold text-[var(--text-primary)]">اختر نموذج الرسالة الجاهزة:</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCustomMsgType('permission')}
+                    className={`p-2 rounded-xl border text-[11px] font-bold text-center transition-all cursor-pointer ${
+                      customMsgType === 'permission'
+                        ? 'bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border-amber-500 text-amber-700 dark:text-amber-300 shadow-sm'
+                        : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-amber-500/40'
+                    }`}
+                  >
+                    طلب سماح (مجاني) 🌟
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setCustomMsgType('intro')}

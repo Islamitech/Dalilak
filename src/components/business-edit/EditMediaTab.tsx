@@ -1,8 +1,9 @@
 import React from 'react';
-import { Business } from '../../types';
-import { UploadCloud, Film, Star, Check } from 'lucide-react';
+import { Business, AdminFollowUpCategory } from '../../types';
+import { UploadCloud, Film, Star, Check, ImageIcon } from 'lucide-react';
 import { VideoWatermarkBadge } from '../VideoWatermarkBadge';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
+import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 
 interface EditMediaTabProps {
   formData: Business;
@@ -17,6 +18,13 @@ interface EditMediaTabProps {
   handleSetPrimaryPhoto?: (idx: number) => void;
   handleReorderPhoto?: (fromIndex: number, toIndex: number) => void;
   canEdit?: boolean;
+  onSave?: (biz: Business) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<Business | null>>;
+  currentUserName?: string;
+  currentUserId?: string;
+  userRole?: string;
+  onOpenMasterDrawer?: (category?: AdminFollowUpCategory) => void;
+  onShowNotification?: (msg: string) => void;
 }
 
 export const EditMediaTab: React.FC<EditMediaTabProps> = ({
@@ -32,13 +40,20 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
   handleSetPrimaryPhoto,
   handleReorderPhoto,
   canEdit = true,
+  onSave,
+  setFormData,
+  currentUserName,
+  currentUserId,
+  userRole,
+  onOpenMasterDrawer,
+  onShowNotification,
 }) => {
   return (
     <div className="space-y-3.5 text-right">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
         <div>
           <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
-            معرض صور وفيديوهات النشاط ({totalMediaCount})
+            معرض صور وفيديوهات المكان ({totalMediaCount})
           </h4>
           <p className="text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
             تخزين نقي متوافق مع معايير Google مع شارة توثيق دليلك في الدليل
@@ -182,7 +197,7 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
         </div>
       ) : (
         <div className="border border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center text-xs text-[var(--text-muted)] font-bold">
-          لم يتم رفع صور لهذا النشاط بعد.
+          لم يتم رفع صور لهذا المكان بعد.
         </div>
       )}
 
@@ -215,6 +230,23 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
             ))}
           </div>
         </div>
+      )}
+
+      {/* ── CONTEXTUAL CRM FOLLOW-UP STRIP FOR MEDIA ── */}
+      {onSave && setFormData && (
+        <ContextualFollowUpStrip
+          category="media"
+          categoryLabel="الوسائط والصور والفيديو"
+          categoryIcon={<ImageIcon className="w-3.5 h-3.5 text-blue-500" />}
+          business={formData}
+          onSave={onSave}
+          setFormData={setFormData}
+          currentUserName={currentUserName}
+          currentUserId={currentUserId}
+          userRole={userRole}
+          onOpenMasterDrawer={onOpenMasterDrawer}
+          onShowNotification={onShowNotification}
+        />
       )}
     </div>
   );

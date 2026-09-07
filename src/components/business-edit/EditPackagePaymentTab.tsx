@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Business, AdditionalServiceInvoice } from '../../types';
+import { Business, AdditionalServiceInvoice, AdminFollowUpCategory } from '../../types';
 import { PACKAGES, EXEMPT_PACKAGE, ALREADY_ON_GOOGLE_PACKAGE } from '../../data/mockData';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { AdminReceiptModal } from '../admin/modals/AdminReceiptModal';
@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../ConfirmDialog';
 import { AddServiceInvoiceModal } from '../modals/AddServiceInvoiceModal';
 import { getAdditionalInvoiceWhatsAppUrl, getConsolidatedCollectionWhatsAppUrl } from '../../utils/whatsappMessages';
 import { formatStandardDateTime } from '../../utils/dateFormatters';
+import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 import {
   ShieldCheck,
   Sparkles,
@@ -55,7 +56,11 @@ interface EditPackagePaymentTabProps {
   copiedField?: string | null;
   handleCopyText?: (text: string, fieldName: string) => void;
   currentUserName?: string;
+  currentUserId?: string;
   currentUserRole?: string;
+  onSave?: (biz: Business) => void;
+  onOpenMasterDrawer?: (category?: AdminFollowUpCategory) => void;
+  onShowNotification?: (msg: string) => void;
 }
 
 export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
@@ -73,7 +78,11 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
   copiedField,
   handleCopyText,
   currentUserName,
+  currentUserId,
   currentUserRole,
+  onSave,
+  onOpenMasterDrawer,
+  onShowNotification,
 }) => {
   const [showAddInvoiceModal, setShowAddInvoiceModal] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<AdditionalServiceInvoice | null>(null);
@@ -1021,6 +1030,23 @@ export const EditPackagePaymentTab: React.FC<EditPackagePaymentTabProps> = ({
         }}
         onCancel={() => setShowConfirmRemoveReceipt(false)}
       />
+
+      {/* ── CONTEXTUAL CRM FOLLOW-UP STRIP FOR FINANCE ── */}
+      {onSave && (
+        <ContextualFollowUpStrip
+          category="finance"
+          categoryLabel="الحسابات والمالية والفواتير"
+          categoryIcon={<DollarSign className="w-3.5 h-3.5 text-amber-500" />}
+          business={formData}
+          onSave={onSave}
+          setFormData={setFormData}
+          currentUserName={currentUserName}
+          currentUserId={currentUserId}
+          userRole={currentUserRole}
+          onOpenMasterDrawer={onOpenMasterDrawer}
+          onShowNotification={onShowNotification}
+        />
+      )}
     </div>
   );
 };

@@ -109,7 +109,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEditAccount) {
-      alert('⛔ حساب الإدارة العليا محمي بالكامل ولا يمكن تعديله إلا من خلال صاحبه مباشرة.');
+      alert('⛔ ليس لديك صلاحية تعديل هذا الحساب وفق هرمية الصلاحيات وسيادة النظام.');
       return;
     }
     if (!modalName.trim()) return;
@@ -181,7 +181,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
   const progressPct = target > 0 ? Math.min(100, (bizCount / target) * 100) : 0;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <form
         onSubmit={handleSave}
         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 max-h-[95vh] overflow-y-auto"
@@ -575,7 +575,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                   نوع وتصنيف الحساب والصلاحية *
                 </label>
                 <select
-                  disabled={!canChangeRoles || (isTargetSuperAdmin && !isActorSuperAdmin)}
+                  disabled={!canChangeRoles || (editingRep ? !canEditAccount : false) || (isTargetSuperAdmin && !isActorSuperAdmin)}
                   value={modalRole}
                   onChange={(e) => {
                     const newRole = e.target.value as UserRole;
@@ -586,7 +586,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                     else setModalRoleTitle('مندوب مبيعات ميداني');
                   }}
                   className={`w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-extrabold text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer ${
-                    (!canChangeRoles || (isTargetSuperAdmin && !isActorSuperAdmin)) ? 'opacity-60 cursor-not-allowed' : ''
+                    (!canChangeRoles || (editingRep ? !canEditAccount : false) || (isTargetSuperAdmin && !isActorSuperAdmin)) ? 'opacity-60 cursor-not-allowed' : ''
                   }`}
                 >
                   <option value="rep">💼 مندوب مبيعات ميداني (تسجيل المحلات والتحصيل)</option>
@@ -596,7 +596,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                 </select>
                 {!canChangeRoles && (
                   <span className="text-[10.5px] text-slate-500 block mt-1 font-medium">
-                    تعديل الصلاحيات والرتب مقتصر حصرياً على الإدارة العليا.
+                    تعديل الصلاحيات والرتب مقتصر حصرياً على مدير النظام والإدارة العليا.
                   </span>
                 )}
               </div>
@@ -793,7 +793,10 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
             </button>
             <button
               type="submit"
-              className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black px-6 py-2.5 rounded-xl shadow-lg cursor-pointer transition-transform active:scale-95"
+              disabled={editingRep ? !canEditAccount : false}
+              className={`bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black px-6 py-2.5 rounded-xl shadow-lg cursor-pointer transition-transform active:scale-95 ${
+                editingRep && !canEditAccount ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {editingRep ? 'حفظ التعديلات' : 'إنشاء وتفعيل الحساب'}
             </button>

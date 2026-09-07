@@ -29,6 +29,8 @@ import {
   generateGoogleMapsVerifiedWhatsAppMessage,
   getGoogleVerificationOtpWhatsAppUrl,
   generateGoogleVerificationOtpWhatsAppMessage,
+  getGoogleOtpSentAlertWhatsAppUrl,
+  generateGoogleOtpSentAlertWhatsAppMessage,
 } from '../utils/whatsappMessages';
 import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 import { fetchBusinessPhotosOnDemand } from '../services/db';
@@ -38,7 +40,7 @@ interface GoogleMapsSyncModalProps {
   business: Business;
   isOpen: boolean;
   onClose: () => void;
-  onUpdateBusiness?: (updatedBusiness: Business) => void;
+  onUpdateBusiness: (updatedBusiness: Business) => void;
 }
 
 export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
@@ -47,6 +49,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   onClose,
   onUpdateBusiness,
 }) => {
+  type GoogleSyncMode = 'not_synced' | 'in_progress' | 'synced';
+
   const [activeTab, setActiveTab] = useState<'data_upload' | 'verification_confirm' | 'share_invoice'>('data_upload');
   const [finalMapUrl, setFinalMapUrl] = useState<string>(business.googleMapsUrl || '');
   const [verifiedAddress, setVerifiedAddress] = useState<string>(
@@ -55,10 +59,19 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
-  const [currentStatus, setCurrentStatus] = useState<VerificationStatus>(business.verificationStatus || 'pending');
+  const [currentStatus, setCurrentStatus] = useState<GoogleSyncMode>(() => {
+    const hasMap = Boolean(
+      business.googleMapsUrl &&
+      business.googleMapsUrl.trim().startsWith('http') &&
+      !business.googleMapsUrl.includes('search/?api=1&query=')
+    );
+    if (hasMap || business.googleSyncStatus === 'synced') return 'synced';
+    if (business.googleSyncStatus === 'in_progress') return 'in_progress';
+    return 'not_synced';
+  });
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const [modalPhotos, setModalPhotos] = useState<string[]>(business.photos || []);
-  const [expandedOtpPreview, setExpandedOtpPreview] = useState<boolean>(false);
+  const [expandedOtpPreview, setExpandedOtpPreview] = useState<'step1' | 'step2' | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -77,7 +90,18 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setCurrentStatus(business.verificationStatus || 'pending');
+      const hasMap = Boolean(
+        business.googleMapsUrl &&
+        business.googleMapsUrl.trim().startsWith('http') &&
+        !business.googleMapsUrl.includes('search/?api=1&query=')
+      );
+      const initialGStatus: GoogleSyncMode =
+        hasMap || business.googleSyncStatus === 'synced'
+          ? 'synced'
+          : business.googleSyncStatus === 'in_progress'
+          ? 'in_progress'
+          : 'not_synced';
+      setCurrentStatus(initialGStatus);
       setFinalMapUrl(business.googleMapsUrl || '');
       setVerifiedAddress(
         business.street && !business.street.includes('الموقع الجغرافي المسجل') ? business.street : ''
@@ -139,31 +163,28 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     return trimmed;
   };
 
-  const handleSaveVerification = (targetStatus?: VerificationStatus) => {
-    const newStatus = targetStatus || currentStatus;
+  const handleSaveVerification = (targetStatus?: GoogleSyncMode) => {
+    const newStatus: GoogleSyncMode = targetStatus || currentStatus;
+    const cleanVerifiedUrl = formatValidGoogleMapsUrl(finalMapUrl);
 
-    if (newStatus === 'verified' && finalMapUrl && isRawCoordinatesUrl(finalMapUrl)) {
-      setStatusFeedback('🚨 تنبيه أمان: الرابط المدخل إحداثيات موقع ميداني (GPS) وليس رابط نشاط معتمد من خرائط Google. يُرجى إدخال رابط المكان الرسمي.');
-      setTimeout(() => setStatusFeedback(null), 5000);
-      return;
+    // صمام أمان التوثيق الحقيقي: منع تعيين "موثقة برابط خرائط Google" بدون رابط معتمد حقيقي
+    if (newStatus === 'synced') {
+      if (!cleanVerifiedUrl || isRawCoordinatesUrl(finalMapUrl)) {
+        setStatusFeedback('⚠️ تنبيه أمان: لا يمكن تعيين الحالة "موثقة برابط خرائط Google" إلا بإدخال رابط معتمد وصحيح من الخريطة (وليس إحداثيات GPS خام).');
+        setTimeout(() => setStatusFeedback(null), 5000);
+        return;
+      }
     }
-
-    let gStatus: 'synced' | 'in_progress' | 'not_synced' | 'failed' = 'not_synced';
-    if (newStatus === 'verified') gStatus = 'synced';
-    else if (newStatus === 'in_progress') gStatus = 'in_progress';
-    else if (newStatus === 'pending') gStatus = 'not_synced';
-    else if (newStatus === 'rejected') gStatus = 'failed';
-
-    const cleanVerifiedUrl = formatValidGoogleMapsUrl(finalMapUrl) || (newStatus === 'verified' ? business.googleMapsUrl : undefined);
 
     const updated: Business = {
       ...business,
       repLocationUrl: business.repLocationUrl || repFieldMapUrl || undefined,
-      googleMapsUrl: cleanVerifiedUrl,
+      googleMapsUrl: newStatus === 'synced' ? (cleanVerifiedUrl || business.googleMapsUrl) : cleanVerifiedUrl,
       street: verifiedAddress.trim() || business.street,
-      verificationStatus: newStatus,
-      googleSyncStatus: gStatus,
-      googleSyncDate: newStatus === 'verified' ? (business.googleSyncDate || new Date().toISOString().split('T')[0]) : business.googleSyncDate,
+      // 🔐 الفصل المعماري التام: حفظ حالة الدليل العام كما هي تماماً دون أي مساس بها
+      verificationStatus: business.verificationStatus,
+      googleSyncStatus: newStatus,
+      googleSyncDate: newStatus === 'synced' ? (business.googleSyncDate || new Date().toISOString().split('T')[0]) : business.googleSyncDate,
     };
 
     setCurrentStatus(newStatus);
@@ -172,11 +193,10 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
     }
 
     const label = 
-      newStatus === 'verified' ? '🟢 موثق ومعتمد رسمياً على الخريطة' : 
-      newStatus === 'in_progress' ? '⏳ أُرسلت للمراجعة' : 
-      newStatus === 'rejected' ? '🔴 مرفوض' : '🚨 لم تُرفع بعد';
+      newStatus === 'synced' ? '✅ موثقة برابط خرائط Google' : 
+      newStatus === 'in_progress' ? '⌛ قيد مراجعة جوجل' : '🚨 لم تُرفع لخرائط Google';
 
-    setStatusFeedback(`تم حفظ وتحديث بيانات النشاط بنجاح (${label})`);
+    setStatusFeedback(`تم حفظ وتحديث بيانات المكان بنجاح (${label})`);
     setTimeout(() => setStatusFeedback(null), 3500);
   };
 
@@ -184,9 +204,9 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const targetAddress = verifiedAddress.trim() || business.street || (business.city ? `${business.city} (${business.governorate})` : business.governorate);
 
   const allDetailsText = 
-    `ملخص بيانات النشاط للتوثيق على خرائط Google:\n` +
+    `ملخص بيانات المكان للتوثيق على خرائط Google:\n` +
     `-----------------------------------------\n` +
-    `اسم النشاط: ${business.nameAr}\n` +
+    `اسم المكان: ${business.nameAr}\n` +
     `التصنيف: ${business.category}\n` +
     `العنوان: ${targetAddress}\n` +
     `أوقات العمل: ${business.workingHours || 'يومياً'}\n` +
@@ -240,32 +260,27 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 </span>
               </div>
               <span className="text-[11px] text-[var(--text-muted)] font-bold mt-1 block">
-                مساعد التوثيق ونقل النشاط على خرائط Google 🗺️
+                مساعد التوثيق ونقل المكان على خرائط Google 🗺️
               </span>
             </div>
           </div>
 
           {/* Current Status Pill */}
           <div className="hidden sm:block shrink-0">
-            {currentStatus === 'verified' ? (
+            {currentStatus === 'synced' ? (
               <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>موثق ومعتمد ✅</span>
+                <span>موثقة بالرابط ✅</span>
               </span>
             ) : currentStatus === 'in_progress' ? (
-              <span className="inline-flex items-center gap-1.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-black">
+              <span className="inline-flex items-center gap-1.5 bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <Clock className="w-3.5 h-3.5" />
-                <span>أُرسلت للمراجعة ⏳</span>
-              </span>
-            ) : currentStatus === 'rejected' ? (
-              <span className="inline-flex items-center gap-1.5 bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 px-3 py-1 rounded-full text-xs font-black">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>مرفوض 🔴</span>
+                <span>قيد مراجعة جوجل ⌛</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30 px-3 py-1 rounded-full text-xs font-black">
+              <span className="inline-flex items-center gap-1.5 bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span>لم تُرفع بعد 🚨</span>
+                <span>لم تُرفع لخرائط Google 🚨</span>
               </span>
             )}
           </div>
@@ -328,11 +343,11 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-101 active:scale-98 cursor-pointer text-xs sm:text-sm"
             >
               {copiedKey === 'all' ? <Check className="w-4 h-4 text-slate-950 stroke-[3]" /> : <Copy className="w-4 h-4" />}
-              <span>{copiedKey === 'all' ? 'تم نسخ جميع بيانات النشاط بنجاح!' : 'نسخ جميع بيانات النشاط كنص كامل بنقرة واحدة 📋'}</span>
+              <span>{copiedKey === 'all' ? 'تم نسخ جميع بيانات المكان بنجاح!' : 'نسخ جميع بيانات المكان كنص كامل بنقرة واحدة 📋'}</span>
             </button>
 
-            {/* ── 🔑 GOOGLE VERIFICATION OTP REQUEST CARD ── */}
-            <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-blue-950/40 border border-blue-500/40 rounded-2xl p-3 space-y-2.5 shadow-sm">
+            {/* ── 🔑 GOOGLE VERIFICATION OTP WORKFLOW (2 STEPS) ── */}
+            <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-blue-950/40 border border-blue-500/40 rounded-2xl p-3.5 space-y-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
@@ -340,10 +355,10 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   </div>
                   <div>
                     <h4 className="font-black text-xs text-[var(--text-primary)]">
-                      طلب كود التحقق السريع من Google (SMS OTP) 🔑
+                      مسار كود التحقق من Google (خطوتان بتنسيق ودي احترافي) 🔑
                     </h4>
                     <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                      تنبيه صاحب النشاط بوصول رسالة SMS من Google بكود 6 أرقام لتزويدك به فوراً
+                      خطوة 1: استئذان وتنسيق مسبق (طلب متاح) 🤝 ⟵ خطوة 2: إشعار فوري لحظة طلب الكود 📲
                     </p>
                   </div>
                 </div>
@@ -352,42 +367,91 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 </span>
               </div>
 
+              {/* Preview Box if opened */}
               {expandedOtpPreview && (
                 <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-blue-500/30 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
-                  {generateGoogleVerificationOtpWhatsAppMessage(business)}
+                  {expandedOtpPreview === 'step1'
+                    ? generateGoogleVerificationOtpWhatsAppMessage(business)
+                    : generateGoogleOtpSentAlertWhatsAppMessage(business)}
                 </div>
               )}
 
-              <div className="flex items-center gap-1.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => setExpandedOtpPreview(!expandedOtpPreview)}
-                  className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-                  title="معاينة نص الرسالة"
-                >
-                  {expandedOtpPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  <span className="text-[10px] hidden sm:inline">{expandedOtpPreview ? 'إخفاء' : 'معاينة'}</span>
-                </button>
+              {/* STEP 1: PRE-COORDINATION */}
+              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-black text-blue-400">
+                  <span>الخطوة 1: استئذان وتنسيق مسبق (التأكد من التواجد) 🤝</span>
+                  <span className="text-[10px] text-blue-300 font-bold">قبل الضغط على إرسال SMS</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedOtpPreview(expandedOtpPreview === 'step1' ? null : 'step1')}
+                    className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                    title="معاينة نص الاستئذان"
+                  >
+                    {expandedOtpPreview === 'step1' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span className="text-[10px] hidden sm:inline">{expandedOtpPreview === 'step1' ? 'إخفاء' : 'معاينة'}</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(generateGoogleVerificationOtpWhatsAppMessage(business), 'otp_msg')}
-                  className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1 shrink-0"
-                  title="نسخ نص رسالة الكود"
-                >
-                  {copiedKey === 'otp_msg' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-400" />}
-                  <span className="text-[10px]">{copiedKey === 'otp_msg' ? 'تم النسخ!' : 'نسخ النص'}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(generateGoogleVerificationOtpWhatsAppMessage(business), 'otp_step1')}
+                    className="bg-[var(--bg-card)] hover:bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                    title="نسخ نص الاستئذان"
+                  >
+                    {copiedKey === 'otp_step1' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-blue-400" />}
+                    <span className="text-[10px]">{copiedKey === 'otp_step1' ? 'تم النسخ!' : 'نسخ'}</span>
+                  </button>
 
-                <a
-                  href={getGoogleVerificationOtpWhatsAppUrl(business)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-98 text-center"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 fill-white/20" />
-                  <span>طلب الكود عبر WhatsApp 💬</span>
-                </a>
+                  <a
+                    href={getGoogleVerificationOtpWhatsAppUrl(business)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-98 text-center"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 fill-white/20" />
+                    <span>1. استئذان (متاح؟) 🤝</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* STEP 2: INSTANT ALERT UPON OTP DISPATCH */}
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-black text-amber-400">
+                  <span>الخطوة 2: إشعار فوري بعد إرسال كود Google مباشرة 📲</span>
+                  <span className="text-[10px] text-amber-300 font-bold">بمجرد الضغط على إرسال SMS</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedOtpPreview(expandedOtpPreview === 'step2' ? null : 'step2')}
+                    className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                    title="معاينة إشعار الكود"
+                  >
+                    {expandedOtpPreview === 'step2' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span className="text-[10px] hidden sm:inline">{expandedOtpPreview === 'step2' ? 'إخفاء' : 'معاينة'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(generateGoogleOtpSentAlertWhatsAppMessage(business), 'otp_step2')}
+                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                    title="نسخ نص الإشعار الفوري"
+                  >
+                    {copiedKey === 'otp_step2' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-400" />}
+                    <span className="text-[10px]">{copiedKey === 'otp_step2' ? 'تم النسخ!' : 'نسخ'}</span>
+                  </button>
+
+                  <a
+                    href={getGoogleOtpSentAlertWhatsAppUrl(business)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-98 text-center"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>2. تم طلب الكود (يرجى إرساله فوراً) 📲</span>
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -538,14 +602,14 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             {/* Status Selector Pills */}
             <div className="space-y-1.5">
               <label className="block text-xs font-black text-[var(--text-primary)]">
-                1. تحديد وتثبيت حالة التوثيق في المنظومة:
+                1. تحديد وتثبيت حالة توثيق خرائط Google:
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setCurrentStatus('pending')}
+                  onClick={() => setCurrentStatus('not_synced')}
                   className={`py-2.5 px-2 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
-                    currentStatus === 'pending'
+                    currentStatus === 'not_synced'
                       ? 'bg-rose-500 text-white border-rose-600 shadow-md scale-102 ring-2 ring-rose-400/40'
                       : 'bg-[var(--bg-card)] text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'
                   }`}
@@ -559,25 +623,34 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   onClick={() => setCurrentStatus('in_progress')}
                   className={`py-2.5 px-2 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                     currentStatus === 'in_progress'
-                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-md scale-102 ring-2 ring-amber-400/40'
-                      : 'bg-[var(--bg-card)] text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10'
+                      ? 'bg-purple-500 text-white border-purple-600 shadow-md scale-102 ring-2 ring-purple-400/40'
+                      : 'bg-[var(--bg-card)] text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10'
                   }`}
                 >
                   <Clock className="w-3.5 h-3.5 shrink-0" />
-                  <span>أُرسلت للمراجعة ⏳</span>
+                  <span>قيد مراجعة جوجل ⌛</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setCurrentStatus('verified')}
+                  onClick={() => {
+                    const validUrl = formatValidGoogleMapsUrl(finalMapUrl);
+                    if (!validUrl || isRawCoordinatesUrl(finalMapUrl)) {
+                      setStatusFeedback('⚠️ يتطلب إدخال رابط معتمد وصحيح من خرائط Google أولاً لتفعيل حالة التوثيق.');
+                      setTimeout(() => setStatusFeedback(null), 4000);
+                      return;
+                    }
+                    setCurrentStatus('synced');
+                  }}
                   className={`py-2.5 px-2 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
-                    currentStatus === 'verified'
+                    currentStatus === 'synced'
                       ? 'bg-emerald-600 text-white border-emerald-700 shadow-md scale-102 ring-2 ring-emerald-400/40'
                       : 'bg-[var(--bg-card)] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'
                   }`}
+                  title={!formatValidGoogleMapsUrl(finalMapUrl) ? 'يرجى إدخال رابط الخريطة المعتمد أولاً' : 'موثقة برابط خرائط Google'}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>موثق ومعتمد ✅</span>
+                  <span>موثقة بالرابط ✅</span>
                 </button>
               </div>
             </div>
@@ -587,7 +660,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-black text-[var(--text-primary)]">
-                    2. رابط النشاط المباشر الصادر من خرائط Google:
+                    2. رابط المكان المباشر الصادر من خرائط Google:
                   </label>
                   {finalMapUrl && (
                     <a
@@ -613,7 +686,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2 rounded-xl text-[10.5px] font-bold flex items-start gap-1.5 mt-1.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
-                      ⚠️ تنبيه: هذا الرابط عبارة عن إحداثيات موقع ميداني (GPS) وليس رابط نشاط معتمد من خرائط Google. يُرجى استخدام رابط النشاط الرسمي (مثل maps.app.goo.gl أو رابط صفحة المكان على الخريطة).
+                      ⚠️ تنبيه: هذا الرابط عبارة عن إحداثيات موقع ميداني (GPS) وليس رابطاً معتمداً من خرائط Google. يُرجى استخدام رابط المكان الرسمي على الخريطة (مثل maps.app.goo.gl أو صفحة المكان).
                     </span>
                   </div>
                 )}
@@ -644,7 +717,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             </button>
 
             {/* Direct WhatsApp Verification Message Dispatch Button */}
-            {currentStatus === 'verified' ? (
+            {currentStatus === 'synced' ? (
               <a
                 href={`https://wa.me/${targetWaPhone}?text=${verificationWhatsAppMessage}`}
                 target="_blank"
@@ -655,23 +728,34 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 <span>إرسال رسالة التوثيق والموقع المفعل للعميل عبر WhatsApp 💬</span>
               </a>
             ) : (
-              <a
-                href={getGoogleVerificationOtpWhatsAppUrl(business)}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
-              >
-                <KeyRound className="w-4 h-4" />
-                <span>طلب كود التحقق من Google (SMS OTP) من العميل عبر WhatsApp 💬</span>
-              </a>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <a
+                  href={getGoogleVerificationOtpWhatsAppUrl(business)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 text-white font-black text-xs sm:text-sm py-3 px-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>1. تنسيق مسبق (طلب متاح 🤝)</span>
+                </a>
+                <a
+                  href={getGoogleOtpSentAlertWhatsAppUrl(business)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 text-white font-black text-xs sm:text-sm py-3 px-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>2. تم طلب الكود (الكود وصل 📲)</span>
+                </a>
+              </div>
             )}
 
             {/* Warning when verified but unpaid balance remains */}
-            {currentStatus === 'verified' && remainingBalance > 0 && (
+            {currentStatus === 'synced' && remainingBalance > 0 && (
               <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex items-center gap-2.5 text-xs text-amber-700 dark:text-amber-300">
                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                 <span className="font-bold">
-                  تنبيه مالي: النشاط موثق رسمياً ولكن متبقي عليه مبلغ تحصيل بقيمة <strong className="font-mono font-black">{remainingBalance.toLocaleString()} ج.م</strong>.
+                  تنبيه مالي: المكان موثق رسمياً ولكن متبقي عليه مبلغ تحصيل بقيمة <strong className="font-mono font-black">{remainingBalance.toLocaleString()} ج.م</strong>.
                 </span>
               </div>
             )}

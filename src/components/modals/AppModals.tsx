@@ -224,8 +224,8 @@ export const AppModals: React.FC<AppModalsProps> = ({
         />
       )}
 
-      {/* MODAL: ADMIN & USER PROFILE / AVATAR MODAL */}
-      {showAdminProfileModal && user && user.role === 'admin' && (
+      {/* MODAL: UNIFIED USER PROFILE / AVATAR MODAL */}
+      {showAdminProfileModal && user && (
         <Suspense fallback={null}>
           <AdminProfileModal
             user={user}

@@ -15,7 +15,9 @@ import {
   ChevronUp,
   ChevronDown,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
+import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsappMessages';
 
 interface InterestedLeadSectionProps {
   currentRep?: Representative | null;
@@ -33,6 +35,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   const [leadCity, setLeadCity] = useState<string>('');
   const [leadStreet, setLeadStreet] = useState<string>('');
   const [isSavingLead, setIsSavingLead] = useState<boolean>(false);
+  const [isTrendingLead, setIsTrendingLead] = useState<boolean>(false);
   const [leadInterest, setLeadInterest] = useState<LeadInterestLevel>('medium');
   const [leadFollowDate, setLeadFollowDate] = useState<string>(
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -156,7 +159,8 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         lat: hasLeadLocation ? leadLat : undefined,
         lng: hasLeadLocation ? leadLng : undefined,
         locationUrl: locationMapUrl,
-        interestLevel: leadInterest,
+        interestLevel: isTrendingLead ? 'trending_free' : leadInterest,
+        isTrending: isTrendingLead,
         followUpDate: leadFollowDate || undefined,
         notes: combinedNotes,
         createdDate: new Date().toISOString(),
@@ -171,7 +175,11 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         await saveLeadToDb(lead);
       }
 
-      setLeadSuccessMsg(`✅ تم حفظ بيانات العميل "${lead.clientName}" بنجاح في مركز المراجعات والمتابعة!`);
+      setLeadSuccessMsg(
+        isTrendingLead
+          ? `🌟 تم حفظ المنشأة الرائجة "${lead.businessName || lead.clientName}" بنجاح في سجل المراجعات (جاهزة للاستئذان عبر واتساب)!`
+          : `✅ تم حفظ بيانات العميل "${lead.clientName}" بنجاح في مركز المراجعات والمتابعة!`
+      );
       setLeadClientName('');
       setLeadBizName('');
       setLeadPhone('');
@@ -190,25 +198,100 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl animate-fade-in text-right">
+    <div className={`border-2 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl animate-fade-in text-right transition-all duration-300 ${
+      isTrendingLead
+        ? 'bg-gradient-to-br from-amber-500/10 via-[var(--bg-card)] to-yellow-500/10 border-amber-500/50 shadow-amber-500/10'
+        : 'bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-emerald-500/40'
+    }`}>
       <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
-        <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold shrink-0">
-          <UserCheck className="w-5 h-5" />
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${
+          isTrendingLead ? 'bg-amber-500/20 text-amber-500' : 'bg-emerald-500/20 text-emerald-500'
+        }`}>
+          {isTrendingLead ? <Sparkles className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
         </div>
         <div>
           <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
-            تسجيل بيانات عميل مهتم / زيارة ميدانية للمتابعة
+            {isTrendingLead ? 'استقطاب منشأة رائجة (طلب سماح وإدراج مجاني)' : 'تسجيل بيانات عميل مهتم / زيارة ميدانية للمتابعة'}
           </h3>
           <p className="text-[11px] text-[var(--text-muted)] font-bold">
-            سجّل بيانات النشاط وصاحب المحل لحفظه ومتابعته والتواصل معه لاحقاً
+            {isTrendingLead
+              ? 'تسجيل الأماكن الأكثر رواجاً وشهرة لطلب الإذن بعرضها مجاناً في الدليل بدون أي اشتراكات'
+              : 'سجّل بيانات المنشأة وصاحب المكان لحفظه ومتابعته والتواصل معه لاحقاً'}
           </p>
         </div>
       </div>
 
+      {/* 🌟 Lead Classification: Standard Lead vs. Trending Free Listing */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--border-color)]">
+        <button
+          type="button"
+          onClick={() => {
+            setIsTrendingLead(false);
+            setLeadInterest('medium');
+            triggerHaptic('light');
+          }}
+          className={`p-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+            !isTrendingLead
+              ? 'bg-[var(--bg-card)] text-[var(--text-primary)] border-emerald-500 shadow-sm'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <UserCheck className="w-4 h-4 text-emerald-500" />
+          <span>💼 عميل مهتم عادي (متابعة بيعية)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsTrendingLead(true);
+            setLeadInterest('trending_free');
+            if (!leadNotes.trim()) {
+              setLeadNotes('منشأة مميزة رائجة بالمنطقة - مرشحة للإدراج الشرفي المجاني بدون رسوم');
+            }
+            triggerHaptic('medium');
+          }}
+          className={`p-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+            isTrendingLead
+              ? 'bg-gradient-to-r from-amber-500/25 via-yellow-500/25 to-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-500 shadow-md scale-[1.01]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-amber-500'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-500" />
+          <span>🌟 منشأة رائجة (طلب سماح بإدراج مجاني)</span>
+        </button>
+      </div>
+
+      {isTrendingLead && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border-2 border-amber-500/40 p-3.5 rounded-2xl space-y-2.5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>ميزة استقطاب المنشآت الأكثر رواجاً (إدراج مجاني 0 ج.م)</span>
+            </span>
+            <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-black border border-amber-500/30">
+              طلب السماح أولاً
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
+            يتم حفظ المكان في «مركز المراجعات والمهتمين» دون إدراجه كنشاط تجاري مسجل، لتتمكن من إرسال رسالة الاستئذان المعتمدة. وعند موافقة صاحب المكان، يُحول فورياً للمنظومة بضغطة زر واحدة مجاناً تماماً.
+          </p>
+          {leadPhone.trim().length >= 10 && (
+            <a
+              href={getTrendingVenuePermissionWhatsAppUrl(leadPhone, { clientName: leadClientName, businessName: leadBizName })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-3 rounded-xl shadow-md transition-transform active:scale-95 text-xs cursor-pointer"
+            >
+              <span>📲 إرسال رسالة طلب السماح للمنشأة الرائجة عبر واتساب فوراً</span>
+            </a>
+          )}
+        </div>
+      )}
+
       {leadSuccessMsg && (
         <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-          <span>{leadSuccessMsg} (تم حفظ العميل في سجل المراجعات)</span>
+          <span>{leadSuccessMsg}</span>
         </div>
       )}
 
@@ -216,7 +299,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block font-bold mb-1 text-[var(--text-primary)]">
-              اسم صاحب النشاط / العميل *
+              {isTrendingLead ? 'اسم المسؤول / صاحب المكان *' : 'اسم صاحب المكان / العميل *'}
             </label>
             <input
               type="text"
@@ -229,11 +312,11 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
 
           <div>
             <label className="block font-bold mb-1 text-[var(--text-primary)]">
-              اسم المحل / النشاط التجاري
+              اسم المنشأة / المكان التجاري
             </label>
             <input
               type="text"
-              placeholder="مثال: سوبر ماركت البركة"
+              placeholder="مثال: مطعم أو كافيه الأصيل"
               value={leadBizName}
               onChange={(e) => setLeadBizName(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500"
@@ -453,14 +536,20 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
           type="button"
           onClick={handleSaveLeadSubmit}
           disabled={isSavingLead}
-          className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-sm py-3.5 px-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          className={`w-full font-black text-sm py-3.5 px-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer ${
+            isTrendingLead
+              ? 'bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-amber-500/20 text-slate-950'
+              : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 shadow-emerald-500/20 text-white'
+          }`}
         >
           {isSavingLead ? (
             <Loader2 className="w-5 h-5 animate-spin" />
+          ) : isTrendingLead ? (
+            <Sparkles className="w-5 h-5 stroke-[2.5]" />
           ) : (
             <UserCheck className="w-5 h-5" />
           )}
-          <span>حفظ العميل في سجل المراجعات والمتابعة 📋</span>
+          <span>{isTrendingLead ? 'حفظ المنشأة الرائجة في سجل المراجعات 🌟' : 'حفظ العميل في سجل المراجعات والمتابعة 📋'}</span>
         </button>
       </div>
     </div>

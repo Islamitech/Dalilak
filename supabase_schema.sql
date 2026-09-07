@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     description TEXT,
     lat DOUBLE PRECISION NOT NULL DEFAULT 30.0444,
     lng DOUBLE PRECISION NOT NULL DEFAULT 31.2357,
-    owner_name TEXT DEFAULT 'صاحب النشاط',
+    owner_name TEXT DEFAULT 'صاحب المكان',
     owner_phone TEXT,
     owner_email TEXT,
     national_id TEXT,
@@ -70,6 +70,19 @@ ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_fee_exempt BOOLEAN DEF
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS fee_exemption_reason TEXT;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_already_on_google BOOLEAN DEFAULT false;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS registration_type TEXT DEFAULT 'new_verification';
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS deleted_by_role TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS deleted_reason TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS cover_photo TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS payment_receipt_photo TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS payment_receipt_date TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS google_rating_enabled BOOLEAN DEFAULT false;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS google_rating NUMERIC;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS google_reviews_count INTEGER DEFAULT 0;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS favorite_count INTEGER DEFAULT 0;
 
 -- =============================================================================
 -- 2. TABLE: representatives (المناديب والمشرفين والمحاسبين والإدارة)
@@ -121,6 +134,10 @@ ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS admin_bypass_referra
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS referral_reward_granted BOOLEAN DEFAULT false;
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS active_session_id TEXT;
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS last_active_timestamp BIGINT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS deleted_by_role TEXT;
 ALTER TABLE public.representatives ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- =============================================================================
@@ -157,7 +174,15 @@ CREATE TABLE IF NOT EXISTS public.leads (
     secondary_phone TEXT,
     governorate TEXT DEFAULT 'القاهرة',
     city TEXT DEFAULT 'القاهرة',
+    street TEXT,
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION,
+    location_url TEXT,
     interest_level TEXT DEFAULT 'medium',
+    is_trending BOOLEAN DEFAULT false,
+    admin_follow_ups JSONB DEFAULT '[]'::jsonb,
+    is_deleted BOOLEAN DEFAULT false,
+    deleted_at TIMESTAMPTZ,
     notes TEXT,
     follow_up_date TEXT,
     rep_id TEXT DEFAULT 'rep_1',
@@ -167,6 +192,16 @@ CREATE TABLE IF NOT EXISTS public.leads (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Idempotent column check for existing databases
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS street TEXT;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS location_url TEXT;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS admin_follow_ups JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS is_trending BOOLEAN DEFAULT false;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 -- =============================================================================
 -- 5. TABLE: payment_config (إعدادات بوابات الدفع والمحافظ الإلكترونية)
@@ -250,7 +285,6 @@ ALTER TABLE public.representatives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_config ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 
 -- 8.0 Column-Level Security on representatives: hide sensitive credentials from public
 REVOKE ALL ON public.representatives FROM anon, authenticated;

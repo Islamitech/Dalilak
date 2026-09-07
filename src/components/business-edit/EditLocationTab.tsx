@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Business, VerificationStatus } from '../../types';
+import { Business, AdminFollowUpCategory } from '../../types';
 import { EGYPT_GOVERNORATES } from '../../data/mockData';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import {
@@ -17,13 +17,17 @@ import {
   Eye,
   EyeOff,
   KeyRound,
+  Star,
 } from 'lucide-react';
 import {
   generateGoogleVerificationOtpWhatsAppMessage,
   getGoogleVerificationOtpWhatsAppUrl,
+  generateGoogleOtpSentAlertWhatsAppMessage,
+  getGoogleOtpSentAlertWhatsAppUrl,
   generateGoogleMapsVerifiedWhatsAppMessage,
   getGoogleMapsVerifiedWhatsAppUrl,
 } from '../../utils/whatsappMessages';
+import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 
 interface EditLocationTabProps {
   formData: Business;
@@ -33,10 +37,15 @@ interface EditLocationTabProps {
   googleBadge: { label: string; cls: string };
   handleCopyGoogleDetails: () => void;
   handleDownloadAllPhotos: () => void;
-  handleSetVerificationStatus: (status: VerificationStatus) => void;
   copiedField: string | null;
   handleCopyText?: (text: string, fieldName: string) => void;
   isDownloadingPhotos: boolean;
+  onSave?: (biz: Business) => void;
+  currentUserName?: string;
+  currentUserId?: string;
+  userRole?: string;
+  onOpenMasterDrawer?: (category?: AdminFollowUpCategory) => void;
+  onShowNotification?: (msg: string) => void;
 }
 
 export const EditLocationTab: React.FC<EditLocationTabProps> = ({
@@ -47,10 +56,15 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
   googleBadge,
   handleCopyGoogleDetails,
   handleDownloadAllPhotos,
-  handleSetVerificationStatus,
   copiedField,
   handleCopyText,
   isDownloadingPhotos,
+  onSave,
+  currentUserName,
+  currentUserId,
+  userRole,
+  onOpenMasterDrawer,
+  onShowNotification,
 }) => {
   const [expandedMapWaPreview, setExpandedMapWaPreview] = useState<string | null>(null);
   return (
@@ -85,7 +99,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs p-2.5 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             {copiedField === 'google_details' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-blue-400" />}
-            <span>{copiedField === 'google_details' ? 'تم نسخ البيانات كاملة!' : 'نسخ بيانات النشاط لخرائط Google 📋'}</span>
+            <span>{copiedField === 'google_details' ? 'تم نسخ البيانات كاملة!' : 'نسخ بيانات المنشأة لخرائط Google 📋'}</span>
           </button>
 
           <button
@@ -95,60 +109,9 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs p-2.5 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{isDownloadingPhotos ? 'جاري تنزيل الصور...' : `تحميل حزمة صور النشاط (${formData.photos?.length || 0}) 📥`}</span>
+            <span>{isDownloadingPhotos ? 'جاري تنزيل الصور...' : `تحميل حزمة صور المنشأة (${formData.photos?.length || 0}) 📥`}</span>
           </button>
         </div>
-
-        {/* Admin Directory Approval Controls */}
-        {isAdminOrFinancial && (
-          <div className="pt-2.5 border-t border-slate-800/80 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-black text-amber-400 block">
-                🏛️ اعتماد النشر على الدليل العام (مراجعة المسؤول وصحة البيانات):
-              </label>
-              <span className="text-[10px] text-slate-400 font-bold">
-                (لا يشترط توثيق جوجل)
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-              <button
-                type="button"
-                onClick={() => handleSetVerificationStatus('in_progress')}
-                className={`p-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer ${
-                  formData.verificationStatus === 'in_progress' || formData.verificationStatus === 'pending'
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow'
-                    : 'bg-slate-800/80 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
-                }`}
-              >
-                ⏳ قيد المراجعة
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSetVerificationStatus('verified')}
-                className={`p-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer ${
-                  formData.verificationStatus === 'verified'
-                    ? 'bg-emerald-500 text-white border-emerald-400 shadow'
-                    : 'bg-slate-800/80 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
-                }`}
-              >
-                🟢 اعتماد ونشر بالدليل
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSetVerificationStatus('rejected')}
-                className={`p-2 rounded-xl text-[11px] sm:text-xs font-black border transition-all cursor-pointer ${
-                  formData.verificationStatus === 'rejected'
-                    ? 'bg-rose-600 text-white border-rose-400 shadow'
-                    : 'bg-slate-800/80 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
-                }`}
-              >
-                🔴 رفض
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Location Fields */}
@@ -376,13 +339,173 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                     ⏳ لم يتم إدخال رابط خرائط Google الموثق بعد.
                   </span>
                   <span className="text-[10.5px] block leading-relaxed">
-                    🔒 عند إدخال هذا الرابط المعتمد، يتحول النشاط تلقائياً إلى "موثق ومعتمد" ويحل محل موقع المندوب الميداني في كارت الدليل العام.
+                    🔒 عند إدخال هذا الرابط المعتمد، يتحول المكان تلقائياً إلى "موثق ومعتمد" ويحل محل موقع المندوب الميداني في كارت الدليل العام.
                   </span>
                 </div>
               )}
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── قسم تقييم ونجوم خرائط Google ── */}
+      <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-black shrink-0">
+              <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+            </div>
+            <div>
+              <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
+                تقييم ونجوم خرائط Google الرسمية
+              </h4>
+              <p className="text-[10px] text-[var(--text-muted)] font-bold">
+                عرض التقييم وعدد المراجعات الحقيقية للمكان على كروت وصفحة الدليل
+              </p>
+            </div>
+          </div>
+
+          {isEditMode ? (
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.googleRatingEnabled ?? false}
+                onChange={(e) => setFormData({ ...formData, googleRatingEnabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+              <span className="mr-2 text-xs font-bold text-[var(--text-primary)]">
+                {formData.googleRatingEnabled ? 'مُفعّل' : 'مُعطّل'}
+              </span>
+            </label>
+          ) : (
+            <span
+              className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                formData.googleRatingEnabled
+                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+              }`}
+            >
+              {formData.googleRatingEnabled ? '⭐ التقييم مُفعّل' : 'معطّل'}
+            </span>
+          )}
+        </div>
+
+        {formData.googleRatingEnabled ? (
+          <div className="space-y-3 pt-2 border-t border-[var(--border-color)]/60">
+            {isEditMode ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-[var(--text-muted)] block">
+                    التقييم من 5 نجوم (مثال: 4.8)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      step="0.1"
+                      value={formData.googleRating ?? ''}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setFormData({ ...formData, googleRating: isNaN(val) ? undefined : Math.min(5, Math.max(1, val)) });
+                      }}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 pl-8 focus:outline-none shadow-inner text-right"
+                      placeholder="4.8"
+                    />
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-[var(--text-muted)] block">
+                    إجمالي عدد التقييمات في Google (مثال: 128)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.googleReviewsCount ?? ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setFormData({ ...formData, googleReviewsCount: isNaN(val) ? undefined : Math.max(0, val) });
+                    }}
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner text-right"
+                    placeholder="128"
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {/* معاينة حية لشكل تقييم Google */}
+            {formData.googleRating !== undefined && formData.googleRating > 0 && (() => {
+              const rating = Math.min(5, Math.max(1, formData.googleRating));
+              const reviewsCount = formData.googleReviewsCount || 0;
+              const s5 = Math.min(95, Math.max(15, Math.round((rating >= 4.5 ? 0.65 + (rating - 4.5) * 0.6 : rating / 5 * 0.7) * 100)));
+              const s4 = Math.min(100 - s5, Math.max(2, Math.round((100 - s5) * 0.65)));
+              const s3 = Math.min(100 - s5 - s4, Math.max(1, Math.round((100 - s5 - s4) * 0.5)));
+              const s2 = Math.min(100 - s5 - s4 - s3, Math.max(1, Math.round((100 - s5 - s4 - s3) * 0.5)));
+              const s1 = Math.max(1, 100 - s5 - s4 - s3 - s2);
+              const breakdown = [
+                { stars: 5, pct: s5 },
+                { stars: 4, pct: s4 },
+                { stars: 3, pct: s3 },
+                { stars: 2, pct: s2 },
+                { stars: 1, pct: s1 },
+              ];
+
+              return (
+                <div className="bg-[var(--bg-card)] border border-amber-500/20 rounded-xl p-3 space-y-2">
+                  <span className="text-[10.5px] font-bold text-[var(--text-muted)] block">
+                    معاينة حية لشكل التقييم في الدليل العام ومعاينة الرابط:
+                  </span>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-black text-[var(--text-primary)]">{rating.toFixed(1)}</span>
+                      <div>
+                        <div className="flex items-center gap-0.5" dir="ltr">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-3.5 h-3.5 ${
+                                s <= Math.floor(rating)
+                                  ? 'text-amber-400 fill-amber-400'
+                                  : s === Math.ceil(rating) && rating % 1 >= 0.3
+                                  ? 'text-amber-400 fill-amber-400/60'
+                                  : 'text-slate-300 dark:text-slate-700'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                          ({reviewsCount} تقييم ومراجعة على Google)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full sm:w-44 space-y-1" dir="ltr">
+                      {breakdown.map((item) => (
+                        <div key={item.stars} className="flex items-center gap-1.5 text-[9px] font-bold">
+                          <span className="w-2 text-slate-400 text-center">{item.stars}</span>
+                          <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-amber-400 rounded-full"
+                              style={{ width: `${item.pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        ) : (
+          <p className="text-[10.5px] text-[var(--text-muted)] font-medium pt-1 border-t border-[var(--border-color)]/60">
+            💡 تفعيل هذا الخيار يسمح بإظهار تقييم ونجوم المكان كما هي ظاهرة على خرائط Google الرسمية في واجهة الدليل العام وفي رسائل مشاركة الروابط.
+          </p>
+        )}
       </div>
 
       {/* ── 🗺️ قسم رسائل وتنبيهات WhatsApp لرحلة توثيق الخريطة ── */}
@@ -405,15 +528,15 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
           </div>
 
           <div className="space-y-2.5">
-            {/* 1. رسالة طلب كود التفعيل السريع (Google Verification OTP) */}
+            {/* 1. رسالة استئذان وتنسيق مسبق (طلب متاح 🤝) */}
             <div className="bg-[var(--input-bg)]/80 border border-blue-500/30 rounded-xl p-3 space-y-2 transition-all">
               <div className="flex items-center justify-between gap-1.5 flex-wrap">
                 <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
                   <KeyRound className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                  <span>1. رسالة طلب كود التفعيل السريع (Google SMS OTP) 📲</span>
+                  <span>1. استئذان وتنسيق مسبق لكود Google (طلب متاح 🤝)</span>
                 </div>
                 <span className="text-[9.5px] bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
-                  أثناء طلب الكود
+                  قبل طلب الكود
                 </span>
               </div>
 
@@ -450,12 +573,62 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                   className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>إرسال تنبيه الكود للعميل عبر WhatsApp</span>
+                  <span>إرسال استئذان (متاح؟) 🤝</span>
                 </a>
               </div>
             </div>
 
-            {/* 2. رسالة التهنئة بالتوثيق وظهور النشاط على الخريطة */}
+            {/* 2. إشعار فوري بعد إرسال كود Google مباشرة (الكود وصل 📲) */}
+            <div className="bg-[var(--input-bg)]/80 border border-amber-500/30 rounded-xl p-3 space-y-2 transition-all">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
+                  <KeyRound className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span>2. إشعار فوري لحظة طلب الكود (الكود وصل 📲)</span>
+                </div>
+                <span className="text-[9.5px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
+                  بمجرد إرسال SMS
+                </span>
+              </div>
+
+              {expandedMapWaPreview === 'map_otp_sent' && (
+                <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-amber-500/20 text-[11px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto animate-fade-in font-sans">
+                  {generateGoogleOtpSentAlertWhatsAppMessage(formData)}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setExpandedMapWaPreview(expandedMapWaPreview === 'map_otp_sent' ? null : 'map_otp_sent')}
+                  className="bg-[var(--bg-card)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-1.5 px-2.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                  title="معاينة إشعار الكود"
+                >
+                  {expandedMapWaPreview === 'map_otp_sent' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  <span className="text-[10px] hidden sm:inline">{expandedMapWaPreview === 'map_otp_sent' ? 'إخفاء' : 'معاينة'}</span>
+                </button>
+                {handleCopyText && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(generateGoogleOtpSentAlertWhatsAppMessage(formData), 'map_otp_sent')}
+                    className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold p-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                    title="نسخ نص الإشعار"
+                  >
+                    {copiedField === 'map_otp_sent' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-amber-500" />}
+                  </button>
+                )}
+                <a
+                  href={getGoogleOtpSentAlertWhatsAppUrl(formData)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-center"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>إرسال تم طلب الكود للعميل 📲</span>
+                </a>
+              </div>
+            </div>
+
+            {/* 3. رسالة التهنئة بالتوثيق وظهور المكان على الخريطة */}
             <div className={`border rounded-xl p-3 space-y-2 transition-all ${
               formData.googleMapsUrl
                 ? 'bg-[var(--input-bg)]/80 border-emerald-500/40 shadow-xs'
@@ -464,7 +637,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
               <div className="flex items-center justify-between gap-1.5 flex-wrap">
                 <div className="flex items-center gap-1.5 font-black text-xs text-[var(--text-primary)]">
                   <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>2. إشعار التوثيق وظهور النشاط على Google Maps 🗺️</span>
+                  <span>3. إشعار التوثيق وظهور المكان على Google Maps 🗺️</span>
                 </div>
                 <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md ${
                   formData.googleMapsUrl
@@ -525,6 +698,23 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── CONTEXTUAL CRM FOLLOW-UP STRIP FOR MAPS & LOCATION ── */}
+      {onSave && (
+        <ContextualFollowUpStrip
+          category="maps"
+          categoryLabel="خرائط Google والبيانات الجغرافية"
+          categoryIcon={<MapPin className="w-3.5 h-3.5 text-blue-500" />}
+          business={formData}
+          onSave={onSave}
+          setFormData={setFormData}
+          currentUserName={currentUserName}
+          currentUserId={currentUserId}
+          userRole={userRole}
+          onOpenMasterDrawer={onOpenMasterDrawer}
+          onShowNotification={onShowNotification}
+        />
       )}
     </div>
   );

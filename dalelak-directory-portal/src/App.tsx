@@ -51,6 +51,9 @@ export default function App() {
     let metaGoogleRatingEnabled = r.google_rating_enabled !== undefined ? Boolean(r.google_rating_enabled) : (r.googleRatingEnabled !== undefined ? Boolean(r.googleRatingEnabled) : undefined);
     let metaGoogleRating = r.google_rating !== undefined ? Number(r.google_rating) : (r.googleRating !== undefined ? Number(r.googleRating) : undefined);
     let metaGoogleReviewsCount = r.google_reviews_count !== undefined ? Number(r.google_reviews_count) : (r.googleReviewsCount !== undefined ? Number(r.googleReviewsCount) : undefined);
+    let metaIsDeleted: boolean = Boolean(r.is_deleted || r.isDeleted);
+    let metaViewsCount: number = Number(r.views_count ?? r.viewsCount ?? 0);
+    let metaFavoriteCount: number = Number(r.favorite_count ?? r.favoriteCount ?? 0);
 
     if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')) {
       try {
@@ -67,6 +70,9 @@ export default function App() {
           if (parsed.googleRatingEnabled !== undefined && metaGoogleRatingEnabled === undefined) metaGoogleRatingEnabled = Boolean(parsed.googleRatingEnabled);
           if (parsed.googleRating !== undefined && metaGoogleRating === undefined) metaGoogleRating = Number(parsed.googleRating);
           if (parsed.googleReviewsCount !== undefined && metaGoogleReviewsCount === undefined) metaGoogleReviewsCount = Number(parsed.googleReviewsCount);
+          if (parsed.isDeleted !== undefined && !metaIsDeleted) metaIsDeleted = Boolean(parsed.isDeleted);
+          if (parsed.viewsCount !== undefined && !metaViewsCount) metaViewsCount = Number(parsed.viewsCount);
+          if (parsed.favoriteCount !== undefined && !metaFavoriteCount) metaFavoriteCount = Number(parsed.favoriteCount);
         }
       } catch {}
     }
@@ -136,13 +142,16 @@ export default function App() {
       repId: '',
       repName: '',
       packageId: isFeeExempt ? 'pkg_exempt' : (r.package_id || r.packageId || 'pkg_basic'),
-      packageName: isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (r.package_name || r.packageName || 'باقة التوثيق الأساسي'),
+      packageName: isFeeExempt ? 'منشأة رائجة بالمنطقة (إدراج مجاني بدون رسوم)' : (r.package_name || r.packageName || 'باقة التوثيق الأساسي'),
       packagePrice: isFeeExempt ? 0 : (typeof r.package_price === 'number' ? r.package_price : 250),
       paymentStatus: isFeeExempt ? 'fully_paid' : (r.payment_status || r.paymentStatus || 'fully_paid'),
       invoiceNumber: '',
       invoiceDate: '',
       isFeeExempt,
       feeExemptionReason: metaFeeExemptionReason,
+      isDeleted: metaIsDeleted,
+      viewsCount: metaViewsCount,
+      favoriteCount: metaFavoriteCount,
     };
   }
 
@@ -231,7 +240,7 @@ export default function App() {
               } catch {}
               return updated;
             });
-            triggerSyncToast('تم إضافة نشاط جديد واعتماده للتو 🔔');
+            triggerSyncToast('تمت إضافة منشأة جديدة واعتمادها للتو 🔔');
           } else if (payload.eventType === 'UPDATE') {
             const updatedBiz = mapRawToBusiness(payload.new);
             setBusinesses((prev) => {
@@ -241,7 +250,7 @@ export default function App() {
               } catch {}
               return updated;
             });
-            triggerSyncToast('تم تحديث بيانات النشاط مباشرة ⚡');
+            triggerSyncToast('تم تحديث بيانات المنشأة مباشرة ⚡');
           } else if (payload.eventType === 'DELETE' && payload.old?.id) {
             setBusinesses((prev) => {
               const updated = prev.filter((b) => b.id !== payload.old.id);

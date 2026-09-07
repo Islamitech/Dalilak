@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus, User } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus, AdminFollowUpCategory, User } from '../../types';
 import { isSuperAdmin } from '../../utils/permissions';
 import { formatStandardDateTime } from '../../utils/dateFormatters';
 import { getFollowUpUrgency } from '../../utils/followUpUtils';
@@ -15,6 +15,7 @@ import {
   Calendar,
   Trash2,
   Lock,
+  X,
 } from 'lucide-react';
 
 interface EditFollowUpsTabProps {
@@ -27,6 +28,8 @@ interface EditFollowUpsTabProps {
   userRole?: string;
   currentRoleTitle?: string;
   onShowNotification?: (msg: string) => void;
+  initialCategory?: AdminFollowUpCategory | 'all';
+  onCloseDrawer?: () => void;
 }
 
 export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
@@ -39,6 +42,8 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
   userRole,
   currentRoleTitle,
   onShowNotification,
+  initialCategory,
+  onCloseDrawer,
 }) => {
   const isSuperAdminViewer =
     isSuperAdmin(currentUser) ||
@@ -51,8 +56,15 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
   const [newFollowUpNextDate, setNewFollowUpNextDate] = useState<string>('');
   const [followUpError, setFollowUpError] = useState<string | null>(null);
   const [followUpFilterType, setFollowUpFilterType] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<AdminFollowUpCategory | 'all'>(initialCategory || 'all');
   const [followUpSearch, setFollowUpSearch] = useState<string>('');
   const [isSavingFollowUp, setIsSavingFollowUp] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialCategory) {
+      setCategoryFilter(initialCategory);
+    }
+  }, [initialCategory]);
 
   const handleAddFollowUp = async () => {
     if (!newFollowUpText.trim()) {
@@ -77,6 +89,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
         text: newFollowUpText.trim(),
         type: newFollowUpType,
         status: newFollowUpStatus,
+        category: categoryFilter !== 'all' ? categoryFilter : 'general',
         authorName: currentUserName || 'المسؤول',
         authorId: currentUserId || 'admin',
         authorRole: (userRole as any) || 'admin',
@@ -155,9 +168,29 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
     }
   };
 
+  const getCategoryInfo = (cat?: AdminFollowUpCategory) => {
+    switch (cat) {
+      case 'directory':
+        return { label: 'الدليل', icon: '🏛️', cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+      case 'maps':
+        return { label: 'الخرائط', icon: '🗺️', cls: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
+      case 'finance':
+        return { label: 'المالية', icon: '💰', cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
+      case 'media':
+        return { label: 'الوسائط', icon: '📸', cls: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
+      case 'info':
+        return { label: 'البيانات', icon: '🏷️', cls: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
+      case 'whatsapp':
+        return { label: 'واتساب', icon: '💬', cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+      default:
+        return { label: 'عام', icon: '📝', cls: 'bg-slate-500/10 text-slate-500 border-slate-500/20' };
+    }
+  };
+
   const allFollowUps = formData.adminFollowUps || [];
   const filtered = allFollowUps.filter((f) => {
     if (followUpFilterType !== 'all' && f.type !== followUpFilterType) return false;
+    if (categoryFilter !== 'all' && (f.category || 'general') !== categoryFilter) return false;
     if (followUpSearch.trim()) {
       const q = followUpSearch.trim().toLowerCase();
       const matchText = f.text.toLowerCase().includes(q);
@@ -178,7 +211,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
-                سجل المتابعات (CRM)
+                سجل المتابعات الشامل (CRM)
               </h4>
               <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
                 سري 🔒
@@ -186,9 +219,21 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
             </div>
           </div>
 
-          <span className="text-[11px] font-black bg-amber-500 text-slate-950 px-2.5 py-1 rounded-lg shrink-0 shadow-2xs">
-            {allFollowUps.length} إجراء
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-black bg-amber-500 text-slate-950 px-2.5 py-1 rounded-lg shrink-0 shadow-2xs">
+              {allFollowUps.length} إجراء
+            </span>
+            {onCloseDrawer && (
+              <button
+                type="button"
+                onClick={onCloseDrawer}
+                className="w-7 h-7 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                title="إغلاق السجل"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Quick CRM Metrics Strip */}
@@ -433,7 +478,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
               onChange={(e) => setFollowUpFilterType(e.target.value)}
               className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl px-2 py-1 font-bold focus:outline-none focus:border-amber-500 cursor-pointer"
             >
-              <option value="all">كل الأنواع</option>
+              <option value="all">كل الإجراءات</option>
               <option value="call">📞 اتصالات</option>
               <option value="visit">🏃 زيارات</option>
               <option value="payment">💰 سداد</option>
@@ -443,14 +488,51 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
           </div>
         </div>
 
+        {/* ── Category Filter Chips ── */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+          {[
+            { id: 'all', label: 'الكل' },
+            { id: 'directory', label: 'الدليل 🏛️' },
+            { id: 'maps', label: 'الخرائط 🗺️' },
+            { id: 'finance', label: 'المالية 💰' },
+            { id: 'media', label: 'الوسائط 📸' },
+            { id: 'info', label: 'البيانات 🏷️' },
+            { id: 'whatsapp', label: 'واتساب 💬' },
+            { id: 'general', label: 'عامة 📝' },
+          ].map((cat) => {
+            const count = cat.id === 'all'
+              ? allFollowUps.length
+              : allFollowUps.filter((f) => (f.category || 'general') === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategoryFilter(cat.id as any)}
+                className={`px-2.5 py-1 rounded-xl font-bold transition-colors shrink-0 text-[11px] cursor-pointer flex items-center gap-1 ${
+                  categoryFilter === cat.id
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className={`text-[10px] px-1 py-0.2 rounded-full ${
+                  categoryFilter === cat.id ? 'bg-slate-950 text-amber-400' : 'bg-slate-500/15 text-[var(--text-muted)]'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Render Filtered Timeline List */}
         {filtered.length === 0 ? (
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-8 text-center space-y-2">
             <ClipboardList className="w-8 h-8 text-[var(--text-muted)] mx-auto opacity-40" />
             <p className="font-bold text-xs text-[var(--text-secondary)]">
               {allFollowUps.length === 0
-                ? 'لا توجد متابعات أو ملاحظات إدارية مسجلة بعد لهذا النشاط.'
-                : 'لا توجد ملاحظات مطابقة لمعايير البحث المحددة.'}
+                ? 'لا توجد متابعات أو ملاحظات إدارية مسجلة بعد لهذا المكان.'
+                : 'لا توجد ملاحظات مطابقة لمعايير التصفية المحددة.'}
             </p>
             <p className="text-[10.5px] text-[var(--text-muted)]">
               استخدم النموذج أعلاه لتوثيق اتصالاتك الهاتفية، المعاينات الميدانية، أو تدقيق التحصيل.
@@ -460,6 +542,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
           <div className="space-y-3">
             {filtered.map((note) => {
               const tInfo = getTypeInfo(note.type);
+              const cInfo = getCategoryInfo(note.category);
               const urgencyInfo = getFollowUpUrgency(note);
               const isPending = note.status === 'pending';
               const isUrgent = note.status === 'urgent';
@@ -484,6 +567,12 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                       <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${tInfo.bg}`}>
                         {tInfo.icon} {tInfo.label}
                       </span>
+
+                      {note.category && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${cInfo.cls}`}>
+                          {cInfo.icon} {cInfo.label}
+                        </span>
+                      )}
 
                       {isSuperAdminViewer ? (
                         <>

@@ -294,7 +294,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: grab; user-select: none;">
             <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #020617; font-weight: 900; font-size: 11px; padding: 3px 10px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); white-space: nowrap; border: 1.5px solid #fef08a; margin-bottom: 2px;">
-              📍 موقع النشاط المحدد
+              📍 موقع المنشأة المحدد
             </div>
             <div style="position: relative; width: 36px; height: 46px; display: flex; justify-content: center;">
               <svg width="36" height="46" viewBox="0 0 36 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));">
@@ -355,7 +355,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         const color = isVerified ? '#10b981' : '#f59e0b';
         const bg = isVerified ? '#064e3b' : '#78350f';
 
-        const safeName = escapeHtml(biz.nameAr || 'نشاط تجاري');
+        const safeName = escapeHtml(biz.nameAr || 'منشأة معتمدة');
         const bizIcon = window.L.divIcon({
           className: 'custom-biz-pin',
           html: `
@@ -601,7 +601,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             </div>
             <div>
               <h4 className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1.5">
-                <span>{mode === 'picker' ? 'تحديد وتوجيه موقع النشاط بدقة خريطة جوجل' : 'خريطة الأنشطة والتوثيق الميداني المباشر'}</span>
+                <span>{mode === 'picker' ? 'تحديد وتوجيه موقع المنشأة بدقة خريطة جوجل' : 'خريطة المنشآت والتوثيق الميداني المباشر'}</span>
                 <span className="bg-emerald-500/15 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-emerald-400" />
                   <span>دقة قمر صناعي 100%</span>
@@ -610,7 +610,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <p className="text-[10px] text-amber-400 font-medium">
                 {mode === 'picker'
                   ? 'انقر على أي نقطة، أو اسحب الدبوس بدقة، أو ابحث باسم الشارع / الصق رابط جوجل ماب'
-                  : `إجمالي ${filteredBusinessesCount} نشاط تجاري موثق على الخريطة`}
+                  : `إجمالي ${filteredBusinessesCount} منشأة موثقة على الخريطة`}
               </p>
             </div>
           </div>

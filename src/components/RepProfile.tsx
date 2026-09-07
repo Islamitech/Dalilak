@@ -11,8 +11,9 @@ import { RepActivitiesTab } from './rep-profile/RepActivitiesTab';
 import { RepIdCardTab } from './rep-profile/RepIdCardTab';
 import { RepFinanceTab } from './rep-profile/RepFinanceTab';
 import { RepReferralTab } from './rep-profile/RepReferralTab';
-import { RepEditProfileModal } from './rep-profile/RepEditProfileModal';
+import { UnifiedProfileModal } from './UnifiedProfileModal';
 import {
+  Shield,
   ShieldCheck,
   MapPin,
   FileText,
@@ -47,6 +48,7 @@ interface RepProfileProps {
   onUpdateRep: (updatedRep: Representative) => void;
   onRequestPayout?: (payout: PayoutRequest) => void;
   onNavigateHome?: () => void;
+  onNavigateAdmin?: () => void;
   isExternalView?: boolean;
 }
 
@@ -64,6 +66,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
   onUpdateRep,
   onRequestPayout,
   onNavigateHome,
+  onNavigateAdmin,
   isExternalView = false,
 }) => {
   // Navigation Tabs for Profile
@@ -303,8 +306,20 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
           >
             <Edit3 className="w-4 h-4 stroke-[2.5]" />
-            <span>تعديل البيانات</span>
+            <span>{user?.role === 'admin' ? 'تعديل الملف الإداري والبيانات ✏️' : 'تعديل البيانات ✏️'}</span>
           </button>
+
+          {user?.role === 'admin' && onNavigateAdmin && (
+            <button
+              type="button"
+              onClick={onNavigateAdmin}
+              title="الانتقال إلى لوحة التحكم الإدارية المركزية"
+              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs px-3 py-2.5 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 cursor-pointer shrink-0"
+            >
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+              <span>لوحة الإدارة</span>
+            </button>
+          )}
 
           {onNavigateHome && (
             <button
@@ -486,8 +501,8 @@ export const RepProfile: React.FC<RepProfileProps> = ({
         />
       )}
 
-      {/* ✏️ MODAL: EDIT REP PROFILE */}
-      <RepEditProfileModal
+      {/* ✏️ MODAL: UNIFIED 4-TAB RECTANGULAR PROFILE MODAL */}
+      <UnifiedProfileModal
         rep={rep}
         user={user}
         isOpen={showEditModal}

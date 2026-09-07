@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Business } from '../../types';
+import { Business, AdminFollowUpCategory } from '../../types';
+import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 import {
   MessageCircle,
   Zap,
@@ -42,6 +43,13 @@ interface EditMarketingTabProps {
   isGoogleVerifiedAndUnpaid?: boolean;
   copiedField: string | null;
   handleCopyText: (text: string, fieldName: string) => void;
+  onSave?: (biz: Business) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<Business | null>>;
+  currentUserName?: string;
+  currentUserId?: string;
+  userRole?: string;
+  onOpenMasterDrawer?: (category?: AdminFollowUpCategory) => void;
+  onShowNotification?: (msg: string) => void;
 }
 
 export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
@@ -49,6 +57,13 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
   isAdminOrFinancial,
   copiedField,
   handleCopyText,
+  onSave,
+  setFormData,
+  currentUserName,
+  currentUserId,
+  userRole,
+  onOpenMasterDrawer,
+  onShowNotification,
 }) => {
   const [waSubTab, setWaSubTab] = useState<'motivational' | 'marketing'>('motivational');
   const [expandedWaPreview, setExpandedWaPreview] = useState<string | null>(null);
@@ -515,6 +530,23 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* ── CONTEXTUAL CRM FOLLOW-UP STRIP FOR WHATSAPP & MARKETING ── */}
+      {onSave && setFormData && (
+        <ContextualFollowUpStrip
+          category="whatsapp"
+          categoryLabel="التواصل والرسائل التسويقية"
+          categoryIcon={<MessageCircle className="w-3.5 h-3.5 text-emerald-500" />}
+          business={formData}
+          onSave={onSave}
+          setFormData={setFormData}
+          currentUserName={currentUserName}
+          currentUserId={currentUserId}
+          userRole={userRole}
+          onOpenMasterDrawer={onOpenMasterDrawer}
+          onShowNotification={onShowNotification}
+        />
       )}
     </div>
   );

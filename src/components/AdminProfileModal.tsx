@@ -32,18 +32,30 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
-interface AdminProfileModalProps {
+export interface UnifiedProfileModalProps {
   user: User;
+  rep?: Representative | null;
+  isOpen?: boolean;
   onClose: () => void;
-  onUpdateProfile: (updatedData: Partial<Representative> & { name?: string; email?: string; avatar?: string }) => void;
+  onUpdateProfile?: (updatedData: Partial<Representative> & { name?: string; email?: string; avatar?: string }) => void;
+  onUpdateRep?: (updatedRep: Representative) => void;
+  onSuccess?: () => void;
 }
 
-export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
+export type AdminProfileModalProps = UnifiedProfileModalProps;
+
+export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
   user,
+  rep: propRep,
+  isOpen = true,
   onClose,
   onUpdateProfile,
+  onUpdateRep,
+  onSuccess,
 }) => {
-  const rep = user.repData;
+  if (isOpen === false) return null;
+
+  const rep = propRep || user.repData;
 
   // Active Tab within Profile Modal: 'documents' | 'basic' | 'role' | 'security'
   const [activeTab, setActiveTab] = useState<'documents' | 'basic' | 'role' | 'security'>('documents');
@@ -141,6 +153,13 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
       return;
     }
 
+    const phoneRegex = /^01[0125]\d{8}$/;
+    if (!phoneRegex.test(phone.trim())) {
+      setErrorMsg('رقم الهاتف غير صحيح! يجب أن يكون رقماً مصرياً يبدأ بـ 01 ومكون من 11 رقماً بالضبط (مثال: 01012345678).');
+      setActiveTab('basic');
+      return;
+    }
+
     let finalPassword = rep?.password;
     if (hasNewPassword) {
       finalPassword = await hashPassword(password.trim());
@@ -149,14 +168,24 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
     // Strict Role & Permission Security Guard: Non-admins cannot alter their role, status, or commission
     const isCallerAdmin = user.role === 'admin';
 
-    onUpdateProfile({
+    // Avatar Approval Workflow:
+    // If admin modifies/uploads avatar: immediately approved.
+    // If non-admin modifies/uploads avatar: set to pending_approval for admin governance.
+    const isAvatarChanged = Boolean(avatar && avatar !== (user.avatar || rep?.avatar));
+    const finalAvatarStatus = isCallerAdmin
+      ? 'approved'
+      : isAvatarChanged
+      ? 'pending_approval'
+      : (rep?.avatarStatus || user.avatarStatus || 'approved');
+
+    const updatePayload = {
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
       pendingPhone: pendingPhone.trim() || undefined,
       governorate: governorate,
       nationalId: nationalId.trim() || undefined,
-      role: isCallerAdmin ? role : (user.role || 'rep'),
+      role: isCallerAdmin ? role : (rep?.role || user.role || 'rep'),
       roleTitle: isCallerAdmin ? (roleTitle.trim() || undefined) : (rep?.roleTitle || undefined),
       referralCode: referralCode.trim().toUpperCase() || undefined,
       targetMonth: isCallerAdmin ? (Number(targetMonth) || 25) : (rep?.targetMonth || 25),
@@ -164,20 +193,40 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
       status: isCallerAdmin ? status : (rep?.status || 'active'),
       password: finalPassword,
       avatar: avatar,
-      avatarStatus: 'approved',
+      avatarStatus: finalAvatarStatus,
       nationalIdCardPhoto: nationalIdCardPhoto || undefined,
       nationalIdCardBackPhoto: nationalIdCardBackPhoto || undefined,
       activationFacePhoto: activationFacePhoto || undefined,
-    });
+    };
 
-    setSuccessMsg('🎉 تم حفظ وتحديث الملف الإداري وكافة الوثائق بنجاح على السحابة!');
+    if (onUpdateProfile) {
+      onUpdateProfile(updatePayload);
+    }
+    if (onUpdateRep && rep) {
+      onUpdateRep({
+        ...rep,
+        ...updatePayload,
+      });
+    }
+    if (onSuccess) {
+      onSuccess();
+    }
+
+    if (!isCallerAdmin && isAvatarChanged) {
+      setSuccessMsg('🎉 تم حفظ البيانات بنجاح! تم إرسال الصورة الشخصية الجديدة للمراجعة والاعتماد من قبل الإدارة ⏳');
+    } else {
+      setSuccessMsg('🎉 تم حفظ وتحديث الملف الشخصي وكافة الوثائق بنجاح على السحابة!');
+    }
+
     setTimeout(() => {
       onClose();
-    }, 900);
+    }, 1100);
   };
 
+  const isCallerAdmin = user.role === 'admin';
+
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
       <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto relative max-h-[94vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3 shrink-0">
@@ -187,13 +236,15 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-base text-[var(--text-primary)] flex items-center gap-2">
-                <span>تعديل الملفات والبيانات الإدارية</span>
+                <span>{isCallerAdmin ? 'تعديل الملفات والبيانات الإدارية' : 'تعديل الملف الشخصي والبيانات'}</span>
                 <span className="bg-amber-500/20 text-amber-600 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
                   {roleTitle || (role === 'admin' ? 'مدير النظام' : role === 'supervisor' ? 'مشرف إدارة' : role === 'accountant' ? 'محاسب مالي' : 'مندوب')}
                 </span>
               </h3>
               <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                إدارة صور الوثائق الرسمية، البيانات الشخصية، إعدادات الحساب والصلاحيات بالكامل
+                {isCallerAdmin
+                  ? 'إدارة صور الوثائق الرسمية، البيانات الشخصية، إعدادات الحساب والصلاحيات بالكامل'
+                  : 'مراجعة وتحديث صورتك الشخصية، وثائق الهوية الوطنية، وبيانات الاتصال'}
               </p>
             </div>
           </div>
@@ -250,20 +301,18 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
             <span>البيانات والاتصال</span>
           </button>
 
-          {user.role === 'admin' && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('role')}
-              className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                activeTab === 'role'
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Crown className="w-3.5 h-3.5" />
-              <span>الرتبة والصلاحيات</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setActiveTab('role')}
+            className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'role'
+                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5" />
+            <span>الرتبة والصلاحيات</span>
+          </button>
 
           <button
             type="button"
@@ -603,125 +652,196 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
           )}
 
           {/* ============================================================== */}
-          {/* TAB 3: ROLE & ADMINISTRATIVE SETTINGS (STRICT ADMIN ONLY) */}
+          {/* TAB 3: ROLE & ADMINISTRATIVE SETTINGS */}
           {/* ============================================================== */}
-          {activeTab === 'role' && user.role === 'admin' && (
+          {activeTab === 'role' && (
             <div className="space-y-3 animate-fade-in">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* User Role */}
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">الرتبة والمستوى الإداري *</label>
-                  <div className="relative">
-                    <Crown className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
-                    <select
-                      value={role}
-                      onChange={(e) => setRole(e.target.value as UserRole)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    >
-                      <option value="admin">مدير النظام (Admin) - صلاحيات كاملة</option>
-                      <option value="supervisor">مشرف منطقة (Supervisor)</option>
-                      <option value="accountant">محاسب ومحصل مالي (Accountant)</option>
-                      <option value="rep">مندوب مبيعات ميداني (Field Rep)</option>
-                    </select>
+              {!isCallerAdmin ? (
+                <>
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-amber-500 shrink-0" />
+                    <span>
+                      هذه الإعدادات والرتب والعمولات المالية محددة رسمياً ومعتمدة من قبل الإدارة المركزية لمنصة دليلك ولا يمكن تعديلها إلا عبر إدارة النظام.
+                    </span>
                   </div>
-                </div>
 
-                {/* Custom Role Title */}
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">المسمى الوظيفي المعتمد</label>
-                  <div className="relative">
-                    <Briefcase className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
-                    <input
-                      type="text"
-                      placeholder="مثال: مدير العمليات الميدانية"
-                      value={roleTitle}
-                      onChange={(e) => setRoleTitle(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">الرتبة والمستوى المعتمد</span>
+                      <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                        <Crown className="w-4 h-4" />
+                        <span>
+                          {role === 'supervisor'
+                            ? '👑 مشرف إدارة منطقة ومحافظة'
+                            : role === 'accountant'
+                            ? '🧾 محاسب ومحصل فواتير'
+                            : role === 'admin'
+                            ? '🛡️ مدير النظام'
+                            : '💼 مندوب مبيعات وتوثيق ميداني'}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">المسمى الوظيفي المعتمد</span>
+                      <span className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1.5">
+                        <Briefcase className="w-4 h-4 text-amber-500" />
+                        <span>{roleTitle || 'مندوب مبيعات وتوثيق ميداني'}</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">كود الإحالة المعتمد</span>
+                      <span className="text-xs font-black font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                        <Award className="w-4 h-4" />
+                        <span>{referralCode}</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">المستهدف الشهري</span>
+                      <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <TrendingUp className="w-4 h-4" />
+                        <span>{targetMonth} نشاط شهرياً</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">نسبة العمولة والحافز</span>
+                      <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <Percent className="w-4 h-4" />
+                        <span>{commissionRate}%</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">حالة الحساب</span>
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>{status === 'active' ? '🟢 نشط ومصرح له بالعمل' : '⏳ معلق وموقوف مؤقتاً'}</span>
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* User Role */}
+                    <div>
+                      <label className="block font-bold mb-1 text-[var(--text-primary)]">الرتبة والمستوى الإداري *</label>
+                      <div className="relative">
+                        <Crown className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
+                        <select
+                          value={role}
+                          onChange={(e) => setRole(e.target.value as UserRole)}
+                          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                        >
+                          <option value="admin">مدير النظام (Admin) - صلاحيات كاملة</option>
+                          <option value="supervisor">مشرف منطقة (Supervisor)</option>
+                          <option value="accountant">محاسب ومحصل مالي (Accountant)</option>
+                          <option value="rep">مندوب مبيعات ميداني (Field Rep)</option>
+                        </select>
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Referral Code */}
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">كود الإحالة الخاص بالمسؤول</label>
-                  <div className="relative">
-                    <Award className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
-                    <input
-                      type="text"
-                      placeholder="DALIL-ADMIN"
-                      value={referralCode}
-                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-black font-mono rounded-xl pr-9 pl-3 py-2.5 uppercase focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
+                    {/* Custom Role Title */}
+                    <div>
+                      <label className="block font-bold mb-1 text-[var(--text-primary)]">المسمى الوظيفي المعتمد</label>
+                      <div className="relative">
+                        <Briefcase className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
+                        <input
+                          type="text"
+                          placeholder="مثال: مدير العمليات الميدانية"
+                          value={roleTitle}
+                          onChange={(e) => setRoleTitle(e.target.value)}
+                          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Monthly Target */}
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">الهدف الشهري (نشاط/شهر)</label>
-                  <div className="relative">
-                    <TrendingUp className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
-                    <input
-                      type="number"
-                      min={1}
-                      value={targetMonth}
-                      onChange={(e) => setTargetMonth(Number(e.target.value))}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Referral Code */}
+                    <div>
+                      <label className="block font-bold mb-1 text-[var(--text-primary)]">كود الإحالة الخاص بالمسؤول</label>
+                      <div className="relative">
+                        <Award className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
+                        <input
+                          type="text"
+                          placeholder="DALIL-ADMIN"
+                          value={referralCode}
+                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-black font-mono rounded-xl pr-9 pl-3 py-2.5 uppercase focus:outline-none focus:border-amber-500 shadow-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Monthly Target */}
+                    <div>
+                      <label className="block font-bold mb-1 text-[var(--text-primary)]">الهدف الشهري (نشاط/شهر)</label>
+                      <div className="relative">
+                        <TrendingUp className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
+                        <input
+                          type="number"
+                          min={1}
+                          value={targetMonth}
+                          onChange={(e) => setTargetMonth(Number(e.target.value))}
+                          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Commission Rate */}
+                    <div>
+                      <label className="block font-bold mb-1 text-[var(--text-primary)]">نسبة العمولة والحافز (%)</label>
+                      <div className="relative">
+                        <Percent className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          max={100}
+                          value={commissionRate}
+                          onChange={(e) => setCommissionRate(Number(e.target.value))}
+                          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Commission Rate */}
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">نسبة العمولة والحافز (%)</label>
-                  <div className="relative">
-                    <Percent className="w-4 h-4 text-amber-500 absolute right-3 top-3" />
-                    <input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      max={100}
-                      value={commissionRate}
-                      onChange={(e) => setCommissionRate(Number(e.target.value))}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
+                  {/* Status Selector */}
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">حالة النشاط الإداري للحساب</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setStatus('active')}
+                        className={`py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          status === 'active'
+                            ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500 font-black shadow-xs'
+                            : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <span>نشط ومعتمد رسمياً (Active)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setStatus('suspended')}
+                        className={`py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          status === 'suspended'
+                            ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500 font-black shadow-xs'
+                            : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
+                        }`}
+                      >
+                        <AlertTriangle className="w-4 h-4 text-rose-500" />
+                        <span>معلق وموقوف مؤقتاً (Suspended)</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Status Selector */}
-              <div>
-                <label className="block font-bold mb-1 text-[var(--text-primary)]">حالة النشاط الإداري للحساب</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setStatus('active')}
-                    className={`py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      status === 'active'
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500 font-black shadow-xs'
-                        : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span>نشط ومعتمد رسمياً (Active)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setStatus('suspended')}
-                    className={`py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      status === 'suspended'
-                        ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500 font-black shadow-xs'
-                        : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
-                    }`}
-                  >
-                    <AlertTriangle className="w-4 h-4 text-rose-500" />
-                    <span>معلق وموقوف مؤقتاً (Suspended)</span>
-                  </button>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -733,7 +853,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
               <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
                 <span>
-                  يمكنك تعيين كلمة مرور قوية للحساب الإداري لحماية النظام والبيانات وتأمين صلاحيات المراجعة والإشراف.
+                  يمكنك تعيين كلمة مرور قوية للحساب لحماية النظام وتأمين صلاحيات الدخول ومراجعة البيانات.
                 </span>
               </div>
 
@@ -783,7 +903,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
               className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3 rounded-xl shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center gap-1.5 text-xs"
             >
               <Save className="w-4 h-4 stroke-[2.5]" />
-              <span>حفظ وتحديث الملف الإداري بالكامل على السحابة</span>
+              <span>{isCallerAdmin ? 'حفظ وتحديث الملف الإداري بالكامل على السحابة' : 'حفظ وتحديث الملف الشخصي والبيانات 💾'}</span>
             </button>
 
             <button
@@ -799,7 +919,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
 
       {/* Zoomed Document Preview Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-[10000] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 space-y-3 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
               <span className="font-black text-sm text-[var(--text-primary)]">{previewImage.title}</span>
@@ -820,3 +940,6 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
     document.body
   );
 };
+
+export const UnifiedProfileModal = AdminProfileModal;
+

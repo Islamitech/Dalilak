@@ -52,7 +52,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
     role: 'supervisor',
     title: 'مشرف الإدارة (صلاحيات إدارية كاملة ما عدا حذف الحسابات)',
     badgeColor: 'from-purple-600 to-indigo-600 text-white',
-    description: 'إشراف وتحكم شامل بكافة الأنشطة، الإحصائيات، الحسابات، التوثيق، والمزامنة مع الحساب الرسمي. القيد الوحيد: لا يمكنه حذف الحسابات.',
+    description: 'إشراف وتحكم شامل بكافة الأنشطة، الإحصائيات، التوثيق، والمزامنة وإدارة مناديب المحافظة. القيود: لا يمكنه حذف الحسابات أو تغيير الرتب.',
     canManageAllBusinesses: true,
     canManageRegionalBusinesses: true,
     canAddBusiness: true,
@@ -61,8 +61,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
     canDeleteBusiness: true,
     canSyncGoogleMaps: true,
     canManageAccounts: true,
-    canDeleteAccounts: false, // القيد الوحيد لمشرف الإدارة
-    canChangeUserRoles: true,
+    canDeleteAccounts: false, // القيد الأول لمشرف الإدارة
+    canChangeUserRoles: false, // لا يمكن للمشرف تغيير أو ترقية رتب الحسابات - حصري لمدير النظام
     canManagePaymentGateways: true,
     canApprovePayouts: true,
     canRequestPayout: true,
@@ -241,25 +241,90 @@ export function canUserAccessTrash(user?: User | null | undefined): boolean {
 }
 
 /**
- * Allows Super Admin and Managers (Admin/Supervisor) to change roles of users, as defined in ROLE_DEFINITIONS
+ * Strict Role Precedence Weight
+ * SuperAdmin (100) > Admin (80) > Supervisor (60) > Accountant (40) > Rep (20)
  */
-export function canUserChangeRoles(user?: User | null | undefined): boolean {
-  if (!user) return false;
-  return isSuperAdmin(user) || user.role === 'admin' || user.role === 'supervisor';
+export function getRoleWeight(
+  target?: { role?: UserRole; email?: string; phone?: string; id?: string; repData?: any } | UserRole | null
+): number {
+  if (!target) return 0;
+  if (typeof target === 'string') {
+    if (target === 'admin') return 80;
+    if (target === 'supervisor') return 60;
+    if (target === 'accountant') return 40;
+    if (target === 'rep') return 20;
+    return 0;
+  }
+  if (isSuperAdmin(target)) return 100;
+  const role = target.role || target.repData?.role;
+  if (role === 'admin') return 80;
+  if (role === 'supervisor') return 60;
+  if (role === 'accountant') return 40;
+  if (role === 'rep') return 20;
+  return 0;
 }
 
 /**
- * Protects Super Admin account from being modified, suspended, or deleted by any other admin
+ * Only Super Admin and full Admin can change user roles
+ */
+export function canUserChangeRoles(user?: User | null | undefined): boolean {
+  if (!user) return false;
+  return isSuperAdmin(user) || user.role === 'admin';
+}
+
+/**
+ * Only Super Admin and full Admin can approve or reject avatars
+ */
+export function canUserApproveAvatar(user?: User | null | undefined): boolean {
+  if (!user) return false;
+  return isSuperAdmin(user) || user.role === 'admin';
+}
+
+/**
+ * Strict RBAC Account Hierarchy Guard (Anti-Reverse-Escalation)
+ * 1. Target Super Admin: ONLY Super Admin actor can modify.
+ * 2. Actor Super Admin: can modify any account.
+ * 3. Actor Admin: can modify accounts with strictly lower weight (supervisor, accountant, rep).
+ * 4. Actor Supervisor: can ONLY manage Representatives (rep). Cannot modify supervisor, accountant, admin, or super admin.
+ * 5. Actor Accountant / Rep: cannot modify accounts.
  */
 export function canModifyAccount(
   actor?: User | null | undefined,
-  target?: { email?: string; phone?: string; id?: string } | null | undefined
+  target?: { email?: string; phone?: string; id?: string; role?: UserRole; repData?: any; governorate?: string } | null | undefined
 ): boolean {
-  if (!target) return true;
-  // If target is Super Admin, only Super Admin himself can edit
-  if (isSuperAdmin(target)) {
-    return isSuperAdmin(actor);
+  if (!actor || !target) return false;
+
+  // 1. Super Admin actor has supreme authority over everyone
+  if (isSuperAdmin(actor)) return true;
+
+  // 2. Super Admin target is untouchable by anyone else
+  if (isSuperAdmin(target)) return false;
+
+  // Self-check: if actor is modifying their own account via admin accounts panel, allowed only if admin
+  const isSelf = Boolean(
+    (actor.id && target.id && actor.id === target.id) ||
+    (actor.email && target.email && actor.email.toLowerCase() === target.email.toLowerCase()) ||
+    (actor.phone && target.phone && actor.phone === target.phone)
+  );
+  if (isSelf && actor.role === 'admin') return true;
+
+  const actorWeight = getRoleWeight(actor);
+  const targetWeight = getRoleWeight(target);
+
+  // 3. Actor must have strictly higher weight than target
+  if (actorWeight <= targetWeight) return false;
+
+  // 4. Admin can manage supervisor, accountant, rep
+  if (actor.role === 'admin') {
+    return targetWeight < 80;
   }
-  return true;
+
+  // 5. Supervisor can ONLY manage Reps
+  if (actor.role === 'supervisor') {
+    const targetRole = target.role || target.repData?.role || 'rep';
+    return targetRole === 'rep';
+  }
+
+  return false;
 }
 

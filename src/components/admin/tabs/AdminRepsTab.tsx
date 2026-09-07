@@ -4,6 +4,7 @@ import { calculateRepSettlement } from '../../../utils/commission';
 import { getRepReferralCode, isReferralSystemUnlocked, isReferredByInviter, getRepReferralSummary } from '../../../utils/referral';
 import { exportRepsToCsv } from '../../../utils/exportCsv';
 import { UserAvatar } from '../../UserAvatar';
+import { canModifyAccount, canUserApproveAvatar } from '../../../utils/permissions';
 import {
   Users,
   ShieldCheck,
@@ -19,6 +20,7 @@ import {
   Briefcase,
   X,
   Eye,
+  Lock,
 } from 'lucide-react';
 
 interface AdminRepsTabProps {
@@ -257,15 +259,36 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                   {renderRoleBadge(role, acc.roleTitle)}
                   <span
                     className={`text-[10px] font-black px-2.5 py-0.5 rounded-lg border shadow-xs ${
-                      acc.avatarStatus === 'rejected'
+                      acc.avatarStatus === 'pending_approval'
+                        ? 'bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500/60 animate-pulse'
+                        : acc.avatarStatus === 'rejected'
                         ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-500/50'
                         : isSuspended
                         ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-500/50'
                         : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-400 border-emerald-500/40'
                     }`}
                   >
-                    {acc.avatarStatus === 'rejected' ? '🔴 مرفوض' : isSuspended ? '⏳ تحت المراجعة' : '🟢 فعال ومصرح'}
+                    {acc.avatarStatus === 'pending_approval'
+                      ? '⏳ بانتظار اعتماد الصورة'
+                      : acc.avatarStatus === 'rejected'
+                      ? '🔴 مرفوض'
+                      : isSuspended
+                      ? '⏳ تحت المراجعة'
+                      : '🟢 فعال ومصرح'}
                   </span>
+                  {acc.avatarStatus === 'pending_approval' && canUserApproveAvatar(currentUser) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, avatarStatus: 'approved' });
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-xs flex items-center gap-1 cursor-pointer transition-transform active:scale-95 mt-0.5"
+                      title="اعتماد صورة البروفايل وتفعيلها رسمياً"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>اعتماد الصورة ✅</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -306,6 +329,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                   const repRefCode = getRepReferralCode(acc);
                   const isRefUnlocked = isReferralSystemUnlocked(acc, repBizCount);
                   const invitedCount = mergedAdminReps.filter((r) => isReferredByInviter(r, acc)).length;
+                  const isModifiable = canModifyAccount(currentUser, acc);
 
                   return (
                     <div className="bg-[var(--input-bg)] p-2 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-[11px]">
@@ -324,69 +348,87 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${isRefUnlocked ? 'badge-success' : 'badge-warning'}`}>
                           {isRefUnlocked ? '✨ الإحالة مفتوحة' : `🔒 مقفولة (${repBizCount}/25)`}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (onUpdateRepresentative) {
-                              onUpdateRepresentative({
-                                ...acc,
-                                adminBypassReferral: !isRefUnlocked,
-                                referralUnlocked: !isRefUnlocked,
-                              });
-                            }
-                          }}
-                          className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
-                          title="تجاوز مهام الإحالة وفتح/قفل الكود مباشرة"
-                        >
-                          {isRefUnlocked ? 'قفل' : 'تجاوز وتفعيل'}
-                        </button>
+                        {isModifiable && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onUpdateRepresentative) {
+                                onUpdateRepresentative({
+                                  ...acc,
+                                  adminBypassReferral: !isRefUnlocked,
+                                  referralUnlocked: !isRefUnlocked,
+                                });
+                              }
+                            }}
+                            className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
+                            title="تجاوز مهام الإحالة وفتح/قفل الكود مباشرة"
+                          >
+                            {isRefUnlocked ? 'قفل' : 'تجاوز وتفعيل'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })()}
 
-                <div className="flex items-center gap-1.5">
-                  {isSuspended ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'active', avatarStatus: 'approved' });
-                        }}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-xl shadow flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 text-[11px]"
-                        title="الموافقة وتفعيل الحساب فوراً"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>قبول وتفعيل</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'suspended', avatarStatus: 'rejected' });
-                        }}
-                        className="bg-rose-500/15 hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-black px-2.5 py-2 rounded-xl border border-rose-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
-                        title="رفض طلب تسجيل الحساب"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>رفض</span>
-                      </button>
-                      <button
-                        onClick={() => onOpenEditAccountModal(acc)}
-                        className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-2.5 py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
-                        title="معاينة وفحص وثائق الهوية والبيانات"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>معاينة</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => onOpenEditAccountModal(acc)}
-                      className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-xs cursor-pointer"
-                    >
-                      <Edit className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                      <span>تعديل ومراجعة الوثائق 📝</span>
-                    </button>
-                  )}
-                </div>
+                {/* Account Action Buttons guarded by Strict RBAC Hierarchy */}
+                {(() => {
+                  const isModifiable = canModifyAccount(currentUser, acc);
+
+                  if (!isModifiable) {
+                    return (
+                      <div className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-muted)] font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[11px]">
+                        <Lock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>حساب محمي - صلاحيات إدارية عليا 🔒</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex items-center gap-1.5">
+                      {isSuspended ? (
+                        <>
+                          <button
+                            onClick={() => {
+                              if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'active', avatarStatus: 'approved' });
+                            }}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-xl shadow flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 text-[11px]"
+                            title="الموافقة وتفعيل الحساب فوراً"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>قبول وتفعيل</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'suspended', avatarStatus: 'rejected' });
+                            }}
+                            className="bg-rose-500/15 hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-black px-2.5 py-2 rounded-xl border border-rose-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
+                            title="رفض طلب تسجيل الحساب"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>رفض</span>
+                          </button>
+                          <button
+                            onClick={() => onOpenEditAccountModal(acc)}
+                            className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-2.5 py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
+                            title="معاينة وفحص وثائق الهوية والبيانات"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>معاينة</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => onOpenEditAccountModal(acc)}
+                          className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-xs cursor-pointer"
+                        >
+                          <Edit className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                          <span>تعديل ومراجعة الوثائق 📝</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Business, VerificationStatus, User, AdditionalServiceInvoice } from '../types';
+import { Business, VerificationStatus, User, AdditionalServiceInvoice, AdminFollowUpCategory } from '../types';
 import { PACKAGES, EXEMPT_PACKAGE } from '../data/mockData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { validateAndProcessShortVideo, convertVideoToDataUrl } from '../utils/videoProcessor';
 import { uploadMediaToSupabaseStorage } from '../services/storage';
 import {
   Store,
+  Building,
   MapPin,
   DollarSign,
   Image as ImageIcon,
@@ -27,17 +28,18 @@ import {
   Copy,
   X,
   ClipboardList,
+  Loader2,
 } from 'lucide-react';
 
 import { downloadSinglePhoto, downloadAllBusinessPhotos } from '../utils/photoDownloader';
 import { triggerHaptic } from '../utils/haptics';
 import { EditGeneralInfoTab } from './business-edit/EditGeneralInfoTab';
+import { EditDirectoryTab } from './business-edit/EditDirectoryTab';
 import { EditLocationTab } from './business-edit/EditLocationTab';
 import { EditPackagePaymentTab } from './business-edit/EditPackagePaymentTab';
 import { EditMediaTab } from './business-edit/EditMediaTab';
 import { EditMarketingTab } from './business-edit/EditMarketingTab';
 import { EditFollowUpsTab } from './business-edit/EditFollowUpsTab';
-
 
 import { fetchBusinessPhotosOnDemand } from '../services/db';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -92,20 +94,33 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isDownloadingPhotos, setIsDownloadingPhotos] = useState<boolean>(false);
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
-  // Tab navigation: default to 'admin_followup' as requested for admins/supervisors/accountants
-  const [activeSection, setActiveSection] = useState<'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp' | 'admin_followup'>(
-    (initialTab as any) || (isAdminOrFinancial ? 'admin_followup' : 'info')
+  // Master Timeline Drawer state
+  const [isMasterDrawerOpen, setIsMasterDrawerOpen] = useState<boolean>(initialTab === 'admin_followup');
+  const [masterDrawerCategory, setMasterDrawerCategory] = useState<AdminFollowUpCategory | 'all'>('all');
+
+  const handleOpenMasterDrawer = (category?: AdminFollowUpCategory | 'all') => {
+    setMasterDrawerCategory(category || 'all');
+    setIsMasterDrawerOpen(true);
+  };
+
+  // Tab navigation: Hexagonal canonical tabs
+  const [activeSection, setActiveSection] = useState<'info' | 'directory' | 'location' | 'payment' | 'photos' | 'whatsapp'>(
+    initialTab && ['info', 'directory', 'location', 'payment', 'photos', 'whatsapp'].includes(initialTab)
+      ? (initialTab as any)
+      : 'info'
   );
+
   useEffect(() => {
-    if (initialTab && ['info', 'owner', 'location', 'payment', 'photos', 'whatsapp', 'admin_followup'].includes(initialTab)) {
+    if (initialTab === 'admin_followup') {
+      setIsMasterDrawerOpen(true);
+    } else if (initialTab && ['info', 'directory', 'location', 'payment', 'photos', 'whatsapp'].includes(initialTab)) {
       setActiveSection(initialTab as any);
-    } else if (!initialTab) {
-      setActiveSection(isAdminOrFinancial ? 'admin_followup' : 'info');
     }
-  }, [initialTab, business?.id, isAdminOrFinancial]);
+  }, [initialTab, business?.id]);
 
   // Keep internal formData in sync when parent business prop changes & load high-res photos on-demand
   useEffect(() => {
@@ -186,9 +201,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
     const updatedFormData: Business = {
       ...formData,
-      nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || 'نشاط تجاري',
+      nameAr: (formData.nameAr && formData.nameAr.trim()) || (formData.nameEn && formData.nameEn.trim()) || 'منشأة تجارية',
       nameEn: formData.nameEn?.trim() || undefined,
-      ownerName: (formData.ownerName && formData.ownerName.trim()) || 'صاحب النشاط',
+      ownerName: (formData.ownerName && formData.ownerName.trim()) || 'صاحب المنشأة',
       phone: (formData.phone && formData.phone.trim()) || (formData.ownerPhone && formData.ownerPhone.trim()) || '01000000000',
       ownerPhone: (formData.ownerPhone && formData.ownerPhone.trim()) || (formData.phone && formData.phone.trim()) || '01000000000',
       repLocationUrl: isAlreadyOnGoogle ? undefined : cleanRepUrl,
@@ -199,16 +214,23 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       isFeeExempt,
       isAlreadyOnGoogle,
       verificationStatus: isAlreadyOnGoogle ? 'verified' : (formData.verificationStatus || 'pending'),
-      googleSyncStatus: isAlreadyOnGoogle ? 'synced' : (formData.googleSyncStatus || (formData.verificationStatus === 'verified' ? 'synced' : 'not_synced')),
+      googleSyncStatus: isAlreadyOnGoogle ? 'synced' : (formData.googleSyncStatus || 'not_synced'),
       photos: Array.isArray(formData.photos) ? formData.photos : [],
       videos: Array.isArray(formData.videos) ? formData.videos : [],
     };
 
+    setIsSaving(true);
     setFormData(updatedFormData);
-    onSave(updatedFormData);
-    setIsEditMode(false);
-    setStatusNotification('تم حفظ وتحديث بيانات النشاط في قاعدة البيانات بنجاح ✅');
-    setTimeout(() => setStatusNotification(null), 3500);
+    try {
+      onSave(updatedFormData);
+      setIsEditMode(false);
+      setStatusNotification('تم حفظ وتحديث بيانات المكان في قاعدة البيانات بنجاح ✅');
+    } finally {
+      setTimeout(() => {
+        setIsSaving(false);
+      }, 400);
+      setTimeout(() => setStatusNotification(null), 4000);
+    }
   };
 
   const handleToggleFeeExempt = (exempt: boolean) => {
@@ -217,7 +239,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       updated = {
         ...formData,
         isFeeExempt: true,
-        feeExemptionReason: 'نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)',
+        feeExemptionReason: 'مكان رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)',
         packageId: EXEMPT_PACKAGE.id,
         packageName: EXEMPT_PACKAGE.title,
         packagePrice: 0,
@@ -241,29 +263,28 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     }
     setFormData(updated);
     onSave(updated);
-    setStatusNotification(exempt ? 'تم إعفاء النشاط وتصفير الرسوم وتحديث قاعدة البيانات بنجاح ✅' : 'تم تحويل النشاط إلى نشاط تجاري عادي وتحديث قاعدة البيانات بنجاح ✅');
+    setStatusNotification(exempt ? 'تم إعفاء المكان وتصفير الرسوم وتحديث قاعدة البيانات بنجاح ✅' : 'تم تحويل المكان إلى منشأة تجارية عادية وتحديث قاعدة البيانات بنجاح ✅');
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
   const handleSetVerificationStatus = (newStatus: VerificationStatus) => {
-    const newGoogleSyncStatus = newStatus === 'verified' ? 'synced' : newStatus === 'in_progress' ? 'in_progress' : 'not_synced';
     const updated: Business = {
       ...formData,
       verificationStatus: newStatus,
-      googleSyncStatus: newGoogleSyncStatus,
-      googleSyncDate: newStatus === 'verified' ? (formData.googleSyncDate || new Date().toISOString().split('T')[0]) : formData.googleSyncDate,
+      // Strictly maintain googleSyncStatus intact - internal directory approval does NOT modify Google Maps sync status!
+      googleSyncStatus: formData.googleSyncStatus || 'not_synced',
     };
     setFormData(updated);
     onSave(updated);
 
     const labels: Record<VerificationStatus, string> = {
-      verified: 'تم اعتماد وتوثيق النشاط على خرائط Google بنجاح 🟢',
-      in_progress: 'تم تغيير حالة النشاط إلى: قيد المراجعة ⏳',
-      pending: 'تم تغيير حالة النشاط إلى: بانتظار الإرسال 📋',
-      rejected: 'تم تغيير حالة النشاط إلى: مرفوض 🔴',
-      needs_action: 'تم تغيير حالة النشاط إلى: يتطلب إجراء ⚠️',
+      verified: 'تم اعتماد ونشر المكان بالدليل العام بنجاح 🟢',
+      in_progress: 'تم تعيين حالة المكان بالدليل: قيد المراجعة ⏳',
+      pending: 'تم تعيين حالة المكان بالدليل: بانتظار المراجعة 📋',
+      rejected: 'تم رفض إدراج المكان في الدليل 🔴',
+      needs_action: 'تم تعيين حالة المكان بالدليل: يتطلب إجراء ⚠️',
     };
-    setStatusNotification(labels[newStatus] || 'تم تحديث الحالة بنجاح');
+    setStatusNotification(labels[newStatus] || 'تم تحديث حالة الدليل بنجاح ✅');
     setTimeout(() => setStatusNotification(null), 3000);
   };
 
@@ -511,26 +532,17 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const totalMediaCount = (formData.photos?.length || 0) + (formData.videos?.length || 0);
 
   interface TabItem {
-    key: 'info' | 'owner' | 'location' | 'payment' | 'photos' | 'whatsapp' | 'admin_followup';
+    key: 'info' | 'directory' | 'location' | 'payment' | 'photos' | 'whatsapp';
     label: string;
     icon: React.ReactNode;
     count?: number;
   }
 
   const TABS: TabItem[] = [
-    ...(isAdminOrFinancial
-      ? [
-          {
-            key: 'admin_followup',
-            label: 'المتابعات',
-            icon: <ClipboardList className="w-4 h-4 text-amber-500" />,
-            count: (formData.adminFollowUps || []).length,
-          } as TabItem,
-        ]
-      : []),
     { key: 'info', label: 'البيانات', icon: <Store className="w-4 h-4" /> },
-    { key: 'location', label: 'الخرائط', icon: <MapPin className="w-4 h-4" /> },
-    { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4" /> },
+    { key: 'directory', label: 'الدليل', icon: <Building className="w-4 h-4 text-emerald-500" /> },
+    { key: 'location', label: 'الخرائط', icon: <MapPin className="w-4 h-4 text-blue-500" /> },
+    { key: 'payment', label: 'المالية', icon: <DollarSign className="w-4 h-4 text-amber-500" /> },
     { key: 'photos', label: 'الوسائط', icon: <ImageIcon className="w-4 h-4" />, count: totalMediaCount },
     ...(isAdminOrFinancial
       ? [
@@ -544,10 +556,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   // 1. Directory Approval Status
   const isDirectoryApproved = formData.verificationStatus === 'verified';
   const directoryBadge = isDirectoryApproved
-    ? { label: '🟢 معتمد', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
+    ? { label: '🟢 معتمد بالدليل', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black' }
     : formData.verificationStatus === 'rejected'
-    ? { label: '🔴 مرفوض', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold' }
-    : { label: '⏳ قيد المراجعة', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' };
+    ? { label: '🔴 مرفوض بالدليل', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold' }
+    : { label: '⏳ قيد مراجعة الدليل', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' };
 
   // 2. Google Maps Verification Status
   const hasVerifiedGoogleMap = Boolean(
@@ -556,11 +568,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     !formData.googleMapsUrl.includes('search/?api=1&query=')
   );
   const isGoogleSynced = hasVerifiedGoogleMap || formData.googleSyncStatus === 'synced';
-  const googleBadge = hasVerifiedGoogleMap
+  const googleBadge = (hasVerifiedGoogleMap || formData.googleSyncStatus === 'synced')
     ? { label: '🌐 موثق بـ Google', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black' }
     : formData.googleSyncStatus === 'in_progress'
-    ? { label: '⏳ قيد التوثيق', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold' }
-    : { label: '⚪ غير مربوط', cls: 'bg-slate-800/80 text-slate-400 border-slate-700 font-medium' };
+    ? { label: '⏳ قيد توثيق Google', cls: 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold' }
+    : { label: '⚪ غير مربوط بـ Google', cls: 'bg-slate-800/80 text-slate-400 border-slate-700 font-medium' };
 
   // 3. Payment Status & Alert
   const isUnpaid = !isFeeExempt && remainingDebt > 0;
@@ -599,7 +611,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10020] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
+    <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
+      {/* ── FLOATING TOAST NOTIFICATION (ALWAYS VISIBLE IRRESPECTIVE OF SCROLL) ── */}
+      {statusNotification && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100100] max-w-md w-[92%] bg-slate-900/95 text-white border border-emerald-500/50 px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-3 shadow-2xl backdrop-blur-md animate-fade-in pointer-events-auto">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="flex-1 leading-snug">{statusNotification}</span>
+        </div>
+      )}
+
       <div className="bg-[var(--bg-card)] border-t sm:border border-[var(--border-color)] rounded-t-[28px] sm:rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh] sm:max-h-[90vh] transition-all">
         
         {/* ── 0. MOBILE DRAG HANDLE ───────────────────────────────────── */}
@@ -622,7 +642,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <div className="min-w-0 flex-1 space-y-0.5">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="font-black text-xs sm:text-base text-white truncate max-w-[160px] xs:max-w-[220px] sm:max-w-none">
-                  {formData.nameAr || formData.nameEn || 'تفاصيل النشاط'}
+                  {formData.nameAr || formData.nameEn || 'تفاصيل المنشأة'}
                 </h3>
                 <span className="text-[9px] sm:text-[10px] font-mono text-slate-300 bg-slate-800/90 px-1 py-0.5 rounded border border-slate-700 shrink-0">
                   {formData.invoiceNumber}
@@ -642,8 +662,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               </div>
 
               <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${directoryBadge.cls}`} title="حالة الاعتماد للظهور على دليل المنصة">
+                <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${directoryBadge.cls}`} title="حالة اعتماد ونشر المكان على الدليل العام">
                   {directoryBadge.label}
+                </span>
+                <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${googleBadge.cls}`} title="حالة توثيق خرائط Google">
+                  {googleBadge.label}
                 </span>
                 <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border ${paymentBadge.cls}`}>
                   {paymentBadge.label}
@@ -656,6 +679,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             {canEdit && (
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => {
                   if (isEditMode) {
                     handleSubmit();
@@ -663,15 +687,21 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                     setIsEditMode(true);
                   }
                 }}
-                className={`text-[11px] sm:text-xs font-black px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ${
+                className={`text-[11px] sm:text-xs font-black px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 disabled:opacity-60 ${
                   isEditMode
                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/50'
                     : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
                 }`}
                 title={isEditMode ? 'حفظ التعديلات' : 'تعديل البيانات'}
               >
-                {isEditMode ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Pencil className="w-3 h-3 stroke-[2.5]" />}
-                <span>{isEditMode ? 'حفظ' : 'تعديل'}</span>
+                {isSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : isEditMode ? (
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                ) : (
+                  <Pencil className="w-3 h-3 stroke-[2.5]" />
+                )}
+                <span>{isSaving ? 'جارٍ...' : isEditMode ? 'حفظ' : 'تعديل'}</span>
               </button>
             )}
 
@@ -715,7 +745,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               target="_blank"
               rel="noreferrer"
               className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
-              title="فتح موقع النشاط الموثق على خرائط Google"
+              title="فتح موقع المكان الموثق على خرائط Google"
             >
               <ExternalLink className="w-3 h-3 text-blue-500" />
               <span>الخريطة</span>
@@ -732,6 +762,19 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </button>
           )}
 
+          {/* Persistent Master CRM Timeline Drawer Trigger Button */}
+          {isAdminOrFinancial && (
+            <button
+              type="button"
+              onClick={() => handleOpenMasterDrawer('all')}
+              className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-black px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
+              title="فتح سجل المتابعات الشامل والجدول الزمني الكامل"
+            >
+              <ClipboardList className="w-3 h-3 text-amber-500" />
+              <span>سجل المتابعات ({(formData.adminFollowUps || []).length})</span>
+            </button>
+          )}
+
           {/* Pulsing Red Financial Alert Indicator - Strictly for activities verified on Google with valid Google link and unpaid */}
           {isGoogleVerifiedAndUnpaid && (
             <button
@@ -744,7 +787,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 }
               }}
               className="relative flex items-center gap-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/50 text-[11px] font-black px-2.5 py-1 rounded-xl transition-all active:scale-95 shrink-0 cursor-pointer shadow-xs animate-pulse"
-              title={`تنبيه مالي: النشاط موثق على Google وغير مسدد (متبقي ${remainingDebt} ج.م)`}
+              title={`تنبيه مالي: المكان موثق على Google وغير مسدد (متبقي ${remainingDebt} ج.م)`}
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
@@ -801,13 +844,6 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
         {/* ── 4. SCROLLABLE BODY CONTENT ─────────────────────────────── */}
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3.5 overscroll-contain">
-          
-          {statusNotification && (
-            <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-2xl text-xs font-black flex items-center gap-2 animate-fade-in shadow-sm">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>{statusNotification}</span>
-            </div>
-          )}
 
           {errorMsg && (
             <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-3 rounded-2xl text-xs font-bold flex items-center gap-2">
@@ -816,7 +852,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* ── TAB 1: تفاصيل وبيانات النشاط ──────────────────────────── */}
+          {/* ── TAB 1: تفاصيل وبيانات المكان ──────────────────────────── */}
           {activeSection === 'info' && (
             <EditGeneralInfoTab
               formData={formData}
@@ -826,10 +862,41 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               handleCopyText={handleCopyText}
               isAdminOrFinancial={isAdminOrFinancial}
               onNavigateToWhatsApp={() => setActiveSection('whatsapp')}
+              onSave={onSave}
+              currentUserName={currentUserName}
+              currentUserId={currentUserId}
+              userRole={userRole}
+              onOpenMasterDrawer={handleOpenMasterDrawer}
+              onShowNotification={(msg) => {
+                setStatusNotification(msg);
+                setTimeout(() => setStatusNotification(null), 3000);
+              }}
             />
           )}
 
-          {/* ── TAB 2: الموقع وخرائط Google ───────────────────────────── */}
+          {/* ── TAB 2: اعتماد ونشر الدليل العام ────────────────────────── */}
+          {activeSection === 'directory' && (
+            <EditDirectoryTab
+              formData={formData}
+              setFormData={setFormData}
+              isEditMode={isEditMode}
+              isAdminOrFinancial={isAdminOrFinancial}
+              handleSetVerificationStatus={handleSetVerificationStatus}
+              onSave={onSave}
+              copiedField={copiedField}
+              handleCopyText={handleCopyText}
+              currentUserName={currentUserName}
+              currentUserId={currentUserId}
+              userRole={userRole}
+              onOpenMasterDrawer={handleOpenMasterDrawer}
+              onShowNotification={(msg) => {
+                setStatusNotification(msg);
+                setTimeout(() => setStatusNotification(null), 3000);
+              }}
+            />
+          )}
+
+          {/* ── TAB 3: الموقع وخرائط Google ───────────────────────────── */}
           {activeSection === 'location' && (
             <EditLocationTab
               formData={formData}
@@ -839,14 +906,22 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               googleBadge={googleBadge}
               handleCopyGoogleDetails={handleCopyGoogleDetails}
               handleDownloadAllPhotos={handleDownloadAllPhotos}
-              handleSetVerificationStatus={handleSetVerificationStatus}
               copiedField={copiedField}
               handleCopyText={handleCopyText}
               isDownloadingPhotos={isDownloadingPhotos}
+              onSave={onSave}
+              currentUserName={currentUserName}
+              currentUserId={currentUserId}
+              userRole={userRole}
+              onOpenMasterDrawer={handleOpenMasterDrawer}
+              onShowNotification={(msg) => {
+                setStatusNotification(msg);
+                setTimeout(() => setStatusNotification(null), 3000);
+              }}
             />
           )}
 
-          {/* ── TAB 3: الباقة والبيانات المالية ───────────────────────── */}
+          {/* ── TAB 4: الباقة والبيانات المالية ───────────────────────── */}
           {activeSection === 'payment' && (
             <EditPackagePaymentTab
               formData={formData}
@@ -863,11 +938,18 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               copiedField={copiedField}
               handleCopyText={handleCopyText}
               currentUserName={currentUserName}
+              currentUserId={currentUserId}
               currentUserRole={userRole}
+              onSave={onSave}
+              onOpenMasterDrawer={handleOpenMasterDrawer}
+              onShowNotification={(msg) => {
+                setStatusNotification(msg);
+                setTimeout(() => setStatusNotification(null), 3000);
+              }}
             />
           )}
 
-          {/* ── TAB 4: معرض الصور والفيديو ────────────────────────────── */}
+          {/* ── TAB 5: معرض الصور والفيديو ────────────────────────────── */}
           {activeSection === 'photos' && (
             <EditMediaTab
               formData={formData}
@@ -882,30 +964,32 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               handleSetPrimaryPhoto={handleSetPrimaryPhoto}
               handleReorderPhoto={handleReorderPhoto}
               canEdit={canEdit}
+              onSave={onSave}
+              setFormData={setFormData}
+              currentUserName={currentUserName}
+              currentUserId={currentUserId}
+              userRole={userRole}
+              onOpenMasterDrawer={handleOpenMasterDrawer}
+              onShowNotification={(msg) => {
+                setStatusNotification(msg);
+                setTimeout(() => setStatusNotification(null), 3000);
+              }}
             />
           )}
 
-          {/* ── TAB 5: مركز رسائل الواتساب والتسويق ────────────────────── */}
+          {/* ── TAB 6: مركز رسائل الواتساب والتسويق ────────────────────── */}
           {activeSection === 'whatsapp' && (
             <EditMarketingTab
               formData={formData}
               isAdminOrFinancial={isAdminOrFinancial}
               copiedField={copiedField}
               handleCopyText={handleCopyText}
-            />
-          )}
-
-          {/* ── TAB 6: سجل المتابعات الإدارية CRM ─────────────────────── */}
-          {activeSection === 'admin_followup' && (
-            <EditFollowUpsTab
-              formData={formData}
-              setFormData={setFormData}
               onSave={onSave}
-              currentUser={currentUser}
+              setFormData={setFormData}
               currentUserName={currentUserName}
               currentUserId={currentUserId}
               userRole={userRole}
-              currentRoleTitle={currentRoleTitle}
+              onOpenMasterDrawer={handleOpenMasterDrawer}
               onShowNotification={(msg) => {
                 setStatusNotification(msg);
                 setTimeout(() => setStatusNotification(null), 3000);
@@ -922,10 +1006,10 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
                 className="text-rose-600 hover:text-rose-700 hover:bg-rose-500/15 border border-rose-500/20 text-xs font-bold p-2 sm:px-3 sm:py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
-                title="حذف النشاط"
+                title="حذف المكان"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">حذف النشاط</span>
+                <span className="hidden sm:inline">حذف المكان</span>
               </button>
             )}
           </div>
@@ -943,15 +1027,72 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="flex-1 sm:flex-initial bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 text-slate-950 text-xs sm:text-sm font-black px-4 sm:px-5 py-2 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                disabled={isSaving}
+                className="flex-1 sm:flex-initial bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 text-slate-950 text-xs sm:text-sm font-black px-4 sm:px-5 py-2 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
               >
-                <Save className="w-4 h-4" />
-                <span>حفظ التعديلات</span>
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                <span>{isSaving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}</span>
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── MASTER CRM TIMELINE DRAWER (SLIDE-OVER / MODAL) ── */}
+      {isMasterDrawerOpen && (
+        <div
+          className="fixed inset-0 z-[100200] bg-slate-950/85 backdrop-blur-sm flex justify-end animate-fade-in"
+          onClick={() => setIsMasterDrawerOpen(false)}
+        >
+          <div
+            className="bg-[var(--bg-card)] border-r sm:border-l border-[var(--border-color)] w-full max-w-2xl h-full shadow-2xl flex flex-col overflow-hidden animate-slide-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-3.5 sm:p-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+                  <ClipboardList className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-xs sm:text-sm text-white">
+                    سجل المتابعات الشامل (Master CRM)
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold truncate max-w-[240px]">
+                    {formData.nameAr || formData.nameEn}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMasterDrawerOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                title="إغلاق السجل"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 overscroll-contain">
+              <EditFollowUpsTab
+                formData={formData}
+                setFormData={setFormData}
+                onSave={onSave}
+                currentUser={currentUser}
+                currentUserName={currentUserName}
+                currentUserId={currentUserId}
+                userRole={userRole}
+                currentRoleTitle={currentRoleTitle}
+                initialCategory={masterDrawerCategory}
+                onCloseDrawer={() => setIsMasterDrawerOpen(false)}
+                onShowNotification={(msg) => {
+                  setStatusNotification(msg);
+                  setTimeout(() => setStatusNotification(null), 3000);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Full Photo Lightbox */}
       {selectedPhotoPreview && (
@@ -972,8 +1113,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       {/* Custom Delete Confirmation Modal */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="تأكيد حذف النشاط"
-        message={`هل أنت متأكد من رغبتك في حذف نشاط "${formData?.nameAr || ''}" نهائياً من المنظومة؟`}
+        title="تأكيد حذف المكان"
+        message={`هل أنت متأكد من رغبتك في حذف "${formData?.nameAr || ''}" نهائياً من المنظومة؟`}
         confirmLabel="حذف نهائي"
         cancelLabel="إلغاء"
         variant="danger"

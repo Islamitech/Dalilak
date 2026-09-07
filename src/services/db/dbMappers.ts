@@ -85,6 +85,8 @@ export function mapDbToBusiness(item: any): Business {
   let metaGoogleRatingEnabled = item.google_rating_enabled !== undefined ? Boolean(item.google_rating_enabled) : (item.googleRatingEnabled !== undefined ? Boolean(item.googleRatingEnabled) : undefined);
   let metaGoogleRating = item.google_rating !== undefined ? Number(item.google_rating) : (item.googleRating !== undefined ? Number(item.googleRating) : undefined);
   let metaGoogleReviewsCount = item.google_reviews_count !== undefined ? Number(item.google_reviews_count) : (item.googleReviewsCount !== undefined ? Number(item.googleReviewsCount) : undefined);
+  let metaViewsCount = item.views_count !== undefined ? Number(item.views_count) : (item.viewsCount !== undefined ? Number(item.viewsCount) : undefined);
+  let metaFavoriteCount = item.favorite_count !== undefined ? Number(item.favorite_count) : (item.favoriteCount !== undefined ? Number(item.favoriteCount) : undefined);
   let metaAdditionalInvoices: AdditionalServiceInvoice[] | undefined =
     Array.isArray(item.additional_invoices) ? item.additional_invoices :
     Array.isArray(item.additionalInvoices) ? item.additionalInvoices : undefined;
@@ -109,6 +111,8 @@ export function mapDbToBusiness(item: any): Business {
         if (parsed.googleRatingEnabled !== undefined && metaGoogleRatingEnabled === undefined) metaGoogleRatingEnabled = Boolean(parsed.googleRatingEnabled);
         if (parsed.googleRating !== undefined && metaGoogleRating === undefined) metaGoogleRating = Number(parsed.googleRating);
         if (parsed.googleReviewsCount !== undefined && metaGoogleReviewsCount === undefined) metaGoogleReviewsCount = Number(parsed.googleReviewsCount);
+        if (parsed.viewsCount !== undefined && metaViewsCount === undefined) metaViewsCount = Number(parsed.viewsCount);
+        if (parsed.favoriteCount !== undefined && metaFavoriteCount === undefined) metaFavoriteCount = Number(parsed.favoriteCount);
         if (parsed.repLocationUrl && !metaRepLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
         if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
@@ -169,9 +173,9 @@ export function mapDbToBusiness(item: any): Business {
     ? 'pkg_exempt'
     : (item.package_id || item.packageId || (packagePrice === 750 ? 'pkg_pro' : packagePrice === 2000 ? 'pkg_vip' : 'pkg_basic'));
   const packageName = isAlreadyOnGoogle
-    ? 'نشاط مسجل مسبقاً على Google Maps (إدراج مجاني)'
+    ? 'منشأة مسجلة مسبقاً على Google Maps (إدراج مجاني)'
     : isFeeExempt
-    ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)'
+    ? 'منشأة رائجة بالمنطقة (إدراج شرفي مجاني بدون رسوم)'
     : (item.package_name || item.packageName || (packageId === 'pkg_pro' ? '2. عرض التأسيس والربط الذكي' : packageId === 'pkg_vip' ? '3. عرض الدعم الميداني والإدارة الشاملة VIP' : '1. باقة التوثيق الأساسي'));
 
   const rawPaid = Number(item.amount_paid !== undefined && item.amount_paid !== null ? item.amount_paid : (item.amountPaid || 0)) || 0;
@@ -218,7 +222,7 @@ export function mapDbToBusiness(item: any): Business {
 
   return {
     id: item.id || `biz_${Date.now()}`,
-    nameAr: item.name_ar || item.nameAr || 'نشاط تجاري',
+    nameAr: item.name_ar || item.nameAr || 'المكان',
     nameEn: item.name_en || item.nameEn,
     category: item.category || 'عام',
     governorate: item.governorate || 'القاهرة',
@@ -231,7 +235,7 @@ export function mapDbToBusiness(item: any): Business {
     description: item.description || '',
     lat,
     lng,
-    ownerName: item.owner_name || item.ownerName || 'صاحب النشاط',
+    ownerName: item.owner_name || item.ownerName || 'صاحب المكان',
     ownerPhone: item.owner_phone || item.ownerPhone || '',
     ownerEmail: item.owner_email || item.ownerEmail,
     nationalId: item.national_id || item.nationalId,
@@ -259,6 +263,8 @@ export function mapDbToBusiness(item: any): Business {
     googleRatingEnabled: metaGoogleRatingEnabled !== undefined ? metaGoogleRatingEnabled : undefined,
     googleRating: metaGoogleRating !== undefined ? metaGoogleRating : undefined,
     googleReviewsCount: metaGoogleReviewsCount !== undefined ? metaGoogleReviewsCount : undefined,
+    viewsCount: metaViewsCount || 0,
+    favoriteCount: metaFavoriteCount || 0,
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
     notes: pureNotes,
@@ -282,7 +288,7 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
   const record: any = {};
   if (biz.id !== undefined) record.id = biz.id;
-  record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'نشاط تجاري';
+  record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'المكان';
   if (biz.nameEn !== undefined) record.name_en = biz.nameEn?.trim() || null;
   record.category = biz.category || 'عام';
   record.governorate = biz.governorate || 'القاهرة';
@@ -292,16 +298,16 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.phone = (biz.phone && biz.phone.trim()) || (biz.ownerPhone && biz.ownerPhone.trim()) || '01000000000';
   record.secondary_phone = biz.secondaryPhone?.trim() || null;
   record.working_hours = biz.workingHours || 'يومياً من 9:00 صباحاً حتى 11:00 مساءً';
-  record.description = biz.description || `نشاط ${record.name_ar} في ${record.governorate}`;
+  record.description = biz.description || `منشأة ${record.name_ar} في ${record.governorate}`;
   record.lat = Number(biz.lat) || 30.0444;
   record.lng = Number(biz.lng) || 31.2357;
-  record.owner_name = (biz.ownerName && biz.ownerName.trim()) || 'صاحب النشاط';
+  record.owner_name = (biz.ownerName && biz.ownerName.trim()) || 'صاحب المكان';
   record.owner_phone = (biz.ownerPhone && biz.ownerPhone.trim()) || (biz.phone && biz.phone.trim()) || record.phone || '01000000000';
   record.owner_email = biz.ownerEmail?.trim() || null;
   record.national_id = biz.nationalId?.trim() || null;
   record.photos = Array.isArray(biz.photos) ? biz.photos : [];
   record.package_id = isAlreadyOnGoogle ? 'pkg_already_on_google' : (isExempt ? 'pkg_exempt' : (biz.packageId || 'pkg_basic'));
-  record.package_name = isAlreadyOnGoogle ? 'نشاط مسجل مسبقاً على Google Maps (إدراج مجاني)' : (isExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : (biz.packageName || '1. باقة التوثيق الأساسي'));
+  record.package_name = isAlreadyOnGoogle ? 'منشأة مسجلة مسبقاً على Google Maps (إدراج مجاني)' : (isExempt ? 'منشأة رائجة بالمنطقة (إدراج شرفي مجاني بدون رسوم)' : (biz.packageName || '1. باقة التوثيق الأساسي'));
   record.package_price = isExempt ? 0 : (Number(biz.packagePrice) || 250);
   record.amount_paid = isExempt ? 0 : (Number(biz.amountPaid) || 0);
   record.payment_status = isExempt ? 'fully_paid' : (biz.paymentStatus || 'unpaid');
@@ -382,6 +388,8 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     googleRatingEnabled: biz.googleRatingEnabled !== undefined ? biz.googleRatingEnabled : existingMeta.googleRatingEnabled,
     googleRating: biz.googleRating !== undefined ? biz.googleRating : existingMeta.googleRating,
     googleReviewsCount: biz.googleReviewsCount !== undefined ? biz.googleReviewsCount : existingMeta.googleReviewsCount,
+    viewsCount: biz.viewsCount !== undefined ? biz.viewsCount : existingMeta.viewsCount,
+    favoriteCount: biz.favoriteCount !== undefined ? biz.favoriteCount : existingMeta.favoriteCount,
     repLocationUrl: cleanRepLocationUrl || existingMeta.repLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl || existingMeta.googleMapsUrl,
     videos: finalVideos,
@@ -453,6 +461,13 @@ export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Bus
     updates.googleRatingEnabled !== undefined ||
     updates.googleRating !== undefined ||
     updates.googleReviewsCount !== undefined ||
+    updates.viewsCount !== undefined ||
+    updates.favoriteCount !== undefined ||
+    updates.isDeleted !== undefined ||
+    updates.deletedAt !== undefined ||
+    updates.deletedBy !== undefined ||
+    updates.deletedByRole !== undefined ||
+    updates.deletedReason !== undefined ||
     updates.repLocationUrl !== undefined ||
     updates.paymentMethod !== undefined ||
     updates.cashCollectedByRep !== undefined ||
@@ -691,6 +706,23 @@ export function mapDbToLead(item: any): InterestedLead {
     }
   }
 
+  let isTrending: boolean = Boolean(
+    item.is_trending ||
+    item.isTrending ||
+    item.interest_level === 'trending_free' ||
+    item.interestLevel === 'trending_free'
+  );
+  if (!isTrending && item.notes && typeof item.notes === 'string') {
+    if (
+      item.notes.includes('isTrending') ||
+      item.notes.includes('منشأة رائجة') ||
+      item.notes.includes('نشاط رائج') ||
+      item.notes.includes('مرشحة للإدراج الشرفي المجاني')
+    ) {
+      isTrending = true;
+    }
+  }
+
   let adminFollowUps: AdminFollowUpNote[] = [];
   if (Array.isArray(item.admin_follow_ups)) {
     adminFollowUps = item.admin_follow_ups;
@@ -703,7 +735,7 @@ export function mapDbToLead(item: any): InterestedLead {
   return {
     id: item.id || `lead_${Date.now()}`,
     clientName: item.client_name || item.clientName || item.name || 'عميل محتمل',
-    businessName: item.business_name || item.businessName || item.business_type || 'نشاط تجاري',
+    businessName: item.business_name || item.businessName || item.business_type || 'المكان',
     businessCategory: item.business_category || item.businessCategory,
     phone: item.phone || '',
     secondaryPhone: item.secondary_phone || item.secondaryPhone,
@@ -713,7 +745,8 @@ export function mapDbToLead(item: any): InterestedLead {
     lat,
     lng,
     locationUrl: locationUrl || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined),
-    interestLevel: item.interest_level || item.interestLevel || 'high',
+    interestLevel: (isTrending ? 'trending_free' : (item.interest_level || item.interestLevel || 'high')) as any,
+    isTrending,
     notes: item.notes,
     adminFollowUps,
     followUpDate: item.follow_up_date || item.followUpDate,
@@ -739,7 +772,8 @@ export function mapLeadToDb(lead: InterestedLead): any {
     lat: lead.lat ?? null,
     lng: lead.lng ?? null,
     location_url: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
-    interest_level: lead.interestLevel,
+    interest_level: lead.isTrending ? 'trending_free' : lead.interestLevel,
+    is_trending: Boolean(lead.isTrending),
     notes: lead.notes || null,
     admin_follow_ups: Array.isArray(lead.adminFollowUps) ? lead.adminFollowUps : [],
     follow_up_date: lead.followUpDate || null,

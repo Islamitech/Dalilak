@@ -23,7 +23,7 @@ export interface Business {
   nationalId?: string;
   photos: string[];
   videos?: string[];
-  coverPhoto?: string; // رابط الصورة المحددة كغلاف رئيسي للنشاط في الدليل
+  coverPhoto?: string; // رابط الصورة المحددة كغلاف رئيسي للمكان في الدليل
   repId: string;
   repName: string;
   packageId: string;
@@ -34,7 +34,7 @@ export interface Business {
   paymentMethod?: 'cash_by_rep' | 'platform_collected' | 'gateway_online' | 'bank_transfer' | 'other'; // طريقة الاستلام
   cashCollectedByRep?: number; // المبلغ الكاش المستلم في يد المندوب
   paymentStatus: PaymentStatus;
-  paymentReceiptPhoto?: string; // صورة إيصال / تحويل / لقطة شاشة سداد النشاط
+  paymentReceiptPhoto?: string; // صورة إيصال / تحويل / لقطة شاشة سداد المكان
   paymentReceiptDate?: string;  // تاريخ تسجيل إيصال السداد
   verificationStatus: VerificationStatus;
   repLocationUrl?: string; // رابط موقع النقطة الميداني المرسل من المندوب (غير موثق - للاستخدام الإداري والمراجعة والرفع فقط)
@@ -45,17 +45,19 @@ export interface Business {
   googleRatingEnabled?: boolean; // تفعيل عرض تقييم Google Maps المعتمد
   googleRating?: number;         // درجة التقييم الرقمية من 1.0 إلى 5.0 (مثال: 4.9)
   googleReviewsCount?: number;   // إجمالي عدد التقييمات والمراجعات على Google (مثال: 128)
+  viewsCount?: number;           // إجمالي عدد مشاهدات صفحة المكان في الدليل
+  favoriteCount?: number;        // إجمالي مرات إضافة المكان للمفضلة
   invoiceNumber: string;
   invoiceDate: string;
   repCommissionRate?: number;
-  isFeeExempt?: boolean; // نشاط رائج بالمنطقة معفى من الرسوم والتحصيل المالي (إدراج مجاني)
+  isFeeExempt?: boolean; // مكان رائج بالمنطقة معفى من الرسوم والتحصيل المالي (إدراج مجاني)
   feeExemptionReason?: string; // سبب الإعفاء
   registrationType?: 'new_verification' | 'already_on_google' | 'interested_lead'; // أسلوب التسجيل
-  isAlreadyOnGoogle?: boolean; // نشاط مسجل ومفعل بالفعل على خرائط Google مسبقاً
+  isAlreadyOnGoogle?: boolean; // مكان مسجل ومفعل بالفعل على خرائط Google مسبقاً
   notes?: string;
   adminFollowUps?: AdminFollowUpNote[]; // سجل الملاحظات والمتابعات الإدارية الداخلية
   createdDate: string;
-  isDeleted?: boolean; // أثر السيرفر: هل تم حذف النشاط ناعماً
+  isDeleted?: boolean; // أثر السيرفر: هل تم حذف المكان ناعماً
   deletedAt?: string;  // تاريخ الحذف الإداري
   deletedBy?: string;  // اسم أو إيميل من قام بالحذف
   deletedByRole?: string; // دور المسؤول الذي حذف
@@ -88,6 +90,7 @@ export interface AdditionalServiceInvoice {
 
 export type AdminFollowUpType = 'call' | 'visit' | 'payment' | 'verification' | 'general';
 export type AdminFollowUpStatus = 'completed' | 'pending' | 'urgent';
+export type AdminFollowUpCategory = 'info' | 'directory' | 'maps' | 'finance' | 'media' | 'whatsapp' | 'general';
 
 export interface AdminFollowUpNote {
   id: string;
@@ -96,6 +99,7 @@ export interface AdminFollowUpNote {
   authorRole?: string;
   type: AdminFollowUpType;
   status?: AdminFollowUpStatus;
+  category?: AdminFollowUpCategory;
   text: string;
   createdAt: string;
   nextFollowUpDate?: string;
@@ -222,7 +226,7 @@ export interface PayoutRequest {
   _offlineTimestamp?: number;
 }
 
-export type LeadInterestLevel = 'high' | 'medium' | 'low' | 'intro_sent' | 'need_visit';
+export type LeadInterestLevel = 'high' | 'medium' | 'low' | 'intro_sent' | 'need_visit' | 'trending_free';
 export type LeadStatus = 'pending_followup' | 'contacted' | 'converted' | 'cancelled';
 
 export interface InterestedLead {
@@ -239,6 +243,7 @@ export interface InterestedLead {
   lng?: number;
   locationUrl?: string;
   interestLevel: LeadInterestLevel;
+  isTrending?: boolean; // منشأة مميزة رائجة بالمنطقة مرشحة للإدراج الشرفي المجاني بدون رسوم
   notes?: string;
   adminFollowUps?: AdminFollowUpNote[];
   followUpDate?: string;

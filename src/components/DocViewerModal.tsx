@@ -60,7 +60,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-colors duration-300">
         {/* Close Button */}
         <button
@@ -229,7 +229,13 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <img src={rep.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'} alt={rep.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shrink-0 shadow-md" />
+                    {(() => {
+                      const isAvatarApproved = rep.role === 'admin' || rep.avatarStatus === 'approved';
+                      const badgeAvatarSrc = (isAvatarApproved && rep.avatar) ? rep.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+                      return (
+                        <img src={badgeAvatarSrc} alt={rep.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shrink-0 shadow-md" />
+                      );
+                    })()}
                     <div className="space-y-0.5">
                       <h4 className="font-black text-sm text-white">{rep.name}</h4>
                       <p className="text-[11px] text-amber-300 font-black">{effectiveTitle}</p>

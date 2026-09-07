@@ -4,13 +4,42 @@
 -- Supabase Dashboard -> SQL Editor -> New Query -> Run
 -- ==============================================================================
 
+-- 0. 🛠️ خطوة تمهيدية إلزامية: التأكد من وجود كافة أعمدة الحذف الناعم والخصائص الميدانية
+-- يمنع هذا المقطع أي انهيار عند إنشاء السياسات التي تعتمد على deleted_at أو الأعمدة المستحدثة
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS deleted_by_role TEXT;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS deleted_reason TEXT;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS cover_photo TEXT;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS payment_receipt_photo TEXT;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS payment_receipt_date TEXT;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS google_rating_enabled BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS google_rating NUMERIC;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS google_reviews_count INTEGER DEFAULT 0;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0;
+ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS favorite_count INTEGER DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS deleted_by_role TEXT;
+
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS street TEXT;
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS location_url TEXT;
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS admin_follow_ups JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS is_trending BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
 -- 1. تفعيل حماية الصفوف (RLS) على جميع الجداول الأساسية
 ALTER TABLE IF EXISTS public.businesses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.representatives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.payout_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.payment_config ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------------------------
 -- 2. حماية الأعمدة الحساسة لجدول المندوبين (Column-Level Security)
@@ -29,7 +58,6 @@ GRANT ALL ON public.businesses TO service_role;
 GRANT ALL ON public.payout_requests TO service_role;
 GRANT ALL ON public.leads TO service_role;
 GRANT ALL ON public.payment_config TO service_role;
-GRANT ALL ON public.activity_logs TO service_role;
 
 -- ------------------------------------------------------------------------------
 -- 3. سياسات جدول المندوبين (representatives)
@@ -149,7 +177,37 @@ USING (auth.role() = 'service_role' OR auth.role() = 'authenticated')
 WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
 -- ------------------------------------------------------------------------------
--- 7. سياسات وسائط التخزين (Storage Objects) لحاوية 'business-media'
+-- 7. سياسات جدول الأشخاص المهتمين وسجل المراجعات (leads)
+-- ------------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public full access to leads" ON public.leads;
+DROP POLICY IF EXISTS "Leads read access" ON public.leads;
+DROP POLICY IF EXISTS "Leads insert access" ON public.leads;
+DROP POLICY IF EXISTS "Leads update access" ON public.leads;
+DROP POLICY IF EXISTS "Leads delete access" ON public.leads;
+
+-- قراءة سجلات المهتمين غير المحذوفة
+CREATE POLICY "Leads read access"
+ON public.leads FOR SELECT
+USING (deleted_at IS NULL);
+
+-- السماح للمناديب والإدارة بإضافة أشخاص مهتمين جدد
+CREATE POLICY "Leads insert access"
+ON public.leads FOR INSERT
+WITH CHECK (true);
+
+-- السماح بتحديث بيانات المهتم والمتابعات
+CREATE POLICY "Leads update access"
+ON public.leads FOR UPDATE
+USING (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL)
+WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL);
+
+-- حظر الحذف المباشر إلا للمصادقين أو الخادم
+CREATE POLICY "Leads delete access"
+ON public.leads FOR DELETE
+USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
+
+-- ------------------------------------------------------------------------------
+-- 8. سياسات وسائط التخزين (Storage Objects) لحاوية 'business-media'
 -- ------------------------------------------------------------------------------
 DO $$
 BEGIN

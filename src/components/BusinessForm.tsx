@@ -132,6 +132,19 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         const found = getGroupFromCategory(initialLead.businessCategory);
         if (found) setSelectedGroup(found.group);
       }
+      if (initialLead.locationUrl) {
+        setAlreadyGoogleMapsUrl(initialLead.locationUrl);
+      }
+      if (initialLead.notes) {
+        setNotes((prev) => prev ? `${prev} | ${initialLead.notes}` : (initialLead.notes || ''));
+      }
+      if (initialLead.isTrending || initialLead.interestLevel === 'trending_free') {
+        setRegistrationType('already_on_google');
+        setIsFeeExempt(true);
+        setSelectedPackage(EXEMPT_PACKAGE);
+        setAmountPaid(0);
+        setPaymentStatus('fully_paid');
+      }
     }
   }, [initialLead]);
 
@@ -710,14 +723,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       isFeeExempt: true,
       isAlreadyOnGoogle: true,
       registrationType: 'already_on_google',
-      feeExemptionReason: 'نشاط مسجل ومفعل بالفعل على خرائط Google (إدراج مجاني بدون رسوم وعمولات)',
+      feeExemptionReason: 'مكان مسجل ومفعل بالفعل على خرائط Google (إدراج مجاني بدون رسوم وعمولات)',
       paymentMethod: 'platform_collected',
       cashCollectedByRep: 0,
       paymentStatus: 'fully_paid',
       verificationStatus: 'pending', // Requires admin review and confirmation before publishing on public directory
       googleMapsUrl: finalGoogleMapUrl,
-      googleSyncStatus: 'not_synced',
-      googleSyncDate: undefined,
+      googleSyncStatus: finalGoogleMapUrl ? 'synced' : 'not_synced',
+      googleSyncDate: finalGoogleMapUrl ? new Date().toISOString().split('T')[0] : undefined,
       invoiceNumber: `INV-${new Date().getFullYear()}-${timestamp.toString().slice(-6)}`,
       invoiceDate: new Date().toISOString().split('T')[0],
       createdDate: new Date().toISOString(),
@@ -822,7 +835,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       packagePrice: isFeeExempt ? 0 : selectedPackage.price,
       amountPaid: isFeeExempt || isRep ? 0 : (Number(amountPaid) || 0),
       isFeeExempt: isFeeExempt || undefined,
-      feeExemptionReason: isFeeExempt ? 'نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)' : undefined,
+      feeExemptionReason: isFeeExempt ? 'مكان رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)' : undefined,
       // Set payment method and cash in hand accurately:
       paymentMethod: isFeeExempt || isRep || paymentStatus === 'unpaid' ? 'platform_collected' : paymentMethod,
       cashCollectedByRep: !isFeeExempt && !isRep && paymentStatus !== 'unpaid' && paymentMethod === 'cash_by_rep' ? Number(amountPaid) : 0,
@@ -855,17 +868,17 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         </div>
         
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mb-2">تم تسجيل وحفظ النشاط بنجاح! 🎉</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mb-2">تم تسجيل وحفظ المنشأة بنجاح! 🎉</h2>
           <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
-            تم حفظ بيانات نشاط <span className="font-bold text-[var(--text-primary)] px-1">{submittedBusiness.nameAr}</span> بأمان في المنظومة وإصدار الفاتورة الإلكترونية المعتمدة.
+            تم حفظ بيانات منشأة <span className="font-bold text-[var(--text-primary)] px-1">{submittedBusiness.nameAr}</span> بأمان في المنظومة وإصدار الفاتورة الإلكترونية المعتمدة.
           </p>
         </div>
         
         <div className="bg-[var(--input-bg)] rounded-2xl p-3.5 border border-[var(--border-color)] flex justify-between items-center text-xs font-bold shadow-xs">
-          <span className="text-[var(--text-secondary)]">حالة النشاط في المنظومة:</span>
+          <span className="text-[var(--text-secondary)]">حالة المنشأة في المنظومة:</span>
           <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-amber-500/30">
             <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>مسجل ومتاح للعملاء (قيد المراجعة)</span>
+            <span>مسجلة ومتاحة للعملاء (قيد المراجعة)</span>
           </span>
         </div>
 
@@ -1343,14 +1356,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               <div className="text-right">
                 <div className="flex items-center gap-2">
                   <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
-                    نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)
+                    منشأة رائجة ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)
                   </h4>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-black">
                     خاص بالإدارة
                   </span>
                 </div>
                 <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
-                  الأنشطة ذات الرواج والشهرة العالية في المنطقة لإثراء الدليل مجاناً (فاتورة 0 ج.م - لا تحتسب ضمن الإحصائيات)
+                  المنشآت ذات الرواج والشهرة العالية في المنطقة لإثراء الدليل مجاناً (فاتورة 0 ج.م - لا تحتسب ضمن الإحصائيات)
                 </p>
               </div>
             </div>

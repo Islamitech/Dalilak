@@ -181,7 +181,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3" />
           <input
             type="text"
-            placeholder="بحث باسم النشاط، العميل أو الهاتف..."
+            placeholder="بحث بالاسم، العميل أو الهاتف..."
             value={bizSearchQuery}
             onChange={(e) => setBizSearchQuery(e.target.value)}
             className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
@@ -232,7 +232,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] text-xs">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[var(--text-secondary)]">
-            إجمالي الأنشطة المطابقة: <strong className="font-mono font-black text-amber-600 dark:text-amber-400">{filteredBusinesses.length}</strong> نشاط
+            إجمالي المنشآت المطابقة: <strong className="font-mono font-black text-amber-600 dark:text-amber-400">{filteredBusinesses.length}</strong> منشأة
           </span>
           {(bizSearchQuery || governorateFilter !== 'all' || paymentFilter !== 'all' || verificationFilter !== 'all') && (
             <button
@@ -288,7 +288,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
       <div className="space-y-3">
         {pagedBusinesses.length === 0 ? (
           <div className="p-8 text-center text-[var(--text-muted)] font-bold bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)]">
-            لا توجد أنشطة مطابقة للبحث أو التصفية الحالية.
+            لا توجد منشآت مطابقة للبحث أو التصفية الحالية.
           </div>
         ) : (
           <>
@@ -302,7 +302,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                   biz.googleMapsUrl.trim().startsWith('http') &&
                   !biz.googleMapsUrl.includes('search/?api=1&query=')
                 );
-                const isGoogleSynced = hasGoogleMap;
+                const isGoogleSynced = hasGoogleMap || biz.googleSyncStatus === 'synced';
                 const isInGoogleReview = !hasGoogleMap && biz.googleSyncStatus === 'in_progress';
                 const isAlreadyOnGoogle = Boolean(biz.isAlreadyOnGoogle || biz.packageId === 'pkg_already_on_google' || biz.registrationType === 'already_on_google');
                 const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
@@ -342,24 +342,33 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                         {isDirectoryApproved ? (
                           <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                             <CheckCircle2 className="w-2.5 h-2.5" />
-                            <span>معتمد 🟢</span>
+                            <span>معتمد بالدليل 🟢</span>
+                          </span>
+                        ) : biz.verificationStatus === 'rejected' ? (
+                          <span className="bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            <span>مرفوض بالدليل 🔴</span>
                           </span>
                         ) : (
                           <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
-                            <span>قيد المراجعة ⏳</span>
+                            <span>قيد مراجعة الدليل ⏳</span>
                           </span>
                         )}
 
-                        {isGoogleSynced ? (
+                        {hasGoogleMap ? (
                           <span className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                            🌐 خرائط Google
+                            🌐 موثق بـ Google
                           </span>
                         ) : isInGoogleReview ? (
                           <span className="bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                            ⏳ مراجعة Google
+                            ⏳ قيد توثيق Google
                           </span>
-                        ) : null}
+                        ) : (
+                          <span className="bg-slate-800/80 text-slate-400 border border-slate-700 text-[9px] font-medium px-1.5 py-0.5 rounded-md">
+                            ⚪ غير مربوط بـ Google
+                          </span>
+                        )}
 
                         {fuSummary.isOverdue ? (
                           <button
@@ -551,7 +560,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                         type="button"
                         onClick={() => setConfirmDelete({ id: biz.id, name: biz.nameAr })}
                         className="bg-rose-500/15 hover:bg-rose-500 text-rose-500 hover:text-white p-2 rounded-xl border border-rose-500/30 cursor-pointer transition-colors"
-                        title="حذف النشاط"
+                        title="حذف المكان"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -566,7 +575,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
               <table className="w-full text-xs text-right border-collapse min-w-[950px]">
                 <thead>
                   <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold text-[11px]">
-                    <th className="p-3">اسم النشاط والتصنيف</th>
+                    <th className="p-3">الاسم والتصنيف</th>
                     <th className="p-3">المسؤول والموقع</th>
                     <th className="p-3">المندوب وتاريخ التسجيل</th>
                     <th className="p-3">الباقة والموقف المالي</th>
@@ -683,10 +692,15 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
                                   <span>معتمد بالدليل 🟢</span>
                                 </span>
+                              ) : biz.verificationStatus === 'rejected' ? (
+                                <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                  <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
+                                  <span>مرفوض بالدليل 🔴</span>
+                                </span>
                               ) : (
                                 <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                   <Clock className="w-2.5 h-2.5 text-amber-500" />
-                                  <span>قيد المراجعة ⏳</span>
+                                  <span>قيد مراجعة الدليل ⏳</span>
                                 </span>
                               )}
                             </div>
@@ -697,13 +711,17 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                                   target="_blank"
                                   rel="noreferrer"
                                   className="text-[9.5px] bg-blue-500/15 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md border border-blue-500/30 inline-flex items-center gap-1 transition-colors cursor-pointer"
-                                  title="فتح رابط النشاط المعتمد على خرائط Google"
+                                  title="فتح الرابط المعتمد على خرائط Google"
                                 >
-                                  <span>📍 خرائط Google</span>
+                                  <span>🌐 موثق بـ Google</span>
                                 </a>
+                              ) : biz.googleSyncStatus === 'in_progress' ? (
+                                <span className="text-[9.5px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md border border-purple-500/30 inline-flex items-center gap-1">
+                                  <span>⏳ قيد توثيق Google</span>
+                                </span>
                               ) : (
                                 <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium px-1.5 py-0.5 rounded border border-slate-700/40 inline-flex items-center gap-1 opacity-70">
-                                  <span>⚪ غير مربوطة</span>
+                                  <span>⚪ غير مربوط بـ Google</span>
                                 </span>
                               )}
                             </div>

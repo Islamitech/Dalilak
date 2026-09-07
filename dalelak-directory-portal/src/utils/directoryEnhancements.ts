@@ -167,7 +167,7 @@ export function getBusinessOpenStatus(workingHours?: string): OpenStatusResult {
  * Allows users to add the business to their smartphone contacts instantly.
  */
 export function downloadBusinessVCard(biz: Business): void {
-  const name = biz.nameAr || biz.nameEn || 'نشاط تجاري';
+  const name = biz.nameAr || biz.nameEn || 'منشأة معتمدة';
   const phone = biz.phone || biz.secondaryPhone || '';
   const street = biz.street || '';
   const city = biz.city || '';
@@ -217,13 +217,13 @@ export function getSmartWhatsAppUrl(biz: Business): string {
   let message = '';
 
   if (cat.includes('مطعم') || cat.includes('كافيه') || cat.includes('حلويات') || cat.includes('أغذية') || cat.includes('مأكولات')) {
-    message = `السلام عليكم ورحمة الله 👋\nأود الاستفسار عن قائمة الأسعار (المنيو) ومواعيد التوصيل في نشاط "${biz.nameAr}" عبر منصة دليلك.`;
+    message = `السلام عليكم ورحمة الله 👋\nأود الاستفسار عن قائمة الأسعار (المنيو) ومواعيد التوصيل في "${biz.nameAr}" عبر منصة دليلك.`;
   } else if (cat.includes('طبيب') || cat.includes('عيادة') || cat.includes('مستشفى') || cat.includes('صيدلية') || cat.includes('أسنان') || cat.includes('عيادات')) {
     message = `السلام عليكم ورحمة الله 👋\nأود الاستفسار عن مواعيد الكشف والحجز في "${biz.nameAr}" المعروض على منصة دليلك.`;
   } else if (cat.includes('صيانة') || cat.includes('حرف') || cat.includes('خدمات منزلية') || cat.includes('سيارات') || cat.includes('سباكة') || cat.includes('كهرباء')) {
     message = `السلام عليكم ورحمة الله 👋\nأود الاستفسار عن حجز موعد ومعاينة فنية من "${biz.nameAr}" عبر منصة دليلك.`;
   } else {
-    message = `السلام عليكم ورحمة الله 👋\nأود الاستفسار عن المنتجات والخدمات المتاحة لدى نشاط "${biz.nameAr}" عبر منصة دليلك.`;
+    message = `السلام عليكم ورحمة الله 👋\nأود الاستفسار عن المنتجات والخدمات المتاحة لدى "${biz.nameAr}" عبر منصة دليلك.`;
   }
 
   return `https://wa.me/20${targetPhone}?text=${encodeURIComponent(message)}`;

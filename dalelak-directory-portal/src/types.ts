@@ -49,8 +49,12 @@ export interface Business {
   invoiceNumber: string;
   invoiceDate: string;
   repCommissionRate?: number;
-  isFeeExempt?: boolean; // نشاط رائج بالمنطقة معفى من الرسوم والتحصيل المالي (إدراج مجاني)
+  isFeeExempt?: boolean; // مكان رائج بالمنطقة معفى من الرسوم والتحصيل المالي (إدراج مجاني)
   feeExemptionReason?: string; // سبب الإعفاء
+  isDeleted?: boolean;
+  deletedAt?: string;
+  viewsCount?: number;
+  favoriteCount?: number;
   notes?: string;
   createdDate: string;
   _offlineUserId?: string;

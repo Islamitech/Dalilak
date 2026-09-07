@@ -305,15 +305,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           {/* Client & Business Info Card */}
           <div className="grid grid-cols-2 gap-3 bg-slate-50/90 p-4 rounded-2xl border border-slate-200 text-xs shadow-2xs">
             <div className="text-right space-y-1">
-              <span className="text-[10.5px] text-slate-400 font-bold block">النشاط التجاري:</span>
+              <span className="text-[10.5px] text-slate-400 font-bold block">المكان / المنشأة:</span>
               <span className="font-black text-slate-900 text-sm block truncate">{activeBusiness.nameAr}</span>
               <span className="text-[11px] text-amber-700 font-bold block truncate">{activeBusiness.category}</span>
               <span className="text-[10.5px] text-slate-500 font-medium block">{activeBusiness.governorate} - {activeBusiness.city}</span>
             </div>
 
             <div className="text-right space-y-1 border-r border-slate-200 pr-3">
-              <span className="text-[10.5px] text-slate-400 font-bold block">صاحب النشاط / العميل:</span>
-              <span className="font-black text-slate-900 text-sm block truncate">{activeBusiness.ownerName || 'صاحب النشاط'}</span>
+              <span className="text-[10.5px] text-slate-400 font-bold block">المسؤول / العميل:</span>
+              <span className="font-black text-slate-900 text-sm block truncate">{activeBusiness.ownerName || 'المسؤول'}</span>
               <span className="text-xs text-slate-700 font-mono font-bold block" dir="ltr">{activeBusiness.ownerPhone || activeBusiness.phone}</span>
               <span className="text-[10.5px] text-slate-500 font-bold block truncate">
                 {isAdditional 
@@ -335,16 +335,16 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   {isAdditional
                     ? currentAdditionalInvoice?.serviceTitle
                     : activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
-                    ? 'إدراج وربط النشاط في دليل دليلك المعتمد'
-                    : activeBusiness.packageName || (isFeeExempt ? 'نشاط رائج بالمنطقة (إدراج مجاني بدون رسوم)' : 'باقة التوثيق الأساسي')}
+                    ? 'إدراج وربط المكان في منصة دليلك المعتمدة'
+                    : activeBusiness.packageName || (isFeeExempt ? 'منشأة رائجة بالمنطقة (إدراج شرفي مجاني بدون رسوم)' : 'باقة التوثيق الأساسي')}
                 </span>
                 <span className="text-[10.5px] text-slate-500 font-medium block">
                   {isAdditional
                     ? (currentAdditionalInvoice?.notes || 'خدمة إضافية معتمدة صادرة حصرياً عن إدارة منصة دليلك ومحصلة إلكترونياً')
                     : activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
-                    ? 'إدراج وتوثيق النشاط التجاري بالدليل الميداني مجاناً 100% بدون أي مقابل مالي لتعزيز وصول العملاء والزوار'
+                    ? 'إدراج وتوثيق المكان بالدليل مجاناً 100% بدون أي مقابل مالي أو اشتراكات لتعزيز وصول العملاء والزوار'
                     : isFeeExempt 
-                    ? 'إدراج وتوثيق النشاط التجاري الرائج بالدليل والخرائط مجاناً وبدون أي مقابل مالي'
+                    ? 'إدراج وتوثيق المنشأة الرائجة بالدليل والخرائط مجاناً وبدون أي رسوم أو اشتراكات'
                     : 'توثيق واستخراج الإحداثيات والظهور على خرائط Google والدليل'}
                 </span>
               </div>
@@ -422,10 +422,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border border-amber-300 rounded-2xl p-3 text-center text-[11px] text-amber-950 font-bold shadow-2xs space-y-0.5">
             <div>
               {activeBusiness.isAlreadyOnGoogle || activeBusiness.packageId === 'pkg_already_on_google'
-                ? '🌟 يسعدنا الترحيب بنشاطكم في منصة دليلك! نؤكد لكم أن رسوم الظهور والإدراج في الدليل مجانية تماماً:'
+                ? '🌟 يسعدنا الترحيب بحضراتكم في منصة دليلك! نؤكد لكم أن الظهور والإدراج في المنصة مجاني وبدون أي اشتراكات دورية:'
                 : isFeeExempt
-                ? '🌟 نشاطكم مسجل كمعلم رائج ومعفى مجاناً في دليل الأنشطة المعتمد بمصر:'
-                : '✨ نشاطكم التجاري منشور ومتاح في دليل الأنشطة المعتمد في مصر:'}
+                ? '🌟 المكان مسجل كمعلم رائج بإدراج شرفي مجاني معتمد في منصة دليلك:'
+                : '✨ صفحة المكان الرسمية منشورة ومتاحة الآن في منصة دليلك:'}
             </div>
             <div>
               <a href={directoryUrl} target="_blank" rel="noreferrer" className="text-amber-800 hover:text-amber-900 underline font-mono font-black">
@@ -477,7 +477,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           ) : (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-center text-xs space-y-1.5 animate-fade-in">
               <div className="font-black text-amber-800 dark:text-amber-300 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
-                <span>📷 يرجى الطلب من صاحب النشاط تصوير شاشة الفاتورة بهاتفه</span>
+                <span>📷 يرجى الطلب من المسؤول تصوير شاشة الفاتورة بهاتفه</span>
               </div>
               <p className="text-[11px] text-[var(--text-muted)] font-bold leading-relaxed">
                 يتم إرسال الفاتورة الرسمية وتأكيد التوثيق والمتابعة حصرياً من خلال <strong>حساب المنصة الرسمي عبر الواتساب</strong>.

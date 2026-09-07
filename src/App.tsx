@@ -1871,11 +1871,7 @@ export default function App() {
         onOpenLogin={() => setShowLoginModal(true)}
         onLogout={handleLogout}
         onOpenProfile={() => {
-          if (user?.role === 'admin') {
-            setShowAdminProfileModal(true);
-          } else {
-            setActiveTab('profile');
-          }
+          setActiveTab('profile');
         }}
         systemNotifications={allNotifications}
         onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
@@ -2113,6 +2109,7 @@ export default function App() {
                 onUpdateRep={handleUpdateRepresentative}
                 onRequestPayout={handleCreatePayoutRequest}
                 onNavigateHome={() => setActiveTab('home')}
+                onNavigateAdmin={() => setActiveTab('admin')}
               />
             </Suspense>
           ) : (

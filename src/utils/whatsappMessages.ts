@@ -21,8 +21,199 @@ function getActivePaymentConfig() {
 
 import { Business, AdditionalServiceInvoice } from '../types';
 
-// Using a cache-busting parameter forces WhatsApp servers to crawl and fetch the new 3D OpenGraph image immediately
+// Direct directory URL
 const DIRECTORY_URL = 'https://www.dalilaak.com/?ref=app';
+
+/**
+ * Official Institutional Header - Universal across Egypt
+ * Strictly confidential internal launch zone, zero regional restrictions.
+ */
+export const OFFICIAL_PLATFORM_HEADER = 'منصة «دليلك» للخدمات والأعمال التجارية والتسويق الرقمي';
+
+/**
+ * Helper to get contextual humanized venue label instead of generic 'نشاط'
+ */
+export function getVenueContextLabel(category?: string): string {
+  if (!category) return 'المكان';
+  const cat = category.toLowerCase();
+  if (
+    cat.includes('مطعم') ||
+    cat.includes('مأكولات') ||
+    cat.includes('كافيه') ||
+    cat.includes('مقهى') ||
+    cat.includes('حلواني') ||
+    cat.includes('مخبز') ||
+    cat.includes('عصائر')
+  ) {
+    return 'المحل';
+  }
+  if (
+    cat.includes('ملابس') ||
+    cat.includes('أحذية') ||
+    cat.includes('سوبرماركت') ||
+    cat.includes('ماركت') ||
+    cat.includes('تجزئة') ||
+    cat.includes('بقالة') ||
+    cat.includes('متجر') ||
+    cat.includes('محل')
+  ) {
+    return 'المتجر';
+  }
+  if (
+    cat.includes('عيادة') ||
+    cat.includes('طبيب') ||
+    cat.includes('دكتور') ||
+    cat.includes('أسنان') ||
+    cat.includes('عيادات') ||
+    cat.includes('مركز طبي') ||
+    cat.includes('مستشفى') ||
+    cat.includes('معمل')
+  ) {
+    return 'العيادة';
+  }
+  if (cat.includes('صيدلية') || cat.includes('صيدليات') || cat.includes('دواء')) {
+    return 'الصيدلية';
+  }
+  if (
+    cat.includes('محام') ||
+    cat.includes('استشار') ||
+    cat.includes('عقار') ||
+    cat.includes('هندسي') ||
+    cat.includes('مكتب') ||
+    cat.includes('محاسب')
+  ) {
+    return 'المكتب';
+  }
+  if (
+    cat.includes('شركة') ||
+    cat.includes('مصنع') ||
+    cat.includes('ورشة') ||
+    cat.includes('مركز صيانة') ||
+    cat.includes('معرض') ||
+    cat.includes('مؤسسة')
+  ) {
+    return 'المنشأة';
+  }
+  return 'المكان';
+}
+
+/**
+ * Bank of Exclusive Dalelak Seals & Recommendations (18+ items)
+ */
+export const DALELAK_SEALS = [
+  'يتميز الدليل به 🌿',
+  'ينصح به دليلك ⭐',
+  'نحن في دليلك نرشحه لك ✨',
+  'إضافة فريدة لدليلك 💎',
+  'مكانه الصحيح أن يكون أمامك 🎯',
+  'الدليل يتميز بوجوده 👑',
+  'ترشيح حصري لعملاء دليلك 🤝',
+  'من الأماكن اللي دليلك بيعتز بوجودها 🏛️',
+  'تجربة مميزة يرشحها لك دليلك 🌟',
+  'دليلك دايماً معاك وبيرشحهولك 🧭',
+  'وجهة نثق بيها في دليلك 🛡️',
+  'دليلك بيسهل عليك وتلاقيه هنا 📍',
+  'مكان يستاهل تجربتك باختيار دليلك 👌',
+  'فخورين بوجوده في شبكة دليلك 💫',
+  'خدمة وجودة تستحق ترشيح دليلك 🥇',
+  'اختيار موثوق في دليلك 🏆',
+  'خطوتك الجاية باختيار دليلك 🚀',
+  'عنوان الثقة والتميز في دليلك 🎖️',
+];
+
+/**
+ * Automated Fallback Description Generator in Egyptian Colloquial
+ * With Immutability & Custom Override Guard:
+ * If manual description is provided, it is returned strictly untouched.
+ */
+export function generateSmartBusinessDescription(category?: string, manualDescription?: string): string {
+  // Strict Guard: User/Rep custom text is 100% immutable
+  if (manualDescription && manualDescription.trim().length > 0) {
+    return manualDescription.trim();
+  }
+
+  const cat = (category || '').toLowerCase();
+  let baseDesc = 'خدمة راقية وجودة مضمونة تهتم بأدق التفاصيل لتقديم أفضل تجربة ترضيكم دايماً.';
+
+  if (
+    cat.includes('مطعم') ||
+    cat.includes('مأكولات') ||
+    cat.includes('أكل') ||
+    cat.includes('مشويات') ||
+    cat.includes('بيتزا') ||
+    cat.includes('شاورما') ||
+    cat.includes('حلواني') ||
+    cat.includes('مخبز')
+  ) {
+    baseDesc = 'أشهى المأكولات وأطعم الوجبات بأعلى جودة وخامات طازة وخدمة تشرفك وتليق بذوقك.';
+  } else if (cat.includes('كافيه') || cat.includes('مقهى') || cat.includes('عصائر') || cat.includes('قهوة')) {
+    baseDesc = 'أحلى قعدة وأجمد مشروبات ساخنة وباردة وحلويات تروق مزاجك في أي وقت بجو رايق ومميز.';
+  } else if (
+    cat.includes('ملابس') ||
+    cat.includes('أزياء') ||
+    cat.includes('أحذية') ||
+    cat.includes('شنط') ||
+    cat.includes('موضة')
+  ) {
+    baseDesc = 'أحدث صيحات الموضة وأجود الخامات بتشكيلة واسعة تناسب كل الأذواق بأفضل الأسعار.';
+  } else if (
+    cat.includes('عيادة') ||
+    cat.includes('طبيب') ||
+    cat.includes('دكتور') ||
+    cat.includes('أسنان') ||
+    cat.includes('عيادات') ||
+    cat.includes('مركز طبي')
+  ) {
+    baseDesc = 'رعاية طبية متكاملة وأحدث أجهزة للكشف والتشخيص بأعلى درجات العناية والاهتمام بصحتك وصحة أسرتك.';
+  } else if (cat.includes('صيدلية') || cat.includes('صيدليات') || cat.includes('دواء')) {
+    baseDesc = 'كل احتياجاتك من الأدوية ومستحضرات العناية متوفرة دايماً مع استشارة صيدلية موثوقة وخدمة سريعة.';
+  } else if (
+    cat.includes('سوبرماركت') ||
+    cat.includes('ماركت') ||
+    cat.includes('بقالة') ||
+    cat.includes('خضار') ||
+    cat.includes('ألبان')
+  ) {
+    baseDesc = 'كل طلبات البيت ومستلزمات الأسرة طازة ويومية بأحسن عروض وأفضل توفير وجودة مضمونة.';
+  } else if (
+    cat.includes('حرف') ||
+    cat.includes('ورشة') ||
+    cat.includes('صيانة') ||
+    cat.includes('سباك') ||
+    cat.includes('كهربا') ||
+    cat.includes('نجار') ||
+    cat.includes('سيارات')
+  ) {
+    baseDesc = 'صنايعية محترفين ودقة في المواعيد والشغل على أصوله بأحدث المعدات وضمان حقيقي للجودة.';
+  } else if (
+    cat.includes('عقار') ||
+    cat.includes('محام') ||
+    cat.includes('محاسب') ||
+    cat.includes('مكتب') ||
+    cat.includes('استشار')
+  ) {
+    baseDesc = 'خبرة واستشارات موثوقة لمساعدتك في اتخاذ القرار الأنسب بأمان تام واحترافية عالية تضمن حقوقك.';
+  } else if (
+    cat.includes('صالون') ||
+    cat.includes('حلاقة') ||
+    cat.includes('بيوتي') ||
+    cat.includes('كوافير') ||
+    cat.includes('تجميل')
+  ) {
+    baseDesc = 'أحدث خطوط العناية والقصات الاحترافية على إيد متخصصين لإطلالة مميزة وراحة تدوم.';
+  } else if (cat.includes('موبايل') || cat.includes('إلكترون') || cat.includes('كمبيوتر') || cat.includes('أجهزة')) {
+    baseDesc = 'أحدث الأجهزة والإكسسوارات الأصلية مع خدمات صيانة سريعة ومعتمدة وضمان يلبي ثقتكم.';
+  }
+
+  // Probabilistic Seal Selection (~65% gets a seal at the very end, ~35% clean)
+  const shouldAddSeal = Math.random() < 0.65;
+  if (shouldAddSeal) {
+    const randomSeal = DALELAK_SEALS[Math.floor(Math.random() * DALELAK_SEALS.length)];
+    return `${baseDesc} — (${randomSeal})`;
+  }
+
+  return baseDesc;
+}
 
 export function formatWhatsAppPhone(phone?: string): string {
   if (!phone) return '';
@@ -30,63 +221,20 @@ export function formatWhatsAppPhone(phone?: string): string {
   const digits = trimmed.replace(/\D/g, '');
   if (!digits) return '';
 
-  // 1. If explicitly prefixed with +
   if (trimmed.startsWith('+')) {
     return digits;
   }
-
-  // 2. If already starts with Egyptian country code '20'
   if (digits.startsWith('20')) {
     return digits;
   }
-
-  // 3. Known Arab & International country codes (Saudi, UAE, Kuwait, Jordan, etc.)
   const intlPrefixes = ['966', '971', '965', '968', '974', '973', '962', '218', '249', '1', '44', '49', '33'];
   if (intlPrefixes.some((p) => digits.startsWith(p)) && digits.length >= 10) {
     return digits;
   }
-
-  // 4. Standard Egyptian local phone (starts with 01...)
   const localClean = digits.replace(/^0+/, '');
   return `20${localClean}`;
 }
 
-/**
- * Event 0: Welcome & Onboarding Message for Businesses Already Active on Google Maps
- */
-export function generateWelcomeAlreadyOnGoogleWhatsAppMessage(biz: Business): string {
-  const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
-
-  const raw = 
-    `*مرحباً بكم في منصة دليلك - إشعار إدراج النشاط التجاري*\n` +
-    `-----------------------------------------\n` +
-    `• *اسم النشاط:* ${biz.nameAr || ''}\n` +
-    `• *صاحب النشاط:* ${biz.ownerName || ''}\n` +
-    `• *الموقع والنطاق:* ${biz.governorate || ''} - ${biz.city || ''}\n` +
-    `• *رقم الإدراج:* ${biz.invoiceNumber || ''}\n` +
-    `• *حالة التوثيق على Google Maps:* نشاط قائم ومعتمد بالفعل ✅\n` +
-    `• *رابط موقعكم على خرائط Google:* ${activeMapUrl}\n\n` +
-    `*يسعدنا إعلامكم بأنه تم إدراج وربط نشاطكم رسمياً بدليل الأنشطة والخدمات الميدانية المعتمدة في مصر مجاناً:*\n` +
-    `🔗 رابط دليل الأنشطة المباشر: ${DIRECTORY_URL}\n\n` +
-    `*مزايا إدراج نشاطكم في دليلك:*\n` +
-    `1. ظهور النشاط أمام آلاف العملاء والزوار في نطاق منطقتكم.\n` +
-    `2. توثيق رقم التواصل ومواعيد العمل وإتاحة الوصول السريع.\n` +
-    `3. إمكانية الاستفادة من حملات الرعاية والتسويق الإلكتروني وملصقات الباركود الذكية.\n\n` +
-    `شكرًا لتعاونكم مع فريق العمل الميداني لمنظومة دليلك!`;
-
-  return cleanWhatsAppText(raw);
-}
-
-export function getWelcomeAlreadyOnGoogleWhatsAppUrl(biz: Business): string {
-  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = safeWhatsAppEncode(generateWelcomeAlreadyOnGoogleWhatsAppMessage(biz));
-  return `https://wa.me/${phone}?text=${text}`;
-}
-
-/**
- * Strips any invisible zero-width characters or problematic variation selectors
- * that can cause replacement characters in WhatsApp decoders.
- */
 export function cleanWhatsAppText(text: string): string {
   return text
     .replace(/[\uFE00-\uFE0F\u200B-\u200D\uFFFD\u00A0]/g, ' ')
@@ -94,11 +242,6 @@ export function cleanWhatsAppText(text: string): string {
     .trim();
 }
 
-/**
- * Safe WhatsApp message encoder.
- * Standard encodeURIComponent safely converts spaces and Unicode characters for URLs.
- * Asterisks (*) are preserved so WhatsApp's native markdown renders bold formatting (*text*) correctly.
- */
 export function safeWhatsAppEncode(text: string): string {
   const cleaned = cleanWhatsAppText(text);
   return encodeURIComponent(cleaned)
@@ -109,44 +252,118 @@ export function safeWhatsAppEncode(text: string): string {
 }
 
 // -----------------------------------------------------------------------------
-// OPERATIONAL EVENTS (Invoices & Receipts)
+// EVENT 0: WELCOME FOR ALREADY GOOGLE ACTIVE VENUES
 // -----------------------------------------------------------------------------
 
-/**
- * Event 1: Initial Registration & Official Invoice Message
- */
+export function generateWelcomeAlreadyOnGoogleWhatsAppMessage(biz: Business): string {
+  const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
+  const raw = 
+    `*مرحباً بكم في ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `• *اسم المكان:* ${venueName}
+` +
+    `• *المسؤول / العميل:* ${biz.ownerName || 'المحترم'}
+` +
+    `• *النطاق الجغرافي:* ${biz.governorate || ''} - ${biz.city || ''}
+` +
+    `• *رقم الملف:* ${biz.invoiceNumber || ''}
+` +
+    `• *حالة التوثيق على Google Maps:* موثق ومعتمد رسمياً ✅
+` +
+    `• *رابط موقعكم على خرائط Google:* ${activeMapUrl}
+
+` +
+    `*يسعدنا إعلامكم بأنه تم إدراج وربط صفحتكم رسمياً بدليل المنصة المعتمد مجاناً:*
+` +
+    `🔗 رابط صفحتكم المباشر بالدليل: ${DIRECTORY_URL}
+
+` +
+    `*مزايا وجودكم على منصة دليلك:*
+` +
+    `1. ظهور المكان أمام آلاف العملاء والباحثين في نطاق منطقتكم.
+` +
+    `2. توثيق رقم التواصل ومواعيد العمل وإتاحة التوجيه والاتصال المباشر.
+` +
+    `3. إمكانية الاستفادة من حملات التسويق الإلكتروني وملصقات الباركود الذكية.
+
+` +
+    `شكراً لتعاونكم مع فريق العمل الميداني لمنصة دليلك 🤝`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getWelcomeAlreadyOnGoogleWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateWelcomeAlreadyOnGoogleWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+// -----------------------------------------------------------------------------
+// EVENT 1: OFFICIAL STREAMLINED INVOICE MESSAGE
+// -----------------------------------------------------------------------------
+
 export function generateInvoiceWhatsAppMessage(biz: Business): string {
   const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
   const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
   const amtPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
+  let feeSection = '';
+  if (isFeeExempt) {
+    feeSection = 
+      `• *نوع الإدراج:* إدراج شرفي معتمد (إهداء مجاني بالكامل بدون أي رسوم)
+` +
+      `• *المبلغ المستحق:* 0 ج.م (معفى بالكامل)
+` +
+      `• *حالة الفاتورة:* إدراج شرفي معتمد ✓\n\n`;
+  } else {
+    feeSection = 
+      `• *نوع الباقة:* ${biz.packageName || 'باقة التوثيق والظهور الأساسي'}
+` +
+      `• *رسوم الباقة لمرة واحدة:* ${pkgPrice} ج.م (بدون أي اشتراكات أو تجديدات دورية)
+` +
+      `• *المسدد:* ${amtPaid} ج.م
+` +
+      (remaining > 0 ? `• *المتبقي:* ${remaining} ج.م\n` : '') +
+      `• *حالة الفاتورة:* ${
+        biz.paymentStatus === 'fully_paid'
+          ? 'مدفوعة بالكامل إلكترونياً ✓'
+          : biz.paymentStatus === 'partially_paid'
+          ? `مدفوع جزء منها (متبقي ${remaining} ج.م)`
+          : 'غير مدفوعة ⏳'
+      }\n\n`;
+  }
 
   const raw = 
-    `*فاتورة توثيق نشاط تجاري - منصة دليلك*\n` +
-    `-----------------------------------------\n` +
-    `• *اسم النشاط:* ${biz.nameAr || ''}\n` +
-    `• *صاحب النشاط:* ${biz.ownerName || ''}\n` +
-    `• *الموقع:* ${biz.governorate || ''} - ${biz.city || ''}\n` +
-    `• *رقم الفاتورة:* ${biz.invoiceNumber || ''}\n` +
-    `• *تاريخ الإصدار:* ${biz.invoiceDate || ''}\n\n` +
-    (isFeeExempt
-      ? `• *نوع الخدمة:* نشاط رائج ومعلم بالمنطقة (إدراج مجاني بدون رسوم)\n` +
-        `• *إجمالي القيمة:* 0 ج.م (معفى من الرسوم تماماً)\n` +
-        `• *حالة الدفع:* معفى بالكامل (مجاني)\n\n`
-      : `• *الباقة المختارة:* ${biz.packageName || 'باقة التوثيق الأساسي'}\n` +
-        `• *إجمالي قيمة الباقة:* ${pkgPrice} ج.م\n` +
-        `• *المبلغ المدفوع:* ${amtPaid} ج.م\n` +
-        `• *المبلغ المتبقي:* ${remaining} ج.م\n` +
-        `• *حالة الدفع:* ${
-          biz.paymentStatus === 'fully_paid'
-            ? 'مدفوعة بالكامل (خالص)'
-            : biz.paymentStatus === 'partially_paid'
-            ? `مدفوع جزء منها (متبقي ${remaining} ج.م)`
-            : 'لم يتم الدفع بعد'
-        }\n\n`) +
-    `*تهانينا! تم إدراج ونشر نشاطكم مباشرة في دليل الأنشطة والخدمات المعتمد في مصر:*\n` +
-    `رابط دليل الأنشطة المباشر: ${DIRECTORY_URL}\n\n` +
-    `*ملاحظة:* تم رفع وتثبيت بيانات نشاطكم بنجاح وهو متاح الآن للعملاء على المنظومة، وتتم متابعة مراجعة وتوثيق النشاط حتى اعتماده على خرائط Google. شكرًا لثقتكم بمنظومة دليلك!`;
+    `*فاتورة توثيق رسمية — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `• *اسم المكان:* ${venueName}
+` +
+    `• *المسؤول / العميل:* ${biz.ownerName || 'المحترم'}
+` +
+    `• *النطاق الجغرافي:* ${biz.governorate || ''} - ${biz.city || ''}
+` +
+    `• *رقم الفاتورة:* ${biz.invoiceNumber || ''}
+` +
+    `• *تاريخ الإصدار:* ${biz.invoiceDate || ''}
+
+` +
+    feeSection +
+    `🔗 *رابط المعاينة المباشر لصفحتكم على الدليل:*
+` +
+    `${DIRECTORY_URL}
+
+` +
+    `*يا فندم، تم تجهيز صفحة العرض المخصصة لحضراتكم، والسداد مطلوب لتأكيد النشر الدائم بالدليل واستكمال توثيق خرائط Google الرسمية. متشيلش هم، شاكرين لذوقك ووقتك 🤝*`;
 
   return cleanWhatsAppText(raw);
 }
@@ -157,26 +374,40 @@ export function getInvoiceWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Event 1.5: Additional Service Electronic Invoice Message (Platform Issued & Collected Electronically)
- */
+// -----------------------------------------------------------------------------
+// EVENT 1.5: ADDITIONAL SERVICE INVOICE
+// -----------------------------------------------------------------------------
+
 export function generateAdditionalInvoiceWhatsAppMessage(biz: Business, invoice: AdditionalServiceInvoice): string {
   const cfg = getActivePaymentConfig();
   const amt = Number(invoice.amount) || 0;
   const paid = Number(invoice.amountPaid) || 0;
   const remaining = Math.max(0, amt - paid);
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : (invoice.businessName || venueLabel);
 
   const raw =
-    `*فاتورة خدمة إضافية معتمدة - منصة دليلك الرقمية*\n` +
-    `-----------------------------------------\n` +
-    `• *النشاط التجاري:* ${biz.nameAr || invoice.businessName || ''}\n` +
-    `• *العميل:* ${biz.ownerName || 'صاحب النشاط'}\n` +
-    `• *الجهة المصدرة:* إدارة منصة دليلك (${invoice.issuedByName || 'الإدارة'})\n` +
-    `• *رقم الفاتورة الإلكترونية:* ${invoice.invoiceNumber}\n` +
-    `• *تاريخ الإصدار:* ${invoice.issueDate}\n\n` +
-    `• *الخدمة المطلوبة:* ${invoice.serviceTitle}\n` +
-    `• *إجمالي قيمة الفاتورة:* ${amt} ج.م\n` +
-    `• *المبلغ المسدد إلكترونياً:* ${paid} ج.م\n` +
+    `*فاتورة خدمة إضافية معتمدة — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `• *اسم المكان:* ${venueName}
+` +
+    `• *المسؤول / العميل:* ${biz.ownerName || 'المحترم'}
+` +
+    `• *الجهة المصدرة:* إدارة المنصة (${invoice.issuedByName || 'الإدارة'})
+` +
+    `• *رقم الفاتورة الإلكترونية:* ${invoice.invoiceNumber}
+` +
+    `• *تاريخ الإصدار:* ${invoice.issueDate}
+
+` +
+    `• *الخدمة المطلوبة:* ${invoice.serviceTitle}
+` +
+    `• *إجمالي قيمة الفاتورة:* ${amt} ج.م
+` +
+    `• *المبلغ المسدد إلكترونياً:* ${paid} ج.م
+` +
     (remaining > 0 ? `• *المبلغ المتبقي:* ${remaining} ج.م\n` : '') +
     `• *حالة الفاتورة:* ${
       invoice.paymentStatus === 'fully_paid'
@@ -184,14 +415,23 @@ export function generateAdditionalInvoiceWhatsAppMessage(biz: Business, invoice:
         : invoice.paymentStatus === 'partially_paid'
         ? `مدفوع جزئياً إلكترونياً (متبقي ${remaining} ج.م) ⏳`
         : 'بانتظار التحويل الإلكتروني ⏳'
-    }\n` +
+    }
+` +
     (invoice.notes ? `• *ملاحظات وتفاصيل:* ${invoice.notes}\n` : '') +
-    `\n*قنوات التحصيل والسداد الإلكتروني المعتمدة لحسابات المنصة:* \n` +
-    `📱 فودافون كاش: ${cfg.vodafone1} أو ${cfg.vodafone2}\n` +
-    `⚡ إنستاباي InstaPay: ${cfg.instaPay}\n\n` +
-    `🔗 يمكنكم معاينة الفاتورة الإلكترونية والتحقق منها مباشرة عبر الرابط:\n` +
-    `https://www.dalilaak.com/?view=invoice&id=${biz.id}&invId=${invoice.id}\n\n` +
-    `شكرًا لتعاملكم مع منصة دليلك الرقمية!`;
+    `
+*قنوات التحصيل والسداد الإلكتروني المعتمدة لحسابات المنصة:* 
+` +
+    `📱 فودافون كاش: ${cfg.vodafone1} أو ${cfg.vodafone2}
+` +
+    `⚡ إنستاباي InstaPay: ${cfg.instaPay}
+
+` +
+    `🔗 يمكنكم معاينة الفاتورة الإلكترونية والتحقق منها مباشرة عبر الرابط:
+` +
+    `https://www.dalilaak.com/?view=invoice&id=${biz.id}&invId=${invoice.id}
+
+` +
+    `شكراً لتعاملكم مع منصة دليلك 🤝`;
 
   return cleanWhatsAppText(raw);
 }
@@ -202,13 +442,15 @@ export function getAdditionalInvoiceWhatsAppUrl(biz: Business, invoice: Addition
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Event 1.6: Consolidated Master Collection WhatsApp Message (Package Remainder + All Unpaid Additional Invoices)
- */
+// -----------------------------------------------------------------------------
+// EVENT 1.6: CONSOLIDATED MASTER COLLECTION
+// -----------------------------------------------------------------------------
+
 export function generateConsolidatedCollectionWhatsAppMessage(biz: Business): string {
   const cfg = getActivePaymentConfig();
-  const owner = biz.ownerName || 'صاحب النشاط';
-  const name = biz.nameAr || 'النشاط التجاري';
+  const owner = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
   const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
 
   const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
@@ -222,65 +464,98 @@ export function generateConsolidatedCollectionWhatsAppMessage(biz: Business): st
     return inv.paymentStatus !== 'fully_paid' && (amt - paid) > 0;
   });
 
-  const additionalDebt = isFeeExempt ? 0 : unpaidAdditionalInvoices.reduce((sum, inv) => {
+  const additionalRemainingTotal = unpaidAdditionalInvoices.reduce((acc, inv) => {
     const amt = Number(inv.amount) || 0;
     const paid = Number(inv.amountPaid) || 0;
-    return sum + Math.max(0, amt - paid);
+    return acc + Math.max(0, amt - paid);
   }, 0);
 
-  const totalRemaining = pkgRemaining + additionalDebt;
+  const totalRemaining = pkgRemaining + additionalRemainingTotal;
 
-  // If completely paid or exempt
   if (totalRemaining === 0) {
-    const rawClearance = 
-      `*مخالصة وكشف حساب مالي - منصة دليلك الرقمية*\n` +
-      `-----------------------------------------\n` +
-      `• *النشاط التجاري:* ${name}\n` +
-      `• *العميل:* ${owner}\n` +
-      `• *رقم الملف:* ${biz.invoiceNumber || '---'}\n\n` +
-      `نحيطكم علماً بأن جميع الالتزامات والفواتير المالية الخاصة بنشاطكم (باقة الاشتراك والخدمات الإضافية) مسددة بالكامل وخالصة الطرف طرفنا ✅.\n\n` +
-      `نشكركم على حسن تعاونكم ونتمنى لكم دوام التوفيق والازدهار!\n` +
-      `منظومة دليلك`;
-    return cleanWhatsAppText(rawClearance);
+    const rawFullyPaid = 
+      `*إشعار مخالصة مالية معتمدة — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+      `-----------------------------------------
+` +
+      `عناية الأستاذ/ *${owner}* المحترم (${venueName})
+` +
+      `رقم الملف: *${biz.invoiceNumber || '---'}*
+
+` +
+      `نحيطكم علماً بأن جميع الالتزامات والفواتير المالية الخاصة بـ ${venueName} مسددة بالكامل وخالصة الطرف طرفنا ✅.
+
+` +
+      `شكراً لالتزامكم ونتمنى لكم دوام التوفيق والنجاح!
+` +
+      `إدارة الحسابات — منصة دليلك`;
+    return cleanWhatsAppText(rawFullyPaid);
   }
 
   let itemsList = '';
   if (pkgRemaining > 0) {
-    itemsList += `1. *${biz.packageName || 'باقة توثيق وتسجيل النشاط'}:*\n`;
-    itemsList += `   - إجمالي الباقة: ${pkgPrice} ج.م\n`;
-    itemsList += `   - المسدد: ${pkgPaid} ج.م\n`;
-    itemsList += `   - المتبقي: ${pkgRemaining} ج.م\n\n`;
+    itemsList += `1. *رسوم باقة التوثيق الأساسية:*
+`;
+    itemsList += `   - إجمالي الرسوم لمرة واحدة: ${pkgPrice} ج.م
+`;
+    itemsList += `   - المسدد: ${pkgPaid} ج.م
+`;
+    itemsList += `   - المتبقي: ${pkgRemaining} ج.م
+
+`;
   }
 
   if (unpaidAdditionalInvoices.length > 0) {
-    itemsList += `*فواتير الخدمات الإضافية المستحقة:*\n`;
+    itemsList += `*فواتير الخدمات الإضافية المستحقة:*
+`;
     unpaidAdditionalInvoices.forEach((inv, index) => {
       const amt = Number(inv.amount) || 0;
       const paid = Number(inv.amountPaid) || 0;
       const rem = Math.max(0, amt - paid);
-      itemsList += `${pkgRemaining > 0 ? index + 2 : index + 1}. *${inv.serviceTitle}* (${inv.invoiceNumber}):\n`;
-      itemsList += `   - القيمة: ${amt} ج.م | المسدد: ${paid} ج.م | *المتبقي: ${rem} ج.م*\n`;
+      itemsList += `${pkgRemaining > 0 ? index + 2 : index + 1}. *${inv.serviceTitle}* (${inv.invoiceNumber}):
+`;
+      itemsList += `   - القيمة: ${amt} ج.م | المسدد: ${paid} ج.م | *المتبقي: ${rem} ج.م*
+`;
     });
     itemsList += '\n';
   }
 
   const raw = 
-    `*مطالبة مالية شاملة وكشف حساب - منصة دليلك الرقمية*\n` +
-    `-----------------------------------------\n` +
-    `عناية الأستاذ/ *${owner}* المحترم (${name})\n` +
-    `رقم الملف المالي: *${biz.invoiceNumber || '---'}*\n\n` +
-    `نود إحاطتكم ببيان المطالبات المالية المستحقة والمعلقة على نشاطكم التجاري وفقاً للسجلات المحاسبية:\n\n` +
+    `*مطالبة مالية شاملة وكشف حساب — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `عناية الأستاذ/ *${owner}* المحترم (${venueName})
+` +
+    `رقم الملف المالي: *${biz.invoiceNumber || '---'}*
+
+` +
+    `نود إحاطتكم ببيان المطالبات المالية المستحقة والمعلقة على ملفكم وفقاً للسجلات المحاسبية:
+
+` +
     itemsList +
-    `💰 *إجمالي المبلغ المستحق للسداد:* ${totalRemaining} ج.م\n` +
-    `-----------------------------------------\n\n` +
-    `*قنوات التحصيل والسداد الإلكتروني المعتمدة رسمياً:* \n` +
-    `📱 فودافون كاش / المحافظ: ${cfg.vodafone1} أو ${cfg.vodafone2}\n` +
-    `⚡ إنستاباي InstaPay: ${cfg.instaPay}\n\n` +
-    `🔗 يمكنكم معاينة رابط نشاطكم على الدليل الإلكتروني:\n` +
-    `https://www.dalilaak.com/?view=invoice&id=${biz.id}\n\n` +
-    `يرجى إرسال صورة التحويل أو إشعار الإيداع بعد السداد لإصدار إيصال المخالصة فوراً.\n` +
-    `شاكرين ومقدرين حسن تعاونكم،\n` +
-    `إدارة الحسابات - منظومة دليلك`;
+    `💰 *إجمالي المبلغ المستحق للسداد:* ${totalRemaining} ج.م
+` +
+    `-----------------------------------------
+
+` +
+    `*قنوات التحصيل والسداد الإلكتروني المعتمدة رسمياً:* 
+` +
+    `📱 فودافون كاش / المحافظ: ${cfg.vodafone1} أو ${cfg.vodafone2}
+` +
+    `⚡ إنستاباي InstaPay: ${cfg.instaPay}
+
+` +
+    `🔗 يمكنكم معاينة رابط صفحتكم على الدليل الإلكتروني:
+` +
+    `https://www.dalilaak.com/?view=invoice&id=${biz.id}
+
+` +
+    `يرجى إرسال صورة التحويل أو إشعار الإيداع بعد السداد لإصدار إيصال المخالصة فوراً.
+` +
+    `شاكرين ومقدرين حسن تعاونكم،
+` +
+    `إدارة الحسابات — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
 }
@@ -291,22 +566,39 @@ export function getConsolidatedCollectionWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
+// -----------------------------------------------------------------------------
+// EVENT 1.8: GOOGLE VERIFICATION OTP (2-STEP WORKFLOW)
+// -----------------------------------------------------------------------------
+
 /**
- * Event 1.8: Google Verification OTP Request Message (Sent to client while admin requests SMS code from Google)
+ * Step A: Pre-Coordination & Courtesy Check Message (Sent First)
+ * Explains that Google requires a routine step to verify the venue's phone,
+ * and politely asks for a reply with "متاح" before triggering the code.
  */
 export function generateGoogleVerificationOtpWhatsAppMessage(biz: Business): string {
-  const owner = biz.ownerName || 'صاحب النشاط';
-  const name = biz.nameAr || 'نشاطكم التجاري';
+  const owner = biz.ownerName || 'فندم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw =
-    `*تنبيه هام وعاجل: كود تفعيل نشاطك التجاري على خرائط Google 🗺️*\n` +
-    `-----------------------------------------\n` +
-    `مرحباً أستاذ *${owner}* (${name})،\n\n` +
-    `نحيطكم علماً بأن فريق العمل في *منظومة دليلك* يقوم الآن بربط وتوثيق نشاطكم التجاري رسمياً على خرائط Google.\n\n` +
-    `📲 *ستصلك الآن رسالة نصية قصيرة (SMS) رسمية من Google على هاتفك تحتوي على كود تأكيد مكون من 6 أرقام.*\n\n` +
-    `⏳ صلاحية الكود مؤقتة (دقائق معدودة)، يرجى التكرم بنسخ الكود وإرساله لنا هنا فوراً في هذه المحادثة لنتمكن من إتمام تثبيت وتوثيق النشاط على الخريطة بنجاح.\n\n` +
-    `شاكرين ومقدرين سرعة تعاونكم،\n` +
-    `فريق توثيق خرائط Google - منظومة دليلك`;
+    `*تنسيق توثيق الهاتف على خرائط Google 🗺️ — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `تحياتنا لحضرتك أستاذ *${owner}* إدارة ${venueName} 🌿
+
+` +
+    `فريق العمل بمنصة «دليلك» بيجهز حالياً ربط وتثبيت رقم تليفونكم الأساسي على خرائط Google ليظهر رسمياً لآلاف الباحثين والزبائن على الخريطة.
+
+` +
+    `🤝 *عشان كود جوجل وقته محدود (دقايق معدودة)، ومحبيناش نبعته في وقت تكون حضرتك فيه مشغول أو بعيد عن الموبايل:*
+` +
+    `أول ما تكون متاح وجنب التليفون، ابعتلنا كلمة *(متاح)* هنا علشان نطلب الكود من Google وتبعتلنا الـ 6 أرقام ونثبت رقمكم على الخريطة في لحظتها ✨
+
+` +
+    `شاكرين جداً لذوقك وتعاونك،
+` +
+    `فريق توثيق خرائط Google — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
 }
@@ -318,8 +610,127 @@ export function getGoogleVerificationOtpWhatsAppUrl(biz: Business): string {
 }
 
 /**
- * Event 2: Google Maps Live Verification & Approval Notification Message
+ * Step B: Instant Real-Time Alert When Admin Requests the SMS Code from Google
  */
+export function generateGoogleOtpSentAlertWhatsAppMessage(biz: Business): string {
+  const owner = biz.ownerName || 'فندم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
+  const raw =
+    `📲 *تم الآن طلب الكود من Google — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `أستاذ *${owner}* (${venueName})،
+
+` +
+    `تم طلب الكود الآن بنجاح 🚀
+` +
+    `ستصلك رسالة نصية قصيرة (SMS) رسمية من Google خلال ثوانٍ معدودة تحتوي على 6 أرقام.
+
+` +
+    `يرجى كتابة الـ 6 أرقام هنا في المحادثة لنقوم بتسجيل وتثبيت رقمكم رسمياً على الخريطة فوراً 🤝`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getGoogleOtpSentAlertWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateGoogleOtpSentAlertWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+// -----------------------------------------------------------------------------
+// POLITE TEMPORARY SUSPENSION MESSAGE
+// -----------------------------------------------------------------------------
+
+export function generateTemporarySuspensionWhatsAppMessage(biz: Business): string {
+  const owner = biz.ownerName || 'فندم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+  const payConfig = getActivePaymentConfig();
+  const pkgPrice = biz.packagePrice || 250;
+  const amtPaid = biz.amountPaid || 0;
+  const remaining = Math.max(0, pkgPrice - amtPaid);
+
+  const raw =
+    `⏸️ *إشعار مؤقت: تعليق صفحة العرض — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `تحياتنا لحضرتك أستاذ *${owner}* إدارة ${venueName} 🌿
+
+` +
+    `نود إحاطة حضرتك بأنه تم مؤقتاً تعليق صفحة العرض لعدم استكمال سداد رسوم الباقة لمرة واحدة (*${remaining} ج.م*).
+
+` +
+    `🛡️ *متشيلش هم خالص:* كافة بيانات المكان، الصور، والإحداثيات محفوظة بأمان تام في المنظومة ولن تضيع.
+
+` +
+    `⚡ *طرق السداد الفوري لإعادة التفعيل اللحظي:*
+` +
+    `• إنستاباي InstaPay: ${payConfig.instaPay}
+` +
+    `• فودافون كاش / المحافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}
+
+` +
+    `بمجرد إرسال صورة التحويل هنا، هيتم إعادة تفعيل ونشر الصفحة فوراً في لحظتها 🤝
+` +
+    `شاكرين جداً لتفهمك وذوقك 🌿`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getTemporarySuspensionWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateTemporarySuspensionWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+// -----------------------------------------------------------------------------
+// TRENDING VENUES FREE HONORARY INVITATION
+// -----------------------------------------------------------------------------
+
+export function generateTrendingFreeInvitationWhatsAppMessage(biz: Business): string {
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
+  const raw =
+    `*السلام عليكم ورحمة الله وبركاته، تحياتنا لإدارة ${venueName} الكرام 🌿*
+` +
+    `*${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `*الموضوع: ظهور المكان على منصتنا الخاصة (إهداء مجاني بالكامل)*
+` +
+    `-----------------------------------------
+` +
+    `إحنا منصة إعلانية بتعرّف السكان والزوار بكل الخدمات والمحلات بحسب كل منطقة، وبنركز دايماً على الأماكن المميزة والأعلى جودة اللي زي حضراتكم.
+
+` +
+    `بنتشرف بوجودكم معانا علشان نعلن عن المكان بأسلوبنا وبشكل مختلف، ومجاني تماماً بدون أي رسوم أو اشتراكات.
+
+` +
+    `لو تسمحولنا المكان يظهر على موقعنا الخاص؛ شرفنا بالموافقة، وبمجرد رد حضرتك هنبعتلك الرابط الرسمي لصفحتكم على التطبيق لمعاينته فوراً 🤝
+
+` +
+    `شاكرين جداً لذوقك ووقتك 🌿`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getTrendingFreeInvitationWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generateTrendingFreeInvitationWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+// -----------------------------------------------------------------------------
+// EVENT 2: GOOGLE MAPS VERIFIED NOTIFICATION
+// -----------------------------------------------------------------------------
+
 export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string {
   const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
   const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
@@ -327,32 +738,54 @@ export function generateGoogleMapsVerifiedWhatsAppMessage(biz: Business): string
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
   const isFullyPaid = isFeeExempt || biz.paymentStatus === 'fully_paid' || remaining === 0;
   const activeMapUrl = (biz.googleMapsUrl && biz.googleMapsUrl.trim().startsWith('http')) ? biz.googleMapsUrl.trim() : DIRECTORY_URL;
-  const owner = biz.ownerName || 'صاحب النشاط';
-  const name = biz.nameAr || 'نشاطك';
+  const owner = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
   const payConfig = getActivePaymentConfig();
 
   let raw = '';
 
   if (isFullyPaid || isFeeExempt) {
     raw = 
-      `هلا أستاذ *${owner}*، يسعدنا أنه تم توثيق وظهور نشاطك (*${name}*) رسمياً على خرائط Google 🗺️\n\n` +
-      `📍 *رابط النشاط المباشر على Google Maps:*\n` +
-      `${activeMapUrl}\n\n` +
-      `• *حالة السداد:* مسدد بالكامل (خالص ✓)\n\n` +
-      `نتمنى لك دوام التوفيق والنجاح!\n` +
-      `منظومة دليلك`;
+      `هلا أستاذ *${owner}*، يسعدنا أنه تم توثيق وظهور صفحتكم (*${venueName}*) رسمياً على خرائط Google 🗺️
+
+` +
+      `📍 *رابط المكان المباشر على Google Maps:*
+` +
+      `${activeMapUrl}
+
+` +
+      `• *حالة السداد:* مسدد بالكامل (خالص ✓)
+
+` +
+      `نتمنى لكم دوام التوفيق والازدهار!
+` +
+      `${OFFICIAL_PLATFORM_HEADER}`;
   } else {
     raw = 
-      `هلا أستاذ *${owner}*، يسعدنا أنه تم توثيق وظهور نشاطك (*${name}*) رسمياً على خرائط Google 🗺️\n\n` +
-      `📍 *رابط النشاط المباشر على Google Maps:*\n` +
-      `${activeMapUrl}\n\n` +
-      `يرجى الضغط على الرابط أعلاه والتأكد من ظهور نشاطك وبياناته على الخريطة أولاً قبل السداد.\n\n` +
-      `• *المبلغ المستحق:* ${remaining} ج.م\n` +
-      `• *طرق الدفع:*\n` +
-      `- إنستاباي: ${payConfig.instaPay}\n` +
-      `- فودافون كاش / محافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}\n\n` +
-      `يرجى إرسال صورة التحويل بعد التأكد والسداد لتأكيد الحساب.\n` +
-      `منظومة دليلك`;
+      `هلا أستاذ *${owner}*، يسعدنا أنه تم توثيق وظهور صفحتكم (*${venueName}*) رسمياً على خرائط Google 🗺️
+
+` +
+      `📍 *رابط المكان المباشر على Google Maps:*
+` +
+      `${activeMapUrl}
+
+` +
+      `يرجى الضغط على الرابط أعلاه والتأكد من ظهور البيانات على الخريطة أولاً قبل السداد.
+
+` +
+      `• *رسوم الباقة لمرة واحدة:* ${remaining} ج.م (بدون أي اشتراكات)
+` +
+      `• *طرق الدفع:*
+` +
+      `- إنستاباي: ${payConfig.instaPay}
+` +
+      `- فودافون كاش / محافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}
+
+` +
+      `يرجى إرسال صورة التحويل بعد التأكد والسداد لتأكيد الحساب.
+` +
+      `${OFFICIAL_PLATFORM_HEADER}`;
   }
 
   return cleanWhatsAppText(raw);
@@ -364,37 +797,98 @@ export function getGoogleMapsVerifiedWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Event 3: Full Payment Settlement & Final Receipt Message
- */
+// -----------------------------------------------------------------------------
+// EVENT 3: PAYMENT SETTLEMENT RECEIPT
+// -----------------------------------------------------------------------------
 
-/**
- * Event 3.5: Final Warning & Administrative Accountability for Overdue Payment
- */
+export function generatePaymentReceiptWhatsAppMessage(biz: Business): string {
+  const total = biz.packagePrice || 250;
+  const paid = biz.amountPaid || total;
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
+  const raw = 
+    `*إيصال وتأكيد سداد معتمد — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `عزيزي العميل أستاذ / *${biz.ownerName || 'المحترم'}*
+` +
+    `نؤكد استلام واعتماد سداد رسوم باقة التوثيق لـ *(${venueName})*:
+
+` +
+    `• *الباقة:* ${biz.packageName || 'باقة التوثيق والظهور'}
+` +
+    `• *إجمالي رسوم الباقة لمرة واحدة:* ${total} ج.م (بدون أي اشتراكات أو تجديدات دورية)
+` +
+    `• *المبلغ المسدد:* ${paid} ج.م
+` +
+    `• *المتبقي:* 0 ج.م (خالص تماماً ومسدد بالكامل ✓)
+` +
+    `• *رقم الفاتورة المرجعي:* ${biz.invoiceNumber || 'INV-2026'}
+
+` +
+    `• *رابط صفحتكم بالدليل:* ${DIRECTORY_URL}
+
+` +
+    `نشكركم لالتزامكم وثقتكم في منصة دليلك 🤝`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getPaymentReceiptWhatsAppUrl(biz: Business): string {
+  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
+  const text = safeWhatsAppEncode(generatePaymentReceiptWhatsAppMessage(biz));
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+// -----------------------------------------------------------------------------
+// EVENT 3.5: OVERDUE WARNING & ACCOUNTABILITY
+// -----------------------------------------------------------------------------
+
 export function generateOverdueWarningWhatsAppMessage(biz: Business): string {
   const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
   const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
   const amtPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
-  const owner = biz.ownerName || 'صاحب النشاط';
-  const name = biz.nameAr || 'نشاطكم';
+  const owner = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
   const invNumber = biz.invoiceNumber || 'INV-2026';
   const payConfig = getActivePaymentConfig();
 
   const raw =
-    `⚠️ *إنذار إداري ومالي نهائي — منصة دليلك*\n` +
-    `-----------------------------------------\n` +
-    `أستاذ *${owner}* — نشاط (*${name}*) 📍\n` +
-    `📄 *رقم الفاتورة الصادرة:* ${invNumber}\n\n` +
-    `نود إحاطتكم بأنه تم بالفعل توثيق وظهور نشاطكم تجارياً على خرائط Google بموجب الفاتورة أعلاه وبناءً على موافقتكم المسبقة للمندوب الميداني، حيث تمنع سياساتنا إدراج أي نشاط دون إذن وإقرار صاحبه.\n\n` +
-    `وحيث إنه تم التأكد من ظهور النشاط واستفادتكم منه مع استمرار المماطلة في سداد مستحقات الفاتورة (*${remaining} ج.م*):\n\n` +
-    `🛑 *نحيطكم علماً بأنه سيتم اتخاذ الإجراءات التالية خلال 24 ساعة في حال عدم التسوية:*\n` +
-    `1. إدراج النشاط ضمن «القائمة السوداء للأنشطة غير الموثوقة» على المنظومة ودليل الخدمات.\n` +
-    `2. خفض وتعديل تقييم النشاط ورفع بلاغ رسمي لمراجعة وتجميد الموقع على خرائط Google.\n\n` +
-    `• *طرق السداد الفوري:*\n` +
-    `- إنستاباي: ${payConfig.instaPay}\n` +
-    `- فودافون كاش / محافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}\n\n` +
-    `تواصل مع الدعم الفني للمنصة للتسوية وإرسال إيصال التحويل لإيقاف الإجراءات فوراً.\n` +
+    `⚠️ *إنذار إداري ومالي نهائي — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `أستاذ *${owner}* — إدارة (${venueName}) 📍
+` +
+    `📄 *رقم الفاتورة الصادرة:* ${invNumber}
+
+` +
+    `نود إحاطتكم بأنه تم بالفعل توثيق وظهور مكانكم على خرائط Google بموجب الفاتورة أعلاه وبناءً على موافقتكم المسبقة للمندوب الميداني، حيث تمنع سياساتنا إدراج أي منشأة دون إذن وإقرار صاحبها.
+
+` +
+    `وحيث إنه تم التأكد من ظهور المكان واستفادتكم منه مع استمرار المماطلة في سداد مستحقات الفاتورة (*${remaining} ج.م*):
+
+` +
+    `🛑 *نحيطكم علماً بأنه سيتم اتخاذ الإجراءات التالية خلال 24 ساعة في حال عدم التسوية:*
+` +
+    `1. إدراج الصفحة ضمن «القائمة غير الموثوقة» على المنظومة ودليل الخدمات.
+` +
+    `2. خفض وتعديل التقييم ورفع بلاغ رسمي لمراجعة وتجميد الموقع على خرائط Google.
+
+` +
+    `• *طرق السداد الفوري:*
+` +
+    `- إنستاباي: ${payConfig.instaPay}
+` +
+    `- فودافون كاش / محافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}
+
+` +
+    `تواصل مع الدعم الفني للتسوية وإرسال إيصال التحويل لإيقاف الإجراءات فوراً.
+` +
     `الإدارة القانونية والمالية — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
@@ -406,99 +900,94 @@ export function getOverdueWarningWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Event 3.6: Post-Deadline Executed Actions & Final Judicial Warning
- */
+// -----------------------------------------------------------------------------
+// EVENT 3.6: POST-DEADLINE LEGAL ACTIONS
+// -----------------------------------------------------------------------------
+
 export function generateLegalActionExecutedWhatsAppMessage(biz: Business): string {
   const isFeeExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
   const pkgPrice = isFeeExempt ? 0 : (biz.packagePrice || 250);
   const amtPaid = isFeeExempt ? 0 : (biz.amountPaid || 0);
   const remaining = isFeeExempt ? 0 : Math.max(0, pkgPrice - amtPaid);
-  const owner = biz.ownerName || 'صاحب النشاط';
-  const name = biz.nameAr || 'نشاطكم';
+  const owner = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
   const invNumber = biz.invoiceNumber || 'INV-2026';
   const payConfig = getActivePaymentConfig();
 
   const raw =
-    `🛑 *إشعار تنفيذ رسمي وتحذير قضائي أخير — منصة دليلك*\n` +
-    `--------------------------------------------------\n` +
-    `إلى إدارة نشاط: *(${name})* 📍\n` +
-    `عناية السيد / *${owner}*\n` +
-    `📄 *رقم الفاتورة الصادرة:* ${invNumber}\n` +
-    `💰 *المبلغ المستحق وغير المسدد:* ${remaining} ج.م\n\n` +
-    `نحيطكم علماً بأنه نظراً لانتهاء المهلة المقررة (24 ساعة) دون تسوية المستحقات المالية رغم توثيق النشاط واستفادتكم منه وبناءً على تعاقدكم المسبق، *فقد بدأنا بالفعل في تنفيذ الإجراءات الرادعة التالية ضد نشاطكم وهاتفكم التجاري:*\n\n` +
-    `🚫 *1. إدراج النشاط ضمن «الأنشطة التجارية المشبوهة والممتنعة عن السداد»:*\n` +
-    `تم رفع بلاغات التحذير والاشتباه على قواعد بيانات أرقام الهواتف (ومنها تطبيق *Truecaller* وغيره)، ليظهر هاتف النشاط للمتصلين كجهة *(مشبوهة / بلاغات احتيال وامتناع عن السداد)*، مما يضر بسمعتكم وثقة عملائكم بشكل مباشر.\n\n` +
-    `📵 *2. تجميد وضرب الحملات الإعلانية على كافة منصات التواصل:*\n` +
-    `تم ربط البيانات ورفع تقارير عدم الأهلية للسياسات الإعلانية على منصات التواصل (فيسبوك، إنستجرام، تيك توك، وغيرها)، مما سيجعل إنشاء أو ترويج أي حملات إعلانية مستقبلية لنشاطكم أمراً بالغ الصعوبة ومعرضاً للرفض والإغلاق الفوري.\n\n` +
-    `🌐 *3. إلغاء التوثيق وتجميد الموقع على خرائط Google:*\n` +
-    `تم إرسال طلبات رسمية لمراجعة وتجميد نشاطكم على Google وسحبه تماماً من الدليل العام.\n\n` +
-    `⚠️ *تنبيه بالغ الأهمية:*\n` +
-    `اعلم جيداً أن هذه الإجراءات عند دخولها حيز التنفيذ التام وتعميمها على الخوادم والمنصات الخارجية *يصعب جداً محوها أو إزالتها حتى بعد السداد* لما تتركه من سجل سلبي دائم على أرقامكم ونشاطكم.\n\n` +
-    `⚖️ *المسار القضائي:*\n` +
-    `نؤكد لكم أن *التسوية المالية والملاحقة القانونية آتية لا محالة*، ولن يتم التهاون في حقوق المنصة، وفي حال اضطرارنا لتصعيد الملف للجهات القضائية المختصة، *سيتحمل صاحب النشاط منفرداً كافة التعويضات والمصاريف القضائية وأتعاب المحاماة الإضافية.*\n\n` +
-    `--------------------------------------------------\n` +
-    `⏳ *الفرصة الاستثنائية الأخيرة لإيقاف التبعات خلال ساعات:*\n` +
-    `لسداد قيمة الفاتورة الأصلية فقط وتفادي اتساع نطاق الحظر:\n` +
-    `• إنستاباي (InstaPay): ${payConfig.instaPay}\n` +
-    `• فودافون كاش / محافظ إلكترونية: ${payConfig.vodafone1} أو ${payConfig.vodafone2}\n\n` +
-    `📲 *أرسل إيصال التحويل فوراً على هذه المحادثة لوقف الإجراءات ومحاولة تدارك القيود.*\n\n` +
+    `🛑 *إشعار تنفيذ رسمي وتحذير أخير — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `--------------------------------------------------
+` +
+    `إلى إدارة: *(${venueName})* 📍
+` +
+    `عناية السيد / *${owner}*
+` +
+    `📄 *رقم الفاتورة الصادرة:* ${invNumber}
+` +
+    `💰 *المبلغ المستحق وغير المسدد:* ${remaining} ج.م
+
+` +
+    `نحيطكم علماً بأنه نظراً لانتهاء المهلة المقررة (24 ساعة) دون تسوية المستحقات المالية رغم توثيق المكان واستفادتكم منه وبناءً على تعاقدكم المسبق، *فقد بدأنا بالفعل في اتخاذ الإجراءات الإدارية لإلغاء التوثيق وتجميد الصفحة.*
+
+` +
+    `--------------------------------------------------
+` +
+    `⏳ *فرصة التسوية المباشرة لتفادي حظر الموقع:*
+` +
+    `• إنستاباي (InstaPay): ${payConfig.instaPay}
+` +
+    `• فودافون كاش / محافظ إلكترونية: ${payConfig.vodafone1} أو ${payConfig.vodafone2}
+
+` +
+    `📲 *أرسل إيصال التحويل فوراً على هذه المحادثة لوقف الإجراءات.*\n\n` +
     `الإدارة القانونية والمالية — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
 }
 
 export function getLegalActionExecutedWhatsAppUrl(biz: Business): string {
-  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = safeWhatsAppEncode(generateLegalActionExecutedWhatsAppMessage(biz));
+  const phone = formatWhatsAppPhone(biz.phone);
+  const text = encodeURIComponent(generateLegalActionExecutedWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-export function generatePaymentReceiptWhatsAppMessage(biz: Business): string {
-  const total = biz.packagePrice || 250;
-  const paid = biz.amountPaid || total;
+// -----------------------------------------------------------------------------
+// NURTURING & MARKETING CAMPAIGNS
+// -----------------------------------------------------------------------------
 
-  const raw = 
-    `*إيصال وتأكيد سداد مالي معتمد - منصة دليلك*\n` +
-    `-----------------------------------------\n` +
-    `عزيزي العميل أستاذ / *${biz.ownerName || 'صاحب النشاط'}*\n` +
-    `نؤكد استلام واعتماد سداد اشتراك نشاطكم التجاري *(${biz.nameAr})*:\n\n` +
-    `• *الباقة:* ${biz.packageName || 'باقة التوثيق'}\n` +
-    `• *إجمالي قيمة الاشتراك:* ${total} ج.م\n` +
-    `• *المبلغ المسدد:* ${paid} ج.م\n` +
-    `• *المتبقي:* 0 ج.م (خالص تماماً ومسدد بالكامل)\n` +
-    `• *رقم الفاتورة المرجعي:* ${biz.invoiceNumber || 'INV-2026'}\n\n` +
-    `• *رابط دليل الأنشطة:* ${DIRECTORY_URL}\n\n` +
-    `نشكركم لالتزامكم وثقتكم المستمرة في منظومة دليلك!`;
-
-  return cleanWhatsAppText(raw);
-}
-
-export function getPaymentReceiptWhatsAppUrl(biz: Business): string {
-  const phone = formatWhatsAppPhone(biz.ownerPhone || biz.phone);
-  const text = safeWhatsAppEncode(generatePaymentReceiptWhatsAppMessage(biz));
-  return `https://wa.me/${phone}?text=${text}`;
-}
-
-/**
- * Event 4: Exclusive Package Upgrade Offers Message
- */
 export function generateUpgradeOffersWhatsAppMessage(biz: Business): string {
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
   const raw = 
-    `*عروض الترقية والتطوير الحصرية لنشاطكم - منصة دليلك*\n` +
-    `-----------------------------------------\n` +
-    `تحية طيبة أستاذ *${biz.ownerName || 'صاحب النشاط'}*، شريك نجاحنا في *(${biz.nameAr})*\n\n` +
-    `يسعدنا تقديم باقات الترقية الحصرية المخصصة لمضاعفة مبيعات وانتشار نشاطكم التجاري:\n\n` +
-    `1. *باقة التأسيس والربط الذكي (عرض 500 ج.م بدلاً من 1000 ج.م):*\n` +
-    `- تثبيت رسمي ومتقدم على Google Maps مع لوحة تحكم كاملة.\n` +
-    `- ربط احترافي مع WhatsApp Business، كتالوج المنتجات، وصفحات التواصل.\n` +
-    `- توليد باركود ذكي (QR Code) مع ستاند طاولة رسمي لموقعك.\n` +
-    `- دعم فني مخصص لمدة عام كامل.\n\n` +
-    `2. *باقة الدعم الميداني والتسويق الرقمي VIP (باقة 1000 ج.م):*\n` +
-    `- جلسة تصوير احترافية ومونتاج فيديو ترويجي قصير (Reel) لمحلكم.\n` +
-    `- حملة إعلانات ممولة مستهدفة لمنطقتك الجغرافية لزيادة الزبائن.\n` +
-    `- تقارير شهرية وإدارة كاملة لتقييمات Google ومراجعات العملاء.\n\n` +
-    `• *لطلب الترقية الفورية:* تواصل معنا مباشرة عبر هذه المحادثة لحجز موعد التطوير!\n` +
+    `*عروض وخدمات التطوير المتقدمة — ${OFFICIAL_PLATFORM_HEADER}*
+` +
+    `-----------------------------------------
+` +
+    `أهلاً بك أستاذ *${biz.ownerName || 'المحترم'}* في (${venueName}) 🌟
+
+` +
+    `يسعدنا تقديم باقات الترويج والتطوير الحصرية لتوسيع انتشار مكانكم وجذب عملاء جدد:
+
+` +
+    `• *باقة التصوير والتغطية الترويجية:*
+` +
+    `- جلسة تصوير احترافية ومونتاج فيديو ريلز إعلاني عالي الجودة.
+` +
+    `- تصميم وطباعة ستاندات الباركود الذكية (QR Code) لطاولات المحل.
+
+` +
+    `• *باقة الإعلانات الممولة الجغرافية:*
+` +
+    `- حملات مستهدفة لسكان منطقتكم بدقة.
+` +
+    `- إدارة كاملة لتقييمات Google ومراجعات العملاء.
+
+` +
+    `• *لطلب التطوير:* تواصل معنا مباشرة عبر هذه المحادثة لحجز موعدكم!
+` +
     `• الموقع الرسمي: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
@@ -510,23 +999,31 @@ export function getUpgradeOffersWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-// -----------------------------------------------------------------------------
-// MONTHLY CLIENT NURTURING & VALUE-DRIVEN CAMPAIGNS (ADMIN / SUPERVISOR ONLY)
-// -----------------------------------------------------------------------------
-
-/**
- * Monthly Campaign 1: Free QR Stand Design & Print Delivery Upsell (100 EGP)
- */
 export function generateFreeQrGiftWhatsAppMessage(biz: Business): string {
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
   const raw = 
-    `*هدية خاصة من منصة دليلك لنشاطكم (${biz.nameAr})*\n` +
-    `-----------------------------------------\n` +
-    `أهلاً بحضرتك أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
-    `*التصاميم المرفقة مع الرسالة دي هدية مجانية تماماً ليك من منظومة دليلك!*\n` +
-    `كل اللي عليك تطبعها وتحطها في محلك، عشان الزباين يصوروا الـ QR Code بالموبايل ويقيموا مكانك على الخريطة بكل سهولة وبسرعة ويساعدوك تظهر أول نتيجة بحث.\n\n` +
-    `*خدمة الطباعة الفاخرة والتوصيل:*\n` +
-    `لو تحب نطبعها لك بجودة عالية وفاخرة ونوصلها لغاية عندك في نفس اليوم، التكلفة *100 جنيه بس* (شاملة كل شيء).\n\n` +
-    `رد علينا بكلمة *(اطبعلي)* وسيقوم فريقنا بتجهيزها وإرسالها فوراً لموقعكم!\n\n` +
+    `*هدية خاصة من منصة دليلك لـ (${venueName})*
+` +
+    `-----------------------------------------
+` +
+    `أهلاً بحضرتك أستاذ *${biz.ownerName || 'المحترم'}*،
+
+` +
+    `*التصاميم المرفقة مع الرسالة دي هدية مجانية تماماً ليك من منصة دليلك!*
+` +
+    `كل اللي عليك تطبعها وتحطها في مكانك، عشان الزباين يصوروا الـ QR Code بالموبايل ويقيموا مكانك على الخريطة بكل سهولة وبسرعة ويساعدوك تظهر أول نتيجة بحث.
+
+` +
+    `*خدمة الطباعة الفاخرة والتوصيل:*
+` +
+    `لو تحب نطبعها لك بجودة عالية وفاخرة ونوصلها لغاية عندك في نفس اليوم، التكلفة *100 جنيه بس* (شاملة كل شيء).
+
+` +
+    `رد علينا بكلمة *(اطبعلي)* وسيقوم فريقنا بتجهيزها وإرسالها فوراً لموقعكم!
+
+` +
     `منصة دليلك: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
@@ -538,23 +1035,38 @@ export function getFreeQrGiftWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Monthly Campaign: Importance of QR Code & Video Tutorial Guide
- */
 export function generateQrImportanceWhatsAppMessage(biz: Business): string {
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
   const raw = 
-    `*📲 ما أهمية وجود كود الباركود (QR Code) داخل النشاط؟*\n` +
-    `-----------------------------------------\n` +
-    `• *النشاط:* ${biz.nameAr || ''}\n` +
-    `• *صاحب النشاط:* ${biz.ownerName || 'عميلنا العزيز'}\n\n` +
-    `وجود كود الباركود (QR Code) في مكان واضح داخل النشاط يسهّل على العميل الوصول إلى صفحة النشاط على خرائط جوجل (Google Maps) دون الحاجة إلى البحث عنها يدويًا.\n\n` +
-    `*يمكن للعميل من خلاله:*\n` +
-    `• الوصول إلى موقع النشاط ومعلوماته الرسمية.\n` +
-    `• الاطلاع على تقييمات وتجارب العملاء الآخرين.\n` +
-    `• تقييم النشاط بعد تجربته مباشرة.\n\n` +
-    `وبالنسبة لصاحب النشاط، فإن وضع كود الباركود (QR Code) داخل المكان يوفّر طريقة بسيطة ومباشرة لتسهيل وصول العملاء إلى نشاطه على خرائط جوجل، وإتاحة فرصة أكبر للحصول على تقييمات حقيقية من العملاء الذين تعاملوا معه فعليًا.\n\n` +
-    `لذلك يُفضّل وضعه في مكان واضح وسهل الوصول، خصوصًا في الأماكن التي ينتظر فيها العميل مثل الكاشير أو مقاعد الانتظار وشرب القهوة أو بعد إتمام الخدمة عند مخرج الباب أثناء الخروج.\n\n` +
-    `🎥 *مرفق لحضرتك مع هذه الرسالة فيديو توضيحي لطريقة استخدام ومسح الباركود للزبائن بكل سهولة!*\n\n` +
+    `*📲 ما أهمية وجود كود الباركود (QR Code) داخل المكان؟*
+` +
+    `-----------------------------------------
+` +
+    `• *المكان:* ${venueName}
+` +
+    `• *المسؤول:* ${biz.ownerName || 'عميلنا العزيز'}
+
+` +
+    `وجود كود الباركود (QR Code) في مكان واضح يسهّل على العميل الوصول إلى صفحة مكانكم على خرائط Google دون الحاجة إلى البحث عنها يدويًا.
+
+` +
+    `*يمكن للعميل من خلاله:*
+` +
+    `• الوصول إلى موقع المكان ومعلوماته الرسمية.
+` +
+    `• الاطلاع على تقييمات وتجارب العملاء الآخرين.
+` +
+    `• تقييم المكان بعد تجربته مباشرة.
+
+` +
+    `لذلك يُفضّل وضعه في مكان واضح وسهل الوصول، خصوصًا في الأماكن التي ينتظر فيها العميل مثل الكاشير أو مقاعد الانتظار أو عند مخرج الباب أثناء الخروج.
+
+` +
+    `🎥 *مرفق لحضرتك مع هذه الرسالة فيديو توضيحي لطريقة استخدام ومسح الباركود للزبائن بكل سهولة!*
+
+` +
     `منصة دليلك: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
@@ -566,22 +1078,37 @@ export function getQrImportanceWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Monthly Campaign 2: Visual Merchandising & Free Store Layout Consultation
- */
 export function generateVisualConsultingWhatsAppMessage(biz: Business): string {
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
   const raw = 
-    `*نصيحة ذهبية واستشارة مجانية لتنمية نشاط (${biz.nameAr})*\n` +
-    `-----------------------------------------\n` +
-    `تحية طيبة أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
-    `دراسات مبيعات التجزئة تؤكد أن *أول 3 ثوانٍ* يدخل فيها الزبون محلك تحدد بنسبة 70% قراره بالشراء والشعور بالراحة!\n\n` +
-    `*نصائحنا السريعة لك هذا الشهر:*\n` +
-    `1. الاهتمام بنظافة مدخل المحل والواجهة الخارجية لجذب المارة.\n` +
-    `2. تركيز الإضاءة القوية على المنتجات الأكثر مبيعاً والأعلى ربحية.\n` +
-    `3. جعل ممرات الحركة واسعة ومريحة لسهولة تصفح المحل.\n\n` +
-    `*خدمة استشارية مجانية تماماً ليك:*\n` +
-    `صور لنا واجهة محلك أو طريقة عرض المنتجات وأرسلها هنا، وسيقوم مستشارو الديكور والتسويق لدينا بتقديم *تقرير واقتراحات تنسيق وتطوير مجانية وبكل سخاء!*\n\n` +
-    `نجاحك وتألق محلك هو فخرنا الدائم في دليلك\n` +
+    `*نصيحة واستشارة مجانية لتنمية (${venueName})*
+` +
+    `-----------------------------------------
+` +
+    `تحية طيبة أستاذ *${biz.ownerName || 'المحترم'}*،
+
+` +
+    `دراسات المبيعات تؤكد أن *أول 3 ثوانٍ* يدخل فيها الزبون محلك تحدد بنسبة 70% قراره بالشراء والشعور بالراحة!
+
+` +
+    `*نصائحنا السريعة لك هذا الشهر:*
+` +
+    `1. الاهتمام بنظافة المدخل والواجهة الخارجية لجذب المارة.
+` +
+    `2. تركيز الإضاءة القوية على المنتجات الأكثر طلباً والأعلى ربحية.
+` +
+    `3. جعل ممرات الحركة واسعة ومريحة لسهولة تصفح المكان.
+
+` +
+    `*خدمة استشارية مجانية تماماً ليك:*
+` +
+    `صور لنا واجهة مكانكم أو طريقة عرض المنتجات وأرسلها هنا، وسيقوم مستشارو الديكور والتسويق لدينا بتقديم *اقتراحات تطوير مجانية بكل سرور!*
+
+` +
+    `نجاحكم وتألقكم هو هدفنا الدائم في دليلك 🤝
+` +
     `موقعنا: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
@@ -593,22 +1120,36 @@ export function getVisualConsultingWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Monthly Campaign 3: Business Pulse Checkup & Free Working Hours Update
- */
 export function generateBusinessCheckupWhatsAppMessage(biz: Business): string {
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
   const raw = 
-    `*متابعة دورية واطمئنان على نشاط (${biz.nameAr})*\n` +
-    `-----------------------------------------\n` +
-    `أهلاً بك أستاذ *${biz.ownerName || 'صاحب النشاط'}*،\n\n` +
-    `فريق عمل «دليلك» يطمئن على حركة المبيعات والزبائن لديكم هذا الشهر!\n\n` +
-    `*نحب نذكرك بأن خدمات الدعم الفني في دليلك تحت أمرك مجاناً:*\n` +
-    `- هل ترغب في تحديث مواعيد وساعات العمل للموسم؟\n` +
-    `- هل تم تغيير أرقام الهواتف أو إضافة خدمات جديدة للمحل؟\n` +
-    `- هل تواجه أي استفسار حول ظهور مكانك على الخرائط؟\n\n` +
-    `أرسل لنا أي تعديل وسنقوم بتحديثه فوراً على الخرائط والمنظومة لتظل دائماً في صدارة نتائج البحث.\n\n` +
-    `دائماً في خدمتكم بكل سرور!\n` +
-    `دليل الأنشطة: ${DIRECTORY_URL}`;
+    `*متابعة دورية واطمئنان على (${venueName})*
+` +
+    `-----------------------------------------
+` +
+    `أهلاً بك أستاذ *${biz.ownerName || 'المحترم'}*،
+
+` +
+    `فريق عمل «دليلك» يطمئن على حركة المبيعات والزبائن لديكم هذا الشهر!
+
+` +
+    `*نحب نذكرك بأن خدمات الدعم الفني في دليلك تحت أمرك مجاناً:*
+` +
+    `- هل ترغب في تحديث مواعيد وساعات العمل للموسم؟
+` +
+    `- هل تم تغيير أرقام الهواتف أو إضافة خدمات جديدة للمكان؟
+` +
+    `- هل تواجه أي استفسار حول ظهور مكانك على الخرائط؟
+
+` +
+    `أرسل لنا أي تعديل وسنقوم بتحديثه فوراً على الخرائط والمنظومة لتظل دائماً في صدارة نتائج البحث.
+
+` +
+    `دائماً في خدمتكم بكل سرور!
+` +
+    `منصة دليلك: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
 }
@@ -619,22 +1160,37 @@ export function getBusinessCheckupWhatsAppUrl(biz: Business): string {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Monthly Campaign 4: Social Proof Success Story & Targeted VIP Ads Pitch
- */
 export function generateSocialProofUpgradeWhatsAppMessage(biz: Business): string {
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
+
   const raw = 
-    `*كيف تضاعف عدد الزبائن القادمين من منطقتك الجغرافية؟*\n` +
-    `-----------------------------------------\n` +
-    `أهلاً أستاذ *${biz.ownerName || 'صاحب النشاط'}* في *(${biz.nameAr})*،\n\n` +
-    `الشهر الماضي، أحد الأنشطة الشريكة معنا حقق قفزة بنسبة 40% في الزيارات والطلبات بفضل تفعيل *«باقة التسويق الميداني والربط الذكي VIP»*:\n\n` +
-    `*ماذا تتضمن الباقة؟*\n` +
-    `1. تصوير ومونتاج فيديو ريلز إعلاني قصير احترافي لمحلكم.\n` +
-    `2. إطلاق حملة إعلانات ممولة جغرافية تستهدف سكان منطقتك المحيطة بمحلك بدقة.\n` +
-    `3. إدارة احترافية لتقييمات Google Maps لرفع تصنيف محلك إلى 5 نجوم.\n\n` +
-    `*إذا كنت جاهزاً للقفزة القادمة في مبيعات نشاطكم:*\n` +
-    `تواصل معنا اليوم لحجز جلسة التطوير وتفعيل الباقة بخصم خاص لشركاء دليلك!\n\n` +
-    `فريق النمو والتطوير — منظومة دليلك\n` +
+    `*كيف تضاعف عدد الزبائن القادمين من منطقتك الجغرافية؟*
+` +
+    `-----------------------------------------
+` +
+    `أهلاً أستاذ *${biz.ownerName || 'المحترم'}* في *(${venueName})*،
+
+` +
+    `الشهر الماضي، أحد المتاجر الشريكة معنا حقق قفزة بنسبة 40% في الزيارات والطلبات بفضل تفعيل *«باقة التسويق الميداني والربط الذكي VIP»*:
+
+` +
+    `*ماذا تتضمن الباقة؟*
+` +
+    `1. تصوير ومونتاج فيديو ريلز إعلاني قصير احترافي لمحلكم.
+` +
+    `2. إطلاق حملة إعلانات ممولة جغرافية تستهدف سكان منطقتك المحيطة بمحلك بدقة.
+` +
+    `3. إدارة احترافية لتقييمات Google Maps لرفع تصنيف محلك إلى 5 نجوم.
+
+` +
+    `*إذا كنت جاهزاً للقفزة القادمة في مبيعاتكم:*
+` +
+    `تواصل معنا اليوم لحجز جلسة التطوير وتفعيل الباقة بخصم خاص لشركاء دليلك!
+
+` +
+    `فريق النمو والتطوير — منصة دليلك
+` +
     `الموقع الرسمي: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
@@ -647,24 +1203,28 @@ export function getSocialProofUpgradeWhatsAppUrl(biz: Business): string {
 }
 
 // -----------------------------------------------------------------------------
-// FIELD REPRESENTATIVE INTRO MESSAGE (EXCLUSIVE FOR REPS ON ACTIVITY CARD)
+// EVENT 5: FIELD REPRESENTATIVE DIRECT CONTACT MESSAGE
 // -----------------------------------------------------------------------------
 
-/**
- * Event 5: Field Representative Direct Contact Message
- * Informs the owner that the official platform account handles the invoice and follow-ups
- */
 export function generateRepFieldIntroWhatsAppMessage(biz: Business, repName?: string): string {
   const finalRepName = repName || biz.repName || 'المندوب الميداني';
-  const ownerName = biz.ownerName || 'صاحب النشاط';
-  const bizName = biz.nameAr || 'نشاطكم التجاري';
+  const ownerName = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw = 
-    `السلام عليكم أستاذ *${ownerName}* 🤝\n\n` +
-    `معك *${finalRepName}*، المندوب الميداني المعتمد من منصة *«دليلك»*.\n` +
-    `تشرفت بزيارتكم اليوم وتوثيق نشاطكم التجاري *(${bizName})*.\n\n` +
-    `نحيط سيادتكم علماً بأن *حساب المنصة الرسمي* سيقوم بإرسال الفاتورة الإلكترونية المعتمدة لحضرتكم عبر الواتساب، كما أن كافة المتابعات والالتزامات وإجراءات التوثيق تتم مباشرة من خلالهم عبر الواتساب.\n\n` +
-    `سعدت جداً بخدمتكم وتمنياتنا لنشاطكم بدوام التوفيق والازدهار! ✨`;
+    `السلام عليكم أستاذ *${ownerName}* 🤝
+
+` +
+    `معك *${finalRepName}*، المندوب الميداني المعتمد من منصة *«دليلك»*.
+` +
+    `تشرفت بزيارتكم اليوم وتوثيق بيانات *(${venueName})*.
+
+` +
+    `نحيط سيادتكم علماً بأن *حساب المنصة الرسمي* سيقوم بإرسال الفاتورة الإلكترونية المعتمدة لحضرتكم عبر الواتساب، كما أن كافة المتابعات وإجراءات التوثيق تتم مباشرة من خلالهم عبر الواتساب.
+
+` +
+    `سعدت جداً بخدمتكم وتمنياتنا لكم بدوام التوفيق والازدهار! ✨`;
 
   return cleanWhatsAppText(raw);
 }
@@ -675,28 +1235,36 @@ export function getRepFieldIntroWhatsAppUrl(biz: Business, repName?: string): st
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-
 // -----------------------------------------------------------------------------
-// MOTIVATIONAL & PERFORMANCE INSIGHT CAMPAIGNS (رسائل التحفيز وتحديثات نبض النشاط)
+// MOTIVATIONAL CAMPAIGNS
 // -----------------------------------------------------------------------------
 
-/**
- * Motivational Campaign 1: High Satisfaction & Traffic Growth (إشادة بالأداء ونسبة رضا مرتفعة)
- */
 export function generateMotivationalHighSatisfactionWhatsAppMessage(biz: Business): string {
-  const ownerName = biz.ownerName || 'صاحب النشاط';
-  const bizName = biz.nameAr || 'نشاطكم التجاري';
+  const ownerName = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw = 
-    `أهلاً بك أستاذ *${ownerName}* في *(${bizName})* 🌟\n` +
-    `-----------------------------------------\n` +
-    `يسعد فريق عمل «دليلك» مشاركتكم تقرير المتابعة لنشاطكم خلال الفترة الأخيرة عبر المنظومة وخرائط Google:\n\n` +
-    `• نشاطكم مسجل ضمن أولويات المنصة في منطقتكم الجغرافية.\n` +
-    `• بعد تثبيت وظهور موقعكم على الخريطة، سجل مكانكم تفاعل وزيارة أكثر من 37 عميلاً عن طريق التوجيه الجغرافي والاتصال المباشر.\n` +
-    `• نسبة رضا وانطباع العملاء عن خدماتكم ممتازة وتتجاوز 90%.\n\n` +
-    `أحسنت يا بطل، أداء رائع واستمر في هذا التميز والنمو! نحن دائماً في ظهرك لدعم نشاطك وتطويره.\n\n` +
-    `فريق المتابعة والنمو — منظومة دليلك\n` +
-    `دليل الأنشطة: ${DIRECTORY_URL}`;
+    `أهلاً بك أستاذ *${ownerName}* في *(${venueName})* 🌟
+` +
+    `-----------------------------------------
+` +
+    `يسعد فريق عمل «دليلك» مشاركتكم تقرير المتابعة لموقعكم خلال الفترة الأخيرة عبر المنظومة وخرائط Google:
+
+` +
+    `• صفحتكم مسجلة ضمن أولويات المنصة في منطقتكم الجغرافية.
+` +
+    `• بعد تثبيت وظهور موقعكم على الخريطة، سجل مكانكم تفاعل وزيارة أكثر من 37 عميلاً عن طريق التوجيه الجغرافي والاتصال المباشر.
+` +
+    `• نسبة رضا وانطباع العملاء عن خدماتكم ممتازة وتتجاوز 90%.
+
+` +
+    `أداء رائع ومميز واستمروا في هذا التألق والنمو! نحن دائماً معكم لدعمكم وتطوير أعمالكم.
+
+` +
+    `فريق المتابعة والنمو — منصة دليلك
+` +
+    `الموقع الرسمي: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
 }
@@ -707,23 +1275,32 @@ export function getMotivationalHighSatisfactionWhatsAppUrl(biz: Business): strin
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Motivational Campaign 2: High Traffic + Cashier/Speed Feedback Tip (تحفيز + نصيحة سرعة الكاشير)
- */
 export function generateMotivationalCashierFeedbackWhatsAppMessage(biz: Business): string {
-  const ownerName = biz.ownerName || 'صاحب النشاط';
-  const bizName = biz.nameAr || 'نشاطكم التجاري';
+  const ownerName = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw = 
-    `أهلاً بك أستاذ *${ownerName}* في *(${bizName})* 🌿\n` +
-    `-----------------------------------------\n` +
-    `تقرير المتابعة ونبض نشاطكم هذا الأسبوع عبر منصة دليلك وخرائط Google:\n\n` +
-    `• نشاطكم من الأنشطة الأكثر بحثاً واهتماماً في المنطقة، وسجل تفاعل وزيارة أكثر من 40 زبوناً.\n` +
-    `• نسبة رضا الزبائن عن جودة الخدمة والمنتجات مرتفعة وممتازة، مع ملاحظة عابرة من أحد الزبائن حول وجود تأخير بسيط عند الكاشير وقت الذروة.\n` +
-    `• *نصيحة المنصة لحل الاستياء:* تنظيم طابور الدفع أو تسريع حساب الفواتير سيرفع نسبة ولاء الزبائن ويضمن تقييمات إيجابية كاملة 5 نجوم.\n\n` +
-    `مجهود مميز وبداية قوية، ونحن فخورون بنمو نشاطكم معنا ومستمرون في دعمكم!\n\n` +
-    `فريق المتابعة والنمو — منظومة دليلك\n` +
-    `دليل الأنشطة: ${DIRECTORY_URL}`;
+    `أهلاً بك أستاذ *${ownerName}* في *(${venueName})* 🌿
+` +
+    `-----------------------------------------
+` +
+    `تقرير المتابعة ونبض مكانكم هذا الأسبوع عبر منصة دليلك وخرائط Google:
+
+` +
+    `• المكان من المواقع الأكثر بحثاً واهتماماً في المنطقة، وسجل تفاعل وزيارة أكثر من 40 زبوناً.
+` +
+    `• نسبة رضا الزبائن عن جودة الخدمة والمنتجات مرتفعة وممتازة، مع ملاحظة عابرة من أحد الزبائن حول وجود تأخير بسيط عند الكاشير وقت الذروة.
+` +
+    `• *نصيحة المنصة لحل الاستياء:* تنظيم طابور الدفع أو تسريع حساب الفواتير سيرفع نسبة ولاء الزبائن ويضمن تقييمات إيجابية كاملة 5 نجوم.
+
+` +
+    `مجهود مميز وبداية قوية، ونحن فخورون بوجودكم معنا ومستمرون في دعمكم!
+
+` +
+    `فريق المتابعة والنمو — منصة دليلك
+` +
+    `الموقع الرسمي: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
 }
@@ -734,22 +1311,30 @@ export function getMotivationalCashierFeedbackWhatsAppUrl(biz: Business): string
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Motivational Campaign 3: High Inquiries + Fast Response Tip (تحفيز + نصيحة سرعة الرد الهاتفي)
- */
 export function generateMotivationalFastResponseFeedbackWhatsAppMessage(biz: Business): string {
-  const ownerName = biz.ownerName || 'صاحب النشاط';
-  const bizName = biz.nameAr || 'نشاطكم التجاري';
+  const ownerName = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw = 
-    `أهلاً أستاذ *${ownerName}* في *(${bizName})* ✨\n` +
-    `-----------------------------------------\n` +
-    `مؤشرات تفاعل الزبائن والجمهور مع نشاطكم التجاري هذا الشهر:\n\n` +
-    `• تم توجيه أكثر من 50 عميلاً إلى مقر نشاطكم والاتصال بكم عبر الخريطة والمنظومة.\n` +
-    `• انطباع العملاء عن المعاملة ممتاز، ونوصي بالحرص على سرعة الرد على المكالمات الهاتفية الواردة لضمان كسب كافة الطلبات من الزبائن الجدد.\n\n` +
-    `خطوة بخطوة نحو تصدر السوق المحلي في منطقتك!\n\n` +
-    `فريق المتابعة والتطوير — منظومة دليلك\n` +
-    `دليل الأنشطة: ${DIRECTORY_URL}`;
+    `أهلاً أستاذ *${ownerName}* في *(${venueName})* ✨
+` +
+    `-----------------------------------------
+` +
+    `مؤشرات تفاعل الزبائن والجمهور مع موقعكم هذا الشهر:
+
+` +
+    `• تم توجيه أكثر من 50 عميلاً إلى مقركم والاتصال بكم عبر الخريطة والمنصة.
+` +
+    `• انطباع العملاء عن المعاملة ممتاز، ونوصي بالحرص على سرعة الرد على المكالمات الهاتفية الواردة لضمان كسب كافة الطلبات من الزبائن الجدد.
+
+` +
+    `خطوة بخطوة نحو تصدر السوق المحلي في منطقتكم!
+
+` +
+    `فريق المتابعة والتطوير — منصة دليلك
+` +
+    `الموقع الرسمي: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
 }
@@ -760,22 +1345,30 @@ export function getMotivationalFastResponseFeedbackWhatsAppUrl(biz: Business): s
   return `https://wa.me/${phone}?text=${text}`;
 }
 
-/**
- * Motivational Campaign 4: QR Reviews Growth Advice (تحفيز + طلب تقييمات الزبائن بالـ QR)
- */
 export function generateMotivationalQrReviewsAdviceWhatsAppMessage(biz: Business): string {
-  const ownerName = biz.ownerName || 'صاحب النشاط';
-  const bizName = biz.nameAr || 'نشاطكم التجاري';
+  const ownerName = biz.ownerName || 'المحترم';
+  const venueLabel = getVenueContextLabel(biz.category);
+  const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw = 
-    `تحية طيبة أستاذ *${ownerName}* في *(${bizName})* 🚀\n` +
-    `-----------------------------------------\n` +
-    `نشاطكم يحقق تفاعلاً مميزاً ومستقراً على خرائط Google ومنصة دليلك:\n\n` +
-    `• أكثر من 60 شخصاً استعلموا عن مواعيد العمل وموقعكم الجغرافي مؤخراً.\n` +
-    `• *نصيحة ذهبية:* تشجيع زبائنك السعداء على وضع تقييم 5 نجوم عبر باركود الـ QR سيرفع ترتيب نشاطك للمركز الأول في منطقتك على محركات البحث.\n\n` +
-    `بالتوفيق دائماً، وبإمكانك طلب أي تعديل لبياناتك في أي وقت مجاناً!\n\n` +
-    `فريق النمو وتطوير الأعمال — منظومة دليلك\n` +
-    `دليل الأنشطة: ${DIRECTORY_URL}`;
+    `تحية طيبة أستاذ *${ownerName}* في *(${venueName})* 🚀
+` +
+    `-----------------------------------------
+` +
+    `مكانكم يحقق تفاعلاً مميزاً ومستقراً على خرائط Google ومنصة دليلك:
+
+` +
+    `• أكثر من 60 شخصاً استعلموا عن مواعيد العمل وموقعكم الجغرافي مؤخراً.
+` +
+    `• *نصيحة ذهبية:* تشجيع زبائنك السعداء على وضع تقييم 5 نجوم عبر باركود الـ QR سيرفع ترتيب مكانكم للمركز الأول في منطقتكم على محركات البحث.
+
+` +
+    `بالتوفيق دائماً، وبإمكانك طلب أي تعديل لبياناتكم في أي وقت مجاناً!
+
+` +
+    `فريق النمو وتطوير الأعمال — منصة دليلك
+` +
+    `الموقع الرسمي: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
 }
@@ -785,3 +1378,44 @@ export function getMotivationalQrReviewsAdviceWhatsAppUrl(biz: Business): string
   const text = safeWhatsAppEncode(generateMotivationalQrReviewsAdviceWhatsAppMessage(biz));
   return `https://wa.me/${phone}?text=${text}`;
 }
+
+/**
+ * 🌟 رسالة طلب السماح والاستئذان للمنشآت الأكثر رواجاً (إدراج شرفي مجاني تماماً)
+ * بالصيغة الودية المعتمدة بالعامية المصرية الراقية ("زي حضراتكم" وبدون أي اشتراكات)
+ */
+export function generateTrendingVenuePermissionWhatsAppMessage(lead?: { clientName?: string; businessName?: string }): string {
+  const targetName = lead?.businessName ? `«${lead.businessName}»` : (lead?.clientName || '');
+  const greetingTarget = targetName ? `أهلاً بحضراتكم في *${targetName}*` : 'مرحب بحضراتكم';
+
+  const raw =
+    `السلام عليكم ورحمة الله وبركاته..
+` +
+    `${greetingTarget}، بنتشرف بالتواصل معكم من منصة *«دليلك»* 🧭
+` +
+    `-----------------------------------------
+` +
+    `إحنا منصة تسويقية وعرض رقمي بنعرض المنشآت والخدمات المميزة في كل منطقة للسكان المحليين والزوار.
+
+` +
+    `تركيزنا الأساسي دايماً على الأماكن الأعلى جودة والمميز *زي حضراتكم*، نتشرف بوجودكم معانا لكي نعلن عنكم بأسلوبنا وبشكل مختلف، *ومجاناً تماماً بدون أي اشتراكات أو رسوم*.
+
+` +
+    `فإذا تسمحولنا بظهور المكان على موقعنا الخاص، بمجرد موافقتكم الكريمة هنبعت لحضراتكم الرابط المباشر لمعاينته داخل التطبيق فوراً 🌹
+
+` +
+    `تحياتنا وتقديرنا لحضراتكم ✨
+` +
+    `فريق منصة دليلك
+` +
+    `الموقع الرسمي: ${DIRECTORY_URL}`;
+
+  return cleanWhatsAppText(raw);
+}
+
+export function getTrendingVenuePermissionWhatsAppUrl(phone?: string, lead?: { clientName?: string; businessName?: string }): string {
+  const cleanPhone = formatWhatsAppPhone(phone);
+  const text = safeWhatsAppEncode(generateTrendingVenuePermissionWhatsAppMessage(lead));
+  return `https://wa.me/${cleanPhone}?text=${text}`;
+}
+
+

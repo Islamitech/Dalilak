@@ -176,7 +176,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
 
       {/* ── TIER 1: ACTIONABLE EMERGENCY & OPERATIONAL ALERTS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Notice 1: Unsubmitted Activities */}
+        {/* Notice 1: Unsubmitted Venues (Approved on directory, pending Google submission) */}
         {notSubmittedCount > 0 ? (
           <div className="alert-card-danger p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
             <div className="flex items-center gap-2.5">
@@ -185,17 +185,17 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               </div>
               <div>
                 <p className="alert-title font-black text-sm">
-                  يوجد ({notSubmittedCount}) أنشطة مسجلة لم تُرفع لخرائط جوجل بعد
+                  يوجد ({notSubmittedCount}) منشآت معتمدة بالدليل لم تُرفع لخرائط Google بعد
                 </p>
                 <p className="alert-desc text-[11px] font-bold mt-0.5">
-                  تتطلب توليد بيانات ورفعها للتوثيق الميداني.
+                  معتمدة وجاهزة بالدليل العام وتتطلب إرسال بياناتها للتوثيق الميداني على خرائط Google.
                 </p>
               </div>
             </div>
             <button
               onClick={() => {
                 onNavigateTab('businesses');
-                onSetVerificationFilter('not_submitted');
+                onSetVerificationFilter('google_not_submitted');
               }}
               className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] px-3 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95"
             >
@@ -205,7 +205,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         ) : (
           <div className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
             <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-            <span className="font-bold">كافة الأنشطة المسجلة تم رفعها للتوثيق ولا توجد أنشطة متأخرة.</span>
+            <span className="font-bold">كافة المنشآت المعتمدة تم ربطها أو رفعها للتوثيق بـ Google ولا توجد طلبات متأخرة.</span>
           </div>
         )}
 
@@ -218,10 +218,10 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               </div>
               <div>
                 <p className="alert-title font-black text-sm">
-                  تنبيه مراجعة: ({overdueReviewCount}) أنشطة تجاوزت مدة مراجعة جوجل المتوقعة
+                  تنبيه مراجعة: ({overdueReviewCount}) منشآت تجاوزت مدة مراجعة Google المتوقعة
                 </p>
                 <p className="alert-desc text-[11px] font-bold mt-0.5">
-                  أُرسلت للتوثيق منذ أكثر من 48 ساعة دون اعتماد؛ يُنصح بمراجعتها وتدقيق الـ Place ID.
+                  أُرسلت للتوثيق بخرائط Google منذ أكثر من 48 ساعة دون اعتماد؛ يُنصح بمراجعتها وتدقيق الـ Place ID.
                 </p>
               </div>
             </div>
@@ -238,7 +238,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         ) : (
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-[var(--text-secondary)]">
             <Clock className="w-5 h-5 text-amber-500 shrink-0" />
-            <span className="font-bold">مراجعات جوجل تسير ضمن النطاق الزمني الطبيعي.</span>
+            <span className="font-bold">مراجعات Google تسير ضمن النطاق الزمني الطبيعي.</span>
           </div>
         )}
 
@@ -251,10 +251,10 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               </div>
               <div>
                 <p className="alert-title font-black text-sm">
-                  تنبيه مالي مهم: ({verifiedWithDebtCount}) أنشطة موثقة على الخريطة ولها متبقي سداد!
+                  تنبيه مالي مهم: ({verifiedWithDebtCount}) منشآت موثقة على الخريطة ولها متبقي سداد!
                 </p>
                 <p className="alert-desc text-[11px] font-bold mt-0.5">
-                  تم وضع ونشر خرائط Google لهذه الأنشطة بنجاح، وما زال عليها مبالغ معلقة بإجمالي <strong className="font-mono font-black">{verifiedWithDebtTotal.toLocaleString()} ج.م</strong> بانتظار استكمال التحصيل.
+                  تم وضع ونشر خرائط Google لهذه المنشآت بنجاح، وما زال عليها مبالغ معلقة بإجمالي <strong className="font-mono font-black">{verifiedWithDebtTotal.toLocaleString()} ج.م</strong> بانتظار استكمال التحصيل.
                 </p>
               </div>
             </div>
@@ -266,7 +266,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95 flex items-center gap-1"
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>عرض الأنشطة الموثقة ذات المتبقي</span>
+              <span>عرض المنشآت الموثقة ذات المتبقي</span>
             </button>
           </div>
         )}
@@ -307,16 +307,16 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         {/* 3. Verified Businesses KPI */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-3xl shadow-xs space-y-1.5">
           <div className="flex items-center justify-between text-xs font-bold text-[var(--text-muted)]">
-            <span>مؤشر التوثيق المعتمد</span>
+            <span>موثقة بخرائط Google</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            {verifiedCount} <span className="text-xs text-[var(--text-secondary)]">نشاط ({verificationRate}%)</span>
+            {verifiedCount} <span className="text-xs text-[var(--text-secondary)]">منشأة ({verificationRate}%)</span>
           </p>
           <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
-            <span>إجمالي الأنشطة:</span>
+            <span>إجمالي المنشآت:</span>
             <span className="font-bold font-sans">
-              {realBusinesses.length} نشاط {exemptCount > 0 && <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">({exemptCount} رائج معفى)</span>}
+              {realBusinesses.length} منشأة {exemptCount > 0 && <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">({exemptCount} رائج معفى)</span>}
             </span>
           </div>
         </div>

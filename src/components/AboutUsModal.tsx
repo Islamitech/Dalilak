@@ -10,11 +10,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
-  Building,
   Users,
   Briefcase,
   Coffee,
-  Calendar
+  Calendar,
+  Building
 } from 'lucide-react';
 
 interface AboutUsModalProps {
@@ -23,13 +23,6 @@ interface AboutUsModalProps {
 }
 
 const HQ_PHOTOS = [
-  {
-    id: 'building',
-    src: '/images/hq/hq-building.jpg',
-    title: 'المبنى الرئيسي والواجهة المعتمدة',
-    desc: 'مقر الإدارة الرئيسي لمنظومة دليلك (الفرع 145) في جمهورية مصر العربية.',
-    icon: <Building className="w-3.5 h-3.5" />
-  },
   {
     id: 'workspace',
     src: '/images/hq/hq-workspace.jpg',
@@ -203,7 +196,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
           </div>
 
           {/* Thumbnail Bar */}
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
             {HQ_PHOTOS.map((photo, idx) => (
               <button
                 key={photo.id}

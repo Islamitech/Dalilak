@@ -23,6 +23,8 @@ import {
   Building2,
   Clock,
   Navigation,
+  Lock,
+  ShieldAlert,
   X,
   Check,
   Award,
@@ -91,8 +93,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   // Search and Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [govFilter, setGovFilter] = useState<string>('الجيزة');
-  const [cityFilter, setCityFilter] = useState<string>('حدائق الأهرام');
+  const [govFilter, setGovFilter] = useState<string>('all');
+  const [cityFilter, setCityFilter] = useState<string>('all');
   const [hadayekZoneFilter, setHadayekZoneFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeView, setActiveView] = useState<'grid' | 'map'>('grid');
@@ -214,14 +216,18 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
   }, [initialBizId, businesses]);
 
-  // Dynamic Schema.org LocalBusiness injection for Google SEO
+  // Dynamic Schema.org LocalBusiness injection for Google SEO (Strictly disabled for rejected)
   useEffect(() => {
+    if (selectedBiz && selectedBiz.verificationStatus === 'rejected') {
+      injectBusinessSchemaLd(null);
+      return;
+    }
     injectBusinessSchemaLd(selectedBiz);
   }, [selectedBiz]);
 
-  // On-demand full photo gallery loader for selected business
+  // On-demand full photo gallery loader for selected business (Skipped for rejected)
   useEffect(() => {
-    if (!selectedBiz || (selectedBiz.photos && selectedBiz.photos.length > 1)) return;
+    if (!selectedBiz || selectedBiz.verificationStatus === 'rejected' || (selectedBiz.photos && selectedBiz.photos.length > 1)) return;
     let isCurrent = true;
     const bizId = selectedBiz.id;
 
@@ -306,7 +312,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const handleDownloadVCard = (biz: Business) => {
     downloadBusinessVCard(biz);
     setVCardDownloadedBizId(biz.id);
-    setShareToastText('تم حفظ بيانات النشاط في دفتر عناوين هاتفك 📇');
+    setShareToastText('تم حفظ بيانات المكان في جهات اتصالك 📇');
     setTimeout(() => {
       setVCardDownloadedBizId(null);
       setShareToastText(null);
@@ -367,7 +373,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       e.preventDefault();
     }
     const shareUrl = `${window.location.origin}/biz/${biz.id}`;
-    const shareTitle = `نشاط ${biz.nameAr} | منصة دليلك المعتمدة`;
+    const shareTitle = `${biz.nameAr} | منصة دليلك المعتمدة`;
 
     let descSnippet = '';
     if (biz.description && biz.description.trim()) {
@@ -403,7 +409,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       }
 
       setCopiedBizId(biz.id);
-      setShareToastText('تم نسخ رابط النشاط بنجاح! جاهز للمشاركة 📋');
+      setShareToastText('تم نسخ رابط المنشأة بنجاح! جاهز للمشاركة 📋');
       if (typeof window !== 'undefined' && window.navigator?.vibrate) {
         try { window.navigator.vibrate([15, 30, 15]); } catch {}
       }
@@ -435,14 +441,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
   };
 
-  // 100% STRICT PUBLIC DIRECTORY FILTER
+  // 100% STRICT PUBLIC DIRECTORY FILTER (Guaranteed Zero Infiltration)
   const publicBusinesses = useMemo(() => {
     return businesses.filter((b) => {
-      if (!b) return false;
-      if (isPreviewMode || (initialBizId && b.id === initialBizId)) return true;
+      if (!b || b.verificationStatus === 'rejected' || b.isDeleted) return false;
       return b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced';
     });
-  }, [businesses, isPreviewMode, initialBizId]);
+  }, [businesses]);
 
   // Search Autocomplete Suggestions
   const searchSuggestions = useMemo(() => {
@@ -602,11 +607,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     const defaultPhone = '201143888355';
     let text = '';
     if (pkg.price === 0) {
-      text = `مرحباً دليلك 👋\nأرغب في طلب إدراج وظهور نشاطي التجاري مجاناً في دليل منصة دليلك بدون أي رسوم (0 ج.م) 🎁.\nيرجى تزويدي بالخطوات المطلوبة لإرسال بيانات المحل والظهور في الدليل.`;
+      text = `مرحباً دليلك 👋\nأرغب في طلب إدراج وظهور منشأتنا ومكاننا مجاناً في دليل منصة دليلك بدون أي رسوم (0 ج.م) 🎁.\nيرجى تزويدي بالخطوات المطلوبة لإرسال بيانات المحل والظهور في الدليل.`;
     } else if (pkg.price === 20000) {
-      text = `مرحباً دليلك 👋\nأود الاستفسار والاشتراك في "باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م)" لنشاطي التجاري (تحت الإنشاء) 👑.\nأرغب في التكفل الشامل بالهوية والشعار واللافتة والتأسيس الرقمي وفيديو الافتتاح السينمائي وبناء نظام الزبون المنتظم.`;
+      text = `مرحباً دليلك 👋\nأود الاستفسار والاشتراك في "باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م)" لمشروعنا ومكاننا (تحت التجهيز والإنشاء) 👑.\nأرغب في التكفل الشامل بالهوية والشعار واللافتة والتأسيس الرقمي وفيديو الافتتاح السينمائي وبناء نظام الزبون المنتظم.`;
     } else {
-      text = `مرحباً دليلك 👋\nأود الاستفسار والاشتراك في "${pkg.title}" بقيمة (${pkg.price} ج.م) كحملة دعائية لتطوير ومضاعفة مبيعات نشاطي التجاري.`;
+      text = `مرحباً دليلك 👋\nأود الاستفسار والاشتراك في "${pkg.title}" بقيمة (${pkg.price} ج.م) كحملة دعائية لتطوير ومضاعفة مبيعات منشأتنا ومكاننا.`;
     }
     if (referralCode) {
       text += `\n(كود المندوب الإرشادي: ${referralCode})`;
@@ -622,13 +627,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     const defaultPhone = '201143888355';
     let text = `السلام عليكم ورحمة الله وبركاته 🌿\n`;
     if (formSelectedPackage.includes('مجاني') || formSelectedPackage.includes('0')) {
-      text += `طلب إدراج وظهور نشاط تجاري مجاناً في دليل دليلك (0 ج.م بدون أي رسوم) 🎁:\n`;
+      text += `طلب إدراج وظهور منشأة تجارية مجاناً في دليل دليلك (0 ج.م بدون أي رسوم) 🎁:\n`;
     } else if (formSelectedPackage.includes('20000') || formSelectedPackage.includes('الإنشاء') || formSelectedPackage.includes('الانطلاق')) {
-      text += `طلب حجز باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م) للأنشطة تحت الإنشاء 👑:\n`;
+      text += `طلب حجز باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م) للمشاريع تحت التجهيز والإنشاء 👑:\n`;
     } else {
-      text += `طلب استفسار وحجز حملة دعائية لتطوير نشاط تجاري 🚀:\n`;
+      text += `طلب استفسار وحجز حملة دعائية لتطوير منشأة ومكان تجاري 🚀:\n`;
     }
-    text += `🏬 اسم النشاط: ${formBizName.trim()}\n`;
+    text += `🏬 اسم المكان / المنشأة: ${formBizName.trim()}\n`;
     if (formOwnerName) text += `👤 المسؤول: ${formOwnerName.trim()}\n`;
     text += `📱 رقم التواصل: ${formPhone.trim()}\n`;
     text += `📍 المحافظة: ${formGov}\n`;
@@ -641,12 +646,12 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }, 400);
   };
 
-  const hasActiveFilters = searchQuery || govFilter !== 'الجيزة' || cityFilter !== 'حدائق الأهرام' || hadayekZoneFilter !== 'all' || categoryFilter !== 'all' || showFavoritesOnly || sortBy !== 'default';
+  const hasActiveFilters = searchQuery || govFilter !== 'all' || cityFilter !== 'all' || hadayekZoneFilter !== 'all' || categoryFilter !== 'all' || showFavoritesOnly || sortBy !== 'default';
 
   const resetAllFilters = () => {
     setSearchQuery('');
-    setGovFilter('الجيزة');
-    setCityFilter('حدائق الأهرام');
+    setGovFilter('all');
+    setCityFilter('all');
     setHadayekZoneFilter('all');
     setCategoryFilter('all');
     setShowFavoritesOnly(false);
@@ -767,14 +772,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-emerald-700 dark:text-emerald-300 font-black text-sm sm:text-base">
-                    ظهور نشاطك في الدليل مجاني تماماً 100% وبدون أي رسوم!
+                    ظهور منشأتكم في الدليل مجاني تماماً 100% وبدون أي رسوم!
                   </span>
                   <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-500/30">
                     بدون أي اشتراكات
                   </span>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] font-bold leading-relaxed">
-                  فقط اطلب الظهور وسيتم إدراج نشاطك مجاناً. والباقات المتوفرة هي حملات دعائية حسب الطلب لتنمية مبيعاتك.
+                  فقط اطلب الظهور وسيتم إدراج منشأتكم مجاناً. والباقات المتوفرة هي حملات دعائية حسب الطلب لتنمية مبيعاتكم.
                 </p>
               </div>
             </div>
@@ -800,7 +805,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           {/* Stats Row */}
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 animate-fade-in">
             {[
-              { icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />, value: publicBusinesses.length + '+', label: 'نشاط معتمد' },
+              { icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />, value: publicBusinesses.length + '+', label: 'مكان معتمد' },
               { icon: <MapPin className="w-4 h-4 text-amber-500" />, value: '12+', label: 'منطقة مغطاة' },
               { icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />, value: '4.9', label: 'تقييم المستخدمين' },
               { icon: <ShieldCheck className="w-4 h-4 text-blue-500" />, value: '100%', label: 'بيانات موثقة' },
@@ -821,7 +826,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="ابحث باسم المحل، النشاط، أو الخدمة..."
+                  placeholder="ابحث باسم المحل، المنشأة، أو الخدمة..."
                   value={searchQuery}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
@@ -916,7 +921,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       {/* Matching Zones */}
                       {searchQuery && searchSuggestions.zones.length > 0 && (
                         <div className="space-y-1.5 pt-2 border-t border-[var(--border-color)]">
-                          <span className="text-[10.5px] font-black text-[var(--text-muted)] block">قطاعات حدائق الأهرام:</span>
+                          <span className="text-[10.5px] font-black text-[var(--text-muted)] block">المناطق والأحياء المطابقة:</span>
                           <div className="flex flex-wrap gap-1.5">
                             {searchSuggestions.zones.map((z) => (
                               <button
@@ -1022,7 +1027,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11.5px] text-[var(--text-muted)] font-bold">
                   عرض <strong className="text-amber-500 font-mono text-sm">{filteredBusinesses.length}</strong> من إجمالي{' '}
-                  <strong className="text-[var(--text-primary)] font-mono text-sm">{publicBusinesses.length}</strong> نشاط معتمد
+                  <strong className="text-[var(--text-primary)] font-mono text-sm">{publicBusinesses.length}</strong> مكان معتمد
                 </span>
 
                 {/* Favorites Toggle */}
@@ -1085,7 +1090,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   href="#free-listing"
                   className="text-emerald-600 dark:text-emerald-400 hover:underline font-black text-xs flex items-center gap-1 bg-emerald-500/10 hover:bg-emerald-500/15 px-2.5 py-1.5 rounded-xl border border-emerald-500/20 transition-colors"
                 >
-                  <span>🎁 أضف نشاطك مجاناً</span>
+                  <span>🎁 أضف مكانك مجاناً</span>
                 </a>
                 <a
                   href="#packages"
@@ -1178,7 +1183,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   </div>
                   <div className="text-center space-y-1">
                     <p className="text-xs sm:text-sm font-black text-[var(--text-primary)] animate-pulse">
-                      {initialBizId ? 'جاري فتح وتجهيز النشاط المطلوب...' : 'جاري تحميل الأنشطة المعتمدة...'}
+                      {initialBizId ? 'جاري فتح وتجهيز بيانات المكان المطلوب...' : 'جاري تحميل الأماكن المعتمدة...'}
                     </p>
                     <p className="text-[11px] text-[var(--text-muted)] font-bold">
                       يرجى الانتظار لحظات جاري استرجاع البيانات الموثقة 🌿
@@ -1212,14 +1217,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {!loading && businesses.length === 0 && (
               <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-4 shadow-sm">
                 <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-2xl">🔍</div>
-                <h3 className="font-black text-base text-[var(--text-primary)]">لا توجد أنشطة تجارية مسجلة حالياً</h3>
-                <p className="text-xs text-[var(--text-muted)] font-bold">سيتم إدراج الأنشطة فور اعتمادها ونشرها من إدارة المنظومة</p>
+                <h3 className="font-black text-base text-[var(--text-primary)]">لا توجد منشآت أو محلات مسجلة حالياً</h3>
+                <p className="text-xs text-[var(--text-muted)] font-bold">سيتم إدراج الأماكن فور اعتمادها ونشرها من إدارة المنظومة</p>
                 <a
                   href="#packages"
                   className="inline-flex items-center gap-2 bg-amber-500 hover:bg-yellow-400 text-slate-950 font-black text-xs px-6 py-3 rounded-2xl transition-all shadow-md"
                 >
                   <Award className="w-4 h-4" />
-                  سجّل نشاطك الآن
+                  سجّل مكانك الآن
                 </a>
               </div>
             )}
@@ -1326,7 +1331,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setSelectedVideoBiz(biz); }}
                             className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-amber-500 hover:bg-yellow-400 text-slate-950 flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer border-2 border-white/80"
-                            title="تشغيل فيديو النشاط"
+                            title="تشغيل فيديو المكان"
                           >
                             <Play className="w-5 h-5 fill-slate-950 ml-0.5" />
                           </button>
@@ -1405,7 +1410,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                                     ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border-blue-500/30'
                                     : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/30'
                                 }`}
-                                title={isOfficial ? 'فتح على خرائط Google 🗺️' : 'الموقع الجغرافي الميداني للنشاط على الخريطة 📍'}
+                                title={isOfficial ? 'فتح على خرائط Google 🗺️' : 'الموقع الجغرافي الميداني للمكان على الخريطة 📍'}
                               >
                                 {isOfficial ? <Navigation className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
                               </a>
@@ -1416,7 +1421,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             type="button"
                             onClick={(e) => handleShareBusiness(biz, e)}
                             className="w-9 h-9 rounded-xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-muted)] flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-[var(--border-color)]"
-                            title="مشاركة رابط النشاط 🔗"
+                            title="مشاركة رابط المنشأة 🔗"
                           >
                             {copiedBizId === biz.id ? (
                               <CheckCheck className="w-4 h-4 text-emerald-500" />
@@ -1448,7 +1453,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               <span>الظهور مجاني تماماً 100% · والباقات حملات دعائية حسب الطلب</span>
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)]">
-              ظهور نشاطك التجاري في الدليل مجاني وبدون أي رسوم!
+              ظهور منشأتكم في الدليل مجاني وبدون أي رسوم!
             </h2>
             <p className="text-xs sm:text-sm text-[var(--text-muted)] font-bold leading-relaxed">
               لا نفرض أي اشتراكات أو تكاليف لإدراج محلك وظهوره لآلاف الزبائن في منصة دليلك. فقط اطلب الظهور وسيتم نشره مجاناً.
@@ -1465,10 +1470,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   <span>إدراج فوري دائم بدون رسوم</span>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
-                  إدراج وظهور النشاط في دليل المنصة
+                  إدراج وظهور المنشأة في دليل المنصة
                 </h3>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] font-bold leading-relaxed">
-                  متاح لجميع الأنشطة والمحلات التجارية والخدمية في كافة المحافظات دون دفع أي قرش
+                  متاح لكافة المنشآت والمحلات التجارية والخدمية في كافة المحافظات دون دفع أي قرش
                 </p>
               </div>
 
@@ -1502,7 +1507,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 className="w-full sm:flex-1 py-3.5 rounded-2xl font-black text-xs sm:text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>اطلب ظهور نشاطك مجاناً الآن عبر واتساب 🎁</span>
+                <span>اطلب ظهور مكانكم مجاناً الآن عبر واتساب 🎁</span>
               </a>
 
               <button
@@ -1715,18 +1720,18 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       <section id="why-dalelak" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-10">
         <div className="text-center space-y-2 max-w-2xl mx-auto">
           <span className="text-amber-500 text-xs font-black uppercase tracking-wider bg-amber-500/15 px-3 py-1 rounded-full border border-amber-500/30">
-            🌟 القيمة المضافة لنشاطك
+            🌟 القيمة المضافة لمنشأتكم
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
-            لماذا توثق نشاطك التجاري مع منصة دليلك؟
+            لماذا توثقون مكانكم ومنشأتكم مع منصة دليلك؟
           </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
-            { icon: <TrendingUp className="w-6 h-6" />, color: 'amber', title: 'تصدر نتائج البحث الجغرافي', desc: 'ظهور نشاطك في أعلى اقتراحات Google عندما يبحث العملاء عن خدمات في منطقتك الجغرافية.', stat: '3x أكثر ظهوراً' },
+            { icon: <TrendingUp className="w-6 h-6" />, color: 'amber', title: 'تصدر نتائج البحث الجغرافي', desc: 'ظهور مكانكم في أعلى اقتراحات Google عندما يبحث العملاء عن خدمات في منطقتكم الجغرافية.', stat: '3x أكثر ظهوراً' },
             { icon: <Navigation className="w-6 h-6" />, color: 'emerald', title: 'توجيه GPS فوري وسهل', desc: 'تسهيل وصول الزبائن وسائقي التوصيل ومندوبي الشحن إلى باب محلك بدقة دون تيه.', stat: '100% دقة GPS' },
-            { icon: <Sparkles className="w-6 h-6" />, color: 'blue', title: 'تصوير فاخر بالذكاء الاصطناعي', desc: 'تحسين إضاءة وألوان وتباين صور واجهة نشاطك لتبدو بمظهر تسويقي فندقي يجذب الأنظار.', stat: '+200% جاذبية' },
+            { icon: <Sparkles className="w-6 h-6" />, color: 'blue', title: 'تصوير فاخر بالذكاء الاصطناعي', desc: 'تحسين إضاءة وألوان وتباين صور واجهة مكانكم لتبدو بمظهر تسويقي فندقي يجذب الأنظار.', stat: '+200% جاذبية' },
             { icon: <ShieldCheck className="w-6 h-6" />, color: 'purple', title: 'ثقة ومصداقية وفاتورة رسمية', desc: 'الحصول على فاتورة توثيق رسمية برمز QR وشارة التوثيق المعتمدة التي تزيد ثقة العملاء.', stat: 'شارة معتمدة' },
           ].map((item, i) => (
             <div
@@ -1772,7 +1777,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           <form onSubmit={handleConsultationSubmit} className="space-y-4 text-right">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <label className="block text-[var(--text-primary)] font-black mb-1">اسم المحل أو النشاط التجاري *</label>
+                <label className="block text-[var(--text-primary)] font-black mb-1">اسم المحل أو المنشأة *</label>
                 <input
                   type="text"
                   required
@@ -1784,7 +1789,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               </div>
 
               <div>
-                <label className="block text-[var(--text-primary)] font-black mb-1">اسم صاحب النشاط / المسؤول</label>
+                <label className="block text-[var(--text-primary)] font-black mb-1">اسم صاحب المكان / المسؤول</label>
                 <input
                   type="text"
                   placeholder="اسم حضرتك"
@@ -1881,7 +1886,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 <span>الظهور المجاني في الدليل</span>
               </div>
               <p className="text-[var(--text-muted)] font-bold leading-relaxed">
-                إدراج وظهور النشاط التجاري في دليل منصة دليلك مجاني تماماً 100% وبدون أي رسوم أو اشتراكات شهرية أو سنوية.
+                إدراج وظهور المنشأة في دليل منصة دليلك مجاني تماماً 100% وبدون أي رسوم أو اشتراكات شهرية أو سنوية.
               </p>
               <a
                 href="#free-listing"
@@ -1933,9 +1938,58 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       </footer>
 
       {/* ============================================================
-          🌟 7. BUSINESS DETAILS MODAL
+          🌟 7. BUSINESS DETAILS MODAL / INSTITUTIONAL SUSPENSION SCREEN
           ============================================================ */}
-      {selectedBiz && (
+      {selectedBiz && selectedBiz.verificationStatus === 'rejected' ? (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in text-right">
+          <div className="bg-[var(--bg-card)] border border-rose-500/30 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl animate-fade-in-scale relative overflow-hidden flex flex-col items-center text-center space-y-5">
+            {/* Ambient decorative glow */}
+            <div className="absolute -top-12 -right-12 w-36 h-36 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Top Close Button */}
+            <button
+              type="button"
+              onClick={handleCloseBusiness}
+              className="absolute top-4 left-4 w-8 h-8 rounded-full bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center cursor-pointer transition-all border border-[var(--border-color)]"
+              title="إغلاق والعودة للدليل"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Shield / Lock Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 shadow-lg shadow-rose-500/10">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            {/* Status Badge */}
+            <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>غير متاح حالياً 🔒</span>
+            </span>
+
+            {/* Title & Description */}
+            <div className="space-y-2">
+              <h3 className="text-lg sm:text-xl font-black text-[var(--text-primary)]">
+                عذراً، هذا المكان غير متاح حالياً
+              </h3>
+              <p className="text-xs sm:text-sm font-medium text-[var(--text-muted)] leading-relaxed">
+                تم تعليق أو إلغاء نشر هذه الصفحة بناءً على المراجعة الإدارية لمنصة «دليلك». إذا كنت صاحب المنشأة أو لديك أي استفسار، يُرجى مراجعة إدارة المنصة.
+              </p>
+            </div>
+
+            {/* Action Button */}
+            <button
+              type="button"
+              onClick={handleCloseBusiness}
+              className="w-full py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <span>تصفح الدليل العام</span>
+              <span>🏛️</span>
+            </button>
+          </div>
+        </div>
+      ) : selectedBiz ? (
         <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] flex flex-col text-right text-xs">
             {/* Modal Header */}
@@ -1944,7 +1998,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 {selectedBiz.verificationStatus === 'verified' || selectedBiz.googleSyncStatus === 'synced' ? (
                   <span className="bg-emerald-600 text-white text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>نشاط معتمد</span>
+                    <span>منشأة معتمدة</span>
                   </span>
                 ) : (
                   <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
@@ -1970,7 +2024,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
                           : 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-500/30'
                       }`}
-                      title={isOfficial ? 'فتح على خرائط Google الرسمية 🗺️' : 'الموقع الجغرافي الميداني للنشاط على الخريطة 📍'}
+                      title={isOfficial ? 'فتح على خرائط Google الرسمية 🗺️' : 'الموقع الجغرافي الميداني للمكان على الخريطة 📍'}
                     >
                       {isOfficial ? (
                         <Navigation className="w-3.5 h-3.5" />
@@ -1978,7 +2032,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         <MapPin className="w-3.5 h-3.5" />
                       )}
                       <span className="hidden xs:inline sm:inline">
-                        {isOfficial ? 'Google Maps 🚀' : 'موقع النشاط 📍'}
+                        {isOfficial ? 'Google Maps 🚀' : 'موقع المكان 📍'}
                       </span>
                     </a>
                   );
@@ -2001,7 +2055,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   type="button"
                   onClick={(e) => handleShareBusiness(selectedBiz, e)}
                   className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-600 dark:text-amber-400 font-black text-xs flex items-center gap-1.5 transition-all border border-amber-500/30 cursor-pointer shadow-xs"
-                  title="مشاركة رابط هذا النشاط"
+                  title="مشاركة رابط هذه المنشأة"
                 >
                   {copiedBizId === selectedBiz.id ? (
                     <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
@@ -2025,7 +2079,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {(isPreviewMode || (selectedBiz.verificationStatus !== 'verified' && selectedBiz.googleSyncStatus !== 'synced')) && (
               <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 flex items-center gap-2 text-amber-700 dark:text-amber-300 text-xs font-black">
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>معاينة فورية: هذا النشاط مسجل بنجاح 🌿 — قيد المراجعة الإدارية والاعتماد للنشر على الخريطة العامة ⏳</span>
+                <span>معاينة فورية: هذه المنشأة مسجلة بنجاح 🌿 — قيد المراجعة الإدارية والاعتماد للنشر على الخريطة العامة ⏳</span>
               </div>
             )}
 
@@ -2141,7 +2195,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full">موثق ✓</span>
                         </div>
                         <p className="text-[11px] text-[var(--text-muted)] font-bold pt-0.5">
-                          التقييمات الحية الصادرة من زوار وعملاء النشاط
+                          التقييمات الحية الصادرة من زوار وعملاء المكان
                         </p>
                       </div>
                     </div>
@@ -2169,7 +2223,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           <div className="flex items-center justify-between gap-2 border-b border-[var(--border-color)]/60 pb-2.5">
                             <span className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1.5">
                               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                              <span>تقييم خرائط Google الرسمي للنشاط</span>
+                              <span>تقييم خرائط Google الرسمي للمنشأة</span>
                             </span>
                             <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                               تقييم معتمد ⭐
@@ -2276,7 +2330,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             <span className="bg-amber-500 text-slate-950 text-[9.5px] font-black px-2 py-0.5 rounded-full">معتمد ⭐</span>
                           </div>
                           <p className="text-[11px] text-[var(--text-muted)] font-bold pt-0.5">
-                            التقييم الفعلي المعتمد للنشاط على خرائط Google
+                            التقييم الفعلي المعتمد للمنشأة على خرائط Google
                           </p>
                         </div>
                       </div>
@@ -2355,7 +2409,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       </span>
                     </div>
                     <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
-                      جاري استكمال إجراءات توثيق وربط هذا النشاط على خرائط Google الرسمية، وسيتم تفعيل صندوق التقييمات فور اعتماده.
+                      جاري استكمال إجراءات توثيق وربط هذا المكان على خرائط Google الرسمية، وسيتم تفعيل صندوق التقييمات فور اعتماده.
                     </p>
                   </div>
                 )}
@@ -2411,7 +2465,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               {/* Description */}
               {selectedBiz.description && (
                 <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] space-y-1.5">
-                  <span className="text-[11px] text-amber-500 font-black block">نبذة وتفاصيل النشاط:</span>
+                  <span className="text-[11px] text-amber-500 font-black block">نبذة وتفاصيل المكان:</span>
                   <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
                     {selectedBiz.description}
                   </p>
@@ -2456,12 +2510,12 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* ============================================================
           🌟 8. PHOTO LIGHTBOX
           ============================================================ */}
-      {selectedBiz && previewPhotoIndex !== null && currentPhotos.length > 0 && (
+      {selectedBiz && selectedBiz.verificationStatus !== 'rejected' && previewPhotoIndex !== null && currentPhotos.length > 0 && (
         <div
           className="fixed inset-0 z-[99999] bg-slate-950/97 backdrop-blur-md flex items-center justify-center animate-fade-in"
           onClick={() => setPreviewPhotoIndex(null)}
@@ -2566,7 +2620,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           ============================================================ */}
       <a
         href={`https://wa.me/201143888355?text=${encodeURIComponent(
-          `مرحباً دليلك 👋 أود الاستفسار عن توثيق نشاطي التجاري على خرائط Google` +
+          `مرحباً دليلك 👋 أود الاستفسار عن توثيق مكاني التجاري على خرائط Google` +
             (referralCode ? ` (كود: ${referralCode})` : '')
         )}`}
         target="_blank"

@@ -97,10 +97,10 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const isManagerial = ['admin', 'supervisor', 'accountant'].includes(currentUser?.role || '');
 
   // Scope filter:
-  // - Admin & supervisors: see all businesses
-  // - Rep with 'my' scope: see own submissions
-  // - Rep with 'all' scope: see all cloud businesses across the network
-  // - Public visitors: see all businesses (pending ones show badge)
+  // - Admin & supervisors: see all businesses (including managing rejected)
+  // - Rep with 'my' scope: see own submissions (including own rejected)
+  // - Rep with 'all' scope: see all cloud businesses across the network (strictly excluding rejected)
+  // - Public unauthenticated visitors: see only verified non-rejected businesses
   const displayableBusinesses = useMemo(() => {
     if (isManagerial) {
       return businesses;
@@ -114,7 +114,11 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         return (myId && bRepId === myId) || (myName && bRepName === myName);
       });
     }
-    return businesses;
+    if (isRep && repScope === 'all') {
+      return businesses.filter((b) => b.verificationStatus !== 'rejected');
+    }
+    // Public unauthenticated visitors
+    return businesses.filter((b) => b.verificationStatus !== 'rejected' && (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced'));
   }, [businesses, isRep, isManagerial, repScope, currentUser]);
 
   const hasRegisteredBiz = displayableBusinesses.length > 0;
