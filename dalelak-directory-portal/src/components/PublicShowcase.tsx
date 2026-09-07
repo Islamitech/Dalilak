@@ -207,8 +207,15 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   // Deep Link Auto-Select Business on load
   useEffect(() => {
     if (initialBizId && businesses.length > 0) {
+      const cleanParam = initialBizId.trim();
+      const normalizedSlug = cleanParam.replace(/-/g, ' ');
       const match = businesses.find(
-        (b) => b.id === initialBizId || (b.nameAr && b.nameAr.trim() === initialBizId.trim())
+        (b) =>
+          b.id === cleanParam ||
+          (b.nameAr && b.nameAr.trim() === cleanParam) ||
+          (b.nameAr && b.nameAr.trim() === normalizedSlug) ||
+          (b.nameEn && b.nameEn.trim().toLowerCase() === cleanParam.toLowerCase()) ||
+          cleanParam.includes(b.id)
       );
       if (match) {
         setSelectedBiz(match);
@@ -372,7 +379,15 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       e.stopPropagation();
       e.preventDefault();
     }
-    const shareUrl = `${window.location.origin}/biz/${biz.id}`;
+    const rawName = biz.nameAr || biz.nameEn || '';
+    const slug = rawName
+      .trim()
+      .replace(/[«»"'""''\(\)\[\]{}#@!$%^&*+=\\\/|:;<>?,.~`]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    const identifier = slug ? `${slug}-${biz.id}` : biz.id;
+    const shareUrl = `${window.location.origin}/biz/${encodeURIComponent(identifier)}`;
     const shareTitle = `${biz.nameAr} | منصة دليلك المعتمدة`;
 
     let descSnippet = '';

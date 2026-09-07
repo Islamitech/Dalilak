@@ -1,6 +1,7 @@
 import React from 'react';
 import { Business, VerificationStatus, AdminFollowUpCategory } from '../../types';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
+import { getPublicDirectoryUrl, getDisplayDirectoryUrl } from '../../utils/directoryUrl';
 import {
   generateTrendingFreeInvitationWhatsAppMessage,
   formatWhatsAppPhone,
@@ -62,10 +63,9 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
   const isRejected = formData.verificationStatus === 'rejected';
   const isPending = !isApproved && !isRejected;
 
-  // Build public directory URL
-  const publicDirectoryUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/?biz=${encodeURIComponent(formData.id)}`
-    : `https://www.dalilaak.com/?biz=${encodeURIComponent(formData.id)}`;
+  // Build official public directory URLs with Arabic semantic slug
+  const publicDirectoryUrl = getPublicDirectoryUrl(formData);
+  const displayDirectoryUrl = getDisplayDirectoryUrl(formData);
 
   // WhatsApp Message: Directory Publication Congratulations
   const handleSendDirectoryPublishedWa = () => {
@@ -85,7 +85,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
       `• *رقم الملف:* ${formData.invoiceNumber || ''}\n` +
       `• *حالة الدليل:* معتمد ومنشور رسمياً على الدليل العام 🟢\n\n` +
       `يسعدنا إعلامكم بأنه تم نشر وتفعيل صفحة المكان رسمياً على دليل المنصة، ويمكنكم والزبائن معاينتها ومشاركتها عبر الرابط التالي:\n` +
-      `🔗 ${publicDirectoryUrl}\n\n` +
+      `🔗 ${displayDirectoryUrl}\n\n` +
       `*مزايا الصفحة بالدليل:*\n` +
       `1. توثيق رقم التواصل ومواعيد العمل والاتصال المباشر.\n` +
       `2. إمكانية مشاركة الرابط مع عملائكم لكتابة التقييمات ومشاهدة الصور.\n` +
@@ -111,7 +111,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
       `-----------------------------------------\n` +
       `أهلاً بحضرتك يا فندم مع ${venueName} 🌿\n\n` +
       `تقدر دلوقتي تشارك رابط صفحتكم الرسمية على دليل المنصة مع عملائكم علشان يقيموا تجربتهم ويكتبوا رأيهم المميز:\n` +
-      `🔗 ${publicDirectoryUrl}\n\n` +
+      `🔗 ${displayDirectoryUrl}\n\n` +
       `التقييمات الإيجابية بتزود ثقة الزبائن الجدد وبترفع ترتيب المكان في محركات البحث وقوائم الدليل ⭐\n` +
       `شاكرين جداً لذوقكم ووقتكم 🤝`;
 
@@ -262,13 +262,13 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
 
         <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl p-2.5 flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1 flex items-center gap-2 text-xs font-mono text-amber-600 dark:text-amber-400 truncate dir-ltr">
-            <span className="truncate">{publicDirectoryUrl}</span>
+            <span className="truncate" title={displayDirectoryUrl}>{displayDirectoryUrl}</span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={() => handleCopyText(publicDirectoryUrl, 'directory_url')}
+              onClick={() => handleCopyText(displayDirectoryUrl, 'directory_url')}
               className="bg-[var(--bg-card)] hover:bg-amber-500/15 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 flex items-center gap-1 cursor-pointer shadow-2xs"
               title="نسخ الرابط المباشر"
             >

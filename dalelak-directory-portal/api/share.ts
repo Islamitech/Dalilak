@@ -58,7 +58,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.redirect(302, '/');
     }
 
-    const bizId = decodeURIComponent(rawBiz).trim();
+    const decodedParam = decodeURIComponent(rawBiz).trim();
+    // Extract canonical entity ID if embedded inside slug (e.g. "مطعم-أبو-خالد-biz_1788118588424" -> "biz_1788118588424")
+    const idMatch = decodedParam.match(/(biz_[a-zA-Z0-9_-]+)/i);
+    const bizId = idMatch ? idMatch[1] : decodedParam;
 
     // Fetch business from Supabase
     const apiUrl = `${SUPABASE_URL}/rest/v1/businesses?id=eq.${encodeURIComponent(bizId)}&select=id,name_ar,name_en,category,governorate,city,street,phone,secondary_phone,description,photos,notes`;
@@ -75,6 +78,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (Array.isArray(rows) && rows.length > 0) {
         biz = rows[0];
       }
+    }
+
+    // Fallback: If no business found by ID and no standard ID was present in slug, search by Arabic name
+    if (!biz && !idMatch) {
+      const cleanName = decodedParam.replace(/-/g, ' ').trim();
+      const searchUrl = `${SUPABASE_URL}/rest/v1/businesses?name_ar=ilike.%25${encodeURIComponent(cleanName)}%25&select=id,name_ar,name_en,category,governorate,city,street,phone,secondary_phone,description,photos,notes&limit=1`;
+      try {
+        const searchRes = await fetch(searchUrl, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Accept: 'application/json',
+          },
+        });
+        if (searchRes.ok) {
+          const searchRows = await searchRes.json();
+          if (Array.isArray(searchRows) && searchRows.length > 0) {
+            biz = searchRows[0];
+          }
+        }
+      } catch {}
     }
 
     const template = getBaseTemplate();
