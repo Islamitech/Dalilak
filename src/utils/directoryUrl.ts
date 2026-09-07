@@ -55,11 +55,23 @@ export interface DirectoryUrlOptions {
  *   "https://www.dalilaak.com/biz/مطعم-أبو-خالد-biz_1788118588424"
  */
 export function getPublicDirectoryUrl(
-  business: { id: string; nameAr?: string; nameEn?: string; category?: string },
+  business: { id: string; nameAr?: string; nameEn?: string; category?: string; customDirectoryUrl?: string },
   options?: DirectoryUrlOptions
 ): string {
   const domain = PUBLIC_DIRECTORY_DOMAIN;
   if (!business || !business.id) return domain;
+
+  // 1. Manual user override: if customDirectoryUrl is set, prioritize it directly!
+  if (business.customDirectoryUrl && business.customDirectoryUrl.trim()) {
+    const custom = business.customDirectoryUrl.trim();
+    if (custom.startsWith('http://') || custom.startsWith('https://')) {
+      return custom;
+    }
+    if (custom.startsWith('/')) {
+      return `${domain}${custom}`;
+    }
+    return `${domain}/biz/${encodeURIComponent(custom)}`;
+  }
 
   const rawName = business.nameAr || business.nameEn || '';
   const slug = slugifyBusinessName(rawName);
@@ -88,11 +100,27 @@ export function getPublicDirectoryUrl(
 }
 
 /**
+ * Generates the automatic default directory link (ignoring any manual customDirectoryUrl override).
+ */
+export function getAutomaticDirectoryUrl(
+  business: { id: string; nameAr?: string; nameEn?: string; category?: string },
+  options?: DirectoryUrlOptions
+): string {
+  const domain = PUBLIC_DIRECTORY_DOMAIN;
+  if (!business || !business.id) return domain;
+
+  const rawName = business.nameAr || business.nameEn || '';
+  const slug = slugifyBusinessName(rawName);
+  const identifier = slug ? `${slug}-${business.id}` : business.id;
+  return `${domain}/biz/${encodeURIComponent(identifier)}`;
+}
+
+/**
  * Returns a human-readable, unencoded display version of the URL for UI display and copying.
  * Shows the actual Arabic text without %D9%85... percent-encoding.
  */
 export function getDisplayDirectoryUrl(
-  business: { id: string; nameAr?: string; nameEn?: string; category?: string },
+  business: { id: string; nameAr?: string; nameEn?: string; category?: string; customDirectoryUrl?: string },
   options?: DirectoryUrlOptions
 ): string {
   const encoded = getPublicDirectoryUrl(business, options);

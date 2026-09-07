@@ -68,6 +68,7 @@ export function mapDbToBusiness(item: any): Business {
   let metaGoogleSyncDate = item.google_sync_date || item.googleSyncDate;
   let metaRepLocationUrl = item.rep_location_url || item.repLocationUrl;
   let metaGoogleMapsUrl = item.google_maps_url || item.googleMapsUrl;
+  let metaCustomDirectoryUrl = item.custom_directory_url || item.customDirectoryUrl;
   let metaRepCommissionRate = item.rep_commission_rate !== undefined && item.rep_commission_rate !== null ? Number(item.rep_commission_rate) : item.repCommissionRate;
   let metaIsFeeExempt: boolean | undefined = item.is_fee_exempt !== undefined && item.is_fee_exempt !== null 
     ? Boolean(item.is_fee_exempt) 
@@ -115,6 +116,7 @@ export function mapDbToBusiness(item: any): Business {
         if (parsed.favoriteCount !== undefined && metaFavoriteCount === undefined) metaFavoriteCount = Number(parsed.favoriteCount);
         if (parsed.repLocationUrl && !metaRepLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
         if (parsed.googleMapsUrl && !metaGoogleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
+        if (parsed.customDirectoryUrl && !metaCustomDirectoryUrl) metaCustomDirectoryUrl = parsed.customDirectoryUrl;
         if (parsed.repCommissionRate !== undefined && metaRepCommissionRate === undefined) metaRepCommissionRate = Number(parsed.repCommissionRate);
         if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = Boolean(parsed.isFeeExempt);
         if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
@@ -255,6 +257,7 @@ export function mapDbToBusiness(item: any): Business {
     paymentReceiptPhoto: metaPaymentReceiptPhoto,
     paymentReceiptDate: metaPaymentReceiptDate,
     verificationStatus: item.verification_status || item.verificationStatus || 'pending',
+    customDirectoryUrl: metaCustomDirectoryUrl,
     repLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl,
     googlePlaceId: item.google_place_id || item.googlePlaceId || metaGooglePlaceId,
@@ -392,6 +395,7 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
     favoriteCount: biz.favoriteCount !== undefined ? biz.favoriteCount : existingMeta.favoriteCount,
     repLocationUrl: cleanRepLocationUrl || existingMeta.repLocationUrl,
     googleMapsUrl: cleanGoogleMapsUrl || existingMeta.googleMapsUrl,
+    customDirectoryUrl: biz.customDirectoryUrl !== undefined ? (biz.customDirectoryUrl.trim() || undefined) : existingMeta.customDirectoryUrl,
     videos: finalVideos,
     coverPhoto: biz.coverPhoto !== undefined ? biz.coverPhoto : existingMeta.coverPhoto,
     adminFollowUps: finalAdminFollowUps,

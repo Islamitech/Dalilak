@@ -236,6 +236,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         return true;
       }
 
+      // 4. Custom directory URL manual match
+      if (b.customDirectoryUrl) {
+        const customLower = b.customDirectoryUrl.trim().toLowerCase();
+        if (customLower.includes(raw.toLowerCase()) || raw.toLowerCase().includes(customLower)) {
+          return true;
+        }
+      }
+
       return false;
     });
 
@@ -408,7 +416,17 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
     const identifier = slug ? `${slug}-${biz.id}` : biz.id;
-    const shareUrl = `${window.location.origin}/biz/${encodeURIComponent(identifier)}`;
+    let shareUrl = `${window.location.origin}/biz/${encodeURIComponent(identifier)}`;
+    if (biz.customDirectoryUrl && biz.customDirectoryUrl.trim()) {
+      const custom = biz.customDirectoryUrl.trim();
+      if (custom.startsWith('http://') || custom.startsWith('https://')) {
+        shareUrl = custom;
+      } else if (custom.startsWith('/')) {
+        shareUrl = `${window.location.origin}${custom}`;
+      } else {
+        shareUrl = `${window.location.origin}/biz/${encodeURIComponent(custom)}`;
+      }
+    }
     const shareTitle = `${biz.nameAr} | منصة دليلك المعتمدة`;
 
     let descSnippet = '';

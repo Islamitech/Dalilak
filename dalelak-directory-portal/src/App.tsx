@@ -54,6 +54,7 @@ export default function App() {
     let metaIsDeleted: boolean = Boolean(r.is_deleted || r.isDeleted);
     let metaViewsCount: number = Number(r.views_count ?? r.viewsCount ?? 0);
     let metaFavoriteCount: number = Number(r.favorite_count ?? r.favoriteCount ?? 0);
+    let metaCustomDirectoryUrl: string | undefined = r.custom_directory_url || r.customDirectoryUrl;
 
     if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')) {
       try {
@@ -64,6 +65,7 @@ export default function App() {
           if (parsed.repLocationUrl) metaRepLocationUrl = parsed.repLocationUrl;
           if (parsed.googleMapsUrl) metaGoogleMapsUrl = parsed.googleMapsUrl;
           if (parsed.googlePlaceId) metaGooglePlaceId = parsed.googlePlaceId;
+          if (parsed.customDirectoryUrl && !metaCustomDirectoryUrl) metaCustomDirectoryUrl = parsed.customDirectoryUrl;
           if (parsed.isFeeExempt !== undefined && metaIsFeeExempt === undefined) metaIsFeeExempt = parsed.isFeeExempt;
           if (parsed.feeExemptionReason && !metaFeeExemptionReason) metaFeeExemptionReason = parsed.feeExemptionReason;
           if (parsed.coverPhoto && !metaCoverPhoto) metaCoverPhoto = parsed.coverPhoto;
@@ -129,6 +131,7 @@ export default function App() {
       repLocationUrl,
       googlePlaceId: metaGooglePlaceId || r.google_place_id || r.googlePlaceId || '',
       googleMapsUrl: cleanGoogleMapsUrl,
+      customDirectoryUrl: metaCustomDirectoryUrl,
       verificationStatus: r.verification_status || r.verificationStatus || 'pending',
       googleSyncStatus: metaGoogleSyncStatus || r.google_sync_status || r.googleSyncStatus || 'not_synced',
       googleRatingEnabled: metaGoogleRatingEnabled !== undefined ? metaGoogleRatingEnabled : undefined,

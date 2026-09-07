@@ -38,6 +38,7 @@ export interface Business {
   cashCollectedByRep?: number; // المبلغ الكاش المستلم في يد المندوب
   paymentStatus: PaymentStatus;
   verificationStatus: VerificationStatus;
+  customDirectoryUrl?: string;
   repLocationUrl?: string; // رابط موقع النقطة الميداني المرسل من المندوب (غير موثق - للاستخدام الإداري والمراجعة فقط)
   googleMapsUrl?: string;  // رابط خرائط Google المعتمد والموثق رسمياً (تضيفه الإدارة بعد التوثيق والظهور على خرائط Google)
   googlePlaceId?: string;
