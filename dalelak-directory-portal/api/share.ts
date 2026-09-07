@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const SUPABASE_URL = 'https://xdqpbajymacpdccorjcj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x';
@@ -31,20 +31,13 @@ function getBaseTemplate(): string {
     } catch {}
   }
 
-  const rootPath = path.join(process.cwd(), 'index.html');
-  if (fs.existsSync(rootPath)) {
-    try {
-      cachedTemplate = fs.readFileSync(rootPath, 'utf8');
-      return cachedTemplate;
-    } catch {}
-  }
-
   return '';
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const rawBiz = req.query.biz || req.query.id;
+    const rawBizQuery = req.query.biz || req.query.id;
+    const rawBiz = Array.isArray(rawBizQuery) ? rawBizQuery[0] : rawBizQuery;
     const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || 'www.dalilaak.com';
     const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
     const origin = `${proto}://${host}`;

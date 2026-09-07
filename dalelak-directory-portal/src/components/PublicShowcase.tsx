@@ -206,20 +206,41 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   // Deep Link Auto-Select Business on load
   useEffect(() => {
-    if (initialBizId && businesses.length > 0) {
-      const cleanParam = initialBizId.trim();
-      const normalizedSlug = cleanParam.replace(/-/g, ' ');
-      const match = businesses.find(
-        (b) =>
-          b.id === cleanParam ||
-          (b.nameAr && b.nameAr.trim() === cleanParam) ||
-          (b.nameAr && b.nameAr.trim() === normalizedSlug) ||
-          (b.nameEn && b.nameEn.trim().toLowerCase() === cleanParam.toLowerCase()) ||
-          cleanParam.includes(b.id)
-      );
-      if (match) {
-        setSelectedBiz(match);
+    if (!initialBizId || businesses.length === 0) return;
+
+    let raw = initialBizId.trim();
+    try {
+      raw = decodeURIComponent(raw).trim();
+    } catch {}
+
+    const idMatch = raw.match(/(biz_[a-zA-Z0-9_-]+)/i);
+    const targetId = idMatch ? idMatch[1].toLowerCase() : raw.toLowerCase();
+    const normalizedSlug = raw.replace(/-/g, ' ').trim().toLowerCase();
+
+    const match = businesses.find((b) => {
+      if (!b) return false;
+      const bId = (b.id || '').toLowerCase();
+      // 1. Direct or embedded entity ID match
+      if (targetId && (bId === targetId || raw.toLowerCase().includes(bId))) return true;
+      if (bId === raw.toLowerCase()) return true;
+
+      // 2. Arabic name match (exact, slug, or normalized)
+      const bNameAr = (b.nameAr || '').trim().toLowerCase();
+      if (bNameAr && (bNameAr === raw.toLowerCase() || bNameAr === normalizedSlug || normalizedSlug.includes(bNameAr) || bNameAr.includes(normalizedSlug))) {
+        return true;
       }
+
+      // 3. English name match
+      const bNameEn = (b.nameEn || '').trim().toLowerCase();
+      if (bNameEn && (bNameEn === raw.toLowerCase() || bNameEn === normalizedSlug)) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (match) {
+      setSelectedBiz(match);
     }
   }, [initialBizId, businesses]);
 

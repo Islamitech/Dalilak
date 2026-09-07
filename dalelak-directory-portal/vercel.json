@@ -2,7 +2,8 @@
   "functions": {
     "api/*.ts": {
       "memory": 1024,
-      "maxDuration": 15
+      "maxDuration": 15,
+      "includeFiles": "dist/**"
     }
   },
   "redirects": [
@@ -25,8 +26,8 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/biz/:id",
-      "destination": "/api/share?biz=:id"
+      "source": "/biz/(.*)",
+      "destination": "/api/share?biz=$1"
     },
     {
       "source": "/(.*)",
