@@ -180,6 +180,106 @@ function extractStructuredPlacePhotos(payload: string, limit = 5): string[] {
   return photos;
 }
 
+const GOOGLE_PLACES_API_KEY =
+  process.env.GOOGLE_PLACES_API_KEY || 'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
+
+interface PlacesApiPhotoResult {
+  photos: string[];
+  displayName?: string;
+  formattedAddress?: string;
+}
+
+/**
+ * Fetches verified official business photos directly from Google Places API (New) (Update 40).
+ * Retrieves up to 5-10 high-resolution (s1600) photos strictly belonging to the target business profile,
+ * eliminating scraper preview limitations and zeroing neighbor photo bleeding.
+ */
+async function fetchOfficialPlacesPhotos(
+  query: string,
+  lat?: number,
+  lng?: number,
+  limit = 5
+): Promise<PlacesApiPhotoResult> {
+  if (!GOOGLE_PLACES_API_KEY || !query) {
+    return { photos: [] };
+  }
+
+  try {
+    const searchBody: Record<string, unknown> = {
+      textQuery: query,
+      languageCode: 'ar',
+    };
+
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      searchBody.locationBias = {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius: 1000.0,
+        },
+      };
+    }
+
+    const searchRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.photos',
+      },
+      body: JSON.stringify(searchBody),
+    });
+
+    if (!searchRes.ok) {
+      return { photos: [] };
+    }
+
+    const searchData = await searchRes.json();
+    if (!searchData.places || !Array.isArray(searchData.places) || searchData.places.length === 0) {
+      return { photos: [] };
+    }
+
+    const matchedPlace = searchData.places[0];
+    const rawPhotos = matchedPlace.photos;
+    if (!Array.isArray(rawPhotos) || rawPhotos.length === 0) {
+      return {
+        photos: [],
+        displayName: matchedPlace.displayName?.text,
+        formattedAddress: matchedPlace.formattedAddress,
+      };
+    }
+
+    const targetPhotos = rawPhotos.slice(0, limit);
+    const resolvedUrls = (
+      await Promise.all(
+        targetPhotos.map(async (p: { name?: string }) => {
+          if (!p.name) return null;
+          try {
+            const mediaUrl = `https://places.googleapis.com/v1/${p.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_PLACES_API_KEY}&skipHttpRedirect=true`;
+            const mediaRes = await fetch(mediaUrl);
+            if (mediaRes.ok) {
+              const mediaData = await mediaRes.json();
+              if (mediaData && mediaData.photoUri && typeof mediaData.photoUri === 'string') {
+                return mediaData.photoUri as string;
+              }
+            }
+          } catch {
+            // Continue fetching other photos
+          }
+          return null;
+        })
+      )
+    ).filter((u): u is string => Boolean(u));
+
+    return {
+      photos: resolvedUrls,
+      displayName: matchedPlace.displayName?.text,
+      formattedAddress: matchedPlace.formattedAddress,
+    };
+  } catch {
+    return { photos: [] };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -284,6 +384,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (cleaned.extraAddress) {
           extractedAddressFromTitle = cleaned.extraAddress;
         }
+      }
+    }
+
+    // Support query parameter q (e.g. /maps?q=... or shortlink redirect target)
+    if (!placeName) {
+      try {
+        const urlObj = new URL(destinationUrl);
+        const qParam = urlObj.searchParams.get('q');
+        if (qParam && !qParam.match(/^-?\d+\.\d+,-?\d+\.\d+$/)) {
+          const cleaned = cleanPlaceName(qParam);
+          if (cleaned.name) {
+            placeName = cleaned.name;
+            if (cleaned.extraAddress && !extractedAddressFromTitle) {
+              extractedAddressFromTitle = cleaned.extraAddress;
+            }
+          }
+        }
+      } catch {
+        // Ignore invalid URL
       }
     }
 
@@ -461,12 +580,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let reviewCount: number | undefined = undefined;
     const seenHashes = new Set<string>();
 
-    // 1. Photos extracted exclusively for the target place (Update 39 - Anti-Bleed Isolation)
-    const photos: string[] = preloadPayload
-      ? extractStructuredPlacePhotos(preloadPayload, 5)
-      : [];
+    // ─── Photo Extraction (Update 40: Google Places API New + Anti-Bleed Scraper Hybrid) ───
+    const photos: string[] = [];
 
-    // 2. OpenGraph Cover Photo fallback (only if structured payload has no photos)
+    // Strategy 1 (Top Priority): Official Places API (New) (5 guaranteed high-res photos)
+    const searchQuery = placeName || extractedAddressFromTitle;
+    if (searchQuery) {
+      try {
+        const apiResult = await fetchOfficialPlacesPhotos(searchQuery, lat, lng, 5);
+        if (apiResult.photos && apiResult.photos.length > 0) {
+          for (const p of apiResult.photos) {
+            addPlacePhoto(p, photos, seenHashes, 5);
+          }
+        }
+        if (!placeName && apiResult.displayName) {
+          placeName = apiResult.displayName;
+        }
+        if (!address && apiResult.formattedAddress && !isBoilerplateAddress(apiResult.formattedAddress)) {
+          address = apiResult.formattedAddress;
+        }
+      } catch {
+        // Fallback silently to scraper
+      }
+    }
+
+    // Strategy 2: Preload JSON Structured Photos (Update 39 Anti-Bleed Isolation) fallback / backfill
+    if (photos.length < 5 && preloadPayload) {
+      const scraperPhotos = extractStructuredPlacePhotos(preloadPayload, 5);
+      for (const p of scraperPhotos) {
+        if (photos.length >= 5) break;
+        addPlacePhoto(p, photos, seenHashes, 5);
+      }
+    }
+
+    // Strategy 3: OpenGraph Cover Photo fallback (only if still no photos)
     if (photos.length === 0) {
       const ogImageMatch =
         htmlContent.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
