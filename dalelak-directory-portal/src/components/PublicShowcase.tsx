@@ -820,6 +820,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         copiedBizId={copiedBizId}
         setSelectedVideoBiz={setSelectedVideoBiz}
         resetAllFilters={resetAllFilters}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        handleRequestLocation={handleRequestLocation}
       />
 
       {/* 4. Packages & Campaigns Section */}

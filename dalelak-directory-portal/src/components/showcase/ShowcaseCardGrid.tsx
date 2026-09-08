@@ -7,6 +7,7 @@ import {
   formatDistanceString,
   getBusinessOpenStatus,
   getBusinessMapDetails,
+  getSmartWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
 import {
   Layers,
@@ -24,6 +25,11 @@ import {
   Navigation,
   CheckCheck,
   Share2,
+  ShieldCheck,
+  MessageCircle,
+  UtensilsCrossed,
+  Wrench,
+  Sparkles,
 } from 'lucide-react';
 
 export interface ShowcaseCardGridProps {
@@ -41,6 +47,11 @@ export interface ShowcaseCardGridProps {
   copiedBizId: string | null;
   setSelectedVideoBiz: (biz: Business | null) => void;
   resetAllFilters: () => void;
+  categoryFilter?: string;
+  setCategoryFilter?: (c: string) => void;
+  sortBy?: string;
+  setSortBy?: (s: 'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha') => void;
+  handleRequestLocation?: () => void;
 }
 
 export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
@@ -58,6 +69,11 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
   copiedBizId,
   setSelectedVideoBiz,
   resetAllFilters,
+  categoryFilter,
+  setCategoryFilter,
+  sortBy,
+  setSortBy,
+  handleRequestLocation,
 }) => {
   return (
     <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
@@ -122,6 +138,116 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
       {/* GRID VIEW */}
       {activeView === 'grid' && (
         <div className="space-y-6">
+          {/* 🧭 Smart Discovery Rail (أقسام الاستكشاف الذكية السريعة) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-black select-none">
+            <button
+              type="button"
+              onClick={() => {
+                if (setCategoryFilter) setCategoryFilter('all');
+                if (setSortBy) setSortBy('default');
+              }}
+              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
+                (!categoryFilter || categoryFilter === 'all') && (!sortBy || sortBy === 'default')
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>كل الأنشطة</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!userCoords && handleRequestLocation) handleRequestLocation();
+                if (setSortBy) setSortBy('nearest');
+              }}
+              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
+                sortBy === 'nearest'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>الأقرب إليك</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (setSortBy) setSortBy('open_now');
+              }}
+              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
+                sortBy === 'open_now'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 text-emerald-500" />
+              <span>مفتوح الآن</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (setSortBy) setSortBy('newest');
+              }}
+              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
+                sortBy === 'newest'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5 text-amber-500" />
+              <span>جديد في منطقتك</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (setCategoryFilter) setCategoryFilter('طبي');
+              }}
+              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
+                categoryFilter?.includes('طبي') || categoryFilter?.includes('صيدل')
+                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-black'
+                  : 'bg-[var(--input-bg)] text-rose-500 hover:bg-rose-500/10 border border-rose-500/30'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>خدمات الطوارئ والطب</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (setCategoryFilter) setCategoryFilter('مطاعم ومأكولات');
+              }}
+              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
+                categoryFilter === 'مطاعم ومأكولات'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <UtensilsCrossed className="w-3.5 h-3.5" />
+              <span>طعام ومطاعم</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (setCategoryFilter) setCategoryFilter('سيارات وصيانة');
+              }}
+              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
+                categoryFilter === 'سيارات وصيانة'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span>سيارات وخدمات</span>
+            </button>
+          </div>
+
           {/* Loading Shimmer */}
           {loading && businesses.length === 0 && (
             <div className="space-y-6 animate-fade-in py-2">
@@ -151,7 +277,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                     key={`skel-${i}`}
                     className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col animate-pulse"
                   >
-                    <div className="h-56 bg-gradient-to-br from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900" />
+                    <div className="aspect-[4/3] bg-gradient-to-br from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900" />
                     <div className="p-4 space-y-3">
                       <div className="space-y-2">
                         <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
@@ -186,25 +312,38 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
             </div>
           )}
 
-          {/* Empty State - Filter No Results */}
+          {/* Actionable Zero-State - Filter No Results */}
           {!loading && businesses.length > 0 && filteredBusinesses.length === 0 && (
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-4 shadow-sm">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 sm:p-12 text-center space-y-4 shadow-sm max-w-xl mx-auto animate-fade-in">
               <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
                 <Search className="w-8 h-8 text-amber-500" />
               </div>
-              <h3 className="font-black text-base text-[var(--text-primary)]">لا توجد نتائج مطابقة</h3>
-              <p className="text-xs text-[var(--text-muted)] font-bold">جرب تغيير خيارات الفلترة أو اختيار محافظة أخرى</p>
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
-              >
-                إعادة ضبط خيارات البحث
-              </button>
+              <h3 className="font-black text-base text-[var(--text-primary)]">
+                لم نجد نشاطاً مطابقاً لخيارات البحث
+              </h3>
+              <p className="text-xs text-[var(--text-muted)] font-medium max-w-md mx-auto leading-relaxed">
+                جرّب تغيير خيارات البحث، أو إعادة ضبط الفلاتر لتوسيع النطاق. وإذا كنت صاحب هذا النشاط أو ترغب في إدراجه، يمكنك طلبه الآن مجاناً.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={resetAllFilters}
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2.5 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                >
+                  إعادة ضبط خيارات البحث
+                </button>
+                <a
+                  href="#free-listing"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 rounded-xl shadow-md cursor-pointer transition-all active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>اطلب إضافة نشاطك مجاناً (0 ج)</span>
+                </a>
+              </div>
             </div>
           )}
 
-          {/* 🃏 BUSINESSES GRID */}
+          {/* 🃏 3-TIER BUSINESSES GRID (البطاقة الموحدة ثلاثية الطبقات) */}
           {filteredBusinesses.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBusinesses.map((biz, idx) => {
@@ -217,18 +356,18 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                 const openStatus = getBusinessOpenStatus(biz.workingHours);
                 const isFav = favorites.includes(biz.id);
                 const distanceKm = userCoords ? calculateDistanceKm(userCoords.lat, userCoords.lng, biz.lat, biz.lng) : null;
-                const hasPhotos = biz.photos && biz.photos.length > 0;
-                const hasVideos = biz.videos && biz.videos.length > 0;
+                const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
+                const smartWhatsAppUrl = getSmartWhatsAppUrl(biz);
 
                 return (
                   <div
                     key={biz.id}
-                    className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1"
-                    style={{ animationDelay: `${idx * 60}ms`, animation: 'fadeInUp 0.4s ease-out both' }}
+                    className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1"
+                    style={{ animationDelay: `${idx * 40}ms`, animation: 'fadeInUp 0.35s ease-out both' }}
                   >
-                    {/* Photo Banner */}
+                    {/* Layer 1: Pure 4:3 Image with strict max 3 overlays */}
                     <div
-                      className="relative h-56 bg-slate-950 overflow-hidden cursor-pointer"
+                      className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden cursor-pointer"
                       onClick={() => handleOpenBusiness(biz)}
                     >
                       <img
@@ -238,169 +377,162 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-transparent" />
+                      {/* Soft bottom gradient only */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-transparent pointer-events-none" />
 
-                      {/* Top-right: Favorite */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(biz.id);
-                        }}
-                        className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer backdrop-blur-md shadow-md ${
-                          isFav
-                            ? 'bg-rose-600 text-white scale-110 shadow-rose-600/50'
-                            : 'bg-slate-950/60 text-white/80 hover:text-white hover:bg-slate-950/80 hover:scale-105'
-                        }`}
-                        title={isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
-                      >
-                        <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
-                      </button>
-
-                      {/* Top-left: Status + Distance + Watermark */}
-                      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
+                      {/* Top-Right: Official Verification Shield */}
+                      <div className="absolute top-3 right-3 z-10">
                         <span
-                          className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2.5 py-0.5 rounded-full backdrop-blur-md border shadow-md ${openStatus.statusClass}`}
+                          className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 shadow-md backdrop-blur-md border border-amber-400 font-sans"
+                          title="منشأة معتمدة وموثقة في دليلك"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
+                          <span>موثق</span>
+                        </span>
+                      </div>
+
+                      {/* Top-Left: Open / Closed Status Badge */}
+                      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md border shadow-md ${openStatus.statusClass}`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${openStatus.dotColor} ${
                               openStatus.isOpen ? 'animate-ping' : ''
                             }`}
                           />
-                          <span>{openStatus.badgeText}</span>
+                          <span>{openStatus.isOpen ? 'مفتوح الآن' : 'مغلق حالياً'}</span>
                         </span>
+                      </div>
 
-                        {distanceKm !== null && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-950/80 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-md">
+                      {/* Bottom-Right (Inside Photo): Favorite Heart */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(biz.id);
+                        }}
+                        className={`absolute bottom-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer backdrop-blur-md shadow-md ${
+                          isFav
+                            ? 'bg-rose-600 text-white scale-110 shadow-rose-600/50'
+                            : 'bg-slate-950/70 text-white/80 hover:text-white hover:bg-slate-950 hover:scale-105'
+                        }`}
+                        title={isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                        aria-label="المفضلة"
+                      >
+                        <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
+                      </button>
+
+                      {/* Bottom-Left (Inside Photo): GPS Distance if available */}
+                      {distanceKm !== null && (
+                        <div className="absolute bottom-3 left-3 z-10">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-950/80 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
                             <Compass className="w-3 h-3 text-amber-400 shrink-0" />
                             <span>{formatDistanceString(distanceKm)}</span>
                           </span>
-                        )}
-
-                        <PhotoWatermarkBadge position="top-left" size="sm" className="!relative !top-auto !left-auto" />
-                      </div>
-
-                      {/* Photo count badge */}
-                      {hasPhotos && biz.photos!.length > 1 && (
-                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-950/70 text-white border border-white/20 backdrop-blur-md">
-                            <ImageIcon className="w-2.5 h-2.5" />
-                            {biz.photos!.length}
-                          </span>
                         </div>
                       )}
+                    </div>
 
-                      {/* Video Play Button */}
-                      {hasVideos && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedVideoBiz(biz);
-                          }}
-                          className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-amber-500 hover:bg-yellow-400 text-slate-950 flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer border-2 border-white/80"
-                          title="تشغيل فيديو المكان"
-                        >
-                          <Play className="w-5 h-5 fill-slate-950 ml-0.5" />
-                        </button>
-                      )}
-
-                      {/* Bottom: Category + Name + Google Rating */}
+                    {/* Layer 2: Business Decision Summary (Below photo) */}
+                    <div className="p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
                       <div
-                        className="absolute bottom-3 right-3 left-3 space-y-1"
+                        className="space-y-1.5 cursor-pointer"
                         onClick={() => handleOpenBusiness(biz)}
                       >
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-block bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-md backdrop-blur-md">
+                        {/* Category & Region */}
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--text-muted)]">
+                          <span className="text-amber-600 dark:text-amber-400 font-extrabold truncate">
                             {biz.category}
                           </span>
-                          {biz.googleRatingEnabled && biz.googleRating && (
-                            <span className="inline-flex items-center gap-1 bg-slate-950/85 border border-amber-400/40 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-md backdrop-blur-md shadow-xs">
+                          <span className="truncate text-[11px] font-medium text-[var(--text-muted)]">
+                            {[biz.city || biz.street, biz.governorate].filter(Boolean).join(' • ') || 'مصر'}
+                          </span>
+                        </div>
+
+                        {/* Business Name */}
+                        <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)] leading-snug line-clamp-2 hover:text-amber-500 transition-colors">
+                          {biz.nameAr}
+                        </h3>
+
+                        {/* Hours & Rating */}
+                        <div className="flex items-center justify-between gap-2 pt-1 text-[11px] font-bold">
+                          <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span className="truncate">
+                              {biz.workingHours
+                                ? biz.workingHours
+                                : openStatus.isOpen
+                                ? 'مفتوح لاستقبال العملاء'
+                                : 'مغلق حالياً'}
+                            </span>
+                          </div>
+
+                          {biz.googleRatingEnabled && biz.googleRating && biz.googleRating > 0 && (
+                            <span className="inline-flex items-center gap-1 font-mono text-amber-500 font-black shrink-0 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
                               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                               <span>{biz.googleRating.toFixed(1)}</span>
                               {biz.googleReviewsCount !== undefined && (
-                                <span className="text-[9px] opacity-75">({biz.googleReviewsCount})</span>
+                                <span className="text-[10px] text-[var(--text-muted)] font-normal">({biz.googleReviewsCount})</span>
                               )}
                             </span>
                           )}
                         </div>
-                        <h3 className="text-base font-black text-white leading-tight truncate drop-shadow-md">
-                          {biz.nameAr}
-                        </h3>
-                      </div>
-                    </div>
-
-                    {/* Card Body */}
-                    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between text-xs">
-                      <div className="space-y-2">
-                        {/* Working Hours */}
-                        {biz.workingHours && (
-                          <div className="flex items-center gap-2 text-[var(--text-muted)] text-[11px] font-bold">
-                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                            <span className="truncate">{biz.workingHours}</span>
-                          </div>
-                        )}
-                        {/* Address */}
-                        {(biz.city || biz.street) && (
-                          <div className="flex items-center gap-2 text-[var(--text-muted)] text-[11px] font-bold">
-                            <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <span className="truncate">{[biz.city, biz.governorate].filter(Boolean).join('، ')}</span>
-                          </div>
-                        )}
                       </div>
 
-                      {/* Actions */}
+                      {/* Layer 3: Fixed Action Bar */}
                       <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenBusiness(biz)}
-                          className="flex-1 bg-amber-500 hover:bg-yellow-400 text-slate-950 font-black text-xs py-2.5 rounded-xl transition-all cursor-pointer text-center shadow-xs hover:shadow-amber-500/30 hover:shadow-md active:scale-95"
-                        >
-                          {hasVideos ? 'التفاصيل والفيديو' : 'التفاصيل والصور'}
-                        </button>
-
+                        {/* Call */}
                         {biz.phone && (
                           <a
                             href={`tel:${biz.phone}`}
-                            className="w-9 h-9 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-emerald-500/30"
-                            title="اتصال هاتفياً"
+                            className="w-10 h-10 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-emerald-500/30 active:scale-95"
+                            title="اتصال هاتفي مباشر"
+                            aria-label="اتصال هاتفياً"
                           >
                             <Phone className="w-4 h-4" />
                           </a>
                         )}
 
-                        {(() => {
-                          const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
-                          if (!effectiveUrl) return null;
-                          return (
-                            <a
-                              href={effectiveUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border ${
-                                isOfficial
-                                  ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border-blue-500/30'
-                                  : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/30'
-                              }`}
-                              title={isOfficial ? 'فتح على خرائط Google' : 'الموقع الجغرافي الميداني للمكان على الخريطة'}
-                            >
-                              {isOfficial ? <Navigation className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
-                            </a>
-                          );
-                        })()}
+                        {/* WhatsApp */}
+                        {biz.phone && (
+                          <a
+                            href={smartWhatsAppUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-xl bg-emerald-600/15 hover:bg-emerald-600 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-emerald-600/30 active:scale-95"
+                            title="محادثة واتساب مباشرة"
+                            aria-label="واتساب"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </a>
+                        )}
 
+                        {/* Navigation */}
+                        {effectiveUrl && (
+                          <a
+                            href={effectiveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border active:scale-95 ${
+                              isOfficial
+                                ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border-blue-500/30'
+                                : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/30'
+                            }`}
+                            title={isOfficial ? 'فتح على خرائط Google' : 'الموقع الجغرافي للمكان على الخريطة'}
+                            aria-label="الموقع على الخريطة"
+                          >
+                            {isOfficial ? <Navigation className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                          </a>
+                        )}
+
+                        {/* Primary CTA */}
                         <button
                           type="button"
-                          onClick={(e) => handleShareBusiness(biz, e)}
-                          className="w-9 h-9 rounded-xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-muted)] flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-[var(--border-color)]"
-                          title="مشاركة رابط المنشأة"
+                          onClick={() => handleOpenBusiness(biz)}
+                          className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2.5 px-3 rounded-xl transition-all cursor-pointer text-center shadow-xs hover:shadow-amber-500/20 active:scale-95 truncate"
                         >
-                          {copiedBizId === biz.id ? (
-                            <CheckCheck className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Share2 className="w-4 h-4" />
-                          )}
+                          التفاصيل والتواصل
                         </button>
                       </div>
                     </div>

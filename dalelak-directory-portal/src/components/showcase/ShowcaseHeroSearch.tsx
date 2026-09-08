@@ -109,87 +109,38 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
         }}
       />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-black px-4 py-1.5 rounded-full animate-fade-in">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>دليل الأنشطة التجارية الميدانية المعتمدة</span>
-        </div>
-
-        {/* Main Headline */}
-        <div className="space-y-3 max-w-3xl mx-auto animate-fade-in-up">
-          <h1 className="text-3xl sm:text-5xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
-            اكتشف{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-l from-amber-600 to-yellow-400">
-              أفضل المحلات
-            </span>{' '}
-            والأنشطة التجارية
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5 text-center">
+        {/* Main Headline & Subtitle (Compact) */}
+        <div className="space-y-1.5 max-w-2xl mx-auto animate-fade-in-up">
+          <div className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[11px] font-black px-3.5 py-1 rounded-full">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>الدليل الميداني المعتمد في مصر</span>
+          </div>
+          <h1 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
+            ابحث عن أي نشاط، وتواصل في ثوانٍ
           </h1>
-          <p className="text-sm text-[var(--text-muted)] font-bold max-w-2xl mx-auto leading-relaxed">
-            عناوين دقيقة · أرقام تواصل مباشرة · مقاطع فيديو ترويجية · مواقع معتمدة على الخريطة
+          <p className="text-xs text-[var(--text-muted)] font-medium max-w-lg mx-auto">
+            عناوين دقيقة • أرقام تواصل مباشرة • مواقع معتمدة على الخريطة
           </p>
         </div>
 
-        {/* Free Listing Reassurance Card */}
-        <div className="max-w-3xl mx-auto bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-amber-500/10 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-right animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs">
-              <Gift className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-emerald-700 dark:text-emerald-300 font-black text-sm sm:text-base">
-                  ظهور منشأتكم في الدليل مجاني تماماً 100% وبدون أي رسوم!
-                </span>
-                <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  بدون أي اشتراكات
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-muted)] font-bold leading-relaxed">
-                فقط اطلب الظهور وسيتم إدراج منشأتكم مجاناً. والباقات المتوفرة هي حملات دعائية حسب الطلب لتنمية مبيعاتكم.
-              </p>
-            </div>
+        {/* Free Listing Reassurance & Stats Pill (Discreet & Compact) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto bg-emerald-500/10 border border-emerald-500/30 rounded-2xl px-4 py-2 text-right text-xs">
+          <div className="flex items-center gap-2">
+            <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="text-emerald-700 dark:text-emerald-300 font-black text-xs">
+              ظهور منشأتكم في الدليل مجاني تماماً 100% وبدون أي رسوم
+            </span>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          <div className="flex items-center gap-3">
             <a
               href="#free-listing"
-              className="flex-1 sm:flex-initial bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-4 py-3 rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer hover:shadow-emerald-500/30 hover:shadow-lg"
+              className="text-xs font-black text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
             >
-              <span>اطلب الظهور مجاناً</span>
+              اطلب الظهور مجاناً ⬅
             </a>
-            <button
-              type="button"
-              onClick={() => onOpenPackagesModal('pkg_basic')}
-              className="bg-[var(--bg-card)] hover:bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 text-amber-500 font-black text-xs px-3.5 py-3 rounded-2xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-            >
-              <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>دليل الباقات المعتمدة</span>
-            </button>
+            <span className="text-[var(--text-muted)] font-mono text-[11px]">({publicBusinesses.length}+ مكان معتمد)</span>
           </div>
-        </div>
-
-        {/* Stats Row */}
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 animate-fade-in">
-          {[
-            {
-              icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-              value: publicBusinesses.length + '+',
-              label: 'مكان معتمد',
-            },
-            { icon: <MapPin className="w-4 h-4 text-amber-500" />, value: '12+', label: 'منطقة مغطاة' },
-            { icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />, value: '4.9', label: 'تقييم المستخدمين' },
-            { icon: <ShieldCheck className="w-4 h-4 text-blue-500" />, value: '100%', label: 'بيانات موثقة' },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] px-3 py-2 rounded-2xl shadow-sm"
-            >
-              {stat.icon}
-              <span className="font-mono font-black text-sm text-[var(--text-primary)]">{stat.value}</span>
-              <span className="text-xs text-[var(--text-muted)] font-bold">{stat.label}</span>
-            </div>
-          ))}
         </div>
 
         {/* 🔍 SMART SEARCH & FILTER BAR */}

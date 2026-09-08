@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Business } from '../../types';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
@@ -53,6 +53,8 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
   handleDownloadVCard,
   vCardDownloadedBizId,
 }) => {
+  const [isDescExpanded, setIsDescExpanded] = useState<boolean>(false);
+
   if (!selectedBiz) return null;
 
   // 1. Institutional Suspension Screen (Protection against rejected business leaks)
@@ -291,6 +293,58 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             )}
           </div>
 
+          {/* 🚀 The Big Action Trio (ثلاثي الإجراءات السريعة في صدارة ملف النشاط) */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-1">
+            {selectedBiz.phone ? (
+              <a
+                href={`tel:${selectedBiz.phone}`}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-2 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-md hover:shadow-emerald-600/30 active:scale-95 transition-all cursor-pointer text-center"
+              >
+                <Phone className="w-4 h-4 shrink-0" />
+                <span>اتصال هاتفي</span>
+              </a>
+            ) : (
+              <button disabled className="opacity-50 bg-[var(--input-bg)] text-[var(--text-muted)] font-black text-xs py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1">
+                <Phone className="w-4 h-4" />
+                <span>لا يوجد هاتف</span>
+              </button>
+            )}
+
+            <a
+              href={getSmartWhatsAppUrl(selectedBiz)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 font-black text-xs py-3 px-2 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-xs active:scale-95 transition-all cursor-pointer text-center"
+            >
+              <MessageCircle className="w-4 h-4 shrink-0" />
+              <span>محادثة واتساب</span>
+            </a>
+
+            {(() => {
+              const { effectiveUrl, isOfficial } = getBusinessMapDetails(selectedBiz);
+              return effectiveUrl ? (
+                <a
+                  href={effectiveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`font-black text-xs py-3 px-2 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-xs active:scale-95 transition-all cursor-pointer text-center ${
+                    isOfficial
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
+                      : 'bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                  }`}
+                >
+                  <Navigation className="w-4 h-4 shrink-0" />
+                  <span>الاتجاهات</span>
+                </a>
+              ) : (
+                <button disabled className="opacity-50 bg-[var(--input-bg)] text-[var(--text-muted)] font-black text-xs py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1">
+                  <Navigation className="w-4 h-4" />
+                  <span>لا يوجد موقع</span>
+                </button>
+              );
+            })()}
+          </div>
+
           {/* Google Maps Hub */}
           <div className="space-y-3">
             {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
@@ -448,19 +502,32 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             </div>
           </div>
 
-          {/* Description */}
+          {/* Description with Expand Toggle */}
           {selectedBiz.description && (
             <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)] space-y-1.5">
               <span className="text-[11px] text-amber-500 font-black block">نبذة وتفاصيل المكان:</span>
-              <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
+              <p
+                className={`text-xs text-[var(--text-secondary)] font-medium leading-relaxed ${
+                  !isDescExpanded && selectedBiz.description.length > 180 ? 'line-clamp-3' : ''
+                }`}
+              >
                 {selectedBiz.description}
               </p>
+              {selectedBiz.description.length > 180 && (
+                <button
+                  type="button"
+                  onClick={() => setIsDescExpanded(!isDescExpanded)}
+                  className="text-amber-500 hover:text-amber-400 font-black text-[11px] pt-1 cursor-pointer"
+                >
+                  {isDescExpanded ? 'عرض أقل ▴' : 'عرض المزيد ▾'}
+                </button>
+              )}
             </div>
           )}
         </div>
 
-        {/* Modal Action Footer */}
-        <div className="p-3.5 sm:p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+        {/* Modal Action Footer (Desktop & Tablet) */}
+        <div className="p-3.5 sm:p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] hidden sm:flex items-center justify-between gap-2.5">
           <a
             href={getSmartWhatsAppUrl(selectedBiz)}
             target="_blank"
@@ -468,7 +535,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             className="flex-1 min-w-[125px] bg-emerald-500/15 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white border border-emerald-500/40 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
           >
             <MessageCircle className="w-4 h-4" />
-            <span>واتساب</span>
+            <span>محادثة واتساب</span>
           </a>
 
           {selectedBiz.phone && (
@@ -477,7 +544,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
               className="flex-1 min-w-[110px] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-md"
             >
               <Phone className="w-4 h-4" />
-              <span>{selectedBiz.phone}</span>
+              <span>اتصال: {selectedBiz.phone}</span>
             </a>
           )}
 
@@ -493,6 +560,43 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             <UserPlus className="w-4 h-4" />
             <span>{vCardDownloadedBizId === selectedBiz.id ? 'تم الحفظ' : 'حفظ جهة الاتصال'}</span>
           </button>
+        </div>
+
+        {/* 📱 Sticky Mobile Bottom Bar (شريط الاتصال الثابت على الهواتف) */}
+        <div className="sm:hidden p-3 bg-[var(--bg-card)] border-t border-[var(--border-color)] flex items-center gap-2 shadow-2xl shrink-0">
+          {selectedBiz.phone && (
+            <a
+              href={`tel:${selectedBiz.phone}`}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+            >
+              <Phone className="w-4 h-4" />
+              <span>اتصال مباشر</span>
+            </a>
+          )}
+          <a
+            href={getSmartWhatsAppUrl(selectedBiz)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>واتساب</span>
+          </a>
+          {(() => {
+            const { effectiveUrl } = getBusinessMapDetails(selectedBiz);
+            if (!effectiveUrl) return null;
+            return (
+              <a
+                href={effectiveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 bg-blue-500/15 text-blue-600 border border-blue-500/30 rounded-2xl flex items-center justify-center shrink-0 active:scale-95 shadow-xs"
+                title="الاتجاهات على الخريطة"
+              >
+                <Navigation className="w-4 h-4" />
+              </a>
+            );
+          })()}
         </div>
       </div>
     </div>
