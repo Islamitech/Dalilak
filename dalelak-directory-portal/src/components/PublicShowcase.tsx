@@ -24,6 +24,7 @@ import {
   ShowcaseBusinessDetailModal,
   ShowcasePhotoLightbox,
 } from './showcase';
+import { InteractiveOnboardingExperience } from './onboarding/InteractiveOnboardingExperience';
 import { MessageCircle } from 'lucide-react';
 
 export interface PublicShowcaseProps {
@@ -43,6 +44,50 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   loading = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
+
+  // Interactive Onboarding Experience State («دليلك يبدأ من مكانك»)
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    if (isPreviewMode || initialBizId) return false;
+    try {
+      return !localStorage.getItem('dalelak_onboarding_completed');
+    } catch {
+      return false;
+    }
+  });
+
+  const handleExploreAround = useCallback(() => {
+    setShowOnboarding(false);
+    setGovFilter('الجيزة');
+    setCityFilter('حدائق الأهرام');
+    const elem = document.getElementById('explore');
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
+  const handleSearchSpecific = useCallback(() => {
+    setShowOnboarding(false);
+    setIsSearchFocused(true);
+    setTimeout(() => {
+      const searchInput = document.querySelector('input[type="text"][placeholder*="ابحث"]') as HTMLInputElement | null;
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+  }, []);
+
+  const handleAddBusinessFree = useCallback(() => {
+    setShowOnboarding(false);
+    const elem = document.getElementById('free-listing') || document.getElementById('consultation');
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
+  const handleSkipOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+  }, []);
 
   // Search and Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -706,11 +751,22 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-300">
+      {/* 0. Interactive Onboarding Experience («دليلك يبدأ من مكانك») */}
+      {showOnboarding && (
+        <InteractiveOnboardingExperience
+          onExploreAround={handleExploreAround}
+          onSearchSpecific={handleSearchSpecific}
+          onAddBusinessFree={handleAddBusinessFree}
+          onSkip={handleSkipOnboarding}
+        />
+      )}
+
       {/* 1. Sticky Navbar */}
       <ShowcaseNavbar
         theme={theme}
         toggleTheme={toggleTheme}
         onOpenPackagesModal={openPackagesModal}
+        onReopenOnboarding={() => setShowOnboarding(true)}
       />
 
       {/* 2. Hero & Search Hub */}

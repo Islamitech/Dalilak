@@ -1,17 +1,19 @@
 import React from 'react';
 import { Logo } from '../Logo';
-import { Sparkles, Gift, Rocket, Sun, Moon } from 'lucide-react';
+import { Sparkles, Gift, Rocket, Sun, Moon, Compass } from 'lucide-react';
 
 export interface ShowcaseNavbarProps {
   theme: string;
   toggleTheme: () => void;
   onOpenPackagesModal: (pkgId?: string) => void;
+  onReopenOnboarding?: () => void;
 }
 
 export const ShowcaseNavbar: React.FC<ShowcaseNavbarProps> = ({
   theme,
   toggleTheme,
   onOpenPackagesModal,
+  onReopenOnboarding,
 }) => {
   return (
     <header className="sticky top-0 z-50 bg-[var(--nav-bg)] backdrop-blur-xl border-b border-[var(--border-color)] transition-colors duration-300 shadow-sm">
@@ -21,6 +23,17 @@ export const ShowcaseNavbar: React.FC<ShowcaseNavbarProps> = ({
         </div>
 
         <nav className="hidden md:flex items-center gap-6 text-xs font-black text-[var(--text-secondary)]">
+          {onReopenOnboarding && (
+            <button
+              type="button"
+              onClick={onReopenOnboarding}
+              className="hover:text-amber-500 transition-colors flex items-center gap-1.5 font-black cursor-pointer text-amber-500/90 hover:text-amber-400"
+              title="جولة الانطلاق: دليلك يبدأ من مكانك"
+            >
+              <Compass className="w-3.5 h-3.5 animate-pulse" />
+              <span>دليلك من مكانك</span>
+            </button>
+          )}
           <a href="#explore" className="hover:text-amber-500 transition-colors">
             معرض الأنشطة
           </a>
@@ -57,6 +70,18 @@ export const ShowcaseNavbar: React.FC<ShowcaseNavbarProps> = ({
         </nav>
 
         <div className="flex items-center gap-2">
+          {onReopenOnboarding && (
+            <button
+              type="button"
+              onClick={onReopenOnboarding}
+              className="w-10 h-10 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] flex items-center justify-center text-amber-500 hover:text-amber-400 hover:border-amber-500/40 transition-all cursor-pointer shadow-xs active:scale-95"
+              title="دليلك يبدأ من مكانك"
+              aria-label="دليلك يبدأ من مكانك"
+            >
+              <Compass className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => onOpenPackagesModal('pkg_basic')}
