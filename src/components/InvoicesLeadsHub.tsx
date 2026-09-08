@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   UserCheck,
@@ -20,6 +20,8 @@ import {
   ExternalLink,
   Navigation,
   FileText,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User } from '../types';
 import { EGYPT_GOVERNORATES } from '../data/mockData';
@@ -77,6 +79,44 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   );
   const [newNotes, setNewNotes] = useState<string>('');
   const [formError, setFormError] = useState<string>('');
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+
+  /** Extract clean map URL and clean notes text from combined notes field */
+  const extractNotesAndMapUrl = useCallback((notes?: string, locationUrl?: string): { cleanText: string; mapUrl?: string } => {
+    if (!notes && !locationUrl) return { cleanText: '' };
+    let mapUrl: string | undefined = locationUrl || undefined;
+    let cleanText = notes || '';
+    // Find and remove embedded Google Maps URL from notes text
+    const urlRegex = /https?:\/\/(?:www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)[^\s\n]*/g;
+    const urlsInNotes = cleanText.match(urlRegex);
+    if (urlsInNotes && urlsInNotes.length > 0) {
+      if (!mapUrl) mapUrl = urlsInNotes[0];
+      cleanText = cleanText.replace(urlRegex, '').replace(/📍\s*موقع الخريطة:\s*/g, '').trim();
+      // Remove any leading/trailing pipe separators or empty lines
+      cleanText = cleanText.replace(/\|+/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    return { cleanText, mapUrl };
+  }, []);
+
+  const handleCopyLink = useCallback((id: string, url: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLinkId(id);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    }).catch(() => {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedLinkId(id);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    });
+  }, []);
 
   // Scoped Data (Filter by Rep if not Admin)
   const isRepAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor' || currentUser?.role === 'accountant' || !currentUser;
@@ -530,13 +570,44 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     </div>
                   </div>
 
-                  {/* Notes snippet */}
-                  {lead.notes && (
-                    <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 rounded-xl text-xs text-[var(--text-secondary)] leading-relaxed">
-                      <strong className="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mb-0.5">ملاحظات الزيارة الميدانية:</strong>
-                      {lead.notes}
-                    </div>
-                  )}
+                  {/* Notes snippet — Map URL extracted as compact button (Update 34) */}
+                  {(() => {
+                    const { cleanText, mapUrl } = extractNotesAndMapUrl(lead.notes, lead.locationUrl);
+                    const linkId = `lead-card-${lead.id}`;
+                    return (
+                      <>
+                        {cleanText && (
+                          <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 rounded-xl text-xs text-[var(--text-secondary)] leading-relaxed break-words">
+                            <strong className="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mb-0.5">ملاحظات الزيارة الميدانية:</strong>
+                            {cleanText}
+                          </div>
+                        )}
+                        {mapUrl && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyLink(linkId, mapUrl!)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 dark:text-blue-300 text-[10px] font-bold transition-colors"
+                              title="نسخ رابط الخريطة"
+                            >
+                              {copiedLinkId === linkId ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                              {copiedLinkId === linkId ? 'تم النسخ ✓' : 'نسخ رابط الخريطة'}
+                            </button>
+                            <a
+                              href={sanitizeExternalUrl(mapUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 dark:text-green-300 text-[10px] font-bold transition-colors"
+                            >
+                              <MapPin className="w-3 h-3" />
+                              فتح الخريطة
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+
 
                   {/* Latest Admin Follow-up Note Snippet */}
                   {lead.adminFollowUps && lead.adminFollowUps.length > 0 && (

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -20,6 +20,8 @@ import {
   Flame,
   FileText,
   Tag,
+  Copy,
+  Check,
 } from 'lucide-react';
 import {
   InterestedLead,
@@ -67,6 +69,40 @@ export const LeadFollowUpModal: React.FC<LeadFollowUpModalProps> = ({
   const [newNoteStatus, setNewNoteStatus] = useState<AdminFollowUpStatus>('completed');
   const [nextFollowUpDate, setNextFollowUpDate] = useState<string>('');
   const [notification, setNotification] = useState<string | null>(null);
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+
+  const extractNotesAndMapUrl = useCallback((notes?: string, locationUrl?: string): { cleanText: string; mapUrl?: string } => {
+    if (!notes && !locationUrl) return { cleanText: '' };
+    let url: string | undefined = locationUrl || undefined;
+    let cleanText = notes || '';
+    const urlRegex = /https?:\/\/(?:www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)[^\s\n]*/g;
+    const urlsInNotes = cleanText.match(urlRegex);
+    if (urlsInNotes && urlsInNotes.length > 0) {
+      if (!url) url = urlsInNotes[0];
+      cleanText = cleanText.replace(urlRegex, '').replace(/📍\s*موقع الخريطة:\s*/g, '').trim();
+      cleanText = cleanText.replace(/\|+/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    return { cleanText, mapUrl: url };
+  }, []);
+
+  const handleCopyLink = useCallback((id: string, url: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLinkId(id);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedLinkId(id);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    });
+  }, []);
 
   const cleanPhone = (currentLead.phone || '').replace(/\D/g, '');
   const waUrl = cleanPhone
@@ -258,17 +294,47 @@ export const LeadFollowUpModal: React.FC<LeadFollowUpModalProps> = ({
               </div>
             </div>
 
-            {/* Original Lead Visit Notes */}
-            {currentLead.notes && (
-              <div className="pt-2 border-t border-[var(--border-color)]">
-                <span className="font-bold text-[11px] text-[var(--text-muted)] block mb-1">
-                  📝 تقرير وملاحظات الزيارة الميدانية:
-                </span>
-                <p className="text-[var(--text-secondary)] font-medium leading-relaxed bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border-color)]">
-                  {currentLead.notes}
-                </p>
-              </div>
-            )}
+            {/* Original Lead Visit Notes — Map URL extracted as compact button (Update 34) */}
+            {(() => {
+              const { cleanText, mapUrl: extractedMapUrl } = extractNotesAndMapUrl(currentLead.notes, currentLead.locationUrl);
+              return (
+                <>
+                  {cleanText && (
+                    <div className="pt-2 border-t border-[var(--border-color)]">
+                      <span className="font-bold text-[11px] text-[var(--text-muted)] block mb-1">
+                        تقرير وملاحظات الزيارة الميدانية:
+                      </span>
+                      <p className="text-[var(--text-secondary)] font-medium leading-relaxed bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border-color)] break-words">
+                        {cleanText}
+                      </p>
+                    </div>
+                  )}
+                  {extractedMapUrl && (
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyLink('modal-map', extractedMapUrl!)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 dark:text-blue-300 font-bold text-xs transition-colors"
+                        title="نسخ رابط الخريطة"
+                      >
+                        {copiedLinkId === 'modal-map' ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedLinkId === 'modal-map' ? 'تم النسخ ✓' : 'نسخ رابط الخريطة'}
+                      </button>
+                      <a
+                        href={extractedMapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-700 dark:text-amber-300 font-bold text-xs transition-colors"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        فتح الخريطة
+                      </a>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
 
             {/* Location Link & Communication Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-color)]">

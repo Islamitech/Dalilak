@@ -200,13 +200,8 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         : hasLeadLocation
         ? `https://www.google.com/maps?q=${leadLat},${leadLng}`
         : undefined;
-      const cleanNotes = leadNotes.trim();
-      const combinedNotes =
-        hasLeadLocation && locationMapUrl
-          ? cleanNotes
-            ? `${cleanNotes}\n\n📍 موقع الخريطة: ${locationMapUrl}`
-            : `📍 موقع الخريطة: ${locationMapUrl}`
-          : cleanNotes || undefined;
+      // Store only clean notes text — do NOT embed raw URL in notes (Update 34: prevents card overflow)
+      const combinedNotes = leadNotes.trim() || undefined;
 
       const lead: InterestedLead = {
         id: `lead_${Date.now()}`,

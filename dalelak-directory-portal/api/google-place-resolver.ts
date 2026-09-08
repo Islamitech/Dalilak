@@ -225,19 +225,126 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // ─── Multi-Strategy Phone Extraction (Update 34) ────────────────────────
+    const normalizeEgyptianPhone = (raw: string): string | undefined => {
+      if (!raw || typeof raw !== 'string') return undefined;
+      const digits = raw.replace(/[\s\-_()+]/g, '').trim();
+      let local = digits;
+      if (local.startsWith('+20')) local = '0' + local.slice(3);
+      else if (local.startsWith('0020')) local = '0' + local.slice(4);
+      else if (local.startsWith('20') && local.length >= 12) local = '0' + local.slice(2);
+      else if (local.startsWith('1') && local.length === 10) local = '0' + local;
+      if (local.startsWith('0') && (local.length === 10 || local.length === 11)) return local;
+      return undefined;
+    };
+
     let phone: string | undefined = undefined;
-    const combinedContent = htmlContent + '\n' + preloadPayload;
-    const phoneMatches = combinedContent.match(/(?:\+20\s*|0)(1[0125]\d{8}|2\d{7,8})/g);
-    if (phoneMatches && phoneMatches.length > 0) {
-      const rawDigits = phoneMatches[0].replace(/\D/g, '');
-      if (rawDigits.startsWith('20')) {
-        phone = '0' + rawDigits.substring(2);
-      } else if (rawDigits.startsWith('0')) {
-        phone = rawDigits;
-      }
+
+    // Strategy 1: Structured Google Maps Preload JSON → json[6][178]
+    if (preloadPayload && !phone) {
+      try {
+        let cleanJson = preloadPayload.trim();
+        if (cleanJson.startsWith(")]}'")) cleanJson = cleanJson.slice(4).trim();
+        const gjson = JSON.parse(cleanJson);
+        if (gjson && gjson[6] && gjson[6][178] && Array.isArray(gjson[6][178])) {
+          for (const item of gjson[6][178]) {
+            if (!item) continue;
+            const candidates: string[] = [
+              item[3], item[0],
+              item[1] && item[1][1] && item[1][1][0],
+              item[5] && item[5][0],
+            ].filter(Boolean) as string[];
+            for (const c of candidates) {
+              const n = normalizeEgyptianPhone(c.replace('tel:', ''));
+              if (n) { phone = n; break; }
+            }
+            if (phone) break;
+          }
+        }
+        if (!phone) {
+          const searchTel = (node: unknown): void => {
+            if (phone) return;
+            if (typeof node === 'string') {
+              if (node.startsWith('tel:')) {
+                const n = normalizeEgyptianPhone(node.slice(4));
+                if (n) phone = n;
+              }
+            } else if (Array.isArray(node)) {
+              node.forEach(searchTel);
+            } else if (node && typeof node === 'object') {
+              Object.values(node as Record<string, unknown>).forEach(searchTel);
+            }
+          };
+          searchTel(gjson);
+        }
+      } catch { /* ignore parse errors */ }
     }
 
-    let address: string | undefined = extractedAddressFromTitle;
+    // Strategy 2: Explicit tel: link in HTML or combined text
+    if (!phone) {
+      const combinedContent = htmlContent + '\n' + preloadPayload;
+      const telMatch = combinedContent.match(/tel:([+0-9\s\-]{8,20})/i);
+      if (telMatch) phone = normalizeEgyptianPhone(telMatch[1]) ?? undefined;
+    }
+
+    // Strategy 3: Schema.org telephone
+    if (!phone) {
+      const schemaMatch = htmlContent.match(/"telephone"\s*:\s*"([^"]+)"/i);
+      if (schemaMatch) phone = normalizeEgyptianPhone(schemaMatch[1]) ?? undefined;
+    }
+
+    // Strategy 4: Egyptian mobile strict boundary
+    if (!phone) {
+      const mobileMatches = (htmlContent + '\n' + preloadPayload).match(
+        /(?:^|[^0-9.])(\+?20\s*1[0125]\d{8}|01[0125]\d{8})(?=[^0-9]|$)/gm
+      );
+      if (mobileMatches && mobileMatches.length > 0) {
+        const raw = mobileMatches[0].replace(/(?:^[^0-9+])|(?:[^0-9]$)/g, '');
+        phone = normalizeEgyptianPhone(raw) ?? undefined;
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ─── Address Extraction with Boilerplate Guard (Update 34) ───────────────
+    const isBoilerplateAddress = (t?: string): boolean => {
+      if (!t) return true;
+      const l = t.toLowerCase();
+      return (
+        l.includes('find local businesses') ||
+        l.includes('view maps') ||
+        l.includes('driving directions') ||
+        l.includes('معاينة الأنشطة') ||
+        l.includes('خرائط google') ||
+        l.includes('google maps')
+      );
+    };
+
+    let address: string | undefined = undefined;
+
+    // Try structured preload JSON first
+    if (preloadPayload) {
+      try {
+        let cleanJson2 = preloadPayload.trim();
+        if (cleanJson2.startsWith(")]}'")) cleanJson2 = cleanJson2.slice(4).trim();
+        const gjson2 = JSON.parse(cleanJson2);
+        if (gjson2 && gjson2[6]) {
+          if (typeof gjson2[6][39] === 'string' && gjson2[6][39].trim().length > 3 && !isBoilerplateAddress(gjson2[6][39])) {
+            address = gjson2[6][39].trim();
+          } else if (Array.isArray(gjson2[6][2]) && !address) {
+            const parts = (gjson2[6][2] as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim().length > 0);
+            if (parts.length > 0) {
+              const joined = parts.join('، ').trim();
+              if (!isBoilerplateAddress(joined)) address = joined;
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    // Fallback to og:title extracted part
+    if (!address && extractedAddressFromTitle && !isBoilerplateAddress(extractedAddressFromTitle)) {
+      address = extractedAddressFromTitle;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     let rating: number | undefined = undefined;
     let reviewCount: number | undefined = undefined;
     const photos: string[] = [];
@@ -272,7 +379,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 4. Photos from ggpht CDN
     const ggRegex = /https:\/\/[a-z0-9.-]*ggpht\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
-    while ((match = ggRegex.exec(combinedContent)) !== null && photos.length < 5) {
+    while ((match = ggRegex.exec(htmlContent + '\n' + preloadPayload)) !== null && photos.length < 5) {
       addPlacePhoto(match[0], photos, seenHashes, 5);
     }
 
@@ -300,7 +407,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (revMatch) {
         reviewCount = parseInt(revMatch[1].replace(/,/g, ''), 10);
       }
-      address = desc;
+      // Only use description as address fallback if not already found and not boilerplate
+      if (!address && !isBoilerplateAddress(desc)) {
+        address = desc;
+      }
     }
 
     return res.status(200).json({

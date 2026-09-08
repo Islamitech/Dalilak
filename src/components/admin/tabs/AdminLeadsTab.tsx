@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { InterestedLead, User } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { formatActivityDateTime } from '../../../utils/dateFormatters';
@@ -16,6 +16,8 @@ import {
   FileText,
   CheckCircle2,
   Trash2,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface AdminLeadsTabProps {
@@ -48,6 +50,40 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
   const [leadStatusFilter, setLeadStatusFilter] = useState<string>('all');
   const [leadInterestFilter, setLeadInterestFilter] = useState<string>('all');
   const [leadGovFilter, setLeadGovFilter] = useState<string>('all');
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+
+  const extractNotesAndMapUrl = useCallback((notes?: string, locationUrl?: string): { cleanText: string; mapUrl?: string } => {
+    if (!notes && !locationUrl) return { cleanText: '' };
+    let mapUrl: string | undefined = locationUrl || undefined;
+    let cleanText = notes || '';
+    const urlRegex = /https?:\/\/(?:www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)[^\s\n]*/g;
+    const urlsInNotes = cleanText.match(urlRegex);
+    if (urlsInNotes && urlsInNotes.length > 0) {
+      if (!mapUrl) mapUrl = urlsInNotes[0];
+      cleanText = cleanText.replace(urlRegex, '').replace(/📍\s*موقع الخريطة:\s*/g, '').trim();
+      cleanText = cleanText.replace(/\|+/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    return { cleanText, mapUrl };
+  }, []);
+
+  const handleCopyLink = useCallback((id: string, url: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLinkId(id);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedLinkId(id);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    });
+  }, []);
 
   const filteredLeads = useMemo(() => {
     return leads.filter((l) => {
@@ -290,13 +326,44 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                   </div>
                 </div>
 
-                {/* Notes Box */}
-                {lead.notes && (
-                  <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] text-[var(--text-secondary)]">
-                    <span className="font-bold text-[10px] text-[var(--text-muted)] block mb-0.5">ملاحظات الزيارة الميدانية:</span>
-                    <p className="line-clamp-2">{lead.notes}</p>
-                  </div>
-                )}
+                {/* Notes Box — Map URL as compact button (Update 34) */}
+                {(() => {
+                  const { cleanText, mapUrl } = extractNotesAndMapUrl(lead.notes, lead.locationUrl);
+                  const linkId = `admin-lead-card-${lead.id}`;
+                  return (
+                    <>
+                      {cleanText && (
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] text-[var(--text-secondary)] break-words">
+                          <span className="font-bold text-[10px] text-[var(--text-muted)] block mb-0.5">ملاحظات الزيارة الميدانية:</span>
+                          <p className="line-clamp-2">{cleanText}</p>
+                        </div>
+                      )}
+                      {mapUrl && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(linkId, mapUrl!)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 dark:text-blue-300 text-[10px] font-bold transition-colors"
+                            title="نسخ رابط الخريطة"
+                          >
+                            {copiedLinkId === linkId ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                            {copiedLinkId === linkId ? 'تم النسخ ✓' : 'نسخ رابط الخريطة'}
+                          </button>
+                          <a
+                            href={sanitizeExternalUrl(mapUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 dark:text-green-300 text-[10px] font-bold transition-colors"
+                          >
+                            <MapPin className="w-3 h-3" />
+                            فتح الخريطة
+                          </a>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
 
                 {/* Latest Admin Follow-up Note Snippet */}
                 {lead.adminFollowUps && lead.adminFollowUps.length > 0 && (
