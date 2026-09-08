@@ -377,7 +377,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// ⚡ Fast Google Place Resolver (Unfurls maps.app.goo.gl and extracts Place metadata)
+// ⚡ Fast Google Place Resolver (Unfurls maps.app.goo.gl, extracts Place metadata, detailed working hours, and top 5 photos)
 app.get('/api/google-place-resolver', async (req, res) => {
   try {
     const rawUrl = req.query.url as string;
@@ -389,21 +389,68 @@ app.get('/api/google-place-resolver', async (req, res) => {
     let destinationUrl = trimmedUrl;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     let htmlContent = '';
+    let preloadPayload = '';
+
     try {
-      const response = await fetch(trimmedUrl, {
+      // 1. Fetch with Desktop Chrome to unfurl redirects and obtain preload place data
+      const desktopResponse = await fetch(trimmedUrl, {
         method: 'GET',
         redirect: 'follow',
         headers: {
-          'User-Agent': 'Twitterbot/1.0',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
           'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
         signal: controller.signal,
       });
-      destinationUrl = response.url || trimmedUrl;
-      htmlContent = await response.text();
+
+      destinationUrl = desktopResponse.url || trimmedUrl;
+      htmlContent = await desktopResponse.text();
+
+      // Check if place has preload link for detailed hours & multi-photos
+      const preloadMatch = htmlContent.match(/<link\s+href="(\/maps\/preview\/place[^"]+)"\s+as="fetch"/i);
+      if (preloadMatch) {
+        const preloadUrl = 'https://www.google.com' + preloadMatch[1].replace(/&amp;/g, '&');
+        try {
+          const pRes = await fetch(preloadUrl, {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+              'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+              Referer: 'https://www.google.com/maps',
+            },
+            signal: controller.signal,
+          });
+          if (pRes.ok) {
+            preloadPayload = await pRes.text();
+          }
+        } catch {
+          // Preload fetch fallback
+        }
+      }
+
+      // If place name or og metadata wasn't in desktop HTML, try crawler SSR
+      if (!htmlContent.includes('og:title') && !htmlContent.includes('og:image')) {
+        try {
+          const botResponse = await fetch(destinationUrl, {
+            headers: {
+              'User-Agent': 'Twitterbot/1.0',
+              'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+            },
+            signal: controller.signal,
+          });
+          if (botResponse.ok) {
+            const botHtml = await botResponse.text();
+            htmlContent += '\n' + botHtml;
+          }
+        } catch {
+          // Ignore bot errors
+        }
+      }
     } catch {
       // If network fetch times out or fails, proceed with client parsing
     } finally {
@@ -440,6 +487,15 @@ app.get('/api/google-place-resolver', async (req, res) => {
       }
     }
 
+    if (!placeName) {
+      const titleMatch = htmlContent.match(/<title>([^<]+)<\/title>/i);
+      if (titleMatch && titleMatch[1]) {
+        let cleanT = titleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim();
+        cleanT = cleanT.replace(/\s*[-·|–]\s*(Google Maps|خرائط Google|Google).*$/i, '').trim();
+        placeName = cleanT;
+      }
+    }
+
     let lat: number | undefined = undefined;
     let lng: number | undefined = undefined;
 
@@ -460,7 +516,8 @@ app.get('/api/google-place-resolver', async (req, res) => {
     }
 
     let phone: string | undefined = undefined;
-    const phoneMatches = htmlContent.match(/(?:\+20\s*|0)(1[0125]\d{8}|2\d{7,8})/g);
+    const combinedContent = htmlContent + '\n' + preloadPayload;
+    const phoneMatches = combinedContent.match(/(?:\+20\s*|0)(1[0125]\d{8}|2\d{7,8})/g);
     if (phoneMatches && phoneMatches.length > 0) {
       const rawDigits = phoneMatches[0].replace(/\D/g, '');
       if (rawDigits.startsWith('20')) {
@@ -473,57 +530,102 @@ app.get('/api/google-place-resolver', async (req, res) => {
     let address: string | undefined = extractedAddressFromTitle;
     let rating: number | undefined = undefined;
     let reviewCount: number | undefined = undefined;
-    let photo: string | undefined = undefined;
     const photos: string[] = [];
     const seenHashes = new Set<string>();
 
+    const addPhoto = (rawUrl: string) => {
+      if (!rawUrl || typeof rawUrl !== 'string' || photos.length >= 5) return;
+      if (
+        rawUrl.includes('google_maps_logo') ||
+        rawUrl.includes('staticmap') ||
+        rawUrl.includes('maps_512dp') ||
+        rawUrl.includes('photo.jpg') ||
+        rawUrl.includes('streetviewpixels') ||
+        rawUrl.includes('default_avatar')
+      ) {
+        return;
+      }
+      const clean = rawUrl.replace(/=w\d+.*$/, '=s1600').replace(/=s\d+.*$/, '=s1600');
+      const baseKey = clean.split('=')[0];
+      if (!seenHashes.has(baseKey)) {
+        seenHashes.add(baseKey);
+        photos.push(clean.includes('=s1600') ? clean : `${clean}=s1600`);
+      }
+    };
+
+    // 1. Photos from preload place payload
+    if (preloadPayload) {
+      const pCdnMatches =
+        preloadPayload.match(/https:\/\/[a-z0-9.-]*googleusercontent\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g) ||
+        [];
+      for (const p of pCdnMatches) {
+        addPhoto(p);
+        if (photos.length >= 5) break;
+      }
+    }
+
+    // 2. OpenGraph Cover Photo
     const ogImageMatch =
       htmlContent.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
       htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
     if (ogImageMatch && ogImageMatch[1]) {
       const rawOg = ogImageMatch[1].replace(/&amp;/g, '&');
-      if (!rawOg.includes('google_maps_logo') && !rawOg.includes('staticmap') && !rawOg.includes('maps_512dp')) {
-        const cleanOg = rawOg.replace(/=w\d+-h\d+.*$/, '=s1600').replace(/=s\d+.*$/, '=s1600');
-        photo = cleanOg;
-        photos.push(cleanOg);
-        seenHashes.add(cleanOg);
-      }
+      addPhoto(rawOg);
     }
 
-    // Extract all Google Photos CDN photos (/p/, /gps-cs-s/, /gps-proxy/)
+    // 3. Photos from HTML content
     const cdnRegex = /https:\/\/[a-z0-9.-]*googleusercontent\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
     let match: RegExpExecArray | null;
-    while ((match = cdnRegex.exec(htmlContent)) !== null && photos.length < 12) {
-      const rawUrl = match[0];
-      const fullUrl = `${rawUrl}=s1600`;
-      if (!seenHashes.has(rawUrl) && !seenHashes.has(fullUrl)) {
-        seenHashes.add(rawUrl);
-        seenHashes.add(fullUrl);
-        photos.push(fullUrl);
-      }
+    while ((match = cdnRegex.exec(htmlContent)) !== null && photos.length < 5) {
+      addPhoto(match[0]);
     }
 
-    // Extract ggpht CDN photos
+    // 4. Photos from ggpht CDN
     const ggRegex = /https:\/\/[a-z0-9.-]*ggpht\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
-    while ((match = ggRegex.exec(htmlContent)) !== null && photos.length < 12) {
-      const rawUrl = match[0];
-      const fullUrl = `${rawUrl}=s1600`;
-      if (!seenHashes.has(rawUrl) && !seenHashes.has(fullUrl)) {
-        seenHashes.add(rawUrl);
-        seenHashes.add(fullUrl);
-        photos.push(fullUrl);
-      }
+    while ((match = ggRegex.exec(combinedContent)) !== null && photos.length < 5) {
+      addPhoto(match[0]);
     }
 
-    // Extract Street View Panoramas if under limit
-    const svRegex = /https:\/\/streetviewpixels-pa\.googleapis\.com\/v1\/thumbnail\?panoid=([A-Za-z0-9_-]{15,})/g;
-    while ((match = svRegex.exec(htmlContent)) !== null && photos.length < 12) {
-      const panoId = match[1];
-      if (!seenHashes.has(panoId)) {
-        seenHashes.add(panoId);
-        const fullUrl = `https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=${panoId}&w=1200&h=800&yaw=0&pitch=0&thumbfov=90`;
-        photos.push(fullUrl);
-      }
+    const photo = photos.length > 0 ? photos[0] : undefined;
+
+    // 5. Working Hours Extraction
+    let workingHours: string | undefined = undefined;
+    const parseHoursJson = (text: string): string | undefined => {
+      try {
+        let cleanJson = text.trim();
+        if (cleanJson.startsWith(")]}'")) cleanJson = cleanJson.slice(4).trim();
+        const json = JSON.parse(cleanJson);
+        if (json && json[6] && json[6][203]) {
+          const hBlock = json[6][203];
+          let statusStr = '';
+          if (hBlock[1] && hBlock[1][4] && typeof hBlock[1][4][0] === 'string') {
+            statusStr = hBlock[1][4][0].trim();
+          }
+          let timeRange = '';
+          if (
+            hBlock[0] &&
+            hBlock[0][0] &&
+            Array.isArray(hBlock[0][0][3]) &&
+            hBlock[0][0][3][0] &&
+            typeof hBlock[0][0][3][0][0] === 'string'
+          ) {
+            timeRange = hBlock[0][0][3][0][0].trim();
+          }
+
+          if (timeRange && statusStr) return `يومياً: ${timeRange} (${statusStr})`;
+          if (timeRange) return `يومياً: ${timeRange}`;
+          if (statusStr) return statusStr;
+        }
+      } catch {}
+      const statusMatch = text.match(/"((?:مغلق|مفتوح)\s*[·•\-]\s*[^"\\<]{3,60})"/);
+      return statusMatch ? statusMatch[1].trim() : undefined;
+    };
+
+    if (preloadPayload) {
+      workingHours = parseHoursJson(preloadPayload);
+    }
+    if (!workingHours && htmlContent) {
+      workingHours = parseHoursJson(htmlContent);
     }
 
     const ogDescMatch =
@@ -551,8 +653,9 @@ app.get('/api/google-place-resolver', async (req, res) => {
       rating: rating || undefined,
       reviewCount: reviewCount || undefined,
       address: address || undefined,
-      photo: photo || (photos.length > 0 ? photos[0] : undefined),
-      photos: photos.length > 0 ? photos : undefined,
+      workingHours: workingHours || undefined,
+      photo,
+      photos: photos.length > 0 ? photos.slice(0, 5) : undefined,
       resolvedUrl: destinationUrl,
     });
   } catch (err: any) {

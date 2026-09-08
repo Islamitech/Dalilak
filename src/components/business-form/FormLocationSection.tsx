@@ -38,6 +38,7 @@ interface FormLocationSectionProps {
   setSelectedGroup?: (group: string) => void;
   setStreet?: (street: string) => void;
   setPhotos?: React.Dispatch<React.SetStateAction<string[]>>;
+  setWorkingHours?: (hours: string) => void;
 }
 
 export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
@@ -63,6 +64,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
   setSelectedGroup,
   setStreet,
   setPhotos,
+  setWorkingHours,
 }) => {
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [extractedNotice, setExtractedNotice] = useState<string | null>(null);
@@ -94,14 +96,18 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
         if (data.resolvedUrl) {
           setAlreadyGoogleMapsUrl(data.resolvedUrl);
         }
+        if (data.workingHours && setWorkingHours) {
+          setWorkingHours(data.workingHours);
+        }
         if (data.photos && data.photos.length > 0 && setPhotos) {
-          setPhotos(data.photos);
+          setPhotos(data.photos.slice(0, 5));
         }
 
         const summaryParts = [
           data.name ? `الاسم: ${data.name}` : null,
           data.category ? `🏷️ تصنيف Google: ${data.category}${data.group ? ` (${data.group})` : ''}` : null,
-          data.photos && data.photos.length > 0 ? `الصور: تم سحب ${data.photos.length} صور من Google` : null,
+          data.workingHours ? `⏰ المواعيد: ${data.workingHours}` : null,
+          data.photos && data.photos.length > 0 ? `الصور: تم سحب ${Math.min(data.photos.length, 5)} صور من Google` : null,
           data.city ? `المنطقة: ${data.city}` : null,
           data.phone ? `الهاتف: ${data.phone}` : null,
         ]

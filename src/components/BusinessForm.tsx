@@ -671,6 +671,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             setSelectedGroup={setSelectedGroup}
             setStreet={setStreet}
             setPhotos={setPhotos}
+            setWorkingHours={setWorkingHours}
           />
 
           {/* 3. بيانات صاحب النشاط والتواصل */}

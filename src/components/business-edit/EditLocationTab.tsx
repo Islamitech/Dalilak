@@ -88,8 +88,9 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
         setFormData((prev) => {
           if (!prev) return prev;
           const existingPhotos = prev.photos || [];
-          const incomingPhotos = (data.photos && data.photos.length > 0) ? data.photos : (data.photo ? [data.photo] : []);
-          const mergedPhotos = Array.from(new Set([...existingPhotos, ...incomingPhotos]));
+          const rawIncoming = (data.photos && data.photos.length > 0) ? data.photos : (data.photo ? [data.photo] : []);
+          const incomingPhotos = rawIncoming.slice(0, 5);
+          const mergedPhotos = Array.from(new Set([...existingPhotos, ...incomingPhotos])).slice(0, 10);
           return {
             ...prev,
             category: data.category || prev.category,
@@ -100,12 +101,14 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             city: data.city || prev.city,
             street: data.street || prev.street,
             phone: data.phone || prev.phone,
+            workingHours: data.workingHours || prev.workingHours,
             photos: mergedPhotos.length > 0 ? mergedPhotos : prev.photos,
           };
         });
-        const photoNotice = (data.photos && data.photos.length > 0) ? ` وسحب ${data.photos.length} صور` : (data.photo ? ' وسحب صورة الغلاف' : '');
+        const photoNotice = (data.photos && data.photos.length > 0) ? ` وسحب ${Math.min(data.photos.length, 5)} صور` : (data.photo ? ' وسحب صورة الغلاف' : '');
+        const hoursNotice = data.workingHours ? ' وتحديث مواعيد وساعات العمل' : '';
         const catNotice = data.category ? ` وتصنيفها (${data.category})` : '';
-        const msg = `✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات${catNotice}${photoNotice} بنجاح من خرائط Google!`;
+        const msg = `✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات${catNotice}${hoursNotice}${photoNotice} بنجاح من خرائط Google!`;
         setSyncNotice(msg);
         if (onShowNotification) onShowNotification(msg);
         setTimeout(() => setSyncNotice(null), 6000);

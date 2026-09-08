@@ -16,6 +16,7 @@ export interface ExtractedGooglePlace {
   rating?: number;
   reviewCount?: number;
   address?: string;
+  workingHours?: string;
   photo?: string;
   photos?: string[];
   resolvedUrl: string;
@@ -117,7 +118,7 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
         const classified = classifyPlaceCategory(classificationTarget);
 
         const finalPhotos = Array.isArray(data.photos) && data.photos.length > 0
-          ? data.photos
+          ? data.photos.slice(0, 5)
           : (data.photo ? [data.photo] : undefined);
 
         return {
@@ -134,6 +135,7 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
           rating: data.rating,
           reviewCount: data.reviewCount,
           address: data.address,
+          workingHours: data.workingHours,
           photo: data.photo || (finalPhotos && finalPhotos.length > 0 ? finalPhotos[0] : undefined),
           photos: finalPhotos,
           resolvedUrl: data.resolvedUrl || cleanUrl,
