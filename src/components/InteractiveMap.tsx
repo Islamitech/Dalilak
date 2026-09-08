@@ -1,99 +1,27 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Business } from '../types';
-import {
-  fetchLocationAddress,
-  searchPlacesInEgypt,
-  parseLocationQuery,
-  LocationAddressData,
-  PlaceSearchResult,
-} from '../utils/geocoding';
-import { sanitizeExternalUrl } from '../utils/urlSanitizer';
-import {
-  MapPin,
-  Navigation,
-  Copy,
-  ExternalLink,
-  Check,
-  Phone,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Minimize2,
-  ChevronUp,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Crosshair,
-  Zap,
-  Eye,
-  Search,
-  Layers,
-  Loader2,
-  CheckCircle2,
-  X,
-  Target,
-  Sparkles,
-} from 'lucide-react';
+import { fetchLocationAddress } from '../utils/geocoding';
 import { triggerHaptic } from '../utils/haptics';
+import {
+  MapTileLayerType,
+  InteractiveMapProps,
+  escapeHtml,
+  GOVERNORATE_COORDS,
+  getTileLayerConfig,
+  MapHeaderBar,
+  MapSearchBox,
+  MapFloatingControls,
+  MapSelectedBusinessDrawer,
+  MapFooterBar,
+} from './map';
+
+export type { MapTileLayerType, InteractiveMapProps };
 
 declare global {
   interface Window {
     L: any;
   }
 }
-
-export type MapTileLayerType = 'google-hybrid' | 'google-streets' | 'cartodb';
-
-function escapeHtml(str?: string | null): string {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-interface InteractiveMapProps {
-  mode?: 'picker' | 'view';
-  lat?: number;
-  lng?: number;
-  onLocationSelect?: (lat: number, lng: number, addressDetails?: LocationAddressData) => void;
-  businesses?: Business[];
-  onSelectBusiness?: (biz: Business) => void;
-  onEditBusiness?: (biz: Business) => void;
-  heightClass?: string;
-}
-
-// Egyptian governorate approximate coordinates map (Hadayek Al-Ahram Giza Focus)
-const GOVERNORATE_COORDS: Record<string, { lat: number; lng: number }> = {
-  'الجيزة': { lat: 29.9753, lng: 31.1120 }, // حدائق الأهرام - الجيزة
-  'القاهرة': { lat: 30.0444, lng: 31.2357 },
-  'الإسكندرية': { lat: 31.2001, lng: 29.9187 },
-  'الدقهلية (المنصورة)': { lat: 31.0409, lng: 31.3785 },
-  'الغربية (طنطا)': { lat: 30.7865, lng: 31.0004 },
-  'الشرقية (الزقازيق)': { lat: 30.5877, lng: 31.5020 },
-  'القليوبية (بنها)': { lat: 30.4660, lng: 31.1852 },
-  'المنوفية (شبين الكوم)': { lat: 30.5503, lng: 31.0106 },
-  'البحيرة (دمنهور)': { lat: 31.0361, lng: 30.4682 },
-  'كفر الشيخ': { lat: 31.1107, lng: 30.9388 },
-  'دمياط': { lat: 31.4175, lng: 31.8144 },
-  'بورسعيد': { lat: 31.2653, lng: 32.3019 },
-  'الإسماعيلية': { lat: 30.5965, lng: 32.2715 },
-  'السويس': { lat: 29.9668, lng: 32.5498 },
-  'الفيوم': { lat: 29.3084, lng: 30.8428 },
-  'بني سويف': { lat: 29.0661, lng: 31.0994 },
-  'المنيا': { lat: 28.0871, lng: 30.7618 },
-  'أسيوط': { lat: 27.1783, lng: 31.1859 },
-  'سوهاج': { lat: 26.5569, lng: 31.6948 },
-  'قنا': { lat: 26.1551, lng: 32.7160 },
-  'الأقصر': { lat: 25.6872, lng: 32.6396 },
-  'أسوان': { lat: 24.0889, lng: 32.8998 },
-  'مطروح': { lat: 31.3543, lng: 27.2373 },
-  'البحر الأحمر (الغردقة)': { lat: 27.2579, lng: 33.8116 },
-  'جنوب سيناء (شرم الشيخ)': { lat: 27.9158, lng: 34.3299 },
-};
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   mode = 'view',
@@ -110,19 +38,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [zoomLevel, setZoomLevel] = useState<number>(16);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [isLocating, setIsLocating] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
   // High precision controls & Layer switcher (Default: Official Google Streets)
   const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
-  
+
   // Mobile Touch Scroll Lock: on touch devices, dragging is disabled by default so single-finger touch scrolls the page
   const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
   const [isTouchDraggingEnabled, setIsTouchDraggingEnabled] = useState<boolean>(!isTouchDevice);
@@ -133,40 +56,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const markersGroupRef = useRef<any>(null);
   const pickerMarkerRef = useRef<any>(null);
   const accuracyCircleRef = useRef<any>(null);
-  const searchTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     setCurrentLat(lat);
     setCurrentLng(lng);
   }, [lat, lng]);
-
-  // Tile layer URL resolver
-  const getTileLayerConfig = (type: MapTileLayerType) => {
-    switch (type) {
-      case 'google-hybrid':
-        return {
-          url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-          maxZoom: 20,
-          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-          attribution: 'Imagery © Google',
-        };
-      case 'cartodb':
-        return {
-          url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-          maxZoom: 19,
-          subdomains: 'abcd',
-          attribution: '© CartoDB / OpenStreetMap',
-        };
-      case 'google-streets':
-      default:
-        return {
-          url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-          maxZoom: 20,
-          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-          attribution: 'Map data © Google',
-        };
-    }
-  };
 
   // Switch Tile Layer
   const switchTileLayer = (newType: MapTileLayerType) => {
@@ -518,40 +412,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     updateSelectedPosition(center.lat, center.lng, false);
   };
 
-  // Search input handler with debounce
-  const handleSearchChange = (text: string) => {
-    setSearchQuery(text);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-    // Check if direct coordinate or Google Maps link was pasted
-    const parsed = parseLocationQuery(text);
-    if (parsed) {
-      updateSelectedPosition(parsed.lat, parsed.lng, true, 18);
-      setShowSearchResults(false);
-      return;
-    }
-
-    if (text.trim().length >= 2) {
-      setIsSearching(true);
-      setShowSearchResults(true);
-      searchTimeoutRef.current = setTimeout(async () => {
-        const results = await searchPlacesInEgypt(text);
-        setSearchResults(results);
-        setIsSearching(false);
-      }, 400);
-    } else {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      setIsSearching(false);
-    }
-  };
-
-  const handleSelectSearchResult = (res: PlaceSearchResult) => {
-    updateSelectedPosition(res.lat, res.lng, true, 18);
-    setSearchQuery(res.displayName.split(',')[0]);
-    setShowSearchResults(false);
-  };
-
   // Directional Pan Controls
   const handlePan = (direction: 'up' | 'down' | 'left' | 'right') => {
     if (!leafletMapRef.current) return;
@@ -569,7 +429,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const handleZoomIn = () => leafletMapRef.current?.zoomIn();
   const handleZoomOut = () => leafletMapRef.current?.zoomOut();
 
-  // Reset Position to default Cairo
+  // Reset Position to default Cairo / initial coords
   const handleResetPosition = () => {
     if (leafletMapRef.current) {
       leafletMapRef.current.flyTo([lat, lng], 16, { duration: 0.8 });
@@ -584,15 +444,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       updateSelectedPosition(coords.lat, coords.lng, true, 14);
     }
   };
-
-  const handleCopyCoords = () => {
-    const coordsStr = `${currentLat.toFixed(6)}, ${currentLng.toFixed(6)}`;
-    navigator.clipboard.writeText(coordsStr);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
 
   const containerClasses = isExpanded
     ? 'fixed inset-2 sm:inset-5 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
@@ -619,155 +470,26 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       <div className={containerClasses}>
         {/* Map Header Bar */}
-        <div className="bg-[var(--map-header-bg)] p-2.5 sm:p-3 border-b border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 z-20">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow">
-              <MapPin className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1.5">
-                <span>{mode === 'picker' ? 'تحديد وتوجيه موقع النشاط بدقة خريطة جوجل' : 'خريطة الأنشطة والتوثيق الميداني المباشر'}</span>
-                <span className="bg-emerald-500/15 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-emerald-400" />
-                  <span>دقة قمر صناعي 100%</span>
-                </span>
-              </h4>
-              <p className="text-[10px] text-amber-400 font-medium">
-                {mode === 'picker'
-                  ? 'انقر على أي نقطة، أو اسحب الدبوس بدقة، أو ابحث باسم الشارع / الصق رابط جوجل ماب'
-                  : `إجمالي ${filteredBusinessesCount} نشاط تجاري موثق على الخريطة`}
-              </p>
-            </div>
-          </div>
-
-          {/* Controls Bar Right Side */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Tile Layer Switcher Pills */}
-            <div className="flex items-center bg-[var(--input-bg)] p-0.5 rounded-xl border border-[var(--border-color)] text-[11px] font-bold">
-              <button
-                type="button"
-                onClick={() => switchTileLayer('google-streets')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                  tileLayer === 'google-streets'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                title="عرض خريطة شوارع جوجل الرسمية (Google Streets)"
-              >
-                <span>🗺️ شوارع جوجل</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => switchTileLayer('google-hybrid')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                  tileLayer === 'google-hybrid'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                title="عرض القمر الصناعي المباشر من جوجل (Satellite + Labels)"
-              >
-                <span>🛰️ قمر صناعي</span>
-              </button>
-            </div>
-
-            {/* Governorate Switcher Dropdown */}
-            <select
-              value={selectedGovFilter}
-              onChange={(e) => handleGovChange(e.target.value)}
-              className="bg-[var(--input-bg)] hover:bg-amber-500/10 border border-[var(--border-color)] text-amber-600 dark:text-amber-300 font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
-              title="الانتقال المباشر للمحافظة"
-            >
-              <option value="all">كل المحافظات</option>
-              {Object.keys(GOVERNORATE_COORDS).map((g) => (
-                <option key={g} value={g}>
-                  📍 {g}
-                </option>
-              ))}
-            </select>
-
-            {/* GPS Locator Button */}
-            {mode === 'picker' && (
-              <button
-                type="button"
-                onClick={handleGetLocation}
-                disabled={isLocating}
-                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-black px-3 py-1.5 rounded-xl shadow transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
-                title="تحديد موقعي الحالي بأعلى دقة قمر صناعي GPS"
-              >
-                {isLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5 fill-slate-950" />}
-                <span>{isLocating ? 'جاري التحديد...' : 'موقعي الفعلي'}</span>
-              </button>
-            )}
-
-            {/* Fullscreen Expand / Minimize Button */}
-            <button
-              type="button"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
-                isExpanded
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg'
-                  : 'bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border-[var(--border-color)]'
-              }`}
-              title={isExpanded ? 'إنهاء وضع الشاشة الكاملة' : 'توسيع الخريطة ملء الشاشة'}
-            >
-              {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
+        <MapHeaderBar
+          mode={mode}
+          filteredBusinessesCount={filteredBusinessesCount}
+          tileLayer={tileLayer}
+          onSwitchTileLayer={switchTileLayer}
+          selectedGovFilter={selectedGovFilter}
+          onGovChange={handleGovChange}
+          isLocating={isLocating}
+          onGetLocation={handleGetLocation}
+          isExpanded={isExpanded}
+          onToggleExpand={() => setIsExpanded(!isExpanded)}
+        />
 
         {/* 🔍 Search & Quick Jump / Paste Box */}
         {mode === 'picker' && (
-          <div className="relative bg-[var(--map-header-bg)] px-3 py-2 border-b border-[var(--map-header-border)] z-30">
-            <div className="relative flex items-center">
-              <Search className="absolute right-3 w-4 h-4 text-amber-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                onFocus={() => {
-                  if (searchResults.length > 0) setShowSearchResults(true);
-                }}
-                placeholder="🔍 ابحث عن اسم شارع أو ميدان، أو الصق إحداثيات أو رابط جوجل ماب مباشرة..."
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-xl pr-9 pl-8 py-2 focus:outline-none focus:border-amber-500 shadow-inner"
-              />
-              {isSearching && (
-                <Loader2 className="absolute left-8 w-4 h-4 text-amber-500 animate-spin" />
-              )}
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSearchResults([]);
-                    setShowSearchResults(false);
-                  }}
-                  className="absolute left-2.5 text-slate-400 hover:text-white p-0.5"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Search Suggestions Dropdown */}
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute top-full right-3 left-3 mt-1 bg-slate-950/95 border border-amber-500/40 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden z-40 max-h-60 overflow-y-auto divide-y divide-slate-800">
-                {searchResults.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSelectSearchResult(item)}
-                    className="w-full text-right p-3 hover:bg-amber-500/20 text-xs text-white transition-colors flex items-start gap-2 cursor-pointer"
-                  >
-                    <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold text-amber-300">{item.displayName.split(',')[0]}</div>
-                      <div className="text-[11px] text-slate-300 line-clamp-1">{item.displayName}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <MapSearchBox
+            onSelectPosition={(sLat, sLng, fly, zoom) =>
+              updateSelectedPosition(sLat, sLng, fly, zoom)
+            }
+          />
         )}
 
         {/* High-Performance Canvas Container */}
@@ -777,270 +499,43 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             className={`w-full ${mapHeight} z-10 cursor-crosshair`}
           />
 
-          {/* 🖐️ Mobile Touch Drag Toggle Pill (Prevents page scroll trap on touch devices) */}
-          {isTouchDevice && !isExpanded && (
-            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20">
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !isTouchDraggingEnabled;
-                  setIsTouchDraggingEnabled(next);
-                  triggerHaptic('selection');
-                }}
-                className={`px-3 py-1.5 rounded-full text-[10.5px] font-black shadow-lg border backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isTouchDraggingEnabled
-                    ? 'bg-amber-500 text-slate-950 border-amber-400'
-                    : 'bg-slate-900/85 text-amber-400 border-amber-500/40 hover:bg-slate-900'
-                }`}
-              >
-                <span>{isTouchDraggingEnabled ? '🔒 قفل الخريطة (لتمرير الصفحة)' : '🖐️ تفعيل تحريك الخريطة باللمس'}</span>
-              </button>
-            </div>
-          )}
-
-          {/* 🎯 Precision Center Reticle Crosshair (Overlay in center of screen) */}
-          {centerReticleActive && mode === 'picker' && (
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
-              <div className="relative flex items-center justify-center">
-                {/* Outer Crosshair Ring */}
-                <div className="w-16 h-16 rounded-full border-2 border-amber-400/80 border-dashed animate-spin-slow flex items-center justify-center shadow-2xl bg-amber-500/10" />
-                {/* Center Cross lines */}
-                <div className="absolute w-24 h-0.5 bg-amber-400/90" />
-                <div className="absolute h-24 w-0.5 bg-amber-400/90" />
-                {/* Center Dot */}
-                <div className="absolute w-3 h-3 rounded-full bg-amber-400 border-2 border-slate-950 shadow-lg" />
-              </div>
-            </div>
-          )}
-
-          {/* FLOATING CONTROLS TOOLBAR OVER MAP */}
-          {/* 1. Zoom, Center Pin, & Reset Controls (Top Right Overlay) */}
-          <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              className="bg-[var(--map-control-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer"
-              title="تكبير الخريطة (+)"
-            >
-              <ZoomIn className="w-4 h-4 stroke-[2.5]" />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              className="bg-[var(--map-control-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer"
-              title="تصغير الخريطة (-)"
-            >
-              <ZoomOut className="w-4 h-4 stroke-[2.5]" />
-            </button>
-
-            {mode === 'picker' && (
-              <button
-                type="button"
-                onClick={handlePinCenterOfMap}
-                className="bg-[var(--map-control-bg)] hover:bg-amber-500 text-amber-500 hover:text-slate-950 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer"
-                title="تثبيت الدبوس في منتصف شاشة الخريطة الحالية"
-              >
-                <Target className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            )}
-
-            {mode === 'picker' && (
-              <button
-                type="button"
-                onClick={() => setCenterReticleActive(!centerReticleActive)}
-                className={`p-2 rounded-xl border shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 cursor-pointer ${
-                  centerReticleActive
-                    ? 'bg-amber-500 text-slate-950 border-amber-400'
-                    : 'bg-[var(--map-control-bg)] hover:bg-amber-500/20 text-amber-500 border-[var(--map-control-border)]'
-                }`}
-                title="تفعيل/إلغاء علامة التصويب الدقيقة (Crosshair Target)"
-              >
-                <Crosshair className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={handleResetPosition}
-              className="bg-[var(--map-control-bg)] hover:bg-amber-500/10 text-amber-500 p-2 rounded-xl border border-[var(--map-control-border)] shadow-xl transition-all font-bold text-xs flex items-center justify-center active:scale-95 mt-1 cursor-pointer"
-              title="إعادة ضبط الموضع للمركز"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* 2. D-PAD Directional Pan Movement Controls (Top Left Overlay) */}
-          <div className="absolute top-3 left-3 bg-[var(--map-control-bg)] border border-[var(--map-control-border)] p-1.5 rounded-2xl shadow-2xl backdrop-blur-md z-20 flex flex-col items-center gap-1">
-            <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">تحريك دقيق</span>
-
-            <button
-              type="button"
-              onClick={() => handlePan('up')}
-              className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
-              title="تحريك لأعلى"
-            >
-              <ChevronUp className="w-4 h-4 stroke-[3]" />
-            </button>
-
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => handlePan('left')}
-                className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
-                title="تحريك لليسار"
-              >
-                <ChevronLeft className="w-4 h-4 stroke-[3]" />
-              </button>
-
-              <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-500 flex items-center justify-center text-[10px] font-bold">
-                <Crosshair className="w-3 h-3" />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handlePan('right')}
-                className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
-                title="تحريك لليمين"
-              >
-                <ChevronRight className="w-4 h-4 stroke-[3]" />
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handlePan('down')}
-              className="bg-[var(--input-bg)] hover:bg-amber-500 text-[var(--map-control-text)] hover:text-slate-950 p-1.5 rounded-lg border border-[var(--map-control-border)] transition-colors cursor-pointer"
-              title="تحريك لأسفل"
-            >
-              <ChevronDown className="w-4 h-4 stroke-[3]" />
-            </button>
-          </div>
+          {/* Floating Controls Overlay */}
+          <MapFloatingControls
+            mode={mode}
+            isTouchDevice={isTouchDevice}
+            isExpanded={isExpanded}
+            isTouchDraggingEnabled={isTouchDraggingEnabled}
+            onToggleTouchDragging={() => {
+              const next = !isTouchDraggingEnabled;
+              setIsTouchDraggingEnabled(next);
+              triggerHaptic('selection');
+            }}
+            centerReticleActive={centerReticleActive}
+            onToggleCenterReticle={() => setCenterReticleActive(!centerReticleActive)}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onPinCenterOfMap={handlePinCenterOfMap}
+            onResetPosition={handleResetPosition}
+            onPan={handlePan}
+          />
 
           {/* Selected Business Card Drawer on Map View */}
           {mode === 'view' && selectedBiz && (
-            <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3 bg-slate-950/95 border border-amber-500/40 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-xl z-30 flex flex-col gap-2.5 animate-fade-in-scale">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/40">
-                      {selectedBiz.category}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      selectedBiz.verificationStatus === 'verified'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                    }`}>
-                      {selectedBiz.verificationStatus === 'verified' ? 'معتمد 🟢' : 'قيد المراجعة ⏳'}
-                    </span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-black text-white mt-1.5">{selectedBiz.nameAr}</h3>
-                  <p className="text-xs text-slate-300 font-medium">
-                    {selectedBiz.governorate} - {selectedBiz.city} {selectedBiz.street ? `(${selectedBiz.street})` : ''}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedBiz(null)}
-                  className="text-slate-400 hover:text-white text-xs font-black w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer transition-colors"
-                  aria-label="إغلاق"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
-                <div className="flex items-center gap-1.5 text-slate-300 font-mono text-xs">
-                  <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>{selectedBiz.ownerPhone || 'لا يوجد هاتف'}</span>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {onEditBusiness && (
-                    <button
-                      type="button"
-                      onClick={() => onEditBusiness(selectedBiz)}
-                      className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow cursor-pointer transition-transform active:scale-95"
-                      title="عرض وتعديل كافة البيانات في نافذة خاصة"
-                    >
-                      <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>عرض وتعديل</span>
-                    </button>
-                  )}
-                  {selectedBiz.ownerPhone && (
-                    <a
-                      href={`https://wa.me/20${selectedBiz.ownerPhone.replace(/\D/g, '').replace(/^0/, '')}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 sm:flex-none bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 transition-colors"
-                    >
-                      واتساب
-                    </a>
-                  )}
-                  {/* Google Maps Verified Link: Only active when official verified URL exists */}
-                  {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
-                    <a
-                      href={sanitizeExternalUrl(selectedBiz.googleMapsUrl.trim())}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow transition-colors"
-                      title="الموقع موثق رسمياً: فتح على خرائط Google"
-                    >
-                      <span>الخريطة الموثقة 🗺️</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  ) : (
-                    <span
-                      className="flex-1 sm:flex-none bg-slate-800/90 text-amber-400 text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1 border border-amber-500/30 cursor-default"
-                      title="الموقع غير مدرج بعد على خرائط Google (قيد مراجعة وتوثيق الإدارة ⏳)"
-                    >
-                      <span>قيد التوثيق ⏳</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+            <MapSelectedBusinessDrawer
+              business={selectedBiz}
+              onClose={() => setSelectedBiz(null)}
+              onEditBusiness={onEditBusiness}
+            />
           )}
         </div>
 
         {/* GPS Coordinates & Footer Toolbar */}
-        <div className="bg-[var(--map-footer-bg)] p-2.5 sm:p-3 border-t border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 text-xs z-20">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[var(--text-muted)] font-bold text-[11px]">الإحداثيات الحالية:</span>
-            <span className="font-mono bg-[var(--map-coord-bg)] px-2.5 py-1 rounded-xl border border-[var(--border-color)] text-[var(--map-coord-text)] font-black tracking-wide dir-ltr text-xs">
-              {currentLat.toFixed(6)}, {currentLng.toFixed(6)}
-            </span>
-            <span className="text-[10px] text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md">
-              تكبير: {zoomLevel}x
-            </span>
-            {gpsAccuracy !== null && (
-              <span className="text-[10px] font-black text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>دقة GPS: ±{gpsAccuracy}متر</span>
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopyCoords}
-              className="flex items-center gap-1 bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] transition-all font-bold text-[11px] cursor-pointer"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
-              <span>{copied ? 'تم النسخ!' : 'نسخ الإحداثيات'}</span>
-            </button>
-
-            <a
-              href={googleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-slate-950 font-black text-[11px] bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 px-3 py-1.5 rounded-xl shadow transition-transform active:scale-95"
-            >
-              <span>مطابقة وفتح في جوجل ماب</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
+        <MapFooterBar
+          currentLat={currentLat}
+          currentLng={currentLng}
+          zoomLevel={zoomLevel}
+          gpsAccuracy={gpsAccuracy}
+        />
       </div>
     </>
   );
