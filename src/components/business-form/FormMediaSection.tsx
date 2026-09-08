@@ -1,12 +1,15 @@
-import React from 'react';
-import { Camera, Loader2, UploadCloud } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, Loader2, UploadCloud, Zap } from 'lucide-react';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
+import { extractGooglePlaceData } from '../../utils/googlePlaceExtractor';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface FormMediaSectionProps {
   photos: string[];
   setPhotos: React.Dispatch<React.SetStateAction<string[]>>;
   isUploadingPhoto: boolean;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  googleMapsUrl?: string;
 }
 
 export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
@@ -14,7 +17,38 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
   setPhotos,
   isUploadingPhoto,
   handleFileUpload,
+  googleMapsUrl,
 }) => {
+  const [isPullingGooglePhotos, setIsPullingGooglePhotos] = useState<boolean>(false);
+  const [pullNotice, setPullNotice] = useState<string | null>(null);
+
+  const handlePullGooglePhotos = async () => {
+    if (!googleMapsUrl?.trim()) {
+      alert('يرجى كتابة أو لصق رابط خرائط Google في قسم الموقع أولاً');
+      return;
+    }
+    triggerHaptic('medium');
+    setIsPullingGooglePhotos(true);
+    setPullNotice('جاري سحب الصور من خرائط Google...');
+
+    try {
+      const data = await extractGooglePlaceData(googleMapsUrl);
+      if (data && data.photos && data.photos.length > 0) {
+        setPhotos((prev) => Array.from(new Set([...prev, ...data.photos!])));
+        setPullNotice(`✅ تم سحب ${data.photos.length} صور من خرائط Google بنجاح!`);
+        setTimeout(() => setPullNotice(null), 5000);
+      } else {
+        setPullNotice('⚠️ لم يتم العثور على صور إضافية على رابط خرائط Google');
+        setTimeout(() => setPullNotice(null), 4000);
+      }
+    } catch {
+      setPullNotice('⚠️ حدث خطأ أثناء الاتصال بمحرك استخراج الصور');
+      setTimeout(() => setPullNotice(null), 4000);
+    } finally {
+      setIsPullingGooglePhotos(false);
+    }
+  };
+
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-color)]">
@@ -25,7 +59,24 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
           </h3>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Pull Photos from Google Maps */}
+          {Boolean(googleMapsUrl && googleMapsUrl.trim().length > 0) && (
+            <button
+              type="button"
+              disabled={isPullingGooglePhotos}
+              onClick={handlePullGooglePhotos}
+              className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-black px-3.5 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md"
+            >
+              {isPullingGooglePhotos ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4" />
+              )}
+              <span>{isPullingGooglePhotos ? 'جاري السحب...' : 'سحب صور Google ⚡'}</span>
+            </button>
+          )}
+
           {/* Direct Camera Capture */}
           <label className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md">
             {isUploadingPhoto ? (
@@ -57,6 +108,13 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
           </label>
         </div>
       </div>
+
+      {pullNotice && (
+        <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 text-xs font-bold flex items-center gap-2 animate-fade-in">
+          {isPullingGooglePhotos && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />}
+          <span>{pullNotice}</span>
+        </div>
+      )}
 
       {photos.length === 0 ? (
         <div className="border-2 border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center space-y-2 bg-[var(--input-bg)]/50">

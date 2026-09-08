@@ -118,12 +118,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let rating: number | undefined = undefined;
     let reviewCount: number | undefined = undefined;
     let photo: string | undefined = undefined;
+    const photos: string[] = [];
+    const seenHashes = new Set<string>();
 
     const ogImageMatch =
       htmlContent.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
       htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
-    if (ogImageMatch && ogImageMatch[1] && !ogImageMatch[1].includes('google_maps_logo')) {
-      photo = ogImageMatch[1];
+    if (ogImageMatch && ogImageMatch[1] && !ogImageMatch[1].includes('google_maps_logo') && !ogImageMatch[1].includes('staticmap')) {
+      const rawOg = ogImageMatch[1];
+      const cleanOg = rawOg.replace(/=w\d+-h\d+.*$/, '=s1600').replace(/=s\d+.*$/, '=s1600');
+      photo = cleanOg;
+      photos.push(cleanOg);
+
+      const ogHashMatch = rawOg.match(/\/p\/([A-Za-z0-9_-]+)/);
+      if (ogHashMatch) seenHashes.add(ogHashMatch[1]);
+    }
+
+    // Extract all Google Photos CDN photo hashes (AF1Qip...)
+    const lhRegex = /https:\/\/(?:lh[3-6]\.googleusercontent\.com|lh[3-6]\.ggpht\.com)\/p\/([A-Za-z0-9_-]{20,})/g;
+    let match: RegExpExecArray | null;
+    while ((match = lhRegex.exec(htmlContent)) !== null && photos.length < 12) {
+      const photoId = match[1];
+      if (!seenHashes.has(photoId)) {
+        seenHashes.add(photoId);
+        const fullUrl = `https://lh3.googleusercontent.com/p/${photoId}=s1600`;
+        photos.push(fullUrl);
+      }
+    }
+
+    // Extract Street View Panoramas if under limit
+    const svRegex = /https:\/\/streetviewpixels-pa\.googleapis\.com\/v1\/thumbnail\?panoid=([A-Za-z0-9_-]{15,})/g;
+    while ((match = svRegex.exec(htmlContent)) !== null && photos.length < 12) {
+      const panoId = match[1];
+      if (!seenHashes.has(panoId)) {
+        seenHashes.add(panoId);
+        const fullUrl = `https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=${panoId}&w=1200&h=800&yaw=0&pitch=0&thumbfov=90`;
+        photos.push(fullUrl);
+      }
     }
 
     const ogDescMatch =
@@ -151,7 +182,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rating: rating || undefined,
       reviewCount: reviewCount || undefined,
       address: address || undefined,
-      photo: photo || undefined,
+      photo: photo || (photos.length > 0 ? photos[0] : undefined),
+      photos: photos.length > 0 ? photos : undefined,
       resolvedUrl: destinationUrl,
     });
   } catch (err: any) {

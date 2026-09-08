@@ -36,6 +36,7 @@ interface FormLocationSectionProps {
   setOwnerPhone?: (phone: string) => void;
   setCategory?: (cat: string) => void;
   setStreet?: (street: string) => void;
+  setPhotos?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
@@ -59,6 +60,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
   setOwnerPhone,
   setCategory,
   setStreet,
+  setPhotos,
 }) => {
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [extractedNotice, setExtractedNotice] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
     }
     triggerHaptic('medium');
     setIsExtracting(true);
-    setExtractedNotice('جاري الاتصال بخرائط Google وفك الرابط واستخراج البيانات...');
+    setExtractedNotice('جاري الاتصال بخرائط Google وفك الرابط واستخراج البيانات وسحب الصور...');
 
     try {
       const data = await extractGooglePlaceData(trimmed);
@@ -89,10 +91,14 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
         if (data.resolvedUrl) {
           setAlreadyGoogleMapsUrl(data.resolvedUrl);
         }
+        if (data.photos && data.photos.length > 0 && setPhotos) {
+          setPhotos(data.photos);
+        }
 
         const summaryParts = [
           data.name ? `الاسم: ${data.name}` : null,
           data.phone ? `الهاتف: ${data.phone}` : null,
+          data.photos && data.photos.length > 0 ? `الصور: تم سحب ${data.photos.length} صور من Google` : null,
           data.city ? `المنطقة: ${data.city}` : null,
           data.category ? `الفئة: ${data.category}` : null,
         ]

@@ -87,6 +87,8 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
       if (data) {
         setFormData((prev) => {
           if (!prev) return prev;
+          const existingPhotos = prev.photos || [];
+          const mergedPhotos = Array.from(new Set([...existingPhotos, ...(data.photos || [])]));
           return {
             ...prev,
             googleMapsUrl: data.resolvedUrl || prev.googleMapsUrl,
@@ -96,9 +98,11 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             city: data.city || prev.city,
             street: data.street || prev.street,
             phone: data.phone || prev.phone,
+            photos: mergedPhotos.length > 0 ? mergedPhotos : prev.photos,
           };
         });
-        const msg = '✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات بنجاح من خرائط Google!';
+        const photoNotice = data.photos && data.photos.length > 0 ? ` وسحب ${data.photos.length} صور` : '';
+        const msg = `✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات${photoNotice} بنجاح من خرائط Google!`;
         setSyncNotice(msg);
         if (onShowNotification) onShowNotification(msg);
         setTimeout(() => setSyncNotice(null), 6000);

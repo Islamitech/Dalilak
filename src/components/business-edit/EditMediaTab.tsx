@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Business, AdminFollowUpCategory } from '../../types';
-import { UploadCloud, Film, Star, Check, ImageIcon } from 'lucide-react';
+import { UploadCloud, Film, Star, Check, ImageIcon, Zap, Loader2 } from 'lucide-react';
 import { VideoWatermarkBadge } from '../VideoWatermarkBadge';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
+import { extractGooglePlaceData } from '../../utils/googlePlaceExtractor';
 
 interface EditMediaTabProps {
   formData: Business;
@@ -48,6 +49,53 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
   onOpenMasterDrawer,
   onShowNotification,
 }) => {
+  const [isPullingGooglePhotos, setIsPullingGooglePhotos] = useState<boolean>(false);
+  const [pullGoogleNotice, setPullGoogleNotice] = useState<string | null>(null);
+
+  const handlePullGooglePhotos = async () => {
+    if (!formData.googleMapsUrl?.trim()) {
+      const msg = 'يرجى تزويد رابط خرائط Google في تبويب الموقع أولاً';
+      if (onShowNotification) onShowNotification(msg);
+      else alert(msg);
+      return;
+    }
+    setIsPullingGooglePhotos(true);
+    setPullGoogleNotice('جاري سحب الصور من خرائط Google...');
+
+    try {
+      const data = await extractGooglePlaceData(formData.googleMapsUrl);
+      if (data && data.photos && data.photos.length > 0) {
+        if (setFormData) {
+          setFormData((prev) => {
+            if (!prev) return prev;
+            const existingPhotos = prev.photos || [];
+            const merged = Array.from(new Set([...existingPhotos, ...data.photos!]));
+            return {
+              ...prev,
+              photos: merged,
+            };
+          });
+        }
+        const msg = `✅ تم سحب ${data.photos.length} صور من خرائط Google وإضافتها للمعرض!`;
+        setPullGoogleNotice(msg);
+        if (onShowNotification) onShowNotification(msg);
+        setTimeout(() => setPullGoogleNotice(null), 6000);
+      } else {
+        const msg = '⚠️ لم يتم العثور على صور إضافية على رابط خرائط Google';
+        setPullGoogleNotice(msg);
+        if (onShowNotification) onShowNotification(msg);
+        setTimeout(() => setPullGoogleNotice(null), 4000);
+      }
+    } catch {
+      const msg = '⚠️ فشل الاتصال بمحرك استخراج الصور';
+      setPullGoogleNotice(msg);
+      if (onShowNotification) onShowNotification(msg);
+      setTimeout(() => setPullGoogleNotice(null), 4000);
+    } finally {
+      setIsPullingGooglePhotos(false);
+    }
+  };
+
   return (
     <div className="space-y-3.5 text-right">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
@@ -60,7 +108,24 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Pull from Google Maps */}
+          {Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().length > 0) && (
+            <button
+              type="button"
+              disabled={isPullingGooglePhotos}
+              onClick={handlePullGooglePhotos}
+              className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-black py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
+            >
+              {isPullingGooglePhotos ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4" />
+              )}
+              <span>{isPullingGooglePhotos ? 'جاري السحب...' : 'سحب صور Google ⚡'}</span>
+            </button>
+          )}
+
           <label className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-black py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
             <UploadCloud className="w-4 h-4" />
             <span>{isUploading ? 'جاري الرفع...' : 'إضافة صور'}</span>
@@ -88,6 +153,13 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
           </label>
         </div>
       </div>
+
+      {pullGoogleNotice && (
+        <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 text-xs font-bold flex items-center gap-2 animate-fade-in">
+          {isPullingGooglePhotos && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />}
+          <span>{pullGoogleNotice}</span>
+        </div>
+      )}
 
       {/* Photos Grid */}
       {formData.photos && formData.photos.length > 0 ? (

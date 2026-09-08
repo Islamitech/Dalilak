@@ -14,6 +14,7 @@ export interface ExtractedGooglePlace {
   reviewCount?: number;
   address?: string;
   photo?: string;
+  photos?: string[];
   resolvedUrl: string;
 }
 
@@ -140,6 +141,7 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
           reviewCount: data.reviewCount,
           address: data.address,
           photo: data.photo,
+          photos: Array.isArray(data.photos) && data.photos.length > 0 ? data.photos : (data.photo ? [data.photo] : undefined),
           resolvedUrl: data.resolvedUrl || cleanUrl,
         };
       }
@@ -171,6 +173,7 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
       reviewCount: undefined,
       address: undefined,
       photo: undefined,
+      photos: undefined,
       resolvedUrl: initial.resolvedUrl || cleanUrl,
     };
   }

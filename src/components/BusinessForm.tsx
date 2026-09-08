@@ -669,6 +669,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               if (grp) setSelectedGroup(grp.group);
             }}
             setStreet={setStreet}
+            setPhotos={setPhotos}
           />
 
           {/* 3. بيانات صاحب النشاط والتواصل */}
@@ -687,6 +688,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             setPhotos={setPhotos}
             isUploadingPhoto={isUploadingPhoto}
             handleFileUpload={handleFileUpload}
+            googleMapsUrl={alreadyGoogleMapsUrl}
           />
 
           {errorMsg && (
