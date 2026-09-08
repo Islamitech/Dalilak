@@ -80,7 +80,9 @@ function addPlacePhoto(rawUrl: string, list: string[], seen: Set<string>, limit 
     rawUrl.includes('maps_512dp') ||
     rawUrl.includes('photo.jpg') ||
     rawUrl.includes('streetviewpixels') ||
-    rawUrl.includes('default_avatar')
+    rawUrl.includes('default_avatar') ||
+    rawUrl.includes('default-user') ||
+    rawUrl.includes('default-avatar')
   ) {
     return;
   }
@@ -90,6 +92,92 @@ function addPlacePhoto(rawUrl: string, list: string[], seen: Set<string>, limit 
     seen.add(baseKey);
     list.push(clean.includes('=s1600') ? clean : `${clean}=s1600`);
   }
+}
+
+/**
+ * Extracts photos exclusively belonging to the target place from Google Maps structured JSON (Update 39).
+ * Isolates place photos and strictly excludes competitor/nearby recommendation blocks (nodes [99] and [204]).
+ */
+function extractStructuredPlacePhotos(payload: string, limit = 5): string[] {
+  const photos: string[] = [];
+  const seenHashes = new Set<string>();
+  if (!payload || typeof payload !== 'string') return photos;
+
+  try {
+    let cleanJson = payload.trim();
+    if (cleanJson.startsWith(")]}'")) cleanJson = cleanJson.slice(4).trim();
+    const gjson = JSON.parse(cleanJson);
+    const json6 = gjson && gjson[6];
+
+    if (json6 && Array.isArray(json6)) {
+      // 1. Primary Featured & Storefront Photos: json[6][72]
+      if (json6[72] && Array.isArray(json6[72])) {
+        for (const group of json6[72]) {
+          if (Array.isArray(group)) {
+            for (const item of group) {
+              if (item && Array.isArray(item[6]) && typeof item[6][0] === 'string') {
+                addPlacePhoto(item[6][0], photos, seenHashes, limit);
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Identity / Hero Photo: json[6][51]
+      if (photos.length < limit && json6[51] && Array.isArray(json6[51])) {
+        for (const group of json6[51]) {
+          if (Array.isArray(group)) {
+            for (const item of group) {
+              if (item && Array.isArray(item[6]) && typeof item[6][0] === 'string') {
+                addPlacePhoto(item[6][0], photos, seenHashes, limit);
+              }
+            }
+          }
+        }
+      }
+
+      // 3. User Photos Gallery Tab ("All"): json[6][171]
+      if (photos.length < limit && json6[171] && Array.isArray(json6[171])) {
+        for (const tab of json6[171]) {
+          if (tab && tab[0] && Array.isArray(tab[0][3])) {
+            for (const photoItem of tab[0][3]) {
+              if (photoItem && Array.isArray(photoItem[6]) && typeof photoItem[6][0] === 'string') {
+                addPlacePhoto(photoItem[6][0], photos, seenHashes, limit);
+              }
+            }
+          }
+        }
+      }
+
+      // 4. Safe place-specific media arrays (excluding competitor/nearby recommendation nodes: 99, 204)
+      const safeKeys = [37, 105, 120];
+      for (const k of safeKeys) {
+        if (photos.length >= limit) break;
+        if (json6[k] && Array.isArray(json6[k])) {
+          const searchSafe = (node: unknown): void => {
+            if (photos.length >= limit || !node) return;
+            if (typeof node === 'string') {
+              if (
+                node.startsWith('https://lh3.googleusercontent.com/') ||
+                node.startsWith('https://lh5.googleusercontent.com/') ||
+                node.startsWith('https://lh4.googleusercontent.com/') ||
+                node.startsWith('https://lh6.googleusercontent.com/')
+              ) {
+                addPlacePhoto(node, photos, seenHashes, limit);
+              }
+            } else if (Array.isArray(node)) {
+              node.forEach(searchSafe);
+            }
+          };
+          searchSafe(json6[k]);
+        }
+      }
+    }
+  } catch {
+    // Ignore parse errors, fallback cleanly
+  }
+
+  return photos;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -371,40 +459,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ─────────────────────────────────────────────────────────────────────────
     let rating: number | undefined = undefined;
     let reviewCount: number | undefined = undefined;
-    const photos: string[] = [];
     const seenHashes = new Set<string>();
 
-    // 1. Photos from preload place payload
-    if (preloadPayload) {
-      const pCdnMatches =
-        preloadPayload.match(/https:\/\/[a-z0-9.-]*googleusercontent\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g) ||
-        [];
-      for (const p of pCdnMatches) {
-        addPlacePhoto(p, photos, seenHashes, 5);
-        if (photos.length >= 5) break;
+    // 1. Photos extracted exclusively for the target place (Update 39 - Anti-Bleed Isolation)
+    const photos: string[] = preloadPayload
+      ? extractStructuredPlacePhotos(preloadPayload, 5)
+      : [];
+
+    // 2. OpenGraph Cover Photo fallback (only if structured payload has no photos)
+    if (photos.length === 0) {
+      const ogImageMatch =
+        htmlContent.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
+        htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
+      if (ogImageMatch && ogImageMatch[1]) {
+        const rawOg = ogImageMatch[1].replace(/&amp;/g, '&');
+        if (!rawOg.includes('staticmap') && !rawOg.includes('google_maps_logo')) {
+          addPlacePhoto(rawOg, photos, seenHashes, 5);
+        }
       }
-    }
-
-    // 2. OpenGraph Cover Photo
-    const ogImageMatch =
-      htmlContent.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
-      htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
-    if (ogImageMatch && ogImageMatch[1]) {
-      const rawOg = ogImageMatch[1].replace(/&amp;/g, '&');
-      addPlacePhoto(rawOg, photos, seenHashes, 5);
-    }
-
-    // 3. Photos from HTML content
-    const cdnRegex = /https:\/\/[a-z0-9.-]*googleusercontent\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
-    let match: RegExpExecArray | null;
-    while ((match = cdnRegex.exec(htmlContent)) !== null && photos.length < 5) {
-      addPlacePhoto(match[0], photos, seenHashes, 5);
-    }
-
-    // 4. Photos from ggpht CDN
-    const ggRegex = /https:\/\/[a-z0-9.-]*ggpht\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
-    while ((match = ggRegex.exec(htmlContent + '\n' + preloadPayload)) !== null && photos.length < 5) {
-      addPlacePhoto(match[0], photos, seenHashes, 5);
     }
 
     const photo = photos.length > 0 ? photos[0] : undefined;
