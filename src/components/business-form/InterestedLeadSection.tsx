@@ -70,7 +70,12 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
     try {
       const data = await extractGooglePlaceData(trimmed);
       if (data) {
-        if (data.name) setLeadBizName(data.name);
+        if (data.name) {
+          setLeadBizName(data.name);
+          if (!leadClientName.trim()) setLeadClientName(data.name);
+        }
+        setIsTrendingLead(true);
+        setLeadInterest('trending_free');
         if (data.phone) setLeadPhone(data.phone);
         if (data.category) setLeadCategory(data.category);
         if (data.governorate) setLeadGov(data.governorate);
@@ -203,10 +208,13 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       // Store only clean notes text — do NOT embed raw URL in notes (Update 34: prevents card overflow)
       const combinedNotes = leadNotes.trim() || undefined;
 
+      const finalBizName = leadBizName.trim() || leadClientName.trim() || 'منشأة تجارية';
+      const finalClientName = leadClientName.trim() || leadBizName.trim() || 'صاحب المنشأة';
+
       const lead: InterestedLead = {
         id: `lead_${Date.now()}`,
-        clientName: leadClientName.trim() || 'عميل مهتم',
-        businessName: leadBizName.trim() || undefined,
+        clientName: finalClientName,
+        businessName: finalBizName,
         businessCategory: leadCategory.trim() || undefined,
         phone: leadPhone.trim(),
         governorate: leadGov,

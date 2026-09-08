@@ -713,10 +713,10 @@ export async function syncAllPendingOfflineData(
           try {
             const bizLeadPayload = {
               id: lead.id,
-              name_ar: lead.businessName || lead.clientName || 'عميل مهتم',
+              name_ar: lead.businessName || lead.clientName || 'منشأة تجارية',
               name_en: lead.clientName || null,
-              category: lead.businessCategory || 'عملاء مهتمون',
-              owner_name: lead.clientName || 'صاحب النشاط',
+              category: (lead.businessCategory && lead.businessCategory !== 'عملاء مهتمون' && lead.businessCategory !== 'عميل مهتم') ? lead.businessCategory : 'خدمات وأنشطة عامة',
+              owner_name: (lead.clientName && lead.clientName !== 'عميل مهتم') ? lead.clientName : (lead.businessName || 'صاحب المنشأة'),
               phone: cleanPhone,
               owner_phone: cleanPhone, // Required not-null constraint
               secondary_phone: lead.secondaryPhone || null,

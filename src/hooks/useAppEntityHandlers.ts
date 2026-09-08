@@ -539,8 +539,95 @@ export function useAppEntityHandlers({
   const handleConvertToBusiness = useCallback((lead: InterestedLead) => {
     setConvertingLead(lead);
     setActiveTab('add');
-    addNotification(`جاري تحويل بيانات العميل "${lead.clientName}" إلى نموذج تسجيل نشاط جديد...`, 'info');
+    const displayLeadName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
+      ? lead.businessName
+      : (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
+      ? lead.clientName
+      : 'المنشأة';
+    addNotification(`جاري تحويل بيانات "${displayLeadName}" إلى نموذج تسجيل نشاط جديد...`, 'info');
   }, [setConvertingLead, setActiveTab, addNotification]);
+
+  const handleDirectConvertLeadToBusiness = useCallback(async (lead: InterestedLead) => {
+    const cleanBizName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
+      ? lead.businessName.trim()
+      : '';
+    const cleanClientName = (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
+      ? lead.clientName.trim()
+      : '';
+    const finalNameAr = cleanBizName || cleanClientName || 'منشأة معتمدة جديدة';
+    const finalOwner = cleanClientName || cleanBizName || 'صاحب المنشأة';
+
+    const rawCat = lead.businessCategory?.trim();
+    const finalCategory = (rawCat && rawCat !== 'عميل مهتم' && rawCat !== 'عملاء مهتمون')
+      ? rawCat
+      : 'خدمات وأنشطة عامة';
+
+    const timestamp = Date.now();
+    const isTrending = Boolean(lead.isTrending || lead.interestLevel === 'trending_free');
+
+    const newBiz: Business = {
+      id: `biz_${timestamp}_${Math.random().toString(36).substring(2, 7)}`,
+      nameAr: finalNameAr,
+      category: finalCategory,
+      governorate: lead.governorate || 'القاهرة',
+      city: lead.city?.trim() || 'المركز الرئيسي',
+      street: lead.street?.trim() || 'الموقع الجغرافي المسجل على الخريطة',
+      phone: lead.phone || '',
+      secondaryPhone: lead.secondaryPhone?.trim() || undefined,
+      workingHours: 'يومياً: 10:00 ص - 10:00 م',
+      description: lead.notes?.trim() || (isTrending ? `منشأة ${finalNameAr} التجارية الرائجة بالمنطقة - معتمدة وموثقة بالدليل العام.` : `نشاط ${finalNameAr} المعتمد في ${lead.governorate}.`),
+      lat: lead.lat || 30.0444,
+      lng: lead.lng || 31.2357,
+      ownerName: finalOwner,
+      ownerPhone: lead.phone || '',
+      photos: [],
+      videos: [],
+      repId: lead.repId || currentRep.id || user?.id || 'rep_1',
+      repName: lead.repName || currentRep.name || user?.name || 'مندوب معتمد',
+      packageId: 'free_trending',
+      packageName: isTrending ? 'إدراج شرفي للأماكن الرائجة (مجاناً)' : 'إدراج معتمد وموثق',
+      packagePrice: 0,
+      amountPaid: 0,
+      paymentStatus: 'fully_paid',
+      isFeeExempt: true,
+      feeExemptionReason: isTrending
+        ? 'مكان رائج بالمنطقة معفى من الرسوم (إدراج شرفي معتمد)'
+        : 'تحويل مباشر واعتماد فوري من سجل المراجعات',
+      verificationStatus: 'verified',
+      isAlreadyOnGoogle: isTrending,
+      registrationType: isTrending ? 'already_on_google' : 'interested_lead',
+      googleMapsUrl: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : undefined),
+      googleSyncStatus: lead.locationUrl ? 'synced' : 'not_synced',
+      googleSyncDate: lead.locationUrl ? new Date().toISOString().split('T')[0] : undefined,
+      invoiceNumber: `INV-DIR-${new Date().getFullYear()}-${timestamp.toString().slice(-6)}`,
+      invoiceDate: new Date().toISOString().split('T')[0],
+      createdDate: new Date().toISOString(),
+      notes: lead.notes || undefined,
+    };
+
+    await handleAddBusiness(newBiz);
+
+    const updatedLead: InterestedLead = {
+      ...lead,
+      status: 'converted',
+      businessCategory: finalCategory,
+      businessName: finalNameAr,
+    };
+    await handleUpdateLead(updatedLead);
+
+    addNotification(`⭐ تم تحويل وتوثيق المنشأة "${finalNameAr}" فورياً كتسجيل معتمد وموثق بالدليل بنجاح!`, 'success');
+
+    addSystemNotification({
+      title: '⭐ تسجيل معتمد وموثق جديد',
+      message: `تم تحويل "${finalNameAr}" فورياً من المراجعات إلى تسجيل معتمد وموثق في الدليل.`,
+      type: 'success',
+      category: 'business',
+      targetRole: 'admin',
+      entityId: newBiz.id,
+      entityType: 'business',
+      linkTab: 'home',
+    });
+  }, [handleAddBusiness, handleUpdateLead, currentRep, user, addNotification, addSystemNotification]);
 
   // Profile Update Handler
   const handleUpdateUserProfile = useCallback(async (updatedData: Partial<Representative> & { name?: string; email?: string; avatar?: string }) => {
@@ -962,6 +1049,7 @@ export function useAppEntityHandlers({
     handleUpdateLead,
     handleDeleteLead,
     handleConvertToBusiness,
+    handleDirectConvertLeadToBusiness,
     handleUpdateUserProfile,
     handleAddRepresentative,
     handleUpdateRepresentative,

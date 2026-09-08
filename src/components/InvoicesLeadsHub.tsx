@@ -24,7 +24,7 @@ import {
   Check,
 } from 'lucide-react';
 import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User } from '../types';
-import { EGYPT_GOVERNORATES } from '../data/mockData';
+import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../data/mockData';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { formatActivityDateTime } from '../utils/dateFormatters';
 import { sanitizeExternalUrl } from '../utils/urlSanitizer';
@@ -41,6 +41,7 @@ interface InvoicesLeadsHubProps {
   onUpdateLead: (lead: InterestedLead) => void;
   onDeleteLead: (leadId: string) => void;
   onConvertToBusiness: (lead: InterestedLead) => void;
+  onDirectConvertLead?: (lead: InterestedLead) => void;
 }
 
 export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
@@ -51,6 +52,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   onUpdateLead,
   onDeleteLead,
   onConvertToBusiness,
+  onDirectConvertLead,
 }) => {
   // Leads Filter States
   const [leadSearch, setLeadSearch] = useState<string>('');
@@ -68,6 +70,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   // Quick New Lead Form States (Inside Modal)
   const [newClientName, setNewClientName] = useState<string>('');
   const [newBizName, setNewBizName] = useState<string>('');
+  const [newGroup, setNewGroup] = useState<string>('المطاعم والأغذية والمشروبات');
+  const [newCategory, setNewCategory] = useState<string>('مطعم / مأكولات ومشويات');
   const [newPhone, setNewPhone] = useState<string>('');
   const [newGovernorate, setNewGovernorate] = useState<string>('القاهرة');
   const [newCity, setNewCity] = useState<string>('');
@@ -187,10 +191,22 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     const repId = currentUser?.repData?.id || currentUser?.id || currentRep?.id || 'rep_1';
     const repName = currentUser?.repData?.name || currentUser?.name || currentRep?.name || 'مندوب معتمد';
 
+    const rawClient = newClientName.trim();
+    const rawBiz = newBizName.trim();
+    const cleanClientName = (rawClient && rawClient !== 'عميل مهتم' && rawClient !== 'عملاء مهتمون')
+      ? rawClient
+      : (rawBiz && rawBiz !== 'عميل مهتم' && rawBiz !== 'عملاء مهتمون')
+      ? rawBiz
+      : 'صاحب المنشأة';
+    const cleanBizName = (rawBiz && rawBiz !== 'عميل مهتم' && rawBiz !== 'عملاء مهتمون')
+      ? rawBiz
+      : cleanClientName;
+
     const newLead: InterestedLead = {
       id: leadId,
-      clientName: newClientName.trim(),
-      businessName: newBizName.trim() || undefined,
+      clientName: cleanClientName,
+      businessName: cleanBizName,
+      businessCategory: newCategory,
       phone: cleanPhone,
       governorate: newGovernorate,
       city: newCity.trim() || undefined,
@@ -213,6 +229,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   const resetNewLeadForm = () => {
     setNewClientName('');
     setNewBizName('');
+    setNewGroup('المطاعم والأغذية والمشروبات');
+    setNewCategory('مطعم / مأكولات ومشويات');
     setNewPhone('');
     setNewCity('');
     setNewInterestLevel('medium');
@@ -504,20 +522,40 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                         <UserCheck className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-black text-sm text-[var(--text-primary)]">{lead.clientName}</h4>
-                          {lead.businessName && (
-                            <span className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold text-[11px] px-2 py-0.5 rounded-md border border-[var(--border-color)]">
-                              {lead.businessName}
-                            </span>
-                          )}
-                          {(lead.isTrending || lead.interestLevel === 'trending_free') && (
-                            <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                              <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
-                              <span>منشأة رائجة (إدراج مجاني)</span>
-                            </span>
-                          )}
-                        </div>
+                        {(() => {
+                          const cleanBizName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
+                            ? lead.businessName.trim()
+                            : '';
+                          const cleanClientName = (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
+                            ? lead.clientName.trim()
+                            : '';
+                          const displayTitle = cleanBizName || cleanClientName || 'منشأة بدون اسم';
+                          const cleanCat = (lead.businessCategory && lead.businessCategory !== 'عميل مهتم' && lead.businessCategory !== 'عملاء مهتمون')
+                            ? lead.businessCategory
+                            : '';
+
+                          return (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-black text-sm text-[var(--text-primary)]">{displayTitle}</h4>
+                              {cleanClientName && cleanClientName !== cleanBizName && (
+                                <span className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold text-[11px] px-2 py-0.5 rounded-md border border-[var(--border-color)]">
+                                  المسؤول: {cleanClientName}
+                                </span>
+                              )}
+                              {cleanCat && (
+                                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10.5px] px-2 py-0.5 rounded-md border border-amber-500/30">
+                                  {cleanCat}
+                                </span>
+                              )}
+                              {(lead.isTrending || lead.interestLevel === 'trending_free') && (
+                                <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                  <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
+                                  <span>منشأة رائجة (إدراج مجاني)</span>
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                         <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">
                           <MapPin className="w-3 h-3" />
                           <span>{lead.governorate} {lead.city ? `- ${lead.city}` : ''} {lead.street ? `(${lead.street})` : ''}</span>
@@ -684,27 +722,36 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                       </button>
 
                       {/* 4. Convert to Registered Business */}
-                      <button
-                        type="button"
-                        onClick={() => onConvertToBusiness(lead)}
-                        className={`font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 ${
-                          lead.isTrending || lead.interestLevel === 'trending_free'
-                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
-                            : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950'
-                        }`}
-                        title={
-                          lead.isTrending || lead.interestLevel === 'trending_free'
-                            ? 'موافقة المنشأة: تحويل لإدراج شرفي مجاني بالدليل'
-                            : 'تحويل بيانات العميل فوراً إلى استكمال التسجيل'
-                        }
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>
-                          {lead.isTrending || lead.interestLevel === 'trending_free'
-                            ? '⭐ موافقة العميل: تحويل لإدراج شرفي مجاني بالدليل'
-                            : '⭐ تحويل لتسجيل معتمد'}
+                      {onDirectConvertLead && lead.status !== 'converted' && (
+                        <button
+                          type="button"
+                          onClick={() => onDirectConvertLead(lead)}
+                          className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                          title="تحويل فوري إلى نشاط معتمد وموثق بالدليل بدون رسوم"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>⭐ تحويل فوري لتسجيل معتمد</span>
+                        </button>
+                      )}
+
+                      {lead.status !== 'converted' && (
+                        <button
+                          type="button"
+                          onClick={() => onConvertToBusiness(lead)}
+                          className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 cursor-pointer transition-transform active:scale-95"
+                          title="فتح نموذج التسجيل وتعبئة البيانات يدوياً خطوة بخطوة"
+                        >
+                          <FileText className="w-3 h-3 text-amber-500" />
+                          <span>فتح بالنموذج</span>
+                        </button>
+                      )}
+
+                      {lead.status === 'converted' && (
+                        <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs px-2.5 py-1.5 rounded-xl border border-emerald-500/30 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>تم التحويل لمشترك معتمد</span>
                         </span>
-                      </button>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1 mr-auto">
@@ -892,6 +939,46 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   </div>
                 </div>
 
+                {/* Category Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">مجموعة الأنشطة *</label>
+                    <select
+                      value={newGroup}
+                      onChange={(e) => {
+                        const grpName = e.target.value;
+                        setNewGroup(grpName);
+                        const found = CATEGORY_GROUPS.find((g) => g.group === grpName);
+                        if (found && found.items.length > 0) {
+                          setNewCategory(found.items[0]);
+                        }
+                      }}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    >
+                      {CATEGORY_GROUPS.map((g) => (
+                        <option key={g.group} value={g.group}>
+                          {g.icon} {g.group}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">نوع النشاط والتصنيف *</label>
+                    <select
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    >
+                      {(CATEGORY_GROUPS.find((g) => g.group === newGroup)?.items || []).map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="block font-bold mb-1 text-[var(--text-primary)]">درجة الاهتمام</label>
@@ -984,7 +1071,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                 <div className="flex items-center gap-2">
                   <Edit className="w-5 h-5 text-amber-500" />
                   <h3 className="font-black text-base text-[var(--text-primary)]">
-                    تعديل ومتابعة: {editingLead.clientName}
+                    تعديل بيانات المنشأة والمتابعة: {editingLead.businessName || (editingLead.clientName !== 'عميل مهتم' ? editingLead.clientName : 'المراجعة')}
                   </h3>
                 </div>
                 <button
@@ -997,6 +1084,100 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
               </div>
 
               <div className="space-y-3">
+                {/* 1. Name & Venue */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم المكان / المحل *</label>
+                    <input
+                      type="text"
+                      value={editingLead.businessName || ''}
+                      onChange={(e) => setEditingLead({ ...editingLead, businessName: e.target.value })}
+                      placeholder="مثال: قصر المندي أو دكان البنا"
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم العميل / المسؤول</label>
+                    <input
+                      type="text"
+                      value={editingLead.clientName || ''}
+                      onChange={(e) => setEditingLead({ ...editingLead, clientName: e.target.value })}
+                      placeholder="اسم صاحب المنشأة أو المسؤول"
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Phone & Category */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">رقم الهاتف / واتساب *</label>
+                    <input
+                      type="tel"
+                      value={editingLead.phone || ''}
+                      onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">نوع النشاط والتصنيف *</label>
+                    <select
+                      value={editingLead.businessCategory || ''}
+                      onChange={(e) => setEditingLead({ ...editingLead, businessCategory: e.target.value })}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    >
+                      {(!editingLead.businessCategory ||
+                        editingLead.businessCategory === 'عميل مهتم' ||
+                        editingLead.businessCategory === 'عملاء مهتمون' ||
+                        !CATEGORY_GROUPS.some(g => g.items.includes(editingLead.businessCategory || ''))) && (
+                        <option value={editingLead.businessCategory || ''} disabled>
+                          ⚠️ غير مصنف ({editingLead.businessCategory || 'اختر التصنيف'})
+                        </option>
+                      )}
+                      {CATEGORY_GROUPS.map((g) => (
+                        <optgroup key={g.group} label={`${g.icon} ${g.group}`}>
+                          {g.items.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 3. Location */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المحافظة</label>
+                    <select
+                      value={editingLead.governorate || 'القاهرة'}
+                      onChange={(e) => setEditingLead({ ...editingLead, governorate: e.target.value })}
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    >
+                      {EGYPT_GOVERNORATES.map((gov) => (
+                        <option key={gov} value={gov}>
+                          {gov}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المدينة / المنطقة</label>
+                    <input
+                      type="text"
+                      value={editingLead.city || ''}
+                      onChange={(e) => setEditingLead({ ...editingLead, city: e.target.value })}
+                      placeholder="مثال: الدقي / المهندسين"
+                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="block font-bold mb-1 text-[var(--text-primary)]">حالة المتابعة</label>
@@ -1062,7 +1243,24 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      onUpdateLead(editingLead);
+                      const cleanBiz = (editingLead.businessName && editingLead.businessName !== 'عميل مهتم' && editingLead.businessName !== 'عملاء مهتمون')
+                        ? editingLead.businessName.trim()
+                        : '';
+                      const cleanClient = (editingLead.clientName && editingLead.clientName !== 'عميل مهتم' && editingLead.clientName !== 'عملاء مهتمون')
+                        ? editingLead.clientName.trim()
+                        : '';
+                      const rawCat = editingLead.businessCategory?.trim();
+                      const cleanCat = (rawCat && rawCat !== 'عميل مهتم' && rawCat !== 'عملاء مهتمون')
+                        ? rawCat
+                        : 'خدمات وأنشطة عامة';
+
+                      onUpdateLead({
+                        ...editingLead,
+                        businessName: cleanBiz || cleanClient || 'منشأة تجارية',
+                        clientName: cleanClient || cleanBiz || 'صاحب المنشأة',
+                        businessCategory: cleanCat,
+                        phone: (editingLead.phone || '').replace(/\D/g, ''),
+                      });
                       setEditingLead(null);
                     }}
                     className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-2.5 rounded-xl shadow-md cursor-pointer transition-transform active:scale-95"

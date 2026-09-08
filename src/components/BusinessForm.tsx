@@ -167,8 +167,19 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   // Sync with initialLead when prop changes
   useEffect(() => {
     if (initialLead) {
-      if (initialLead.clientName) setOwnerName(initialLead.clientName);
-      if (initialLead.businessName) setNameAr(initialLead.businessName);
+      const cleanBizName = (initialLead.businessName && initialLead.businessName !== 'عميل مهتم' && initialLead.businessName !== 'عملاء مهتمون')
+        ? initialLead.businessName.trim()
+        : '';
+      const cleanClientName = (initialLead.clientName && initialLead.clientName !== 'عميل مهتم' && initialLead.clientName !== 'عملاء مهتمون')
+        ? initialLead.clientName.trim()
+        : '';
+
+      const finalName = cleanBizName || cleanClientName || '';
+      if (finalName) setNameAr(finalName);
+      if (cleanClientName || cleanBizName) {
+        setOwnerName(cleanClientName || cleanBizName || 'صاحب النشاط');
+      }
+
       if (initialLead.phone) {
         setPhone(initialLead.phone);
         setOwnerPhone(initialLead.phone);
@@ -181,9 +192,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         setLng(initialLead.lng);
         setShowMap(true);
       }
-      if (initialLead.businessCategory) {
-        setCategory(initialLead.businessCategory);
-        const found = getGroupFromCategory(initialLead.businessCategory);
+      const rawCat = initialLead.businessCategory?.trim();
+      if (rawCat && rawCat !== 'عميل مهتم' && rawCat !== 'عملاء مهتمون') {
+        setCategory(rawCat);
+        const found = getGroupFromCategory(rawCat);
         if (found) setSelectedGroup(found.group);
       }
       if (initialLead.locationUrl) {

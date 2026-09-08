@@ -68,6 +68,7 @@ interface AdminDashboardProps {
   onUpdateLead?: (lead: InterestedLead) => void;
   onDeleteLead?: (leadId: string) => void;
   onConvertToBusiness?: (lead: InterestedLead) => void;
+  onDirectConvertLead?: (lead: InterestedLead) => void;
   initialDossierRep?: Representative | null;
   onClearInitialDossierRep?: () => void;
 }
@@ -100,6 +101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateLead,
   onDeleteLead,
   onConvertToBusiness,
+  onDirectConvertLead,
 }) => {
   // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash)
   const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash'>(() => {
@@ -665,6 +667,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onUpdateLead={onUpdateLead}
           onDeleteLead={onDeleteLead}
           onConvertToBusiness={onConvertToBusiness}
+          onDirectConvertLead={onDirectConvertLead}
           onSelectFollowUpLead={(lead) => setSelectedFollowUpLead(lead)}
         />
       )}

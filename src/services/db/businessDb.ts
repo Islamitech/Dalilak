@@ -13,9 +13,20 @@ export function getCachedBusinesses(): Business[] {
   const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
   const cached = safeParseJson<Business[]>(raw, []);
   if (Array.isArray(cached) && cached.length > 0) {
-    return cached.filter(
-      (b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
-    );
+    return cached
+      .filter(
+        (b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
+      )
+      .map((b) => {
+        if (!b.category || b.category === 'عملاء مهتمون' || b.category === 'عميل مهتم' || b.category === 'عام') {
+          const nameToCheck = ((b.nameAr || '') + ' ' + (b.description || '')).toLowerCase();
+          const cleanCat = (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية'))
+            ? 'مطعم / مأكولات ومشويات'
+            : 'خدمات وأنشطة عامة';
+          return { ...b, category: cleanCat };
+        }
+        return b;
+      });
   }
   return [];
 }

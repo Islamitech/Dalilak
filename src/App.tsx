@@ -203,6 +203,7 @@ export default function App() {
     handleUpdateLead,
     handleDeleteLead,
     handleConvertToBusiness,
+    handleDirectConvertLeadToBusiness,
     handleUpdateUserProfile,
     handleAddRepresentative,
     handleUpdateRepresentative,
@@ -504,6 +505,7 @@ export default function App() {
             onUpdateLead={handleUpdateLead}
             onDeleteLead={handleDeleteLead}
             onConvertToBusiness={handleConvertToBusiness}
+            onDirectConvertLead={handleDirectConvertLeadToBusiness}
           />
         )}
 
@@ -524,6 +526,7 @@ export default function App() {
               onUpdateLead={handleUpdateLead}
               onDeleteLead={handleDeleteLead}
               onConvertToBusiness={handleConvertToBusiness}
+              onDirectConvertLead={handleDirectConvertLeadToBusiness}
               onUpdateBusiness={handleUpdateBusiness}
               onDeleteBusiness={handleDeleteBusiness}
               onRestoreBusiness={handleRestoreBusiness}

@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
   MessageCircle,
+  AlertCircle,
 } from 'lucide-react';
 
 interface EditGeneralInfoTabProps {
@@ -109,40 +110,61 @@ export const EditGeneralInfoTab: React.FC<EditGeneralInfoTabProps> = ({
           </span>
           {isEditMode ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-              <select
-                value={getGroupFromCategory(formData.category)?.group || CATEGORY_GROUPS[0].group}
-                onChange={(e) => {
-                  const grp = CATEGORY_GROUPS.find((g) => g.group === e.target.value);
-                  if (grp && grp.items.length > 0) {
-                    setFormData({ ...formData, category: grp.items[0] });
-                  }
-                }}
-                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2 text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
-              >
-                {CATEGORY_GROUPS.map((g) => (
-                  <option key={g.group} value={g.group}>
-                    {g.icon} {g.group}
-                  </option>
-                ))}
-              </select>
+              {(() => {
+                const isKnownCategory = Boolean(getGroupFromCategory(formData.category));
+                const activeGroup = getGroupFromCategory(formData.category)?.group || CATEGORY_GROUPS[0].group;
+                const activeGroupItems = (getGroupFromCategory(formData.category) || CATEGORY_GROUPS[0]).items;
+                return (
+                  <>
+                    <select
+                      value={activeGroup}
+                      onChange={(e) => {
+                        const grp = CATEGORY_GROUPS.find((g) => g.group === e.target.value);
+                        if (grp && grp.items.length > 0) {
+                          setFormData({ ...formData, category: grp.items[0] });
+                        }
+                      }}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2 text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      {CATEGORY_GROUPS.map((g) => (
+                        <option key={g.group} value={g.group}>
+                          {g.icon} {g.group}
+                        </option>
+                      ))}
+                    </select>
 
-              <select
-                value={formData.category || ''}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full bg-[var(--bg-card)] border-2 border-amber-500 text-amber-700 dark:text-amber-300 font-black rounded-xl p-2 text-xs focus:outline-none cursor-pointer"
-              >
-                {(getGroupFromCategory(formData.category) || CATEGORY_GROUPS[0]).items.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                    <select
+                      value={formData.category || ''}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full bg-[var(--bg-card)] border-2 border-amber-500 text-amber-700 dark:text-amber-300 font-black rounded-xl p-2 text-xs focus:outline-none cursor-pointer"
+                    >
+                      {!isKnownCategory && formData.category && (
+                        <option value={formData.category} disabled className="text-rose-500 font-bold">
+                          ⚠️ {formData.category} (يرجى اختيار تصنيف معتمد)
+                        </option>
+                      )}
+                      {activeGroupItems.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                );
+              })()}
             </div>
           ) : (
             <div className="flex items-center gap-2 pt-0.5 flex-wrap">
-              <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-black px-3 py-1 rounded-xl border border-amber-500/30">
-                🏷️ {formData.category}
-              </span>
+              {!getGroupFromCategory(formData.category) ? (
+                <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-xs font-black px-3 py-1 rounded-xl border border-rose-500/30 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                  <span>{formData.category || 'غير مصنف'} (يرجى تعديل التصنيف)</span>
+                </span>
+              ) : (
+                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-black px-3 py-1 rounded-xl border border-amber-500/30">
+                  🏷️ {formData.category}
+                </span>
+              )}
             </div>
           )}
         </div>

@@ -222,11 +222,21 @@ export function mapDbToBusiness(item: any): Business {
     ? rawGoogleMapsUrl
     : undefined;
 
+  let cleanCategory = (item.category || '').trim();
+  if (!cleanCategory || cleanCategory === 'عميل مهتم' || cleanCategory === 'عملاء مهتمون' || cleanCategory === 'عام') {
+    const nameToCheck = ((item.name_ar || item.nameAr || '') + ' ' + (item.description || '')).toLowerCase();
+    if (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية')) {
+      cleanCategory = 'مطعم / مأكولات ومشويات';
+    } else {
+      cleanCategory = 'خدمات وأنشطة عامة';
+    }
+  }
+
   return {
     id: item.id || `biz_${Date.now()}`,
     nameAr: item.name_ar || item.nameAr || 'المكان',
     nameEn: item.name_en || item.nameEn,
-    category: item.category || 'عام',
+    category: cleanCategory,
     governorate: item.governorate || 'القاهرة',
     city: item.city || 'القاهرة',
     street: item.street || '',
@@ -293,7 +303,16 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.id !== undefined) record.id = biz.id;
   record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'المكان';
   if (biz.nameEn !== undefined) record.name_en = biz.nameEn?.trim() || null;
-  record.category = biz.category || 'عام';
+  let safeCategory = (biz.category || '').trim();
+  if (!safeCategory || safeCategory === 'عميل مهتم' || safeCategory === 'عملاء مهتمون' || safeCategory === 'عام') {
+    const nameToCheck = (((biz.nameAr || '') + ' ' + (biz.description || ''))).toLowerCase();
+    if (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية')) {
+      safeCategory = 'مطعم / مأكولات ومشويات';
+    } else {
+      safeCategory = 'خدمات وأنشطة عامة';
+    }
+  }
+  record.category = safeCategory;
   record.governorate = biz.governorate || 'القاهرة';
   record.city = biz.city || record.governorate || 'القاهرة';
   record.street = biz.street || 'الموقع الجغرافي المسجل على الخريطة';
@@ -422,7 +441,17 @@ export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Bus
   const record: any = {};
   if (updates.nameAr !== undefined) record.name_ar = updates.nameAr.trim();
   if (updates.nameEn !== undefined) record.name_en = updates.nameEn?.trim() || null;
-  if (updates.category !== undefined) record.category = updates.category;
+  if (updates.category !== undefined) {
+    const rawCat = (updates.category || '').trim();
+    if (!rawCat || rawCat === 'عميل مهتم' || rawCat === 'عملاء مهتمون' || rawCat === 'عام') {
+      const nameToCheck = (((updates.nameAr || baseBiz?.nameAr || '') + ' ' + (updates.description || baseBiz?.description || ''))).toLowerCase();
+      record.category = (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية'))
+        ? 'مطعم / مأكولات ومشويات'
+        : 'خدمات وأنشطة عامة';
+    } else {
+      record.category = rawCat;
+    }
+  }
   if (updates.governorate !== undefined) record.governorate = updates.governorate;
   if (updates.city !== undefined) record.city = updates.city;
   if (updates.street !== undefined) record.street = updates.street;

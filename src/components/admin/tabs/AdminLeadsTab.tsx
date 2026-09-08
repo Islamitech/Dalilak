@@ -34,6 +34,7 @@ interface AdminLeadsTabProps {
   onUpdateLead?: (lead: InterestedLead) => void;
   onDeleteLead?: (id: string) => void;
   onConvertToBusiness?: (lead: InterestedLead) => void;
+  onDirectConvertLead?: (lead: InterestedLead) => void;
   onSelectFollowUpLead: (lead: InterestedLead) => void;
 }
 
@@ -44,6 +45,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
   onUpdateLead,
   onDeleteLead,
   onConvertToBusiness,
+  onDirectConvertLead,
   onSelectFollowUpLead,
 }) => {
   const [leadSearchQuery, setLeadSearchQuery] = useState<string>('');
@@ -263,25 +265,48 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                 {/* Top Row */}
                 <div className="flex items-start justify-between gap-2 border-b border-[var(--border-color)] pb-2.5">
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-black text-sm text-[var(--text-primary)]">
-                        {lead.businessName || `عميل: ${lead.clientName}`}
-                      </h4>
-                      {lead.interestLevel === 'high' && (
-                        <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30">
-                          اهتمام مرتفع
-                        </span>
-                      )}
-                      {lead.interestLevel === 'medium' && (
-                        <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
-                          اهتمام متوسط
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
-                      صاحب النشاط: <strong className="text-[var(--text-primary)]">{lead.clientName}</strong>
-                      {lead.businessCategory && ` • ${lead.businessCategory}`}
-                    </p>
+                    {(() => {
+                      const cleanBizName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
+                        ? lead.businessName.trim()
+                        : '';
+                      const cleanClientName = (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
+                        ? lead.clientName.trim()
+                        : '';
+                      const displayTitle = cleanBizName || cleanClientName || 'منشأة تجارية';
+                      const cleanCat = (lead.businessCategory && lead.businessCategory !== 'عميل مهتم' && lead.businessCategory !== 'عملاء مهتمون')
+                        ? lead.businessCategory
+                        : '';
+                      return (
+                        <>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-black text-sm text-[var(--text-primary)]">
+                              {displayTitle}
+                            </h4>
+                            {lead.interestLevel === 'high' && (
+                              <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30">
+                                اهتمام مرتفع
+                              </span>
+                            )}
+                            {lead.interestLevel === 'medium' && (
+                              <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                                اهتمام متوسط
+                              </span>
+                            )}
+                            {(lead.isTrending || lead.interestLevel === 'trending_free') && (
+                              <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                منشأة رائجة (إدراج مجاني)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            {cleanClientName && cleanClientName !== cleanBizName && (
+                              <span>صاحب النشاط: <strong className="text-[var(--text-primary)]">{cleanClientName}</strong></span>
+                            )}
+                            {cleanCat && <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px] font-bold">{cleanCat}</span>}
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Status Selector */}
@@ -423,14 +448,26 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {onDirectConvertLead && lead.status !== 'converted' && (
+                      <button
+                        type="button"
+                        onClick={() => onDirectConvertLead(lead)}
+                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
+                        title="تحويل فوري إلى نشاط معتمد وموثق بالدليل"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>تحويل فوري لتسجيل معتمد</span>
+                      </button>
+                    )}
                     {onConvertToBusiness && lead.status !== 'converted' && (
                       <button
                         type="button"
                         onClick={() => onConvertToBusiness(lead)}
-                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
+                        className="px-2.5 py-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] border border-[var(--border-color)] font-bold text-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                        title="فتح نموذج التسجيل وتعديل البيانات يدوياً"
                       >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>تحويل إلى نشاط مسجل</span>
+                        <FileText className="w-3 h-3 text-amber-500" />
+                        <span>بالنموذج</span>
                       </button>
                     )}
                     {lead.status === 'converted' && (

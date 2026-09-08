@@ -117,9 +117,9 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
           }
           leadMap.set(b.id, {
             id: b.id,
-            clientName: b.owner_name || b.name_ar || 'عميل مهتم',
-            businessName: b.name_ar !== b.owner_name ? b.name_ar : undefined,
-            businessCategory: b.category,
+            clientName: (b.owner_name && b.owner_name !== 'عميل مهتم') ? b.owner_name : (b.name_ar || 'صاحب المنشأة'),
+            businessName: b.name_ar,
+            businessCategory: (b.category && b.category !== 'عملاء مهتمون' && b.category !== 'عميل مهتم') ? b.category : (notesData.businessCategory || undefined),
             phone: b.phone || b.owner_phone || '',
             secondaryPhone: b.secondary_phone,
             governorate: b.governorate || 'الجيزة',
@@ -201,10 +201,10 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
       try {
         const bizLeadPayload = {
           id: lead.id,
-          name_ar: lead.businessName || lead.clientName || 'عميل مهتم',
+          name_ar: lead.businessName || lead.clientName || 'منشأة تجارية',
           name_en: lead.clientName || null,
-          category: lead.businessCategory || 'عملاء مهتمون',
-          owner_name: lead.clientName || 'صاحب النشاط',
+          category: (lead.businessCategory && lead.businessCategory !== 'عملاء مهتمون' && lead.businessCategory !== 'عميل مهتم') ? lead.businessCategory : 'خدمات وأنشطة عامة',
+          owner_name: (lead.clientName && lead.clientName !== 'عميل مهتم') ? lead.clientName : (lead.businessName || 'صاحب المنشأة'),
           phone: cleanPhone,
           owner_phone: cleanPhone, // Required not-null constraint
           secondary_phone: lead.secondaryPhone || null,
