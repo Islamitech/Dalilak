@@ -55,10 +55,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
   });
 
-  const handleExploreAround = useCallback(() => {
+  const handleExploreAround = useCallback((governorate = 'الجيزة', city = 'حدائق الأهرام') => {
     setShowOnboarding(false);
-    setGovFilter('الجيزة');
-    setCityFilter('حدائق الأهرام');
+    setGovFilter(governorate);
+    setCityFilter(city);
     const elem = document.getElementById('explore');
     if (elem) {
       elem.scrollIntoView({ behavior: 'smooth' });

@@ -1,285 +1,72 @@
 import React, { useState } from 'react';
-import {
-  Compass,
-  Search,
-  Sparkles,
-  MapPin,
-  UtensilsCrossed,
-  HeartPulse,
-  Wrench,
-  ArrowLeft,
-} from 'lucide-react';
+import { ArrowLeft, Compass, HeartPulse, MapPin, Navigation, Search, Sparkles, Store, UtensilsCrossed, Wrench } from 'lucide-react';
 
 export interface InteractiveOnboardingExperienceProps {
-  onExploreAround: () => void;
+  onExploreAround: (governorate?: string, city?: string) => void;
   onSearchSpecific: () => void;
   onAddBusinessFree: () => void;
   onSkip: () => void;
 }
 
-export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExperienceProps> = ({
-  onExploreAround,
-  onSearchSpecific,
-  onAddBusinessFree,
-  onSkip,
-}) => {
-  const [isExiting, setIsExiting] = useState<boolean>(false);
-  const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
+type Intent = 'explore' | 'search' | 'add' | 'skip';
 
-  const handleAction = (intent: 'explore' | 'search' | 'add' | 'skip') => {
+const mapStops = [
+  { id: 'alex', name: 'الإسكندرية', detail: 'الساحل الشمالي', governorate: 'الإسكندرية', city: 'الإسكندرية', x: '26%', y: '22%' },
+  { id: 'giza', name: 'الجيزة', detail: 'حدائق الأهرام', governorate: 'الجيزة', city: 'حدائق الأهرام', x: '44%', y: '38%' },
+  { id: 'cairo', name: 'القاهرة', detail: 'القاهرة الكبرى', governorate: 'القاهرة', city: 'مدينة نصر', x: '52%', y: '36%' },
+  { id: 'luxor', name: 'الأقصر', detail: 'صعيد مصر', governorate: 'الأقصر', city: 'الأقصر', x: '48%', y: '72%' },
+];
+
+export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExperienceProps> = ({ onExploreAround, onSearchSpecific, onAddBusinessFree, onSkip }) => {
+  const [isExiting, setIsExiting] = useState(false);
+  const [selectedIntent, setSelectedIntent] = useState<Intent | null>(null);
+  const [selectedStop, setSelectedStop] = useState('giza');
+
+  const handleAction = (intent: Intent, area = mapStops.find((stop) => stop.id === selectedStop)) => {
+    if (isExiting) return;
     setSelectedIntent(intent);
     setIsExiting(true);
-
-    try {
-      localStorage.setItem('dalelak_onboarding_completed', 'true');
-    } catch {}
-
-    setTimeout(() => {
-      if (intent === 'explore') onExploreAround();
+    try { localStorage.setItem('dalelak_onboarding_completed', 'true'); } catch {}
+    window.setTimeout(() => {
+      if (intent === 'explore') onExploreAround(area?.governorate, area?.city);
       else if (intent === 'search') onSearchSpecific();
       else if (intent === 'add') onAddBusinessFree();
       else onSkip();
-    }, 450);
+    }, 280);
   };
 
   return (
-    <div
-      className={`fixed inset-0 z-[999999] bg-slate-950/98 backdrop-blur-2xl flex flex-col justify-between text-white font-['Cairo',sans-serif] overflow-hidden select-none transition-all duration-500 ${
-        isExiting ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
-      }`}
-      style={{ direction: 'rtl' }}
-    >
-      {/* Dynamic Background Mesh Glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/3 left-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:28px_28px] opacity-35" />
+    <div className={`fixed inset-0 z-[999999] overflow-y-auto bg-[#f8fafc] font-['Cairo',sans-serif] text-slate-900 transition-all duration-300 ${isExiting ? 'pointer-events-none opacity-0' : 'opacity-100'}`} style={{ direction: 'rtl' }}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_at_50%_-12%,rgba(251,191,36,.27),transparent_62%)]" />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 sm:py-7">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-amber-400 shadow-lg shadow-slate-900/15"><Compass className="h-5 w-5" /></div><div><p className="text-sm font-black text-slate-950">منصة دليلك</p><p className="text-[11px] font-bold text-slate-500">دليل الأنشطة والخدمات في مصر</p></div></div>
+          <button type="button" onClick={() => handleAction('skip')} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-amber-300 hover:text-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-100 cursor-pointer"><span>تخطي وابدأ الاستكشاف</span><ArrowLeft className="h-3.5 w-3.5" /></button>
+        </header>
+
+        <main className="mx-auto grid w-full max-w-5xl flex-1 items-center gap-6 py-6 lg:grid-cols-[1.04fr_.96fr] lg:py-10">
+          <section className="order-2 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/[.06] sm:p-7 lg:order-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-700"><Sparkles className="h-3.5 w-3.5" /> دليلك يبدأ من مكانك</span>
+            <h1 className="mt-3 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">ما الذي تبحث عنه اليوم؟</h1><p className="mt-2 max-w-lg text-sm font-bold leading-6 text-slate-500">اختر وجهتك وسنفتح الدليل بالطريقة الأنسب لك فوراً.</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <button type="button" onClick={() => handleAction('explore')} className={`rounded-2xl border-2 p-4 text-right transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-amber-100 cursor-pointer ${selectedIntent === 'explore' ? 'border-amber-500 bg-amber-100' : 'border-amber-300 bg-amber-50 hover:bg-amber-100'}`}><span className="mb-5 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm"><Navigation className="h-4 w-4" /></span><strong className="block text-sm font-black text-slate-900">اكتشف حولي</strong><span className="mt-1 block text-[11px] font-bold leading-5 text-slate-500">خدمات موثوقة قربك</span></button>
+              <button type="button" onClick={() => handleAction('search')} className={`rounded-2xl border p-4 text-right transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-slate-100 cursor-pointer ${selectedIntent === 'search' ? 'border-slate-400 bg-slate-100' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'}`}><span className="mb-5 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white"><Search className="h-4 w-4" /></span><strong className="block text-sm font-black text-slate-900">ابحث عن خدمة</strong><span className="mt-1 block text-[11px] font-bold leading-5 text-slate-500">بالاسم أو التصنيف</span></button>
+              <button type="button" onClick={() => handleAction('add')} className={`rounded-2xl border p-4 text-right transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-emerald-100 cursor-pointer ${selectedIntent === 'add' ? 'border-emerald-500 bg-emerald-100' : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100'}`}><span className="mb-5 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white"><Store className="h-4 w-4" /></span><strong className="block text-sm font-black text-slate-900">أضف نشاطك</strong><span className="mt-1 block text-[11px] font-bold leading-5 text-slate-500">ابدأ ظهورك مجاناً</span></button>
+            </div>
+          </section>
+
+          <section className="order-1 rounded-[2rem] border border-amber-200 bg-white p-4 shadow-xl shadow-amber-900/[.05] sm:p-6 lg:order-2">
+            <div className="mb-3 flex items-start justify-between"><div><h2 className="text-base font-black text-slate-900">استكشف على خريطة مصر</h2><p className="mt-1 text-[11px] font-bold text-slate-500">اختر مدينة للبدء — جميع النقاط قابلة للضغط</p></div><MapPin className="h-5 w-5 text-amber-500" /></div>
+            <div className="relative mx-auto aspect-[1.12/1] max-w-md overflow-hidden rounded-3xl border border-slate-100 bg-[linear-gradient(145deg,#f8fcff,#ecf4f6)]">
+              <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" role="img" aria-label="خريطة مصر المبسطة"><defs><linearGradient id="egyptLand" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fffdf4" /><stop offset="1" stopColor="#f5ead0" /></linearGradient></defs><path d="M12 20 L61 20 L69 23 L78 21 L88 27 L86 35 L80 42 L74 43 L68 39 L64 44 L61 54 L59 69 L56 87 L51 94 L46 86 L44 70 L42 57 L38 48 L30 44 L21 39 L15 31 Z" fill="url(#egyptLand)" stroke="#c58b22" strokeWidth="1.2" strokeLinejoin="round" /><path d="M63 20 L72 28 L80 42 L74 43 L68 39 L64 44" fill="#f8efdb" stroke="#c58b22" strokeWidth="1" strokeLinejoin="round" /><path d="M48 22 C47 31 45 38 47 46 C49 52 46 59 48 67 C49 76 50 84 51 92" fill="none" stroke="#38bdf8" strokeWidth="1.25" strokeLinecap="round" /><path d="M16 17 H60" stroke="#7dd3fc" strokeWidth="1" strokeDasharray="2 2" /><text x="21" y="14" fill="#64748b" fontSize="3.2" fontWeight="700">البحر المتوسط</text><text x="80" y="62" fill="#94a3b8" fontSize="3.2" fontWeight="700" transform="rotate(72 80 62)">البحر الأحمر</text></svg>
+              {mapStops.map((stop) => { const active = selectedStop === stop.id; return <button key={stop.id} type="button" onClick={() => { setSelectedStop(stop.id); handleAction('explore', stop); }} className={`group absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white p-1.5 shadow-lg transition focus:outline-none focus:ring-4 focus:ring-amber-200 cursor-pointer ${active ? 'scale-125 bg-amber-500' : 'bg-slate-900 hover:scale-110 hover:bg-amber-500'}`} style={{ left: stop.x, top: stop.y }} aria-label={`استكشف ${stop.name}`} title={`استكشف ${stop.name}`}><span className="block h-1.5 w-1.5 rounded-full bg-white" /><span className={`pointer-events-none absolute right-1/2 top-full mt-2 w-max translate-x-1/2 rounded-lg border px-2 py-1 text-[10px] font-black shadow-sm transition ${active ? 'border-amber-200 bg-amber-50 text-amber-800 opacity-100' : 'border-slate-200 bg-white text-slate-600 opacity-0 group-hover:opacity-100'}`}>{stop.name} · {stop.detail}</span></button>; })}
+              <div className="absolute bottom-3 right-3 left-3 rounded-2xl border border-slate-200 bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black text-slate-900">{mapStops.find((stop) => stop.id === selectedStop)?.name}</p><p className="text-[10px] font-bold text-slate-500">اضغط على أي نقطة لبدء الاستكشاف</p></div><button type="button" onClick={() => handleAction('explore')} className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white transition hover:bg-amber-500 hover:text-slate-950 cursor-pointer">استكشف <ArrowLeft className="h-3.5 w-3.5" /></button></div></div>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px] font-bold text-slate-500"><span className="inline-flex items-center justify-center gap-1 rounded-lg bg-amber-50 py-1.5 text-amber-800"><UtensilsCrossed className="h-3 w-3" /> مطاعم</span><span className="inline-flex items-center justify-center gap-1 rounded-lg bg-rose-50 py-1.5 text-rose-700"><HeartPulse className="h-3 w-3" /> صيدليات</span><span className="inline-flex items-center justify-center gap-1 rounded-lg bg-sky-50 py-1.5 text-sky-700"><Wrench className="h-3 w-3" /> خدمات</span></div>
+          </section>
+        </main>
+        <p className="pb-1 text-center text-[11px] font-bold text-slate-400">يمكنك إعادة هذه الجولة لاحقاً من قائمة الموقع.</p>
       </div>
-
-      {/* Top Header Bar */}
-      <header className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-5 sm:pt-7 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shadow-lg shadow-amber-500/10">
-            <span className="text-amber-400 font-black text-sm">د</span>
-          </div>
-          <div>
-            <span className="text-xs font-black tracking-wider text-amber-400 uppercase">منظومة دليلك</span>
-            <span className="text-[10px] block text-slate-400 font-bold">بوابتك الجغرافية الشاملة</span>
-          </div>
-        </div>
-
-        <button
-          onClick={() => handleAction('skip')}
-          className="group flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 text-xs font-bold transition-all duration-200 cursor-pointer shadow-md hover:scale-105 active:scale-95"
-          aria-label="تخطي الافتتاحية"
-        >
-          <span>تخطي وابدأ الاستكشاف</span>
-          <ArrowLeft className="w-3.5 h-3.5 text-amber-400 group-hover:-translate-x-0.5 transition-transform" />
-        </button>
-      </header>
-
-      {/* Middle Interactive Map Canvas with Egypt Silhouette & Golden Pulse */}
-      <main className="relative z-10 flex-1 w-full max-w-4xl mx-auto px-4 flex flex-col items-center justify-center my-auto">
-        <div className="relative w-full max-w-[420px] sm:max-w-[480px] aspect-[4/3] flex items-center justify-center">
-          {/* Stylized Vector Silhouette of Egypt */}
-          <svg
-            viewBox="0 0 500 400"
-            className="w-full h-full opacity-35 drop-shadow-[0_0_25px_rgba(245,158,11,0.15)]"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Egypt Outline & Nile Valley Aesthetic Path */}
-            <path
-              d="M 120,40 C 180,45 280,42 360,55 C 380,60 410,90 400,120 C 430,160 440,240 420,330 C 370,340 310,345 220,345 C 130,345 110,330 90,280 C 80,210 85,110 120,40 Z"
-              fill="url(#egyptGradient)"
-              stroke="#d97706"
-              strokeWidth="1.5"
-              strokeDasharray="4 3"
-              className="opacity-50"
-            />
-            {/* The Nile Flow */}
-            <path
-              d="M 270,55 Q 260,110 250,150 T 265,230 T 240,310 T 255,345"
-              stroke="#0284c7"
-              strokeWidth="2"
-              strokeLinecap="round"
-              className="opacity-40"
-            />
-            {/* Sinai Peninsula */}
-            <path
-              d="M 360,55 C 380,80 410,105 385,145 C 370,120 355,90 360,55 Z"
-              fill="#d97706"
-              fillOpacity="0.08"
-              stroke="#d97706"
-              strokeWidth="1"
-              className="opacity-40"
-            />
-            <defs>
-              <linearGradient id="egyptGradient" x1="100" y1="40" x2="420" y2="345" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#f59e0b" stopOpacity="0.07" />
-                <stop offset="0.5" stopColor="#0f172a" stopOpacity="0.4" />
-                <stop offset="1" stopColor="#10b981" stopOpacity="0.05" />
-              </linearGradient>
-            </defs>
-          </svg>
-
-          {/* Golden Beacon Center (Hadayek El Ahram / Giza Focal Point) */}
-          <div className="absolute top-[32%] left-[49%] -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-            {/* Golden Radiating Waves */}
-            <div className="absolute w-28 h-28 rounded-full bg-amber-500/20 animate-ping opacity-60 pointer-events-none" />
-            <div className="absolute w-20 h-20 rounded-full border border-amber-400/40 bg-amber-500/10 animate-pulse pointer-events-none" />
-            <div className="absolute w-12 h-12 rounded-full border-2 border-amber-400/80 bg-amber-400/30 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.6)]">
-              <span className="w-3.5 h-3.5 rounded-full bg-amber-300 shadow-[0_0_10px_#fde047]" />
-            </div>
-
-            {/* Current Default Position Pill */}
-            <div className="absolute -top-10 whitespace-nowrap bg-gradient-to-r from-slate-900/95 to-slate-950/95 border border-amber-500/50 text-amber-300 px-3 py-1 rounded-full text-[11px] font-black shadow-xl backdrop-blur-md flex items-center gap-1.5 animate-bounce">
-              <MapPin className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span>موقعك الافتراضي: حدائق الأهرام، الجيزة</span>
-            </div>
-          </div>
-
-          {/* 1. Micro-Beacon: Restaurant (مطعم) */}
-          <div
-            className="absolute top-[16%] right-[10%] sm:right-[15%] flex items-center gap-2 bg-slate-900/90 border border-amber-500/40 hover:border-amber-400 px-2.5 py-1.5 rounded-xl shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-105 animate-fade-in"
-            style={{ animationDelay: '200ms' }}
-          >
-            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-              <UtensilsCrossed className="w-3.5 h-3.5" />
-            </div>
-            <div className="text-right">
-              <span className="text-[11px] font-black text-amber-300 block leading-tight">مطعم وكافيه</span>
-              <span className="text-[9px] text-slate-400 font-bold">توثيق مباشر</span>
-            </div>
-          </div>
-
-          {/* 2. Micro-Beacon: Pharmacy (صيدلية) */}
-          <div
-            className="absolute top-[62%] right-[8%] sm:right-[12%] flex items-center gap-2 bg-slate-900/90 border border-emerald-500/40 hover:border-emerald-400 px-2.5 py-1.5 rounded-xl shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-105 animate-fade-in"
-            style={{ animationDelay: '400ms' }}
-          >
-            <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-              <HeartPulse className="w-3.5 h-3.5" />
-            </div>
-            <div className="text-right">
-              <span className="text-[11px] font-black text-emerald-300 block leading-tight">صيدلية وطوارئ</span>
-              <span className="text-[9px] text-slate-400 font-bold">خدمة 24 ساعة</span>
-            </div>
-          </div>
-
-          {/* 3. Micro-Beacon: Auto Service (خدمة سيارات) */}
-          <div
-            className="absolute top-[50%] left-[8%] sm:left-[12%] flex items-center gap-2 bg-slate-900/90 border border-cyan-500/40 hover:border-cyan-400 px-2.5 py-1.5 rounded-xl shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-105 animate-fade-in"
-            style={{ animationDelay: '600ms' }}
-          >
-            <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-              <Wrench className="w-3.5 h-3.5" />
-            </div>
-            <div className="text-right">
-              <span className="text-[11px] font-black text-cyan-300 block leading-tight">خدمة سيارات</span>
-              <span className="text-[9px] text-slate-400 font-bold">صيانة وإحداثيات GPS</span>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Bottom Action Intent Box */}
-      <footer className="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 pb-6 sm:pb-8">
-        <div className="bg-gradient-to-b from-slate-900/90 to-slate-950/95 border border-amber-500/30 rounded-3xl p-4 sm:p-6 shadow-2xl backdrop-blur-xl">
-          {/* Question Title */}
-          <div className="text-center mb-4 sm:mb-5">
-            <div className="inline-flex items-center gap-1.5 text-amber-400 text-xs font-black uppercase tracking-wider mb-1">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>دليلك يبدأ من مكانك</span>
-            </div>
-            <h2 className="text-lg sm:text-2xl font-black text-white">ما الذي تبحث عنه اليوم؟</h2>
-            <p className="text-xs text-slate-400 font-bold mt-1 max-w-md mx-auto">
-              اختر وجهتك وسنقوم بضبط الفلاتر وعرض أهم المحلات والخدمات حولك فورياً.
-            </p>
-          </div>
-
-          {/* 3 Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-            {/* Action 1: Explore Around */}
-            <button
-              type="button"
-              onClick={() => handleAction('explore')}
-              className={`group relative overflow-hidden p-3.5 rounded-2xl text-right transition-all duration-200 cursor-pointer border ${
-                selectedIntent === 'explore'
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 scale-[1.02]'
-                  : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border-amber-500/50 hover:border-amber-400 text-white hover:bg-amber-500/30'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Compass className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
-                  الموصى به
-                </span>
-              </div>
-              <div className="font-black text-sm sm:text-base text-amber-300 group-hover:text-amber-200">
-                اكتشف حولي
-              </div>
-              <div className="text-[10.5px] text-slate-300 font-bold mt-0.5 leading-tight">
-                أنشطة وخدمات حدائق الأهرام
-              </div>
-            </button>
-
-            {/* Action 2: Search Specific */}
-            <button
-              type="button"
-              onClick={() => handleAction('search')}
-              className={`group relative overflow-hidden p-3.5 rounded-2xl text-right transition-all duration-200 cursor-pointer border ${
-                selectedIntent === 'search'
-                  ? 'bg-slate-800 text-white border-white scale-[1.02]'
-                  : 'bg-slate-900/80 border-slate-700/80 hover:border-slate-500 text-white hover:bg-slate-800/80'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-800 text-slate-200 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Search className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">
-                  بحث دقيق
-                </span>
-              </div>
-              <div className="font-black text-sm sm:text-base text-white">
-                محل أو خدمة محددة
-              </div>
-              <div className="text-[10.5px] text-slate-400 font-bold mt-0.5 leading-tight">
-                بالاسم، التصنيف أو التخصص
-              </div>
-            </button>
-
-            {/* Action 3: Add Business Free */}
-            <button
-              type="button"
-              onClick={() => handleAction('add')}
-              className={`group relative overflow-hidden p-3.5 rounded-2xl text-right transition-all duration-200 cursor-pointer border ${
-                selectedIntent === 'add'
-                  ? 'bg-emerald-600 text-white border-emerald-400 scale-[1.02]'
-                  : 'bg-gradient-to-r from-emerald-500/15 to-teal-500/10 border-emerald-500/40 hover:border-emerald-400 text-white hover:bg-emerald-500/25'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
-                  مجاناً 0 ج.م
-                </span>
-              </div>
-              <div className="font-black text-sm sm:text-base text-emerald-300 group-hover:text-emerald-200">
-                أضف نشاطك مجاناً
-              </div>
-              <div className="text-[10.5px] text-slate-300 font-bold mt-0.5 leading-tight">
-                وثّق محلك وانضم لدليل مصر
-              </div>
-            </button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
