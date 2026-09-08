@@ -52,7 +52,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   const [isLocatingLead, setIsLocatingLead] = useState<boolean>(false);
   const [leadLocationNotice, setLeadLocationNotice] = useState<string | null>(null);
 
-  // ⚡ Google Maps Link-First Instant Importer State
+  const [leadCategory, setLeadCategory] = useState<string>('');
   const [leadGoogleUrl, setLeadGoogleUrl] = useState<string>('');
   const [isExtractingLead, setIsExtractingLead] = useState<boolean>(false);
   const [leadExtractNotice, setLeadExtractNotice] = useState<string | null>(null);
@@ -72,6 +72,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       if (data) {
         if (data.name) setLeadBizName(data.name);
         if (data.phone) setLeadPhone(data.phone);
+        if (data.category) setLeadCategory(data.category);
         if (data.governorate) setLeadGov(data.governorate);
         if (data.city) setLeadCity(data.city);
         if (data.street) setLeadStreet(data.street);
@@ -86,6 +87,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
 
         const summaryParts = [
           data.name ? `الاسم: ${data.name}` : null,
+          data.category ? `🏷️ التصنيف: ${data.category}${data.group ? ` (${data.group})` : ''}` : null,
           data.phone ? `الهاتف: ${data.phone}` : null,
           data.city ? `المنطقة: ${data.city}` : null,
         ]
@@ -210,6 +212,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         id: `lead_${Date.now()}`,
         clientName: leadClientName.trim() || 'عميل مهتم',
         businessName: leadBizName.trim() || undefined,
+        businessCategory: leadCategory.trim() || undefined,
         phone: leadPhone.trim(),
         governorate: leadGov,
         city: leadCity.trim() || undefined,

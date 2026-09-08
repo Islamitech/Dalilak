@@ -64,19 +64,23 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
 
     try {
       const data = await extractGooglePlaceData(formData.googleMapsUrl);
-      if (data && data.photos && data.photos.length > 0) {
+      const incomingPhotos = (data && data.photos && data.photos.length > 0)
+        ? data.photos
+        : (data && data.photo ? [data.photo] : []);
+
+      if (incomingPhotos.length > 0) {
         if (setFormData) {
           setFormData((prev) => {
             if (!prev) return prev;
             const existingPhotos = prev.photos || [];
-            const merged = Array.from(new Set([...existingPhotos, ...data.photos!]));
+            const merged = Array.from(new Set([...existingPhotos, ...incomingPhotos]));
             return {
               ...prev,
               photos: merged,
             };
           });
         }
-        const msg = `✅ تم سحب ${data.photos.length} صور من خرائط Google وإضافتها للمعرض!`;
+        const msg = `✅ تم سحب ${incomingPhotos.length} صور من خرائط Google وإضافتها للمعرض!`;
         setPullGoogleNotice(msg);
         if (onShowNotification) onShowNotification(msg);
         setTimeout(() => setPullGoogleNotice(null), 6000);

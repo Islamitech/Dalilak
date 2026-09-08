@@ -35,6 +35,7 @@ interface FormLocationSectionProps {
   setNameAr?: (name: string) => void;
   setOwnerPhone?: (phone: string) => void;
   setCategory?: (cat: string) => void;
+  setSelectedGroup?: (group: string) => void;
   setStreet?: (street: string) => void;
   setPhotos?: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -59,6 +60,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
   setNameAr,
   setOwnerPhone,
   setCategory,
+  setSelectedGroup,
   setStreet,
   setPhotos,
 }) => {
@@ -80,6 +82,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
       if (data) {
         if (data.name && setNameAr) setNameAr(data.name);
         if (data.phone && setOwnerPhone) setOwnerPhone(data.phone);
+        if (data.group && setSelectedGroup) setSelectedGroup(data.group);
         if (data.category && setCategory) setCategory(data.category);
         if (data.governorate) setGovernorate(data.governorate);
         if (data.city) setCity(data.city);
@@ -97,10 +100,10 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
 
         const summaryParts = [
           data.name ? `الاسم: ${data.name}` : null,
-          data.phone ? `الهاتف: ${data.phone}` : null,
+          data.category ? `🏷️ تصنيف Google: ${data.category}${data.group ? ` (${data.group})` : ''}` : null,
           data.photos && data.photos.length > 0 ? `الصور: تم سحب ${data.photos.length} صور من Google` : null,
           data.city ? `المنطقة: ${data.city}` : null,
-          data.category ? `الفئة: ${data.category}` : null,
+          data.phone ? `الهاتف: ${data.phone}` : null,
         ]
           .filter(Boolean)
           .join(' • ');

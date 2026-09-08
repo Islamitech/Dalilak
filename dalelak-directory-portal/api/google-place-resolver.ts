@@ -43,8 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         method: 'GET',
         redirect: 'follow',
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'User-Agent': 'Twitterbot/1.0',
           'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
         },
         signal: controller.signal,
@@ -58,6 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     let placeName = '';
+    let extractedAddressFromTitle: string | undefined = undefined;
+
     const placeUrlMatch = destinationUrl.match(/\/place\/([^/@?]+)/);
     if (placeUrlMatch) {
       try {
@@ -71,7 +72,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       htmlContent.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
       htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i);
     if (ogTitleMatch && ogTitleMatch[1]) {
-      const parsedOg = cleanPlaceName(ogTitleMatch[1]);
+      let parsedOg = cleanPlaceName(ogTitleMatch[1]);
+      if (parsedOg.includes('·')) {
+        const parts = parsedOg.split('·');
+        parsedOg = parts[0].trim();
+        if (parts[1]) {
+          extractedAddressFromTitle = parts.slice(1).join('·').trim();
+        }
+      }
       if (parsedOg && (!placeName || parsedOg.length > placeName.length)) {
         placeName = parsedOg;
       }
@@ -114,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    let address: string | undefined = undefined;
+    let address: string | undefined = extractedAddressFromTitle;
     let rating: number | undefined = undefined;
     let reviewCount: number | undefined = undefined;
     let photo: string | undefined = undefined;
@@ -124,24 +132,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ogImageMatch =
       htmlContent.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
       htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
-    if (ogImageMatch && ogImageMatch[1] && !ogImageMatch[1].includes('google_maps_logo') && !ogImageMatch[1].includes('staticmap')) {
-      const rawOg = ogImageMatch[1];
-      const cleanOg = rawOg.replace(/=w\d+-h\d+.*$/, '=s1600').replace(/=s\d+.*$/, '=s1600');
-      photo = cleanOg;
-      photos.push(cleanOg);
-
-      const ogHashMatch = rawOg.match(/\/p\/([A-Za-z0-9_-]+)/);
-      if (ogHashMatch) seenHashes.add(ogHashMatch[1]);
+    if (ogImageMatch && ogImageMatch[1]) {
+      const rawOg = ogImageMatch[1].replace(/&amp;/g, '&');
+      if (!rawOg.includes('google_maps_logo') && !rawOg.includes('staticmap') && !rawOg.includes('maps_512dp')) {
+        const cleanOg = rawOg.replace(/=w\d+-h\d+.*$/, '=s1600').replace(/=s\d+.*$/, '=s1600');
+        photo = cleanOg;
+        photos.push(cleanOg);
+        seenHashes.add(cleanOg);
+      }
     }
 
-    // Extract all Google Photos CDN photo hashes (AF1Qip...)
-    const lhRegex = /https:\/\/(?:lh[3-6]\.googleusercontent\.com|lh[3-6]\.ggpht\.com)\/p\/([A-Za-z0-9_-]{20,})/g;
+    // Extract all Google Photos CDN photo URLs (/p/, /gps-cs-s/, /gps-proxy/)
+    const cdnRegex = /https:\/\/[a-z0-9.-]*googleusercontent\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
     let match: RegExpExecArray | null;
-    while ((match = lhRegex.exec(htmlContent)) !== null && photos.length < 12) {
-      const photoId = match[1];
-      if (!seenHashes.has(photoId)) {
-        seenHashes.add(photoId);
-        const fullUrl = `https://lh3.googleusercontent.com/p/${photoId}=s1600`;
+    while ((match = cdnRegex.exec(htmlContent)) !== null && photos.length < 12) {
+      const rawUrl = match[0];
+      const fullUrl = `${rawUrl}=s1600`;
+      if (!seenHashes.has(rawUrl) && !seenHashes.has(fullUrl)) {
+        seenHashes.add(rawUrl);
+        seenHashes.add(fullUrl);
+        photos.push(fullUrl);
+      }
+    }
+
+    // Extract ggpht CDN photos
+    const ggRegex = /https:\/\/[a-z0-9.-]*ggpht\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
+    while ((match = ggRegex.exec(htmlContent)) !== null && photos.length < 12) {
+      const rawUrl = match[0];
+      const fullUrl = `${rawUrl}=s1600`;
+      if (!seenHashes.has(rawUrl) && !seenHashes.has(fullUrl)) {
+        seenHashes.add(rawUrl);
+        seenHashes.add(fullUrl);
         photos.push(fullUrl);
       }
     }

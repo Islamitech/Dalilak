@@ -668,6 +668,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               const grp = getGroupFromCategory(cat);
               if (grp) setSelectedGroup(grp.group);
             }}
+            setSelectedGroup={setSelectedGroup}
             setStreet={setStreet}
             setPhotos={setPhotos}
           />

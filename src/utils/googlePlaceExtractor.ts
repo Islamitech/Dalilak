@@ -1,10 +1,13 @@
 import { matchScopeByCoords } from './geocoding';
 import { CATEGORY_GROUPS } from '../data/mockData';
+import { classifyPlaceCategory } from './googleCategoryClassifier';
 
 export interface ExtractedGooglePlace {
   name?: string;
   phone?: string;
   category?: string;
+  group?: string;
+  googleCategoryTitle?: string;
   governorate?: string;
   city?: string;
   street?: string;
@@ -61,29 +64,12 @@ export function parseClientSideGoogleUrl(rawUrl: string): Partial<ExtractedGoogl
 }
 
 /**
- * Matches common Google category terms with Dalelak's CATEGORY_GROUPS
+ * Matches common Google category terms with Dalelak's CATEGORY_GROUPS using the comprehensive classifier
  */
 export function mapGoogleCategoryToDalelak(text: string): string | undefined {
   if (!text) return undefined;
-  const lower = text.toLowerCase();
-
-  for (const group of CATEGORY_GROUPS) {
-    if (lower.includes(group.group.toLowerCase())) return group.group;
-    for (const item of group.items) {
-      if (lower.includes(item.toLowerCase())) return group.group;
-    }
-  }
-
-  // Common keyword heuristic mappings
-  if (lower.match(/مطعم|كافيه|مقهى|مأكولات|وجبات|شاورما|بيتزا|restaurant|cafe|food/i)) return 'مطاعم وكافيهات';
-  if (lower.match(/صيدلية|طبي|دكتور|عيادة|مستشفى|pharmacy|clinic|hospital|doctor/i)) return 'صيدليات ورعاية صحية';
-  if (lower.match(/سوبر ماركت|ماركت|بقالة|تموين|خضار|فواكه|market|grocery/i)) return 'سوبر ماركت ومواد غذائية';
-  if (lower.match(/سيارات|ميكانيكا|زيوت|كاوتش|إطارات|صيانة|car|mechanic|auto/i)) return 'خدمات سيارات وصيانة';
-  if (lower.match(/ملابس|أزياء|أحذية|حقائب|بوتيك|fashion|clothes/i)) return 'ملابس وموضة';
-  if (lower.match(/صالون|حلاقة|كوافير|تجميل|spa|barber|salon/i)) return 'صالونات وعناية شخصية';
-  if (lower.match(/موبايل|هواتف|كمبيوتر|إلكترونيات|mobile|phone|computer/i)) return 'إلكترونيات وموبايلات';
-
-  return undefined;
+  const classified = classifyPlaceCategory(text);
+  return classified?.category;
 }
 
 /**
@@ -126,12 +112,20 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
           derivedCity = scope.city;
         }
 
-        const category = mapGoogleCategoryToDalelak(data.address || data.name || '');
+        // 🏷️ Precise Google Places Taxonomy Classification (Update 32)
+        const classificationTarget = `${data.name || initial.name || ''} ${data.category || ''} ${data.address || ''}`.trim();
+        const classified = classifyPlaceCategory(classificationTarget);
+
+        const finalPhotos = Array.isArray(data.photos) && data.photos.length > 0
+          ? data.photos
+          : (data.photo ? [data.photo] : undefined);
 
         return {
           name: data.name || initial.name,
           phone: data.phone,
-          category,
+          category: classified?.category || data.category,
+          group: classified?.group,
+          googleCategoryTitle: classified?.googleCategoryTitle || data.category,
           governorate: derivedGov,
           city: derivedCity,
           street: data.address,
@@ -140,8 +134,8 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
           rating: data.rating,
           reviewCount: data.reviewCount,
           address: data.address,
-          photo: data.photo,
-          photos: Array.isArray(data.photos) && data.photos.length > 0 ? data.photos : (data.photo ? [data.photo] : undefined),
+          photo: data.photo || (finalPhotos && finalPhotos.length > 0 ? finalPhotos[0] : undefined),
+          photos: finalPhotos,
           resolvedUrl: data.resolvedUrl || cleanUrl,
         };
       }
@@ -160,10 +154,15 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
       derivedCity = scope.city;
     }
 
+    const fallbackTarget = `${initial.name || ''} ${cleanUrl}`;
+    const classified = classifyPlaceCategory(fallbackTarget);
+
     return {
       name: initial.name,
       phone: undefined,
-      category: mapGoogleCategoryToDalelak(initial.name || ''),
+      category: classified?.category,
+      group: classified?.group,
+      googleCategoryTitle: classified?.googleCategoryTitle,
       governorate: derivedGov,
       city: derivedCity,
       street: undefined,

@@ -88,9 +88,11 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
         setFormData((prev) => {
           if (!prev) return prev;
           const existingPhotos = prev.photos || [];
-          const mergedPhotos = Array.from(new Set([...existingPhotos, ...(data.photos || [])]));
+          const incomingPhotos = (data.photos && data.photos.length > 0) ? data.photos : (data.photo ? [data.photo] : []);
+          const mergedPhotos = Array.from(new Set([...existingPhotos, ...incomingPhotos]));
           return {
             ...prev,
+            category: data.category || prev.category,
             googleMapsUrl: data.resolvedUrl || prev.googleMapsUrl,
             lat: data.lat ?? prev.lat,
             lng: data.lng ?? prev.lng,
@@ -101,8 +103,9 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             photos: mergedPhotos.length > 0 ? mergedPhotos : prev.photos,
           };
         });
-        const photoNotice = data.photos && data.photos.length > 0 ? ` وسحب ${data.photos.length} صور` : '';
-        const msg = `✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات${photoNotice} بنجاح من خرائط Google!`;
+        const photoNotice = (data.photos && data.photos.length > 0) ? ` وسحب ${data.photos.length} صور` : (data.photo ? ' وسحب صورة الغلاف' : '');
+        const catNotice = data.category ? ` وتصنيفها (${data.category})` : '';
+        const msg = `✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات${catNotice}${photoNotice} بنجاح من خرائط Google!`;
         setSyncNotice(msg);
         if (onShowNotification) onShowNotification(msg);
         setTimeout(() => setSyncNotice(null), 6000);

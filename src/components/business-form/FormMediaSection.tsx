@@ -33,9 +33,13 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
 
     try {
       const data = await extractGooglePlaceData(googleMapsUrl);
-      if (data && data.photos && data.photos.length > 0) {
-        setPhotos((prev) => Array.from(new Set([...prev, ...data.photos!])));
-        setPullNotice(`✅ تم سحب ${data.photos.length} صور من خرائط Google بنجاح!`);
+      const incomingPhotos = (data && data.photos && data.photos.length > 0)
+        ? data.photos
+        : (data && data.photo ? [data.photo] : []);
+
+      if (incomingPhotos.length > 0) {
+        setPhotos((prev) => Array.from(new Set([...prev, ...incomingPhotos])));
+        setPullNotice(`✅ تم سحب ${incomingPhotos.length} صور من خرائط Google بنجاح!`);
         setTimeout(() => setPullNotice(null), 5000);
       } else {
         setPullNotice('⚠️ لم يتم العثور على صور إضافية على رابط خرائط Google');
