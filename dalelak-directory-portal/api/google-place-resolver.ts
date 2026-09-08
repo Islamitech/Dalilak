@@ -14,6 +14,11 @@ function cleanPlaceName(rawName: string): { name: string; extraAddress?: string 
   let name = decodeHtmlEntities(rawName).trim();
   name = name.replace(/\s*[-·|–]\s*(Google Maps|خرائط Google|Google).*$/i, '').trim();
 
+  // Guard: if name itself is purely "Google Maps" or "خرائط Google" or "Google", discard it
+  if (/^(Google Maps|خرائط Google|Google)$/i.test(name)) {
+    return { name: '' };
+  }
+
   // Split by common Google Maps delimiters: Arabic comma (،), English comma (,), middle dot (·), pipe (|)
   const parts = name.split(/\s*[\u060C,·|]\s*/).map(s => s.trim()).filter(Boolean);
   if (parts.length <= 1) {
@@ -416,7 +421,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         titleParts = rawOg.split('·').map(s => s.trim());
       }
       const cleanedOg = cleanPlaceName(rawOg);
-      if (cleanedOg.name) {
+      if (!placeName && cleanedOg.name) {
         placeName = cleanedOg.name;
         if (cleanedOg.extraAddress && !extractedAddressFromTitle) {
           extractedAddressFromTitle = cleanedOg.extraAddress;
