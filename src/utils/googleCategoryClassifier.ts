@@ -43,8 +43,11 @@ export function getArabicTokens(normalized: string): string[] {
     else if (t.startsWith('كال') && t.length > 4) expanded.add(t.substring(3));
     else if (t.startsWith('لل') && t.length > 3) expanded.add(t.substring(2));
     else if (t.startsWith('ال') && t.length > 3) expanded.add(t.substring(2));
+    else if (t.startsWith('لت') && t.length > 4) expanded.add(t.substring(1));
     else if (t.startsWith('و') && t.length > 3) expanded.add(t.substring(1));
     else if (t.startsWith('ب') && t.length > 3) expanded.add(t.substring(1));
+    else if (t.startsWith('ل') && t.length > 3) expanded.add(t.substring(1));
+    else if (t.startsWith('ف') && t.length > 3) expanded.add(t.substring(1));
   }
   return Array.from(expanded);
 }
@@ -380,16 +383,20 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     group: 'السيارات والمركبات والصيانة',
     category: 'مركز صيانة سيارات وميكانيكا',
     keywords: [
-      'صيانه سيارات', 'ميكانيكا', 'ميكانيكي', 'ورشه سيارات', 'عفشه',
-      'auto repair', 'mechanic', 'auto service', 'car service'
+      'صيانه سيارات', 'صيانة سيارات', 'ميكانيكا', 'ميكانيكي', 'ورشه سيارات', 'ورشة سيارات', 'عفشه', 'عفشة',
+      'سمكري', 'سمكرى', 'سمكرة', 'سمكره', 'دوكو', 'دهان سيارات', 'رش سيارات', 'تجديد سيارات',
+      'تصليح سيارات', 'اصلاح سيارات', 'خدمة سيارات', 'سرفيس سيارات', 'سرفيس',
+      'سيارات', 'سيارة', 'سياره', 'شكمان', 'شكمانات', 'سروجي', 'فرش سيارات',
+      'تعديل سيارات', 'رد على البارد', 'pdr', 'رادياتير', 'ردياتير',
+      'auto repair', 'mechanic', 'auto service', 'car service', 'auto body shop', 'body repair', 'car repair', 'paint shop'
     ],
-    weight: 21
+    weight: 23
   },
   {
     group: 'السيارات والمركبات والصيانة',
     category: 'كاوتش وبطاريات وضبط زوايا',
     keywords: [
-      'كاوتش', 'اطارات', 'بطاريات', 'ضبط زوايا', 'ترصيص',
+      'كاوتش', 'اطارات', 'إطارات', 'بطاريات', 'بطارية', 'ضبط زوايا', 'ترصيص', 'ظبط زوايا',
       'tires', 'tyres', 'car battery', 'wheel alignment'
     ],
     weight: 21
@@ -398,7 +405,7 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     group: 'السيارات والمركبات والصيانة',
     category: 'كهرباء سيارات وتكييف وفحص',
     keywords: [
-      'كهرباء سيارات', 'تكييف سيارات', 'فحص كمبيوتر سيارات', 'شحن فريون',
+      'كهرباء سيارات', 'تكييف سيارات', 'فحص كمبيوتر سيارات', 'شحن فريون', 'كهربائي سيارات',
       'car electric', 'auto ac'
     ],
     weight: 21
@@ -407,7 +414,7 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     group: 'السيارات والمركبات والصيانة',
     category: 'مغسلة سيارات وديتيلينج وتلميع',
     keywords: [
-      'مغسله سيارات', 'غسيل سيارات', 'تلميع سيارات', 'ديتيلينج', 'نانو سيراميك',
+      'مغسله سيارات', 'مغسلة سيارات', 'غسيل سيارات', 'تلميع سيارات', 'ديتيلينج', 'نانو سيراميك', 'دراي كلين سيارات',
       'car wash', 'detailing'
     ],
     weight: 21
@@ -416,7 +423,7 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     group: 'السيارات والمركبات والصيانة',
     category: 'قطع غيار سيارات وزيوت وشحوم',
     keywords: [
-      'قطع غيار', 'غيار سيارات', 'زيوت سيارات', 'فلاتر',
+      'قطع غيار', 'قطع غيار سيارات', 'غيار سيارات', 'زيوت سيارات', 'تغيير زيت', 'فلاتر', 'شحومات',
       'auto parts', 'spare parts', 'motor oil'
     ],
     weight: 20
@@ -425,8 +432,8 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     group: 'السيارات والمركبات والصيانة',
     category: 'معرض سيارات / بيع وشراء',
     keywords: [
-      'معرض سيارات', 'تجاره سيارات', 'بيع وشراء سيارات',
-      'motors', 'car dealership', 'auto showroom'
+      'معرض سيارات', 'تجاره سيارات', 'بيع وشراء سيارات', 'تأجير سيارات', 'ايجار سيارات', 'سيارات مستعملة',
+      'motors', 'car dealership', 'auto showroom', 'car rental'
     ],
     weight: 19
   },
@@ -434,7 +441,7 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     group: 'السيارات والمركبات والصيانة',
     category: 'موتوسيكلات وسكوتر وصيانة',
     keywords: [
-      'موتوسيكل', 'سكوتر', 'دراجات ناريه', 'صيانه سكوتر',
+      'موتوسيكل', 'سكوتر', 'دراجات ناريه', 'دراجات نارية', 'صيانه سكوتر', 'فيسبا',
       'motorcycle', 'scooter', 'bikes'
     ],
     weight: 20
@@ -853,6 +860,10 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
   }
 ];
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Classifies any Google Place text/title/address into Dalelak's verified Taxonomy
  */
@@ -872,17 +883,32 @@ export function classifyPlaceCategory(text: string): ClassifiedCategoryResult | 
   for (const rule of GOOGLE_TAXONOMY_RULES) {
     for (const rawKw of rule.keywords) {
       const kw = normalizeArabicText(rawKw);
+      if (!kw) continue;
 
-      // Match conditions:
-      // 1. Exact token match (e.g. "عطور" token matching "عطور")
-      // 2. Exact phrase in original text (e.g. "ضبط زوايا")
-      // 3. Exact phrase in text with stemmed tokens
-      const hasWord = tokens.includes(kw);
-      const hasPhrase = normalized.includes(kw);
-      const hasStemmedPhrase = normalizedWithStems.includes(kw);
+      const isMultiWord = kw.includes(' ');
+      let isMatch = false;
 
-      if (hasWord || hasPhrase || hasStemmedPhrase) {
-        const score = rule.weight * 2 + Math.min(kw.length, 10);
+      if (isMultiWord) {
+        // Multi-word phrase: must match with boundary (whitespace or string boundary)
+        const escaped = escapeRegex(kw);
+        const phrasePattern = new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`);
+        isMatch = phrasePattern.test(normalized) || phrasePattern.test(normalizedWithStems);
+      } else {
+        // Single word:
+        // 1. Direct token or stem match
+        isMatch = tokens.includes(kw);
+        // 2. For words with 4 or more characters, also allow whole-word regex on normalized text
+        if (!isMatch && kw.length >= 4) {
+          const escaped = escapeRegex(kw);
+          const wordPattern = new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`);
+          isMatch = wordPattern.test(normalized);
+        }
+      }
+
+      if (isMatch) {
+        const lengthBonus = Math.min(kw.length, 10);
+        const phraseBonus = isMultiWord ? 4 : 0;
+        const score = rule.weight * 2 + lengthBonus + phraseBonus;
         if (score > highestScore) {
           highestScore = score;
           bestRule = rule;
@@ -897,7 +923,15 @@ export function classifyPlaceCategory(text: string): ClassifiedCategoryResult | 
     for (const grp of CATEGORY_GROUPS) {
       for (const item of grp.items) {
         const normItem = normalizeArabicText(item);
-        if (normalized.includes(normItem)) {
+        const isMultiWord = normItem.includes(' ');
+        let isMatch = false;
+        if (isMultiWord) {
+          const phrasePattern = new RegExp(`(?:^|\\s)${escapeRegex(normItem)}(?:\\s|$)`);
+          isMatch = phrasePattern.test(normalized);
+        } else {
+          isMatch = tokens.includes(normItem);
+        }
+        if (isMatch) {
           return {
             group: grp.group,
             category: item,

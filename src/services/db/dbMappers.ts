@@ -59,6 +59,35 @@ export function parseVideosArray(item: any): string[] {
   return [];
 }
 
+/**
+ * Self-healing taxonomy normalizer:
+ * Fixes legacy classification bugs (e.g. car repair/body shop 'السمكري' misclassified as butchery/fish 'سمك')
+ * and falls back gracefully for empty or generic categories.
+ */
+export function healCategoryMismatch(rawCategory?: string | null, name: string = '', description: string = ''): string {
+  let cat = (rawCategory || '').trim();
+  const text = `${name} ${description}`.toLowerCase();
+
+  // 1. Auto Repair & Body Shop Self-Healing:
+  // Detect Egyptian automotive repair terms (سمكري, دوكو, تجديد سيارات, ميكانيكي, عفشة, شكمان, سروجي, etc.)
+  const isCarRepair = /سمكر[يية]|دوكو|تجديد\s*السيارات|ميكانيك[يية]|شكمان|سروج[يية]|صيانة\s*سيارات|عفشة|رد\s*على\s*البارد|بويجي/.test(text);
+  if (isCarRepair) {
+    if (!cat || cat === 'عميل مهتم' || cat === 'عملاء مهتمون' || cat === 'عام' || cat === 'خدمات وأنشطة عامة' || cat.includes('جزارة') || cat.includes('لحوم') || cat.includes('أسماك')) {
+      return 'مركز صيانة سيارات وميكانيكا';
+    }
+  }
+
+  // 2. Fallback if empty or generic
+  if (!cat || cat === 'عميل مهتم' || cat === 'عملاء مهتمون' || cat === 'عام') {
+    if (text.includes('مندي') || text.includes('مطعم') || text.includes('مشويات') || text.includes('كافيه') || text.includes('حلواني') || text.includes('شاورما') || text.includes('مخبز') || text.includes('أسماك') || text.includes('أغذية')) {
+      return 'مطعم / مأكولات ومشويات';
+    }
+    return 'خدمات وأنشطة عامة';
+  }
+
+  return cat;
+}
+
 export function mapDbToBusiness(item: any): Business {
   // Extract packed metadata from notes if present
   let metaPaymentMethod = item.payment_method || item.paymentMethod;
@@ -222,15 +251,11 @@ export function mapDbToBusiness(item: any): Business {
     ? rawGoogleMapsUrl
     : undefined;
 
-  let cleanCategory = (item.category || '').trim();
-  if (!cleanCategory || cleanCategory === 'عميل مهتم' || cleanCategory === 'عملاء مهتمون' || cleanCategory === 'عام') {
-    const nameToCheck = ((item.name_ar || item.nameAr || '') + ' ' + (item.description || '')).toLowerCase();
-    if (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية')) {
-      cleanCategory = 'مطعم / مأكولات ومشويات';
-    } else {
-      cleanCategory = 'خدمات وأنشطة عامة';
-    }
-  }
+  const cleanCategory = healCategoryMismatch(
+    item.category,
+    item.name_ar || item.nameAr || '',
+    item.description || ''
+  );
 
   return {
     id: item.id || `biz_${Date.now()}`,
@@ -303,16 +328,11 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   if (biz.id !== undefined) record.id = biz.id;
   record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'المكان';
   if (biz.nameEn !== undefined) record.name_en = biz.nameEn?.trim() || null;
-  let safeCategory = (biz.category || '').trim();
-  if (!safeCategory || safeCategory === 'عميل مهتم' || safeCategory === 'عملاء مهتمون' || safeCategory === 'عام') {
-    const nameToCheck = (((biz.nameAr || '') + ' ' + (biz.description || ''))).toLowerCase();
-    if (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية')) {
-      safeCategory = 'مطعم / مأكولات ومشويات';
-    } else {
-      safeCategory = 'خدمات وأنشطة عامة';
-    }
-  }
-  record.category = safeCategory;
+  record.category = healCategoryMismatch(
+    biz.category,
+    biz.nameAr || '',
+    biz.description || ''
+  );
   record.governorate = biz.governorate || 'القاهرة';
   record.city = biz.city || record.governorate || 'القاهرة';
   record.street = biz.street || 'الموقع الجغرافي المسجل على الخريطة';
@@ -442,15 +462,11 @@ export function mapPartialBusinessToDb(updates: Partial<Business>, baseBiz?: Bus
   if (updates.nameAr !== undefined) record.name_ar = updates.nameAr.trim();
   if (updates.nameEn !== undefined) record.name_en = updates.nameEn?.trim() || null;
   if (updates.category !== undefined) {
-    const rawCat = (updates.category || '').trim();
-    if (!rawCat || rawCat === 'عميل مهتم' || rawCat === 'عملاء مهتمون' || rawCat === 'عام') {
-      const nameToCheck = (((updates.nameAr || baseBiz?.nameAr || '') + ' ' + (updates.description || baseBiz?.description || ''))).toLowerCase();
-      record.category = (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية'))
-        ? 'مطعم / مأكولات ومشويات'
-        : 'خدمات وأنشطة عامة';
-    } else {
-      record.category = rawCat;
-    }
+    record.category = healCategoryMismatch(
+      updates.category,
+      updates.nameAr || baseBiz?.nameAr || '',
+      updates.description || baseBiz?.description || ''
+    );
   }
   if (updates.governorate !== undefined) record.governorate = updates.governorate;
   if (updates.city !== undefined) record.city = updates.city;
@@ -769,7 +785,11 @@ export function mapDbToLead(item: any): InterestedLead {
     id: item.id || `lead_${Date.now()}`,
     clientName: item.client_name || item.clientName || item.name || 'عميل محتمل',
     businessName: item.business_name || item.businessName || item.business_type || 'المكان',
-    businessCategory: item.business_category || item.businessCategory,
+    businessCategory: healCategoryMismatch(
+      item.business_category || item.businessCategory,
+      item.business_name || item.businessName || item.business_type || '',
+      typeof item.notes === 'string' ? item.notes : ''
+    ),
     phone: item.phone || '',
     secondaryPhone: item.secondary_phone || item.secondaryPhone,
     governorate: item.governorate || 'القاهرة',
@@ -796,7 +816,7 @@ export function mapLeadToDb(lead: InterestedLead): any {
     id: lead.id,
     client_name: lead.clientName,
     business_name: lead.businessName || null,
-    business_category: lead.businessCategory || null,
+    business_category: healCategoryMismatch(lead.businessCategory, lead.businessName || '', lead.notes || '') || null,
     phone: lead.phone,
     secondary_phone: lead.secondaryPhone || null,
     governorate: lead.governorate,

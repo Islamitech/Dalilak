@@ -113,28 +113,50 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
           derivedCity = scope.city;
         }
 
-        // 🏷️ Precise Google Places Taxonomy Classification (Update 32)
-        const classificationTarget = `${data.name || initial.name || ''} ${data.category || ''} ${data.address || ''}`.trim();
-        const classified = classifyPlaceCategory(classificationTarget);
+        // 🏷️ Clean classification target: prioritize clean name & Google category (Update 36)
+        const cleanPlaceName = data.name || initial.name || '';
+        const cleanGoogleCategory = data.category || '';
+        const isBoilerplate = (t?: string): boolean => {
+          if (!t) return true;
+          const l = t.toLowerCase();
+          return (
+            l.includes('find local businesses') ||
+            l.includes('view maps') ||
+            l.includes('driving directions') ||
+            l.includes('معاينة الأنشطة') ||
+            l.includes('خرائط google') ||
+            l.includes('google maps')
+          );
+        };
+        const safeAddress = (data.address && !isBoilerplate(data.address)) ? data.address.trim() : undefined;
+
+        // Primary classification attempt: place name + Google category
+        const primaryTarget = [cleanPlaceName, cleanGoogleCategory].filter(Boolean).join(' ').trim();
+        let classified = classifyPlaceCategory(primaryTarget);
+
+        // Secondary classification attempt: include safe address if primary didn't resolve
+        if (!classified && safeAddress) {
+          classified = classifyPlaceCategory(`${cleanPlaceName} ${safeAddress}`.trim());
+        }
 
         const finalPhotos = Array.isArray(data.photos) && data.photos.length > 0
           ? data.photos.slice(0, 5)
           : (data.photo ? [data.photo] : undefined);
 
         return {
-          name: data.name || initial.name,
+          name: cleanPlaceName || undefined,
           phone: data.phone,
           category: classified?.category || data.category,
           group: classified?.group,
           googleCategoryTitle: classified?.googleCategoryTitle || data.category,
           governorate: derivedGov,
           city: derivedCity,
-          street: data.address,
+          street: safeAddress,
           lat: finalLat,
           lng: finalLng,
           rating: data.rating,
           reviewCount: data.reviewCount,
-          address: data.address,
+          address: safeAddress,
           workingHours: data.workingHours,
           photo: data.photo || (finalPhotos && finalPhotos.length > 0 ? finalPhotos[0] : undefined),
           photos: finalPhotos,
@@ -156,8 +178,7 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
       derivedCity = scope.city;
     }
 
-    const fallbackTarget = `${initial.name || ''} ${cleanUrl}`;
-    const classified = classifyPlaceCategory(fallbackTarget);
+    const classified = initial.name ? classifyPlaceCategory(initial.name) : null;
 
     return {
       name: initial.name,

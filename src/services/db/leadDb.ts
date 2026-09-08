@@ -6,7 +6,7 @@ import {
   getOfflineLeads,
   removeOfflineLead,
 } from '../offlineSync';
-import { mapDbToLead, mapLeadToDb } from './dbMappers';
+import { mapDbToLead, mapLeadToDb, healCategoryMismatch } from './dbMappers';
 
 
 export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]> {
@@ -31,7 +31,7 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
               id: leadId,
               clientName: b.ownerName || b.nameAr || 'عميل محتمل',
               businessName: b.nameAr || b.nameEn || 'نشاط تجاري',
-              businessCategory: b.category,
+              businessCategory: healCategoryMismatch(b.category, b.nameAr || b.nameEn || '', b.description || ''),
               phone: b.phone || b.ownerPhone || '',
               secondaryPhone: b.secondaryPhone,
               governorate: b.governorate || 'القاهرة',

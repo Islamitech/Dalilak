@@ -469,6 +469,7 @@ app.get('/api/google-place-resolver', async (req, res) => {
       }
     }
 
+    let titleParts: string[] = [];
     const ogTitleMatch =
       htmlContent.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
       htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i);
@@ -476,10 +477,10 @@ app.get('/api/google-place-resolver', async (req, res) => {
       let parsedOg = ogTitleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim();
       parsedOg = parsedOg.replace(/\s*[-·|–]\s*(Google Maps|خرائط Google|Google).*$/i, '').trim();
       if (parsedOg.includes('·')) {
-        const parts = parsedOg.split('·');
-        parsedOg = parts[0].trim();
-        if (parts[1]) {
-          extractedAddressFromTitle = parts.slice(1).join('·').trim();
+        titleParts = parsedOg.split('·').map(s => s.trim());
+        parsedOg = titleParts[0].trim();
+        if (titleParts[1]) {
+          extractedAddressFromTitle = titleParts.slice(1).join('·').trim();
         }
       }
       if (parsedOg && (!placeName || parsedOg.length > placeName.length)) {
@@ -756,9 +757,61 @@ app.get('/api/google-place-resolver', async (req, res) => {
       }
     }
 
+    // ─── 6. Category Extraction from Google Places (Update 36) ───────────────
+    let placeCategory: string | undefined = undefined;
+
+    // A. From preloadPayload JSON (internal Google Places structure)
+    if (preloadPayload) {
+      try {
+        let cleanJsonCat = preloadPayload.trim();
+        if (cleanJsonCat.startsWith(")]}'")) cleanJsonCat = cleanJsonCat.slice(4).trim();
+        const gjsonCat = JSON.parse(cleanJsonCat);
+        if (gjsonCat && gjsonCat[6]) {
+          if (Array.isArray(gjsonCat[6][13])) {
+            for (const item of gjsonCat[6][13]) {
+              if (typeof item === 'string' && item.trim().length > 2) {
+                placeCategory = item.trim();
+                break;
+              } else if (Array.isArray(item) && typeof item[0] === 'string' && item[0].trim().length > 2) {
+                placeCategory = item[0].trim();
+                break;
+              }
+            }
+          }
+          if (!placeCategory && typeof gjsonCat[6][76] === 'string' && gjsonCat[6][76].trim().length > 2) {
+            placeCategory = gjsonCat[6][76].trim();
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // B. From HTML Schema.org JSON-LD or meta/itemprop tags
+    if (!placeCategory && htmlContent) {
+      const typeMatch = htmlContent.match(/"@type"\s*:\s*"([A-Za-z]+)"/i);
+      if (typeMatch && typeMatch[1] && !['LocalBusiness', 'Place', 'Organization', 'WebPage'].includes(typeMatch[1])) {
+        placeCategory = typeMatch[1];
+      }
+      if (!placeCategory) {
+        const itemPropCat = htmlContent.match(/itemprop=["'](?:category|title)["'][^>]*content=["']([^"']+)["']/i) ||
+                            htmlContent.match(/<meta[^>]+(?:name|property)=["']category["'][^>]*content=["']([^"']+)["']/i);
+        if (itemPropCat && itemPropCat[1]) {
+          placeCategory = itemPropCat[1].trim();
+        }
+      }
+    }
+
+    // C. From og:title if it has 3 parts (Name · Category · Location)
+    if (!placeCategory && titleParts.length >= 3) {
+      const candidateCat = titleParts[1];
+      if (candidateCat && candidateCat.length >= 3 && candidateCat.length <= 40 && !candidateCat.includes('http')) {
+        placeCategory = candidateCat;
+      }
+    }
+
     return res.json({
       success: true,
       name: placeName || undefined,
+      category: placeCategory || undefined,
       phone: phone || undefined,
       lat: lat && !isNaN(lat) ? Number(lat.toFixed(6)) : undefined,
       lng: lng && !isNaN(lng) ? Number(lng.toFixed(6)) : undefined,
