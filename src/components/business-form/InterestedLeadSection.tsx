@@ -79,7 +79,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       setLeadLat(userLat);
       setLeadLng(userLng);
       setHasLeadLocation(true);
-      setLeadLocationNotice(`🎯 تم تحديد موقع العميل بدقة (±${acc}م) - الإحداثيات: ${userLat}, ${userLng}`);
+      setLeadLocationNotice(`تم تحديد موقع العميل بدقة (±${acc}م) - الإحداثيات: ${userLat}, ${userLng}`);
       setTimeout(() => setLeadLocationNotice(null), 6000);
     };
 
@@ -257,7 +257,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>🌟 منشأة رائجة (طلب سماح بإدراج مجاني)</span>
+          <span>منشأة رائجة (طلب سماح بإدراج مجاني)</span>
         </button>
       </div>
 
@@ -282,7 +282,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-3 rounded-xl shadow-md transition-transform active:scale-95 text-xs cursor-pointer"
             >
-              <span>📲 إرسال رسالة طلب السماح للمنشأة الرائجة عبر واتساب فوراً</span>
+              <span>إرسال إشعار طلب السماح عبر واتساب</span>
             </a>
           )}
         </div>
@@ -347,9 +347,9 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
               onChange={(e) => setLeadInterest(e.target.value as any)}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
-              <option value="high">🔥 مهتم جداً (جاهز للطلب قريباً)</option>
-              <option value="medium">⚡ مهتم (يحتاج تفاصيل واستشارة)</option>
-              <option value="low">❄️ متابعة لاحقة / متردد</option>
+              <option value="high">أولوية مرتفعة (جاهز للطلب)</option>
+              <option value="medium">أولوية متوسطة (استشارة ومتابعة)</option>
+              <option value="low">متابعة لاحقة</option>
             </select>
           </div>
         </div>
@@ -430,7 +430,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
                 ) : (
                   <Navigation className="w-3.5 h-3.5" />
                 )}
-                <span>{isLocatingLead ? 'جاري التحديد...' : '📍 تحديد موقعي الحالي'}</span>
+                <span>{isLocatingLead ? 'جاري التحديد...' : 'تحديد موقعي الحالي'}</span>
               </button>
 
               <button
@@ -508,7 +508,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
                     if (details.street && !leadStreet) setLeadStreet(details.street);
                     else if (details.landmark && !leadStreet) setLeadStreet(details.landmark);
                     setLeadLocationNotice(
-                      `✨ تم تحديد موقع النشاط: ${details.governorate || ''} - ${details.city || ''}`
+                      `تم تحديد موقع النشاط: ${details.governorate || ''} - ${details.city || ''}`
                     );
                     setTimeout(() => setLeadLocationNotice(null), 5000);
                   }
@@ -549,7 +549,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
           ) : (
             <UserCheck className="w-5 h-5" />
           )}
-          <span>{isTrendingLead ? 'حفظ المنشأة الرائجة في سجل المراجعات 🌟' : 'حفظ العميل في سجل المراجعات والمتابعة 📋'}</span>
+          <span>{isTrendingLead ? 'حفظ المنشأة الرائجة في سجل المراجعات' : 'حفظ العميل في سجل المراجعات والمتابعة'}</span>
         </button>
       </div>
     </div>

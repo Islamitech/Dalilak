@@ -24,6 +24,9 @@ import {
   Trash2,
   FileText,
   RotateCcw,
+  Globe,
+  MapPin,
+  XCircle,
 } from 'lucide-react';
 
 interface AdminBusinessesTabProps {
@@ -127,7 +130,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>⏳ قيد مراجعة المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</span>
+          <span>قيد مراجعة المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</span>
         </button>
         <button
           onClick={() => setVerificationFilter('directory_approved')}
@@ -138,7 +141,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           }`}
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>🟢 معتمدة بالدليل ({directoryApprovedCount})</span>
+          <span>معتمدة بالدليل ({directoryApprovedCount})</span>
         </button>
         <button
           onClick={() => setVerificationFilter('google_synced')}
@@ -148,7 +151,8 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
               : 'bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-500/20 border border-blue-500/30'
           }`}
         >
-          <span>🌐 خرائط Google ({verifiedCount})</span>
+          <Globe className="w-3.5 h-3.5" />
+          <span>خرائط Google ({verifiedCount})</span>
         </button>
         <button
           onClick={() => setVerificationFilter('google_pending')}
@@ -158,7 +162,8 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
               : 'bg-purple-500/10 text-purple-800 dark:text-purple-300 hover:bg-purple-500/20 border border-purple-500/30'
           }`}
         >
-          <span>⏳ قيد توثيق Google ({inProgressCount})</span>
+          <Clock className="w-3.5 h-3.5" />
+          <span>قيد توثيق Google ({inProgressCount})</span>
         </button>
         {(overdueFollowUpCount !== undefined && overdueFollowUpCount > 0) && (
           <button
@@ -170,7 +175,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>🚨 متابعات متأخرة ({overdueFollowUpCount})</span>
+            <span>متابعات متأخرة ({overdueFollowUpCount})</span>
           </button>
         )}
       </div>
@@ -216,15 +221,15 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
         >
           <option value="all">كل حالات التوثيق والاعتماد ({businesses.length})</option>
-          <option value="pending_approval">⏳ بانتظار اعتماد المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</option>
-          <option value="directory_approved">🟢 معتمدة بالدليل العام ({directoryApprovedCount})</option>
-          <option value="google_synced">🌐 موثقة بخرائط Google ({verifiedCount})</option>
-          <option value="google_pending">⏳ قيد توثيق خرائط Google ({inProgressCount})</option>
-          <option value="google_not_submitted">🚨 لم تُرسل لجوجل بعد ({notSubmittedCount})</option>
-          <option value="overdue">⏱️ تجاوزت مدة المراجعة ({overdueReviewCount})</option>
-          <option value="overdue_followup">🚨 متابعات متأخرة ({overdueFollowUpCount || 0})</option>
-          <option value="verified_debt">⚠️ موثقة ولها متبقي سداد ({verifiedWithDebtCount})</option>
-          <option value="rejected">❌ مرفوضة بالدليل</option>
+          <option value="pending_approval">بانتظار اعتماد المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</option>
+          <option value="directory_approved">معتمدة بالدليل العام ({directoryApprovedCount})</option>
+          <option value="google_synced">موثقة بخرائط Google ({verifiedCount})</option>
+          <option value="google_pending">قيد توثيق خرائط Google ({inProgressCount})</option>
+          <option value="google_not_submitted">لم تُرسل لجوجل بعد ({notSubmittedCount})</option>
+          <option value="overdue">تجاوزت مدة المراجعة ({overdueReviewCount})</option>
+          <option value="overdue_followup">متابعات متأخرة ({overdueFollowUpCount || 0})</option>
+          <option value="verified_debt">موثقة ولها متبقي سداد ({verifiedWithDebtCount})</option>
+          <option value="rejected">مرفوضة بالدليل</option>
         </select>
       </div>
 
@@ -252,7 +257,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
               title="إلغاء وتصفير كافة الفلاتر والبحث"
             >
               <RotateCcw className="w-3 h-3" />
-              <span>إعادة ضبط ↺</span>
+              <span>إعادة ضبط</span>
             </button>
           )}
         </div>
@@ -333,7 +338,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           <span className="inline-block text-[11px] text-amber-700 dark:text-amber-400 font-bold">{biz.category}</span>
                           {isExempt && (
                             <span className="text-[9.5px] bg-teal-500/20 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-md font-black border border-teal-500/30">
-                              🌟 رائج (معفى مجاناً)
+                              رائج (معفى من الرسوم)
                             </span>
                           )}
                         </div>
@@ -342,31 +347,33 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                         {isDirectoryApproved ? (
                           <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                             <CheckCircle2 className="w-2.5 h-2.5" />
-                            <span>معتمد بالدليل 🟢</span>
+                            <span>معتمد بالدليل</span>
                           </span>
                         ) : biz.verificationStatus === 'rejected' ? (
                           <span className="bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                             <AlertTriangle className="w-2.5 h-2.5" />
-                            <span>مرفوض بالدليل 🔴</span>
+                            <span>مرفوض بالدليل</span>
                           </span>
                         ) : (
                           <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
-                            <span>قيد مراجعة الدليل ⏳</span>
+                            <span>قيد مراجعة الدليل</span>
                           </span>
                         )}
 
                         {hasGoogleMap ? (
-                          <span className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                            🌐 موثق بـ Google
+                          <span className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                            <Globe className="w-2.5 h-2.5" />
+                            <span>موثق بـ Google</span>
                           </span>
                         ) : isInGoogleReview ? (
-                          <span className="bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                            ⏳ قيد توثيق Google
+                          <span className="bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>قيد توثيق Google</span>
                           </span>
                         ) : (
                           <span className="bg-slate-800/80 text-slate-400 border border-slate-700 text-[9px] font-medium px-1.5 py-0.5 rounded-md">
-                            ⚪ غير مربوط بـ Google
+                            غير مربوط بـ Google
                           </span>
                         )}
 
@@ -378,7 +385,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                             title="متابعات متأخرة تحتاج تدخلاً عاجلاً"
                           >
                             <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
-                            <span>🚨 {fuSummary.overdueCount} متأخرة</span>
+                            <span>{fuSummary.overdueCount} متأخرة</span>
                           </button>
                         ) : fuSummary.dueTodayCount > 0 ? (
                           <button
@@ -388,7 +395,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                             title="متابعات مستحقة اليوم"
                           >
                             <Clock className="w-2.5 h-2.5 text-amber-500" />
-                            <span>🟡 اليوم ({fuSummary.dueTodayCount})</span>
+                            <span>اليوم ({fuSummary.dueTodayCount})</span>
                           </button>
                         ) : Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) ? (
                           <button
@@ -409,7 +416,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                       <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-black flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-                          <span className="truncate">⚠️ موثقة ومطلوب التحصيل</span>
+                          <span className="truncate">موثقة ومطلوب التحصيل</span>
                         </div>
                         <button
                           type="button"
@@ -423,7 +430,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           }}
                           className="bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] px-2.5 py-1 rounded-lg shadow-xs cursor-pointer shrink-0"
                         >
-                          تحصيل 💰
+                          تحصيل المستحقات
                         </button>
                       </div>
                     )}
@@ -437,7 +444,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           <span>مندوب: {biz.repName}</span>
                           {isRepAccountDeleted({ id: biz.repId, name: biz.repName }) && (
                             <span className="bg-rose-500/15 text-rose-500 text-[9px] font-black px-1.5 py-0.2 rounded-md border border-rose-500/30 shrink-0">
-                              محذوف ⚠️
+                              محذوف
                             </span>
                           )}
                         </span>
@@ -446,18 +453,20 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                             href={sanitizeExternalUrl(biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`)}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline"
+                            className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1"
                           >
-                            📍 موقع المندوب
+                            <MapPin className="w-2.5 h-2.5" />
+                            <span>موقع المندوب</span>
                           </a>
                           {hasGoogleMap && (
                             <a
                               href={sanitizeExternalUrl(biz.googleMapsUrl)}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                              className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
                             >
-                              • ✅ الخريطة الموثقة
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              <span>الخريطة الموثقة</span>
                             </a>
                           )}
                         </div>
@@ -616,7 +625,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           <p className="text-[10px] text-[var(--text-muted)] font-mono">{biz.nameEn || biz.category}</p>
                           {isExempt && (
                             <span className="text-[9.5px] bg-teal-500/20 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded font-bold inline-block mt-0.5">
-                              🌟 رائج (معفى مجاناً)
+                              رائج (معفى من الرسوم)
                             </span>
                           )}
                         </td>
@@ -630,10 +639,11 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                               href={sanitizeExternalUrl(biz.repLocationUrl)}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-0.5 mt-0.5"
+                              className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1 mt-0.5"
                               title="معاينة إحداثيات موقع المندوب الميداني"
                             >
-                              <span>📍 موقع المندوب</span>
+                              <MapPin className="w-2.5 h-2.5" />
+                              <span>موقع المندوب</span>
                             </a>
                           )}
                         </td>
@@ -643,7 +653,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                             <p className="font-bold text-[var(--text-primary)]">{biz.repName}</p>
                             {isRepAccountDeleted({ id: biz.repId, name: biz.repName }) && (
                               <span className="bg-rose-500/15 text-rose-500 text-[9.5px] font-black px-1.5 py-0.5 rounded-md border border-rose-500/30 inline-block">
-                                حساب محذوف ⚠️
+                                حساب محذوف
                               </span>
                             )}
                           </div>
@@ -654,15 +664,15 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                           <div className="space-y-1">
                             {isExempt ? (
                               <span className="badge-success text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
-                                معفى ✓
+                                معفى
                               </span>
                             ) : debtAmount > 0 && (biz.amountPaid || 0) === 0 ? (
                               <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full inline-block bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                                غير مدفوعة ⏳
+                                غير مدفوعة
                               </span>
                             ) : debtAmount === 0 ? (
                               <span className="badge-success text-[10px] font-black px-2.5 py-0.5 rounded-full inline-block">
-                                مدفوعة ✓
+                                مدفوعة
                               </span>
                             ) : (
                               <>
@@ -671,7 +681,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                                 </span>
                                 {isCash && (
                                   <p className="text-[9.5px] text-amber-700 dark:text-amber-300 font-bold font-mono">
-                                    💵 كاش (مستحق: {formatEGP(platDue)})
+                                    كاش (مستحق: {formatEGP(platDue)})
                                   </p>
                                 )}
                               </>
@@ -690,17 +700,17 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                               {isDirectoryApproved ? (
                                 <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
-                                  <span>معتمد بالدليل 🟢</span>
+                                  <span>معتمد بالدليل</span>
                                 </span>
                               ) : biz.verificationStatus === 'rejected' ? (
                                 <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                   <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
-                                  <span>مرفوض بالدليل 🔴</span>
+                                  <span>مرفوض بالدليل</span>
                                 </span>
                               ) : (
                                 <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                   <Clock className="w-2.5 h-2.5 text-amber-500" />
-                                  <span>قيد مراجعة الدليل ⏳</span>
+                                  <span>قيد مراجعة الدليل</span>
                                 </span>
                               )}
                             </div>
@@ -713,15 +723,17 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                                   className="text-[9.5px] bg-blue-500/15 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md border border-blue-500/30 inline-flex items-center gap-1 transition-colors cursor-pointer"
                                   title="فتح الرابط المعتمد على خرائط Google"
                                 >
-                                  <span>🌐 موثق بـ Google</span>
+                                  <Globe className="w-2.5 h-2.5" />
+                                  <span>موثق بـ Google</span>
                                 </a>
                               ) : biz.googleSyncStatus === 'in_progress' ? (
                                 <span className="text-[9.5px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md border border-purple-500/30 inline-flex items-center gap-1">
-                                  <span>⏳ قيد توثيق Google</span>
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>قيد توثيق Google</span>
                                 </span>
                               ) : (
                                 <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium px-1.5 py-0.5 rounded border border-slate-700/40 inline-flex items-center gap-1 opacity-70">
-                                  <span>⚪ غير مربوط بـ Google</span>
+                                  <span>غير مربوط بـ Google</span>
                                 </span>
                               )}
                             </div>
@@ -773,13 +785,13 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                                 type="button"
                                 disabled
                                 className="w-8 h-8 rounded-xl bg-slate-500/10 text-slate-400 dark:text-slate-600 border border-slate-500/20 flex items-center justify-center cursor-not-allowed opacity-50 shrink-0"
-                                title={isExempt ? 'نشاط معفى مجاناً من الرسوم' : 'الحساب مسدد بالكامل'}
+                                 title={isExempt ? 'نشاط معفى من الرسوم' : 'الحساب مسدد بالكامل'}
                               >
                                 <DollarSign className="w-3.5 h-3.5" />
                               </button>
                             )}
 
-                            {/* 3. زر سجل الملاحظات والمتابعات (🗒️) */}
+                            {/* 3. زر سجل الملاحظات والمتابعات */}
                             <button
                               type="button"
                               onClick={() => setSelectedFollowUpBiz(biz)}
@@ -792,9 +804,9 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                               }`}
                               title={
                                 fuSummary.isOverdue
-                                  ? `🚨 هناك ${fuSummary.overdueCount} متابعة متأخرة!`
+                                  ? `هناك ${fuSummary.overdueCount} متابعة متأخرة`
                                   : fuSummary.dueTodayCount > 0
-                                  ? `🟡 متابعة مستحقة اليوم (${fuSummary.dueTodayCount})`
+                                  ? `متابعة مستحقة اليوم (${fuSummary.dueTodayCount})`
                                   : `سجل الملاحظات والمتابعات الإدارية (${biz.adminFollowUps?.length || 0})`
                               }
                             >
@@ -810,7 +822,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                               ) : null}
                             </button>
 
-                            {/* 4. زر معاينة وإصدار الفاتورة (📄) */}
+                            {/* 4. زر معاينة وإصدار الفاتورة */}
                             <button
                               type="button"
                               onClick={() => onShowInvoice(biz)}
@@ -820,7 +832,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                               <FileText className="w-3.5 h-3.5 text-sky-500" />
                             </button>
 
-                            {/* 5. زر عرض وتعديل التفاصيل (👁️) */}
+                            {/* 5. زر عرض وتعديل التفاصيل */}
                             <button
                               type="button"
                               onClick={() => onSetEditingBusiness(biz)}

@@ -83,7 +83,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3 text-[11px] text-[var(--text-secondary)] font-bold flex items-start gap-2">
-          <span className="text-blue-500 text-sm shrink-0">📍</span>
+          <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
           <span>
             <strong>طبيعة هذا التسجيل:</strong> هذا النشاط مسجل ومفعل بالفعل على خرائط Google في
             الشارع، لذا لا يتطلب تحديد موقع ميداني جديد أو إظهار خريطة، ويكتفى فقط بلصق رابطه
@@ -117,7 +117,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
             ) : (
               <Navigation className="w-4 h-4 fill-slate-950" />
             )}
-            <span>{isLocating ? 'جاري تحديد موقعك...' : '📍 تحديد موقعي الحالي'}</span>
+            <span>{isLocating ? 'جاري تحديد موقعك...' : 'تحديد موقعي الحالي'}</span>
           </button>
 
           {/* Map Toggle Button */}
@@ -177,7 +177,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
                 if (details.city) setCity(details.city);
                 if (details.landmark) setLandmark(details.landmark);
                 setAutoFillNotice(
-                  `✨ تم تحديد النطاق الجغرافي: ${details.governorate || 'الجيزة'} - ${
+                  `تم تحديد النطاق الجغرافي: ${details.governorate || 'الجيزة'} - ${
                     details.city || 'حدائق الأهرام'
                   }`
                 );

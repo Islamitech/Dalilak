@@ -98,31 +98,16 @@ export function getVenueContextLabel(category?: string): string {
 }
 
 /**
- * Bank of Exclusive Dalelak Seals & Recommendations (18+ items)
+ * Bank of Exclusive Dalelak Official Verification Badges
  */
 export const DALELAK_SEALS = [
-  'يتميز الدليل به 🌿',
-  'ينصح به دليلك ⭐',
-  'نحن في دليلك نرشحه لك ✨',
-  'إضافة فريدة لدليلك 💎',
-  'مكانه الصحيح أن يكون أمامك 🎯',
-  'الدليل يتميز بوجوده 👑',
-  'ترشيح حصري لعملاء دليلك 🤝',
-  'من الأماكن اللي دليلك بيعتز بوجودها 🏛️',
-  'تجربة مميزة يرشحها لك دليلك 🌟',
-  'دليلك دايماً معاك وبيرشحهولك 🧭',
-  'وجهة نثق بيها في دليلك 🛡️',
-  'دليلك بيسهل عليك وتلاقيه هنا 📍',
-  'مكان يستاهل تجربتك باختيار دليلك 👌',
-  'فخورين بوجوده في شبكة دليلك 💫',
-  'خدمة وجودة تستحق ترشيح دليلك 🥇',
-  'اختيار موثوق في دليلك 🏆',
-  'خطوتك الجاية باختيار دليلك 🚀',
-  'عنوان الثقة والتميز في دليلك 🎖️',
+  'منشأة معتمدة بالدليل',
+  'إدراج موثق بالمنظومة',
+  'منشأة مسجلة ومعتمدة',
 ];
 
 /**
- * Automated Fallback Description Generator in Egyptian Colloquial
+ * Automated Fallback Description Generator in Standard Professional Arabic
  * With Immutability & Custom Override Guard:
  * If manual description is provided, it is returned strictly untouched.
  */
@@ -133,7 +118,7 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
   }
 
   const cat = (category || '').toLowerCase();
-  let baseDesc = 'خدمة راقية وجودة مضمونة تهتم بأدق التفاصيل لتقديم أفضل تجربة ترضيكم دايماً.';
+  let baseDesc = 'خدمة راقية وجودة مضمونة تهتم بأدق التفاصيل لتوفير تجربة متميزة تلبي تطلعات العملاء.';
 
   if (
     cat.includes('مطعم') ||
@@ -145,9 +130,9 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
     cat.includes('حلواني') ||
     cat.includes('مخبز')
   ) {
-    baseDesc = 'أشهى المأكولات وأطعم الوجبات بأعلى جودة وخامات طازة وخدمة تشرفك وتليق بذوقك.';
+    baseDesc = 'أشهى المأكولات وقائمة أطباق متنوعة بأعلى معايير الجودة والضيافة.';
   } else if (cat.includes('كافيه') || cat.includes('مقهى') || cat.includes('عصائر') || cat.includes('قهوة')) {
-    baseDesc = 'أحلى قعدة وأجمد مشروبات ساخنة وباردة وحلويات تروق مزاجك في أي وقت بجو رايق ومميز.';
+    baseDesc = 'تشكيلة مختارة من المشروبات الساخنة والباردة والمخبوزات في أجواء مريحة وخدمة راقية.';
   } else if (
     cat.includes('ملابس') ||
     cat.includes('أزياء') ||
@@ -155,7 +140,7 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
     cat.includes('شنط') ||
     cat.includes('موضة')
   ) {
-    baseDesc = 'أحدث صيحات الموضة وأجود الخامات بتشكيلة واسعة تناسب كل الأذواق بأفضل الأسعار.';
+    baseDesc = 'أحدث خطوط الموضة وأجود الخامات بتشكيلة واسعة تناسب كافة الأذواق وبأفضل قيمة.';
   } else if (
     cat.includes('عيادة') ||
     cat.includes('طبيب') ||
@@ -164,9 +149,9 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
     cat.includes('عيادات') ||
     cat.includes('مركز طبي')
   ) {
-    baseDesc = 'رعاية طبية متكاملة وأحدث أجهزة للكشف والتشخيص بأعلى درجات العناية والاهتمام بصحتك وصحة أسرتك.';
+    baseDesc = 'رعاية طبية متكاملة بأحدث أجهزة الكشف والتشخيص بأعلى درجات العناية والاهتمام بصحة الأسرة.';
   } else if (cat.includes('صيدلية') || cat.includes('صيدليات') || cat.includes('دواء')) {
-    baseDesc = 'كل احتياجاتك من الأدوية ومستحضرات العناية متوفرة دايماً مع استشارة صيدلية موثوقة وخدمة سريعة.';
+    baseDesc = 'توفير كافة الأصناف الدوائية ومستحضرات العناية الصحية مع استشارة صيدلية متخصصة وخدمة سريعة.';
   } else if (
     cat.includes('سوبرماركت') ||
     cat.includes('ماركت') ||
@@ -174,7 +159,7 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
     cat.includes('خضار') ||
     cat.includes('ألبان')
   ) {
-    baseDesc = 'كل طلبات البيت ومستلزمات الأسرة طازة ويومية بأحسن عروض وأفضل توفير وجودة مضمونة.';
+    baseDesc = 'توفير كافة مستلزمات المنزل والأسرة بأعلى معايير الجودة وتنوع مستمر يلبي كافة الاحتياجات.';
   } else if (
     cat.includes('حرف') ||
     cat.includes('ورشة') ||
@@ -184,7 +169,7 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
     cat.includes('نجار') ||
     cat.includes('سيارات')
   ) {
-    baseDesc = 'صنايعية محترفين ودقة في المواعيد والشغل على أصوله بأحدث المعدات وضمان حقيقي للجودة.';
+    baseDesc = 'خدمات صيانة متخصصة بدقة والتزام بأيدي فنيين محترفين وبأحدث التجهيزات مع ضمان الجودة.';
   } else if (
     cat.includes('عقار') ||
     cat.includes('محام') ||
@@ -192,7 +177,7 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
     cat.includes('مكتب') ||
     cat.includes('استشار')
   ) {
-    baseDesc = 'خبرة واستشارات موثوقة لمساعدتك في اتخاذ القرار الأنسب بأمان تام واحترافية عالية تضمن حقوقك.';
+    baseDesc = 'استشارات مهنية موثوقة وخبرة متقدمة لدعم قراراتكم بأعلى معايير الأمان والاحترافية.';
   } else if (
     cat.includes('صالون') ||
     cat.includes('حلاقة') ||
@@ -200,16 +185,9 @@ export function generateSmartBusinessDescription(category?: string, manualDescri
     cat.includes('كوافير') ||
     cat.includes('تجميل')
   ) {
-    baseDesc = 'أحدث خطوط العناية والقصات الاحترافية على إيد متخصصين لإطلالة مميزة وراحة تدوم.';
+    baseDesc = 'خدمات العناية والتصفيف الاحترافي بأيدي متخصصين مع الالتزام بأعلى معايير النظافة والراحة.';
   } else if (cat.includes('موبايل') || cat.includes('إلكترون') || cat.includes('كمبيوتر') || cat.includes('أجهزة')) {
-    baseDesc = 'أحدث الأجهزة والإكسسوارات الأصلية مع خدمات صيانة سريعة ومعتمدة وضمان يلبي ثقتكم.';
-  }
-
-  // Probabilistic Seal Selection (~65% gets a seal at the very end, ~35% clean)
-  const shouldAddSeal = Math.random() < 0.65;
-  if (shouldAddSeal) {
-    const randomSeal = DALELAK_SEALS[Math.floor(Math.random() * DALELAK_SEALS.length)];
-    return `${baseDesc} — (${randomSeal})`;
+    baseDesc = 'أحدث الأجهزة والإلكترونيات ومستلزماتها المعتمدة مع خدمات صيانة سريعة وموثوقة.';
   }
 
   return baseDesc;
@@ -358,12 +336,11 @@ export function generateInvoiceWhatsAppMessage(biz: Business): string {
 
 ` +
     feeSection +
-    `🔗 *رابط المعاينة المباشر لصفحتكم على الدليل:*
-` +
-    `${DIRECTORY_URL}
-
-` +
-    `*يا فندم، تم تجهيز صفحة العرض المخصصة لحضراتكم، والسداد مطلوب لتأكيد النشر الدائم بالدليل واستكمال توثيق خرائط Google الرسمية. متشيلش هم، شاكرين لذوقك ووقتك 🤝*`;
+    `🔗 *رابط المعاينة المباشر لصفحتكم على الدليل:*\n` +
+    `${DIRECTORY_URL}\n\n` +
+    `*نحيطكم علماً بجاهزية صفحة المنشأة على الدليل، ويرجى استكمال سداد الرسوم المقررة لتأكيد النشر والاعتماد النهائي.*\n` +
+    `شاكرين حسن تعاونكم،\n` +
+    `الإدارة المالية — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
 }
@@ -576,29 +553,21 @@ export function getConsolidatedCollectionWhatsAppUrl(biz: Business): string {
  * and politely asks for a reply with "متاح" before triggering the code.
  */
 export function generateGoogleVerificationOtpWhatsAppMessage(biz: Business): string {
-  const owner = biz.ownerName || 'فندم';
   const venueLabel = getVenueContextLabel(biz.category);
   const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw =
-    `*تنسيق توثيق الهاتف على خرائط Google 🗺️ — ${OFFICIAL_PLATFORM_HEADER}*
+    `*تنسيق كود التحقق — خرائط Google — ${OFFICIAL_PLATFORM_HEADER}*
 ` +
     `-----------------------------------------
 ` +
-    `تحياتنا لحضرتك أستاذ *${owner}* إدارة ${venueName} 🌿
-
+    `تحياتنا لإدارة ${venueName} الكرام،
 ` +
-    `فريق العمل بمنصة «دليلك» بيجهز حالياً ربط وتثبيت رقم تليفونكم الأساسي على خرائط Google ليظهر رسمياً لآلاف الباحثين والزبائن على الخريطة.
-
+    `في إطار ربط وتوثيق هاتفكم الأساسي على خرائط Google، وحيث إن رمز التحقق الصادر عن Google يتطلب الإدخال الفوري؛ يرجى الرد بكلمة (جاهز) للتنسيق وطلب الرمز وإتمام التوثيق مباشرة.
 ` +
-    `🤝 *عشان كود جوجل وقته محدود (دقايق معدودة)، ومحبيناش نبعته في وقت تكون حضرتك فيه مشغول أو بعيد عن الموبايل:*
+    `شاكرين حسن تعاونكم،
 ` +
-    `أول ما تكون متاح وجنب التليفون، ابعتلنا كلمة *(متاح)* هنا علشان نطلب الكود من Google وتبعتلنا الـ 6 أرقام ونثبت رقمكم على الخريطة في لحظتها ✨
-
-` +
-    `شاكرين جداً لذوقك وتعاونك،
-` +
-    `فريق توثيق خرائط Google — منصة دليلك`;
+    `فريق التوثيق الرقمي — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
 }
@@ -613,24 +582,21 @@ export function getGoogleVerificationOtpWhatsAppUrl(biz: Business): string {
  * Step B: Instant Real-Time Alert When Admin Requests the SMS Code from Google
  */
 export function generateGoogleOtpSentAlertWhatsAppMessage(biz: Business): string {
-  const owner = biz.ownerName || 'فندم';
   const venueLabel = getVenueContextLabel(biz.category);
   const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw =
-    `📲 *تم الآن طلب الكود من Google — ${OFFICIAL_PLATFORM_HEADER}*
+    `*إشعار صدور كود التحقق من Google — ${OFFICIAL_PLATFORM_HEADER}*
 ` +
     `-----------------------------------------
 ` +
-    `أستاذ *${owner}* (${venueName})،
-
+    `السادة إدارة ${venueName}،
 ` +
-    `تم طلب الكود الآن بنجاح 🚀
+    `تم الآن طلب رمز التحقق الصادر عن Google، وستصلكم رسالة نصية قصيرة (SMS) تحتوي على 6 أرقام.
 ` +
-    `ستصلك رسالة نصية قصيرة (SMS) رسمية من Google خلال ثوانٍ معدودة تحتوي على 6 أرقام.
-
+    `يرجى التكرم بتزويدنا بالرمز فور وصوله لاستكمال اعتماد وتثبيت الرقم رسمياً على الخريطة مباشرة.
 ` +
-    `يرجى كتابة الـ 6 أرقام هنا في المحادثة لنقوم بتسجيل وتثبيت رقمكم رسمياً على الخريطة فوراً 🤝`;
+    `فريق التوثيق الرقمي — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
 }
@@ -646,7 +612,6 @@ export function getGoogleOtpSentAlertWhatsAppUrl(biz: Business): string {
 // -----------------------------------------------------------------------------
 
 export function generateTemporarySuspensionWhatsAppMessage(biz: Business): string {
-  const owner = biz.ownerName || 'فندم';
   const venueLabel = getVenueContextLabel(biz.category);
   const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
   const payConfig = getActivePaymentConfig();
@@ -655,29 +620,27 @@ export function generateTemporarySuspensionWhatsAppMessage(biz: Business): strin
   const remaining = Math.max(0, pkgPrice - amtPaid);
 
   const raw =
-    `⏸️ *إشعار مؤقت: تعليق صفحة العرض — ${OFFICIAL_PLATFORM_HEADER}*
+    `*إشعار تعليق صفحة العرض مؤقتاً — ${OFFICIAL_PLATFORM_HEADER}*
 ` +
     `-----------------------------------------
 ` +
-    `تحياتنا لحضرتك أستاذ *${owner}* إدارة ${venueName} 🌿
-
+    `تحياتنا لإدارة ${venueName} الكرام،
 ` +
-    `نود إحاطة حضرتك بأنه تم مؤقتاً تعليق صفحة العرض لعدم استكمال سداد رسوم الباقة لمرة واحدة (*${remaining} ج.م*).
-
+    `نحيطكم علماً بتعليق صفحة العرض مؤقتاً لعدم استكمال سداد الرسوم المقررة (${remaining} ج.م).
 ` +
-    `🛡️ *متشيلش هم خالص:* كافة بيانات المكان، الصور، والإحداثيات محفوظة بأمان تام في المنظومة ولن تضيع.
-
+    `ملاحظة: كافة البيانات والوسائط محفوظة في سجلات المنظومة لحين استكمال الإجراءات.
 ` +
-    `⚡ *طرق السداد الفوري لإعادة التفعيل اللحظي:*
+    `طرق السداد المعتمدة لإعادة التفعيل المباشر:
 ` +
     `• إنستاباي InstaPay: ${payConfig.instaPay}
 ` +
-    `• فودافون كاش / المحافظ: ${payConfig.vodafone1} أو ${payConfig.vodafone2}
-
+    `• المحافظ الإلكترونية: ${payConfig.vodafone1} أو ${payConfig.vodafone2}
 ` +
-    `بمجرد إرسال صورة التحويل هنا، هيتم إعادة تفعيل ونشر الصفحة فوراً في لحظتها 🤝
+    `عند إتمام التحويل، يرجى موافاتنا بإشعار السداد لتأكيد إعادة التفعيل فوراً.
 ` +
-    `شاكرين جداً لتفهمك وذوقك 🌿`;
+    `شاكرين تعاونكم،
+` +
+    `الإدارة المالية — منصة دليلك`;
 
   return cleanWhatsAppText(raw);
 }
@@ -697,26 +660,23 @@ export function generateTrendingFreeInvitationWhatsAppMessage(biz: Business): st
   const venueName = biz.nameAr ? `«${biz.nameAr}»` : venueLabel;
 
   const raw =
-    `*السلام عليكم ورحمة الله وبركاته، تحياتنا لإدارة ${venueName} الكرام 🌿*
+    `*السلام عليكم ورحمة الله وبركاته.. تحياتنا لإدارة ${venueName} الكرام*
 ` +
     `*${OFFICIAL_PLATFORM_HEADER}*
 ` +
     `-----------------------------------------
 ` +
-    `*الموضوع: ظهور المكان على منصتنا الخاصة (إهداء مجاني بالكامل)*
+    `نحيطكم علماً باختيار منشأتكم للإدراج والتوثيق ضمن دليل المنصة المعتمد في نطاق منطقتكم كمنشأة مميزة (إدراج معتمد بدون أي رسوم).
 ` +
-    `-----------------------------------------
+    `يتيح إدراج المنشأة توثيق بيانات التواصل ومواعيد العمل وإتاحة الوصول للجمهور والزوار مباشرة.
 ` +
-    `إحنا منصة إعلانية بتعرّف السكان والزوار بكل الخدمات والمحلات بحسب كل منطقة، وبنركز دايماً على الأماكن المميزة والأعلى جودة اللي زي حضراتكم.
-
+    `لتأكيد التفعيل، يرجى التكرم بالموافقة لنوافيكم برابط المعاينة المباشر لصفحتكم.
 ` +
-    `بنتشرف بوجودكم معانا علشان نعلن عن المكان بأسلوبنا وبشكل مختلف، ومجاني تماماً بدون أي رسوم أو اشتراكات.
-
+    `شاكرين تعاونكم،
 ` +
-    `لو تسمحولنا المكان يظهر على موقعنا الخاص؛ شرفنا بالموافقة، وبمجرد رد حضرتك هنبعتلك الرابط الرسمي لصفحتكم على التطبيق لمعاينته فوراً 🤝
-
+    `إدارة منصة دليلك
 ` +
-    `شاكرين جداً لذوقك ووقتك 🌿`;
+    `الموقع الرسمي: ${DIRECTORY_URL}`;
 
   return cleanWhatsAppText(raw);
 }
@@ -1381,31 +1341,27 @@ export function getMotivationalQrReviewsAdviceWhatsAppUrl(biz: Business): string
 
 /**
  * 🌟 رسالة طلب السماح والاستئذان للمنشآت الأكثر رواجاً (إدراج شرفي مجاني تماماً)
- * بالصيغة الودية المعتمدة بالعامية المصرية الراقية ("زي حضراتكم" وبدون أي اشتراكات)
+ * بالصيغة الرسمية المتزنة المعتمدة بالبروتوكول السادس
  */
 export function generateTrendingVenuePermissionWhatsAppMessage(lead?: { clientName?: string; businessName?: string }): string {
-  const targetName = lead?.businessName ? `«${lead.businessName}»` : (lead?.clientName || '');
-  const greetingTarget = targetName ? `أهلاً بحضراتكم في *${targetName}*` : 'مرحب بحضراتكم';
+  const targetName = lead?.businessName ? `«${lead.businessName}»` : (lead?.clientName ? `«${lead.clientName}»` : 'المنشأة');
 
   const raw =
     `السلام عليكم ورحمة الله وبركاته..
 ` +
-    `${greetingTarget}، بنتشرف بالتواصل معكم من منصة *«دليلك»* 🧭
+    `تحياتنا لإدارة ${targetName} الكرام،
 ` +
     `-----------------------------------------
 ` +
-    `إحنا منصة تسويقية وعرض رقمي بنعرض المنشآت والخدمات المميزة في كل منطقة للسكان المحليين والزوار.
-
+    `نحيطكم علماً باختيار منشأتكم للإدراج والتوثيق ضمن دليل المنصة المعتمد في نطاق منطقتكم كمنشأة مميزة (إدراج معتمد بدون أي رسوم).
 ` +
-    `تركيزنا الأساسي دايماً على الأماكن الأعلى جودة والمميز *زي حضراتكم*، نتشرف بوجودكم معانا لكي نعلن عنكم بأسلوبنا وبشكل مختلف، *ومجاناً تماماً بدون أي اشتراكات أو رسوم*.
-
+    `يتيح إدراج المنشأة توثيق بيانات التواصل ومواعيد العمل وإتاحة الوصول للجمهور والزوار مباشرة.
 ` +
-    `فإذا تسمحولنا بظهور المكان على موقعنا الخاص، بمجرد موافقتكم الكريمة هنبعت لحضراتكم الرابط المباشر لمعاينته داخل التطبيق فوراً 🌹
-
+    `لتأكيد التفعيل، يرجى التكرم بالموافقة لنوافيكم برابط المعاينة المباشر لصفحتكم.
 ` +
-    `تحياتنا وتقديرنا لحضراتكم ✨
+    `شاكرين حسن تعاونكم،
 ` +
-    `فريق منصة دليلك
+    `إدارة منصة دليلك
 ` +
     `الموقع الرسمي: ${DIRECTORY_URL}`;
 

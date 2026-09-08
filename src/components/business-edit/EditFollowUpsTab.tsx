@@ -16,6 +16,16 @@ import {
   Trash2,
   Lock,
   X,
+  Phone,
+  Navigation,
+  DollarSign,
+  Globe,
+  FileText,
+  Store,
+  MapPin,
+  Image as ImageIcon,
+  Tag,
+  MessageCircle,
 } from 'lucide-react';
 
 interface EditFollowUpsTabProps {
@@ -42,109 +52,105 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
   userRole,
   currentRoleTitle,
   onShowNotification,
-  initialCategory,
+  initialCategory = 'all',
   onCloseDrawer,
 }) => {
-  const isSuperAdminViewer =
-    isSuperAdmin(currentUser) ||
-    Boolean(currentUser?.email && currentUser.email.toLowerCase() === 'ahmedhufne@gmail.com') ||
-    currentUserId === 'rep_ahmed_ezalden';
+  const isSuperAdminViewer = isSuperAdmin(currentUser);
 
-  const [newFollowUpText, setNewFollowUpText] = useState<string>('');
+  const [newFollowUpText, setNewFollowUpText] = useState('');
   const [newFollowUpType, setNewFollowUpType] = useState<AdminFollowUpType | null>(null);
   const [newFollowUpStatus, setNewFollowUpStatus] = useState<AdminFollowUpStatus | null>(null);
-  const [newFollowUpNextDate, setNewFollowUpNextDate] = useState<string>('');
+  const [newFollowUpCategory, setNewFollowUpCategory] = useState<AdminFollowUpCategory>('general');
+  const [nextFollowUpDate, setNextFollowUpDate] = useState('');
+  const [followUpFilterType, setFollowUpFilterType] = useState<AdminFollowUpType | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<AdminFollowUpCategory | 'all'>(initialCategory);
+  const [followUpSearch, setFollowUpSearch] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [followUpError, setFollowUpError] = useState<string | null>(null);
-  const [followUpFilterType, setFollowUpFilterType] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<AdminFollowUpCategory | 'all'>(initialCategory || 'all');
-  const [followUpSearch, setFollowUpSearch] = useState<string>('');
-  const [isSavingFollowUp, setIsSavingFollowUp] = useState<boolean>(false);
 
   useEffect(() => {
-    if (initialCategory) {
+    if (initialCategory && initialCategory !== 'all') {
       setCategoryFilter(initialCategory);
+      setNewFollowUpCategory(initialCategory);
     }
   }, [initialCategory]);
 
-  const handleAddFollowUp = async () => {
+  const handleAddFollowUp = () => {
     if (!newFollowUpText.trim()) {
-      setFollowUpError('يرجى كتابة نص الملاحظة أو تفاصيل الإجراء أولاً');
+      setFollowUpError('يرجى كتابة نص الملاحظة أولاً');
       return;
     }
-
     if (!newFollowUpType) {
-      setFollowUpError('يرجى اختيار طبيعة الإجراء (اتصال، زيارة، تحصيل...)');
+      setFollowUpError('يرجى اختيار طبيعة الإجراء (اتصال، زيارة، سداد...)');
       return;
     }
-
     if (!newFollowUpStatus) {
       setFollowUpError('يرجى اختيار حالة الإجراء (مكتمل، معلق، عاجل)');
       return;
     }
 
-    setIsSavingFollowUp(true);
-    try {
-      const newNote: AdminFollowUpNote = {
-        id: `fu_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        text: newFollowUpText.trim(),
-        type: newFollowUpType,
-        status: newFollowUpStatus,
-        category: categoryFilter !== 'all' ? categoryFilter : 'general',
-        authorName: currentUserName || 'المسؤول',
-        authorId: currentUserId || 'admin',
-        authorRole: (userRole as any) || 'admin',
-        createdAt: new Date().toISOString(),
-        nextFollowUpDate: newFollowUpNextDate ? newFollowUpNextDate : undefined,
-      };
+    const noteId = `fu_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const effectiveCategory = newFollowUpCategory || (categoryFilter !== 'all' ? categoryFilter : 'general');
 
-      const updatedFollowUps = [newNote, ...(formData.adminFollowUps || [])];
-      const updatedBiz: Business = {
-        ...formData,
-        adminFollowUps: updatedFollowUps,
-      };
+    const newNote: AdminFollowUpNote = {
+      id: noteId,
+      text: newFollowUpText.trim(),
+      type: newFollowUpType,
+      status: newFollowUpStatus,
+      category: effectiveCategory,
+      createdAt: new Date().toISOString(),
+      authorId: currentUserId || currentUser?.id || 'admin',
+      authorName: currentUserName || currentUser?.name || 'الإدارة',
+      authorRole: userRole || currentUser?.role || 'admin',
+      nextFollowUpDate: nextFollowUpDate || undefined,
+    };
 
-      setFormData(updatedBiz);
-      onSave(updatedBiz);
-      setNewFollowUpText('');
-      setNewFollowUpType(null);
-      setNewFollowUpStatus(null);
-      setNewFollowUpNextDate('');
-      setFollowUpError(null);
-      onShowNotification?.('تم تسجيل المتابعة الإدارية وتصنيفها بنجاح 📋');
-    } finally {
-      setIsSavingFollowUp(false);
-    }
+    const currentFollowUps = formData.adminFollowUps || [];
+    const updatedFollowUps = [newNote, ...currentFollowUps];
+
+    const updatedBiz: Business = {
+      ...formData,
+      adminFollowUps: updatedFollowUps,
+    };
+
+    setFormData(updatedBiz);
+    onSave(updatedBiz);
+
+    setNewFollowUpText('');
+    setNewFollowUpType(null);
+    setNewFollowUpStatus(null);
+    setNextFollowUpDate('');
+    setFollowUpError(null);
+    onShowNotification?.('تم تسجيل وحفظ الملاحظة بنجاح');
   };
 
-  const [noteToDeleteId, setNoteToDeleteId] = useState<string | null>(null);
+  const handleToggleFollowUpStatus = (noteId: string) => {
+    const currentFollowUps = formData.adminFollowUps || [];
+    const updatedFollowUps = currentFollowUps.map((n) => {
+      if (n.id !== noteId) return n;
+      const nextStatus: AdminFollowUpStatus =
+        n.status === 'completed' ? 'pending' : 'completed';
+      return { ...n, status: nextStatus };
+    });
 
-  const handleDeleteFollowUp = (noteId: string) => {
-    setNoteToDeleteId(noteId);
-  };
-
-  const confirmDeleteNote = () => {
-    if (!noteToDeleteId) return;
-    const updatedFollowUps = (formData.adminFollowUps || []).filter((n) => n.id !== noteToDeleteId);
     const updatedBiz: Business = {
       ...formData,
       adminFollowUps: updatedFollowUps,
     };
     setFormData(updatedBiz);
     onSave(updatedBiz);
-    onShowNotification?.('تم حذف الملاحظة الإدارية بنجاح');
-    setNoteToDeleteId(null);
   };
 
-  const handleToggleFollowUpStatus = (noteId: string) => {
-    const updatedFollowUps = (formData.adminFollowUps || []).map((n) => {
-      if (n.id === noteId) {
-        return {
-          ...n,
-          status: (n.status === 'completed' ? 'pending' : 'completed') as AdminFollowUpStatus,
-        };
-      }
-      return n;
-    });
+  const handleDeleteFollowUp = (noteId: string) => {
+    setDeleteConfirmId(noteId);
+  };
+
+  const confirmDeleteFollowUp = () => {
+    if (!deleteConfirmId) return;
+    const currentFollowUps = formData.adminFollowUps || [];
+    const updatedFollowUps = currentFollowUps.filter((n) => n.id !== deleteConfirmId);
+    setDeleteConfirmId(null);
+
     const updatedBiz: Business = {
       ...formData,
       adminFollowUps: updatedFollowUps,
@@ -156,34 +162,34 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
   const getTypeInfo = (type: AdminFollowUpType) => {
     switch (type) {
       case 'call':
-        return { label: 'اتصال هاتفي', icon: '📞', bg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+        return { label: 'اتصال هاتفي', Icon: Phone, bg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
       case 'visit':
-        return { label: 'زيارة ميدانية', icon: '🏃', bg: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
+        return { label: 'زيارة ميدانية', Icon: Navigation, bg: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
       case 'payment':
-        return { label: 'متابعة سداد', icon: '💰', bg: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
+        return { label: 'متابعة سداد', Icon: DollarSign, bg: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
       case 'verification':
-        return { label: 'توثيق الخريطة', icon: '🌐', bg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
+        return { label: 'توثيق الخريطة', Icon: Globe, bg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
       default:
-        return { label: 'ملاحظة عامة', icon: '📝', bg: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
+        return { label: 'ملاحظة عامة', Icon: FileText, bg: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
     }
   };
 
   const getCategoryInfo = (cat?: AdminFollowUpCategory) => {
     switch (cat) {
       case 'directory':
-        return { label: 'الدليل', icon: '🏛️', cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+        return { label: 'الدليل', Icon: Store, cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
       case 'maps':
-        return { label: 'الخرائط', icon: '🗺️', cls: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
+        return { label: 'الخرائط', Icon: MapPin, cls: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
       case 'finance':
-        return { label: 'المالية', icon: '💰', cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
+        return { label: 'المالية', Icon: DollarSign, cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
       case 'media':
-        return { label: 'الوسائط', icon: '📸', cls: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
+        return { label: 'الوسائط', Icon: ImageIcon, cls: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
       case 'info':
-        return { label: 'البيانات', icon: '🏷️', cls: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
+        return { label: 'البيانات', Icon: Tag, cls: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
       case 'whatsapp':
-        return { label: 'واتساب', icon: '💬', cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+        return { label: 'واتساب', Icon: MessageCircle, cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
       default:
-        return { label: 'عام', icon: '📝', cls: 'bg-slate-500/10 text-slate-500 border-slate-500/20' };
+        return { label: 'عام', Icon: FileText, cls: 'bg-slate-500/10 text-slate-500 border-slate-500/20' };
     }
   };
 
@@ -213,8 +219,9 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
               <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
                 سجل المتابعات الشامل (CRM)
               </h4>
-              <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
-                سري 🔒
+              <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                <span>سري</span>
               </span>
             </div>
           </div>
@@ -239,25 +246,25 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
         {/* Quick CRM Metrics Strip */}
         <div className="grid grid-cols-4 gap-1.5 text-center text-xs">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-xl">
-            <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">📞 اتصالات</span>
+            <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">اتصالات</span>
             <span className="font-mono font-black text-xs text-[var(--text-primary)]">
               {allFollowUps.filter((f) => f.type === 'call').length}
             </span>
           </div>
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-xl">
-            <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">🏃 زيارات</span>
+            <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">زيارات</span>
             <span className="font-mono font-black text-xs text-[var(--text-primary)]">
               {allFollowUps.filter((f) => f.type === 'visit').length}
             </span>
           </div>
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-xl">
-            <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">💰 تحصيل</span>
+            <span className="text-[9px] text-[var(--text-muted)] block font-bold truncate">تحصيل</span>
             <span className="font-mono font-black text-xs text-[var(--text-primary)]">
               {allFollowUps.filter((f) => f.type === 'payment').length}
             </span>
           </div>
           <div className="bg-amber-500/10 border border-amber-500/30 p-1.5 rounded-xl">
-            <span className="text-[9px] text-amber-600 dark:text-amber-300 block font-bold truncate">⏳ معلق</span>
+            <span className="text-[9px] text-amber-600 dark:text-amber-300 block font-bold truncate">معلق</span>
             <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">
               {allFollowUps.filter((f) => f.status === 'pending').length}
             </span>
@@ -282,12 +289,12 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
         {/* Quick Templates Buttons */}
         <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
           {[
-            '📞 تم الاتصال وأكد السداد غداً',
-            '⏳ طلب مهلة للمراجعة',
-            '📍 تمت المعاينة ومطابقة اللافتة',
-            '🌐 تم رفع وتوثيق الخريطة',
-            '💳 تم إرسال بيانات السداد',
-            '⚠️ لم يرد وتم إرسال واتساب',
+            'تم الاتصال وأكد السداد غداً',
+            'طلب مهلة للمراجعة',
+            'تمت المعاينة ومطابقة اللافتة',
+            'تم رفع وتوثيق الخريطة',
+            'تم إرسال بيانات السداد',
+            'لم يرد وتم إرسال واتساب',
           ].map((tpl, idx) => (
             <button
               key={idx}
@@ -343,11 +350,11 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
               </span>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-xs font-bold">
                 {[
-                  { type: 'call', label: '📞 اتصال', color: 'bg-emerald-600 text-white' },
-                  { type: 'visit', label: '🏃 زيارة', color: 'bg-purple-600 text-white' },
-                  { type: 'payment', label: '💰 تحصيل', color: 'bg-amber-600 text-white' },
-                  { type: 'verification', label: '🌐 خرائط', color: 'bg-blue-600 text-white' },
-                  { type: 'general', label: '📝 عامة', color: 'bg-slate-700 text-white' },
+                  { type: 'call', label: 'اتصال', Icon: Phone, color: 'bg-emerald-600 text-white' },
+                  { type: 'visit', label: 'زيارة', Icon: Navigation, color: 'bg-purple-600 text-white' },
+                  { type: 'payment', label: 'تحصيل', Icon: DollarSign, color: 'bg-amber-600 text-white' },
+                  { type: 'verification', label: 'خرائط', Icon: Globe, color: 'bg-blue-600 text-white' },
+                  { type: 'general', label: 'عامة', Icon: FileText, color: 'bg-slate-700 text-white' },
                 ].map((item) => (
                   <button
                     key={item.type}
@@ -356,13 +363,14 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                       setNewFollowUpType(item.type as AdminFollowUpType);
                       setFollowUpError(null);
                     }}
-                    className={`py-2 px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-all text-center ${
+                    className={`py-2 px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
                       newFollowUpType === item.type
                         ? `${item.color} font-black ring-2 ring-amber-500 shadow-xs scale-98`
                         : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
                     }`}
                   >
-                    {item.label}
+                    <item.Icon className="w-3.5 h-3.5" />
+                    <span>{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -375,9 +383,9 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
               </span>
               <div className="grid grid-cols-3 gap-1.5 text-xs font-bold">
                 {[
-                  { status: 'completed', label: '✅ تم واكتمل', color: 'bg-emerald-600 text-white' },
-                  { status: 'pending', label: '⏳ معلق للمتابعة', color: 'bg-amber-500 text-slate-950' },
-                  { status: 'urgent', label: '🚨 عاجل وهام', color: 'bg-rose-600 text-white' },
+                  { status: 'completed', label: 'تم واكتمل', Icon: Check, color: 'bg-emerald-600 text-white' },
+                  { status: 'pending', label: 'معلق للمتابعة', Icon: Clock, color: 'bg-amber-500 text-slate-950' },
+                  { status: 'urgent', label: 'عاجل وهام', Icon: AlertTriangle, color: 'bg-rose-600 text-white' },
                 ].map((s) => (
                   <button
                     key={s.status}
@@ -386,13 +394,14 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                       setNewFollowUpStatus(s.status as AdminFollowUpStatus);
                       setFollowUpError(null);
                     }}
-                    className={`py-2 px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-all text-center ${
+                    className={`py-2 px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
                       newFollowUpStatus === s.status
                         ? `${s.color} font-black ring-2 ring-amber-500 shadow-xs scale-98`
                         : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
                     }`}
                   >
-                    {s.label}
+                    <s.Icon className="w-3.5 h-3.5" />
+                    <span>{s.label}</span>
                   </button>
                 ))}
               </div>
@@ -406,18 +415,18 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                 </span>
                 <input
                   type="date"
-                  value={newFollowUpNextDate}
-                  onChange={(e) => setNewFollowUpNextDate(e.target.value)}
+                  value={nextFollowUpDate}
+                  onChange={(e) => setNextFollowUpDate(e.target.value)}
                   className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-lg px-2.5 py-1 text-[11px] font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
                 />
               </div>
-              {newFollowUpNextDate && (
+              {nextFollowUpDate && (
                 <button
                   type="button"
-                  onClick={() => setNewFollowUpNextDate('')}
+                  onClick={() => setNextFollowUpDate('')}
                   className="text-[10px] text-rose-500 hover:underline font-bold"
                 >
-                  إلغاء الموعد ✕
+                  إلغاء الموعد
                 </button>
               )}
             </div>
@@ -437,7 +446,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
           <button
             type="button"
             onClick={handleAddFollowUp}
-            disabled={!newFollowUpText.trim() || isSavingFollowUp}
+            disabled={!newFollowUpText.trim()}
             className={`w-full sm:w-auto font-black text-xs px-5 py-2.5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer ${
               !newFollowUpText.trim()
                 ? 'bg-slate-700/40 text-slate-500 cursor-not-allowed'
@@ -447,7 +456,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
             }`}
           >
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            <span>{isSavingFollowUp ? 'جاري الحفظ...' : 'تسجيل المتابعة'}</span>
+            <span>تسجيل المتابعة</span>
           </button>
         </div>
       </div>
@@ -475,15 +484,15 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
 
             <select
               value={followUpFilterType}
-              onChange={(e) => setFollowUpFilterType(e.target.value)}
+              onChange={(e) => setFollowUpFilterType(e.target.value as AdminFollowUpType | 'all')}
               className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl px-2 py-1 font-bold focus:outline-none focus:border-amber-500 cursor-pointer"
             >
               <option value="all">كل الإجراءات</option>
-              <option value="call">📞 اتصالات</option>
-              <option value="visit">🏃 زيارات</option>
-              <option value="payment">💰 سداد</option>
-              <option value="verification">🌐 خرائط Google</option>
-              <option value="general">📝 ملاحظات عامة</option>
+              <option value="call">اتصالات هاتفية</option>
+              <option value="visit">زيارات ميدانية</option>
+              <option value="payment">متابعة سداد</option>
+              <option value="verification">خرائط Google</option>
+              <option value="general">ملاحظات عامة</option>
             </select>
           </div>
         </div>
@@ -492,13 +501,13 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
           {[
             { id: 'all', label: 'الكل' },
-            { id: 'directory', label: 'الدليل 🏛️' },
-            { id: 'maps', label: 'الخرائط 🗺️' },
-            { id: 'finance', label: 'المالية 💰' },
-            { id: 'media', label: 'الوسائط 📸' },
-            { id: 'info', label: 'البيانات 🏷️' },
-            { id: 'whatsapp', label: 'واتساب 💬' },
-            { id: 'general', label: 'عامة 📝' },
+            { id: 'directory', label: 'الدليل' },
+            { id: 'maps', label: 'الخرائط' },
+            { id: 'finance', label: 'المالية' },
+            { id: 'media', label: 'الوسائط' },
+            { id: 'info', label: 'البيانات' },
+            { id: 'whatsapp', label: 'واتساب' },
+            { id: 'general', label: 'عامة' },
           ].map((cat) => {
             const count = cat.id === 'all'
               ? allFollowUps.length
@@ -564,13 +573,15 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                   {/* Note Card Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${tInfo.bg}`}>
-                        {tInfo.icon} {tInfo.label}
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border flex items-center gap-1 ${tInfo.bg}`}>
+                        <tInfo.Icon className="w-3 h-3" />
+                        <span>{tInfo.label}</span>
                       </span>
 
                       {note.category && (
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${cInfo.cls}`}>
-                          {cInfo.icon} {cInfo.label}
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border flex items-center gap-1 ${cInfo.cls}`}>
+                          <cInfo.Icon className="w-3 h-3" />
+                          <span>{cInfo.label}</span>
                         </span>
                       )}
 
@@ -617,7 +628,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                         }`}
                         title="انقر لتغيير الحالة بين مكتمل ومعلق"
                       >
-                        {isUrgent ? '🚨 عاجل' : isPending ? '⏳ معلق للمتابعة' : '✅ تم الإنجاز'}
+                        {isUrgent ? 'عاجل' : isPending ? 'معلق للمتابعة' : 'تم الإنجاز'}
                       </button>
                     </div>
 
@@ -660,14 +671,14 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
 
       {/* Confirm Delete Note Dialog */}
       <ConfirmDialog
-        isOpen={Boolean(noteToDeleteId)}
+        isOpen={Boolean(deleteConfirmId)}
         title="حذف المتابعة الإدارية"
         message="هل أنت متأكد من رغبتك في حذف هذه الملاحظة الإدارية؟"
         confirmLabel="حذف الملاحظة"
         cancelLabel="إلغاء"
         variant="danger"
-        onConfirm={confirmDeleteNote}
-        onCancel={() => setNoteToDeleteId(null)}
+        onConfirm={confirmDeleteFollowUp}
+        onCancel={() => setDeleteConfirmId(null)}
       />
     </div>
   );

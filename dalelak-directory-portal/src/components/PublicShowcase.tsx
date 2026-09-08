@@ -56,6 +56,7 @@ import {
   Zap,
   Crown,
   Rocket,
+  Gift,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
@@ -661,11 +662,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     const defaultPhone = '201143888355';
     let text = '';
     if (pkg.price === 0) {
-      text = `مرحباً دليلك 👋\nأرغب في طلب إدراج وظهور منشأتنا ومكاننا مجاناً في دليل منصة دليلك بدون أي رسوم (0 ج.م) 🎁.\nيرجى تزويدي بالخطوات المطلوبة لإرسال بيانات المحل والظهور في الدليل.`;
+      text = `مرحباً دليلك\nأرغب في طلب إدراج وظهور منشأتنا ومكاننا مجاناً في دليل منصة دليلك بدون أي رسوم (0 ج.م).\nيرجى تزويدي بالخطوات المطلوبة لإرسال بيانات المحل والظهور في الدليل.`;
     } else if (pkg.price === 20000) {
-      text = `مرحباً دليلك 👋\nأود الاستفسار والاشتراك في "باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م)" لمشروعنا ومكاننا (تحت التجهيز والإنشاء) 👑.\nأرغب في التكفل الشامل بالهوية والشعار واللافتة والتأسيس الرقمي وفيديو الافتتاح السينمائي وبناء نظام الزبون المنتظم.`;
+      text = `مرحباً دليلك\nأود الاستفسار والاشتراك في "باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م)" لمشروعنا ومكاننا (تحت التجهيز والإنشاء).\nأرغب في التكفل الشامل بالهوية والشعار واللافتة والتأسيس الرقمي وفيديو الافتتاح السينمائي وبناء نظام الزبون المنتظم.`;
     } else {
-      text = `مرحباً دليلك 👋\nأود الاستفسار والاشتراك في "${pkg.title}" بقيمة (${pkg.price} ج.م) كحملة دعائية لتطوير ومضاعفة مبيعات منشأتنا ومكاننا.`;
+      text = `مرحباً دليلك\nأود الاستفسار والاشتراك في "${pkg.title}" بقيمة (${pkg.price} ج.م) كحملة دعائية لتطوير ومضاعفة مبيعات منشأتنا ومكاننا.`;
     }
     if (referralCode) {
       text += `\n(كود المندوب الإرشادي: ${referralCode})`;
@@ -679,20 +680,20 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     if (!formBizName || !formPhone) return;
 
     const defaultPhone = '201143888355';
-    let text = `السلام عليكم ورحمة الله وبركاته 🌿\n`;
+    let text = `السلام عليكم ورحمة الله وبركاته\n`;
     if (formSelectedPackage.includes('مجاني') || formSelectedPackage.includes('0')) {
-      text += `طلب إدراج وظهور منشأة تجارية مجاناً في دليل دليلك (0 ج.م بدون أي رسوم) 🎁:\n`;
+      text += `طلب إدراج وظهور منشأة تجارية مجاناً في دليل دليلك (0 ج.م بدون أي رسوم):\n`;
     } else if (formSelectedPackage.includes('20000') || formSelectedPackage.includes('الإنشاء') || formSelectedPackage.includes('الانطلاق')) {
-      text += `طلب حجز باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م) للمشاريع تحت التجهيز والإنشاء 👑:\n`;
+      text += `طلب حجز باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م) للمشاريع تحت التجهيز والإنشاء:\n`;
     } else {
-      text += `طلب استفسار وحجز حملة دعائية لتطوير منشأة ومكان تجاري 🚀:\n`;
+      text += `طلب استفسار وحجز حملة دعائية لتطوير منشأة ومكان تجاري:\n`;
     }
-    text += `🏬 اسم المكان / المنشأة: ${formBizName.trim()}\n`;
-    if (formOwnerName) text += `👤 المسؤول: ${formOwnerName.trim()}\n`;
-    text += `📱 رقم التواصل: ${formPhone.trim()}\n`;
-    text += `📍 المحافظة: ${formGov}\n`;
-    text += `🎯 نوع الطلب / الحملة: ${formSelectedPackage}\n`;
-    if (referralCode) text += `🔖 كود الإحالة: ${referralCode}\n`;
+    text += `اسم المكان / المنشأة: ${formBizName.trim()}\n`;
+    if (formOwnerName) text += `المسؤول: ${formOwnerName.trim()}\n`;
+    text += `رقم التواصل: ${formPhone.trim()}\n`;
+    text += `المحافظة: ${formGov}\n`;
+    text += `نوع الطلب / الحملة: ${formSelectedPackage}\n`;
+    if (referralCode) text += `كود الإحالة: ${referralCode}\n`;
 
     setConsultSuccess(true);
     setTimeout(() => {
@@ -729,9 +730,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             <button
               type="button"
               onClick={() => openPackagesModal('pkg_free')}
-              className="text-emerald-600 dark:text-emerald-400 hover:underline transition-colors flex items-center gap-1 font-black cursor-pointer"
+              className="text-emerald-600 dark:text-emerald-400 hover:underline transition-colors flex items-center gap-1.5 font-black cursor-pointer"
             >
-              <span>🎁</span>
+              <Gift className="w-3.5 h-3.5" />
               <span>الظهور المجاني (0 ج)</span>
             </button>
             <button
@@ -740,14 +741,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               className="text-amber-500 hover:text-amber-400 transition-all flex items-center gap-1.5 font-black cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-1.5 rounded-full border border-amber-500/30 shadow-xs active:scale-95"
             >
               <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>دليل وشرح الباقات 💎</span>
+              <span>دليل الباقات المعتمدة</span>
             </button>
             <button
               type="button"
               onClick={() => openPackagesModal('pkg_pro')}
-              className="hover:text-amber-500 transition-colors flex items-center gap-1 font-black cursor-pointer"
+              className="hover:text-amber-500 transition-colors flex items-center gap-1.5 font-black cursor-pointer"
             >
-              <span>🚀</span>
+              <Rocket className="w-3.5 h-3.5 text-amber-500" />
               <span>الحملات الدعائية (حسب الطلب)</span>
             </button>
             <a href="#map" className="hover:text-amber-500 transition-colors">الخريطة المباشرة</a>
@@ -759,10 +760,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               type="button"
               onClick={() => openPackagesModal('pkg_basic')}
               className="md:hidden bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[11px] font-black px-2.5 py-2 rounded-xl flex items-center gap-1 cursor-pointer"
-              title="دليل الباقات"
+              title="دليل الباقات المعتمدة"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>الباقات 💎</span>
+              <span>الباقات</span>
             </button>
 
             <button
@@ -777,7 +778,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               href="#free-listing"
               className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all hover:shadow-emerald-500/30 hover:shadow-lg active:scale-95 cursor-pointer"
             >
-              <span>🎁</span>
+              <Gift className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">اطلب الظهور مجاناً</span>
               <span className="sm:hidden">أضف مجاناً</span>
             </a>
@@ -820,8 +821,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           {/* 📣 Free Listing Reassurance Card & Direct Action */}
           <div className="max-w-3xl mx-auto bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-amber-500/10 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-right animate-fade-in">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 text-2xl font-bold shadow-xs">
-                🎁
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs">
+                <Gift className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -843,7 +844,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 href="#free-listing"
                 className="flex-1 sm:flex-initial bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-4 py-3 rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer hover:shadow-emerald-500/30 hover:shadow-lg"
               >
-                <span>اطلب الظهور مجاناً 🚀</span>
+                <span>اطلب الظهور مجاناً</span>
               </a>
               <button
                 type="button"
@@ -851,7 +852,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 className="bg-[var(--bg-card)] hover:bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-amber-500/40 text-amber-500 font-black text-xs px-3.5 py-3 rounded-2xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
               >
                 <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>دليل وشرح الباقات 💎</span>
+                <span>دليل الباقات المعتمدة</span>
               </button>
             </div>
           </div>
@@ -940,7 +941,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                               }}
                               className="w-full text-right flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-amber-500/10 transition-colors cursor-pointer"
                             >
-                              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center text-base shrink-0">🏬</div>
+                              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center text-base shrink-0">
+                                <Building2 className="w-4 h-4 text-amber-500" />
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <span className="font-black text-[var(--text-primary)] block truncate">{biz.nameAr}</span>
                                 <span className="text-[10px] text-[var(--text-muted)] font-bold">{biz.category} · {biz.city || biz.governorate}</span>
@@ -965,7 +968,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-[var(--input-bg)] text-[var(--text-secondary)] text-[11px] font-bold border border-[var(--border-color)] cursor-pointer hover:border-amber-500 transition-colors"
                               >
-                                {grp.icon} {grp.group}
+                                {grp.group}
                               </button>
                             ))}
                           </div>
@@ -988,7 +991,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-[var(--input-bg)] text-[var(--text-secondary)] text-[11px] font-bold border border-[var(--border-color)] cursor-pointer hover:border-amber-500 transition-colors"
                               >
-                                📍 {z}
+                                {z}
                               </button>
                             ))}
                           </div>
@@ -1015,9 +1018,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   }}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
                 >
-                  <option value="all">📍 كل المحافظات</option>
+                  <option value="all">كل المحافظات</option>
                   {EGYPT_GOVERNORATES.map((g) => (
-                    <option key={g} value={g}>📍 {g}</option>
+                    <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
               </div>
@@ -1034,8 +1037,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 >
                   <option value="all">
                     {govFilter === 'all'
-                      ? '🏙️ كل المناطق والمدن'
-                      : `🏙️ كل مناطق ${govFilter} (${availableCities.length})`}
+                      ? 'كل المناطق والمدن'
+                      : `كل مناطق ${govFilter} (${availableCities.length})`}
                   </option>
                   {availableCities.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -1051,9 +1054,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     onChange={(e) => setHadayekZoneFilter(e.target.value)}
                     className="w-full bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl px-3 py-3 text-xs font-black text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer shadow-xs"
                   >
-                    <option value="all">🌿 كل قطاعات حدائق الأهرام ({HADAYEK_ALAHRAM_ZONES.length})</option>
+                    <option value="all">كل قطاعات حدائق الأهرام ({HADAYEK_ALAHRAM_ZONES.length})</option>
                     {HADAYEK_ALAHRAM_ZONES.map((z) => (
-                      <option key={z} value={z}>📍 {z}</option>
+                      <option key={z} value={z}>{z}</option>
                     ))}
                   </select>
                 </div>
@@ -1066,7 +1069,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3 py-3 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
                 >
-                  <option value="all">🏷️ كل التصنيفات</option>
+                  <option value="all">كل التصنيفات</option>
                   {CATEGORY_GROUPS.map((grp) => (
                     <option key={grp.group} value={grp.group}>
                       {grp.icon} {grp.group}
@@ -1122,11 +1125,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     className="bg-transparent text-[var(--text-primary)] font-black text-xs focus:outline-none cursor-pointer"
                   >
                     <option value="default">الترتيب الافتراضي</option>
-                    <option value="nearest">📍 الأقرب لموقعي (GPS)</option>
-                    <option value="newest">⚡ الأحدث إضافة</option>
-                    <option value="has_video">🎬 يحتوي على فيديو</option>
-                    <option value="open_now">🟢 مفتوح الآن</option>
-                    <option value="alpha">🔤 أبجدياً (أ - ي)</option>
+                    <option value="nearest">الأقرب لموقعي (GPS)</option>
+                    <option value="newest">الأحدث إضافة</option>
+                    <option value="has_video">يحتوي على فيديو</option>
+                    <option value="open_now">مفتوح الآن</option>
+                    <option value="alpha">أبجدياً (أ - ي)</option>
                   </select>
                   {isLocatingUser && <Loader2 className="w-3.5 h-3.5 text-amber-500 animate-spin" />}
                 </div>
@@ -1142,16 +1145,17 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
                 <a
                   href="#free-listing"
-                  className="text-emerald-600 dark:text-emerald-400 hover:underline font-black text-xs flex items-center gap-1 bg-emerald-500/10 hover:bg-emerald-500/15 px-2.5 py-1.5 rounded-xl border border-emerald-500/20 transition-colors"
+                  className="text-emerald-600 dark:text-emerald-400 hover:underline font-black text-xs flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/15 px-2.5 py-1.5 rounded-xl border border-emerald-500/20 transition-colors"
                 >
-                  <span>🎁 أضف مكانك مجاناً</span>
+                  <Gift className="w-3.5 h-3.5" />
+                  <span>أضف مكانك مجاناً</span>
                 </a>
                 <a
                   href="#packages"
                   className="text-amber-600 dark:text-amber-400 hover:underline font-black text-xs flex items-center gap-1"
                 >
                   <Award className="w-3.5 h-3.5" />
-                  <span>الحملات الدعائية 💎</span>
+                  <span>الحملات الدعائية</span>
                 </a>
               </div>
             </div>
@@ -1233,14 +1237,16 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       className="w-11 h-11 rounded-full border-4 border-emerald-500/20 border-b-emerald-500 animate-spin absolute"
                       style={{ animationDirection: 'reverse', animationDuration: '1.2s' }}
                     />
-                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center absolute text-xs">🧭</div>
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center absolute text-xs">
+                      <Compass className="w-3.5 h-3.5 text-amber-500" />
+                    </div>
                   </div>
                   <div className="text-center space-y-1">
                     <p className="text-xs sm:text-sm font-black text-[var(--text-primary)] animate-pulse">
                       {initialBizId ? 'جاري فتح وتجهيز بيانات المكان المطلوب...' : 'جاري تحميل الأماكن المعتمدة...'}
                     </p>
                     <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                      يرجى الانتظار لحظات جاري استرجاع البيانات الموثقة 🌿
+                      يرجى الانتظار لحظات جاري استرجاع البيانات الموثقة...
                     </p>
                   </div>
                 </div>
@@ -1270,7 +1276,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {/* Empty State - DB Empty */}
             {!loading && businesses.length === 0 && (
               <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-4 shadow-sm">
-                <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-2xl">🔍</div>
+                <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                  <Search className="w-8 h-8 text-amber-500" />
+                </div>
                 <h3 className="font-black text-base text-[var(--text-primary)]">لا توجد منشآت أو محلات مسجلة حالياً</h3>
                 <p className="text-xs text-[var(--text-muted)] font-bold">سيتم إدراج الأماكن فور اعتمادها ونشرها من إدارة المنظومة</p>
                 <a
@@ -1286,14 +1294,16 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {/* Empty State - Filter No Results */}
             {!loading && businesses.length > 0 && filteredBusinesses.length === 0 && (
               <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center space-y-4 shadow-sm">
-                <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-2xl">🔍</div>
+                <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                  <Search className="w-8 h-8 text-amber-500" />
+                </div>
                 <h3 className="font-black text-base text-[var(--text-primary)]">لا توجد نتائج مطابقة</h3>
                 <p className="text-xs text-[var(--text-muted)] font-bold">جرب تغيير خيارات الفلترة أو اختيار محافظة أخرى</p>
                 <button
                   onClick={resetAllFilters}
                   className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
                 >
-                  إعادة ضبط خيارات البحث 🔄
+                  إعادة ضبط خيارات البحث
                 </button>
               </div>
             )}
@@ -1345,7 +1355,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                               ? 'bg-rose-600 text-white scale-110 shadow-rose-600/50'
                               : 'bg-slate-950/60 text-white/80 hover:text-white hover:bg-slate-950/80 hover:scale-105'
                           }`}
-                          title={isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة ❤️'}
+                          title={isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
                         >
                           <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
                         </button>
@@ -1438,7 +1448,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             onClick={() => handleOpenBusiness(biz)}
                             className="flex-1 bg-amber-500 hover:bg-yellow-400 text-slate-950 font-black text-xs py-2.5 rounded-xl transition-all cursor-pointer text-center shadow-xs hover:shadow-amber-500/30 hover:shadow-md active:scale-95"
                           >
-                            {hasVideos ? 'التفاصيل والفيديو 🎬' : 'التفاصيل والصور 📸'}
+                            {hasVideos ? 'التفاصيل والفيديو' : 'التفاصيل والصور'}
                           </button>
 
                           {biz.phone && (
@@ -1464,7 +1474,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                                     ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border-blue-500/30'
                                     : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/30'
                                 }`}
-                                title={isOfficial ? 'فتح على خرائط Google 🗺️' : 'الموقع الجغرافي الميداني للمكان على الخريطة 📍'}
+                                title={isOfficial ? 'فتح على خرائط Google' : 'الموقع الجغرافي الميداني للمكان على الخريطة'}
                               >
                                 {isOfficial ? <Navigation className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
                               </a>
@@ -1475,7 +1485,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                             type="button"
                             onClick={(e) => handleShareBusiness(biz, e)}
                             className="w-9 h-9 rounded-xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-muted)] flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-[var(--border-color)]"
-                            title="مشاركة رابط المنشأة 🔗"
+                            title="مشاركة رابط المنشأة"
                           >
                             {copiedBizId === biz.id ? (
                               <CheckCheck className="w-4 h-4 text-emerald-500" />
@@ -1503,7 +1513,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           {/* Main Section Header */}
           <div className="text-center space-y-3 max-w-3xl mx-auto">
             <span className="text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-wider bg-emerald-500/15 px-4 py-1.5 rounded-full border border-emerald-500/30 inline-flex items-center gap-2">
-              <span>🎁</span>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
               <span>الظهور مجاني تماماً 100% · والباقات حملات دعائية حسب الطلب</span>
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)]">
@@ -1537,7 +1547,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">جنيه مصري</span>
                 </div>
                 <span className="text-[11px] font-black text-emerald-800 dark:text-emerald-300 block mt-0.5">
-                  مجاني 100% مدى الحياة 🎁
+                  مجاني 100% مدى الحياة
                 </span>
               </div>
             </div>
@@ -1561,7 +1571,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 className="w-full sm:flex-1 py-3.5 rounded-2xl font-black text-xs sm:text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>اطلب ظهور مكانكم مجاناً الآن عبر واتساب 🎁</span>
+                <span>اطلب ظهور مكانكم مجاناً الآن عبر واتساب</span>
               </a>
 
               <button
@@ -1570,7 +1580,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 className="w-full sm:w-auto px-5 py-3.5 rounded-2xl font-black text-xs text-emerald-600 dark:text-emerald-400 hover:text-white hover:bg-emerald-600 bg-emerald-500/10 border border-emerald-500/30 text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>استعراض الشرح في النافذة 🔍</span>
+                <span>استعراض الشرح في النافذة</span>
               </button>
 
               <a
@@ -1604,7 +1614,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer border border-amber-400"
               >
                 <Sparkles className="w-4 h-4 stroke-[2.5]" />
-                <span>عرض الدليل والشرح التفاعلي الشامل للباقات (النافذة التفصيلية) 💎</span>
+                <span>عرض الدليل والشرح التفاعلي الشامل للباقات</span>
               </button>
             </div>
           </div>
@@ -1623,7 +1633,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 {pkg.popular && (
                   <div className="absolute -top-3.5 right-1/2 translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] px-4 py-1 rounded-full shadow-lg flex items-center gap-1">
                     <Star className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>الحملة الأكثر طلباً واختياراً 🔥</span>
+                    <span>الحملة الأكثر طلباً واختياراً</span>
                   </div>
                 )}
 
@@ -1666,7 +1676,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     onClick={() => openPackagesModal(pkg.id)}
                     className="w-full text-center py-2.5 rounded-xl font-black text-xs bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span>استعراض الشرح التفصيلي والمقارنة 🔍</span>
+                    <span>استعراض الشرح التفصيلي والمقارنة</span>
                   </button>
 
                   <a
@@ -1680,7 +1690,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                     }`}
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span>طلب هذه الحملة الدعائية 💬</span>
+                    <span>طلب هذه الحملة الدعائية</span>
                   </a>
                 </div>
               </div>
@@ -1722,7 +1732,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               {/* Features in 2 columns */}
               <div className="space-y-3 relative z-10">
                 <span className="text-xs font-black text-amber-500 uppercase tracking-wider block">
-                  💎 كل ما تتكفل به المنظومة خطوة بخطوة حتى الحصول على الزبون المنتظم:
+                  كل ما تتكفل به المنظومة خطوة بخطوة حتى الحصول على الزبون المنتظم:
                 </span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {PACKAGES[4].features.map((feat, i) => (
@@ -1743,7 +1753,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   className="w-full sm:flex-1 py-4 rounded-2xl font-black text-xs sm:text-sm bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-600 hover:to-yellow-600 text-slate-950 shadow-xl shadow-amber-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Crown className="w-4 h-4 fill-slate-950" />
-                  <span>طلب باقة التأسيس والانطلاق الكبرى (20,000 ج.م) عبر واتساب 💬</span>
+                  <span>طلب باقة التأسيس والانطلاق الكبرى (20,000 ج.م) عبر واتساب</span>
                 </a>
 
                 <button
@@ -1752,7 +1762,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   className="w-full sm:w-auto px-5 py-4 rounded-2xl font-black text-xs text-amber-500 hover:text-slate-950 hover:bg-amber-500 bg-amber-500/10 border border-amber-500/40 text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <Sparkles className="w-4 h-4 stroke-[2.5]" />
-                  <span>استعراض الشرح في النافذة 🔍</span>
+                  <span>استعراض الشرح في النافذة</span>
                 </button>
 
                 <a
@@ -1774,7 +1784,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       <section id="why-dalelak" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-10">
         <div className="text-center space-y-2 max-w-2xl mx-auto">
           <span className="text-amber-500 text-xs font-black uppercase tracking-wider bg-amber-500/15 px-3 py-1 rounded-full border border-amber-500/30">
-            🌟 القيمة المضافة لمنشأتكم
+            القيمة المضافة لمنشأتكم
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
             لماذا توثقون مكانكم ومنشأتكم مع منصة دليلك؟
@@ -1812,10 +1822,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         <div className="bg-gradient-to-br from-amber-500/15 via-[var(--bg-card)] to-yellow-500/15 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-9 space-y-6 shadow-xl text-center">
           <div className="space-y-2">
             <span className="text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-wider bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-500/30 inline-block">
-              🎁 الظهور مجاني 100% · والحملات الدعائية حسب الطلب
+              الظهور مجاني 100% · والحملات الدعائية حسب الطلب
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
-              جاهز للانضمام؟ اطلب الظهور المجاني أو احجز حملتك الدعائية الآن 📍
+              جاهز للانضمام؟ اطلب الظهور المجاني أو احجز حملتك الدعائية الآن
             </h2>
             <p className="text-xs text-[var(--text-muted)] font-bold">
               سجل بياناتك وسيتواصل معك المندوب المعتمد لمحافظتك لتأكيد الظهور المجاني في الدليل أو ترتيب الحملة الدعائية المطلوبة
@@ -1824,7 +1834,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
           {consultSuccess && (
             <div className="bg-emerald-500/20 border border-emerald-500 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-2xl text-xs font-black animate-fade-in">
-              ✅ تم تجهيز طلبك وسيتم فتح تطبيق WhatsApp للتواصل المباشر مع فريق المنظومة!
+              تم تجهيز طلبك وسيتم فتح تطبيق WhatsApp للتواصل المباشر مع فريق المنظومة
             </div>
           )}
 
@@ -1888,7 +1898,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                   className="text-[11px] font-black text-amber-500 hover:text-amber-400 flex items-center gap-1 hover:underline cursor-pointer"
                 >
                   <Sparkles className="w-3 h-3" />
-                  <span>دليل وشرح تفاصيل الباقات 💎</span>
+                  <span>دليل وشرح تفاصيل الباقات</span>
                 </button>
               </div>
               <select
@@ -1898,7 +1908,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               >
                 {PACKAGES.map((p) => (
                   <option key={p.id} value={p.title}>
-                    {p.price === 0 ? `🎁 ${p.title} (مجاناً 0 ج.م)` : `🚀 ${p.title} (${p.price} ج.م)`}
+                    {p.price === 0 ? `${p.title} (مجاناً 0 ج.م)` : `${p.title} (${p.price} ج.م)`}
                   </option>
                 ))}
               </select>
@@ -1911,8 +1921,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               <Send className="w-4 h-4" />
               <span>
                 {formSelectedPackage.includes('مجاني') || formSelectedPackage.includes('0')
-                  ? 'إرسال طلب الظهور المجاني في الدليل 🎁'
-                  : 'إرسال طلب الحملة الدعائية والتواصل مع المندوب 🚀'}
+                  ? 'إرسال طلب الظهور المجاني في الدليل'
+                  : 'إرسال طلب الحملة الدعائية والتواصل مع المندوب'}
               </span>
             </button>
           </form>
@@ -1936,7 +1946,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {/* Col 2: Free Listing Notice */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-sm">
-                <span>🎁</span>
+                <Gift className="w-4 h-4" />
                 <span>الظهور المجاني في الدليل</span>
               </div>
               <p className="text-[var(--text-muted)] font-bold leading-relaxed">
@@ -1953,7 +1963,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {/* Col 3: Promotional Campaigns */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
-                <span>🚀</span>
+                <Rocket className="w-4 h-4 text-amber-500" />
                 <span>الحملات الدعائية (حسب الطلب)</span>
               </div>
               <p className="text-[var(--text-muted)] font-bold leading-relaxed">
@@ -2019,7 +2029,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {/* Status Badge */}
             <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
               <ShieldAlert className="w-3.5 h-3.5" />
-              <span>غير متاح حالياً 🔒</span>
+              <span>غير متاح حالياً</span>
             </span>
 
             {/* Title & Description */}
@@ -2039,7 +2049,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
               className="w-full py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
             >
               <span>تصفح الدليل العام</span>
-              <span>🏛️</span>
             </button>
           </div>
         </div>
@@ -2078,7 +2087,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                           ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
                           : 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-500/30'
                       }`}
-                      title={isOfficial ? 'فتح على خرائط Google الرسمية 🗺️' : 'الموقع الجغرافي الميداني للمكان على الخريطة 📍'}
+                      title={isOfficial ? 'فتح على خرائط Google الرسمية' : 'الموقع الجغرافي الميداني للمكان على الخريطة'}
                     >
                       {isOfficial ? (
                         <Navigation className="w-3.5 h-3.5" />
@@ -2086,7 +2095,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         <MapPin className="w-3.5 h-3.5" />
                       )}
                       <span className="hidden xs:inline sm:inline">
-                        {isOfficial ? 'Google Maps 🚀' : 'موقع المكان 📍'}
+                        {isOfficial ? 'Google Maps' : 'موقع المكان'}
                       </span>
                     </a>
                   );
@@ -2100,7 +2109,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       ? 'bg-rose-500/20 text-rose-500 border-rose-500/40'
                       : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 border-[var(--border-color)]'
                   }`}
-                  title={favorites.includes(selectedBiz.id) ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة ❤️'}
+                  title={favorites.includes(selectedBiz.id) ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
                 >
                   <Heart className={`w-4 h-4 ${favorites.includes(selectedBiz.id) ? 'fill-current text-rose-500' : ''}`} />
                 </button>
@@ -2133,7 +2142,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             {(isPreviewMode || (selectedBiz.verificationStatus !== 'verified' && selectedBiz.googleSyncStatus !== 'synced')) && (
               <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 flex items-center gap-2 text-amber-700 dark:text-amber-300 text-xs font-black">
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>معاينة فورية: هذه المنشأة مسجلة بنجاح 🌿 — قيد المراجعة الإدارية والاعتماد للنشر على الخريطة العامة ⏳</span>
+                <span>معاينة فورية: هذه المنشأة مسجلة بنجاح — قيد المراجعة الإدارية والاعتماد للنشر على الخريطة العامة</span>
               </div>
             )}
 
@@ -2144,7 +2153,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 <div
                   onClick={() => setPreviewPhotoIndex(0)}
                   className="group relative h-56 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 shadow-md border border-[var(--border-color)] cursor-pointer"
-                  title="انقر لتكبير الصور 🔍"
+                  title="انقر لتكبير الصور"
                 >
                   <img
                     src={
@@ -2173,7 +2182,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
                       >
                         <Play className="w-3.5 h-3.5 fill-slate-950" />
-                        <span>تشغيل الفيديو (30ث) 🎬</span>
+                        <span>تشغيل الفيديو (30ث)</span>
                       </button>
                     )}
                   </div>
@@ -2246,7 +2255,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="font-black text-sm text-[var(--text-primary)]">تقييمات ومراجعات خرائط Google</span>
-                          <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full">موثق ✓</span>
+                          <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full">موثق</span>
                         </div>
                         <p className="text-[11px] text-[var(--text-muted)] font-bold pt-0.5">
                           التقييمات الحية الصادرة من زوار وعملاء المكان
@@ -2280,7 +2289,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                               <span>تقييم خرائط Google الرسمي للمنشأة</span>
                             </span>
                             <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                              تقييم معتمد ⭐
+                              تقييم معتمد
                             </span>
                           </div>
 
@@ -2381,7 +2390,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-black text-sm text-[var(--text-primary)]">تقييم خرائط Google المعتمد</span>
-                            <span className="bg-amber-500 text-slate-950 text-[9.5px] font-black px-2 py-0.5 rounded-full">معتمد ⭐</span>
+                            <span className="bg-amber-500 text-slate-950 text-[9.5px] font-black px-2 py-0.5 rounded-full">معتمد</span>
                           </div>
                           <p className="text-[11px] text-[var(--text-muted)] font-bold pt-0.5">
                             التقييم الفعلي المعتمد للمنشأة على خرائط Google
@@ -2459,7 +2468,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                         <span className="font-black text-xs text-[var(--text-primary)]">حالة التوثيق ومراجعات Google Maps</span>
                       </div>
                       <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                        قيد المراجعة ⏳
+                        قيد المراجعة
                       </span>
                     </div>
                     <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
@@ -2559,7 +2568,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
                 }`}
               >
                 <UserPlus className="w-4 h-4" />
-                <span>{vCardDownloadedBizId === selectedBiz.id ? 'تم الحفظ ✓' : 'حفظ جهة الاتصال'}</span>
+                <span>{vCardDownloadedBizId === selectedBiz.id ? 'تم الحفظ' : 'حفظ جهة الاتصال'}</span>
               </button>
             </div>
           </div>
@@ -2674,7 +2683,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           ============================================================ */}
       <a
         href={`https://wa.me/201143888355?text=${encodeURIComponent(
-          `مرحباً دليلك 👋 أود الاستفسار عن توثيق مكاني التجاري على خرائط Google` +
+          `مرحباً، أود الاستفسار عن توثيق مكاني التجاري على خرائط Google` +
             (referralCode ? ` (كود: ${referralCode})` : '')
         )}`}
         target="_blank"

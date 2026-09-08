@@ -269,27 +269,27 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                         onClick={() => {
                           if (confirm(`هل ترغب في استرجاع نشاط "${biz.nameAr}" وإعادته نشطاً بالمنظومة فوراً؟`)) {
                             onRestoreBusiness(biz);
-                            onShowNotification?.(`تم استرجاع نشاط "${biz.nameAr}" بنجاح 🟢`, 'success');
+                            onShowNotification?.(`تم استرجاع نشاط "${biz.nameAr}" بنجاح`, 'success');
                           }
                         }}
                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>استرجاع النشاط 🟢</span>
+                        <span>استرجاع النشاط</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`⚠️ تحذير حرج: هل أنت متأكد تماماً من الحذف النهائي البات لنشاط "${biz.nameAr}"؟\nسيتم مسحه نهائياً من قاعدة بيانات Supabase والسيرفر دون إمكانية استرجاع.`)) {
+                          if (confirm(`تحذير: هل أنت متأكد من الحذف النهائي لنشاط "${biz.nameAr}"؟\nسيتم مسحه نهائياً من قاعدة بيانات Supabase والسيرفر دون إمكانية استرجاع.`)) {
                             onHardDeleteBusiness(biz.id);
-                            onShowNotification?.(`تم الحذف النهائي البات لنشاط "${biz.nameAr}" 🗑️`, 'warning');
+                            onShowNotification?.(`تم الحذف النهائي لنشاط "${biz.nameAr}"`, 'warning');
                           }
                         }}
                         className="bg-rose-500/15 hover:bg-rose-500 text-rose-600 hover:text-white font-black text-xs px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>تأكيد الحذف البات 🔴</span>
+                        <span>تأكيد الحذف النهائي</span>
                       </button>
                     </div>
                   </div>
@@ -359,27 +359,27 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                         onClick={() => {
                           if (confirm(`هل ترغب في استرجاع حساب "${rep.name}" وإعادته نشطاً بالمنظومة فوراً؟`)) {
                             onRestoreRepresentative(rep);
-                            onShowNotification?.(`تم استرجاع حساب "${rep.name}" بنجاح 🟢`, 'success');
+                            onShowNotification?.(`تم استرجاع حساب "${rep.name}" بنجاح`, 'success');
                           }
                         }}
                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>استرجاع الحساب 🟢</span>
+                        <span>استرجاع الحساب</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`⚠️ تحذير حرج: هل أنت متأكد تماماً من الحذف النهائي البات لحساب "${rep.name}"؟\nسيتم مسح الحساب وملفاته نهائياً من قاعدة بيانات Supabase والسيرفر.`)) {
+                          if (confirm(`تحذير: هل أنت متأكد من الحذف النهائي لحساب "${rep.name}"؟\nسيتم مسح الحساب وملفاته نهائياً من قاعدة بيانات Supabase والسيرفر.`)) {
                             onHardDeleteRepresentative(rep.id);
-                            onShowNotification?.(`تم الحذف النهائي البات لحساب "${rep.name}" 🗑️`, 'warning');
+                            onShowNotification?.(`تم الحذف النهائي لحساب "${rep.name}"`, 'warning');
                           }
                         }}
                         className="bg-rose-500/15 hover:bg-rose-500 text-rose-600 hover:text-white font-black text-xs px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>تأكيد الحذف البات 🔴</span>
+                        <span>تأكيد الحذف النهائي</span>
                       </button>
                     </div>
                   </div>
@@ -417,7 +417,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                         </span>
 
                         <span className="text-[11px] font-black text-purple-600 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
-                          ✍️ كاتب المتابعة: {item.note.authorName} ({item.note.authorRole || 'إدارة'})
+                          كاتب المتابعة: {item.note.authorName} ({item.note.authorRole || 'إدارة'})
                         </span>
 
                         {item.note.status && (

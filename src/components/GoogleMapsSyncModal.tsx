@@ -260,7 +260,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 </span>
               </div>
               <span className="text-[11px] text-[var(--text-muted)] font-bold mt-1 block">
-                مساعد التوثيق ونقل المكان على خرائط Google 🗺️
+                مساعد التوثيق ونقل المكان على خرائط Google
               </span>
             </div>
           </div>
@@ -270,17 +270,17 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             {currentStatus === 'synced' ? (
               <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>موثقة بالرابط ✅</span>
+                <span>موثقة بالرابط</span>
               </span>
             ) : currentStatus === 'in_progress' ? (
               <span className="inline-flex items-center gap-1.5 bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <Clock className="w-3.5 h-3.5" />
-                <span>قيد مراجعة جوجل ⌛</span>
+                <span>قيد مراجعة جوجل</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span>لم تُرفع لخرائط Google 🚨</span>
+                <span>لم تُرفع لخرائط Google</span>
               </span>
             )}
           </div>
@@ -305,7 +305,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             }`}
           >
             <Copy className="w-3.5 h-3.5" />
-            <span>1. نسخ البيانات والصور 📋</span>
+            <span>1. نسخ البيانات والصور</span>
           </button>
           
           <button
@@ -317,7 +317,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>2. تثبيت الرابط والحالة 🔗</span>
+            <span>2. تثبيت الرابط والحالة</span>
           </button>
 
           <button
@@ -329,7 +329,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>3. الفاتورة والشهادة 📄</span>
+            <span>3. الفاتورة والشهادة</span>
           </button>
         </div>
 
@@ -343,7 +343,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-101 active:scale-98 cursor-pointer text-xs sm:text-sm"
             >
               {copiedKey === 'all' ? <Check className="w-4 h-4 text-slate-950 stroke-[3]" /> : <Copy className="w-4 h-4" />}
-              <span>{copiedKey === 'all' ? 'تم نسخ جميع بيانات المكان بنجاح!' : 'نسخ جميع بيانات المكان كنص كامل بنقرة واحدة 📋'}</span>
+              <span>{copiedKey === 'all' ? 'تم نسخ جميع بيانات المكان بنجاح!' : 'نسخ جميع بيانات المكان بنقرة واحدة'}</span>
             </button>
 
             {/* ── 🔑 GOOGLE VERIFICATION OTP WORKFLOW (2 STEPS) ── */}
@@ -355,15 +355,15 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   </div>
                   <div>
                     <h4 className="font-black text-xs text-[var(--text-primary)]">
-                      مسار كود التحقق من Google (خطوتان بتنسيق ودي احترافي) 🔑
+                      إجراءات طلب كود التحقق من Google
                     </h4>
                     <p className="text-[10.5px] text-[var(--text-muted)] font-medium">
-                      خطوة 1: استئذان وتنسيق مسبق (طلب متاح) 🤝 ⟵ خطوة 2: إشعار فوري لحظة طلب الكود 📲
+                      خطوة 1: استئذان وتنسيق مسبق ⟵ خطوة 2: إشعار فوري لحظة طلب الكود
                     </p>
                   </div>
                 </div>
                 <span className="text-[9.5px] bg-blue-500/20 text-blue-300 font-bold px-2 py-0.5 rounded-md shrink-0">
-                  صلاحية مؤقتة ⏳
+                  صلاحية مؤقتة
                 </span>
               </div>
 
@@ -379,8 +379,8 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               {/* STEP 1: PRE-COORDINATION */}
               <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-1.5">
                 <div className="flex items-center justify-between text-[11px] font-black text-blue-400">
-                  <span>الخطوة 1: استئذان وتنسيق مسبق (التأكد من التواجد) 🤝</span>
-                  <span className="text-[10px] text-blue-300 font-bold">قبل الضغط على إرسال SMS</span>
+                  <span>الخطوة 1: التنسيق المسبق مع العميل</span>
+                  <span className="text-[10px] text-blue-300 font-bold">قبل طلب كود التحقق</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -410,7 +410,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                     className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-98 text-center"
                   >
                     <MessageCircle className="w-3.5 h-3.5 fill-white/20" />
-                    <span>1. استئذان (متاح؟) 🤝</span>
+                    <span>إرسال إشعار التنسيق المسبق</span>
                   </a>
                 </div>
               </div>
@@ -418,7 +418,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               {/* STEP 2: INSTANT ALERT UPON OTP DISPATCH */}
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1.5">
                 <div className="flex items-center justify-between text-[11px] font-black text-amber-400">
-                  <span>الخطوة 2: إشعار فوري بعد إرسال كود Google مباشرة 📲</span>
+                  <span>الخطوة 2: إشعار إرسال كود Google</span>
                   <span className="text-[10px] text-amber-300 font-bold">بمجرد الضغط على إرسال SMS</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -449,7 +449,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                     className="flex-1 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 text-white font-black text-xs py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-98 text-center"
                   >
                     <KeyRound className="w-3.5 h-3.5" />
-                    <span>2. تم طلب الكود (يرجى إرساله فوراً) 📲</span>
+                    <span>إرسال إشعار طلب الكود</span>
                   </a>
                 </div>
               </div>
@@ -459,7 +459,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
               <div className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
                 <div className="truncate pr-1">
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">🏢 اسم النشاط:</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">اسم النشاط:</span>
                   <span className="font-black truncate block text-[var(--text-primary)]">{business.nameAr}</span>
                 </div>
                 <button
@@ -473,7 +473,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
               <div className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
                 <div className="truncate pr-1">
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">📍 العنوان:</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">العنوان:</span>
                   <span className="font-bold truncate block text-[var(--text-primary)]">
                     {business.governorate} - {business.city} {business.street ? `- ${business.street}` : ''}
                   </span>
@@ -489,7 +489,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
               <div className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
                 <div className="truncate pr-1">
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">🏷️ التصنيف:</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">التصنيف:</span>
                   <span className="font-bold truncate block text-[var(--text-primary)]">{business.category}</span>
                 </div>
                 <button
@@ -503,7 +503,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
               <div className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-xl border border-[var(--border-color)]">
                 <div className="truncate pr-1">
-                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">📞 الهاتف:</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">الهاتف:</span>
                   <span className="font-bold truncate block text-[var(--text-primary)] font-mono">{business.phone}</span>
                 </div>
                 <button
@@ -533,7 +533,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10.5px] py-1 px-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>{isDownloadingAll ? 'جاري التنزيل...' : 'تنزيل جميع الصور 📦'}</span>
+                    <span>{isDownloadingAll ? 'جاري التنزيل...' : 'تنزيل جميع الصور'}</span>
                   </button>
                 )}
               </div>
@@ -586,10 +586,10 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer text-center"
               >
                 <ExternalLink className="w-4 h-4" />
-                <span>🗺️ فتح موقع المعاينة الميدانية للإدارة (رابط المندوب - غير موثق)</span>
+                <span>فتح موقع المعاينة الميدانية (إحداثيات المندوب)</span>
               </a>
               <p className="text-[10.5px] text-[var(--text-muted)] text-center font-medium">
-                ⚠️ هذا الرابط مخصص حصرياً للمراجعة الإدارية ورفع النشاط للخرائط، ولا يُعتبر توثيقاً رسمياً ولا يظهر للجمهور.
+                هذا الرابط مخصص للمراجعة الإدارية والرفع إلى الخرائط.
               </p>
             </div>
           </div>
@@ -615,7 +615,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   }`}
                 >
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>لم تُرفع بعد 🚨</span>
+                  <span>لم تُرفع بعد</span>
                 </button>
 
                 <button
@@ -628,7 +628,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   }`}
                 >
                   <Clock className="w-3.5 h-3.5 shrink-0" />
-                  <span>قيد مراجعة جوجل ⌛</span>
+                  <span>قيد مراجعة جوجل</span>
                 </button>
 
                 <button
@@ -636,7 +636,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   onClick={() => {
                     const validUrl = formatValidGoogleMapsUrl(finalMapUrl);
                     if (!validUrl || isRawCoordinatesUrl(finalMapUrl)) {
-                      setStatusFeedback('⚠️ يتطلب إدخال رابط معتمد وصحيح من خرائط Google أولاً لتفعيل حالة التوثيق.');
+                      setStatusFeedback('يتطلب إدخال رابط معتمد من خرائط Google لتفعيل حالة التوثيق.');
                       setTimeout(() => setStatusFeedback(null), 4000);
                       return;
                     }
@@ -650,7 +650,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   title={!formatValidGoogleMapsUrl(finalMapUrl) ? 'يرجى إدخال رابط الخريطة المعتمد أولاً' : 'موثقة برابط خرائط Google'}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>موثقة بالرابط ✅</span>
+                  <span>موثقة بالرابط</span>
                 </button>
               </div>
             </div>
@@ -686,7 +686,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2 rounded-xl text-[10.5px] font-bold flex items-start gap-1.5 mt-1.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
-                      ⚠️ تنبيه: هذا الرابط عبارة عن إحداثيات موقع ميداني (GPS) وليس رابطاً معتمداً من خرائط Google. يُرجى استخدام رابط المكان الرسمي على الخريطة (مثل maps.app.goo.gl أو صفحة المكان).
+                      تنبيه: هذا الرابط عبارة عن إحداثيات موقع ميداني (GPS) وليس رابطاً معتمداً من خرائط Google. يُرجى استخدام رابط المكان الرسمي على الخريطة.
                     </span>
                   </div>
                 )}
@@ -713,7 +713,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
               className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg hover:scale-101 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>حفظ وتثبيت التوثيق في المنظومة 💾</span>
+              <span>حفظ وتثبيت التوثيق في المنظومة</span>
             </button>
 
             {/* Direct WhatsApp Verification Message Dispatch Button */}
@@ -725,7 +725,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>إرسال رسالة التوثيق والموقع المفعل للعميل عبر WhatsApp 💬</span>
+                <span>إرسال إشعار التوثيق ورابط الخريطة عبر واتساب</span>
               </a>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -736,7 +736,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 text-white font-black text-xs sm:text-sm py-3 px-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>1. تنسيق مسبق (طلب متاح 🤝)</span>
+                  <span>إرسال إشعار التنسيق المسبق</span>
                 </a>
                 <a
                   href={getGoogleOtpSentAlertWhatsAppUrl(business)}
@@ -745,7 +745,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 text-white font-black text-xs sm:text-sm py-3 px-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
                 >
                   <KeyRound className="w-4 h-4" />
-                  <span>2. تم طلب الكود (الكود وصل 📲)</span>
+                  <span>إرسال إشعار طلب الكود</span>
                 </a>
               </div>
             )}
@@ -774,7 +774,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   </span>
                 </div>
                 <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10.5px] font-black px-2.5 py-1 rounded-xl">
-                  {business.paymentStatus === 'fully_paid' ? 'مسدد بالكامل ✓' : `متبقي: ${remainingBalance} ج.م`}
+                  {business.paymentStatus === 'fully_paid' ? 'مسدد بالكامل' : `متبقي: ${remainingBalance} ج.م`}
                 </span>
               </div>
 
@@ -807,7 +807,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 text-center"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>إرسال إشعار التوثيق والفاتورة عبر واتساب 💬</span>
+                <span>إرسال إشعار التوثيق والفاتورة عبر واتساب</span>
               </a>
 
               <button
@@ -815,7 +815,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                 className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] font-bold text-xs py-3 px-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-center gap-2 transition-colors cursor-pointer no-print"
               >
                 <Printer className="w-4 h-4 text-amber-500" />
-                <span>طباعة شهادة التوثيق والفاتورة 🖨️</span>
+                <span>طباعة شهادة التوثيق والفاتورة</span>
               </button>
             </div>
           </div>
@@ -856,7 +856,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-4 rounded-xl inline-flex items-center gap-2 shadow-lg cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>تنزيل الصورة بجودة عالية 📥</span>
+                  <span>تنزيل الصورة</span>
                 </button>
               </div>
             </div>

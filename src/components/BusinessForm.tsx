@@ -1331,7 +1331,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               التفعيل الميداني الرسمي واستخراج الإحداثيات الدقيقة على خرائط Google، تثبيت مواعيد العمل والهواتف، ورفع الصور مع إصدار الفاتورة المعتمدة وهدية تصميم باركود QR.
             </p>
             <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-              <span>✨ عمولة المندوب المعتمدة:</span>
+              <span>عمولة المندوب المعتمدة:</span>
               <span className="font-mono font-black">+{Math.round((250 * (currentRep?.commissionRate || 42.86)) / 100)} ج.م</span>
               <span className="text-[10px] text-[var(--text-muted)]">(تتاح الباقات الإضافية للتطوير والترقية لاحقاً من قسم التفاصيل)</span>
             </div>
@@ -1405,22 +1405,22 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         {registrationType === 'already_on_google' ? (
           <>
             <CheckCircle2 className="w-5 h-5" />
-            <span>إدراج النشاط المسجل وتوليد الفاتورة الترحيبية 📄✨</span>
+            <span>إدراج النشاط المسجل وتوليد الفاتورة الترحيبية</span>
           </>
         ) : isFeeExempt ? (
           <>
             <CreditCard className="w-5 h-5 stroke-[2.5]" />
-            <span>تأكيد تسجيل النشاط الرائج (إدراج مجاني) 🌟</span>
+            <span>تأكيد تسجيل المنشأة (إدراج مجاني)</span>
           </>
         ) : isRep ? (
           <>
             <CreditCard className="w-5 h-5 stroke-[2.5]" />
-            <span>حفظ النشاط وإصدار الفاتورة المؤجلة 📄</span>
+            <span>حفظ النشاط وإصدار الفاتورة المؤجلة</span>
           </>
         ) : (
           <>
             <CreditCard className="w-5 h-5 stroke-[2.5]" />
-            <span>حفظ النشاط وتحديد حالة الدفع والفاتورة 💳</span>
+            <span>حفظ النشاط وتحديد حالة الدفع والفاتورة</span>
           </>
         )}
       </button>

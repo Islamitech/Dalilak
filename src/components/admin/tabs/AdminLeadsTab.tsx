@@ -164,9 +164,9 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
               <option value="all">كل درجات الاهتمام</option>
-              <option value="high">اهتمام مرتفع جداً 🔥</option>
-              <option value="medium">اهتمام متوسط ⚡</option>
-              <option value="low">استفسار عام / غير محدد 💬</option>
+              <option value="high">اهتمام مرتفع</option>
+              <option value="medium">اهتمام متوسط</option>
+              <option value="low">استفسار عام</option>
             </select>
           </div>
 
@@ -202,7 +202,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
               }}
               className="text-amber-600 hover:text-amber-500 font-bold cursor-pointer"
             >
-              إعادة ضبط الفلاتر ↺
+              إعادة ضبط الفلاتر
             </button>
           )}
         </div>
@@ -233,12 +233,12 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                       </h4>
                       {lead.interestLevel === 'high' && (
                         <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30">
-                          اهتمام مرتفع 🔥
+                          اهتمام مرتفع
                         </span>
                       )}
                       {lead.interestLevel === 'medium' && (
                         <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
-                          اهتمام متوسط ⚡
+                          اهتمام متوسط
                         </span>
                       )}
                     </div>
@@ -264,9 +264,9 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                         : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
                     }`}
                   >
-                    <option value="pending_followup">بانتظار المتابعة ⏳</option>
-                    <option value="contacted">تم التواصل 📞</option>
-                    <option value="converted">تم التحويل لاشتراك 🌟</option>
+                    <option value="pending_followup">بانتظار المتابعة</option>
+                    <option value="contacted">تم التواصل</option>
+                    <option value="converted">تم التحويل لاشتراك</option>
                   </select>
                 </div>
 
@@ -363,7 +363,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>تحويل إلى نشاط مسجل 🌟</span>
+                        <span>تحويل إلى نشاط مسجل</span>
                       </button>
                     )}
                     {lead.status === 'converted' && (

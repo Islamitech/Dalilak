@@ -232,8 +232,8 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
             <span className="font-bold text-[var(--text-muted)] text-[11px] ml-1">نوع المعاملة:</span>
             {[
               { key: 'all', label: `الكل (${payoutRequests.length})` },
-              { key: 'payout', label: `💵 سحب عمولات (${totalPayoutsCount})` },
-              { key: 'remittance', label: `📥 توريدات للمنصة (${totalRemittancesCount})` },
+              { key: 'payout', label: `سحب عمولات (${totalPayoutsCount})` },
+              { key: 'remittance', label: `توريدات للمنصة (${totalRemittancesCount})` },
             ].map((t) => (
               <button
                 type="button"
@@ -255,9 +255,9 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
             <span className="font-bold text-[var(--text-muted)] text-[11px] ml-1">الحالة:</span>
             {[
               { key: 'all', label: `الكل` },
-              { key: 'pending', label: `قيد المراجعة ⏳ (${payoutRequests.filter((p) => p.status === 'pending').length})` },
-              { key: 'approved', label: `معتمدة ومكتملة ✅ (${payoutRequests.filter((p) => p.status === 'approved').length})` },
-              { key: 'rejected', label: `مرفوضة ❌ (${payoutRequests.filter((p) => p.status === 'rejected').length})` },
+              { key: 'pending', label: `قيد المراجعة (${payoutRequests.filter((p) => p.status === 'pending').length})` },
+              { key: 'approved', label: `معتمدة ومكتملة (${payoutRequests.filter((p) => p.status === 'approved').length})` },
+              { key: 'rejected', label: `مرفوضة (${payoutRequests.filter((p) => p.status === 'rejected').length})` },
             ].map((f) => (
               <button
                 type="button"
@@ -323,7 +323,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                             ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30'
                             : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30'
                         }`}>
-                          {isRemittance ? '📥 إشعار سداد وتوريد للمنصة' : '💵 طلب سحب عمولة'}
+                          {isRemittance ? 'إشعار سداد وتوريد للمنصة' : 'طلب سحب عمولة'}
                         </span>
                         {rep && (
                           <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md">
@@ -354,10 +354,10 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                         : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse-subtle'
                     }`}>
                       {payout.status === 'approved'
-                        ? isRemittance ? 'تم اعتماد السداد ✅' : 'تم الصرف والتحويل ✅'
+                        ? isRemittance ? 'تم اعتماد السداد' : 'تم الصرف والتحويل'
                         : payout.status === 'rejected'
-                        ? 'مرفوض ❌'
-                        : 'قيد المراجعة ⏳'}
+                        ? 'مرفوض'
+                        : 'قيد المراجعة'}
                     </span>
                   </div>
                 </div>
@@ -454,7 +454,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                         title="استعراض حالة المندوب، كشف الحساب والأنشطة المسجلة"
                       >
                         <Eye className="w-3.5 h-3.5 text-amber-500" />
-                        <span>استعراض حالة المندوب 👤</span>
+                        <span>استعراض حالة المندوب</span>
                       </button>
                     )}
 
@@ -462,7 +462,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`⚠️ تأكيد الحذف النهائي:\nهل أنت متأكد من رغبتك في حذف هذا الطلب / المعاملة المالية نهائياً من المنظومة وقاعدة البيانات؟\nالمبلغ: ${payout.amount} ج.م - المندوب: ${payout.repName}`)) {
+                          if (confirm(`تأكيد الحذف النهائي:\nهل أنت متأكد من رغبتك في حذف هذا الطلب / المعاملة المالية نهائياً من المنظومة وقاعدة البيانات؟\nالمبلغ: ${payout.amount} ج.م - المندوب: ${payout.repName}`)) {
                             onDeletePayout(payout.id);
                           }
                         }}
@@ -470,7 +470,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                         title="حذف نهائي بات للمعاملة من قاعدة البيانات (حصري للـ Super Admin)"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>حذف المعاملة 🗑️</span>
+                        <span>حذف المعاملة</span>
                       </button>
                     )}
                   </div>

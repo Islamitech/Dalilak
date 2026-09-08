@@ -121,7 +121,7 @@ export const PermissionsHub: React.FC = () => {
               نظام الأمان والتحكم الميداني المطور
             </span>
             <h2 className="text-xl sm:text-2xl font-black mt-0.5">
-              مصفوفة ودليل الصلاحيات والرتب في منصة دليلك 🛡️
+              مصفوفة ودليل الصلاحيات والرتب في منصة دليلك
             </h2>
           </div>
         </div>
@@ -149,7 +149,7 @@ export const PermissionsHub: React.FC = () => {
               <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
             </div>
             <span className="bg-amber-500/20 text-amber-900 dark:text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
-              صلاحيات كاملة 👑
+              صلاحيات كاملة
             </span>
           </div>
 
@@ -181,7 +181,7 @@ export const PermissionsHub: React.FC = () => {
               <Crown className="w-5 h-5 stroke-[2.5]" />
             </div>
             <span className="bg-purple-500/20 text-purple-900 dark:text-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-500/30">
-              مشرف الإدارة 👔
+              مشرف الإدارة
             </span>
           </div>
 
@@ -213,7 +213,7 @@ export const PermissionsHub: React.FC = () => {
               <Calculator className="w-5 h-5 stroke-[2.5]" />
             </div>
             <span className="bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-              محاسب ومحصل 💳
+              المسؤول المالي
             </span>
           </div>
 
@@ -245,7 +245,7 @@ export const PermissionsHub: React.FC = () => {
               <Briefcase className="w-5 h-5 stroke-[2.5]" />
             </div>
             <span className="bg-blue-500/20 text-blue-900 dark:text-blue-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-blue-500/30">
-              مبيعات وميدان 🚀
+              المندوب الميداني
             </span>
           </div>
 
@@ -270,8 +270,8 @@ export const PermissionsHub: React.FC = () => {
         {selectedRoleTab === 'admin' && (
           <div className="space-y-4 animate-fade-in text-xs">
             <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold text-xl">
-                👑
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
+                <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
@@ -289,26 +289,26 @@ export const PermissionsHub: React.FC = () => {
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح لمدير النظام:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed">
-                  <li>✅ <strong>لوحة التحكم المركزية:</strong> الاطلاع على كافة الأرقام والإيرادات ونسب التحصيل.</li>
-                  <li>✅ <strong>إدارة وحذف الحسابات:</strong> إضافة/تعديل/تجميد/حذف أي حساب وترقية الموظفين وتعيين نسب العمولات.</li>
-                  <li>✅ <strong>التوثيق والمزامنة:</strong> الربط المباشر مع حساب المنصة الرسمي info@dalilaak.com واعتماد توثيق الأنشطة.</li>
-                  <li>✅ <strong>بوابات الدفع:</strong> تعديل أرقام فودافون كاش وانستاباي وفوري.</li>
-                  <li>✅ <strong>صرف العمولات:</strong> قبول ورفض طلبات سحب الأرباح للمناديب.</li>
-                  <li>✅ <strong>الحذف والتعديل الشامل:</strong> تعديل أو حذف أي نشاط أو حساب في المنظومة.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed list-disc list-inside">
+                  <li><strong>لوحة التحكم المركزية:</strong> الاطلاع على كافة الأرقام والإيرادات ونسب التحصيل.</li>
+                  <li><strong>إدارة وحذف الحسابات:</strong> إضافة/تعديل/تجميد/حذف أي حساب وترقية الموظفين وتعيين نسب العمولات.</li>
+                  <li><strong>التوثيق والمزامنة:</strong> الربط المباشر مع حساب المنصة الرسمي info@dalilaak.com واعتماد توثيق الأنشطة.</li>
+                  <li><strong>بوابات الدفع:</strong> تعديل أرقام فودافون كاش وانستاباي وفوري.</li>
+                  <li><strong>صرف العمولات:</strong> قبول ورفض طلبات سحب الأرباح للمناديب.</li>
+                  <li><strong>الحذف والتعديل الشامل:</strong> تعديل أو حذف أي نشاط أو حساب في المنظومة.</li>
                 </ul>
               </div>
 
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
                 <h4 className="font-black text-sm text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
-                  <span>الاستخدام والممارسات المثالية لهذه الرتبة:</span>
+                  <span>الاستخدام والممارسات المعتمدة لهذه الرتبة:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed">
-                  <li>💡 <strong>المراجعة اليومية:</strong> فحص الأنشطة المسجلة حديثاً ومزامنتها على خرائط جوجل في خلال 24 ساعة.</li>
-                  <li>💡 <strong>متابعة التحصيلات:</strong> فحص تنبيهات الأنشطة المعتمدة التي عليها مبالغ متبقية.</li>
-                  <li>💡 <strong>تدقيق صور التفعيل:</strong> مراجعة صور الوجه والبطاقات للمناديب الجدد قبل تفعيل حساباتهم.</li>
-                  <li>💡 <strong>تصدير التقارير:</strong> تصدير كشوفات الإكسل دورياً للأرشفة المالية.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed list-disc list-inside">
+                  <li><strong>المراجعة اليومية:</strong> فحص الأنشطة المسجلة حديثاً ومزامنتها على خرائط جوجل في خلال 24 ساعة.</li>
+                  <li><strong>متابعة التحصيلات:</strong> فحص تنبيهات الأنشطة المعتمدة التي عليها مبالغ متبقية.</li>
+                  <li><strong>تدقيق صور التفعيل:</strong> مراجعة صور الوجه والبطاقات للمناديب الجدد قبل تفعيل حساباتهم.</li>
+                  <li><strong>تصدير التقارير:</strong> تصدير كشوفات الإكسل دورياً للأرشفة المالية.</li>
                 </ul>
               </div>
             </div>
@@ -318,8 +318,8 @@ export const PermissionsHub: React.FC = () => {
         {selectedRoleTab === 'supervisor' && (
           <div className="space-y-4 animate-fade-in text-xs">
             <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
-              <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-500 flex items-center justify-center font-bold text-xl">
-                👔
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-500 flex items-center justify-center font-bold">
+                <Crown className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
@@ -337,24 +337,24 @@ export const PermissionsHub: React.FC = () => {
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح لمشرف الإدارة:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed">
-                  <li>✅ <strong>تسجيل أنشطة جديدة:</strong> تسجيل المحلات والأنشطة ميدانياً بالـ GPS.</li>
-                  <li>✅ <strong>لوحة الإدارة والإحصائيات:</strong> الاطلاع الكامل على كافة المؤشرات والأنشطة والحسابات.</li>
-                  <li>✅ <strong>إدارة الحسابات والمناديب:</strong> إضافة حسابات جديدة، مراجعة الوثائق، وتفعيل الحسابات.</li>
-                  <li>✅ <strong>تعديل وتدقيق الأنشطة:</strong> تعديل أي نشاط في كافة المحافظات والمزامنة مع خرائط جوجل.</li>
-                  <li>✅ <strong>بوابات الدفع وصرف العمولات:</strong> إدارة بوابات التحصيل وصرف طلبات سحب العمولات للمناديب.</li>
-                  <li>✅ <strong>مركز المراجعات (Leads CRM):</strong> متابعة كافة العملاء المهتمين في جميع المحافظات.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed list-disc list-inside">
+                  <li><strong>تسجيل أنشطة جديدة:</strong> تسجيل المحلات والأنشطة ميدانياً بالـ GPS.</li>
+                  <li><strong>لوحة الإدارة والإحصائيات:</strong> الاطلاع الكامل على كافة المؤشرات والأنشطة والحسابات.</li>
+                  <li><strong>إدارة الحسابات والمناديب:</strong> إضافة حسابات جديدة، مراجعة الوثائق، وتفعيل الحسابات.</li>
+                  <li><strong>تعديل وتدقيق الأنشطة:</strong> تعديل أي نشاط في كافة المحافظات والمزامنة مع خرائط جوجل.</li>
+                  <li><strong>بوابات الدفع وصرف العمولات:</strong> إدارة بوابات التحصيل وصرف طلبات سحب العمولات للمناديب.</li>
+                  <li><strong>مركز المراجعات (Leads CRM):</strong> متابعة كافة العملاء المهتمين في جميع المحافظات.</li>
                 </ul>
               </div>
 
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
                 <h4 className="font-black text-sm text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
                   <Lock className="w-4 h-4" />
-                  <span>القيد الوحيد لمشرف الإدارة:</span>
+                  <span>القيد المحدد لمشرف الإدارة:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed">
-                  <li>🔒 <strong>حذف الحسابات نهائياً:</strong> لا يمكن للمشرف حذف حسابات المناديب نهائياً؛ هذه الصلاحية سيادية وحصرية بمدير النظام فقط لمنع أي فقدان للبيانات.</li>
-                  <li>💡 يمكن للمشرف تجميد أو تعديل بيانات الحساب بدلاً من حذفه.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed list-disc list-inside">
+                  <li><strong>حذف الحسابات نهائياً:</strong> لا يمكن للمشرف حذف حسابات المناديب نهائياً؛ هذه الصلاحية سيادية وحصرية بمدير النظام لمنع أي فقدان للبيانات.</li>
+                  <li>يمكن للمشرف تجميد أو تعديل بيانات الحساب بدلاً من حذفه.</li>
                 </ul>
               </div>
             </div>
@@ -364,8 +364,8 @@ export const PermissionsHub: React.FC = () => {
         {selectedRoleTab === 'accountant' && (
           <div className="space-y-4 animate-fade-in text-xs">
             <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold text-xl">
-                💳
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold">
+                <Calculator className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
@@ -383,25 +383,25 @@ export const PermissionsHub: React.FC = () => {
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح للمحاسب المالي:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed">
-                  <li>✅ <strong>تسجيل أنشطة جديدة:</strong> إمكانية تسجيل أي نشاط تجاري ميدانياً واحتسابه باسمه.</li>
-                  <li>✅ <strong>لوحة الإدارة والإحصائيات:</strong> الوصول الكامل لكافة شاشات الإدارة والإيرادات والأرباح.</li>
-                  <li>✅ <strong>كافة الحسابات والأنشطة:</strong> الاطلاع على كافة الحسابات والأنشطة ومتابعة أدائها.</li>
-                  <li>✅ <strong>إدارة التحصيل:</strong> متابعة الفواتير غير المسددة وتحصيل الأقساط والمبالغ الآجلة.</li>
-                  <li>✅ <strong>صرف العمولات:</strong> مراجعة طلبات سحب العمولات للمناديب وتأكيد الصرف وتدوين أرقام الحوالات.</li>
-                  <li>✅ <strong>بوابات الدفع:</strong> متابعة محافظ فودافون كاش وانستاباي واستقبال الإيداعات.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed list-disc list-inside">
+                  <li><strong>تسجيل أنشطة جديدة:</strong> إمكانية تسجيل أي نشاط تجاري ميدانياً واحتسابه باسمه.</li>
+                  <li><strong>لوحة الإدارة والإحصائيات:</strong> الوصول الكامل لكافة شاشات الإدارة والإيرادات والأرباح.</li>
+                  <li><strong>كافة الحسابات والأنشطة:</strong> الاطلاع على كافة الحسابات والأنشطة ومتابعة أدائها.</li>
+                  <li><strong>إدارة التحصيل:</strong> متابعة الفواتير غير المسددة وتحصيل الأقساط والمبالغ الآجلة.</li>
+                  <li><strong>صرف العمولات:</strong> مراجعة طلبات سحب العمولات للمناديب وتأكيد الصرف وتدوين أرقام الحوالات.</li>
+                  <li><strong>بوابات الدفع:</strong> متابعة محافظ فودافون كاش وانستاباي واستقبال الإيداعات.</li>
                 </ul>
               </div>
 
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
                 <h4 className="font-black text-sm text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
-                  <span>الاستخدام والممارسات المثالية للمحاسب:</span>
+                  <span>الاستخدام والممارسات المعتمدة للمحاسب:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed">
-                  <li>💡 <strong>مطابقة الحوالات:</strong> التأكد من وصول رسالة الإيداع البنكي أو المحفظة الإلكترونية قبل تحويل الفاتورة إلى مدفوعة.</li>
-                  <li>💡 <strong>التحصيل الميداني:</strong> عند زيارة المحلات وتسجيلها، تحصيل القيمة وإصدار الفاتورة الفورية عبر واتساب.</li>
-                  <li>💡 <strong>سرعة تحويل العمولات:</strong> صرف طلبات المناديب المؤكدة خلال 24 ساعة لرفع حماس الفريق.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed list-disc list-inside">
+                  <li><strong>مطابقة الحوالات:</strong> التأكد من وصول إشعار التحويل البنكي أو المحفظة الإلكترونية قبل اعتماد السداد.</li>
+                  <li><strong>التحصيل الميداني:</strong> عند زيارة المنشآت، تحصيل القيمة وإصدار الفاتورة الإلكترونية عبر واتساب.</li>
+                  <li><strong>سرعة صرف العمولات:</strong> صرف طلبات المناديب المؤكدة خلال 24 ساعة.</li>
                 </ul>
               </div>
             </div>
@@ -411,8 +411,8 @@ export const PermissionsHub: React.FC = () => {
         {selectedRoleTab === 'rep' && (
           <div className="space-y-4 animate-fade-in text-xs">
             <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-500 flex items-center justify-center font-bold text-xl">
-                🚀
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-500 flex items-center justify-center font-bold">
+                <Briefcase className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
@@ -430,13 +430,13 @@ export const PermissionsHub: React.FC = () => {
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح للمندوب الميداني:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed">
-                  <li>✅ <strong>تسجيل نشاط جديد:</strong> التقاط الإحداثيات GPS تلقائياً، تصوير المحل، واختيار الباقة.</li>
-                  <li>✅ <strong>مركز المراجعات الخاص به:</strong> تسجيل العملاء المهتمين ومتابعتهم وإرسال رسائل واتساب.</li>
-                  <li>✅ <strong>لوحة أرباحي:</strong> متابعة العمولات المكتسبة، الرصيد المتاح للسحب، وإرسال طلبات سحب الأرباح.</li>
-                  <li>✅ <strong>كود الإحالة والمكافآت:</strong> دعوة مناديب جدد لكسب عمولات إضافية عند كل تسجيل نشاط.</li>
-                  <li>✅ <strong>كارنيه المندوب وخطاب التكليف:</strong> تحميل وطباعة الهوية الرسمية لإبرازها لأصحاب المحلات.</li>
-                  <li>✅ <strong>إدارة أنشطته فقط:</strong> تعديل وتحديث بيانات الأنشطة التي سجلها بنفسه.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-primary)] font-bold leading-relaxed list-disc list-inside">
+                  <li><strong>تسجيل نشاط جديد:</strong> التقاط الإحداثيات GPS تلقائياً، تصوير المحل، واختيار الباقة.</li>
+                  <li><strong>مركز المراجعات الخاص به:</strong> تسجيل العملاء المهتمين ومتابعتهم وإرسال رسائل واتساب.</li>
+                  <li><strong>لوحة أرباحي:</strong> متابعة العمولات المكتسبة، الرصيد المتاح للسحب، وإرسال طلبات سحب الأرباح.</li>
+                  <li><strong>كود الإحالة والمكافآت:</strong> دعوة مناديب جدد لكسب عمولات إضافية عند كل تسجيل نشاط.</li>
+                  <li><strong>كارنيه المندوب وخطاب التكليف:</strong> تحميل وطباعة الهوية الرسمية لإبرازها لأصحاب المحلات.</li>
+                  <li><strong>إدارة أنشطته فقط:</strong> تعديل وتحديث بيانات الأنشطة التي سجلها بنفسه.</li>
                 </ul>
               </div>
 
@@ -445,10 +445,10 @@ export const PermissionsHub: React.FC = () => {
                   <Lock className="w-4 h-4" />
                   <span>القيود وضوابط حماية البيانات:</span>
                 </h4>
-                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed">
-                  <li>🔒 لا يمكنه الاطلاع على أرباح أو عمولات مناديب آخرين.</li>
-                  <li>🔒 لا يمكنه تعديل أو حذف الأنشطة المسجلة بواسطة مندوبين آخرين.</li>
-                  <li>🔒 لا يمكنه الدخول إلى لوحة التحكم الإدارية العامة أو تعديل بوابات الدفع.</li>
+                <ul className="space-y-1.5 text-[11.5px] text-[var(--text-secondary)] font-bold leading-relaxed list-disc list-inside">
+                  <li>لا يمكنه الاطلاع على أرباح أو عمولات مناديب آخرين.</li>
+                  <li>لا يمكنه تعديل أو حذف الأنشطة المسجلة بواسطة مندوبين آخرين.</li>
+                  <li>لا يمكنه الدخول إلى لوحة التحكم الإدارية العامة أو تعديل بوابات الدفع.</li>
                 </ul>
               </div>
             </div>
@@ -468,7 +468,7 @@ export const PermissionsHub: React.FC = () => {
             </h3>
           </div>
           <span className="text-xs text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-            تفعيل وتطبيق صارم في النظام ✅
+            تفعيل وتطبيق معتمد في النظام
           </span>
         </div>
 
@@ -477,10 +477,10 @@ export const PermissionsHub: React.FC = () => {
             <thead>
               <tr className="bg-[var(--input-bg)] text-[var(--text-primary)] border-b border-[var(--border-color)]">
                 <th className="p-3 font-black rounded-r-xl">الصلاحية / الوظيفة</th>
-                <th className="p-3 font-black text-center text-amber-600 dark:text-amber-400">👑 مدير النظام</th>
-                <th className="p-3 font-black text-center text-purple-600 dark:text-purple-400">👔 مشرف الإدارة</th>
-                <th className="p-3 font-black text-center text-emerald-600 dark:text-emerald-400">💳 محاسب ومحصل</th>
-                <th className="p-3 font-black text-center text-blue-600 dark:text-blue-400">🚀 مندوب مبيعات</th>
+                <th className="p-3 font-black text-center text-amber-600 dark:text-amber-400">مدير النظام</th>
+                <th className="p-3 font-black text-center text-purple-600 dark:text-purple-400">مشرف الإدارة</th>
+                <th className="p-3 font-black text-center text-emerald-600 dark:text-emerald-400">المسؤول المالي</th>
+                <th className="p-3 font-black text-center text-blue-600 dark:text-blue-400">المندوب الميداني</th>
                 <th className="p-3 font-black rounded-l-xl text-[var(--text-muted)]">ملاحظات التحقق</th>
               </tr>
             </thead>

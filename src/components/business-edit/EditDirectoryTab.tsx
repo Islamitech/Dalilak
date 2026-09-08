@@ -86,13 +86,9 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
       `• *المسؤول / العميل:* ${formData.ownerName || 'المحترم'}\n` +
       `• *رقم الملف:* ${formData.invoiceNumber || ''}\n` +
       `• *حالة الدليل:* معتمد ومنشور رسمياً على الدليل العام 🟢\n\n` +
-      `يسعدنا إعلامكم بأنه تم نشر وتفعيل صفحة المكان رسمياً على دليل المنصة، ويمكنكم والزبائن معاينتها ومشاركتها عبر الرابط التالي:\n` +
-      `🔗 ${displayDirectoryUrl}\n\n` +
-      `*مزايا الصفحة بالدليل:*\n` +
-      `1. توثيق رقم التواصل ومواعيد العمل والاتصال المباشر.\n` +
-      `2. إمكانية مشاركة الرابط مع عملائكم لكتابة التقييمات ومشاهدة الصور.\n` +
-      `3. الظهور المباشر أمام الزوار والباحثين في نطاق منطقتكم.\n\n` +
-      `نتشرف بوجودكم معنا ونسعد دائماً بخدمتكم 🤝`;
+      `• *حالة الدليل:* معتمد ومنشور رسمياً على الدليل العام\n\n` +
+      `🔗 *رابط صفحة المكان المباشر:*\n${displayDirectoryUrl}\n\n` +
+      `نسعد بوجودكم ونتمنى لكم دوام التوفيق والانتشار!`;
 
     const encoded = safeWhatsAppEncode(cleanWhatsAppText(rawMsg));
     window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
@@ -104,18 +100,19 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
     const venueName = formData.nameAr ? `«${formData.nameAr}»` : venueLabel;
     const phone = formatWhatsAppPhone(formData.ownerPhone || formData.phone);
     if (!phone) {
-      onShowNotification?.('⚠️ لا يوجد رقم هاتف متاح للعميل');
+      onShowNotification?.('لا يوجد رقم هاتف متاح للعميل');
       return;
     }
 
     const rawMsg =
       `*دعوة للمشاركة والتقييم — ${OFFICIAL_PLATFORM_HEADER}*\n` +
       `-----------------------------------------\n` +
-      `أهلاً بحضرتك يا فندم مع ${venueName} 🌿\n\n` +
-      `تقدر دلوقتي تشارك رابط صفحتكم الرسمية على دليل المنصة مع عملائكم علشان يقيموا تجربتهم ويكتبوا رأيهم المميز:\n` +
+      `تحياتنا لإدارة ${venueName} الكرام،\n\n` +
+      `يسرنا تزويدكم برابط صفحتكم الرسمية على دليل المنصة لإتاحته لعملائكم وإضافة التقييمات والآراء:\n` +
       `🔗 ${displayDirectoryUrl}\n\n` +
-      `التقييمات الإيجابية بتزود ثقة الزبائن الجدد وبترفع ترتيب المكان في محركات البحث وقوائم الدليل ⭐\n` +
-      `شاكرين جداً لذوقكم ووقتكم 🤝`;
+      `تساهم تقييمات العملاء في تعزيز ثقة الزوار الجدد ورفع ظهور المنشأة في قوائم الدليل ومحركات البحث.\n` +
+      `شاكرين حسن تعاونكم،\n` +
+      `إدارة منصة دليلك`;
 
     const encoded = safeWhatsAppEncode(cleanWhatsAppText(rawMsg));
     window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
@@ -125,7 +122,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
   const handleSendTrendingInvitationWa = () => {
     const phone = formatWhatsAppPhone(formData.ownerPhone || formData.phone);
     if (!phone) {
-      onShowNotification?.('⚠️ لا يوجد رقم هاتف متاح للعميل');
+      onShowNotification?.('لا يوجد رقم هاتف متاح للعميل');
       return;
     }
 
@@ -139,19 +136,19 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
       {/* ── 1. DIRECTORY LIVE STATUS HERO BANNER ── */}
       <div className={`rounded-2xl p-4 border transition-all shadow-xs ${
         isApproved
-          ? 'bg-gradient-to-r from-emerald-950/40 via-teal-950/30 to-emerald-950/40 border-emerald-500/40'
+          ? 'bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/60 border-emerald-500/50'
           : isRejected
-          ? 'bg-gradient-to-r from-rose-950/40 via-red-950/30 to-rose-950/40 border-rose-500/40'
-          : 'bg-gradient-to-r from-amber-950/40 via-yellow-950/30 to-amber-950/40 border-amber-500/40'
+          ? 'bg-gradient-to-r from-rose-950/80 via-slate-900 to-rose-950/60 border-rose-500/50'
+          : 'bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-950/60 border-amber-500/50'
       }`}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black shrink-0 shadow-md ${
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-md shrink-0 border ${
               isApproved
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                 : isRejected
-                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
             }`}>
               {isApproved ? (
                 <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
@@ -166,10 +163,10 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
               <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-black text-sm sm:text-base text-white">
                   {isApproved
-                    ? 'المكان معتمد ومنشور رسمياً على الدليل العام 🟢'
+                    ? 'المنشأة معتمدة ومنشورة رسمياً على الدليل العام'
                     : isRejected
-                    ? 'المكان مرفوض ومحجوب عن الدليل العام 🔴'
-                    : 'المكان بانتظار مراجعة واعتماد المسؤول ⏳'}
+                    ? 'المنشأة محجوبة عن العرض في الدليل العام'
+                    : 'المنشأة بانتظار المراجعة والاعتماد'}
                 </h4>
                 <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
                   isApproved
@@ -178,15 +175,15 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
                     ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
                     : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                 }`}>
-                  {isApproved ? 'ظاهر للجمهور ✓' : isRejected ? 'محجوب تماماً 🔒' : 'قيد الفحص'}
+                  {isApproved ? 'منشور للجمهور' : isRejected ? 'محجوب' : 'قيد الفحص'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 font-bold mt-1">
                 {isApproved
-                  ? 'يظهر المكان في نتائج بحث الدليل، شبكة الكروت، الفئات، والتطبيق العام، ويمكن للجمهور زيارة صفحته والتواصل معه.'
+                  ? 'الصفحة نشطة ومتاحة لجميع الزوار على الدليل العام مع روابط المشاركة والتقييم.'
                   : isRejected
-                  ? 'تم حجب المكان تماماً عن الظهور في الدليل العام، وتظهر شاشة الحجب المؤسسية الصارمة عند محاولة فتح رابطه المباشر.'
-                  : 'تم تسجيل بيانات المكان ومرفوعاته بنجاح، وهو بانتظار مراجعة الإدارة وتدقيق المحتوى لاعتماده ونشره للجمهور.'}
+                  ? 'تم حجب هذه الصفحة بقرار إداري؛ والروابط مقفلة ولا يمكن للجمهور فتح تفاصيل المنشأة.'
+                  : 'الصفحة قيد الفحص الإداري؛ ويمكن للعميل فتحها مؤقتاً عبر رابط المعاينة لحين الاعتماد.'}
               </p>
             </div>
           </div>
@@ -197,11 +194,8 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
           <div className="mt-3 pt-3 border-t border-slate-700/60 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-black text-amber-400 block">
-                🏛️ أزرار اعتماد ونشر الدليل العام (صلاحيات المسؤول المباشرة):
+                حالة النشر والاعتماد بالدليل العام:
               </label>
-              <span className="text-[10px] text-slate-400 font-bold">
-                (مستقل تماماً عن حالة خرائط Google)
-              </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -215,7 +209,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>⏳ قيد المراجعة</span>
+                <span>قيد المراجعة</span>
               </button>
 
               <button
@@ -228,7 +222,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>🟢 اعتماد ونشر</span>
+                <span>اعتماد ونشر</span>
               </button>
 
               <button
@@ -241,7 +235,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
                 }`}
               >
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span>🔴 حجب ورفض</span>
+                <span>حجب ورفض</span>
               </button>
             </div>
           </div>

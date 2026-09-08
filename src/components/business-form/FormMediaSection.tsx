@@ -33,7 +33,7 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
             ) : (
               <Camera className="w-4 h-4 stroke-[2.5]" />
             )}
-            <span>{isUploadingPhoto ? 'جاري ضغط ومعالجة الصورة...' : '📸 التقاط كاميرا الهاتف'}</span>
+            <span>{isUploadingPhoto ? 'جاري معالجة الصورة...' : 'التقاط بكاميرا الهاتف'}</span>
             <input
               type="file"
               accept="image/*"
@@ -46,7 +46,7 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
           {/* Gallery Upload */}
           <label className="flex-1 sm:flex-none bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-sm">
             <UploadCloud className="w-4 h-4 text-amber-500" />
-            <span>📁 الاستوديو</span>
+            <span>معرض الصور</span>
             <input
               type="file"
               accept="image/*"
@@ -69,7 +69,7 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
           <p className="text-xs text-[var(--text-secondary)] font-bold max-w-md mx-auto">
             اضغط على زر{' '}
             <strong className="text-amber-600 dark:text-amber-400">
-              "📸 التقاط كاميرا الهاتف"
+              "التقاط بكاميرا الهاتف"
             </strong>{' '}
             لفتح كاميرا الجوال مباشرة وتصوير واجهة المحل أو اليافطة ميدانياً!
           </p>

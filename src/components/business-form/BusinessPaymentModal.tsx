@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Representative } from '../../types';
-import { CreditCard, ShieldCheck, CheckCircle2, X, Clock } from 'lucide-react';
+import { CreditCard, ShieldCheck, CheckCircle2, X, Clock, Banknote } from 'lucide-react';
 
 interface BusinessPaymentModalProps {
   isOpen: boolean;
@@ -259,7 +259,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                               : 'bg-blue-500/10 text-blue-500'
                           }`}
                         >
-                          💳
+                          <CreditCard className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="font-black text-xs">تحويل إلكتروني مباشر للمنصة</div>
@@ -269,7 +269,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                         </div>
                       </div>
                       <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                        ✨ عمولتك كاملة في رصيدك فوراً بدون عهدة
+                        إيداع العمولة في الرصيد مباشرة بدون عهدة
                       </div>
                     </div>
 
@@ -289,7 +289,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                               : 'bg-amber-500/10 text-amber-500'
                           }`}
                         >
-                          💵
+                          <Banknote className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="font-black text-xs">كاش بيدك في الميدان</div>
@@ -299,7 +299,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                         </div>
                       </div>
                       <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-amber-700 dark:text-amber-400">
-                        ⚠️ أخذت عمولتك بيدك وتلتزم بتوريد حصة المنصة
+                        تحصيل نقدي: يتم تسجيل توريد حصة المنصة
                       </div>
                     </div>
                   </div>
@@ -348,7 +348,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                   </div>
 
                   <div className="text-[10.5px] text-[var(--text-secondary)] font-bold flex items-start gap-1.5 pt-1">
-                    <span className="text-amber-500 font-black shrink-0">💡 ملاحظة:</span>
+                    <span className="text-amber-500 font-black shrink-0">ملاحظة:</span>
                     <span>
                       {paymentMethod === 'cash_by_rep'
                         ? 'استلمت الكاش بيدك وأخذت عمولتك فوراً، ويتم تقييد باقي المبلغ عليك لتوريده للمنصة.'
@@ -385,17 +385,17 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
             {isFeeExempt ? (
               <>
                 <CheckCircle2 className="w-5 h-5" />
-                <span>تأكيد تسجيل النشاط المعفى 🚀</span>
+                <span>تأكيد تسجيل المنشأة المعفاة</span>
               </>
             ) : isRepUser || paymentStatus === 'unpaid' ? (
               <>
                 <Clock className="w-5 h-5" />
-                <span>حفظ النشاط (فاتورة مؤجلة) 🚀</span>
+                <span>حفظ النشاط (فاتورة مؤجلة)</span>
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-5 h-5" />
-                <span>تأكيد الدفع وحفظ النشاط فوراً 🚀</span>
+                <span>تأكيد الدفع وحفظ النشاط فوراً</span>
               </>
             )}
           </button>
