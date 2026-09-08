@@ -16,8 +16,10 @@ import {
   ChevronDown,
   ExternalLink,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsappMessages';
+import { extractGooglePlaceData, isGoogleMapsUrl } from '../../utils/googlePlaceExtractor';
 
 interface InterestedLeadSectionProps {
   currentRep?: Representative | null;
@@ -49,6 +51,60 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   const [showLeadMap, setShowLeadMap] = useState<boolean>(false);
   const [isLocatingLead, setIsLocatingLead] = useState<boolean>(false);
   const [leadLocationNotice, setLeadLocationNotice] = useState<string | null>(null);
+
+  // ⚡ Google Maps Link-First Instant Importer State
+  const [leadGoogleUrl, setLeadGoogleUrl] = useState<string>('');
+  const [isExtractingLead, setIsExtractingLead] = useState<boolean>(false);
+  const [leadExtractNotice, setLeadExtractNotice] = useState<string | null>(null);
+
+  const handleAutoExtractLead = async (urlToExtract = leadGoogleUrl) => {
+    const trimmed = (urlToExtract || '').trim();
+    if (!trimmed) {
+      alert('يرجى لصق رابط خرائط Google أولاً');
+      return;
+    }
+    triggerHaptic('medium');
+    setIsExtractingLead(true);
+    setLeadExtractNotice('جاري فك الرابط والتقاط بيانات المنشأة من خرائط Google...');
+
+    try {
+      const data = await extractGooglePlaceData(trimmed);
+      if (data) {
+        if (data.name) setLeadBizName(data.name);
+        if (data.phone) setLeadPhone(data.phone);
+        if (data.governorate) setLeadGov(data.governorate);
+        if (data.city) setLeadCity(data.city);
+        if (data.street) setLeadStreet(data.street);
+        if (data.lat && data.lng) {
+          setLeadLat(data.lat);
+          setLeadLng(data.lng);
+          setHasLeadLocation(true);
+        }
+        if (data.resolvedUrl) {
+          setLeadGoogleUrl(data.resolvedUrl);
+        }
+
+        const summaryParts = [
+          data.name ? `الاسم: ${data.name}` : null,
+          data.phone ? `الهاتف: ${data.phone}` : null,
+          data.city ? `المنطقة: ${data.city}` : null,
+        ]
+          .filter(Boolean)
+          .join(' • ');
+
+        setLeadExtractNotice(`✅ تم استيراد البيانات بنجاح (${summaryParts || 'تم تحديث الإحداثيات'})`);
+        setTimeout(() => setLeadExtractNotice(null), 8000);
+      } else {
+        setLeadExtractNotice('⚠️ تعذر استخراج كامل البيانات تلقائياً، يمكنك إكمال الحقول يدوياً.');
+        setTimeout(() => setLeadExtractNotice(null), 5000);
+      }
+    } catch {
+      setLeadExtractNotice('⚠️ حدث خطأ أثناء الاتصال، يمكنك إدخال البيانات يدوياً.');
+      setTimeout(() => setLeadExtractNotice(null), 5000);
+    } finally {
+      setIsExtractingLead(false);
+    }
+  };
 
   const handleGetLeadLocation = () => {
     if (!navigator.geolocation) {
@@ -137,7 +193,9 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
 
     setIsSavingLead(true);
     try {
-      const locationMapUrl = hasLeadLocation
+      const locationMapUrl = leadGoogleUrl.trim()
+        ? leadGoogleUrl.trim()
+        : hasLeadLocation
         ? `https://www.google.com/maps?q=${leadLat},${leadLng}`
         : undefined;
       const cleanNotes = leadNotes.trim();
@@ -187,6 +245,8 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       setLeadCity('');
       setLeadStreet('');
       setLeadNotes('');
+      setLeadGoogleUrl('');
+      setLeadExtractNotice(null);
       setHasLeadLocation(false);
       setShowLeadMap(false);
       setLeadLocationNotice(null);
@@ -294,6 +354,61 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
           <span>{leadSuccessMsg}</span>
         </div>
       )}
+
+      {/* ⚡ استيراد فوري مباشر عبر رابط خرائط Google (Link-First Architecture) */}
+      <div className="bg-gradient-to-r from-blue-500/10 via-[var(--bg-card)] to-indigo-500/10 border-2 border-blue-500/30 rounded-2xl p-3.5 space-y-2.5 shadow-xs">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-black text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+            <Zap className="w-4 h-4 text-blue-500 fill-blue-500/30" />
+            <span>استيراد تلقائي عبر رابط خرائط Google (بدون إرهاق الخريطة)</span>
+          </label>
+          <span className="text-[10px] bg-blue-500/15 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full font-black border border-blue-500/20">
+            ⚡ تعبئة فورية
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="url"
+            dir="ltr"
+            value={leadGoogleUrl}
+            onChange={(e) => {
+              const val = e.target.value;
+              setLeadGoogleUrl(val);
+              if (isGoogleMapsUrl(val)) {
+                handleAutoExtractLead(val);
+              }
+            }}
+            placeholder="الصق رابط خرائط Google هنا (maps.app.goo.gl/...)"
+            className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] focus:border-blue-500 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs font-mono focus:outline-none text-right transition-colors"
+          />
+          <button
+            type="button"
+            disabled={isExtractingLead || !leadGoogleUrl.trim()}
+            onClick={() => handleAutoExtractLead(leadGoogleUrl)}
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black px-4 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-sm transition-transform active:scale-95 cursor-pointer"
+          >
+            {isExtractingLead ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>جاري الاستيراد...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5" />
+                <span>استيراد فوري ⚡</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {leadExtractNotice && (
+          <div className="text-[11px] font-bold p-2.5 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 flex items-center gap-2 animate-fade-in">
+            {isExtractingLead && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />}
+            <span>{leadExtractNotice}</span>
+          </div>
+        )}
+      </div>
 
       <div className="space-y-3.5 text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

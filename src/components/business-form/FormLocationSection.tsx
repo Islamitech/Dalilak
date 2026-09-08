@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { InteractiveMap } from '../InteractiveMap';
 import { triggerHaptic } from '../../utils/haptics';
+import { extractGooglePlaceData, isGoogleMapsUrl } from '../../utils/googlePlaceExtractor';
 import {
   MapPin,
   Loader2,
@@ -10,6 +11,8 @@ import {
   ChevronUp,
   ChevronDown,
   CheckCircle2,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 
 interface FormLocationSectionProps {
@@ -29,6 +32,10 @@ interface FormLocationSectionProps {
   setGovernorate: (gov: string) => void;
   setCity: (city: string) => void;
   setLandmark: (landmark: string) => void;
+  setNameAr?: (name: string) => void;
+  setOwnerPhone?: (phone: string) => void;
+  setCategory?: (cat: string) => void;
+  setStreet?: (street: string) => void;
 }
 
 export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
@@ -48,38 +55,129 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
   setGovernorate,
   setCity,
   setLandmark,
+  setNameAr,
+  setOwnerPhone,
+  setCategory,
+  setStreet,
 }) => {
+  const [isExtracting, setIsExtracting] = useState<boolean>(false);
+  const [extractedNotice, setExtractedNotice] = useState<string | null>(null);
+
+  const handleAutoExtract = async (urlToExtract = alreadyGoogleMapsUrl) => {
+    const trimmed = (urlToExtract || '').trim();
+    if (!trimmed) {
+      alert('يرجى لصق رابط خرائط Google أولاً');
+      return;
+    }
+    triggerHaptic('medium');
+    setIsExtracting(true);
+    setExtractedNotice('جاري الاتصال بخرائط Google وفك الرابط واستخراج البيانات...');
+
+    try {
+      const data = await extractGooglePlaceData(trimmed);
+      if (data) {
+        if (data.name && setNameAr) setNameAr(data.name);
+        if (data.phone && setOwnerPhone) setOwnerPhone(data.phone);
+        if (data.category && setCategory) setCategory(data.category);
+        if (data.governorate) setGovernorate(data.governorate);
+        if (data.city) setCity(data.city);
+        if (data.street && setStreet) setStreet(data.street);
+        if (data.lat && data.lng) {
+          setLat(data.lat);
+          setLng(data.lng);
+        }
+        if (data.resolvedUrl) {
+          setAlreadyGoogleMapsUrl(data.resolvedUrl);
+        }
+
+        const summaryParts = [
+          data.name ? `الاسم: ${data.name}` : null,
+          data.phone ? `الهاتف: ${data.phone}` : null,
+          data.city ? `المنطقة: ${data.city}` : null,
+          data.category ? `الفئة: ${data.category}` : null,
+        ]
+          .filter(Boolean)
+          .join(' • ');
+
+        setExtractedNotice(
+          `✅ تم استيراد بيانات النشاط بنجاح (${summaryParts || 'تم تحديث الإحداثيات'})`
+        );
+        setTimeout(() => setExtractedNotice(null), 8000);
+      } else {
+        setExtractedNotice('⚠️ تعذر استخراج كامل البيانات تلقائياً، يمكنك إكمال الحقول يدوياً.');
+        setTimeout(() => setExtractedNotice(null), 5000);
+      }
+    } catch {
+      setExtractedNotice('⚠️ حدث خطأ أثناء الاتصال، يمكنك إدخال البيانات يدوياً.');
+      setTimeout(() => setExtractedNotice(null), 5000);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   if (registrationType === 'already_on_google') {
     return (
       <div className="bg-gradient-to-br from-blue-500/10 via-[var(--bg-card)] to-indigo-500/10 border-2 border-blue-500/50 rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-md text-right animate-fade-in">
-        <div className="flex items-center gap-2 text-blue-500 pb-2 border-b border-[var(--border-color)]">
-          <MapPin className="w-5 h-5" />
-          <h3 className="font-bold text-sm text-[var(--text-primary)]">
-            2. رابط موقع النشاط على خرائط Google (الموقع القائم المعتمد) *
-          </h3>
+        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+          <div className="flex items-center gap-2 text-blue-500">
+            <Zap className="w-5 h-5 text-blue-500" />
+            <h3 className="font-bold text-sm text-[var(--text-primary)]">
+              2. رابط خرائط Google والاستيراد اللحظي التلقائي *
+            </h3>
+          </div>
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/30">
+            استيراد في 4 ثوانٍ ⚡
+          </span>
         </div>
 
         <div>
           <label className="block text-xs font-black text-[var(--text-primary)] mb-1.5">
             ادخل أو الصق الرابط الدقيق للنشاط من خرائط Google (Google Maps Link) *:
           </label>
-          <input
-            type="url"
-            placeholder="مثال: https://maps.app.goo.gl/xxxxxx أو https://www.google.com/maps/place/..."
-            value={alreadyGoogleMapsUrl}
-            onChange={(e) => {
-              const val = e.target.value;
-              setAlreadyGoogleMapsUrl(val);
-              const match =
-                val.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || val.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-              if (match) {
-                setLat(parseFloat(match[1]));
-                setLng(parseFloat(match[2]));
-              }
-            }}
-            className="w-full bg-[var(--input-bg)] border-2 border-blue-500 text-[var(--text-primary)] font-bold text-xs sm:text-sm rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dir-ltr text-right placeholder:text-slate-400 shadow-sm"
-            required
-          />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="url"
+              placeholder="مثال: https://maps.app.goo.gl/xxxxxx أو https://www.google.com/maps/place/..."
+              value={alreadyGoogleMapsUrl}
+              onChange={(e) => {
+                const val = e.target.value;
+                setAlreadyGoogleMapsUrl(val);
+                if (isGoogleMapsUrl(val) && val.length > 20) {
+                  handleAutoExtract(val);
+                }
+              }}
+              className="flex-1 bg-[var(--input-bg)] border-2 border-blue-500 text-[var(--text-primary)] font-bold text-xs sm:text-sm rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dir-ltr text-right placeholder:text-slate-400 shadow-sm"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => handleAutoExtract()}
+              disabled={isExtracting || !alreadyGoogleMapsUrl.trim()}
+              className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              {isExtracting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              <span>{isExtracting ? 'جاري السحب...' : 'استيراد فوري ⚡'}</span>
+            </button>
+          </div>
+        </div>
+
+        {extractedNotice && (
+          <div className="bg-blue-500/15 border border-blue-500/40 text-blue-700 dark:text-blue-300 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+            <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
+            <span>{extractedNotice}</span>
+          </div>
+        )}
+
+        {/* Coordinates pill */}
+        <div className="flex items-center gap-2 pt-1 text-[11px] text-[var(--text-muted)]">
+          <span>الإحداثيات المسحوبة:</span>
+          <span className="font-mono text-blue-600 dark:text-blue-400 dir-ltr font-bold text-xs bg-blue-500/10 px-2.5 py-0.5 rounded-md border border-blue-500/20">
+            {lat.toFixed(6)}, {lng.toFixed(6)}
+          </span>
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3 text-[11px] text-[var(--text-secondary)] font-bold flex items-start gap-2">
@@ -87,7 +185,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
           <span>
             <strong>طبيعة هذا التسجيل:</strong> هذا النشاط مسجل ومفعل بالفعل على خرائط Google في
             الشارع، لذا لا يتطلب تحديد موقع ميداني جديد أو إظهار خريطة، ويكتفى فقط بلصق رابطه
-            الدقيق لإدراجه وتوثيقه فورياً بالمنظومة.
+            الدقيق لاستيراد كامل بياناته وتوثيقه فورياً بالمنظومة.
           </span>
         </div>
       </div>

@@ -18,7 +18,10 @@ import {
   EyeOff,
   KeyRound,
   Star,
+  Zap,
+  Loader2,
 } from 'lucide-react';
+import { extractGooglePlaceData } from '../../utils/googlePlaceExtractor';
 import {
   generateGoogleVerificationOtpWhatsAppMessage,
   getGoogleVerificationOtpWhatsAppUrl,
@@ -67,6 +70,51 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
   onShowNotification,
 }) => {
   const [expandedMapWaPreview, setExpandedMapWaPreview] = useState<string | null>(null);
+  const [isSyncingFromGoogle, setIsSyncingFromGoogle] = useState<boolean>(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
+  const handleSyncFromGoogleUrl = async () => {
+    const url = formData.googleMapsUrl?.trim();
+    if (!url) {
+      if (onShowNotification) onShowNotification('يرجى إدخال رابط خرائط Google أولاً');
+      else alert('يرجى إدخال رابط خرائط Google أولاً');
+      return;
+    }
+    setIsSyncingFromGoogle(true);
+    setSyncNotice('جاري فك الرابط ومزامنة بيانات المكان من خرائط Google...');
+    try {
+      const data = await extractGooglePlaceData(url);
+      if (data) {
+        setFormData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            googleMapsUrl: data.resolvedUrl || prev.googleMapsUrl,
+            lat: data.lat ?? prev.lat,
+            lng: data.lng ?? prev.lng,
+            governorate: data.governorate || prev.governorate,
+            city: data.city || prev.city,
+            street: data.street || prev.street,
+            phone: data.phone || prev.phone,
+          };
+        });
+        const msg = '✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات بنجاح من خرائط Google!';
+        setSyncNotice(msg);
+        if (onShowNotification) onShowNotification(msg);
+        setTimeout(() => setSyncNotice(null), 6000);
+      } else {
+        const msg = '⚠️ تعذر استخراج تفاصيل إضافية من الرابط.';
+        setSyncNotice(msg);
+        setTimeout(() => setSyncNotice(null), 4000);
+      }
+    } catch {
+      const msg = '⚠️ فشل الاتصال بمحرك استخراج خرائط Google.';
+      setSyncNotice(msg);
+      setTimeout(() => setSyncNotice(null), 4000);
+    } finally {
+      setIsSyncingFromGoogle(false);
+    }
+  };
   return (
     <div className="space-y-3.5 text-right">
       {/* Google Maps Smart Verification & Sync Hub */}
@@ -288,15 +336,41 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
 
           {isEditMode ? (
             isAdminOrFinancial ? (
-              <div className="space-y-1.5">
-                <input
-                  type="url"
-                  dir="ltr"
-                  value={formData.googleMapsUrl || ''}
-                  onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-emerald-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2 focus:outline-none shadow-inner text-right"
-                  placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..."
-                />
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="url"
+                    dir="ltr"
+                    value={formData.googleMapsUrl || ''}
+                    onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
+                    className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-emerald-500 text-[var(--text-primary)] font-mono text-xs rounded-xl p-2.5 focus:outline-none shadow-inner text-right"
+                    placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..."
+                  />
+                  <button
+                    type="button"
+                    disabled={isSyncingFromGoogle || !formData.googleMapsUrl?.trim()}
+                    onClick={handleSyncFromGoogleUrl}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black text-xs px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shrink-0 shadow-sm transition-transform active:scale-95 cursor-pointer"
+                  >
+                    {isSyncingFromGoogle ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>جاري المزامنة...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>مزامنة واستيراد ⚡</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {syncNotice && (
+                  <div className="text-[11px] font-bold p-2 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 flex items-center gap-2 animate-fade-in">
+                    {isSyncingFromGoogle && <Loader2 className="w-3 h-3 animate-spin text-blue-500 shrink-0" />}
+                    <span>{syncNotice}</span>
+                  </div>
+                )}
                 {Boolean(formData.googleMapsUrl && (formData.googleMapsUrl.includes('maps?q=') || formData.googleMapsUrl.includes('search/?api=1&query='))) && (
                   <p className="text-[10.5px] font-bold text-rose-500 flex items-center gap-1">
                     ⚠️ تنبيه: الرابط المدخل إحداثيات ميدانية خام (GPS) وليس رابط نشاط معتمد من خرائط Google.

@@ -658,6 +658,17 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             setGovernorate={setGovernorate}
             setCity={setCity}
             setLandmark={setLandmark}
+            setNameAr={setNameAr}
+            setOwnerPhone={(val) => {
+              setOwnerPhone(val);
+              setPhone((prev) => (prev ? prev : val));
+            }}
+            setCategory={(cat) => {
+              setCategory(cat);
+              const grp = getGroupFromCategory(cat);
+              if (grp) setSelectedGroup(grp.group);
+            }}
+            setStreet={setStreet}
           />
 
           {/* 3. بيانات صاحب النشاط والتواصل */}
