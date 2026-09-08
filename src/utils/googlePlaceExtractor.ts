@@ -83,89 +83,110 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
   // 1. Initial 0ms client-side parse
   const initial = parseClientSideGoogleUrl(cleanUrl);
 
-  // 2. Determine backend endpoint URL
+  // 2. Resilient multi-endpoint backend resolver with auto-retry (Update 37)
   const isLocal = typeof window !== 'undefined' && window.location.origin.includes('localhost');
-  const resolverEndpoint = isLocal
-    ? '/api/google-place-resolver'
-    : 'https://www.dalilaak.com/api/google-place-resolver';
+  const resolverEndpoints = isLocal
+    ? ['/api/google-place-resolver']
+    : [
+        'https://www.dalilaak.com/api/google-place-resolver',
+        'https://dalilak-directory.vercel.app/api/google-place-resolver',
+      ];
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+  let data: any = null;
 
-    const res = await fetch(`${resolverEndpoint}?url=${encodeURIComponent(cleanUrl)}`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+  for (const endpoint of resolverEndpoints) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6500);
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.success) {
-        const finalLat = data.lat || initial.lat;
-        const finalLng = data.lng || initial.lng;
+        const res = await fetch(`${endpoint}?url=${encodeURIComponent(cleanUrl)}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
 
-        let derivedGov: string | undefined = undefined;
-        let derivedCity: string | undefined = undefined;
-
-        if (finalLat && finalLng) {
-          const scope = matchScopeByCoords(finalLat, finalLng);
-          derivedGov = scope.governorate;
-          derivedCity = scope.city;
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success) {
+            data = json;
+            break;
+          }
         }
-
-        // 🏷️ Clean classification target: prioritize clean name & Google category (Update 36)
-        const cleanPlaceName = data.name || initial.name || '';
-        const cleanGoogleCategory = data.category || '';
-        const isBoilerplate = (t?: string): boolean => {
-          if (!t) return true;
-          const l = t.toLowerCase();
-          return (
-            l.includes('find local businesses') ||
-            l.includes('view maps') ||
-            l.includes('driving directions') ||
-            l.includes('معاينة الأنشطة') ||
-            l.includes('خرائط google') ||
-            l.includes('google maps')
-          );
-        };
-        const safeAddress = (data.address && !isBoilerplate(data.address)) ? data.address.trim() : undefined;
-
-        // Primary classification attempt: place name + Google category
-        const primaryTarget = [cleanPlaceName, cleanGoogleCategory].filter(Boolean).join(' ').trim();
-        let classified = classifyPlaceCategory(primaryTarget);
-
-        // Secondary classification attempt: include safe address if primary didn't resolve
-        if (!classified && safeAddress) {
-          classified = classifyPlaceCategory(`${cleanPlaceName} ${safeAddress}`.trim());
+      } catch (err) {
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 500));
         }
-
-        const finalPhotos = Array.isArray(data.photos) && data.photos.length > 0
-          ? data.photos.slice(0, 5)
-          : (data.photo ? [data.photo] : undefined);
-
-        return {
-          name: cleanPlaceName || undefined,
-          phone: data.phone,
-          category: classified?.category || data.category,
-          group: classified?.group,
-          googleCategoryTitle: classified?.googleCategoryTitle || data.category,
-          governorate: derivedGov,
-          city: derivedCity,
-          street: safeAddress,
-          lat: finalLat,
-          lng: finalLng,
-          rating: data.rating,
-          reviewCount: data.reviewCount,
-          address: safeAddress,
-          workingHours: data.workingHours,
-          photo: data.photo || (finalPhotos && finalPhotos.length > 0 ? finalPhotos[0] : undefined),
-          photos: finalPhotos,
-          resolvedUrl: data.resolvedUrl || cleanUrl,
-        };
       }
     }
+    if (data) break;
+  }
+
+  try {
+    if (data) {
+      const finalLat = data.lat || initial.lat;
+      const finalLng = data.lng || initial.lng;
+
+      let derivedGov: string | undefined = undefined;
+      let derivedCity: string | undefined = undefined;
+
+      if (finalLat && finalLng) {
+        const scope = matchScopeByCoords(finalLat, finalLng);
+        derivedGov = scope.governorate;
+        derivedCity = scope.city;
+      }
+
+      // 🏷️ Clean classification target: prioritize clean name & Google category (Update 36)
+      const cleanPlaceName = data.name || initial.name || '';
+      const cleanGoogleCategory = data.category || '';
+      const isBoilerplate = (t?: string): boolean => {
+        if (!t) return true;
+        const l = t.toLowerCase();
+        return (
+          l.includes('find local businesses') ||
+          l.includes('view maps') ||
+          l.includes('driving directions') ||
+          l.includes('معاينة الأنشطة') ||
+          l.includes('خرائط google') ||
+          l.includes('google maps')
+        );
+      };
+      const safeAddress = (data.address && !isBoilerplate(data.address)) ? data.address.trim() : undefined;
+
+      // Primary classification attempt: place name + Google category
+      const primaryTarget = [cleanPlaceName, cleanGoogleCategory].filter(Boolean).join(' ').trim();
+      let classified = classifyPlaceCategory(primaryTarget);
+
+      // Secondary classification attempt: include safe address if primary didn't resolve
+      if (!classified && safeAddress) {
+        classified = classifyPlaceCategory(`${cleanPlaceName} ${safeAddress}`.trim());
+      }
+
+      const finalPhotos = Array.isArray(data.photos) && data.photos.length > 0
+        ? data.photos.slice(0, 5)
+        : (data.photo ? [data.photo] : undefined);
+
+      return {
+        name: cleanPlaceName || undefined,
+        phone: data.phone,
+        category: classified?.category || data.category,
+        group: classified?.group,
+        googleCategoryTitle: classified?.googleCategoryTitle || data.category,
+        governorate: derivedGov,
+        city: derivedCity,
+        street: safeAddress,
+        lat: finalLat,
+        lng: finalLng,
+        rating: data.rating,
+        reviewCount: data.reviewCount,
+        address: safeAddress,
+        workingHours: data.workingHours,
+        photo: data.photo || (finalPhotos && finalPhotos.length > 0 ? finalPhotos[0] : undefined),
+        photos: finalPhotos,
+        resolvedUrl: data.resolvedUrl || cleanUrl,
+      };
+    }
   } catch (err) {
-    console.warn('Google place resolver endpoint error or timeout, falling back to client-parsed data:', err);
+    console.warn('Google place resolver processing error, falling back to client-parsed data:', err);
   }
 
   // 3. Fallback: return client-side parsed data

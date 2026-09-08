@@ -21,6 +21,15 @@ if (typeof window !== 'undefined') {
       window.location.reload();
     }
   });
+
+  // Register Service Worker in production for offline shell & PWA resiliency (Update 37)
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('[Dalelak PWA] Service Worker registration skipped:', err);
+      });
+    });
+  }
 }
 
 createRoot(document.getElementById('root')!).render(
