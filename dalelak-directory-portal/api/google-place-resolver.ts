@@ -10,10 +10,19 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&#39;/g, "'");
 }
 
-function cleanPlaceName(rawName: string): string {
+function cleanPlaceName(rawName: string): { name: string; extraAddress?: string } {
   let name = decodeHtmlEntities(rawName).trim();
   name = name.replace(/\s*[-·|–]\s*(Google Maps|خرائط Google|Google).*$/i, '').trim();
-  return name;
+
+  // Split by common Google Maps delimiters: Arabic comma (،), English comma (,), middle dot (·), pipe (|)
+  const parts = name.split(/\s*[\u060C,·|]\s*/).map(s => s.trim()).filter(Boolean);
+  if (parts.length <= 1) {
+    return { name };
+  }
+
+  const clean = parts[0];
+  const extraAddress = parts.slice(1).join('، ');
+  return { name: clean, extraAddress };
 }
 
 function extractHoursFromPayload(text: string): string | undefined {
@@ -175,10 +184,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const placeUrlMatch = destinationUrl.match(/\/place\/([^/@?]+)/);
     if (placeUrlMatch) {
+      let rawUrlName = '';
       try {
-        placeName = decodeURIComponent(placeUrlMatch[1]).replace(/\+/g, ' ').trim();
+        rawUrlName = decodeURIComponent(placeUrlMatch[1]).replace(/\+/g, ' ').trim();
       } catch {
-        placeName = placeUrlMatch[1].replace(/\+/g, ' ').trim();
+        rawUrlName = placeUrlMatch[1].replace(/\+/g, ' ').trim();
+      }
+      if (rawUrlName) {
+        const cleaned = cleanPlaceName(rawUrlName);
+        placeName = cleaned.name;
+        if (cleaned.extraAddress) {
+          extractedAddressFromTitle = cleaned.extraAddress;
+        }
       }
     }
 
@@ -187,23 +204,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       htmlContent.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
       htmlContent.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i);
     if (ogTitleMatch && ogTitleMatch[1]) {
-      let parsedOg = cleanPlaceName(ogTitleMatch[1]);
-      if (parsedOg.includes('·')) {
-        titleParts = parsedOg.split('·').map(s => s.trim());
-        parsedOg = titleParts[0].trim();
-        if (titleParts[1]) {
-          extractedAddressFromTitle = titleParts.slice(1).join('·').trim();
-        }
+      const rawOg = ogTitleMatch[1];
+      if (rawOg.includes('·')) {
+        titleParts = rawOg.split('·').map(s => s.trim());
       }
-      if (parsedOg && (!placeName || parsedOg.length > placeName.length)) {
-        placeName = parsedOg;
+      const cleanedOg = cleanPlaceName(rawOg);
+      if (cleanedOg.name) {
+        placeName = cleanedOg.name;
+        if (cleanedOg.extraAddress && !extractedAddressFromTitle) {
+          extractedAddressFromTitle = cleanedOg.extraAddress;
+        }
       }
     }
 
     if (!placeName) {
       const titleMatch = htmlContent.match(/<title>([^<]+)<\/title>/i);
       if (titleMatch && titleMatch[1]) {
-        placeName = cleanPlaceName(titleMatch[1]);
+        const cleanedTitle = cleanPlaceName(titleMatch[1]);
+        if (cleanedTitle.name && !cleanedTitle.name.includes('خرائط Google') && !cleanedTitle.name.includes('Google Maps')) {
+          placeName = cleanedTitle.name;
+          if (cleanedTitle.extraAddress && !extractedAddressFromTitle) {
+            extractedAddressFromTitle = cleanedTitle.extraAddress;
+          }
+        }
       }
     }
 

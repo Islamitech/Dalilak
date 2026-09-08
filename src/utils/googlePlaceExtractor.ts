@@ -34,6 +34,40 @@ export function isGoogleMapsUrl(input: string): boolean {
 }
 
 /**
+ * Sanitizes place names extracted from Google Maps links or titles (Update 38).
+ * Separates pure business name from attached district/street address tokens.
+ */
+export function sanitizePlaceNameAndAddress(rawName: string): { cleanName: string; extraAddress?: string } {
+  if (!rawName || typeof rawName !== 'string') {
+    return { cleanName: '' };
+  }
+
+  let text = rawName
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&#39;/g, "'")
+    .trim();
+
+  // Remove trailing Google branding
+  text = text.replace(/\s*[-·|–]\s*(Google Maps|خرائط Google|Google).*$/i, '').trim();
+
+  // Split by common delimiters: Arabic comma (،), English comma (,), middle dot (·), or pipe (|)
+  const parts = text.split(/\s*[\u060C,·|]\s*/).map(p => p.trim()).filter(Boolean);
+
+  if (parts.length <= 1) {
+    return { cleanName: text };
+  }
+
+  const cleanName = parts[0];
+  const extraAddress = parts.slice(1).join('، ');
+
+  return { cleanName, extraAddress };
+}
+
+/**
  * Instant (0ms) client-side parser of Google Maps URLs
  */
 export function parseClientSideGoogleUrl(rawUrl: string): Partial<ExtractedGooglePlace> {
@@ -43,10 +77,19 @@ export function parseClientSideGoogleUrl(rawUrl: string): Partial<ExtractedGoogl
   // Place name from /place/{name}/
   const placeMatch = url.match(/\/place\/([^/@?]+)/);
   if (placeMatch) {
+    let rawDecoded = '';
     try {
-      result.name = decodeURIComponent(placeMatch[1]).replace(/\+/g, ' ').trim();
+      rawDecoded = decodeURIComponent(placeMatch[1]).replace(/\+/g, ' ').trim();
     } catch {
-      result.name = placeMatch[1].replace(/\+/g, ' ').trim();
+      rawDecoded = placeMatch[1].replace(/\+/g, ' ').trim();
+    }
+    if (rawDecoded) {
+      const { cleanName, extraAddress } = sanitizePlaceNameAndAddress(rawDecoded);
+      result.name = cleanName;
+      if (extraAddress) {
+        result.address = extraAddress;
+        result.street = extraAddress;
+      }
     }
   }
 
@@ -135,8 +178,9 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
         derivedCity = scope.city;
       }
 
-      // 🏷️ Clean classification target: prioritize clean name & Google category (Update 36)
-      const cleanPlaceName = data.name || initial.name || '';
+      // 🏷️ Clean classification target: prioritize clean name & Google category (Update 36 & 38)
+      const rawPlaceName = data.name || initial.name || '';
+      const { cleanName: cleanPlaceName, extraAddress } = sanitizePlaceNameAndAddress(rawPlaceName);
       const cleanGoogleCategory = data.category || '';
       const isBoilerplate = (t?: string): boolean => {
         if (!t) return true;
@@ -150,7 +194,9 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
           l.includes('google maps')
         );
       };
-      const safeAddress = (data.address && !isBoilerplate(data.address)) ? data.address.trim() : undefined;
+      const safeAddress = (data.address && !isBoilerplate(data.address))
+        ? data.address.trim()
+        : (extraAddress || initial.address || undefined);
 
       // Primary classification attempt: place name + Google category
       const primaryTarget = [cleanPlaceName, cleanGoogleCategory].filter(Boolean).join(' ').trim();
@@ -199,22 +245,24 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
       derivedCity = scope.city;
     }
 
-    const classified = initial.name ? classifyPlaceCategory(initial.name) : null;
+    const { cleanName, extraAddress } = sanitizePlaceNameAndAddress(initial.name || '');
+    const classified = cleanName ? classifyPlaceCategory(cleanName) : null;
+    const fallbackAddress = initial.address || extraAddress;
 
     return {
-      name: initial.name,
+      name: cleanName || undefined,
       phone: undefined,
       category: classified?.category,
       group: classified?.group,
       googleCategoryTitle: classified?.googleCategoryTitle,
       governorate: derivedGov,
       city: derivedCity,
-      street: undefined,
+      street: fallbackAddress,
       lat: initial.lat,
       lng: initial.lng,
       rating: undefined,
       reviewCount: undefined,
-      address: undefined,
+      address: fallbackAddress,
       photo: undefined,
       photos: undefined,
       resolvedUrl: initial.resolvedUrl || cleanUrl,

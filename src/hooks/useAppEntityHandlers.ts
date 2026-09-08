@@ -37,6 +37,7 @@ import {
   deleteLeadFromDb,
   savePaymentConfigToDb,
 } from '../services/db';
+import { sanitizePlaceNameAndAddress } from '../utils/googlePlaceExtractor';
 
 interface UseAppEntityHandlersProps {
   user: User | null;
@@ -548,14 +549,23 @@ export function useAppEntityHandlers({
   }, [setConvertingLead, setActiveTab, addNotification]);
 
   const handleDirectConvertLeadToBusiness = useCallback(async (lead: InterestedLead) => {
-    const cleanBizName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
+    const rawBizName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
       ? lead.businessName.trim()
       : '';
-    const cleanClientName = (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
+    const rawClientName = (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
       ? lead.clientName.trim()
       : '';
-    const finalNameAr = cleanBizName || cleanClientName || 'منشأة معتمدة جديدة';
-    const finalOwner = cleanClientName || cleanBizName || 'صاحب المنشأة';
+
+    // Self-healing for place name and attached address (Update 38)
+    const { cleanName: sanitizedBizName, extraAddress: extractedAddress } = sanitizePlaceNameAndAddress(rawBizName || rawClientName);
+    const finalNameAr = sanitizedBizName || 'منشأة معتمدة جديدة';
+
+    // Format dignified contact person: "مسؤول [اسم المنشأة]" if clientName is generic, empty, or duplicate of business name
+    const finalOwner = (rawClientName && rawClientName !== rawBizName && rawClientName !== finalNameAr)
+      ? rawClientName
+      : (finalNameAr ? `مسؤول ${finalNameAr}` : 'صاحب المنشأة');
+
+    const finalStreet = lead.street?.trim() || extractedAddress || 'الموقع الجغرافي المسجل على الخريطة';
 
     const rawCat = lead.businessCategory?.trim();
     const finalCategory = (rawCat && rawCat !== 'عميل مهتم' && rawCat !== 'عملاء مهتمون')
@@ -571,7 +581,7 @@ export function useAppEntityHandlers({
       category: finalCategory,
       governorate: lead.governorate || 'القاهرة',
       city: lead.city?.trim() || 'المركز الرئيسي',
-      street: lead.street?.trim() || 'الموقع الجغرافي المسجل على الخريطة',
+      street: finalStreet,
       phone: lead.phone || '',
       secondaryPhone: lead.secondaryPhone?.trim() || undefined,
       workingHours: 'يومياً: 10:00 ص - 10:00 م',

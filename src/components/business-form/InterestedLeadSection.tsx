@@ -72,7 +72,9 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       if (data) {
         if (data.name) {
           setLeadBizName(data.name);
-          if (!leadClientName.trim()) setLeadClientName(data.name);
+          if (!leadClientName.trim()) {
+            setLeadClientName(`مسؤول ${data.name}`);
+          }
         }
         setIsTrendingLead(true);
         setLeadInterest('trending_free');
@@ -80,7 +82,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         if (data.category) setLeadCategory(data.category);
         if (data.governorate) setLeadGov(data.governorate);
         if (data.city) setLeadCity(data.city);
-        if (data.street) setLeadStreet(data.street);
+        if (data.street || data.address) setLeadStreet(data.street || data.address || '');
         if (data.lat && data.lng) {
           setLeadLat(data.lat);
           setLeadLng(data.lng);
@@ -209,7 +211,10 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       const combinedNotes = leadNotes.trim() || undefined;
 
       const finalBizName = leadBizName.trim() || leadClientName.trim() || 'منشأة تجارية';
-      const finalClientName = leadClientName.trim() || leadBizName.trim() || 'صاحب المنشأة';
+      const rawClient = leadClientName.trim();
+      const finalClientName = (rawClient && rawClient !== finalBizName)
+        ? rawClient
+        : (finalBizName ? `مسؤول ${finalBizName}` : 'صاحب المنشأة');
 
       const lead: InterestedLead = {
         id: `lead_${Date.now()}`,
