@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
-import { User, Business, Representative, PaymentGatewayConfig, SystemNotification, NotificationCategory, UserRole, ToastNotification, PayoutRequest, InterestedLead } from './types';
-import { DEFAULT_PAYMENT_CONFIG, EGYPT_GOVERNORATES, CATEGORY_GROUPS } from './data/mockData';
+import { useState, useMemo, useCallback, useRef, useEffect, Suspense } from 'react';
+import { Business, Representative, InterestedLead } from './types';
 import { calculateTotalRepCommission } from './utils/commission';
-import { formatActivityDateTime, sortBusinessesNewestFirst } from './utils/dateFormatters';
+import { sortBusinessesNewestFirst } from './utils/dateFormatters';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { InteractiveMap } from './components/InteractiveMap';
@@ -11,204 +10,39 @@ import { InvoicesLeadsHub } from './components/InvoicesLeadsHub';
 import { LoginModal } from './components/LoginModal';
 import { AboutUsModal } from './components/AboutUsModal';
 import { TermsModal } from './components/TermsModal';
-import { PublicBusinessDirectory } from './components/directory/PublicBusinessDirectory';
 import { AppModals } from './components/modals/AppModals';
+import { AppToastContainer } from './components/layout/AppToastContainer';
+import { AppOfflineBanner } from './components/layout/AppOfflineBanner';
+import { AppFooter } from './components/layout/AppFooter';
+import { HomeFeedView } from './components/home/HomeFeedView';
 import { useAuthSession } from './hooks/useAuthSession';
+import { useAppRouting } from './hooks/useAppRouting';
+import { useAppNotifications } from './hooks/useAppNotifications';
+import { useOfflineSyncStatus } from './hooks/useOfflineSyncStatus';
+import { useAppDataSync } from './hooks/useAppDataSync';
+import { useAppEntityHandlers } from './hooks/useAppEntityHandlers';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+import { canUserAccessAdminPanel } from './utils/permissions';
+import { isRepAccountDeleted } from './utils/accountStatus';
+import { ShieldCheck } from 'lucide-react';
 
 // ⚡ Code Splitting: تحميل المكونات الضخمة عند الحاجة فقط مع معالجة ذكية لتحديثات السيرفر
 const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const BusinessForm = lazyWithRetry(() => import('./components/BusinessForm').then(m => ({ default: m.BusinessForm })));
 const RepProfile = lazyWithRetry(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
-const RepDashboard = lazyWithRetry(() => import('./components/RepDashboard').then(m => ({ default: m.RepDashboard })));
-
-import { getOfflineSyncStatus, OfflineSyncStatus, syncAllPendingOfflineData } from './services/offlineSync';
-import { getRepFieldIntroWhatsAppUrl } from './utils/whatsappMessages';
-import { Logo } from './components/Logo';
-import { canUserEditBusiness, canUserDeleteBusiness, canUserAccessAdminPanel, isSuperAdmin } from './utils/permissions';
-import { isRepAccountDeleted } from './utils/accountStatus';
-import { 
-  MapPin, 
-  PlusCircle, 
-  FileText, 
-  Clock, 
-  Phone, 
-  Search, 
-  ShieldCheck, 
-  Sparkles, 
-  Building2, 
-  Eye, 
-  X, 
-  Info, 
-  LayoutGrid, 
-  List, 
-  MessageCircle, 
-  CheckCircle2,
-  AlertCircle, 
-  Store, 
-  Navigation,
-  Play,
-  Film,
-  Video,
-  Loader2,
-  Wifi,
-  WifiOff,
-  RefreshCw
-} from 'lucide-react';
-import { 
-  safeSetLocalStorageItem, 
-  safeGetLocalStorageItem, 
-  safeRemoveLocalStorageItem, 
-  safeSetSessionItem, 
-  safeGetSessionItem, 
-  safeRemoveSessionItem, 
-  getSafeUserForStorage,
-  getSafeRepsForStorage,
-  safeParseJson
-} from './utils/storage';
-import { supabase, isSupabaseConfigured } from './lib/supabase';
-import {
-  getCachedBusinesses,
-  fetchBusinessesFromDb,
-  hydrateBusinessesPhotosInBackground,
-  syncDeltaBusinessesFromDb,
-  saveBusinessToDb,
-  updateBusinessInDb,
-  deleteBusinessFromDb,
-  softDeleteBusinessInDb,
-  restoreBusinessInDb,
-  hardDeleteBusinessFromDb,
-  getDeletedBusinesses,
-  fetchRepsFromDb,
-  saveRepToDb,
-  deleteRepFromDb,
-  softDeleteRepInDb,
-  restoreRepInDb,
-  hardDeleteRepFromDb,
-  getDeletedRepresentatives,
-  updateRepSessionInDb,
-  fetchPayoutRequestsFromDb,
-  createPayoutRequestInDb,
-  updatePayoutRequestInDb,
-  deletePayoutRequestFromDb,
-  fetchLeadsFromDb,
-  saveLeadToDb,
-  updateLeadInDb,
-  deleteLeadFromDb,
-  fetchPaymentConfigFromDb,
-  savePaymentConfigToDb,
-} from './services/db';
-import { isReferredByInviter, getRepReferralCode } from './utils/referral';
 
 export default function App() {
-  const [showSyncBadge, setShowSyncBadge] = useState<boolean>(false);
-  const [showOfflineSyncModal, setShowOfflineSyncModal] = useState<boolean>(false);
-  const [offlineSyncStatus, setOfflineSyncStatus] = useState<OfflineSyncStatus>({
-    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-    isSyncing: false,
-    pendingBusinessesCount: 0,
-    pendingLeadsCount: 0,
-    pendingPayoutsCount: 0,
-    totalPendingCount: 0,
-    lastSyncTime: null,
-  });
+  // 1. App Routing & Deep Linking
+  const {
+    activeTab,
+    setActiveTab,
+    profileInitialTab,
+    handleNavigateToProfile,
+    externalView,
+    pendingReferralCode,
+  } = useAppRouting();
 
-
-  const [businesses, setBusinesses] = useState<Business[]>(() =>
-    getCachedBusinesses().filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'))
-  );
-
-  const [representatives, setRepresentatives] = useState<Representative[]>(() => {
-    const raw = safeParseJson<Representative[]>(safeGetLocalStorageItem('dalelak_cached_reps'), []) || [];
-    const softDel = getDeletedRepresentatives();
-    const softDelIds = new Set(softDel.map((r) => (r.id || '').toLowerCase()));
-    const softDelEmails = new Set(softDel.map((r) => (r.email || '').toLowerCase()).filter(Boolean));
-    const blacklist = new Set(
-      (safeParseJson<string[]>(safeGetLocalStorageItem('dalelak_deleted_rep_ids'), []) || []).map((x) => String(x).toLowerCase())
-    );
-    return raw.filter((r) => {
-      if (r.isDeleted) return false;
-      const idLower = (r.id || '').toLowerCase();
-      const emailLower = (r.email || '').toLowerCase();
-      if (idLower && (softDelIds.has(idLower) || blacklist.has(idLower))) return false;
-      if (emailLower && (softDelEmails.has(emailLower) || blacklist.has(emailLower))) return false;
-      return true;
-    });
-  });
-  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() =>
-    safeParseJson<PayoutRequest[]>(safeGetLocalStorageItem('dalelak_cached_payouts'), [])
-  );
-  const [deletedBusinesses, setDeletedBusinesses] = useState<Business[]>(() => getDeletedBusinesses());
-  const [deletedRepresentatives, setDeletedRepresentatives] = useState<Representative[]>(() => getDeletedRepresentatives());
-  const [paymentConfig, setPaymentConfig] = useState<PaymentGatewayConfig>(() => {
-    const parsed = safeParseJson<any>(safeGetLocalStorageItem('dalelak_payment_config'), null);
-    if (parsed) {
-      return { ...DEFAULT_PAYMENT_CONFIG, ...parsed, instaPayHandle: parsed.instaPayHandle || '@daz31181' };
-    }
-    return DEFAULT_PAYMENT_CONFIG;
-  });
-
-  // Navigation Tabs: 'home' | 'map' | 'add' | 'invoices' | 'admin' | 'profile'
-  const [profileInitialTab, setProfileInitialTab] = useState<'id_docs' | 'finance' | 'activities' | 'referral'>('activities');
-
-  const handleNavigateToProfile = (subTab: 'id_docs' | 'finance' | 'activities' | 'referral' = 'activities') => {
-    setProfileInitialTab(subTab);
-    setActiveTab('profile');
-  };
-
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    // 1. Check URL query string first (?tab=...)
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlTab = urlParams.get('tab');
-    if (urlTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(urlTab)) {
-      return urlTab;
-    }
-
-    // 2. Check URL hash (#map, #add, #invoices, #admin, #profile)
-    const hashTab = window.location.hash.replace('#', '').trim();
-    if (hashTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(hashTab)) {
-      return hashTab;
-    }
-
-    // 3. Check localStorage key 'dalelak_active_tab'
-    const savedTab = localStorage.getItem('dalelak_active_tab');
-    if (savedTab && ['home', 'map', 'add', 'invoices', 'admin', 'profile'].includes(savedTab)) {
-      return savedTab;
-    }
-
-    // 4. Default fallback check for logged user role in active session
-    const savedUserStr = safeGetSessionItem('dalelak_active_user');
-    if (savedUserStr) {
-      const parsed = safeParseJson<any>(savedUserStr, null);
-      if (parsed?.role === 'admin') return 'admin';
-    }
-
-    return 'home';
-  });
-
-  // Sync activeTab state with localStorage and browser URL (Query Param & Hash)
-  useEffect(() => {
-    // Always guarantee body scrolling is freely active on tab/page change
-    document.body.style.overflow = '';
-
-    // Scroll to the very top of the window on tab transition or page reload
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-
-    if (activeTab) {
-      localStorage.setItem('dalelak_active_tab', activeTab);
-      const url = new URL(window.location.href);
-      url.searchParams.set('tab', activeTab);
-      url.hash = activeTab;
-      if (activeTab !== 'admin') {
-        url.searchParams.delete('subtab');
-      }
-      window.history.replaceState({}, '', url.toString());
-    }
-  }, [activeTab]);
-
-  // Modals & Selected items
+  // 2. Modals & Local Selections
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [selectedInvoiceBiz, setSelectedInvoiceBiz] = useState<Business | null>(null);
   const [selectedPayBiz, setSelectedPayBiz] = useState<Business | null>(null);
@@ -219,36 +53,27 @@ export default function App() {
   const [showPackagesModal, setShowPackagesModal] = useState<boolean>(false);
   const [showAdminProfileModal, setShowAdminProfileModal] = useState<boolean>(false);
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
-
-  // Interested Leads State & Conversion
-  const [leads, setLeads] = useState<InterestedLead[]>(() =>
-    safeParseJson<InterestedLead[]>(safeGetLocalStorageItem('dalelak_cached_leads'), [])
-  );
   const [convertingLead, setConvertingLead] = useState<InterestedLead | null>(null);
+  const [repViewScope, setRepViewScope] = useState<'my' | 'all'>('my');
 
+  // Stable notification dispatcher ref for useAuthSession
+  const notifyRef = useRef<(message: string, type?: 'success' | 'error' | 'info' | 'warning') => void>(() => {});
+  const handleNotify = useCallback((message: string, type?: 'success' | 'error' | 'info' | 'warning') => {
+    notifyRef.current(message, type);
+  }, []);
 
-  // External View State (from QR code scanning)
-  const [externalView, setExternalView] = useState<{ type: 'invoice' | 'rep', id: string } | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState<boolean>(() => {
-    const cached = getCachedBusinesses();
-    const isAppInitialized = Boolean(safeGetLocalStorageItem('dalelak_app_initialized'));
-    // If cached businesses exist or app was initialized before, render instantly in 0ms without skeleton flicker!
-    return cached.length === 0 && !isAppInitialized;
-  });
-  const [hasInitialCloudSynced, setHasInitialCloudSynced] = useState<boolean>(() => getCachedBusinesses().length > 0);
-  const [notifications, setNotifications] = useState<ToastNotification[]>([]);
+  const setRepresentativesRef = useRef<React.Dispatch<React.SetStateAction<Representative[]>>>(() => {});
+  const setBusinessesRef = useRef<React.Dispatch<React.SetStateAction<Business[]>>>(() => {});
+  const setRepsCallback: React.Dispatch<React.SetStateAction<Representative[]>> = useCallback((action) => {
+    setRepresentativesRef.current(action);
+  }, []);
+  const setBizCallback: React.Dispatch<React.SetStateAction<Business[]>> = useCallback((action) => {
+    setBusinessesRef.current(action);
+  }, []);
 
-  const addNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
-    const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    setNotifications((prev) => [...prev, { id, message, type, createdAt: Date.now() }]);
-    setTimeout(() => {
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-    }, 5500);
-  };
-
-  // User Authentication & Session Management
+  // 3. User Authentication & Session Management
   const { user, setUser, userRef, handleLoginUser, handleLogout } = useAuthSession({
-    onNotify: addNotification,
+    onNotify: handleNotify,
     onLogoutCleanup: () => {
       setEditingBusiness(null);
       setSelectedInvoiceBiz(null);
@@ -260,511 +85,76 @@ export default function App() {
       setShowPackagesModal(false);
       setShowPermissionsModal(false);
     },
-    setRepresentatives,
     setActiveTab,
+    setRepresentatives: setRepsCallback,
+    setBusinesses: setBizCallback,
+  });
+
+  // 4. App Data State & Cloud Sync
+  const {
+    businesses,
+    setBusinesses,
+    representatives,
+    setRepresentatives,
+    payoutRequests,
+    setPayoutRequests,
+    leads,
+    setLeads,
+    deletedBusinesses,
+    setDeletedBusinesses,
+    deletedRepresentatives,
+    setDeletedRepresentatives,
+    paymentConfig,
+    setPaymentConfig,
+    isLoadingData,
+    hasInitialCloudSynced,
+    showSyncBadge,
+  } = useAppDataSync({
+    user,
+    setUser,
+    userRef,
+    addNotification: handleNotify,
+  });
+
+  setRepresentativesRef.current = setRepresentatives;
+  setBusinessesRef.current = setBusinesses;
+
+  // 5. App Notifications (Toasts & Bell System Notifications)
+  const {
+    notifications,
+    setNotifications,
+    addNotification,
+    setSystemNotifications,
+    addSystemNotification,
+    handleMarkAllNotificationsAsRead,
+    handleMarkNotificationAsRead,
+    handleClearNotifications,
+    selectedAdminDossierRep,
+    setSelectedAdminDossierRep,
+    handleNotificationNavigate,
+    allNotifications,
+  } = useAppNotifications({
+    user,
+    representatives,
+    businesses,
+    setActiveTab,
+    setEditingBusiness,
+    setSelectedInvoiceBiz,
+  });
+
+  // Connect notifyRef to addNotification
+  notifyRef.current = addNotification;
+
+  // 6. Offline-First Sync Status
+  const {
+    offlineSyncStatus,
+    showOfflineSyncModal,
+    setShowOfflineSyncModal,
+  } = useOfflineSyncStatus({
+    user,
+    setLeads,
     setBusinesses,
   });
-
-  // Reactive IndexedDB Offline Sync Status Listener (Strictly User-Scoped, initialized after user exists)
-  useEffect(() => {
-    let autoSyncTimer: any = null;
-
-    const updateSyncStatus = async () => {
-      try {
-        const effectiveUid = user?.id || user?.email || null;
-        const status = await getOfflineSyncStatus(effectiveUid);
-        setOfflineSyncStatus(status);
-
-        // 🚀 Auto-sync in background if online and pending items exist
-        if (status.isOnline && status.totalPendingCount > 0 && !status.isSyncing) {
-          clearTimeout(autoSyncTimer);
-          autoSyncTimer = setTimeout(async () => {
-            try {
-              const res = await syncAllPendingOfflineData(effectiveUid);
-              if (res.syncedCount > 0) {
-                const freshLeads = await fetchLeadsFromDb();
-                if (freshLeads && freshLeads.length > 0) setLeads(freshLeads);
-                const freshBiz = await fetchBusinessesFromDb();
-                if (freshBiz && freshBiz.length > 0) setBusinesses(freshBiz);
-              }
-            } catch {}
-          }, 1200);
-        }
-      } catch {}
-    };
-
-    updateSyncStatus();
-
-    window.addEventListener('dalelak_offline_state_changed', updateSyncStatus);
-    window.addEventListener('online', updateSyncStatus);
-    window.addEventListener('offline', updateSyncStatus);
-
-    return () => {
-      clearTimeout(autoSyncTimer);
-      window.removeEventListener('dalelak_offline_state_changed', updateSyncStatus);
-      window.removeEventListener('online', updateSyncStatus);
-      window.removeEventListener('offline', updateSyncStatus);
-    };
-  }, [user]);
-
-  // Persistent System Notifications for Bell Notification Center
-  const [systemNotifications, setSystemNotifications] = useState<SystemNotification[]>(() => {
-    const saved = localStorage.getItem('dalelak_system_notifications');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    return [];
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('dalelak_system_notifications', JSON.stringify(systemNotifications));
-    } catch (e) {}
-  }, [systemNotifications]);
-
-  const addSystemNotification = (item: {
-    title: string;
-    message: string;
-    type?: 'info' | 'success' | 'warning' | 'error';
-    category?: NotificationCategory;
-    targetRole?: UserRole | 'all';
-    targetUserId?: string;
-    linkTab?: string;
-    entityId?: string;
-    entityType?: 'business' | 'rep' | 'invoice';
-  }) => {
-    const newNotif: SystemNotification = {
-      id: `sys_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      title: item.title,
-      message: item.message,
-      timestamp: new Date().toISOString(),
-      type: item.type || 'info',
-      category: item.category || 'system',
-      targetRole: item.targetRole || 'all',
-      targetUserId: item.targetUserId,
-      read: false,
-      linkTab: item.linkTab,
-      entityId: item.entityId,
-      entityType: item.entityType,
-    };
-    setSystemNotifications((prev) => [newNotif, ...prev]);
-  };
-
-  const handleMarkAllNotificationsAsRead = () => {
-    setSystemNotifications((prev) => {
-      const updated = prev.map((n) => ({ ...n, read: true }));
-      try {
-        localStorage.setItem('dalelak_system_notifications', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  };
-
-  const handleMarkNotificationAsRead = (id: string) => {
-    setSystemNotifications((prev) => {
-      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
-      try {
-        localStorage.setItem('dalelak_system_notifications', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  };
-
-  const handleClearNotifications = () => {
-    setSystemNotifications([]);
-    try {
-      localStorage.setItem('dalelak_system_notifications', JSON.stringify([]));
-    } catch {}
-  };
-
-  const [selectedAdminDossierRep, setSelectedAdminDossierRep] = useState<Representative | null>(null);
-
-  // Direct navigation handler for Notification preview clicks
-  const handleNotificationNavigate = (tab: string, entityId?: string, entityType?: string) => {
-    if (tab) setActiveTab(tab);
-
-    if (entityId) {
-      if (entityType === 'rep' || (!entityType && tab === 'admin')) {
-        const foundRep = representatives.find((r) => r.id === entityId || (r.email && r.email.toLowerCase() === entityId.toLowerCase()));
-        if (foundRep) {
-          setSelectedAdminDossierRep(foundRep);
-          setActiveTab('admin');
-        }
-      } else if (entityType === 'business' || (!entityType && (tab === 'home' || tab === 'admin'))) {
-        const foundBiz = businesses.find((b) => b.id === entityId || b.nameAr.includes(entityId));
-        if (foundBiz) {
-          setEditingBusiness(foundBiz);
-        }
-      } else if (entityType === 'invoice' || (!entityType && tab === 'invoices')) {
-        const foundBiz = businesses.find(
-          (b) => b.id === entityId || b.invoiceNumber === entityId || b.nameAr.includes(entityId)
-        );
-        if (foundBiz) {
-          setSelectedInvoiceBiz(foundBiz);
-        }
-      }
-    }
-  };
-
-  // 🔔 Cross-device / DB sync for Admin notifications about pending registrations & inviter notifications
-  useEffect(() => {
-    if (!representatives || representatives.length === 0) return;
-
-    const isAdmin = user?.role === 'admin' || user?.role === 'supervisor';
-    const currentUserId = user?.id;
-
-    setSystemNotifications((prev) => {
-      let changed = false;
-      const updated = [...prev];
-
-      // 1. Sync for Admin: All suspended accounts awaiting activation
-      if (isAdmin) {
-        const suspendedReps = representatives.filter(
-          (r) => r.status === 'suspended' && !isRepAccountDeleted(r)
-        );
-
-        suspendedReps.forEach((rep) => {
-          const existing = updated.find(
-            (n) => (n.entityId === rep.id || n.id === `notif_pending_rep_${rep.id}`) && n.category === 'account'
-          );
-
-          if (!existing) {
-            updated.unshift({
-              id: `notif_pending_rep_${rep.id}`,
-              title: 'طلب تسجيل حساب مندوب جديد بحاجة للموافقة 👤',
-              message: `قام المندوب "${rep.name}" بتسجيل حساب جديد (${rep.governorate})، الحساب معلق بانتظار فحص وثائق الهوية وتفعيل الصلاحيات.`,
-              timestamp: (rep as any).created_at || (rep as any).createdDate || new Date().toISOString(),
-              type: 'warning',
-              category: 'account',
-              targetRole: 'admin',
-              linkTab: 'admin',
-              entityId: rep.id,
-              entityType: 'rep',
-              read: false,
-            });
-            changed = true;
-          }
-        });
-
-        // If an account has been activated, mark the corresponding approval notification as read
-        const activeRepIds = new Set(
-          representatives.filter((r) => r.status === 'active').map((r) => r.id)
-        );
-        updated.forEach((n, idx) => {
-          if (
-            !n.read &&
-            n.entityId &&
-            activeRepIds.has(n.entityId) &&
-            n.id.startsWith('notif_pending_rep_')
-          ) {
-            updated[idx] = { ...n, read: true };
-            changed = true;
-          }
-        });
-      }
-
-      // 2. Sync for Inviters: When someone registers using their referral code
-      if (currentUserId && user?.repData) {
-        const currentRep = user.repData;
-        const myReferralCode = getRepReferralCode(currentRep);
-
-        const myInvitedReps = representatives.filter(
-          (r) => r.id !== currentRep.id && isReferredByInviter(r, currentRep) && !isRepAccountDeleted(r)
-        );
-
-        myInvitedReps.forEach((invited) => {
-          const existing = updated.find(
-            (n) => n.id === `notif_rep_joined_${invited.id}` || (n.entityId === invited.id && n.targetUserId === currentUserId)
-          );
-
-          if (!existing) {
-            updated.unshift({
-              id: `notif_rep_joined_${invited.id}`,
-              title: 'عضو جديد انضم إلى فريقك! 🚀',
-              message: `انضم المندوب "${invited.name}" (${invited.governorate}) إلى فريقك عبر كود الدعوة (${myReferralCode}). ستكسب عمولات إضافية فور بدئه إنجاز الأنشطة الميدانية!`,
-              timestamp: (invited as any).created_at || (invited as any).createdDate || new Date().toISOString(),
-              type: 'success',
-              category: 'account',
-              targetUserId: currentUserId,
-              linkTab: 'profile',
-              entityId: invited.id,
-              entityType: 'rep',
-              read: false,
-            });
-            changed = true;
-          }
-        });
-      }
-
-      return changed ? updated : prev;
-    });
-  }, [representatives, user?.role, user?.id, user?.repData]);
-
-  // Real System Notifications (Sorted newest first by timestamp)
-  const allNotifications = useMemo(() => {
-    return [...systemNotifications].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-  }, [systemNotifications]);
-
-  const [pendingReferralCode, setPendingReferralCode] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlRef = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('inviter') || '';
-      if (urlRef) {
-        safeSetLocalStorageItem('dalelak_pending_referral', urlRef.trim().toUpperCase());
-        return urlRef.trim().toUpperCase();
-      }
-      return safeGetLocalStorageItem('dalelak_pending_referral') || '';
-    }
-    return '';
-  });
-
-  // Parse URL for deep linking (QR codes and referral codes)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view');
-    const id = urlParams.get('id');
-    const refCode = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('inviter');
-
-    if (refCode) {
-      const cleanRef = refCode.trim().toUpperCase();
-      safeSetLocalStorageItem('dalelak_pending_referral', cleanRef);
-      setPendingReferralCode(cleanRef);
-    }
-
-    if (view === 'invoice' && id) {
-      setExternalView({ type: 'invoice', id });
-    } else if (view === 'rep' && id) {
-      setExternalView({ type: 'rep', id });
-    }
-  }, []);
-
-  // Fetch initial data with fast independent parallel fetches
-  useEffect(() => {
-    // 1. Fetch businesses immediately
-    fetchBusinessesFromDb()
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const cleanBiz = data.filter((b) => b && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
-          setBusinesses(cleanBiz);
-
-          // 📸 Non-blocking background photo hydration
-          hydrateBusinessesPhotosInBackground(cleanBiz, (hydratedList) => {
-            setBusinesses(hydratedList);
-          });
-        }
-        safeSetLocalStorageItem('dalelak_app_initialized', 'true');
-        if (user?.id) {
-          safeSetLocalStorageItem(`dalelak_user_initialized_${user.id}`, 'true');
-        }
-        setHasInitialCloudSynced(true);
-        setIsLoadingData(false);
-      })
-      .catch(() => {
-        safeSetLocalStorageItem('dalelak_app_initialized', 'true');
-        setHasInitialCloudSynced(true);
-        setIsLoadingData(false);
-      });
-
-    // 2. Fetch representatives in parallel
-    fetchRepsFromDb()
-      .then((dbRepsData) => {
-        if (Array.isArray(dbRepsData)) {
-          setRepresentatives(dbRepsData);
-
-          // Instant user state sync if logged-in representative data changed
-          if (userRef.current) {
-            const currentLoggedInId = userRef.current.id;
-            const freshUserRep = dbRepsData.find(
-              (r) => r.id === currentLoggedInId || (userRef.current?.email && r.email.toLowerCase() === userRef.current.email.toLowerCase())
-            );
-            if (freshUserRep && userRef.current && userRef.current.id === currentLoggedInId) {
-              // 🔐 BUG-01 FIX: تحقق من تغيير البيانات فعلاً قبل setUser
-              // كان Race Condition بين الـ initial fetch والـ realtime sync يُسبب re-renders متكررة
-              const prevRepDataStr = JSON.stringify(userRef.current.repData);
-              const newRepDataStr = JSON.stringify(freshUserRep);
-              if (prevRepDataStr !== newRepDataStr) {
-                const updatedUser = { ...userRef.current, repData: freshUserRep };
-                userRef.current = updatedUser;
-                setUser(updatedUser);
-                safeSetSessionItem(
-                  'dalelak_active_user',
-                  JSON.stringify(getSafeUserForStorage(updatedUser))
-                );
-              }
-            }
-          }
-        }
-      })
-      .catch(() => {});
-
-    // 3. Fetch payouts & leads in parallel
-    const isManagerial = ['admin', 'supervisor', 'accountant'].includes(user?.role || '');
-    const targetRepId = isManagerial ? undefined : user?.id;
-    fetchPayoutRequestsFromDb(targetRepId)
-      .then((dbPayouts) => {
-        if (Array.isArray(dbPayouts)) setPayoutRequests(dbPayouts);
-      })
-      .catch(() => {});
-
-    // Always fetch full leads list; InvoicesLeadsHub handles role scoping cleanly
-    fetchLeadsFromDb()
-      .then((dbLeads) => {
-        if (Array.isArray(dbLeads)) setLeads(dbLeads);
-      })
-      .catch(() => {});
-
-    fetchPaymentConfigFromDb()
-      .then((cfg) => {
-        if (cfg) setPaymentConfig(cfg);
-      })
-      .catch(() => {});
-  }, [user?.id, user?.role]);
-
-  // Ultra-Efficient Data-Saver Real-Time Syncer:
-  // 1. Supabase WebSockets (Realtime) listens to changes with 0 KB idle overhead
-  // 2. Cross-Tab BroadcastChannel for instant local syncing
-  // 3. Smart Background Fallback Polling (60s interval, pauses 100% when screen/tab is hidden)
-  useEffect(() => {
-    const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-
-    const refreshLiveData = async (force: boolean = false) => {
-      // 🛑 Data-Saver Guard: If phone screen is locked or tab is hidden, consume ZERO data!
-      if (!force && typeof document !== 'undefined' && document.hidden) {
-        return;
-      }
-
-      try {
-        syncDeltaBusinessesFromDb().then((res) => {
-          if (res.updated) {
-            setBusinesses(res.businesses);
-            setShowSyncBadge(true);
-            setTimeout(() => setShowSyncBadge(false), 3200);
-          }
-        }).catch(() => {});
-
-        fetchRepsFromDb().then((freshReps) => {
-          if (Array.isArray(freshReps) && freshReps.length > 0) {
-            setRepresentatives(freshReps);
-            if (userRef.current) {
-              const currentLoggedInId = userRef.current.id;
-              const myFreshRep = freshReps.find(
-                (r) => r.id === currentLoggedInId || (userRef.current?.email && r.email.toLowerCase() === userRef.current.email.toLowerCase())
-              );
-              if (myFreshRep && userRef.current && userRef.current.id === currentLoggedInId) {
-                // 🔐 BUG-01 FIX (second location): نفس الحماية في الـ realtime sync
-                const prevStr = JSON.stringify(userRef.current.repData);
-                const newStr = JSON.stringify(myFreshRep);
-                if (prevStr !== newStr) {
-                  const updatedUser = { ...userRef.current, repData: myFreshRep };
-                  userRef.current = updatedUser;
-                  setUser(updatedUser);
-                  safeSetSessionItem(
-                    'dalelak_active_user',
-                    JSON.stringify(getSafeUserForStorage(updatedUser))
-                  );
-                }
-              }
-            }
-          }
-        }).catch(() => {});
-
-        const activeUserRole = userRef.current?.role || user?.role || '';
-        const isManagerialNow = ['admin', 'supervisor', 'accountant'].includes(activeUserRole);
-        const currentTargetRepId = isManagerialNow ? undefined : (userRef.current?.id || user?.id);
-        fetchPayoutRequestsFromDb(currentTargetRepId).then((freshPayouts) => {
-          if (Array.isArray(freshPayouts)) setPayoutRequests(freshPayouts);
-        }).catch(() => {});
-
-        // Always fetch the complete leads dataset from DB; UI scopes by repId cleanly for reps, while admins see all
-        fetchLeadsFromDb().then((freshLeads) => {
-          if (Array.isArray(freshLeads)) setLeads(freshLeads);
-        }).catch(() => {});
-      } catch (err) {
-        // silent
-      }
-    };
-
-    // 1. Instant Cross-Tab Sync Listener
-    if (syncChannel) {
-      syncChannel.onmessage = (event) => {
-        if (event.data?.type === 'SYNC_DATA' || event.data?.type === 'REP_UPDATED') {
-          refreshLiveData(true);
-        } else if (event.data?.type === 'NEW_REP_REGISTERED') {
-          refreshLiveData(true);
-          const currentRole = userRef.current?.role || user?.role;
-          if (currentRole === 'admin' || currentRole === 'supervisor') {
-            const repName = event.data.name || 'مندوب جديد';
-            const repGov = event.data.governorate ? ` (${event.data.governorate})` : '';
-            addNotification(`🔔 طلب تسجيل جديد: قام المندوب "${repName}"${repGov} بتقديم طلب حساب جديد بانتظار مراجعتك وتفعيله.`, 'info');
-          }
-        }
-      };
-    }
-
-    // 2. Supabase Realtime WebSocket Subscription (Zero network polling overhead)
-    let realtimeChannel: any = null;
-    if (isSupabaseConfigured()) {
-      try {
-        realtimeChannel = supabase
-          .channel('dalelak_realtime_db_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => refreshLiveData(true))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'representatives' }, (payload: any) => {
-            refreshLiveData(true);
-            if (payload?.eventType === 'INSERT' && payload.new) {
-              const repStatus = payload.new.status || 'suspended';
-              const repName = payload.new.name || 'مندوب جديد';
-              const repGov = payload.new.governorate ? ` (${payload.new.governorate})` : '';
-              if (repStatus === 'suspended') {
-                const currentRole = userRef.current?.role || user?.role;
-                if (currentRole === 'admin' || currentRole === 'supervisor') {
-                  addNotification(`🔔 طلب تسجيل جديد: قام المندوب "${repName}"${repGov} بتسجيل حساب جديد بانتظار التفعيل.`, 'info');
-                }
-              }
-            }
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'payout_requests' }, () => refreshLiveData(true))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => refreshLiveData(true))
-          .subscribe();
-      } catch (err) {
-        console.warn('Realtime subscription fallback:', err);
-      }
-    }
-
-    // 3. Tab Visibility Change Listener: catch up instantly when returning to app
-    const handleVisibilityChange = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
-        refreshLiveData(true);
-      }
-    };
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
-
-    // 4. Lightweight Fallback Heartbeat Poll (Runs every 60 seconds only when tab is active)
-    const interval = setInterval(() => refreshLiveData(false), 60000);
-
-    return () => {
-      clearInterval(interval);
-      if (syncChannel) syncChannel.close();
-      if (realtimeChannel) {
-        try {
-          supabase.removeChannel(realtimeChannel);
-        } catch {
-          if (typeof realtimeChannel.unsubscribe === 'function') {
-            realtimeChannel.unsubscribe();
-          }
-        }
-      }
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      }
-    };
-  }, [user?.id, user?.email, user?.role]);
 
   // 🛡️ CRITICAL GUARD: Immediately log out and terminate session if active user was deleted
   useEffect(() => {
@@ -774,859 +164,12 @@ export default function App() {
     }
   }, [user, handleLogout, addNotification]);
 
-  // Handlers synced with Supabase Database & Real-Time Lifecycle
-  const handleAddBusiness = async (newBiz: Business) => {
-    // 🛡️ CRITICAL SECURITY GATE: Strictly reject submissions from deleted/blacklisted representatives
-    const targetRepId = newBiz.repId || currentRep.id || user?.id;
-    const targetRepName = newBiz.repName || currentRep.name || user?.name;
-    const isTargetDeleted =
-      isRepAccountDeleted(user) ||
-      isRepAccountDeleted(currentRep) ||
-      isRepAccountDeleted({ id: targetRepId, name: targetRepName });
-
-    if (isTargetDeleted) {
-      addNotification('⛔ تم رفض تسجيل النشاط: هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة.', 'error');
-      if (user && isRepAccountDeleted(user)) {
-        handleLogout();
-      }
-      return;
-    }
-
-    // 1. Automatically calculate payment status from amountPaid and packagePrice
-    const isExempt = Boolean(newBiz.isFeeExempt || newBiz.packagePrice === 0);
-    const autoPaymentStatus = isExempt
-      ? 'fully_paid'
-      : (newBiz.amountPaid || 0) >= (newBiz.packagePrice || 250)
-      ? 'fully_paid'
-      : (newBiz.amountPaid || 0) > 0
-      ? 'partially_paid'
-      : 'unpaid';
-
-    const normalizedBiz: Business = {
-      ...newBiz,
-      repId: newBiz.repId || currentRep.id || user?.id || 'rep_1',
-      repName: newBiz.repName || currentRep.name || user?.name || 'مندوب معتمد',
-      paymentStatus: autoPaymentStatus,
-    };
-
-    // ⚡ 1. INSTANT OPTIMISTIC STATE & MULTI-TIER CACHE (0ms - Instantly visible at top)
-    setBusinesses((prev) => [normalizedBiz, ...prev.filter((b) => b.id !== normalizedBiz.id)]);
-
-    // Also update directory portal cache in localStorage immediately
-    try {
-      const allUpdated = [normalizedBiz, ...businesses.filter((b) => b.id !== normalizedBiz.id)];
-      safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(allUpdated));
-      safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(allUpdated));
-    } catch {}
-
-    setActiveTab('home');
-
-    // ⚡ Open the invoice immediately so the representative and client can view and photograph it
-    setSelectedInvoiceBiz(normalizedBiz);
-
-    // ⚡ 2. Instant Cross-Tab Broadcast (Real-Time across all windows)
-    try {
-      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_DATA', newBusiness: normalizedBiz });
-        syncChannel.close();
-      }
-    } catch {}
-
-    addNotification(`🎉 تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وهو متاح الآن في قائمتك والدليل!`, 'success');
-
-    // 1. Broadcast notification for Admin
-    addSystemNotification({
-      title: 'تسجيل نشاط تجاري جديد 🏪',
-      message: `قام المندوب "${normalizedBiz.repName || user?.name || 'ميداني'}" بتسجيل نشاط جديد "${normalizedBiz.nameAr}" في (${normalizedBiz.governorate} - ${normalizedBiz.city}).`,
-      type: 'info',
-      category: 'business',
-      targetRole: 'admin',
-      linkTab: 'admin',
-    });
-
-    // 2. Personal confirmation notification for registering representative
-    if (normalizedBiz.repId || user?.id) {
-      addSystemNotification({
-        title: `🎉 تم تسجيل نشاطك: ${normalizedBiz.nameAr}`,
-        message: `تم تسليم وحفظ بيانات النشاط "${normalizedBiz.nameAr}" بنجاح وجاري مراجعته وتوثيقه.`,
-        type: 'success',
-        category: 'business',
-        targetUserId: normalizedBiz.repId || user?.id,
-        entityId: normalizedBiz.id,
-        entityType: 'business',
-        linkTab: 'home',
-      });
-    }
-
-    // ⚡ 3. ASYNCHRONOUS DATABASE SYNC (Non-blocking background save to Supabase Cloud - Zero Refetch)
-    saveBusinessToDb(normalizedBiz).then((res) => {
-      if (res && res.cloudSaved) {
-        console.log('Business saved to Supabase cloud successfully:', normalizedBiz.id);
-      } else {
-        console.warn('Business saved locally/offline, awaiting background sync:', res?.error);
-      }
-    }).catch((err) => {
-      console.warn('Background Supabase save notice:', err);
-    });
-  };
-
-  const handleUpdateBusiness = async (updatedBiz: Business) => {
-    const prevBiz = businesses.find((b) => b.id === updatedBiz.id);
-
-    // Automatically recalculate payment status based on amountPaid and packagePrice
-    const isExempt = Boolean(updatedBiz.isFeeExempt || updatedBiz.packagePrice === 0);
-    const autoPaymentStatus = isExempt
-      ? 'fully_paid'
-      : (updatedBiz.amountPaid || 0) >= (updatedBiz.packagePrice || 250)
-      ? 'fully_paid'
-      : (updatedBiz.amountPaid || 0) > 0
-      ? 'partially_paid'
-      : 'unpaid';
-
-    const normalizedBiz: Business = {
-      ...updatedBiz,
-      packagePrice: isExempt ? 0 : (updatedBiz.packagePrice ?? 250),
-      amountPaid: isExempt ? 0 : (updatedBiz.amountPaid || 0),
-      isFeeExempt: isExempt,
-      paymentStatus: autoPaymentStatus,
-    };
-
-    setBusinesses((prev) => {
-      const updated = prev.map((b) => (b.id === normalizedBiz.id ? normalizedBiz : b));
-      try {
-        safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updated));
-        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    // Keep editingBusiness in sync if modal is currently open
-    setEditingBusiness((prev) => (prev && prev.id === normalizedBiz.id ? normalizedBiz : prev));
-
-    // Instant Cross-Tab Broadcast to Directory Portal
-    try {
-      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_DATA', newBusiness: normalizedBiz });
-        syncChannel.close();
-      }
-    } catch {}
-
-    await updateBusinessInDb(normalizedBiz.id, normalizedBiz);
-    
-    // 1. Verification status change notification
-    if (prevBiz && prevBiz.verificationStatus !== normalizedBiz.verificationStatus) {
-      const statusMap: Record<string, string> = {
-        verified: 'مقبول وموثق ✅',
-        rejected: 'مرفوض ✕',
-        in_progress: 'قيد المراجعة ⏳',
-      };
-      const newStatus = statusMap[normalizedBiz.verificationStatus] || normalizedBiz.verificationStatus;
-      addNotification(`🔔 تم تحديث حالة نشاط "${normalizedBiz.nameAr}" إلى: ${newStatus}`, 'info');
-
-      addSystemNotification({
-        title: 'تحديث توثيق النشاط 🗺️',
-        message: `تم تحديث حالة التوثيق لنشاط "${normalizedBiz.nameAr}" إلى (${newStatus}).`,
-        type: normalizedBiz.verificationStatus === 'verified' ? 'success' : 'info',
-        category: 'business',
-        targetRole: 'admin',
-        targetUserId: normalizedBiz.repId || user?.id,
-        linkTab: 'home',
-      });
-    } else {
-      addNotification(`💾 تم حفظ تعديلات نشاط "${normalizedBiz.nameAr}" بنجاح!`, 'success');
-    }
-
-    // 2. Automated Payment lifecycle interaction & Commission Unlock notification for Rep
-    if (prevBiz && (prevBiz.amountPaid !== normalizedBiz.amountPaid || prevBiz.paymentStatus !== normalizedBiz.paymentStatus)) {
-      const addedAmt = (normalizedBiz.amountPaid || 0) - (prevBiz.amountPaid || 0);
-      if (addedAmt > 0) {
-        addNotification(`💰 تم تحصيل وتأكيد سداد مبلغ ${addedAmt} ج.م لنشاط "${normalizedBiz.nameAr}" بنجاح! (${normalizedBiz.paymentStatus === 'fully_paid' ? 'مسدد بالكامل ✅' : 'مسدد جزئياً ⏳'})`, 'success');
-      }
-
-      addSystemNotification({
-        title: 'تحديث تحصيل سداد 💳',
-        message: `تم تحديث مدفوعات نشاط "${normalizedBiz.nameAr}" (المبلغ المدفوع: ${normalizedBiz.amountPaid} ج.م - الحالة: ${normalizedBiz.paymentStatus === 'fully_paid' ? 'مدفوع بالكامل ✅' : 'مدفوع جزئياً ⏳'}).`,
-        type: 'success',
-        category: 'payment',
-        targetRole: 'admin',
-        linkTab: 'invoices',
-      });
-
-      // If payment was added, notify the rep that commission is unlocked and available
-      if ((normalizedBiz.amountPaid || 0) > (prevBiz.amountPaid || 0) && normalizedBiz.repId) {
-        addSystemNotification({
-          title: '💰 تم سداد الفاتورة - عمولتك متاحة للسحب!',
-          message: `تم تسجيل سداد مبلغ ${normalizedBiz.amountPaid} ج.م لنشاط "${normalizedBiz.nameAr}"، وأصبحت عمولتك المستحقة متاحة للسحب الفوري في محفظتك.`,
-          type: 'success',
-          category: 'payment',
-          targetUserId: normalizedBiz.repId,
-          linkTab: 'profile',
-        });
-      }
-    }
-
-  };
-
-  // Commission Payout & Remittance Request Handlers
-  const handleCreatePayoutRequest = async (payout: PayoutRequest) => {
-    setPayoutRequests((prev) => [payout, ...prev]);
-    await createPayoutRequestInDb(payout);
-    
-    const isRemit = payout.type === 'remittance';
-    
-    addNotification(
-      isRemit
-        ? `💳 تم إرسال إشعار وإيصال سداد توريد المنصة بقيمة ${payout.amount} ج.م للإدارة بنجاح!`
-        : `💵 تم إرسال طلب سحب العمولة بقيمة ${payout.amount} ج.م للإدارة بنجاح!`,
-      'success'
-    );
-    
-    // 1. Notification for Admin
-    addSystemNotification({
-      title: isRemit ? '📥 إشعار سداد وتوريد جديد للمنصة' : '🔔 طلب سحب عمولة جديد',
-      message: isRemit
-        ? `المندوب "${payout.repName}" أرسل إشعار تحويل وتوريد للمنصة بمبلغ ${payout.amount} ج.م عبر (${payout.method}) مرفقاً صورة الإيصال للمراجعة.`
-        : `المندوب "${payout.repName}" يطلب سحب عمولة بقيمة ${payout.amount} ج.م عبر (${payout.method})، الحساب: ${payout.accountDetails}.`,
-      type: 'info',
-      category: 'payout',
-      targetRole: 'admin',
-      linkTab: 'admin',
-    });
-
-    // 2. Notification for Representative
-    addSystemNotification({
-      title: isRemit ? '⏳ إشعار السداد قيد المراجعة والتدقيق' : '⏳ طلب سحب العمولة قيد المراجعة',
-      message: isRemit
-        ? `تم استلام إيصال سدادك بمبلغ ${payout.amount} ج.م وجاري مراجعته وتدقيقه من قبل الإدارة لتصفية حسابك.`
-        : `تم استلام طلب سحب أرباحك بمبلغ ${payout.amount} ج.م وجاري مراجعته والتحويل من الإدارة.`,
-      type: 'info',
-      category: 'payout',
-      targetUserId: payout.repId,
-      linkTab: 'home',
-    });
-  };
-
-  const handleUpdatePayoutRequest = async (payout: PayoutRequest) => {
-    setPayoutRequests((prev) => prev.map((p) => (p.id === payout.id ? payout : p)));
-    await updatePayoutRequestInDb(payout);
-
-    const isRemit = payout.type === 'remittance';
-
-    if (payout.status === 'approved') {
-      addNotification(
-        isRemit
-          ? `✅ تم اعتماد وتأكيد استلام سداد المندوب "${payout.repName}" بمبلغ ${payout.amount} ج.م!`
-          : `✅ تم تأكيد وصرف الحوالة للمندوب "${payout.repName}" بمبلغ ${payout.amount} ج.م!`,
-        'success'
-      );
-      addSystemNotification({
-        title: isRemit ? '🎉 تم اعتماد وتأكيد سدادك بنجاح!' : '🎉 تم تحويل وصرف العمولة بنجاح!',
-        message: isRemit
-          ? `تمت مراجعة إيصالك واعتماد سداد مبلغ ${payout.amount} ج.م وتصفية ذمتك المالية لدى المنصة بنجاح.`
-          : `تم تحويل مبلغ ${payout.amount} ج.م بنجاح إلى حسابك (${payout.accountDetails})${payout.transactionRef ? ` - رقم العملية: ${payout.transactionRef}` : ''}.`,
-        type: 'success',
-        category: 'payout',
-        targetUserId: payout.repId,
-        linkTab: 'home',
-      });
-    } else if (payout.status === 'rejected') {
-      addNotification(
-        isRemit
-          ? `❌ تم رفض إشعار سداد المندوب "${payout.repName}".`
-          : `❌ تم رفض طلب سحب المندوب "${payout.repName}".`,
-        'warning'
-      );
-      addSystemNotification({
-        title: isRemit ? '⚠️ تنبيه: تم رفض إشعار السداد' : '⚠️ تنبيه: تم رفض طلب سحب العمولة',
-        message: isRemit
-          ? `تم رفض إشعار سداد المبلغ (${payout.amount} ج.م) بسبب: ${payout.adminNotes || 'يرجى التأكد من وضوح الإيصال وصحة بيانات التحويل'}.`
-          : `تم رفض طلب سحب المبلغ (${payout.amount} ج.م) بسبب: ${payout.adminNotes || 'يرجى مراجعة الإدارة'}، وقد عاد المبلغ تلقائياً لرصيدك المتاح للسحب.`,
-        type: 'error',
-        category: 'payout',
-        targetUserId: payout.repId,
-        linkTab: 'home',
-      });
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // INTERESTED LEADS (CRM) HANDLERS
-  // ---------------------------------------------------------------------------
-  const handleCreateLead = async (newLead: InterestedLead) => {
-    setLeads((prev) => {
-      const updated = [newLead, ...prev.filter((l) => l.id !== newLead.id)];
-      try {
-        safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    await saveLeadToDb(newLead);
-
-    try {
-      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_DATA', leadId: newLead.id });
-        syncChannel.close();
-      }
-    } catch {}
-
-    addNotification(`✨ تم حفظ بيانات العميل المهتم "${newLead.clientName}" بنجاح!`, 'success');
-  };
-
-  const handleUpdateLead = async (updatedLead: InterestedLead) => {
-    setLeads((prev) => {
-      const updated = prev.map((l) => (l.id === updatedLead.id ? updatedLead : l));
-      try {
-        safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    await updateLeadInDb(updatedLead);
-
-    try {
-      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_DATA', leadId: updatedLead.id });
-        syncChannel.close();
-      }
-    } catch {}
-
-    addNotification(`تم تحديث بيانات ومتابعة العميل "${updatedLead.clientName}".`, 'info');
-  };
-
-  const handleDeleteLead = async (leadId: string) => {
-    setLeads((prev) => {
-      const updated = prev.filter((l) => l.id !== leadId);
-      try {
-        safeSetLocalStorageItem('dalelak_cached_leads', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    await deleteLeadFromDb(leadId);
-
-    try {
-      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (syncChannel) {
-        syncChannel.postMessage({ type: 'SYNC_DATA', deletedLeadId: leadId });
-        syncChannel.close();
-      }
-    } catch {}
-
-    addNotification('تم حذف العميل من سجل المتابعات.', 'info');
-  };
-
-  const handleConvertToBusiness = (lead: InterestedLead) => {
-    setConvertingLead(lead);
-    setActiveTab('add');
-    addNotification(`جاري تحويل بيانات العميل "${lead.clientName}" إلى نموذج تسجيل نشاط جديد...`, 'info');
-  };
-
-  // ---------------------------------------------------------------------------
-  // ADMIN & USER PROFILE UPDATE HANDLER
-  // ---------------------------------------------------------------------------
-  const handleUpdateUserProfile = async (updatedData: Partial<Representative> & { name?: string; email?: string; avatar?: string }) => {
-    if (!user) return;
-
-    const repId = user.repData?.id || user.id;
-    const existingRep = representatives.find((r) => r.id === repId || r.email.toLowerCase() === user.email.toLowerCase()) || user.repData;
-
-    const isCallerAdmin = user.role === 'admin';
-
-    const freshRep: Representative = {
-      id: repId,
-      name: updatedData.name || existingRep?.name || user.name,
-      email: updatedData.email || existingRep?.email || user.email,
-      phone: updatedData.phone || existingRep?.phone || '',
-      pendingPhone: updatedData.pendingPhone !== undefined ? updatedData.pendingPhone : existingRep?.pendingPhone,
-      phoneStatus: updatedData.phoneStatus !== undefined ? updatedData.phoneStatus : existingRep?.phoneStatus,
-      nationalId: updatedData.nationalId !== undefined ? updatedData.nationalId : existingRep?.nationalId,
-      activationFacePhoto: updatedData.activationFacePhoto !== undefined ? updatedData.activationFacePhoto : existingRep?.activationFacePhoto,
-      nationalIdCardPhoto: updatedData.nationalIdCardPhoto !== undefined ? updatedData.nationalIdCardPhoto : existingRep?.nationalIdCardPhoto,
-      nationalIdCardBackPhoto: updatedData.nationalIdCardBackPhoto !== undefined ? updatedData.nationalIdCardBackPhoto : existingRep?.nationalIdCardBackPhoto,
-      role: isCallerAdmin && updatedData.role ? updatedData.role : (existingRep?.role || user.role || 'rep'),
-      roleTitle: isCallerAdmin && updatedData.roleTitle ? updatedData.roleTitle : (existingRep?.roleTitle || 'مندوب مبيعات معتمد'),
-      governorate: updatedData.governorate || existingRep?.governorate || 'القاهرة',
-      targetMonth: isCallerAdmin && updatedData.targetMonth !== undefined ? (Number(updatedData.targetMonth) || 25) : (existingRep?.targetMonth || 25),
-      avatar: updatedData.avatar !== undefined ? updatedData.avatar : (existingRep?.avatar || user.avatar || ''),
-      avatarStatus: 'approved',
-      commissionRate: isCallerAdmin && updatedData.commissionRate !== undefined ? (Number(updatedData.commissionRate) || 42.86) : (existingRep?.commissionRate || 42.86),
-      status: isCallerAdmin && updatedData.status ? updatedData.status : (existingRep?.status || 'active'),
-      // 🔐 BUG-11 FIX: إزالة كلمة المرور الافتراضية Aa123456
-      // كانت تُضبط صامتاً عند أي تحديث لبيانات المندوب حتى لو مجرد تغيير الصورة
-      // الآن: إذا لم تكن كلمة المرور محفوظة، نتركها undefined ولا نلمسها
-      password: updatedData.password || existingRep?.password,
-      referralCode: updatedData.referralCode || existingRep?.referralCode,
-      referralUnlocked: updatedData.referralUnlocked ?? existingRep?.referralUnlocked ?? false,
-      adminBypassReferral: updatedData.adminBypassReferral ?? existingRep?.adminBypassReferral ?? false,
-    };
-
-    const updatedUser: User = {
-      ...user,
-      name: freshRep.name,
-      email: freshRep.email,
-      role: freshRep.role || user.role,
-      avatar: freshRep.avatar,
-      repData: freshRep,
-    };
-
-    setUser(updatedUser);
-    safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
-    safeSetSessionItem('dalelak_session_last_active', String(Date.now()));
-    safeRemoveLocalStorageItem('dalelak_logged_user');
-    safeRemoveLocalStorageItem('dalelak_user');
-
-    setRepresentatives((prev) => {
-      const idx = prev.findIndex((r) => r.id === freshRep.id || r.email.toLowerCase() === freshRep.email.toLowerCase());
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = freshRep;
-        return next;
-      }
-      return [freshRep, ...prev];
-    });
-
-    await saveRepToDb(freshRep);
-    addNotification('✅ تم تحديث بياناتك وملفاتك الرسمية بنجاح على السحابة!', 'success');
-  };
-
-  const handleRestoreBusiness = async (biz: Business) => {
-    const restored = await restoreBusinessInDb(biz);
-    setDeletedBusinesses((prev) => prev.filter((b) => b.id !== biz.id));
-    setBusinesses((prev) => [restored, ...prev.filter((b) => b.id !== biz.id)]);
-    addNotification(`🟢 تم استرجاع نشاط "${biz.nameAr}" وإعادته نشطاً للمنظومة بنجاح!`, 'success');
-  };
-
-  const handleHardDeleteBusiness = async (id: string) => {
-    const biz = deletedBusinesses.find((b) => b.id === id) || businesses.find((b) => b.id === id);
-    await hardDeleteBusinessFromDb(id);
-    setDeletedBusinesses((prev) => prev.filter((b) => b.id !== id));
-    setBusinesses((prev) => prev.filter((b) => b.id !== id));
-    addNotification(`🗑️ تم الحذف النهائي البات لنشاط "${biz?.nameAr || 'المحدد'}" من قاعدة البيانات والسيرفر.`, 'warning');
-  };
-
-  const handleDeleteBusiness = async (id: string) => {
-    const biz = businesses.find((b) => b.id === id);
-
-    // Confirmation is now handled by ConfirmDialog at the UI layer — proceed directly
-    // 1. Immediately remove from businesses state and update cache
-    setBusinesses((prev) => {
-      const updated = prev.filter((b) => b.id !== id);
-      try {
-        safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updated));
-        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    // 2. Clean up any open modals or selected references
-    if (editingBusiness?.id === id) setEditingBusiness(null);
-    if (selectedInvoiceBiz?.id === id) setSelectedInvoiceBiz(null);
-    if (selectedPayBiz?.id === id) setSelectedPayBiz(null);
-
-    // 3. Delete associated system notifications
-    setSystemNotifications((prev) =>
-      prev.filter(
-        (n) =>
-          !(
-            (n.category === 'business' || n.category === 'payment') &&
-            ((n.entityId && n.entityId === id) || (biz && n.message && n.message.includes(biz.nameAr)))
-          )
-      )
-    );
-
-    // 4. Soft Delete (الأثر على السيرفر): preserves data for Super Admin review
-    if (biz) {
-      const deletedBy = user?.name || user?.email || 'مدير النظام';
-      const deletedByRole = user?.repData?.roleTitle || user?.roleTitle || user?.role || 'admin';
-      await softDeleteBusinessInDb(biz, deletedBy, deletedByRole);
-      setDeletedBusinesses((prev) => [
-        {
-          ...biz,
-          isDeleted: true,
-          deletedAt: new Date().toISOString(),
-          deletedBy,
-          deletedByRole,
-        },
-        ...prev.filter((b) => b.id !== id),
-      ]);
-    } else {
-      await deleteBusinessFromDb(id);
-    }
-
-    // 5. Broadcast deletion to other open browser tabs
-    try {
-      const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (syncChannel) {
-        syncChannel.postMessage({ type: 'DELETE_BUSINESS', deletedId: id });
-        syncChannel.close();
-      }
-    } catch {}
-
-    // 6. User Feedback
-    addNotification(`🗑️ تم حذف نشاط "${biz?.nameAr || 'المحدد'}" بنجاح.`, 'warning');
-  };
-
-  const handleAddRepresentative = async (repData: Partial<Representative>) => {
-    const newRep: Representative = {
-      id: repData.id || `rep_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-      name: repData.name || 'مندوب جديد',
-      email: repData.email || '',
-      phone: repData.phone || '',
-      nationalId: repData.nationalId,
-      activationFacePhoto: repData.activationFacePhoto,
-      nationalIdCardPhoto: repData.nationalIdCardPhoto,
-      nationalIdCardBackPhoto: repData.nationalIdCardBackPhoto,
-      pendingPhone: repData.pendingPhone,
-      phoneStatus: repData.phoneStatus || 'none',
-      role: repData.role || 'rep',
-      roleTitle: repData.roleTitle || 'مندوب مبيعات ميداني',
-      governorate: repData.governorate || 'القاهرة',
-      targetMonth: repData.targetMonth || 25,
-      avatar: repData.avatar || '',
-      avatarStatus: repData.avatarStatus || 'approved',
-      commissionRate: repData.commissionRate || 42.86,
-      status: repData.status || 'active',
-      password: repData.password || 'Aa123456',
-      referralCode: repData.referralCode || `DALIL-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      referredByCode: repData.referredByCode,
-      referralUnlocked: repData.referralUnlocked ?? false,
-      adminBypassReferral: repData.adminBypassReferral ?? false,
-      referralRewardGranted: repData.referralRewardGranted ?? false,
-    };
-
-    setRepresentatives((prev) => {
-      const filtered = prev.filter((r) => r.id !== newRep.id && r.email.toLowerCase() !== newRep.email.toLowerCase());
-      const updated = [newRep, ...filtered];
-      try {
-        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(getSafeRepsForStorage(updated)));
-        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(updated)));
-      } catch {}
-      return updated;
-    });
-
-    await saveRepToDb(newRep);
-    if (newRep.status === 'suspended') {
-      addNotification(`⏳ تم تسجيل طلب حساب جديد لـ "${newRep.name}" بانتظار موافقة المدير لتفعيله.`, 'info');
-      addSystemNotification({
-        title: 'حساب جديد معلق بانتظار التفعيل 👤',
-        message: `قام المندوب "${newRep.name}" بتسجيل حساب جديد (محافظة ${newRep.governorate})، الحساب معلق بانتظار مراجعته وتفعيله.`,
-        type: 'warning',
-        category: 'account',
-        targetRole: 'admin',
-        linkTab: 'admin',
-      });
-      addSystemNotification({
-        title: 'طلب الحساب قيد المراجعة ⏳',
-        message: 'تم تسليم بيانات حسابك بنجاح وسنقوم بمراجعة وتفعيل الحساب من إدارة المنظومة قريباً.',
-        type: 'info',
-        category: 'account',
-        targetUserId: newRep.id,
-      });
-    } else {
-      addNotification(`👤 تم إنشاء حساب المندوب الجديد "${newRep.name}" بنجاح!`, 'success');
-      addSystemNotification({
-        title: 'إضافة حساب جديد 👤',
-        message: `تم إنشاء حساب جديد بنجاح لـ "${newRep.name}" بصلاحية (${newRep.roleTitle || 'مندوب'}).`,
-        type: 'success',
-        category: 'account',
-        targetRole: 'admin',
-        linkTab: 'admin',
-      });
-    }
-  };
-
-  const handleUpdateRepresentative = async (updatedRep: Representative) => {
-    const prevRep = representatives.find((r) =>
-      r.id === updatedRep.id ||
-      (r.email && updatedRep.email && r.email.toLowerCase() === updatedRep.email.toLowerCase()) ||
-      (r.phone && updatedRep.phone && r.phone === updatedRep.phone)
-    );
-
-    const secureRep: Representative = {
-      ...(prevRep || {}),
-      ...updatedRep,
-      role: updatedRep.role || prevRep?.role || 'rep',
-      roleTitle: updatedRep.roleTitle || (
-        updatedRep.role === 'supervisor' ? 'مشرف إدارة منطقة ومحافظة' :
-        updatedRep.role === 'accountant' ? 'محاسب ومحصل فواتير إلكترونية' :
-        updatedRep.role === 'admin' ? 'مدير النظام المعتمد' : 'مندوب مبيعات ميداني'
-      ),
-      commissionRate: updatedRep.commissionRate !== undefined ? Number(updatedRep.commissionRate) : (prevRep?.commissionRate || 42.86),
-      status: updatedRep.status || prevRep?.status || 'active',
-      targetMonth: updatedRep.targetMonth !== undefined ? Number(updatedRep.targetMonth) : (prevRep?.targetMonth || 25),
-    };
-
-    setRepresentatives((prev) => {
-      let matched = false;
-      const updated = prev.map((r) => {
-        if (
-          r.id === secureRep.id ||
-          (r.email && secureRep.email && r.email.toLowerCase() === secureRep.email.toLowerCase()) ||
-          (r.phone && secureRep.phone && r.phone === secureRep.phone)
-        ) {
-          matched = true;
-          return secureRep;
-        }
-        return r;
-      });
-      const finalList = matched ? updated : [secureRep, ...prev];
-      try {
-        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(finalList));
-        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(finalList));
-      } catch {}
-      return finalList;
-    });
-
-    // Always sync user state & localStorage when the logged-in rep's data changes
-    if (user && (user.id === secureRep.id || user.repData?.id === secureRep.id || (user.email && secureRep.email && user.email.toLowerCase() === secureRep.email.toLowerCase()))) {
-      const updatedUser = { ...user, repData: secureRep, name: secureRep.name, email: secureRep.email, role: secureRep.role || user.role };
-      setUser(updatedUser);
-      safeSetLocalStorageItem('dalelak_logged_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
-      safeSetSessionItem('dalelak_active_user', JSON.stringify(getSafeUserForStorage(updatedUser)));
-    }
-
-    if (prevRep && prevRep.status !== secureRep.status) {
-      if (secureRep.status === 'active') {
-        addNotification(`✅ تم تفعيل حساب "${secureRep.name}" بنجاح ويمكنه الدخول الآن!`, 'success');
-        addSystemNotification({
-          title: 'تفعيل حساب مندوب 👤',
-          message: `تم تفعيل حساب المندوب "${secureRep.name}" وسماح الدخول له بالكامل.`,
-          type: 'success',
-          category: 'account',
-          targetRole: 'admin',
-          linkTab: 'admin',
-        });
-        addSystemNotification({
-          title: '🎉 تم تفعيل حسابك بنجاح!',
-          message: 'تهانينا! تمت مراجعة وتفعيل حسابك رسمياً من مدير النظام، يمكنك الآن تسجيل وتوثيق المحلات والتحصيل.',
-          type: 'success',
-          category: 'account',
-          targetUserId: secureRep.id,
-        });
-      } else {
-        addNotification(`🔒 تم تعليق حساب "${secureRep.name}" مؤقتاً.`, 'warning');
-        addSystemNotification({
-          title: 'تعليق حساب مندوب 🔒',
-          message: `تم تعليق حساب المندوب "${secureRep.name}" مؤقتاً.`,
-          type: 'warning',
-          category: 'account',
-          targetRole: 'admin',
-        });
-      }
-    } else if (prevRep && prevRep.avatarStatus !== secureRep.avatarStatus && secureRep.avatarStatus !== 'none') {
-      if (secureRep.avatarStatus === 'approved') {
-        addNotification(`📸 تمت الموافقة على صورة ملف "${secureRep.name}" وتفعيلها في حسابه!`, 'success');
-        addSystemNotification({
-          title: 'اعتماد صورة المندوب 📸',
-          message: `تمت الموافقة على الصورة الشخصية للمندوب "${secureRep.name}".`,
-          type: 'success',
-          category: 'avatar',
-          targetRole: 'admin',
-        });
-        addSystemNotification({
-          title: '📸 تمت الموافقة على صورتك الشخصية!',
-          message: 'تم اعتماد وتوثيق صورتك الشخصية رسمياً وتحديث بطاقتك الرقمية التكليفية.',
-          type: 'success',
-          category: 'avatar',
-          targetUserId: secureRep.id,
-          linkTab: 'profile',
-        });
-      } else if (secureRep.avatarStatus === 'rejected') {
-        addNotification(`❌ تم رفض صورة ملف "${secureRep.name}" — يجب رفع صورة بديلة.`, 'warning');
-        addSystemNotification({
-          title: '❌ مرفوض: الصورة الشخصية',
-          message: 'تم رفض الصورة الشخصية المرفوعة، يرجى إعادة رفع صورة رسمية واضحة ومطابقة للضوابط.',
-          type: 'error',
-          category: 'avatar',
-          targetUserId: secureRep.id,
-          linkTab: 'profile',
-        });
-      } else {
-        addNotification(`⏳ تم إرسال صورة "${secureRep.name}" لمراجعة المدير.`, 'info');
-        addSystemNotification({
-          title: 'صورة شخصية جديدة للمراجعة 📸',
-          message: `قام المندوب "${secureRep.name}" برفع صورة شخصية جديدة للمراجعة والاعتماد.`,
-          type: 'info',
-          category: 'avatar',
-          targetRole: 'admin',
-          linkTab: 'admin',
-        });
-      }
-    } else {
-      addNotification(`💾 تم حفظ وتحديث صلاحيات وبيانات "${secureRep.name}" بنجاح! ${secureRep.roleTitle ? `(${secureRep.roleTitle})` : ''}`, 'success');
-    }
-
-    // 🔐 BUG-07 FIX: إضافة error handling لحفظ بيانات المندوب
-    // كان يُعرض "تم الحفظ" قبل الحفظ الفعلي — الفشل الصامت لا يُخطر المستخدم
-    try {
-      const saveRes = await saveRepToDb(secureRep);
-      if (saveRes && !saveRes.success) {
-        console.error('Failed to save rep to DB:', saveRes.error);
-        addNotification(`⚠️ تحذير: ${saveRes.error || 'تعذر حفظ البيانات في السحابة'}`, 'warning');
-      } else if (saveRes && saveRes.success && saveRes.rep) {
-        const freshSaved = saveRes.rep;
-        setRepresentatives((prev) => prev.map((r) => r.id === freshSaved.id ? freshSaved : r));
-      }
-    } catch (saveErr) {
-      console.error('Failed to save rep to DB:', saveErr);
-      addNotification(`⚠️ تحذير: تم الحفظ محلياً لكن حدث خطأ في رفع البيانات للسحابة. سيتم إعادة المحاولة تلقائياً عند الاتصال.`, 'warning');
-    }
-
-    try {
-      const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (channel) {
-        channel.postMessage({ type: 'REP_UPDATED', repId: updatedRep.id });
-        channel.close();
-      }
-    } catch {}
-  };
-
-  const handleRestoreRepresentative = async (rep: Representative) => {
-    const restored = await restoreRepInDb(rep);
-    const targetEmail = (rep.email || '').toLowerCase().trim();
-    const targetPhone = (rep.phone || '').trim();
-
-    setDeletedRepresentatives((prev) =>
-      prev.filter(
-        (r) =>
-          r.id !== rep.id &&
-          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
-          (!targetPhone || (r.phone || '').trim() !== targetPhone)
-      )
-    );
-    setRepresentatives((prev) => [
-      restored,
-      ...prev.filter(
-        (r) =>
-          r.id !== rep.id &&
-          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
-          (!targetPhone || (r.phone || '').trim() !== targetPhone)
-      ),
-    ]);
-    addNotification(`🟢 تم استرجاع حساب "${rep.name}" وتفعيله بنجاح!`, 'success');
-  };
-
-  const handleHardDeleteRepresentative = async (id: string) => {
-    const rep = deletedRepresentatives.find((r) => r.id === id) || representatives.find((r) => r.id === id);
-    const targetEmail = (rep?.email || '').toLowerCase().trim();
-    const targetPhone = (rep?.phone || '').trim();
-
-    await hardDeleteRepFromDb(id);
-
-    setDeletedRepresentatives((prev) =>
-      prev.filter(
-        (r) =>
-          r.id !== id &&
-          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
-          (!targetPhone || (r.phone || '').trim() !== targetPhone)
-      )
-    );
-    setRepresentatives((prev) =>
-      prev.filter(
-        (r) =>
-          r.id !== id &&
-          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
-          (!targetPhone || (r.phone || '').trim() !== targetPhone)
-      )
-    );
-    addNotification(`🗑️ تم الحذف النهائي البات لحساب "${rep?.name || 'المحدد'}" من قاعدة البيانات والسيرفر.`, 'warning');
-  };
-
-  const handleDeletePayoutRequest = async (id: string) => {
-    await deletePayoutRequestFromDb(id);
-    setPayoutRequests((prev) => prev.filter((p) => p.id !== id));
-    addNotification('🗑️ تم حذف المعاملة المالية نهائياً من قاعدة البيانات والسيرفر.', 'warning');
-  };
-
-  const handleDeleteRepresentative = async (id: string) => {
-    const rep = representatives.find((r) => r.id === id);
-
-    if (isSuperAdmin(rep)) {
-      addNotification('⛔ حساب المدير الأعلى للنظام محمي بالكامل ومحصن ضد الحذف!', 'error');
-      return;
-    }
-
-    // Confirmation is now handled by ConfirmDialog at the UI layer — proceed directly
-    const targetEmail = (rep?.email || '').toLowerCase().trim();
-    const targetPhone = (rep?.phone || '').trim();
-
-    setRepresentatives((prev) => {
-      const updated = prev.filter(
-        (r) =>
-          r.id !== id &&
-          (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
-          (!targetPhone || (r.phone || '').trim() !== targetPhone)
-      );
-      try {
-        safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
-        safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    if (rep) {
-      const deletedBy = user?.name || user?.email || 'مدير النظام';
-      const deletedByRole = user?.repData?.roleTitle || user?.roleTitle || user?.role || 'admin';
-      await softDeleteRepInDb(rep, deletedBy, deletedByRole);
-      setDeletedRepresentatives((prev) => [
-        {
-          ...rep,
-          isDeleted: true,
-          deletedAt: new Date().toISOString(),
-          deletedBy,
-          deletedByRole,
-        },
-        ...prev.filter(
-          (r) =>
-            r.id !== id &&
-            (!targetEmail || (r.email || '').toLowerCase().trim() !== targetEmail) &&
-            (!targetPhone || (r.phone || '').trim() !== targetPhone)
-        ),
-      ]);
-    } else {
-      await hardDeleteRepFromDb(id);
-    }
-
-    try {
-      const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;
-      if (channel) {
-        channel.postMessage({ type: 'REP_UPDATED', deletedRepId: id });
-        channel.close();
-      }
-    } catch {}
-
-    if (rep) {
-      addNotification(`🗑️ تم حذف حساب "${rep.name}" بنجاح.`, 'warning');
-      addSystemNotification({
-        title: 'حذف حساب 🗑️',
-        message: `تم حذف حساب "${rep.name}" (${rep.roleTitle || rep.role}).`,
-        type: 'warning',
-        category: 'account',
-        targetRole: 'admin',
-      });
-    }
-  };
-
-  const handleUpdatePaymentConfig = async (newConfig: PaymentGatewayConfig) => {
-    setPaymentConfig(newConfig);
-    try {
-      localStorage.setItem('dalelak_payment_config', JSON.stringify(newConfig));
-    } catch {}
-    await savePaymentConfigToDb(newConfig);
-  };
-
-  // 🔐 BUG-06 FIX: إزالة المطابقة بالاسم — اسمان متشابهان يُسببان انتحال هوية
-  // المطابقة الآمنة: ID فقط أو إيميل فقط
+  // Derived current representative
   const liveRep = user
     ? representatives.find((r) => r.id === user.id || (user.email && r.email && r.email.toLowerCase() === user.email.toLowerCase()))
     : null;
 
-  const currentRep: Representative = {
+  const currentRep: Representative = useMemo(() => ({
     id: user?.repData?.id || liveRep?.id || user?.id || 'rep_1',
     name: user?.repData?.name || liveRep?.name || user?.name || 'مندوب معتمد',
     email: user?.repData?.email || liveRep?.email || user?.email || '',
@@ -1644,15 +187,65 @@ export default function App() {
     referredByCode: user?.repData?.referredByCode || liveRep?.referredByCode || undefined,
     referralUnlocked: user?.repData?.referralUnlocked ?? liveRep?.referralUnlocked ?? false,
     adminBypassReferral: user?.repData?.adminBypassReferral ?? liveRep?.adminBypassReferral ?? false,
-  };
+  }), [user, liveRep]);
 
-  const isRepUser = user?.role === 'rep';
+  // 7. App Entity CRUD Handlers
+  const {
+    handleAddBusiness,
+    handleUpdateBusiness,
+    handleDeleteBusiness,
+    handleRestoreBusiness,
+    handleHardDeleteBusiness,
+    handleCreatePayoutRequest,
+    handleUpdatePayoutRequest,
+    handleDeletePayoutRequest,
+    handleCreateLead,
+    handleUpdateLead,
+    handleDeleteLead,
+    handleConvertToBusiness,
+    handleUpdateUserProfile,
+    handleAddRepresentative,
+    handleUpdateRepresentative,
+    handleRestoreRepresentative,
+    handleHardDeleteRepresentative,
+    handleDeleteRepresentative,
+    handleUpdatePaymentConfig,
+  } = useAppEntityHandlers({
+    user,
+    setUser,
+    currentRep,
+    businesses,
+    setBusinesses,
+    representatives,
+    setRepresentatives,
+    payoutRequests,
+    setPayoutRequests,
+    leads,
+    setLeads,
+    deletedBusinesses,
+    setDeletedBusinesses,
+    deletedRepresentatives,
+    setDeletedRepresentatives,
+    paymentConfig,
+    setPaymentConfig,
+    editingBusiness,
+    setEditingBusiness,
+    selectedInvoiceBiz,
+    setSelectedInvoiceBiz,
+    selectedPayBiz,
+    setSelectedPayBiz,
+    convertingLead,
+    setConvertingLead,
+    setSystemNotifications,
+    setActiveTab,
+    addNotification,
+    addSystemNotification,
+    handleLogout,
+  });
+
+  // Business filtering & scoping
   const isManagerialUser = ['admin', 'supervisor', 'accountant'].includes(user?.role || '');
 
-  // نطاق عرض الأنشطة للمندوب: 'my' (أنشطتي المسجلة) أو 'all' (جميع أنشطة المنظومة السحابية)
-  const [repViewScope, setRepViewScope] = useState<'my' | 'all'>('my');
-
-  // 🔐 الأنشطة الميدانية المسجلة بواسطة المندوب الحالي (لحساب عمولاته وإحصائياته الشخصية بدقة)
   const myBusinesses = useMemo(() => {
     if (user?.role === 'rep') {
       const myId = (currentRep.id || user.id || '').toLowerCase().trim();
@@ -1677,8 +270,7 @@ export default function App() {
     if (isManagerialUser) return sortBusinessesNewestFirst(businesses);
     if (user?.role === 'rep') return sortBusinessesNewestFirst(visibleBusinesses);
     return sortBusinessesNewestFirst(businesses);
-  }, [user, isManagerialUser, visibleBusinesses, businesses]);
-
+  }, [isManagerialUser, user?.role, visibleBusinesses, businesses]);
 
   // -------------------------------------------------------------
   // EXTERNAL READ-ONLY VIEWS (For QR Codes)
@@ -1794,73 +386,12 @@ export default function App() {
   return (
     <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>
       {/* ===================== PROFESSIONAL TOAST NOTIFICATIONS & LIVE SYNC BADGE ===================== */}
-      <div
-        className="fixed right-0 left-0 z-[9999] flex flex-col items-center gap-2 pointer-events-none px-2.5 sm:px-4"
-        style={{ top: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
-        aria-live="polite"
-        aria-atomic="false"
-      >
-        {showSyncBadge && (
-          <div
-            className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 dark:bg-emerald-950/90 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 backdrop-blur-xl text-xs font-black shadow-xl animate-fade-in transition-all"
-            style={{ direction: 'rtl' }}
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <span>تم تحديث البيانات للتو 🔄</span>
-          </div>
-        )}
-        {notifications.map((n: any) => {
-          const icons: Record<string, string> = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️',
-          };
-          const colors: Record<string, string> = {
-            success: 'from-emerald-950/98 to-emerald-900/95 border-emerald-500/60 text-emerald-50',
-            error:   'from-rose-950/98 to-rose-900/95 border-rose-500/60 text-rose-50',
-            warning: 'from-amber-950/98 to-amber-900/95 border-amber-500/60 text-amber-50',
-            info:    'from-slate-900/98 to-slate-800/95 border-slate-500/50 text-slate-100',
-          };
-          const barColors: Record<string, string> = {
-            success: 'bg-emerald-400',
-            error:   'bg-rose-400',
-            warning: 'bg-amber-400',
-            info:    'bg-slate-400',
-          };
-          const colorClass = colors[n.type] || colors.info;
-          const barColor = barColors[n.type] || barColors.info;
-          const icon = icons[n.type] || icons.info;
-          return (
-            <div
-              key={n.id}
-              className={`pointer-events-auto w-full max-w-[calc(100vw-1.25rem)] sm:max-w-sm relative overflow-hidden rounded-2xl border bg-gradient-to-br ${colorClass} shadow-2xl backdrop-blur-xl toast-slide-down`}
-              style={{ direction: 'rtl' }}
-            >
-              {/* Progress Bar */}
-              <div
-                className={`absolute top-0 right-0 h-1 ${barColor} rounded-t-2xl`}
-                style={{
-                  animation: `shrink-width 5.5s linear forwards`,
-                  width: '100%',
-                }}
-              />
-              {/* Content */}
-              <div className="flex items-start gap-2.5 sm:gap-3 px-3.5 py-3 sm:px-4 sm:py-3.5 pt-3.5 sm:pt-4">
-                <span className="text-base sm:text-lg leading-none shrink-0 mt-0.5">{icon}</span>
-                <span className="flex-1 text-xs sm:text-[13px] font-bold leading-relaxed">{n.message}</span>
-                <button
-                  onClick={() => setNotifications((prev: any[]) => prev.filter((x: any) => x.id !== n.id))}
-                  className="shrink-0 p-1 text-white/60 hover:text-white transition-colors cursor-pointer mt-0.5 hover:scale-110 active:scale-90"
-                  aria-label="إغلاق الإشعار"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <AppToastContainer
+        notifications={notifications}
+        setNotifications={setNotifications}
+        showSyncBadge={showSyncBadge}
+      />
+
       {/* =========================================================================== */}
       {/* Top App Bar - Fixed */}
       <Navbar
@@ -1887,112 +418,33 @@ export default function App() {
       {/* Main App Container */}
       <main className="flex-1 w-full mx-auto max-w-7xl p-3 sm:p-5 pb-28 sm:pb-12">
         {/* 🛰️ Live Offline & Sync Status Banner */}
-        {(!offlineSyncStatus.isOnline || offlineSyncStatus.totalPendingCount > 0) && (
-          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950/90 border border-amber-500/40 rounded-2xl p-3 sm:p-3.5 mb-4 shadow-xl flex items-center justify-between text-right text-xs animate-fade-in">
-            <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black shrink-0 shadow-inner ${offlineSyncStatus.isOnline ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse'}`}>
-                {offlineSyncStatus.isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-              </div>
-              <div>
-                <div className="font-black text-amber-300 flex items-center gap-2">
-                  <span>{offlineSyncStatus.isOnline ? '🟢 متصل بالإنترنت (السيرفر السحابي)' : '🔴 وضع العمل بدون إنترنت (Offline-First)'}</span>
-                  {offlineSyncStatus.totalPendingCount > 0 && (
-                    <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full">
-                      {offlineSyncStatus.totalPendingCount} بانتظار الرفع ⏳
-                    </span>
-                  )}
-                </div>
-                <div className="text-[10.5px] text-slate-300 font-bold mt-0.5">
-                  {offlineSyncStatus.totalPendingCount > 0
-                    ? `بياناتك وصورك محفوظة بأمان على هاتفك (IndexedDB) وسيتم رفعها تلقائياً.`
-                    : 'التخزين المحلي الآمن نشط - يمكنك متابعة تسجيل الأنشطة حتى في انعدام الشبكة.'}
-                </div>
-              </div>
-            </div>
+        <AppOfflineBanner
+          offlineSyncStatus={offlineSyncStatus}
+          onOpenSyncModal={() => setShowOfflineSyncModal(true)}
+        />
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowOfflineSyncModal(true)}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs py-2 px-3 sm:px-4 rounded-xl shadow-md transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${offlineSyncStatus.isSyncing ? 'animate-spin' : ''}`} />
-                <span>{offlineSyncStatus.isSyncing ? 'جاري الرفع...' : 'إدارة المزامنة ⚡'}</span>
-              </button>
-            </div>
-          </div>
-        )}
         {/* TAB 1: HOME FEED */}
         {activeTab === 'home' && (
-          <div className="space-y-5 pb-20 tab-content-enter">
-            {/* Field Banner (Only for non-rep or general view to avoid duplicate headers) */}
-            {user?.role !== 'rep' && (
-              <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-4 sm:p-5 rounded-3xl shadow-xl flex items-center justify-between">
-                <div>
-                  <span className="bg-slate-950/20 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                    منظومة دليلك الميدانية الشاملة
-                  </span>
-                  <h1 className="text-xl sm:text-2xl font-black mt-1">المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات في مصر</h1>
-                  <p className="text-xs font-bold text-slate-900/90 mt-1 max-w-lg">
-                    تسجيل مباشر لبيانات المحلات، إحداثيات GPS الدقيقة، وإصدار الفواتير الإلكترونية على واتساب صاحب النشاط في جميع محافظات مصر.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setActiveTab('add')}
-                  className="hidden sm:flex bg-slate-950 hover:bg-slate-900 text-amber-400 font-extrabold text-xs px-4 py-3 rounded-2xl shadow-lg items-center gap-2 transition-transform active:scale-95 shrink-0 cursor-pointer"
-                >
-                  <PlusCircle className="w-5 h-5 text-amber-400" />
-                  <span>تسجيل نشاط جديد</span>
-                </button>
-              </div>
-            )}
-
-            {/* Quick Rep Workspace summary if Rep logged in */}
-            {user?.role === 'rep' && (
-              <Suspense fallback={<div className="flex items-center justify-center py-6"><div className="w-8 h-8 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
-                <RepDashboard
-                  rep={currentRep}
-                  businesses={myBusinesses}
-                  allReps={representatives}
-                  payoutRequests={payoutRequests}
-                  onAddNewClick={() => setActiveTab('add')}
-                  onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-                  onRequestPayout={handleCreatePayoutRequest}
-                  onNavigateToProfile={handleNavigateToProfile}
-                />
-              </Suspense>
-            )}
-
-            {/* Modern Global Directory Container */}
-            <PublicBusinessDirectory
-              businesses={businesses}
-              isLoadingData={isLoadingData}
-              hasInitialCloudSynced={hasInitialCloudSynced}
-              currentUser={user}
-              scopedBusinesses={scopedBusinesses}
-              repScope={repViewScope}
-              myBusinessesCount={myBusinesses.length}
-              onToggleRepScope={setRepViewScope}
-              onAddNewClick={() => setActiveTab('add')}
-              onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-              onEditBusiness={(b) => {
-                if (user?.role === 'rep') {
-                  const myId = (currentRep.id || user.id || '').toLowerCase().trim();
-                  const myName = (currentRep.name || user.name || '').toLowerCase().trim();
-                  const bRepId = (b.repId || '').toLowerCase().trim();
-                  const bRepName = (b.repName || '').toLowerCase().trim();
-                  if ((myId && bRepId === myId) || (myName && bRepName === myName)) {
-                    setEditingBusiness(b);
-                  } else {
-                    addNotification('⚠️ لا يمكن تعديل نشاط مسجل بواسطة مندوب آخر إلا من قِبل إدارة النظام.', 'warning');
-                  }
-                } else {
-                  setEditingBusiness(b);
-                }
-              }}
-              onSelectVideoBiz={(b) => setSelectedVideoBiz(b)}
-            />
-          </div>
+          <HomeFeedView
+            user={user}
+            currentRep={currentRep}
+            businesses={businesses}
+            scopedBusinesses={scopedBusinesses}
+            myBusinesses={myBusinesses}
+            representatives={representatives}
+            payoutRequests={payoutRequests}
+            isLoadingData={isLoadingData}
+            hasInitialCloudSynced={hasInitialCloudSynced}
+            repViewScope={repViewScope}
+            onToggleRepScope={setRepViewScope}
+            onAddNewClick={() => setActiveTab('add')}
+            onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+            onEditBusiness={(b) => setEditingBusiness(b)}
+            onSelectVideoBiz={(b) => setSelectedVideoBiz(b)}
+            onRequestPayout={handleCreatePayoutRequest}
+            onNavigateToProfile={handleNavigateToProfile}
+            addNotification={addNotification}
+          />
         )}
 
         {/* TAB 2: INTERACTIVE MAP OVERVIEW */}
@@ -2096,8 +548,6 @@ export default function App() {
               <RepProfile
                 user={user}
                 rep={currentRep}
-                // 🔐 BUG-12 FIX: استخدام جميع أنشطة المندوب بدلاً من scopedBusinesses (الموثقة فقط)
-                // كان المندوب يرى أرقاماً ناقصة تمنعه من فتح نظام الإحالة (يحتاج 25 نشاطاً)
                 businessesCount={businesses.filter(b => b.repId === currentRep.id).length}
                 totalRevenue={businesses.filter(b => b.repId === currentRep.id).reduce((acc, b) => acc + (b.amountPaid || 0), 0)}
                 totalCommission={calculateTotalRepCommission(businesses.filter(b => b.repId === currentRep.id), currentRep.commissionRate)}
@@ -2130,110 +580,14 @@ export default function App() {
         )}
 
         {/* Global Professional Footer */}
-        <footer className="mt-12 pt-8 pb-16 border-t border-[var(--border-color)] text-[var(--text-secondary)] text-xs space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-            {/* Column 1: Brand & Bio */}
-            <div className="space-y-2.5 text-right">
-              <Logo size="sm" />
-              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-bold max-w-sm">
-                المنصة الرائدة في مصر لرقمنة الأنشطة التجارية والشركات: توثيقات الخرائط، التسويق الرقمي، الحلول التكنولوجية، الحماية القانونية والفكرية، واستشارات تنمية ونمو الأعمال.
-              </p>
-            </div>
-
-            {/* Column 2: Quick Links */}
-            <div className="space-y-2 text-right">
-              <h4 className="font-black text-sm text-[var(--text-primary)]">روابط سريعة</h4>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-bold">
-                <button
-                  type="button"
-                  onClick={() => setShowAboutModal(true)}
-                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Info className="w-3.5 h-3.5 text-amber-500" />
-                  <span>من نحن</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowTermsModal(true)}
-                  className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <FileText className="w-3.5 h-3.5 text-amber-500" />
-                  <span>شروط الاستخدام</span>
-                </button>
-
-                {user?.role !== 'rep' && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setShowPermissionsModal(true)}
-                      className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                      <span>دليل الصلاحيات</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPackagesModal(true)}
-                      className="hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span>باقات دليلك</span>
-                    </button>
-                  </>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('home')}
-                  className="hover:text-amber-500 cursor-pointer transition-colors"
-                >
-                  الرئيسية
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('map')}
-                  className="hover:text-amber-500 cursor-pointer transition-colors"
-                >
-                  الخريطة التفاعلية
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('add')}
-                  className="hover:text-amber-500 cursor-pointer transition-colors"
-                >
-                  تسجيل نشاط
-                </button>
-              </div>
-            </div>
-
-            {/* Column 3: Ecosystem Highlights */}
-            <div className="space-y-2 text-right bg-[var(--bg-card)] p-3.5 rounded-2xl border border-[var(--border-color)]">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                <h4 className="font-black text-xs text-[var(--text-primary)]">خدمات المنظومة:</h4>
-              </div>
-              <ul className="space-y-1 text-[11px] text-[var(--text-secondary)] font-bold">
-                <li>• توثيق وتثبيت إحداثيات Google Maps</li>
-                <li>• تسويق رقمي وإدارة الهوية التجارية</li>
-                <li>• خدمات قانونية وحماية الملكية الفكرية</li>
-                <li>• استشارات تنمية ونمو الأعمال والمبيعات</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-[var(--border-color)]/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
-            <p>جميع الحقوق محفوظة © 2026 منصة دليلك لرقمنة وتنمية الأعمال والأنشطة التجارية في مصر</p>
-            <div className="flex items-center gap-2 font-bold">
-              <span>نتبع معايير الجودة العالمية</span>
-              <span>•</span>
-              <span className="text-emerald-600 dark:text-emerald-400">نظام محمي ومعتمد</span>
-            </div>
-          </div>
-        </footer>
+        <AppFooter
+          user={user}
+          onOpenAbout={() => setShowAboutModal(true)}
+          onOpenTerms={() => setShowTermsModal(true)}
+          onOpenPermissions={() => setShowPermissionsModal(true)}
+          onOpenPackages={() => setShowPackagesModal(true)}
+          onNavigateTab={setActiveTab}
+        />
       </main>
 
       {/* Bottom Navigation for Mobile */}
