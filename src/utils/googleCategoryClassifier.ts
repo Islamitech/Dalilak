@@ -206,11 +206,14 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     group: 'المطاعم والأغذية والمشروبات',
     category: 'مطعم / مأكولات ومشويات',
     keywords: [
-      'مطعم', 'مشويات', 'ماكولات', 'مشاوي', 'وجبات', 'كبابجي', 'شاورما', 'برجر', 'بيتزا', 'كشري',
+      'مطعم', 'مشويات', 'ماكولات', 'مأكولات', 'مشاوي', 'وجبات', 'كبابجي', 'شاورما', 'برجر', 'بيتزا', 'كشري',
       'حواوشي', 'فطائر', 'ساندوتش', 'فول وطعميه', 'طعام', 'اكلات', 'مطاعم',
-      'restaurant', 'grill', 'burger', 'pizza', 'shawarma', 'kebab', 'fast food', 'diner', 'fried chicken'
+      'مندي', 'المندي', 'حنيذ', 'مظبي', 'شوايه', 'شواية', 'مشويات لحوم', 'مطعم لحوم', 'مطعم اطباق لحوم',
+      'مطعم اسماك', 'مطعم سمك', 'اطباق لحوم', 'لحوم مشويه', 'مأكولات يمنية', 'ماكولات يمنيه', 'اكلات يمنيه',
+      'restaurant', 'grill', 'burger', 'pizza', 'shawarma', 'kebab', 'fast food', 'diner', 'fried chicken',
+      'meat dish restaurant', 'mandi restaurant', 'barbecue restaurant', 'seafood restaurant', 'fish restaurant', 'steakhouse'
     ],
-    weight: 15
+    weight: 22
   },
 
   // ── 3. العيادات والرعاية الصحية والطبية ──
@@ -906,6 +909,34 @@ export function classifyPlaceCategory(text: string): ClassifiedCategoryResult | 
       }
 
       if (isMatch) {
+        // Precedence Guard: Dining/Restaurant over raw ingredients (Update 41)
+        // If text contains dining intent (مطعم, restaurant, diner, مشويات, مشاوي, اكلات, وجبات, كبابجي, مندي, حنيذ),
+        // do not classify as 'جزارة' solely on generic food terms ('meat', 'fish', 'لحوم', 'سمك', 'فراخ', 'دواجن')
+        // unless explicit butchery terms ('جزار', 'جزاره', 'جزارة', 'butcher', 'مجزر', 'فسخاني') are present.
+        const hasRestaurantIntent =
+          tokens.includes('مطعم') ||
+          tokens.includes('restaurant') ||
+          tokens.includes('diner') ||
+          tokens.includes('مشويات') ||
+          tokens.includes('مشاوي') ||
+          tokens.includes('كبابجي') ||
+          tokens.includes('مندي') ||
+          tokens.includes('حنيذ');
+
+        if (rule.category === 'جزارة / لحوم ودواجن وأسماك' && hasRestaurantIntent) {
+          const hasExplicitButcherWord =
+            tokens.includes('جزاره') ||
+            tokens.includes('جزار') ||
+            tokens.includes('جزارة') ||
+            tokens.includes('butcher') ||
+            tokens.includes('مجزر') ||
+            tokens.includes('فسخاني');
+
+          if (!hasExplicitButcherWord) {
+            continue;
+          }
+        }
+
         const lengthBonus = Math.min(kw.length, 10);
         const phraseBonus = isMultiWord ? 4 : 0;
         const score = rule.weight * 2 + lengthBonus + phraseBonus;

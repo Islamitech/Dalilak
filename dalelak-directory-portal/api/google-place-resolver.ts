@@ -192,12 +192,14 @@ interface PlacesApiPhotoResult {
   photos: string[];
   displayName?: string;
   formattedAddress?: string;
+  googleCategory?: string;
+  googleType?: string;
 }
 
 /**
- * Fetches verified official business photos directly from Google Places API (New) (Update 40).
+ * Fetches verified official business photos directly from Google Places API (New) (Update 40 & 41).
  * Retrieves up to 5-10 high-resolution (s1600) photos strictly belonging to the target business profile,
- * eliminating scraper preview limitations and zeroing neighbor photo bleeding.
+ * and extracts official localized Arabic category from primaryTypeDisplayName.
  */
 async function fetchOfficialPlacesPhotos(
   query: string,
@@ -229,7 +231,8 @@ async function fetchOfficialPlacesPhotos(
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.photos',
+        'X-Goog-FieldMask':
+          'places.id,places.displayName,places.primaryType,places.primaryTypeDisplayName,places.formattedAddress,places.photos',
       },
       body: JSON.stringify(searchBody),
     });
@@ -244,12 +247,16 @@ async function fetchOfficialPlacesPhotos(
     }
 
     const matchedPlace = searchData.places[0];
+    const googleCategory = matchedPlace.primaryTypeDisplayName?.text;
+    const googleType = matchedPlace.primaryType;
     const rawPhotos = matchedPlace.photos;
     if (!Array.isArray(rawPhotos) || rawPhotos.length === 0) {
       return {
         photos: [],
         displayName: matchedPlace.displayName?.text,
         formattedAddress: matchedPlace.formattedAddress,
+        googleCategory,
+        googleType,
       };
     }
 
@@ -279,6 +286,8 @@ async function fetchOfficialPlacesPhotos(
       photos: resolvedUrls,
       displayName: matchedPlace.displayName?.text,
       formattedAddress: matchedPlace.formattedAddress,
+      googleCategory,
+      googleType,
     };
   } catch {
     return { photos: [] };
@@ -587,6 +596,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ─── Photo Extraction (Update 40: Google Places API New + Anti-Bleed Scraper Hybrid) ───
     const photos: string[] = [];
+    let officialGoogleCategory: string | undefined = undefined;
 
     // Strategy 1 (Top Priority): Official Places API (New) (5 guaranteed high-res photos)
     const searchQuery = placeName || extractedAddressFromTitle;
@@ -603,6 +613,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         if (!address && apiResult.formattedAddress && !isBoilerplateAddress(apiResult.formattedAddress)) {
           address = apiResult.formattedAddress;
+        }
+        if (apiResult.googleCategory) {
+          officialGoogleCategory = apiResult.googleCategory;
         }
       } catch {
         // Fallback silently to scraper
@@ -661,11 +674,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // ─── 6. Category Extraction from Google Places (Update 36) ───────────────
-    let placeCategory: string | undefined = undefined;
+    // ─── 6. Category Extraction from Google Places (Update 36 & 41) ───────────
+    let placeCategory: string | undefined = officialGoogleCategory;
 
-    // A. From preloadPayload JSON (internal Google Places structure)
-    if (preloadPayload) {
+    // A. From preloadPayload JSON (internal Google Places structure fallback)
+    if (!placeCategory && preloadPayload) {
       try {
         let cleanJsonCat = preloadPayload.trim();
         if (cleanJsonCat.startsWith(")]}'")) cleanJsonCat = cleanJsonCat.slice(4).trim();
