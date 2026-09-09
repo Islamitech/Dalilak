@@ -71,7 +71,7 @@ export function getSafeBusinessesForStorage(businesses: any[]): any[] {
             return '';
           })
           .filter(Boolean)
-          .slice(0, 4)
+          .slice(0, 10)
       : [];
 
     return {

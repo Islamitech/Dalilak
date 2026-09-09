@@ -168,7 +168,7 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
 
       {/* Photos Grid */}
       {formData.photos && formData.photos.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5 sm:gap-3">
           {formData.photos.map((photo, idx) => {
             const isCover = formData.coverPhoto ? photo === formData.coverPhoto : idx === 0;
 

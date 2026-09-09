@@ -270,8 +270,8 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
 
             {/* Photo Thumbnails */}
             {selectedBiz.photos && selectedBiz.photos.length > 1 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
-                {selectedBiz.photos.slice(0, 4).map((ph, idx) => (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-1">
+                {selectedBiz.photos.map((ph, idx) => (
                   <button
                     key={idx}
                     type="button"
