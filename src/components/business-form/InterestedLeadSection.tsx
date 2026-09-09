@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { InterestedLead, LeadInterestLevel, Representative } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { InterestedLead, LeadInterestLevel, Representative, Business } from '../../types';
 import { saveLeadToDb } from '../../services/db';
 import { InteractiveMap } from '../InteractiveMap';
 import { triggerHaptic } from '../../utils/haptics';
@@ -17,18 +17,24 @@ import {
   ExternalLink,
   Sparkles,
   Zap,
+  AlertTriangle,
 } from 'lucide-react';
 import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsappMessages';
 import { extractGooglePlaceData, isGoogleMapsUrl } from '../../utils/googlePlaceExtractor';
+import { findDuplicatePhoneEntity } from '../../utils/phoneValidator';
 
 interface InterestedLeadSectionProps {
   currentRep?: Representative | null;
   onSaveLead?: (lead: InterestedLead) => void;
+  businesses?: Business[];
+  leads?: InterestedLead[];
 }
 
 export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   currentRep,
   onSaveLead,
+  businesses = [],
+  leads = [],
 }) => {
   const [leadClientName, setLeadClientName] = useState<string>('');
   const [leadBizName, setLeadBizName] = useState<string>('');
@@ -190,6 +196,10 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
     }, 15000);
   };
 
+  const duplicatePhone = useMemo(() => {
+    return findDuplicatePhoneEntity(leadPhone, { businesses, leads });
+  }, [leadPhone, businesses, leads]);
+
   const handleSaveLeadSubmit = async () => {
     if (!leadClientName.trim() && !leadBizName.trim()) {
       alert('يرجى إدخال اسم العميل أو اسم النشاط على الأقل');
@@ -197,6 +207,12 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
     }
     if (!leadPhone.trim()) {
       alert('يرجى إدخال رقم الهاتف للتواصل');
+      return;
+    }
+
+    if (duplicatePhone) {
+      const entityTypeStr = duplicatePhone.type === 'business' ? 'نشاط تجاري مسجل' : 'عميل مهتم / مراجعة مسجلة';
+      alert(`⛔ رقم الهاتف (${duplicatePhone.phone}) مسجل بالفعل مسبقاً مع ${entityTypeStr}: "${duplicatePhone.name}" ${duplicatePhone.location ? `(${duplicatePhone.location})` : ''}.\nلا يمكن تكرار تسجيل نفس رقم الهاتف.`);
       return;
     }
 
@@ -462,6 +478,14 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
               onChange={(e) => setLeadPhone(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-mono font-bold focus:outline-none focus:border-emerald-500"
             />
+            {duplicatePhone && (
+              <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                <span>
+                  ⛔ مسجل مسبقاً مع {duplicatePhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicatePhone.name} {duplicatePhone.location ? `(${duplicatePhone.location})` : ''}
+                </span>
+              </div>
+            )}
           </div>
 
           <div>

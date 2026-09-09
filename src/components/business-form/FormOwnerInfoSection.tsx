@@ -1,5 +1,6 @@
 import React from 'react';
-import { User } from 'lucide-react';
+import { User, AlertTriangle } from 'lucide-react';
+import { DuplicatePhoneMatch } from '../../utils/phoneValidator';
 
 interface FormOwnerInfoSectionProps {
   ownerName: string;
@@ -8,6 +9,7 @@ interface FormOwnerInfoSectionProps {
   setOwnerPhone: (val: string) => void;
   secondaryPhone: string;
   setSecondaryPhone: (val: string) => void;
+  duplicateMatch?: DuplicatePhoneMatch | null;
 }
 
 export const FormOwnerInfoSection: React.FC<FormOwnerInfoSectionProps> = ({
@@ -17,6 +19,7 @@ export const FormOwnerInfoSection: React.FC<FormOwnerInfoSectionProps> = ({
   setOwnerPhone,
   secondaryPhone,
   setSecondaryPhone,
+  duplicateMatch,
 }) => {
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
@@ -61,6 +64,24 @@ export const FormOwnerInfoSection: React.FC<FormOwnerInfoSectionProps> = ({
           />
         </div>
       </div>
+
+      {duplicateMatch && (
+        <div className="bg-rose-500/15 border-2 border-rose-500/40 text-rose-700 dark:text-rose-300 p-3.5 rounded-2xl flex items-start gap-2.5 text-xs font-bold animate-pulse-subtle shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <div className="font-black text-rose-600 dark:text-rose-400 text-sm">
+              ⛔ رقم الهاتف ({duplicateMatch.phone}) مسجل بالفعل مسبقاً!
+            </div>
+            <div className="text-xs leading-relaxed opacity-95">
+              هذا الرقم مرتبط بـ {duplicateMatch.type === 'business' ? 'نشاط تجاري مسجل' : 'عميل مهتم / مراجعة'}:{' '}
+              <span className="underline font-black">{duplicateMatch.name}</span>{' '}
+              {duplicateMatch.location ? `(${duplicateMatch.location})` : ''}.
+              <br />
+              لا يُسمح بتسجيل نفس رقم الهاتف لمنع التكرار وحفظ حقوق المندوبين وتفادي تشتيت العملاء في الدليل.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

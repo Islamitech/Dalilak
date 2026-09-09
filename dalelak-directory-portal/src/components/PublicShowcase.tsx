@@ -624,12 +624,60 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
           return true;
         }
 
+        // 1. Direct match with full query or main keyword (before parentheses)
         const mainKeyword = normQ.split('(')[0].trim();
-        if (
-          !normAddress.includes(mainKeyword) &&
-          !normAddress.includes(normQ) &&
-          !(bCity && normQ.includes(norm(bCity)))
-        ) {
+        let isCityMatch =
+          normAddress.includes(mainKeyword) ||
+          normAddress.includes(normQ) ||
+          (bCity && normQ.includes(norm(bCity))) ||
+          (bCity && norm(bCity).includes(mainKeyword));
+
+        // 2. Semantic Area Token matching (e.g. "شارع فيصل" -> "فيصل" / "الملك فيصل")
+        if (!isCityMatch) {
+          // Strip generic prefixes: شارع, مدينه, حي, منطقه, ميدان
+          const stripped = mainKeyword
+            .replace(/^(?:شارع|مدينه|حي|منطقه|ميدان)\s+/, '')
+            .trim();
+
+          // Split compound areas separated by "و" (e.g. "امبابه والوراق", "ميدان الجيزه والجامعه", "الحوامديه والبدرشين")
+          const subTokens = stripped.includes(' و ')
+            ? stripped.split(' و ').map((t) => t.trim()).filter(Boolean)
+            : [stripped];
+
+          for (const token of subTokens) {
+            if (token.length >= 3 && normAddress.includes(token)) {
+              isCityMatch = true;
+              break;
+            }
+          }
+
+          // Special canonical aliases for key Egyptian thoroughfares:
+          // فيصل: matches "فيصل", "الملك فيصل", "شارع فيصل"
+          if (!isCityMatch && (mainKeyword.includes('فيصل') || stripped.includes('فيصل'))) {
+            if (normAddress.includes('فيصل')) {
+              isCityMatch = true;
+            }
+          }
+          // الهرم: matches "الهرم", "شارع الهرم" (excluding Hadayek Al-Ahram)
+          if (!isCityMatch && (mainKeyword.includes('الهرم') || stripped.includes('الهرم'))) {
+            if (
+              normAddress.includes('الهرم') &&
+              !normAddress.includes('حدايق الاهرام') &&
+              !normAddress.includes('هضبه الاهرام')
+            ) {
+              isCityMatch = true;
+            }
+          }
+          // 6 أكتوبر / الشيخ زايد
+          if (!isCityMatch && (mainKeyword.includes('اكتوبر') || stripped.includes('اكتوبر'))) {
+            if (normAddress.includes('اكتوبر')) isCityMatch = true;
+          }
+          if (!isCityMatch && (mainKeyword.includes('زايد') || stripped.includes('زايد'))) {
+            if (normAddress.includes('زايد')) isCityMatch = true;
+          }
+        }
+
+        if (!isCityMatch) {
           return false;
         }
       }

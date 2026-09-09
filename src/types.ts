@@ -55,6 +55,7 @@ export interface Business {
   feeExemptionReason?: string; // سبب الإعفاء
   registrationType?: 'new_verification' | 'already_on_google' | 'interested_lead'; // أسلوب التسجيل
   isAlreadyOnGoogle?: boolean; // مكان مسجل ومفعل بالفعل على خرائط Google مسبقاً
+  convertedFromLeadId?: string; // معرف العميل المهتم الذي تم تحويل النشاط منه
   notes?: string;
   adminFollowUps?: AdminFollowUpNote[]; // سجل الملاحظات والمتابعات الإدارية الداخلية
   createdDate: string;

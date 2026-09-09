@@ -22,8 +22,9 @@ import {
   FileText,
   Copy,
   Check,
+  AlertTriangle,
 } from 'lucide-react';
-import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User } from '../types';
+import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User, Business } from '../types';
 import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../data/mockData';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { formatActivityDateTime } from '../utils/dateFormatters';
@@ -32,9 +33,11 @@ import {
   generateTrendingVenuePermissionWhatsAppMessage,
   getTrendingVenuePermissionWhatsAppUrl,
 } from '../utils/whatsappMessages';
+import { findDuplicatePhoneEntity } from '../utils/phoneValidator';
 
 interface InvoicesLeadsHubProps {
   leads: InterestedLead[];
+  businesses?: Business[];
   currentUser: User | null;
   currentRep?: Representative;
   onCreateLead: (lead: InterestedLead) => void;
@@ -46,6 +49,7 @@ interface InvoicesLeadsHubProps {
 
 export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   leads,
+  businesses = [],
   currentUser,
   currentRep,
   onCreateLead,
@@ -171,6 +175,16 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   const contactedLeadsCount = scopedLeads.filter((l) => l.status === 'contacted').length;
   const convertedLeadsCount = scopedLeads.filter((l) => l.status === 'converted').length;
 
+  // 🔍 Duplicate Phone Detectors
+  const duplicateNewPhone = useMemo(() => {
+    return findDuplicatePhoneEntity(newPhone, { businesses, leads });
+  }, [newPhone, businesses, leads]);
+
+  const duplicateEditPhone = useMemo(() => {
+    if (!editingLead?.phone) return null;
+    return findDuplicatePhoneEntity(editingLead.phone, { businesses, leads, excludeId: editingLead.id });
+  }, [editingLead?.phone, editingLead?.id, businesses, leads]);
+
   // Handle Add Lead Submit
   const handleAddLeadSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +198,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     const cleanPhone = newPhone.replace(/\D/g, '');
     if (cleanPhone.length < 10) {
       setFormError('يرجى إدخال رقم هاتف صحيح (11 رقم).');
+      return;
+    }
+
+    // 🛡️ Prevent Duplicate Phone Numbers
+    const duplicate = findDuplicatePhoneEntity(cleanPhone, { businesses, leads });
+    if (duplicate) {
+      const entityTypeStr = duplicate.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم مسجل مسبقاً';
+      setFormError(`⛔ رقم الهاتف (${duplicate.phone}) مسجل بالفعل مع ${entityTypeStr}: "${duplicate.name}" ${duplicate.location ? `(${duplicate.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
       return;
     }
 
@@ -908,6 +930,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                       onChange={(e) => setNewPhone(e.target.value)}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
                     />
+                    {duplicateNewPhone && (
+                      <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span>
+                          ⛔ مسجل مسبقاً مع {duplicateNewPhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicateNewPhone.name} {duplicateNewPhone.location ? `(${duplicateNewPhone.location})` : ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1119,6 +1149,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                       onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
                     />
+                    {duplicateEditPhone && (
+                      <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span>
+                          ⛔ مسجل مسبقاً مع {duplicateEditPhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicateEditPhone.name} {duplicateEditPhone.location ? `(${duplicateEditPhone.location})` : ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1243,6 +1281,12 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   <button
                     type="button"
                     onClick={() => {
+                      if (duplicateEditPhone) {
+                        const entityTypeStr = duplicateEditPhone.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم مسجل مسبقاً';
+                        alert(`⛔ رقم الهاتف (${duplicateEditPhone.phone}) مسجل بالفعل مع ${entityTypeStr}: "${duplicateEditPhone.name}" ${duplicateEditPhone.location ? `(${duplicateEditPhone.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
+                        return;
+                      }
+
                       const cleanBiz = (editingLead.businessName && editingLead.businessName !== 'عميل مهتم' && editingLead.businessName !== 'عملاء مهتمون')
                         ? editingLead.businessName.trim()
                         : '';

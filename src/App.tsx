@@ -479,7 +479,8 @@ export default function App() {
             <BusinessForm
               currentUser={user}
               onSubmitBusiness={(newBiz) => {
-                handleAddBusiness(newBiz);
+                const bizWithLead = convertingLead ? { ...newBiz, convertedFromLeadId: convertingLead.id } : newBiz;
+                handleAddBusiness(bizWithLead);
                 if (convertingLead) {
                   handleUpdateLead({ ...convertingLead, status: 'converted' });
                   setConvertingLead(null);
@@ -488,6 +489,7 @@ export default function App() {
               currentRep={currentRep}
               onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
               businesses={businesses}
+              leads={leads}
               onSaveLead={handleCreateLead}
               initialLead={convertingLead}
               onOpenPackages={() => setShowPackagesModal(true)}
@@ -499,6 +501,7 @@ export default function App() {
         {activeTab === 'invoices' && (
           <InvoicesLeadsHub
             leads={leads}
+            businesses={businesses}
             currentUser={user}
             currentRep={currentRep}
             onCreateLead={handleCreateLead}

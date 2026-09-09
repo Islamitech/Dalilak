@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Business,
   PackageOption,
@@ -21,6 +21,7 @@ import { fetchLocationAddress } from '../utils/geocoding';
 import { uploadMediaToSupabaseStorage } from '../services/storage';
 import { isRepAccountDeleted } from '../utils/accountStatus';
 import { triggerHaptic } from '../utils/haptics';
+import { findDuplicatePhoneEntity, DuplicatePhoneMatch } from '../utils/phoneValidator';
 import {
   AlertCircle,
   Sparkles,
@@ -47,6 +48,7 @@ export interface BusinessFormProps {
   onSubmitBusiness: (business: Business) => void;
   onShowInvoice: (biz: Business) => void;
   businesses?: Business[];
+  leads?: InterestedLead[];
   onSaveLead?: (lead: InterestedLead) => void;
   initialLead?: InterestedLead | null;
   onOpenPackages?: () => void;
@@ -57,6 +59,8 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   currentUser,
   onSubmitBusiness,
   onShowInvoice,
+  businesses = [],
+  leads = [],
   onSaveLead,
   initialLead,
 }) => {
@@ -115,6 +119,15 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
   // Success State
   const [submittedBusiness, setSubmittedBusiness] = useState<Business | null>(null);
+
+  // 🔍 Duplicate Phone Detector against active businesses & leads
+  const duplicatePhoneMatch = useMemo<DuplicatePhoneMatch | null>(() => {
+    return (
+      findDuplicatePhoneEntity(ownerPhone, { businesses, leads, excludeId: initialLead?.id }) ||
+      findDuplicatePhoneEntity(phone, { businesses, leads, excludeId: initialLead?.id }) ||
+      findDuplicatePhoneEntity(secondaryPhone, { businesses, leads, excludeId: initialLead?.id })
+    );
+  }, [ownerPhone, phone, secondaryPhone, businesses, leads, initialLead]);
 
   // ── 📝 DRAFT AUTO-SAVE & RESTORATION VIA DEDICATED HOOK ──
   const { draftRestored, clearDraft } = useBusinessFormDraft({
@@ -365,7 +378,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     return () => {
       window.removeEventListener('dalelak_submit_business_form', handleRemoteSubmit);
     };
-  }, [nameAr, nameEn, ownerName, ownerPhone, phone, secondaryPhone, paymentStatus, selectedPackage]);
+  }, [nameAr, nameEn, ownerName, ownerPhone, phone, secondaryPhone, paymentStatus, selectedPackage, duplicatePhoneMatch]);
 
   const handleDirectAlreadyOnGoogleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -388,6 +401,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
     if (!alreadyGoogleMapsUrl.trim()) {
       setErrorMsg('⚠️ يرجى إدخال الرابط الدقيق للنشاط الظاهر على خرائط Google');
+      window.scrollTo({ top: 250, behavior: 'smooth' });
+      return;
+    }
+
+    // 🛡️ Duplicate Phone Check
+    if (duplicatePhoneMatch) {
+      const entityTypeStr = duplicatePhoneMatch.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
+      setErrorMsg(`⛔ رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
       window.scrollTo({ top: 250, behavior: 'smooth' });
       return;
     }
@@ -486,6 +507,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       return;
     }
 
+    // 🛡️ Duplicate Phone Check
+    if (duplicatePhoneMatch) {
+      const entityTypeStr = duplicatePhoneMatch.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
+      setErrorMsg(`⛔ رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
+      window.scrollTo({ top: 250, behavior: 'smooth' });
+      return;
+    }
+
     if (!ownerName.trim()) {
       setOwnerName(finalOwner);
     }
@@ -507,6 +536,15 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   const handleFinalConfirmPayment = () => {
+    // 🛡️ Extra Defensive Duplicate Phone Check
+    if (duplicatePhoneMatch) {
+      const entityTypeStr = duplicatePhoneMatch.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
+      setErrorMsg(`⛔ رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}.`);
+      setShowPaymentModal(false);
+      window.scrollTo({ top: 250, behavior: 'smooth' });
+      return;
+    }
+
     const timestamp = Date.now();
     const finalNameAr = (nameAr && nameAr.trim()) || (nameEn && nameEn.trim()) || 'نشاط تجاري جديد';
     const finalNameEn = nameEn?.trim() || undefined;
@@ -633,7 +671,12 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
       {/* ── MODE 3 VIEW: INTERESTED LEAD REGISTRATION FORM ── */}
       {registrationType === 'interested_lead' && (
-        <InterestedLeadSection currentRep={currentRep} onSaveLead={onSaveLead} />
+        <InterestedLeadSection
+          currentRep={currentRep}
+          onSaveLead={onSaveLead}
+          businesses={businesses}
+          leads={leads}
+        />
       )}
 
       {registrationType !== 'interested_lead' && (
@@ -674,6 +717,11 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             setOwnerPhone={(val) => {
               setOwnerPhone(val);
               setPhone((prev) => (prev ? prev : val));
+              const dup = findDuplicatePhoneEntity(val, { businesses, leads, excludeId: initialLead?.id });
+              if (dup) {
+                const entityTypeStr = dup.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
+                setAutoFillNotice(`⚠️ تنبيه: رقم الهاتف (${dup.phone}) المستخرج من الخريطة مسجل مسبقاً مع ${entityTypeStr} "${dup.name}"!`);
+              }
             }}
             setCategory={(cat) => {
               setCategory(cat);
@@ -694,6 +742,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             setOwnerPhone={setOwnerPhone}
             secondaryPhone={secondaryPhone}
             setSecondaryPhone={setSecondaryPhone}
+            duplicateMatch={duplicatePhoneMatch}
           />
 
           {/* 4. مرفقات الصور (اللوجو، الواجهة، القائمة) */}

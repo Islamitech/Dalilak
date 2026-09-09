@@ -38,6 +38,7 @@ import {
   savePaymentConfigToDb,
 } from '../services/db';
 import { sanitizePlaceNameAndAddress } from '../utils/googlePlaceExtractor';
+import { findDuplicatePhoneEntity } from '../utils/phoneValidator';
 
 interface UseAppEntityHandlersProps {
   user: User | null;
@@ -130,6 +131,16 @@ export function useAppEntityHandlers({
       return;
     }
 
+    // 🛡️ CRITICAL DUPLICATE PHONE GATE: Reject registration if phone is already in businesses or active leads
+    const dupPhone = findDuplicatePhoneEntity(newBiz.phone, { businesses, leads, excludeId: newBiz.id, excludeLeadId: newBiz.convertedFromLeadId }) ||
+                     findDuplicatePhoneEntity(newBiz.ownerPhone, { businesses, leads, excludeId: newBiz.id, excludeLeadId: newBiz.convertedFromLeadId }) ||
+                     findDuplicatePhoneEntity(newBiz.secondaryPhone, { businesses, leads, excludeId: newBiz.id, excludeLeadId: newBiz.convertedFromLeadId });
+    if (dupPhone) {
+      const entityTypeStr = dupPhone.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
+      addNotification(`⛔ تعذر حفظ النشاط: رقم الهاتف (${dupPhone.phone}) مسجل بالفعل مع ${entityTypeStr}: "${dupPhone.name}". لا يمكن تكرار تسجيل نفس رقم الهاتف.`, 'error');
+      return;
+    }
+
     // 1. Automatically calculate payment status from amountPaid and packagePrice
     const isExempt = Boolean(newBiz.isFeeExempt || newBiz.packagePrice === 0);
     const autoPaymentStatus = isExempt
@@ -207,7 +218,7 @@ export function useAppEntityHandlers({
     }).catch((err) => {
       console.warn('Background Supabase save notice:', err);
     });
-  }, [currentRep, user, businesses, setBusinesses, setActiveTab, setSelectedInvoiceBiz, addNotification, addSystemNotification, handleLogout]);
+  }, [currentRep, user, businesses, leads, setBusinesses, setActiveTab, setSelectedInvoiceBiz, addNotification, addSystemNotification, handleLogout]);
 
   const handleUpdateBusiness = useCallback(async (updatedBiz: Business) => {
     const prevBiz = businesses.find((b) => b.id === updatedBiz.id);
@@ -472,6 +483,14 @@ export function useAppEntityHandlers({
 
   // CRM Leads
   const handleCreateLead = useCallback(async (newLead: InterestedLead) => {
+    // 🛡️ CRITICAL DUPLICATE PHONE GATE
+    const dupPhone = findDuplicatePhoneEntity(newLead.phone, { businesses, leads, excludeId: newLead.id });
+    if (dupPhone) {
+      const entityTypeStr = dupPhone.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
+      addNotification(`⛔ تعذر حفظ العميل: رقم الهاتف (${dupPhone.phone}) مسجل بالفعل مع ${entityTypeStr}: "${dupPhone.name}". لا يمكن تكرار تسجيل نفس رقم الهاتف.`, 'error');
+      return;
+    }
+
     setLeads((prev) => {
       const updated = [newLead, ...prev.filter((l) => l.id !== newLead.id)];
       try {
@@ -491,7 +510,7 @@ export function useAppEntityHandlers({
     } catch {}
 
     addNotification(`✨ تم حفظ بيانات العميل المهتم "${newLead.clientName}" بنجاح!`, 'success');
-  }, [setLeads, addNotification]);
+  }, [setLeads, businesses, leads, addNotification]);
 
   const handleUpdateLead = useCallback(async (updatedLead: InterestedLead) => {
     setLeads((prev) => {
@@ -577,6 +596,7 @@ export function useAppEntityHandlers({
 
     const newBiz: Business = {
       id: `biz_${timestamp}_${Math.random().toString(36).substring(2, 7)}`,
+      convertedFromLeadId: lead.id,
       nameAr: finalNameAr,
       category: finalCategory,
       governorate: lead.governorate || 'القاهرة',
