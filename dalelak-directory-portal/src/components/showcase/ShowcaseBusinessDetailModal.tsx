@@ -524,6 +524,31 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
               )}
             </div>
           )}
+
+          {/* Trust & Verification: Claim Listing & Report Incorrect Data */}
+          <div className="pt-2.5 pb-1 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] font-bold">
+            <a
+              href={`https://wa.me/201143888355?text=${encodeURIComponent(
+                `مرحباً دليلك 👋 أنا صاحب منشأة "${selectedBiz.nameAr}" وأود التحقق من ملكيتها أو تحديث بياناتها.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-amber-500 flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <span>🏢 هل هذه منشأتك؟ اطلب إدارتها أو توثيقها</span>
+            </a>
+
+            <a
+              href={`https://wa.me/201143888355?text=${encodeURIComponent(
+                `إبلاغ عن بيانات غير دقيقة: منشأة "${selectedBiz.nameAr}" (كود: ${selectedBiz.id}).`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-rose-500/80 hover:text-rose-500 flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <span>⚠️ الإبلاغ عن بيانات غير صحيحة</span>
+            </a>
+          </div>
         </div>
 
         {/* Modal Action Footer (Desktop & Tablet) */}

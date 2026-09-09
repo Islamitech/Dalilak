@@ -412,19 +412,59 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       {/* ========================================================================= */}
       {/* 2. THE 5-PACKAGE RESPONSIVE INTERACTIVE ROW (5 Columns Desktop | Snap Carousel Mobile) */}
       {/* ========================================================================= */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-black text-[var(--text-muted)] flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span>اختر باقتك من الخيارات الخمسة التالية:</span>
-          </span>
-          <span className="text-[11px] text-[var(--text-muted)] font-bold sm:hidden">
-            ← مرر أفقياً لتصفح كافة الباقات →
-          </span>
+      {/* ========================================================================= */}
+      {/* 2. INTENT QUESTION & 3 CORE PACKAGES */}
+      {/* ========================================================================= */}
+      <div className="space-y-3">
+        {/* Intent Question Bar */}
+        <div className="bg-[var(--bg-card)] border border-amber-500/30 rounded-2xl p-3 sm:p-3.5 text-center space-y-2">
+          <div className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400">
+            <HelpCircle className="w-4 h-4 text-amber-500" />
+            <span>ما هدفك اليوم لمنشأتك أو نشاطك التجاري؟</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-black">
+            <button
+              type="button"
+              onClick={() => setSelectedPkgId('pkg_free')}
+              className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedPkgId === 'pkg_free'
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <Gift className="w-3.5 h-3.5" />
+              <span>أريد فقط الظهور المجاني (0 ج)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPkgId('pkg_basic')}
+              className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedPkgId === 'pkg_basic'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>أريد توثيق رسمي وتصدر Google (250 ج)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPkgId('pkg_pro')}
+              className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedPkgId === 'pkg_pro'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>أريد زبائن ونمو تسويقي وسوشيال (750 ج)</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 overflow-x-auto pb-2 sm:pb-0 pt-1 px-1 snap-x snap-mandatory scrollbar-none">
-          {detailedPackages.map((pkg) => {
+        {/* 3 Core Package Decision Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+          {detailedPackages.slice(0, 3).map((pkg) => {
             const IconComp = pkg.icon;
             const isSelected = selectedPkgId === pkg.id;
 
@@ -432,65 +472,71 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
               <div
                 key={pkg.id}
                 onClick={() => setSelectedPkgId(pkg.id)}
-                className={`min-w-[215px] sm:min-w-0 p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-3.5 shadow-xs shrink-0 snap-center select-none relative group ${
-                  pkg.isFlagship
-                    ? isSelected
-                      ? `${pkg.activeBorder}`
-                      : 'bg-gradient-to-br from-amber-500/10 via-[var(--bg-card)] to-yellow-500/5 border-amber-500/40 hover:border-amber-400'
-                    : isSelected
-                      ? `${pkg.activeBorder} shadow-amber-500/10 shadow-md`
-                      : `bg-[var(--bg-card)] border-[var(--border-color)] ${pkg.cardBorder} hover:shadow-sm`
+                className={`p-4 sm:p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 shadow-sm select-none relative group ${
+                  isSelected
+                    ? `${pkg.activeBorder} shadow-amber-500/10 shadow-lg scale-[1.01]`
+                    : `bg-[var(--bg-card)] border-[var(--border-color)] ${pkg.cardBorder} hover:shadow-md`
                 }`}
               >
-                {/* Header Icon & Badge */}
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between gap-1.5">
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br ${pkg.iconBg} flex items-center justify-center font-black shadow-xs shrink-0 group-hover:scale-105 transition-transform`}>
-                      <IconComp className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${pkg.iconBg} flex items-center justify-center font-black shadow-xs shrink-0 group-hover:scale-105 transition-transform`}>
+                      <IconComp className="w-5 h-5 stroke-[2.5]" />
                     </div>
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${pkg.badgeColor} truncate max-w-[125px]`}>
+                    <span className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-full border ${pkg.badgeColor} truncate`}>
                       {pkg.badge}
                     </span>
                   </div>
 
-                  {/* Title & Price */}
                   <div>
-                    <h3 className="font-black text-xs sm:text-sm text-[var(--text-primary)] leading-snug line-clamp-1">
+                    <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] leading-snug">
                       {pkg.shortName}
                     </h3>
-                    <p className="text-[10px] text-[var(--text-muted)] font-mono font-bold mt-0.5 truncate">
+                    <p className="text-[11px] text-[var(--text-muted)] font-mono font-bold mt-0.5">
                       {pkg.englishTitle}
                     </p>
                   </div>
 
-                  {/* Price Row */}
-                  <div className="pt-1.5 border-t border-[var(--border-color)]">
+                  {/* Price */}
+                  <div className="pt-2 border-t border-[var(--border-color)]">
                     <div className="flex items-baseline gap-1">
-                      <span className={`text-xl sm:text-2xl font-black font-mono ${pkg.price === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                      <span className={`text-2xl sm:text-3xl font-black font-mono ${pkg.price === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
                         {pkg.price === 0 ? '0' : pkg.price.toLocaleString('en-US')}
                       </span>
-                      <span className="text-[10.5px] font-bold text-[var(--text-secondary)]">ج.م</span>
+                      <span className="text-xs font-bold text-[var(--text-secondary)]">ج.م</span>
                     </div>
-                    <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5 truncate">
+                    <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
                       {pkg.priceSubtext}
                     </p>
                   </div>
+
+                  {/* Highlights Bullet points */}
+                  <ul className="space-y-1.5 pt-1 text-[11px] text-[var(--text-secondary)] font-bold">
+                    {pkg.highlights.slice(0, 3).map((h, i) => (
+                      <li key={i} className="flex items-center gap-1.5">
+                        <span className="text-emerald-500 font-black">✓</span>
+                        <span className="truncate">{h}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                {/* Selection Button */}
+                {/* Instant Decision Button */}
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedPkgId(pkg.id);
+                    handleSelectForForm(pkg.title);
                   }}
-                  className={`w-full py-2 px-2.5 rounded-xl font-black text-[11px] transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer ${
+                  className={`w-full py-2.5 px-3 rounded-xl font-black text-xs transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 ${
                     isSelected
-                      ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black shadow-xs'
-                      : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-amber-500/10 border border-[var(--border-color)]'
+                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-md'
+                      : 'bg-gradient-to-r from-amber-500/15 to-yellow-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-slate-950 border border-amber-500/30'
                   }`}
                 >
-                  <span>{isSelected ? '✓ الباقة المعروضة' : 'عرض الشرح ←'}</span>
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>اختر هذه الباقة ({pkg.price === 0 ? 'مجاناً' : `${pkg.price} ج`})</span>
                 </button>
               </div>
             );
@@ -628,6 +674,61 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3.5. ENTERPRISE & UNDER-CONSTRUCTION SOLUTIONS (باقة الانطلاق الكبرى 20k) */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-br from-amber-500/15 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-400/60 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-500/25 pb-3.5">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center font-black shadow-md shrink-0">
+              <Rocket className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                  تاج التأسيس 🚀
+                </span>
+                <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
+                  حلول مخصصة للشركات والمشاريع الكبرى والمحلات تحت التجهيز
+                </h3>
+              </div>
+              <p className="text-xs text-[var(--text-muted)] font-bold mt-0.5">
+                تأسيس شامل وانطلاق مدوٍ من الصفر (باقة 20,000 ج): هوية بصرية، لافتة 3D، تصوير سينمائي 4K، حملة ممولة مكثفة، وبرنامج ولاء دائم.
+              </p>
+            </div>
+          </div>
+
+          <a
+            href="https://wa.me/201143888355?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20%D8%AF%D9%84%D9%8A%D9%84%D9%83%20%F0%9F%91%8B%20%D8%A3%D9%88%D8%AF%20%D8%B7%D9%84%D8%A8%20%D8%A7%D8%B3%D8%AA%D8%B4%D8%A7%D8%B1%D8%A9%20%D8%AD%D9%88%D9%84%20%D8%A8%D8%A7%D9%82%D8%A9%20%D8%A7%D9%84%D8%A7%D9%86%D8%B7%D9%84%D8%A7%D9%82%20%D8%A7%D9%84%D9%83%D8%A8%D8%B1%D9%89%20%D9%88%D8%A7%D9%84%D8%AA%D8%A3%D8%B3%D9%8A%D8%B3%20%D9%85%D9%86%20%D8%A7%D9%84%D8%B5%D9%81%D8%B1%20(20%2C000%20%D8%AC.%D9%85)%20%D9%84%D9%85%D8%B4%D8%B1%D9%88%D8%B9%D9%86%D8%A7."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-transform active:scale-95 shrink-0 cursor-pointer"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>تواصل مع مستشار المشاريع الكبرى 💬</span>
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
+          <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-amber-500/20 space-y-1">
+            <span className="text-amber-500 font-black block">👑 هوية ولافتة كاملة</span>
+            <p className="text-[11px] text-[var(--text-secondary)] font-medium">تصميم لوجو ومقاسات لافتة المحل الخارجية والمطبوعات الميدانية.</p>
+          </div>
+          <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-amber-500/20 space-y-1">
+            <span className="text-amber-500 font-black block">🎬 تصوير سينمائي 4K</span>
+            <p className="text-[11px] text-[var(--text-secondary)] font-medium">فيديو إعلاني احترافي يوثق المكان والتجهيزات باحترافية قنوات التلفزيون.</p>
+          </div>
+          <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-amber-500/20 space-y-1">
+            <span className="text-amber-500 font-black block">📣 حملة ممولة مكثفة</span>
+            <p className="text-[11px] text-[var(--text-secondary)] font-medium">استهداف جغرافي لسكان المنطقة لإحداث زحام منذ يوم الافتتاح الأول.</p>
+          </div>
+          <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-amber-500/20 space-y-1">
+            <span className="text-amber-500 font-black block">💎 برنامج ولاء العملاء</span>
+            <p className="text-[11px] text-[var(--text-secondary)] font-medium">منظومة رقمية لحفظ بيانات الزبائن وضمان تكرار شرائهم شهرياً.</p>
           </div>
         </div>
       </div>

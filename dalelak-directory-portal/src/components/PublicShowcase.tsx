@@ -850,6 +850,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         hasActiveFilters={hasActiveFilters}
         resetAllFilters={resetAllFilters}
         onOpenPackagesModal={openPackagesModal}
+        activeView={activeView}
+        setActiveView={setActiveView}
       />
 
       {/* 3. Directory Showcase Cards & Map */}

@@ -33,7 +33,14 @@ import {
   X,
   Target,
   Sparkles,
+  Star,
+  MessageCircle,
 } from 'lucide-react';
+import {
+  getBusinessMapDetails,
+  getSmartWhatsAppUrl,
+  getBusinessOpenStatus,
+} from '../utils/directoryEnhancements';
 
 declare global {
   interface Window {
@@ -342,7 +349,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         accuracyCircleRef.current = circle;
       }
     } else {
-      // View Mode: Render all Businesses as native Leaflet markers
+      // View Mode: Render Businesses with Smart Screen-Space Marker Clustering
       const filteredBusinesses = businesses.filter((b) => {
         if (selectedGovFilter !== 'all' && !b.governorate.includes(selectedGovFilter)) {
           return false;
@@ -350,38 +357,117 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         return true;
       });
 
+      // Cluster pins within ~50 screen pixels of each other to avoid overlap
+      const clusterRadiusPx = 52;
+      const clusters: Array<{
+        centerLat: number;
+        centerLng: number;
+        items: Business[];
+      }> = [];
+
       filteredBusinesses.forEach((biz) => {
-        const isVerified = biz.verificationStatus === 'verified';
-        const color = isVerified ? '#10b981' : '#f59e0b';
-        const bg = isVerified ? '#064e3b' : '#78350f';
+        if (typeof biz.lat !== 'number' || typeof biz.lng !== 'number' || isNaN(biz.lat) || isNaN(biz.lng)) return;
+        const pt = map.latLngToLayerPoint([biz.lat, biz.lng]);
 
-        const safeName = escapeHtml(biz.nameAr || 'منشأة معتمدة');
-        const bizIcon = window.L.divIcon({
-          className: 'custom-biz-pin',
-          html: `
-            <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
-              <div style="background: ${bg}; border: 1.5px solid ${color}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; items-center; gap: 4px;">
-                <span style="color: ${color};">📍</span>
-                <span>${safeName}</span>
+        let placed = false;
+        for (const cl of clusters) {
+          const clPt = map.latLngToLayerPoint([cl.centerLat, cl.centerLng]);
+          const dist = Math.hypot(pt.x - clPt.x, pt.y - clPt.y);
+          if (dist < clusterRadiusPx) {
+            cl.items.push(biz);
+            cl.centerLat = (cl.centerLat * (cl.items.length - 1) + biz.lat) / cl.items.length;
+            cl.centerLng = (cl.centerLng * (cl.items.length - 1) + biz.lng) / cl.items.length;
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          clusters.push({
+            centerLat: biz.lat,
+            centerLng: biz.lng,
+            items: [biz],
+          });
+        }
+      });
+
+      clusters.forEach((cluster) => {
+        if (cluster.items.length === 1) {
+          const biz = cluster.items[0];
+          const isVerified = biz.verificationStatus === 'verified';
+          const isSelected = selectedBiz?.id === biz.id;
+          const color = isVerified ? '#10b981' : '#f59e0b';
+          const bg = isVerified ? '#064e3b' : '#78350f';
+          const safeName = escapeHtml(biz.nameAr || 'منشأة معتمدة');
+
+          const showFullPill = zoomLevel >= 15;
+          const htmlContent = showFullPill
+            ? `
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
+                <div style="background: ${isSelected ? '#f59e0b' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 8px; border-radius: 12px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 4px; transition: transform 0.2s;">
+                  <span style="color: ${isSelected ? '#020617' : color}; font-size: 12px;">📍</span>
+                  <span>${safeName}</span>
+                </div>
               </div>
-            </div>
-          `,
-          iconSize: [120, 32],
-          iconAnchor: [60, 16],
-        });
+            `
+            : `
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
+                <div style="background: ${color}; width: 28px; height: 28px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 3px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">
+                  📍
+                </div>
+              </div>
+            `;
 
-        const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
+          const bizIcon = window.L.divIcon({
+            className: 'custom-biz-pin',
+            html: htmlContent,
+            iconSize: showFullPill ? [120, 32] : [28, 28],
+            iconAnchor: showFullPill ? [60, 16] : [14, 14],
+          });
 
-        marker.on('click', () => {
-          setSelectedBiz(biz);
-          map.flyTo([biz.lat, biz.lng], 17, { duration: 0.8 });
-          if (onSelectBusiness) onSelectBusiness(biz);
-        });
+          const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
 
-        markersGroup.addLayer(marker);
+          marker.on('click', () => {
+            setSelectedBiz(biz);
+            map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), { duration: 0.7 });
+            if (onSelectBusiness) onSelectBusiness(biz);
+          });
+
+          markersGroup.addLayer(marker);
+        } else {
+          // Cluster pin
+          const clusterIcon = window.L.divIcon({
+            className: 'custom-cluster-pin',
+            html: `
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
+                <div style="background: linear-gradient(135deg, #d97706, #b45309); border: 2.5px solid #fef08a; color: #ffffff; width: 44px; height: 44px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(217, 119, 6, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; font-family: Cairo, sans-serif;">
+                  <span style="font-size: 13px; font-weight: 900; line-height: 1;">${cluster.items.length}</span>
+                  <span style="font-size: 8px; font-weight: 800; color: #fef08a; line-height: 1;">أماكن</span>
+                </div>
+              </div>
+            `,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
+          });
+
+          const clusterMarker = window.L.marker([cluster.centerLat, cluster.centerLng], { icon: clusterIcon });
+
+          clusterMarker.on('click', () => {
+            const currentZoom = map.getZoom();
+            if (currentZoom < 18) {
+              const bounds = window.L.latLngBounds(cluster.items.map((b) => [b.lat, b.lng]));
+              map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+            } else {
+              setSelectedBiz(cluster.items[0]);
+              if (onSelectBusiness) onSelectBusiness(cluster.items[0]);
+            }
+          });
+
+          markersGroup.addLayer(clusterMarker);
+        }
       });
     }
-  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy]);
+  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy, zoomLevel, selectedBiz]);
 
   // Handle Resize & Fullscreen Invalidation
   useEffect(() => {
@@ -871,89 +957,151 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             </button>
           </div>
 
-          {/* Selected Business Card Drawer on Map View */}
-          {mode === 'view' && selectedBiz && (
-            <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3 bg-slate-950/95 border border-amber-500/40 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-xl z-30 flex flex-col gap-2.5 animate-fade-in-scale">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/40">
-                      {selectedBiz.category}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      selectedBiz.verificationStatus === 'verified'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                    }`}>
-                      {selectedBiz.verificationStatus === 'verified' ? 'موثق ومبثوث' : 'قيد المراجعة'}
-                    </span>
+          {/* 🌟 Selected Business Companion Card on Map View */}
+          {mode === 'view' && selectedBiz && (() => {
+            const { effectiveUrl, isOfficial } = getBusinessMapDetails(selectedBiz);
+            const smartWhatsAppUrl = getSmartWhatsAppUrl(selectedBiz);
+            const openStatus = getBusinessOpenStatus(selectedBiz.workingHours);
+            const phone = selectedBiz.phone || selectedBiz.ownerPhone;
+            const photoUrl =
+              selectedBiz.coverPhoto ||
+              (selectedBiz.photos && selectedBiz.photos.length > 0
+                ? selectedBiz.photos[0]
+                : `/api/biz-og?biz=${selectedBiz.id}`);
+
+            return (
+              <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3 bg-slate-950/95 border-2 border-amber-500/50 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-xl z-30 flex flex-col gap-2.5 animate-fade-in-scale">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <img
+                      src={photoUrl}
+                      alt={selectedBiz.nameAr}
+                      className="w-12 h-12 rounded-xl object-cover border border-amber-500/30 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/40">
+                          {selectedBiz.category}
+                        </span>
+                        <span
+                          className={`text-[9.5px] font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                            selectedBiz.verificationStatus === 'verified'
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${openStatus.dotColor}`} />
+                          <span>{openStatus.isOpen ? 'مفتوح' : 'مغلق'}</span>
+                        </span>
+                      </div>
+                      <h3 className="text-sm sm:text-base font-black text-white truncate mt-0.5">
+                        {selectedBiz.nameAr}
+                      </h3>
+                      <p className="text-[11px] text-slate-300 font-medium truncate">
+                        {selectedBiz.governorate} • {selectedBiz.city} {selectedBiz.street ? `(${selectedBiz.street})` : ''}
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="text-sm sm:text-base font-black text-white mt-1.5">{selectedBiz.nameAr}</h3>
-                  <p className="text-xs text-slate-300 font-medium">
-                    {selectedBiz.governorate} - {selectedBiz.city} {selectedBiz.street ? `(${selectedBiz.street})` : ''}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedBiz(null)}
-                  className="text-slate-400 hover:text-white text-xs font-black w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer transition-colors"
-                  aria-label="إغلاق"
-                >
-                  ✕
-                </button>
-              </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
-                <div className="flex items-center gap-1.5 text-slate-300 font-mono text-xs">
-                  <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>{selectedBiz.ownerPhone || 'لا يوجد هاتف'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBiz(null)}
+                    className="text-slate-400 hover:text-white text-xs font-black w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                    aria-label="إغلاق البطاقة"
+                  >
+                    ✕
+                  </button>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {onEditBusiness && (
-                    <button
-                      type="button"
-                      onClick={() => onEditBusiness(selectedBiz)}
-                      className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow cursor-pointer transition-transform active:scale-95"
-                      title="عرض وتعديل كافة البيانات في نافذة خاصة"
-                    >
-                      <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>عرض وتعديل</span>
-                    </button>
-                  )}
-                  {selectedBiz.ownerPhone && (
+                {/* Direct Seeker Action Buttons */}
+                <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-800 text-xs font-black">
+                  {/* Directions */}
+                  {effectiveUrl ? (
                     <a
-                      href={`https://wa.me/20${selectedBiz.ownerPhone.replace(/^0/, '')}`}
+                      href={effectiveUrl}
                       target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 sm:flex-none bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 transition-colors"
+                      rel="noopener noreferrer"
+                      className={`py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                        isOfficial
+                          ? 'bg-blue-500/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30'
+                          : 'bg-emerald-500/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30'
+                      }`}
+                      title="فتح الاتجاهات على خرائط Google"
                     >
-                      واتساب
-                    </a>
-                  )}
-                  {/* Google Maps Verified Link: Only active when official verified URL exists */}
-                  {selectedBiz.googleMapsUrl && selectedBiz.googleMapsUrl.trim().startsWith('http') ? (
-                    <a
-                      href={selectedBiz.googleMapsUrl.trim()}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow transition-colors"
-                      title="الموقع موثق رسمياً: فتح على خرائط Google"
-                    >
-                      <span>الخريطة الموثقة 🗺️</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <Navigation className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">اتجاهات</span>
                     </a>
                   ) : (
-                    <span
-                      className="flex-1 sm:flex-none bg-slate-800/90 text-amber-400 text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1 border border-amber-500/30 cursor-default"
-                      title="الموقع غير مدرج بعد على خرائط Google (قيد مراجعة وتوثيق الإدارة ⏳)"
+                    <button
+                      type="button"
+                      disabled
+                      className="py-2 px-1 rounded-xl bg-slate-900 text-slate-500 text-center flex items-center justify-center gap-1 opacity-50"
                     >
-                      <span>قيد التوثيق ⏳</span>
-                    </span>
+                      <Navigation className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">اتجاهات</span>
+                    </button>
                   )}
+
+                  {/* WhatsApp */}
+                  {phone ? (
+                    <a
+                      href={smartWhatsAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-1 rounded-xl bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 text-center flex items-center justify-center gap-1 transition-colors active:scale-95 cursor-pointer"
+                      title="محادثة واتساب مباشرة"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">واتساب</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="py-2 px-1 rounded-xl bg-slate-900 text-slate-500 text-center flex items-center justify-center gap-1 opacity-50"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">واتساب</span>
+                    </button>
+                  )}
+
+                  {/* Phone Call */}
+                  {phone ? (
+                    <a
+                      href={`tel:${phone}`}
+                      className="py-2 px-1 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 text-center flex items-center justify-center gap-1 transition-colors active:scale-95 cursor-pointer"
+                      title="اتصال هاتفي مباشر"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">اتصال</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="py-2 px-1 rounded-xl bg-slate-900 text-slate-500 text-center flex items-center justify-center gap-1 opacity-50"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">اتصال</span>
+                    </button>
+                  )}
+
+                  {/* Full Details Modal */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onSelectBusiness) onSelectBusiness(selectedBiz);
+                    }}
+                    className="py-2 px-1 rounded-xl bg-amber-500 hover:bg-yellow-400 text-slate-950 text-center flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow"
+                    title="عرض كامل التفاصيل والصور"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">تفاصيل</span>
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* GPS Coordinates & Footer Toolbar */}

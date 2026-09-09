@@ -76,21 +76,21 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
   handleRequestLocation,
 }) => {
   return (
-    <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+    <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5 space-y-4">
       {/* Section Header & View Mode Switcher */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
         <div>
-          <h2 className="text-lg sm:text-xl font-black text-[var(--text-primary)] flex items-center gap-2">
-            <Layers className="w-5 h-5 text-amber-500" />
-            <span>الأنشطة والخدمات المتاحة</span>
+          <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)] flex items-center gap-2">
+            <Layers className="w-4 h-4 text-amber-500" />
+            <span>الأنشطة والخدمات الميدانية</span>
             {filteredBusinesses.length > 0 && (
               <span className="text-xs font-mono bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">
                 {filteredBusinesses.length}
               </span>
             )}
           </h2>
-          <p className="text-xs text-[var(--text-muted)] font-bold mt-0.5">
-            تصفح الأنشطة الميدانية الموثقة مع بيانات الاتصال ومقاطع الفيديو والعناوين الدقيقة
+          <p className="text-[11px] text-[var(--text-muted)] font-bold mt-0.5">
+            تصفح الأماكن المعتمدة مع عناوين دقيقة وأزرار اتصال واتجاهات فورية
           </p>
         </div>
 
@@ -99,19 +99,19 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
           <button
             type="button"
             onClick={() => setActiveView('grid')}
-            className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
               activeView === 'grid'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>عرض الشبكة</span>
+            <span>عرض البطاقات</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveView('map')}
-            className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
               activeView === 'map'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -137,116 +137,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
 
       {/* GRID VIEW */}
       {activeView === 'grid' && (
-        <div className="space-y-6">
-          {/* 🧭 Smart Discovery Rail (أقسام الاستكشاف الذكية السريعة) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-black select-none">
-            <button
-              type="button"
-              onClick={() => {
-                if (setCategoryFilter) setCategoryFilter('all');
-                if (setSortBy) setSortBy('default');
-              }}
-              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
-                (!categoryFilter || categoryFilter === 'all') && (!sortBy || sortBy === 'default')
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>كل الأنشطة</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (!userCoords && handleRequestLocation) handleRequestLocation();
-                if (setSortBy) setSortBy('nearest');
-              }}
-              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
-                sortBy === 'nearest'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>الأقرب إليك</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (setSortBy) setSortBy('open_now');
-              }}
-              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
-                sortBy === 'open_now'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5 text-emerald-500" />
-              <span>مفتوح الآن</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (setSortBy) setSortBy('newest');
-              }}
-              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
-                sortBy === 'newest'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              }`}
-            >
-              <Award className="w-3.5 h-3.5 text-amber-500" />
-              <span>جديد في منطقتك</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (setCategoryFilter) setCategoryFilter('طبي');
-              }}
-              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
-                categoryFilter?.includes('طبي') || categoryFilter?.includes('صيدل')
-                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-black'
-                  : 'bg-[var(--input-bg)] text-rose-500 hover:bg-rose-500/10 border border-rose-500/30'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>خدمات الطوارئ والطب</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (setCategoryFilter) setCategoryFilter('مطاعم ومأكولات');
-              }}
-              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
-                categoryFilter === 'مطاعم ومأكولات'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              }`}
-            >
-              <UtensilsCrossed className="w-3.5 h-3.5" />
-              <span>طعام ومطاعم</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (setCategoryFilter) setCategoryFilter('سيارات وصيانة');
-              }}
-              className={`px-4 py-2.5 rounded-2xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95 ${
-                categoryFilter === 'سيارات وصيانة'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              }`}
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span>سيارات وخدمات</span>
-            </button>
-          </div>
+        <div className="space-y-4">
 
           {/* Loading Shimmer */}
           {loading && businesses.length === 0 && (
@@ -480,60 +371,86 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                         </div>
                       </div>
 
-                      {/* Layer 3: Fixed Action Bar */}
-                      <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
-                        {/* Call */}
-                        {biz.phone && (
-                          <a
-                            href={`tel:${biz.phone}`}
-                            className="w-10 h-10 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-emerald-500/30 active:scale-95"
-                            title="اتصال هاتفي مباشر"
-                            aria-label="اتصال هاتفياً"
-                          >
-                            <Phone className="w-4 h-4" />
-                          </a>
-                        )}
-
-                        {/* WhatsApp */}
-                        {biz.phone && (
-                          <a
-                            href={smartWhatsAppUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-10 h-10 rounded-xl bg-emerald-600/15 hover:bg-emerald-600 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-emerald-600/30 active:scale-95"
-                            title="محادثة واتساب مباشرة"
-                            aria-label="واتساب"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </a>
-                        )}
-
-                        {/* Navigation */}
-                        {effectiveUrl && (
+                      {/* Layer 3: Seeker Decision Action Bar [اتجاهات] [واتساب] [اتصال] */}
+                      <div className="pt-3 border-t border-[var(--border-color)] grid grid-cols-3 gap-1.5">
+                        {/* 1. Directions */}
+                        {effectiveUrl ? (
                           <a
                             href={effectiveUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border active:scale-95 ${
+                            onClick={(e) => e.stopPropagation()}
+                            className={`py-2 px-1 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 ${
                               isOfficial
-                                ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border-blue-500/30'
-                                : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/30'
+                                ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 dark:text-blue-400 hover:text-white border border-blue-500/30'
+                                : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-white border border-emerald-500/30'
                             }`}
                             title={isOfficial ? 'فتح على خرائط Google' : 'الموقع الجغرافي للمكان على الخريطة'}
-                            aria-label="الموقع على الخريطة"
                           >
-                            {isOfficial ? <Navigation className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                            <Navigation className="w-3.5 h-3.5" />
+                            <span>اتجاهات</span>
                           </a>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenBusiness(biz);
+                            }}
+                            className="py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1 bg-[var(--input-bg)] text-[var(--text-muted)] border border-[var(--border-color)]"
+                          >
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>الموقع</span>
+                          </button>
                         )}
 
-                        {/* Primary CTA */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenBusiness(biz)}
-                          className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2.5 px-3 rounded-xl transition-all cursor-pointer text-center shadow-xs hover:shadow-amber-500/20 active:scale-95 truncate"
-                        >
-                          التفاصيل والتواصل
-                        </button>
+                        {/* 2. WhatsApp */}
+                        {biz.phone ? (
+                          <a
+                            href={smartWhatsAppUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="py-2 px-1 rounded-xl text-xs font-black bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-white border border-emerald-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                            title="محادثة واتساب مباشرة"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>واتساب</span>
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="py-2 px-1 rounded-xl text-xs bg-[var(--input-bg)] text-[var(--text-muted)] border border-[var(--border-color)] font-bold flex items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>واتساب</span>
+                          </button>
+                        )}
+
+                        {/* 3. Direct Call */}
+                        {biz.phone ? (
+                          <a
+                            href={`tel:${biz.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="py-2 px-1 rounded-xl text-xs font-black bg-amber-500/20 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-slate-950 border border-amber-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                            title="اتصال هاتفي فوري"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>اتصال</span>
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenBusiness(biz);
+                            }}
+                            className="py-2 px-1 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                          >
+                            <span>تفاصيل</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
