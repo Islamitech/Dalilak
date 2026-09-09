@@ -3,6 +3,7 @@ import { PayoutRequest, Representative, User } from '../../../types';
 import { PAYOUT_METHOD_LABELS } from '../../../utils/commission';
 import { isSuperAdmin } from '../../../utils/permissions';
 import { formatStandardDateTime } from '../../../utils/dateFormatters';
+import { safeWhatsAppEncode, formatWhatsAppPhone } from '../../../utils/whatsapp/phoneFormatter';
 import {
   Clock,
   CheckCircle2,
@@ -282,10 +283,12 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
           {filteredPayouts.map((payout) => {
             const rep = representatives.find((r) => r.id === payout.repId);
             const isPending = payout.status === 'pending';
-            const formattedPhone = (payout.repPhone || '').replace(/^0/, '');
-            const waUrl = `https://wa.me/20${formattedPhone}?text=${encodeURIComponent(
-              `مرحباً زميلنا ${payout.repName}، بخصوص طلب سحب العمولة بقيمة ${payout.amount} ج.م...`
-            )}`;
+            const waPhone = formatWhatsAppPhone(payout.repPhone);
+            const waUrl = waPhone
+              ? `https://wa.me/${waPhone}?text=${safeWhatsAppEncode(
+                  `مرحباً زميلنا ${payout.repName}، بخصوص طلب سحب العمولة بقيمة ${payout.amount} ج.م...`
+                )}`
+              : '#';
             const isRemittance = payout.type === 'remittance';
             const repToInspect = rep || {
               id: payout.repId,

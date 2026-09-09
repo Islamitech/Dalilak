@@ -6,7 +6,7 @@ import {
   getOfflineLeads,
   removeOfflineLead,
 } from '../offlineSync';
-import { mapDbToLead, mapLeadToDb, healCategoryMismatch } from './dbMappers';
+import { mapDbToLead, mapLeadToDb, healCategoryMismatch, stripBiDiControls, BIDI_CONTROL_REGEX } from './dbMappers';
 
 
 export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]> {
@@ -14,7 +14,14 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
   const leadMap = new Map<string, InterestedLead>();
   if (Array.isArray(cached)) {
     cached.forEach((l: InterestedLead) => {
-      if (l && l.id) leadMap.set(l.id, l);
+      if (l && l.id) {
+        leadMap.set(l.id, {
+          ...l,
+          clientName: stripBiDiControls(l.clientName),
+          businessName: stripBiDiControls(l.businessName),
+          notes: typeof l.notes === 'string' ? l.notes.replace(BIDI_CONTROL_REGEX, '') : l.notes,
+        });
+      }
     });
   }
 
@@ -29,8 +36,8 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
           if (!leadMap.has(leadId) && !leadMap.has(b.id)) {
             leadMap.set(leadId, {
               id: leadId,
-              clientName: b.ownerName || b.nameAr || 'عميل محتمل',
-              businessName: b.nameAr || b.nameEn || 'نشاط تجاري',
+              clientName: stripBiDiControls(b.ownerName || b.nameAr || 'عميل محتمل'),
+              businessName: stripBiDiControls(b.nameAr || b.nameEn || 'نشاط تجاري'),
               businessCategory: healCategoryMismatch(b.category, b.nameAr || b.nameEn || '', b.description || ''),
               phone: b.phone || b.ownerPhone || '',
               secondaryPhone: b.secondaryPhone,
@@ -155,18 +162,24 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
 }
 
 export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead> {
-  const dbRecord = mapLeadToDb(lead);
+  const sanitizedLead: InterestedLead = {
+    ...lead,
+    clientName: stripBiDiControls(lead.clientName),
+    businessName: stripBiDiControls(lead.businessName),
+    notes: typeof lead.notes === 'string' ? lead.notes.replace(BIDI_CONTROL_REGEX, '') : lead.notes,
+  };
+  const dbRecord = mapLeadToDb(sanitizedLead);
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
-  const cleanPhone = lead.phone || '01000000000';
+  const cleanPhone = sanitizedLead.phone || '01000000000';
 
   // 1. Guaranteed IndexedDB local persistence
-  await saveOfflineLead(lead);
+  await saveOfflineLead(sanitizedLead);
 
   // 2. Immediate Local Cache update
   try {
     const cached = safeParseJson<InterestedLead[]>(localStorage.getItem('dalelak_cached_leads'), []);
     const map = new Map<string, InterestedLead>();
-    map.set(lead.id, lead);
+    map.set(sanitizedLead.id, sanitizedLead);
     if (Array.isArray(cached)) {
       cached.forEach((l: InterestedLead) => {
         if (!map.has(l.id)) map.set(l.id, l);

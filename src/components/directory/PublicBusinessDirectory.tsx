@@ -107,18 +107,16 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     }
     if (isRep && repScope === 'my') {
       const myId = (currentUser?.id || '').toLowerCase().trim();
-      const myName = (currentUser?.name || '').toLowerCase().trim();
       return businesses.filter((b) => {
         const bRepId = (b.repId || '').toLowerCase().trim();
-        const bRepName = (b.repName || '').toLowerCase().trim();
-        return (myId && bRepId === myId) || (myName && bRepName === myName);
+        return Boolean(myId && bRepId === myId);
       });
     }
     if (isRep && repScope === 'all') {
-      return businesses.filter((b) => b.verificationStatus !== 'rejected');
+      return businesses.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
     }
-    // Public unauthenticated visitors
-    return businesses.filter((b) => b.verificationStatus !== 'rejected' && (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced'));
+    // Public unauthenticated visitors: see only verified published businesses
+    return businesses.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
   }, [businesses, isRep, isManagerial, repScope, currentUser]);
 
   const hasRegisteredBiz = displayableBusinesses.length > 0;
@@ -323,9 +321,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           {isRep && onToggleRepScope && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-2.5 sm:p-3 rounded-2xl">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-amber-600 dark:text-amber-400">🌐 استعراض الأنشطة:</span>
+                <span className="text-xs font-black text-amber-600 dark:text-amber-400">استعراض الأنشطة:</span>
                 <span className="text-[11px] text-[var(--text-muted)] font-medium">
-                  {repScope === 'my' ? 'تعرض حالياً أنشطتك الميدانية المسجلة فقط' : 'تعرض حالياً جميع أنشطة الشبكة السحابية في مصر'}
+                  {repScope === 'my' ? 'تعرض حالياً أنشطتك الميدانية المسجلة فقط' : 'تعرض حالياً الأنشطة المعتمدة في الدليل العام'}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)] self-start sm:self-auto shrink-0 shadow-2xs">
@@ -338,7 +336,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <span>📍 أنشطتي فقط</span>
+                  <span>أنشطتي فقط</span>
                   <span className="font-mono text-[10.5px]">({myBusinessesCount})</span>
                 </button>
                 <button
@@ -350,8 +348,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <span>☁️ شبكة السحابة</span>
-                  <span className="font-mono text-[10.5px]">({businesses.length})</span>
+                  <span>الدليل العام المعتمد</span>
+                  <span className="font-mono text-[10.5px]">({businesses.filter((b) => b.verificationStatus === 'verified').length})</span>
                 </button>
               </div>
             </div>

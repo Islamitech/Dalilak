@@ -3,6 +3,7 @@ import { InterestedLead, User } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { formatActivityDateTime } from '../../../utils/dateFormatters';
 import { sanitizeExternalUrl } from '../../../utils/urlSanitizer';
+import { safeWhatsAppEncode, formatWhatsAppPhone } from '../../../utils/whatsapp/phoneFormatter';
 import {
   UserCheck,
   Sparkles,
@@ -250,11 +251,10 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
       {filteredLeads.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filteredLeads.map((lead) => {
-            const cleanPhone = (lead.phone || '').replace(/\D/g, '');
-            const waUrl = cleanPhone
-              ? `https://wa.me/2${cleanPhone.startsWith('0') ? cleanPhone : '0' + cleanPhone}?text=${encodeURIComponent(
-                  `أهلاً بحضرتك أستاذ ${lead.clientName}، بخصوص استفسارك عن إضافة "${lead.businessName || 'نشاطك التجاري'}" على منصة دليلك وتوثيقه على خرائط جوجل...`
-                )}`
+            const waPhone = formatWhatsAppPhone(lead.phone);
+            const waMsg = `أهلاً بحضرتك أستاذ ${lead.clientName}، بخصوص استفسارك عن إضافة "${lead.businessName || 'نشاطك التجاري'}" على منصة دليلك وتوثيقه على خرائط جوجل...`;
+            const waUrl = waPhone
+              ? `https://wa.me/${waPhone}?text=${safeWhatsAppEncode(waMsg)}`
               : '#';
 
             return (
@@ -414,7 +414,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                       <Phone className="w-3 h-3" />
                       <span>اتصال</span>
                     </a>
-                    {cleanPhone && (
+                    {waPhone && (
                       <a
                         href={waUrl}
                         target="_blank"

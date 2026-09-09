@@ -1,6 +1,14 @@
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote, AdditionalServiceInvoice } from '../../types';
 import { safeParseJson } from '../../utils/storage';
 
+// 🛡️ Comprehensive BiDi Control Characters Regex (strips \u202E, \u202B, \u200E, etc. preventing backwards scrambled text)
+export const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
+export function stripBiDiControls(str?: string | null): string {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(BIDI_CONTROL_REGEX, '').trim();
+}
+
 export function parsePhotosArray(item: any): string[] {
   const raw = item.photos || item.photos_urls || item.photosUrls;
   if (!raw) return [];
@@ -259,8 +267,8 @@ export function mapDbToBusiness(item: any): Business {
 
   return {
     id: item.id || `biz_${Date.now()}`,
-    nameAr: item.name_ar || item.nameAr || 'المكان',
-    nameEn: item.name_en || item.nameEn,
+    nameAr: stripBiDiControls(item.name_ar || item.nameAr || 'المكان'),
+    nameEn: item.name_en ? stripBiDiControls(item.name_en) : (item.nameEn ? stripBiDiControls(item.nameEn) : undefined),
     category: cleanCategory,
     governorate: item.governorate || 'القاهرة',
     city: item.city || 'القاهرة',
@@ -269,10 +277,10 @@ export function mapDbToBusiness(item: any): Business {
     phone: item.phone || '',
     secondaryPhone: item.secondary_phone || item.secondaryPhone,
     workingHours: item.working_hours || item.workingHours || '9 ص - 10 م',
-    description: item.description || '',
+    description: typeof item.description === 'string' ? item.description.replace(BIDI_CONTROL_REGEX, '') : '',
     lat,
     lng,
-    ownerName: item.owner_name || item.ownerName || 'صاحب المكان',
+    ownerName: stripBiDiControls(item.owner_name || item.ownerName || 'صاحب المكان'),
     ownerPhone: item.owner_phone || item.ownerPhone || '',
     ownerEmail: item.owner_email || item.ownerEmail,
     nationalId: item.national_id || item.nationalId,
@@ -305,7 +313,7 @@ export function mapDbToBusiness(item: any): Business {
     favoriteCount: metaFavoriteCount || 0,
     invoiceNumber: item.invoice_number || item.invoiceNumber || 'INV-2026-001',
     invoiceDate: item.invoice_date || item.invoiceDate || new Date().toISOString().split('T')[0],
-    notes: pureNotes,
+    notes: typeof pureNotes === 'string' ? pureNotes.replace(BIDI_CONTROL_REGEX, '') : pureNotes,
     adminFollowUps: finalAdminFollowUps,
     additionalInvoices: finalAdditionalInvoices,
     createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
@@ -326,8 +334,9 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   const isExempt = Boolean(isAlreadyOnGoogle || biz.isFeeExempt || biz.packagePrice === 0);
   const record: any = {};
   if (biz.id !== undefined) record.id = biz.id;
-  record.name_ar = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'المكان';
-  if (biz.nameEn !== undefined) record.name_en = biz.nameEn?.trim() || null;
+  const rawName = (biz.nameAr && biz.nameAr.trim()) || (biz.nameEn && biz.nameEn.trim()) || 'المكان';
+  record.name_ar = stripBiDiControls(rawName);
+  if (biz.nameEn !== undefined) record.name_en = biz.nameEn ? stripBiDiControls(biz.nameEn) : null;
   record.category = healCategoryMismatch(
     biz.category,
     biz.nameAr || '',
@@ -340,10 +349,10 @@ export function getSafeCoreBusinessDbRecord(biz: Partial<Business>): any {
   record.phone = (biz.phone && biz.phone.trim()) || (biz.ownerPhone && biz.ownerPhone.trim()) || '01000000000';
   record.secondary_phone = biz.secondaryPhone?.trim() || null;
   record.working_hours = biz.workingHours || 'يومياً من 9:00 صباحاً حتى 11:00 مساءً';
-  record.description = biz.description || `منشأة ${record.name_ar} في ${record.governorate}`;
+  record.description = biz.description ? stripBiDiControls(biz.description) : `منشأة ${record.name_ar} في ${record.governorate}`;
   record.lat = Number(biz.lat) || 30.0444;
   record.lng = Number(biz.lng) || 31.2357;
-  record.owner_name = (biz.ownerName && biz.ownerName.trim()) || 'صاحب المكان';
+  record.owner_name = stripBiDiControls((biz.ownerName && biz.ownerName.trim()) || 'صاحب المكان');
   record.owner_phone = (biz.ownerPhone && biz.ownerPhone.trim()) || (biz.phone && biz.phone.trim()) || record.phone || '01000000000';
   record.owner_email = biz.ownerEmail?.trim() || null;
   record.national_id = biz.nationalId?.trim() || null;
@@ -783,8 +792,8 @@ export function mapDbToLead(item: any): InterestedLead {
 
   return {
     id: item.id || `lead_${Date.now()}`,
-    clientName: item.client_name || item.clientName || item.name || 'عميل محتمل',
-    businessName: item.business_name || item.businessName || item.business_type || 'المكان',
+    clientName: stripBiDiControls(item.client_name || item.clientName || item.name || 'عميل محتمل'),
+    businessName: stripBiDiControls(item.business_name || item.businessName || item.business_type || 'المكان'),
     businessCategory: healCategoryMismatch(
       item.business_category || item.businessCategory,
       item.business_name || item.businessName || item.business_type || '',
@@ -800,7 +809,7 @@ export function mapDbToLead(item: any): InterestedLead {
     locationUrl: locationUrl || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : undefined),
     interestLevel: (isTrending ? 'trending_free' : (item.interest_level || item.interestLevel || 'high')) as any,
     isTrending,
-    notes: item.notes,
+    notes: typeof item.notes === 'string' ? item.notes.replace(BIDI_CONTROL_REGEX, '') : item.notes,
     adminFollowUps,
     followUpDate: item.follow_up_date || item.followUpDate,
     createdDate: item.created_at || item.created_date || item.createdDate || item.invoice_date || new Date().toISOString(),
@@ -814,8 +823,8 @@ export function mapDbToLead(item: any): InterestedLead {
 export function mapLeadToDb(lead: InterestedLead): any {
   return {
     id: lead.id,
-    client_name: lead.clientName,
-    business_name: lead.businessName || null,
+    client_name: stripBiDiControls(lead.clientName),
+    business_name: lead.businessName ? stripBiDiControls(lead.businessName) : null,
     business_category: healCategoryMismatch(lead.businessCategory, lead.businessName || '', lead.notes || '') || null,
     phone: lead.phone,
     secondary_phone: lead.secondaryPhone || null,
@@ -827,7 +836,7 @@ export function mapLeadToDb(lead: InterestedLead): any {
     location_url: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
     interest_level: lead.isTrending ? 'trending_free' : lead.interestLevel,
     is_trending: Boolean(lead.isTrending),
-    notes: lead.notes || null,
+    notes: typeof lead.notes === 'string' ? lead.notes.replace(BIDI_CONTROL_REGEX, '') : (lead.notes || null),
     admin_follow_ups: Array.isArray(lead.adminFollowUps) ? lead.adminFollowUps : [],
     follow_up_date: lead.followUpDate || null,
     created_at: lead.createdDate,

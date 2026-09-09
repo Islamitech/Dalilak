@@ -24,8 +24,12 @@ export function formatWhatsAppPhone(phone?: string): string {
   return `20${localClean}`;
 }
 
+export const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
 export function cleanWhatsAppText(text: string): string {
+  if (!text || typeof text !== 'string') return '';
   return text
+    .replace(BIDI_CONTROL_REGEX, '')
     .replace(/[\uFE00-\uFE0F\u200B-\u200D\uFFFD\u00A0]/g, ' ')
     .replace(/\r\n/g, '\n')
     .trim();

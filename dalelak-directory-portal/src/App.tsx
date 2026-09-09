@@ -10,18 +10,28 @@ const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publish
 // google_maps_url, google_place_id, google_sync_status are stored in the 'notes' JSON field.
 // whatsapp is read from phone field as fallback in mapRawToBusiness.
 const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,created_at';
-const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&order=created_at.desc`;
-const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&order=created_at.desc`;
+const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
+const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
+
+// 🛡️ BiDi Control Characters Regex (strips \u202E, \u202B, \u200E, etc.)
+const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
 export default function App() {
   const [businesses, setBusinesses] = useState<Business[]>(() => {
     try {
-      const cached = localStorage.getItem('dalelak_directory_cache') || localStorage.getItem('dalelak_cached_businesses');
+      const cached = localStorage.getItem('dalelak_directory_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Strip any old stale base64 photos so cards always display fresh live images
-          return parsed.map((b: any) => ({ ...b, photos: [] }));
+          // Strictly verified and published only
+          return parsed
+            .filter((b: any) => (b.verificationStatus === 'verified' || b.verification_status === 'verified') && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted')
+            .map((b: any) => ({
+              ...b,
+              nameAr: typeof b.nameAr === 'string' ? b.nameAr.replace(BIDI_CONTROL_REGEX, '').trim() : b.nameAr,
+              nameEn: typeof b.nameEn === 'string' ? b.nameEn.replace(BIDI_CONTROL_REGEX, '').trim() : b.nameEn,
+              photos: []
+            }));
         }
       }
     } catch {}
@@ -29,13 +39,15 @@ export default function App() {
   });
   const [loading, setLoading] = useState<boolean>(() => {
     try {
-      const cached = localStorage.getItem('dalelak_directory_cache') || localStorage.getItem('dalelak_cached_businesses');
+      const cached = localStorage.getItem('dalelak_directory_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return false;
+        if (Array.isArray(parsed) && parsed.some((b: any) => (b.verificationStatus === 'verified' || b.verification_status === 'verified') && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted')) {
+          return false;
+        }
       }
     } catch {}
-    return true; // Always true if no cached data exists, until Supabase responds
+    return true; // Always true if no verified cached data exists, until Supabase responds
   });
   const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
 
@@ -55,6 +67,7 @@ export default function App() {
     let metaViewsCount: number = Number(r.views_count ?? r.viewsCount ?? 0);
     let metaFavoriteCount: number = Number(r.favorite_count ?? r.favoriteCount ?? 0);
     let metaCustomDirectoryUrl: string | undefined = r.custom_directory_url || r.customDirectoryUrl;
+    let metaPublishedStatus: 'published' | 'draft' | 'unlisted' | undefined = undefined;
 
     if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')) {
       try {
@@ -75,6 +88,7 @@ export default function App() {
           if (parsed.isDeleted !== undefined && !metaIsDeleted) metaIsDeleted = Boolean(parsed.isDeleted);
           if (parsed.viewsCount !== undefined && !metaViewsCount) metaViewsCount = Number(parsed.viewsCount);
           if (parsed.favoriteCount !== undefined && !metaFavoriteCount) metaFavoriteCount = Number(parsed.favoriteCount);
+          if (parsed.publishedStatus) metaPublishedStatus = parsed.publishedStatus;
         }
       } catch {}
     }
@@ -110,8 +124,8 @@ export default function App() {
 
     return {
       id: r.id,
-      nameAr: r.name_ar || r.nameAr || '',
-      nameEn: r.name_en || r.nameEn || '',
+      nameAr: (r.name_ar || r.nameAr || '').replace(BIDI_CONTROL_REGEX, '').trim(),
+      nameEn: (r.name_en || r.nameEn || '').replace(BIDI_CONTROL_REGEX, '').trim(),
       category: r.category || 'خدمات عامة',
       governorate: r.governorate || 'الجيزة',
       city: r.city || '',
@@ -123,7 +137,7 @@ export default function App() {
       secondaryPhone: r.secondary_phone || r.secondaryPhone || '',
       whatsapp: r.whatsapp || r.phone || '',
       workingHours: r.working_hours || r.workingHours || '',
-      description: r.description || '',
+      description: typeof r.description === 'string' ? r.description.replace(BIDI_CONTROL_REGEX, '') : '',
       photos: rawPhotos,
       coverPhoto: metaCoverPhoto || (rawPhotos.length > 0 ? rawPhotos[0] : undefined),
       videos: rawVideos,
@@ -133,6 +147,7 @@ export default function App() {
       googleMapsUrl: cleanGoogleMapsUrl,
       customDirectoryUrl: metaCustomDirectoryUrl,
       verificationStatus: r.verification_status || r.verificationStatus || 'pending',
+      publishedStatus: metaPublishedStatus || r.published_status || r.publishedStatus || 'published',
       googleSyncStatus: metaGoogleSyncStatus || r.google_sync_status || r.googleSyncStatus || 'not_synced',
       googleRatingEnabled: metaGoogleRatingEnabled !== undefined ? metaGoogleRatingEnabled : undefined,
       googleRating: metaGoogleRating !== undefined ? metaGoogleRating : undefined,
@@ -189,7 +204,9 @@ export default function App() {
         if (res.ok) {
           const raw = await res.json();
           if (Array.isArray(raw) && isMounted && raw.length > 0) {
-            const mapped: Business[] = raw.map((r) => mapRawToBusiness(r));
+            const mapped: Business[] = raw
+              .map((r) => mapRawToBusiness(r))
+              .filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
 
             setBusinesses(() => {
               const updated = mapped.sort(
@@ -235,30 +252,37 @@ export default function App() {
           if (!isMounted) return;
           if (payload.eventType === 'INSERT') {
             const newBiz = mapRawToBusiness(payload.new);
-            setBusinesses((prev) => {
-              const filtered = prev.filter((b) => b.id !== newBiz.id);
-              const updated = [newBiz, ...filtered];
-              try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
-              } catch {}
-              return updated;
-            });
-            triggerSyncToast('تمت إضافة منشأة جديدة واعتمادها للتو 🔔');
+            if (newBiz.verificationStatus === 'verified' && newBiz.publishedStatus !== 'draft' && newBiz.publishedStatus !== 'unlisted') {
+              setBusinesses((prev) => {
+                const filtered = prev.filter((b) => b.id !== newBiz.id);
+                const updated = [newBiz, ...filtered];
+                try {
+                  localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
+                } catch {}
+                return updated;
+              });
+              triggerSyncToast('تمت إضافة منشأة معتمدة جديدة بالدليل');
+            }
           } else if (payload.eventType === 'UPDATE') {
             const updatedBiz = mapRawToBusiness(payload.new);
+            const isStillVerified = updatedBiz.verificationStatus === 'verified' && updatedBiz.publishedStatus !== 'draft' && updatedBiz.publishedStatus !== 'unlisted';
             setBusinesses((prev) => {
-              const updated = prev.map((b) => (b.id === updatedBiz.id ? updatedBiz : b));
+              const updated = isStillVerified
+                ? prev.map((b) => (b.id === updatedBiz.id ? updatedBiz : b))
+                : prev.filter((b) => b.id !== updatedBiz.id);
               try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
               } catch {}
               return updated;
             });
-            triggerSyncToast('تم تحديث بيانات المنشأة مباشرة ⚡');
+            if (isStillVerified) {
+              triggerSyncToast('تم تحديث بيانات المنشأة في الدليل');
+            }
           } else if (payload.eventType === 'DELETE' && payload.old?.id) {
             setBusinesses((prev) => {
               const updated = prev.filter((b) => b.id !== payload.old.id);
               try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
               } catch {}
               return updated;
             });
@@ -272,12 +296,12 @@ export default function App() {
     if (syncChannel) {
       syncChannel.onmessage = (event) => {
         if (event.data?.type === 'SYNC_DATA') {
-          if (event.data.newBusiness) {
+          if (event.data.newBusiness && event.data.newBusiness.verificationStatus === 'verified' && event.data.newBusiness.publishedStatus !== 'draft' && event.data.newBusiness.publishedStatus !== 'unlisted') {
             setBusinesses((prev) => {
               const filtered = prev.filter((b) => b.id !== event.data.newBusiness.id);
               const updated = [event.data.newBusiness, ...filtered];
               try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated));
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
               } catch {}
               return updated;
             });
@@ -289,12 +313,14 @@ export default function App() {
 
     // 4. Storage Event Listener for Instant Cross-Tab Sync
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'dalelak_directory_cache' || e.key === 'dalelak_cached_businesses') {
+      if (e.key === 'dalelak_directory_cache') {
         try {
           if (e.newValue) {
             const parsed = JSON.parse(e.newValue);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setBusinesses(parsed);
+              setBusinesses(
+                parsed.filter((b: any) => (b.verificationStatus === 'verified' || b.verification_status === 'verified') && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted')
+              );
             }
           }
         } catch {}

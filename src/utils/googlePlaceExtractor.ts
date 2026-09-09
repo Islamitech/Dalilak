@@ -33,16 +33,24 @@ export function isGoogleMapsUrl(input: string): boolean {
   );
 }
 
+export const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
+export function stripBiDiControls(str?: string): string {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(BIDI_CONTROL_REGEX, '').trim();
+}
+
 /**
- * Sanitizes place names extracted from Google Maps links or titles (Update 38).
- * Separates pure business name from attached district/street address tokens.
+ * Sanitizes place names extracted from Google Maps links or titles (Update 38 & Update 47).
+ * Separates pure business name from attached district/street address tokens,
+ * and completely purges invisible BiDi directional overrides (\u202A-\u202E).
  */
 export function sanitizePlaceNameAndAddress(rawName: string): { cleanName: string; extraAddress?: string } {
   if (!rawName || typeof rawName !== 'string') {
     return { cleanName: '' };
   }
 
-  let text = rawName
+  let text = stripBiDiControls(rawName)
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -55,14 +63,14 @@ export function sanitizePlaceNameAndAddress(rawName: string): { cleanName: strin
   text = text.replace(/\s*[-·|–]\s*(Google Maps|خرائط Google|Google).*$/i, '').trim();
 
   // Split by common delimiters: Arabic comma (،), English comma (,), middle dot (·), or pipe (|)
-  const parts = text.split(/\s*[\u060C,·|]\s*/).map(p => p.trim()).filter(Boolean);
+  const parts = text.split(/\s*[\u060C,·|]\s*/).map(p => stripBiDiControls(p)).filter(Boolean);
 
   if (parts.length <= 1) {
-    return { cleanName: text };
+    return { cleanName: stripBiDiControls(text) };
   }
 
-  const cleanName = parts[0];
-  const extraAddress = parts.slice(1).join('، ');
+  const cleanName = stripBiDiControls(parts[0]);
+  const extraAddress = parts.slice(1).map(p => stripBiDiControls(p)).filter(Boolean).join('، ');
 
   return { cleanName, extraAddress };
 }
@@ -194,9 +202,10 @@ export async function extractGooglePlaceData(rawUrl: string): Promise<ExtractedG
           l.includes('google maps')
         );
       };
-      const safeAddress = (data.address && !isBoilerplate(data.address))
+      const rawAddress = (data.address && !isBoilerplate(data.address))
         ? data.address.trim()
         : (extraAddress || initial.address || undefined);
+      const safeAddress = stripBiDiControls(rawAddress) || undefined;
 
       // Primary classification attempt: place name + Google category
       const primaryTarget = [cleanPlaceName, cleanGoogleCategory].filter(Boolean).join(' ').trim();

@@ -250,11 +250,9 @@ export default function App() {
   const myBusinesses = useMemo(() => {
     if (user?.role === 'rep') {
       const myId = (currentRep.id || user.id || '').toLowerCase().trim();
-      const myName = (currentRep.name || user.name || '').toLowerCase().trim();
       return businesses.filter((b) => {
         const bRepId = (b.repId || '').toLowerCase().trim();
-        const bRepName = (b.repName || '').toLowerCase().trim();
-        return (myId && bRepId === myId) || (myName && bRepName === myName);
+        return Boolean(myId && bRepId === myId);
       });
     }
     return businesses;
@@ -262,7 +260,11 @@ export default function App() {
 
   const visibleBusinesses = useMemo(() => {
     if (user?.role === 'rep') {
-      return repViewScope === 'all' ? businesses : myBusinesses;
+      if (repViewScope === 'all') {
+        // Strictly filter to verified published businesses, never leaking other reps' private unverified entries
+        return businesses.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+      }
+      return myBusinesses;
     }
     return businesses;
   }, [user, repViewScope, businesses, myBusinesses]);

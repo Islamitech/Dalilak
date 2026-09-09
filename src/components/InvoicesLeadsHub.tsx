@@ -32,6 +32,9 @@ import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 import {
   generateTrendingVenuePermissionWhatsAppMessage,
   getTrendingVenuePermissionWhatsAppUrl,
+  safeWhatsAppEncode,
+  formatWhatsAppPhone,
+  cleanWhatsAppText,
 } from '../utils/whatsappMessages';
 import { findDuplicatePhoneEntity } from '../utils/phoneValidator';
 
@@ -132,18 +135,10 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     if (isRepAdmin) return leads;
     const myId = (currentUser?.id || currentRep?.id || '').toLowerCase().trim();
     const myRepDataId = (currentUser?.repData?.id || '').toLowerCase().trim();
-    const myName = (currentUser?.name || currentRep?.name || '').toLowerCase().trim();
 
     return leads.filter((l) => {
       const lRepId = (l.repId || '').toLowerCase().trim();
-      const lRepName = (l.repName || '').toLowerCase().trim();
-
-      const matchId = (myId && lRepId === myId) || (myRepDataId && lRepId === myRepDataId);
-      const matchName =
-        (myName && lRepName === myName) ||
-        (myName && lRepName && (lRepName.includes(myName) || myName.includes(lRepName)));
-
-      return matchId || matchName;
+      return Boolean((myId && lRepId === myId) || (myRepDataId && lRepId === myRepDataId));
     });
   }, [leads, currentUser, currentRep, isRepAdmin]);
 
@@ -309,12 +304,13 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
         businessName: lead.businessName,
       });
     } else {
-      const msg = generateWhatsAppMessage(lead, type);
-      const phoneClean = lead.phone.replace(/\D/g, '');
-      const internationalPhone = phoneClean.startsWith('0') ? `2${phoneClean}` : phoneClean;
-      url = `https://wa.me/${internationalPhone}?text=${encodeURIComponent(msg)}`;
+      const msg = cleanWhatsAppText(generateWhatsAppMessage(lead, type));
+      const waPhone = formatWhatsAppPhone(lead.phone);
+      url = waPhone ? `https://wa.me/${waPhone}?text=${safeWhatsAppEncode(msg)}` : '#';
     }
-    window.open(url, '_blank');
+    if (url && url !== '#') {
+      window.open(url, '_blank');
+    }
 
     // Update lead contact date
     onUpdateLead({

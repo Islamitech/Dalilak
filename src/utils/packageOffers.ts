@@ -1,5 +1,6 @@
 import { Business } from '../types';
 import { PACKAGES } from '../data/mockData';
+import { formatWhatsAppPhone, safeWhatsAppEncode, cleanWhatsAppText } from './whatsapp/phoneFormatter';
 
 /**
  * Generate formatted WhatsApp marketing pitch message for available package upgrades
@@ -44,7 +45,7 @@ export function generateUpgradeOffersWhatsAppMessage(business: Business): string
  * Generate WhatsApp URL for package upgrade offers
  */
 export function getUpgradeOffersWhatsAppUrl(business: Business): string {
-  const message = generateUpgradeOffersWhatsAppMessage(business);
-  const formattedPhone = (business.ownerPhone || '').replace(/^0/, '');
-  return `https://wa.me/20${formattedPhone}?text=${encodeURIComponent(message)}`;
+  const message = cleanWhatsAppText(generateUpgradeOffersWhatsAppMessage(business));
+  const phone = formatWhatsAppPhone(business.ownerPhone || business.phone);
+  return `https://wa.me/${phone}?text=${safeWhatsAppEncode(message)}`;
 }

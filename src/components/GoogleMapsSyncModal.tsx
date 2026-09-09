@@ -217,9 +217,6 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
   const remainingBalance = Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0));
   const isFullyPaid = business.paymentStatus === 'fully_paid' || remainingBalance === 0;
-  const cleanOwnerPhone = (business.ownerPhone || business.phone || '').replace(/\D/g, '').replace(/^0/, '');
-  const targetWaPhone = cleanOwnerPhone.startsWith('20') ? cleanOwnerPhone : `20${cleanOwnerPhone}`;
-  const verificationWhatsAppMessage = encodeURIComponent(generateGoogleMapsVerifiedWhatsAppMessage(business));
   const verificationWhatsAppUrl = getGoogleMapsVerifiedWhatsAppUrl(business);
 
   return createPortal(
@@ -719,7 +716,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             {/* Direct WhatsApp Verification Message Dispatch Button */}
             {currentStatus === 'synced' ? (
               <a
-                href={`https://wa.me/${targetWaPhone}?text=${verificationWhatsAppMessage}`}
+                href={verificationWhatsAppUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-98 cursor-pointer text-center"
@@ -801,7 +798,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
             {/* Direct Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <a
-                href={`https://wa.me/${targetWaPhone}?text=${verificationWhatsAppMessage}`}
+                href={verificationWhatsAppUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 text-center"

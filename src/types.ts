@@ -37,6 +37,7 @@ export interface Business {
   paymentReceiptPhoto?: string; // صورة إيصال / تحويل / لقطة شاشة سداد المكان
   paymentReceiptDate?: string;  // تاريخ تسجيل إيصال السداد
   verificationStatus: VerificationStatus;
+  publishedStatus?: 'published' | 'draft' | 'unlisted'; // حالة النشر بالدليل العام (لا يُنشر بالدليل إلا إذا كان معتمداً ومنشوراً)
   customDirectoryUrl?: string; // رابط مخصص يدوي لصفحة المنشأة على الدليل العام (يحدده المسؤول يدوياً أو يتركه للتوليد التلقائي)
   repLocationUrl?: string; // رابط موقع النقطة الميداني المرسل من المندوب (غير موثق - للاستخدام الإداري والمراجعة والرفع فقط)
   googleMapsUrl?: string;  // رابط خرائط Google المعتمد والموثق رسمياً (تضيفه الإدارة بعد التوثيق والظهور على خرائط Google)

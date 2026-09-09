@@ -7,7 +7,7 @@ import {
   getOfflineBusinesses,
   removeOfflineBusiness,
 } from '../offlineSync';
-import { mapDbToBusiness, mapBusinessToDb, mapPartialBusinessToDb, parsePhotosArray, parseVideosArray } from './dbMappers';
+import { mapDbToBusiness, mapBusinessToDb, mapPartialBusinessToDb, parsePhotosArray, parseVideosArray, BIDI_CONTROL_REGEX, stripBiDiControls } from './dbMappers';
 
 export function getCachedBusinesses(): Business[] {
   const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
@@ -18,17 +18,25 @@ export function getCachedBusinesses(): Business[] {
         (b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
       )
       .map((b) => {
-        if (!b.category || b.category === 'عملاء مهتمون' || b.category === 'عميل مهتم' || b.category === 'عام') {
-          const nameToCheck = ((b.nameAr || '') + ' ' + (b.description || '')).toLowerCase();
-          const cleanCat = (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية'))
+        const cleanNameAr = b.nameAr ? stripBiDiControls(b.nameAr) : b.nameAr;
+        const cleanOwnerName = b.ownerName ? stripBiDiControls(b.ownerName) : b.ownerName;
+        const cleanDesc = typeof b.description === 'string' ? b.description.replace(BIDI_CONTROL_REGEX, '') : b.description;
+        let cleanCat = b.category;
+        if (!cleanCat || cleanCat === 'عملاء مهتمون' || cleanCat === 'عميل مهتم' || cleanCat === 'عام') {
+          const nameToCheck = ((cleanNameAr || '') + ' ' + (cleanDesc || '')).toLowerCase();
+          cleanCat = (nameToCheck.includes('مندي') || nameToCheck.includes('مطعم') || nameToCheck.includes('مشويات') || nameToCheck.includes('كافيه') || nameToCheck.includes('حلواني') || nameToCheck.includes('شاورما') || nameToCheck.includes('مخبز') || nameToCheck.includes('أسماك') || nameToCheck.includes('أغذية'))
             ? 'مطعم / مأكولات ومشويات'
             : 'خدمات وأنشطة عامة';
-          return { ...b, category: cleanCat };
         }
-        return b;
+        return { ...b, nameAr: cleanNameAr, ownerName: cleanOwnerName, description: cleanDesc, category: cleanCat };
       });
   }
   return [];
+}
+export function getVerifiedBusinessesForDirectory(businesses: Business[]): Business[] {
+  return businesses.filter(
+    (b) => b && !b.isDeleted && b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted'
+  );
 }
 
 const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,owner_name,owner_phone,owner_email,national_id,package_id,package_name,package_price,amount_paid,payment_status,verification_status,rep_id,rep_name,invoice_number,invoice_date,notes,created_at';
@@ -66,7 +74,8 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
           try {
             const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-            safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
+            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList)));
+            safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
             safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
         }
@@ -89,7 +98,8 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
           try {
             const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-            safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
+            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList)));
+            safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
             safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
         }
@@ -262,7 +272,7 @@ export async function hydrateBusinessesPhotosInBackground(
           // Update cache with safe limits
           try {
             safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(getSafeBusinessesForStorage(updated)));
-            safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(updated)));
+            safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(updated))));
           } catch {}
         }
       }
@@ -391,7 +401,8 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
       try {
         const safePayload = JSON.stringify(getSafeBusinessesForStorage(merged));
         safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-        safeSetLocalStorageItem('dalelak_directory_cache', safePayload);
+        const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(merged)));
+        safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
         safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
       } catch {}
 
@@ -440,7 +451,7 @@ export async function saveBusinessToDb(biz: Business): Promise<{ success: boolea
       });
     }
     safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
-    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(Array.from(map.values())))));
   } catch {}
 
   let savedToCloud = false;
@@ -522,7 +533,7 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     mergedObj = { ...current, ...updates, id } as Business;
     map.set(id, mergedObj);
     safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
-    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(Array.from(map.values())));
+    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(Array.from(map.values())))));
   } catch {}
 
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;

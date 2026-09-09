@@ -33,6 +33,7 @@ import {
   User,
 } from '../types';
 import { formatActivityDateTime } from '../utils/dateFormatters';
+import { safeWhatsAppEncode, formatWhatsAppPhone } from '../utils/whatsapp/phoneFormatter';
 
 interface LeadFollowUpModalProps {
   lead: InterestedLead;
@@ -104,11 +105,10 @@ export const LeadFollowUpModal: React.FC<LeadFollowUpModalProps> = ({
     });
   }, []);
 
-  const cleanPhone = (currentLead.phone || '').replace(/\D/g, '');
-  const waUrl = cleanPhone
-    ? `https://wa.me/2${cleanPhone.startsWith('0') ? cleanPhone : '0' + cleanPhone}?text=${encodeURIComponent(
-        `أهلاً بحضرتك أستاذ ${currentLead.clientName}، بخصوص استفسارك عن إضافة "${currentLead.businessName || 'نشاطك التجاري'}" على منصة دليلك وتوثيقه على خرائط جوجل...`
-      )}`
+  const waPhone = formatWhatsAppPhone(currentLead.phone);
+  const waMsg = `أهلاً بحضرتك أستاذ ${currentLead.clientName}، بخصوص استفسارك عن إضافة "${currentLead.businessName || 'نشاطك التجاري'}" على منصة دليلك وتوثيقه على خرائط جوجل...`;
+  const waUrl = waPhone
+    ? `https://wa.me/${waPhone}?text=${safeWhatsAppEncode(waMsg)}`
     : null;
 
   const mapUrl =

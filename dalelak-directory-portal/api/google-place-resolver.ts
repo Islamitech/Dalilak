@@ -10,8 +10,15 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&#39;/g, "'");
 }
 
+const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
+export function stripBiDiControls(str?: string): string {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(BIDI_CONTROL_REGEX, '').trim();
+}
+
 function cleanPlaceName(rawName: string): { name: string; extraAddress?: string } {
-  let name = decodeHtmlEntities(rawName).trim();
+  let name = stripBiDiControls(decodeHtmlEntities(rawName));
   name = name.replace(/\s*[-·|–]\s*(Google Maps|خرائط Google|Google).*$/i, '').trim();
 
   // Guard: if name itself is purely "Google Maps" or "خرائط Google" or "Google", discard it
@@ -20,13 +27,13 @@ function cleanPlaceName(rawName: string): { name: string; extraAddress?: string 
   }
 
   // Split by common Google Maps delimiters: Arabic comma (،), English comma (,), middle dot (·), pipe (|)
-  const parts = name.split(/\s*[\u060C,·|]\s*/).map(s => s.trim()).filter(Boolean);
+  const parts = name.split(/\s*[\u060C,·|]\s*/).map(s => stripBiDiControls(s)).filter(Boolean);
   if (parts.length <= 1) {
-    return { name };
+    return { name: stripBiDiControls(name) };
   }
 
-  const clean = parts[0];
-  const extraAddress = parts.slice(1).join('، ');
+  const clean = stripBiDiControls(parts[0]);
+  const extraAddress = parts.slice(1).map(s => stripBiDiControls(s)).filter(Boolean).join('، ');
   return { name: clean, extraAddress };
 }
 
@@ -253,8 +260,8 @@ async function fetchOfficialPlacesPhotos(
     if (!Array.isArray(rawPhotos) || rawPhotos.length === 0) {
       return {
         photos: [],
-        displayName: matchedPlace.displayName?.text,
-        formattedAddress: matchedPlace.formattedAddress,
+        displayName: stripBiDiControls(matchedPlace.displayName?.text),
+        formattedAddress: stripBiDiControls(matchedPlace.formattedAddress),
         googleCategory,
         googleType,
       };
@@ -284,8 +291,8 @@ async function fetchOfficialPlacesPhotos(
 
     return {
       photos: resolvedUrls,
-      displayName: matchedPlace.displayName?.text,
-      formattedAddress: matchedPlace.formattedAddress,
+      displayName: stripBiDiControls(matchedPlace.displayName?.text),
+      formattedAddress: stripBiDiControls(matchedPlace.formattedAddress),
       googleCategory,
       googleType,
     };
@@ -727,14 +734,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       success: true,
-      name: placeName || undefined,
-      category: placeCategory || undefined,
+      name: placeName ? stripBiDiControls(placeName) : undefined,
+      category: placeCategory ? stripBiDiControls(placeCategory) : undefined,
       phone: phone || undefined,
       lat: lat && !isNaN(lat) ? Number(lat.toFixed(6)) : undefined,
       lng: lng && !isNaN(lng) ? Number(lng.toFixed(6)) : undefined,
       rating: rating || undefined,
       reviewCount: reviewCount || undefined,
-      address: address || undefined,
+      address: address ? stripBiDiControls(address) : undefined,
       workingHours: workingHours || undefined,
       photo,
       photos: photos.length > 0 ? photos.slice(0, 5) : undefined,

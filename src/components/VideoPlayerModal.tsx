@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Business } from '../types';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
+import { safeWhatsAppEncode, formatWhatsAppPhone, cleanWhatsAppText } from '../utils/whatsappMessages';
 import { 
   X, 
   MapPin, 
@@ -154,15 +155,21 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
               </a>
             )}
 
-            <a
-              href={`https://wa.me/20${(business.phone || business.ownerPhone || '').replace(/\D/g, '').replace(/^0/, '')}?text=${encodeURIComponent(`مرحباً بك نشاط "${business.nameAr}"، رأيت الفيديو الخاص بكم على منصة دليلك.`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>واتساب</span>
-            </a>
+            {(() => {
+              const waPhone = formatWhatsAppPhone(business.phone || business.ownerPhone);
+              const waText = cleanWhatsAppText(`مرحباً بك نشاط "${business.nameAr}"، رأيت الفيديو الخاص بكم على منصة دليلك.`);
+              return waPhone ? (
+                <a
+                  href={`https://wa.me/${waPhone}?text=${safeWhatsAppEncode(waText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>واتساب</span>
+                </a>
+              ) : null;
+            })()}
 
             {business.googleMapsUrl && business.googleMapsUrl.trim().startsWith('http') ? (
               <a

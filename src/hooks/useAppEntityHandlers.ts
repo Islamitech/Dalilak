@@ -161,11 +161,12 @@ export function useAppEntityHandlers({
     // ⚡ 1. INSTANT OPTIMISTIC STATE & MULTI-TIER CACHE (0ms - Instantly visible at top)
     setBusinesses((prev) => [normalizedBiz, ...prev.filter((b) => b.id !== normalizedBiz.id)]);
 
-    // Also update directory portal cache in localStorage immediately
+    // Also update directory portal cache in localStorage immediately (strictly verified only)
     try {
       const allUpdated = [normalizedBiz, ...businesses.filter((b) => b.id !== normalizedBiz.id)];
       safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(allUpdated));
-      safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(allUpdated));
+      const directoryCache = allUpdated.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+      safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(directoryCache));
     } catch {}
 
     setActiveTab('home');
@@ -245,7 +246,8 @@ export function useAppEntityHandlers({
       const updated = prev.map((b) => (b.id === normalizedBiz.id ? normalizedBiz : b));
       try {
         safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updated));
-        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updated));
+        const directoryCache = updated.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(directoryCache));
       } catch {}
       return updated;
     });
@@ -326,7 +328,8 @@ export function useAppEntityHandlers({
       const updated = prev.filter((b) => b.id !== id);
       try {
         safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(updated));
-        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(updated));
+        const directoryCache = updated.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+        safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(directoryCache));
       } catch {}
       return updated;
     });
@@ -605,7 +608,7 @@ export function useAppEntityHandlers({
       phone: lead.phone || '',
       secondaryPhone: lead.secondaryPhone?.trim() || undefined,
       workingHours: 'يومياً: 10:00 ص - 10:00 م',
-      description: lead.notes?.trim() || (isTrending ? `منشأة ${finalNameAr} التجارية الرائجة بالمنطقة - معتمدة وموثقة بالدليل العام.` : `نشاط ${finalNameAr} المعتمد في ${lead.governorate}.`),
+      description: lead.notes?.trim() || (isTrending ? `منشأة ${finalNameAr} التجارية الرائجة بالمنطقة - قيد المراجعة والاعتماد بالدليل العام.` : `نشاط ${finalNameAr} قيد المراجعة والاعتماد في ${lead.governorate}.`),
       lat: lead.lat || 30.0444,
       lng: lead.lng || 31.2357,
       ownerName: finalOwner,
@@ -614,16 +617,17 @@ export function useAppEntityHandlers({
       videos: [],
       repId: lead.repId || currentRep.id || user?.id || 'rep_1',
       repName: lead.repName || currentRep.name || user?.name || 'مندوب معتمد',
-      packageId: 'free_trending',
-      packageName: isTrending ? 'إدراج شرفي للأماكن الرائجة (مجاناً)' : 'إدراج معتمد وموثق',
-      packagePrice: 0,
+      packageId: isTrending ? 'free_trending' : 'pkg_standard',
+      packageName: isTrending ? 'إدراج شرفي للأماكن الرائجة (مجاناً)' : 'إدراج توثيق جديد',
+      packagePrice: isTrending ? 0 : 250,
       amountPaid: 0,
-      paymentStatus: 'fully_paid',
-      isFeeExempt: true,
+      paymentStatus: 'unpaid',
+      isFeeExempt: isTrending,
       feeExemptionReason: isTrending
-        ? 'مكان رائج بالمنطقة معفى من الرسوم (إدراج شرفي معتمد)'
-        : 'تحويل مباشر واعتماد فوري من سجل المراجعات',
-      verificationStatus: 'verified',
+        ? 'مكان رائج بالمنطقة معفى من الرسوم (إدراج شرفي قيد الاعتماد)'
+        : undefined,
+      verificationStatus: 'pending',
+      publishedStatus: 'draft',
       isAlreadyOnGoogle: isTrending,
       registrationType: isTrending ? 'already_on_google' : 'interested_lead',
       googleMapsUrl: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : undefined),
@@ -645,12 +649,12 @@ export function useAppEntityHandlers({
     };
     await handleUpdateLead(updatedLead);
 
-    addNotification(`⭐ تم تحويل وتوثيق المنشأة "${finalNameAr}" فورياً كتسجيل معتمد وموثق بالدليل بنجاح!`, 'success');
+    addNotification(`تم تحويل "${finalNameAr}" بنجاح إلى طلب تسجيل نشاط جديد وهو الآن قيد المراجعة والاعتماد.`, 'success');
 
     addSystemNotification({
-      title: '⭐ تسجيل معتمد وموثق جديد',
-      message: `تم تحويل "${finalNameAr}" فورياً من المراجعات إلى تسجيل معتمد وموثق في الدليل.`,
-      type: 'success',
+      title: 'طلب اعتماد نشاط جديد',
+      message: `تم تحويل "${finalNameAr}" من المراجعات إلى طلب تسجيل جديد قيد المراجعة والاعتماد.`,
+      type: 'info',
       category: 'business',
       targetRole: 'admin',
       entityId: newBiz.id,
