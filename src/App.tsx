@@ -563,6 +563,8 @@ export default function App() {
               onDeletePayoutRequest={handleDeletePayoutRequest}
               onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
               onCollectPayment={(b) => setSelectedPayBiz(b)}
+              onAddBusiness={handleAddBusiness}
+              onShowNotification={(msg, type) => addNotification(msg, type || 'info')}
             />
           </Suspense>
         )}

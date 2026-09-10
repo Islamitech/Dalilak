@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Business, AdminFollowUpCategory } from '../../types';
-import { UploadCloud, Film, Star, Check, ImageIcon, Zap, Loader2 } from 'lucide-react';
+import { UploadCloud, Film, Star, Check, ImageIcon, Zap, Loader2, RotateCw } from 'lucide-react';
 import { VideoWatermarkBadge } from '../VideoWatermarkBadge';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 import { extractGooglePlaceData } from '../../utils/googlePlaceExtractor';
+import { getApiAuthHeaders } from '../../utils/storage';
 
 interface EditMediaTabProps {
   formData: Business;
@@ -50,38 +51,43 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
   onShowNotification,
 }) => {
   const [isPullingGooglePhotos, setIsPullingGooglePhotos] = useState<boolean>(false);
+  const [isRotatingGooglePhoto, setIsRotatingGooglePhoto] = useState<boolean>(false);
   const [pullGoogleNotice, setPullGoogleNotice] = useState<string | null>(null);
 
   const handlePullGooglePhotos = async () => {
     if (!formData.googleMapsUrl?.trim()) {
       const msg = 'يرجى تزويد رابط خرائط Google في تبويب الموقع أولاً';
       if (onShowNotification) onShowNotification(msg);
-      else alert(msg);
+      setPullGoogleNotice(msg);
+      setTimeout(() => setPullGoogleNotice(null), 4000);
       return;
     }
     setIsPullingGooglePhotos(true);
-    setPullGoogleNotice('جاري سحب الصور من خرائط Google...');
+    setPullGoogleNotice('جاري سحب صورة الغلاف من خرائط Google...');
 
     try {
       const data = await extractGooglePlaceData(formData.googleMapsUrl);
       const rawIncoming = (data && data.photos && data.photos.length > 0)
         ? data.photos
         : (data && data.photo ? [data.photo] : []);
-      const incomingPhotos = rawIncoming.slice(0, 5);
+      // 🛡️ توحيد سحب الصور الصارم: سحب صورة غلاف واحدة فقط
+      const incomingPhotos = rawIncoming.slice(0, 1);
 
       if (incomingPhotos.length > 0) {
+        const coverPhoto = incomingPhotos[0];
         if (setFormData) {
           setFormData((prev) => {
             if (!prev) return prev;
             const existingPhotos = prev.photos || [];
-            const merged = Array.from(new Set([...existingPhotos, ...incomingPhotos])).slice(0, 10);
+            const merged = Array.from(new Set([...existingPhotos, coverPhoto])).slice(0, 10);
             return {
               ...prev,
+              coverPhoto: prev.coverPhoto || coverPhoto,
               photos: merged,
             };
           });
         }
-        const msg = `✅ تم سحب أول ${incomingPhotos.length} صور من خرائط Google وإضافتها للمعرض!`;
+        const msg = '✅ تم سحب صورة الغلاف بنجاح من خرائط Google وحفظها بالمعرض!';
         setPullGoogleNotice(msg);
         if (onShowNotification) onShowNotification(msg);
         setTimeout(() => setPullGoogleNotice(null), 6000);
@@ -101,6 +107,73 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
     }
   };
 
+  const handleRotateGooglePhoto = async () => {
+    if (!formData.googleMapsUrl?.trim() && !formData.googlePlaceId && !formData.nameAr) {
+      const msg = 'يرجى تزويد رابط أو اسم المنشأة لاستعراض وتدوير الصور من Google';
+      if (onShowNotification) onShowNotification(msg);
+      setPullGoogleNotice(msg);
+      setTimeout(() => setPullGoogleNotice(null), 4000);
+      return;
+    }
+
+    setIsRotatingGooglePhoto(true);
+    setPullGoogleNotice('جاري فحص صور Google وتدوير صورة جديدة غير مكررة...');
+
+    try {
+      const res = await fetch('/api/admin/places-photo-rotate', {
+        method: 'POST',
+        headers: getApiAuthHeaders(),
+        body: JSON.stringify({
+          googlePlaceId: formData.googlePlaceId,
+          placeName: formData.nameAr || formData.name,
+          currentPhotos: formData.photos || [],
+          lat: formData.lat,
+          lng: formData.lng,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('فشل استدعاء محرك تدوير الصور من الخادم');
+      }
+
+      const data = await res.json();
+      if (data.success && data.photo) {
+        if (setFormData) {
+          setFormData((prev) => {
+            if (!prev) return prev;
+            const existing = prev.photos || [];
+            const merged = Array.from(new Set([...existing, data.photo])).slice(0, 10);
+            return {
+              ...prev,
+              photos: merged,
+            };
+          });
+        }
+        const msg = data.message || '✅ تم تدوير وسحب صورة مميزة جديدة من Google (0.007$ فقط)!';
+        setPullGoogleNotice(msg);
+        if (onShowNotification) onShowNotification(msg);
+        setTimeout(() => setPullGoogleNotice(null), 6000);
+      } else if (data.allPhotosRotated) {
+        const msg = data.message || 'ℹ️ تم سحب كافة الصور المتاحة لهذا المكان على خرائط Google بالفعل';
+        setPullGoogleNotice(msg);
+        if (onShowNotification) onShowNotification(msg);
+        setTimeout(() => setPullGoogleNotice(null), 5000);
+      } else {
+        const msg = data.message || '⚠️ لم يتم العثور على صور إضافية لتدويرها';
+        setPullGoogleNotice(msg);
+        if (onShowNotification) onShowNotification(msg);
+        setTimeout(() => setPullGoogleNotice(null), 4000);
+      }
+    } catch {
+      const msg = '⚠️ حدث خطأ أثناء تدوير وسحب الصورة من خرائط Google';
+      setPullGoogleNotice(msg);
+      if (onShowNotification) onShowNotification(msg);
+      setTimeout(() => setPullGoogleNotice(null), 4000);
+    } finally {
+      setIsRotatingGooglePhoto(false);
+    }
+  };
+
   return (
     <div className="space-y-3.5 text-right">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
@@ -114,20 +187,42 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* Pull from Google Maps */}
+          {/* Pull Cover Photo from Google Maps (Strict 1 Photo) */}
           {Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().length > 0) && (
             <button
               type="button"
-              disabled={isPullingGooglePhotos}
+              disabled={isPullingGooglePhotos || isRotatingGooglePhoto}
               onClick={handlePullGooglePhotos}
               className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-black py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
+              title="سحب صورة الغلاف الأولى الرسمية فقط (توحيد أحادي 0.007$)"
             >
               {isPullingGooglePhotos ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Zap className="w-4 h-4" />
               )}
-              <span>{isPullingGooglePhotos ? 'جاري السحب...' : 'سحب صور Google ⚡'}</span>
+              <span>{isPullingGooglePhotos ? 'جاري السحب...' : 'سحب غلاف Google ⚡'}</span>
+            </button>
+          )}
+
+          {/* Smart Photo Rotation Engine Button */}
+          {Boolean(
+            (formData.googleMapsUrl && formData.googleMapsUrl.trim().length > 0) ||
+            formData.googlePlaceId
+          ) && (
+            <button
+              type="button"
+              disabled={isRotatingGooglePhoto || isPullingGooglePhotos}
+              onClick={handleRotateGooglePhoto}
+              className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-black py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
+              title="تدوير وسحب صورة أخرى غير مكررة بنظام التخطي الذكي (0.007$ فقط)"
+            >
+              {isRotatingGooglePhoto ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RotateCw className="w-4 h-4" />
+              )}
+              <span>{isRotatingGooglePhoto ? 'جاري التدوير...' : 'تدوير وسحب صورة أخرى 🔄'}</span>
             </button>
           )}
 

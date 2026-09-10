@@ -28,6 +28,7 @@ import { PermissionsModal } from './PermissionsModal';
 import { RepAccountDossierModal } from './RepAccountDossierModal';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { AdminAuditTrashTab } from './admin/tabs/AdminAuditTrashTab';
+import { AdminPlacesIngestionTab } from './admin/tabs/AdminPlacesIngestionTab';
 import { isSuperAdmin } from '../utils/permissions';
 
 import {
@@ -40,6 +41,7 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -71,6 +73,8 @@ interface AdminDashboardProps {
   onDirectConvertLead?: (lead: InterestedLead) => void;
   initialDossierRep?: Representative | null;
   onClearInitialDossierRep?: () => void;
+  onAddBusiness?: (biz: Business) => Promise<void> | void;
+  onShowNotification?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -102,17 +106,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onDeleteLead,
   onConvertToBusiness,
   onDirectConvertLead,
+  onAddBusiness,
+  onShowNotification,
 }) => {
-  // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash)
-  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash'>(() => {
+  // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash, Places Ingestion)
+  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash' | 'places_ingestion'>(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlSubtab = urlParams.get('subtab');
-    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash'].includes(urlSubtab)) {
+    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion'].includes(urlSubtab)) {
       return urlSubtab as any;
     }
 
     const savedSubtab = localStorage.getItem('dalelak_active_admin_tab');
-    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash'].includes(savedSubtab)) {
+    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion'].includes(savedSubtab)) {
       return savedSubtab as any;
     }
 
@@ -504,6 +510,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
           </button>
 
+          {/* ── SUPER ADMIN EXCLUSIVE: SMART PLACES INGESTION TAB ── */}
+          {isSuperAdmin(currentUser) && (
+            <button
+              type="button"
+              data-active={activeAdminTab === 'places_ingestion'}
+              onClick={() => setActiveAdminTab('places_ingestion')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+                activeAdminTab === 'places_ingestion'
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md'
+                  : 'text-amber-600 hover:text-amber-500 hover:bg-[var(--input-bg)] border border-amber-500/30'
+              }`}
+              title="استيراد الأماكن الذكية وتدوير الصور الموفر (حصري للسوبر أدمن)"
+            >
+              <Sparkles className="w-4 h-4 fill-current" />
+              <span>استيراد الأماكن الذكي (Google)</span>
+            </button>
+          )}
+
           {/* ── SUPER ADMIN EXCLUSIVE TAB BUTTON (مخفي تماماً عن باقي الحسابات) ── */}
           {isSuperAdmin(currentUser) && (
             <button
@@ -683,6 +707,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onHardDeleteBusiness={onHardDeleteBusiness || (() => {})}
           onRestoreRepresentative={onRestoreRepresentative || (() => {})}
           onHardDeleteRepresentative={onHardDeleteRepresentative || (() => {})}
+        />
+      )}
+
+      {/* ── TAB 8: CONFIDENTIAL SUPER ADMIN SMART PLACES INGESTION (حصري للـ Super Admin) ── */}
+      {activeAdminTab === 'places_ingestion' && isSuperAdmin(currentUser) && (
+        <AdminPlacesIngestionTab
+          currentUser={currentUser!}
+          businesses={businesses}
+          onAddBusiness={onAddBusiness}
+          onShowNotification={onShowNotification}
         />
       )}
 

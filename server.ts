@@ -670,7 +670,7 @@ app.get('/api/google-place-resolver', async (req, res) => {
         [];
       for (const p of pCdnMatches) {
         addPhoto(p);
-        if (photos.length >= 5) break;
+        if (photos.length >= 1) break;
       }
     }
 
@@ -686,13 +686,13 @@ app.get('/api/google-place-resolver', async (req, res) => {
     // 3. Photos from HTML content
     const cdnRegex = /https:\/\/[a-z0-9.-]*googleusercontent\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
     let match: RegExpExecArray | null;
-    while ((match = cdnRegex.exec(htmlContent)) !== null && photos.length < 5) {
+    while ((match = cdnRegex.exec(htmlContent)) !== null && photos.length < 1) {
       addPhoto(match[0]);
     }
 
     // 4. Photos from ggpht CDN
     const ggRegex = /https:\/\/[a-z0-9.-]*ggpht\.com\/(?:p|gps-cs-s|gps-proxy)\/[A-Za-z0-9_-]+/g;
-    while ((match = ggRegex.exec(htmlContent + '\n' + preloadPayload)) !== null && photos.length < 5) {
+    while ((match = ggRegex.exec(htmlContent + '\n' + preloadPayload)) !== null && photos.length < 1) {
       addPhoto(match[0]);
     }
 
@@ -820,13 +820,390 @@ app.get('/api/google-place-resolver', async (req, res) => {
       address: address || undefined,
       workingHours: workingHours || undefined,
       photo,
-      photos: photos.length > 0 ? photos.slice(0, 5) : undefined,
+      photos: photos.length > 0 ? [photos[0]] : undefined,
       resolvedUrl: destinationUrl,
     });
   } catch (err: any) {
     return res.status(500).json({
       success: false,
       error: err?.message || 'حدث خطأ أثناء فك رابط خرائط Google',
+    });
+  }
+});
+
+
+// =============================================================================
+// 👑 SUPER ADMIN EXCLUSIVE: SMART PLACES INGESTION & SINGLE-PHOTO ROTATION ENGINE
+// (حماية الرصيد المجاني $200 + فلترة الجودة التكيفية + حظر التكرار المحلي 0.00$)
+// =============================================================================
+
+const SUPER_ADMIN_EMAIL = 'ahmedhufne@gmail.com';
+const SUPER_ADMIN_PHONE = '01143888355';
+const GOOGLE_PLACES_API_KEY =
+  process.env.GOOGLE_PLACES_API_KEY ||
+  process.env.VITE_GOOGLE_PLACES_API_KEY ||
+  'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
+
+function isRequestSuperAdmin(req: express.Request): boolean {
+  const authHeaderEmail = ((req.headers['x-user-email'] as string) || '').toLowerCase().trim();
+  const authHeaderPhone = ((req.headers['x-user-phone'] as string) || '').trim();
+  const bodyEmail = (req.body?.userEmail || '').toLowerCase().trim();
+  const bodyPhone = (req.body?.userPhone || '').trim();
+
+  if (authHeaderEmail === SUPER_ADMIN_EMAIL.toLowerCase() || authHeaderPhone === SUPER_ADMIN_PHONE) return true;
+  if (bodyEmail === SUPER_ADMIN_EMAIL.toLowerCase() || bodyPhone === SUPER_ADMIN_PHONE) return true;
+
+  const reqUser = getRequestUser(req);
+  if (reqUser) {
+    const rep = representatives.find((r) => r.id === reqUser.userId);
+    if (rep) {
+      const repEmail = (rep.email || '').toLowerCase().trim();
+      const repPhone = (rep.phone || '').trim();
+      if (repEmail === SUPER_ADMIN_EMAIL.toLowerCase() || repPhone === SUPER_ADMIN_PHONE) return true;
+    }
+  }
+  return false;
+}
+
+// 🛠️ الفرز الذكي التكيفي: التمييز بين الحرف التخصصية والأنشطة التجارية العامة
+function isCraftActivity(primaryType?: string, typeDisplayName?: string, name?: string): boolean {
+  const text = `${primaryType || ''} ${typeDisplayName || ''} ${name || ''}`.toLowerCase();
+  const craftKeywords = [
+    'car_repair', 'auto_repair', 'mechanic', 'plumber', 'electrician', 'locksmith',
+    'carpenter', 'handyman', 'workshop', 'maintenance', 'repair',
+    'ميكانيك', 'ورشة', 'سباك', 'كهربائي', 'صيانة', 'حداد', 'نجار', 'عفشجي', 'دوكو', 'سمكري', 'تكييف'
+  ];
+  return craftKeywords.some(kw => text.includes(kw));
+}
+
+// 1. نقطة النهاية السيادية للبحث المجمع الذكي (Batch Search & Deduplication)
+app.post('/api/admin/places-batch-search', async (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: بوابة الاستيراد المجمّع محصورة بالسوبر أدمن حصراً (403 Forbidden)'
+      });
+    }
+
+    const { query, category, lat, lng, existingPlaceIds = [] } = req.body;
+    if (!query || typeof query !== 'string' || !query.trim()) {
+      return res.status(400).json({ success: false, error: 'يرجى تقديم استعلام بحث صالح' });
+    }
+
+    const trimmedQuery = query.trim();
+
+    // استعلام Google Places Text Search (New)
+    const searchBody: Record<string, unknown> = {
+      textQuery: trimmedQuery,
+      languageCode: 'ar',
+      maxResultCount: 20,
+    };
+
+    if (lat && lng && !isNaN(Number(lat)) && !isNaN(Number(lng))) {
+      searchBody.locationBias = {
+        circle: {
+          center: { latitude: Number(lat), longitude: Number(lng) },
+          radius: 5000.0,
+        },
+      };
+    }
+
+    const fieldMask = [
+      'places.id',
+      'places.displayName',
+      'places.primaryType',
+      'places.primaryTypeDisplayName',
+      'places.formattedAddress',
+      'places.location',
+      'places.rating',
+      'places.userRatingCount',
+      'places.internationalPhoneNumber',
+      'places.nationalPhoneNumber',
+      'places.regularOpeningHours',
+      'places.photos',
+      'places.googleMapsUri',
+    ].join(',');
+
+    const googleRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': fieldMask,
+      },
+      body: JSON.stringify(searchBody),
+    });
+
+    if (!googleRes.ok) {
+      const errText = await googleRes.text();
+      console.error('Google Places Batch Search Error:', googleRes.status, errText);
+      return res.status(502).json({
+        success: false,
+        error: `فشل الاتصال بـ Google Places API: كود ${googleRes.status}`,
+      });
+    }
+
+    const googleData = await googleRes.json();
+    const rawPlaces = Array.isArray(googleData.places) ? googleData.places : [];
+
+    // منع التكرار المحلي التام (Zero-Cost Deduplication $0.00)
+    const existingIds = new Set<string>();
+    businesses.forEach((b) => {
+      if (b.googlePlaceId) existingIds.add(b.googlePlaceId);
+      if (b.googleMapsUrl) {
+        const m = b.googleMapsUrl.match(/place_id:([A-Za-z0-9_-]+)/);
+        if (m) existingIds.add(m[1]);
+      }
+    });
+    if (Array.isArray(existingPlaceIds)) {
+      existingPlaceIds.forEach((id: string) => {
+        if (id && typeof id === 'string') existingIds.add(id.trim());
+      });
+    }
+
+    const existingNames = new Set(businesses.map((b) => (b.nameAr || b.name || '').trim().toLowerCase()));
+
+    let duplicatesCount = 0;
+    let qualifiedCount = 0;
+
+    const candidatePlaces = await Promise.all(
+      rawPlaces.map(async (p: any) => {
+        const placeId = p.id || '';
+        const name = p.displayName?.text || '';
+        const cleanName = name.trim();
+        const primaryType = p.primaryType || '';
+        const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
+        const rating = typeof p.rating === 'number' ? p.rating : 0;
+        const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
+        const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
+        const formattedAddress = p.formattedAddress || '';
+        const pLat = p.location?.latitude;
+        const pLng = p.location?.longitude;
+        const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
+
+        // فحص التكرار
+        const isDuplicate = existingIds.has(placeId) || (cleanName.length > 3 && existingNames.has(cleanName.toLowerCase()));
+        if (isDuplicate) {
+          duplicatesCount++;
+        }
+
+        // فحص الجودة التكيفية
+        const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, cleanName);
+        let isQualityApproved = false;
+        let qualityBadgeText = '';
+
+        if (isCraft) {
+          if (rating >= 4.3 && userRatingCount >= 15) {
+            isQualityApproved = true;
+            qualityBadgeText = `حرفي معتمد ⭐ ${rating} (${userRatingCount} مقيّم)`;
+          } else {
+            qualityBadgeText = `دون حد الحرفيين (مطلوب: 4.3★ و 15 مقيم) حالياً: ${rating}★ (${userRatingCount})`;
+          }
+        } else {
+          if (rating >= 4.2 && userRatingCount >= 80) {
+            isQualityApproved = true;
+            qualityBadgeText = `تجاري رائج ⭐ ${rating} (${userRatingCount} مقيّم)`;
+          } else {
+            qualityBadgeText = `دون الحد التجاري (مطلوب: 4.2★ و 80 مقيم) حالياً: ${rating}★ (${userRatingCount})`;
+          }
+        }
+
+        if (isQualityApproved && !isDuplicate) {
+          qualifiedCount++;
+        }
+
+        // توحيد سحب الصور الصارم: سحب صورة واحدة فقط للأماكن المؤهلة
+        let coverPhoto: string | undefined = undefined;
+        if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
+          const firstPhotoName = p.photos[0].name;
+          if (firstPhotoName) {
+            try {
+              const mediaUrl = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_PLACES_API_KEY}&skipHttpRedirect=true`;
+              const mediaRes = await fetch(mediaUrl);
+              if (mediaRes.ok) {
+                const mediaData = await mediaRes.json();
+                if (mediaData && mediaData.photoUri) {
+                  coverPhoto = mediaData.photoUri;
+                }
+              }
+            } catch (mediaErr) {
+              console.warn('Place cover photo fetch notice:', mediaErr);
+            }
+          }
+        }
+
+        let workingHours: string | undefined = undefined;
+        if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
+          const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
+          if (todayDesc) {
+            workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
+          }
+        }
+
+        return {
+          id: placeId,
+          displayName: cleanName,
+          category: primaryTypeDisplayName || (isCraft ? 'خدمات وصيانة وحرفيين' : 'أنشطة تجارية عامة'),
+          primaryType,
+          primaryTypeDisplayName,
+          formattedAddress,
+          lat: pLat,
+          lng: pLng,
+          phone,
+          rating,
+          userRatingCount,
+          workingHours,
+          googleMapsUri,
+          coverPhoto,
+          photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
+          isDuplicate,
+          isQualityApproved,
+          qualityBadgeText,
+          isCraft,
+        };
+      })
+    );
+
+    const textSearchCost = 0.032;
+    const photoFetchCost = qualifiedCount * 0.007;
+    const totalEstCost = (textSearchCost + photoFetchCost).toFixed(3);
+
+    return res.json({
+      success: true,
+      query: trimmedQuery,
+      totalFound: rawPlaces.length,
+      metrics: {
+        totalFound: rawPlaces.length,
+        duplicatesCount,
+        qualifiedCount,
+        estimatedCost: `${totalEstCost}`,
+      },
+      places: candidatePlaces,
+    });
+  } catch (err: any) {
+    console.error('Batch search server error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'حدث خطأ في معالجة البحث المجمّع للأماكن',
+    });
+  }
+});
+
+// 2. نقطة النهاية السيادية لتدوير وسحب صورة جديدة موفرة (Single-Photo Rotation Engine)
+app.post('/api/admin/places-photo-rotate', async (req, res) => {
+  try {
+    const reqUser = getRequestUser(req);
+    const isSuper = isRequestSuperAdmin(req);
+    if (!isSuper && (!reqUser || reqUser.role !== 'admin')) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: تدوير الصور مخصص لإدارة المنظومة حصراً',
+      });
+    }
+
+    const { googlePlaceId, placeName, currentPhotos = [], lat, lng } = req.body;
+    if (!googlePlaceId && !placeName) {
+      return res.status(400).json({ success: false, error: 'يرجى تقديم معرف المكان googlePlaceId أو اسم المكان' });
+    }
+
+    let googlePhotos: Array<{ name: string }> = [];
+
+    if (googlePlaceId) {
+      const placeUrl = `https://places.googleapis.com/v1/places/${encodeURIComponent(googlePlaceId)}`;
+      const pRes = await fetch(placeUrl, {
+        headers: {
+          'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+          'X-Goog-FieldMask': 'id,photos',
+        },
+      });
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        if (Array.isArray(pData.photos)) {
+          googlePhotos = pData.photos;
+        }
+      }
+    }
+
+    if (googlePhotos.length === 0 && placeName) {
+      const sBody: Record<string, unknown> = {
+        textQuery: placeName,
+        languageCode: 'ar',
+      };
+      if (lat && lng) {
+        sBody.locationBias = { circle: { center: { latitude: Number(lat), longitude: Number(lng) }, radius: 1000 } };
+      }
+      const sRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+          'X-Goog-FieldMask': 'places.id,places.photos',
+        },
+        body: JSON.stringify(sBody),
+      });
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        if (sData.places && sData.places[0] && Array.isArray(sData.places[0].photos)) {
+          googlePhotos = sData.places[0].photos;
+        }
+      }
+    }
+
+    if (googlePhotos.length === 0) {
+      return res.json({
+        success: false,
+        message: 'لم يتم العثور على أي صور مسجلة لهذا المكان في خرائط Google',
+      });
+    }
+
+    // خوارزمية التدوير والتخطي (Offset & Hash Matching)
+    const seenSignatures = new Set<string>();
+    if (Array.isArray(currentPhotos)) {
+      currentPhotos.forEach((u: string) => {
+        if (typeof u === 'string') {
+          const base = u.split('=')[0].replace(/^https?:\/\//, '');
+          seenSignatures.add(base);
+        }
+      });
+    }
+
+    for (let i = 0; i < googlePhotos.length; i++) {
+      const photoItem = googlePhotos[i];
+      if (!photoItem || !photoItem.name) continue;
+
+      const mediaUrl = `https://places.googleapis.com/v1/${photoItem.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_PLACES_API_KEY}&skipHttpRedirect=true`;
+      const mRes = await fetch(mediaUrl);
+      if (mRes.ok) {
+        const mData = await mRes.json();
+        const photoUri = mData?.photoUri;
+        if (photoUri && typeof photoUri === 'string') {
+          const baseUri = photoUri.split('=')[0].replace(/^https?:\/\//, '');
+          if (!seenSignatures.has(baseUri)) {
+            // صورة جديدة غير مكررة تم جلبها بنجاح - توقف فوري
+            return res.json({
+              success: true,
+              photo: photoUri,
+              photoIndex: i + 1,
+              totalAvailable: googlePhotos.length,
+              message: `تم سحب وتدوير صورة جديدة بنجاح (${i + 1} من ${googlePhotos.length}) - تكلفة: 0.007$ فقط`,
+            });
+          }
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      allPhotosRotated: true,
+      totalAvailable: googlePhotos.length,
+      message: `تم سحب كافة الصور المتاحة لهذا المكان على خرائط Google بالفعل (${googlePhotos.length} صور)`,
+    });
+  } catch (err: any) {
+    console.error('Photo rotation server error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'حدث خطأ في محرك تدوير الصور',
     });
   }
 });

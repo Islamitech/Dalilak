@@ -196,6 +196,14 @@ export function getApiAuthHeaders(): Record<string, string> {
       if (u.id) {
         headers['x-user-id'] = u.id;
       }
+      const email = u.email || u.repData?.email;
+      if (email) {
+        headers['x-user-email'] = email;
+      }
+      const phone = u.phone || u.repData?.phone;
+      if (phone) {
+        headers['x-user-phone'] = phone;
+      }
     } catch {}
   }
   return headers;

@@ -84,7 +84,7 @@ function extractHoursFromPayload(text: string): string | undefined {
   return workingHours;
 }
 
-function addPlacePhoto(rawUrl: string, list: string[], seen: Set<string>, limit = 5): void {
+function addPlacePhoto(rawUrl: string, list: string[], seen: Set<string>, limit = 1): void {
   if (!rawUrl || typeof rawUrl !== 'string' || list.length >= limit) return;
   if (
     rawUrl.includes('google_maps_logo') ||
@@ -110,7 +110,7 @@ function addPlacePhoto(rawUrl: string, list: string[], seen: Set<string>, limit 
  * Extracts photos exclusively belonging to the target place from Google Maps structured JSON (Update 39).
  * Isolates place photos and strictly excludes competitor/nearby recommendation blocks (nodes [99] and [204]).
  */
-function extractStructuredPlacePhotos(payload: string, limit = 5): string[] {
+function extractStructuredPlacePhotos(payload: string, limit = 1): string[] {
   const photos: string[] = [];
   const seenHashes = new Set<string>();
   if (!payload || typeof payload !== 'string') return photos;
@@ -212,7 +212,7 @@ async function fetchOfficialPlacesPhotos(
   query: string,
   lat?: number,
   lng?: number,
-  limit = 5
+  limit = 1
 ): Promise<PlacesApiPhotoResult> {
   if (!GOOGLE_PLACES_API_KEY || !query) {
     return { photos: [] };
@@ -744,7 +744,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       address: address ? stripBiDiControls(address) : undefined,
       workingHours: workingHours || undefined,
       photo,
-      photos: photos.length > 0 ? photos.slice(0, 5) : undefined,
+      photos: photos.length > 0 ? [photos[0]] : undefined,
       resolvedUrl: destinationUrl,
     });
   } catch (err: any) {
