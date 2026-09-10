@@ -339,26 +339,17 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
               disabled={isLocatingUser}
               className={`px-3 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                 sortBy === 'nearest'
-                  ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-500/20'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
-              title={
-                sortBy === 'nearest'
-                  ? 'إلغاء فلتر الأقرب لموقعي (عرض الأنشطة بترتيب عشوائي)'
-                  : 'البحث عن الأماكن الأقرب لموقعي الفعلي'
-              }
+              title="البحث عن الأماكن الأقرب لموقعي الفعلي"
             >
               {isLocatingUser ? (
                 <Loader2 className="w-3.5 h-3.5 text-amber-500 animate-spin" />
               ) : (
-                <Compass className={`w-3.5 h-3.5 ${sortBy === 'nearest' ? 'text-slate-950' : 'text-amber-500'}`} />
+                <Compass className="w-3.5 h-3.5" />
               )}
               <span className="hidden sm:inline">قريب مني</span>
-              {sortBy === 'nearest' && (
-                <span className="text-[10px] bg-slate-950/15 text-slate-950 px-1.5 py-0.5 rounded-md font-black">
-                  مفعّل
-                </span>
-              )}
             </button>
 
             {/* Advanced Filters Button */}
