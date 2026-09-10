@@ -121,7 +121,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
 
       {/* MODAL: PACKAGES & OFFERS GUIDE */}
       {showPackagesModal && (
-        <PackagesModal onClose={() => setShowPackagesModal(false)} />
+        <PackagesModal 
+          onClose={() => setShowPackagesModal(false)} 
+          businesses={businesses}
+        />
       )}
 
       {/* MODAL: FULL BUSINESS DATA VIEW & EDITING */}

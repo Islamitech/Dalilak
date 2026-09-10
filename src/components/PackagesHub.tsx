@@ -13,38 +13,54 @@ import {
   HelpCircle, 
   Layers, 
   Check, 
-  X,
-  FileText,
-  Smartphone,
-  ShieldCheck,
-  Award,
-  Users,
-  Building2,
-  MessageCircle,
-  Rocket,
-  Gift,
-  Palette,
-  Megaphone,
-  QrCode,
-  Store,
-  ChevronLeft,
-  ChevronRight
+  X, 
+  FileText, 
+  Smartphone, 
+  ShieldCheck, 
+  Award, 
+  Users, 
+  Building2, 
+  MessageCircle, 
+  Rocket, 
+  Gift, 
+  Palette, 
+  Megaphone, 
+  QrCode, 
+  Store, 
+  ChevronLeft, 
+  ChevronRight,
+  Copy,
+  Search,
+  Phone,
+  Send
 } from 'lucide-react';
 import { PACKAGES, FREE_DIRECTORY_SERVICE } from '../data/mockData';
+import { Business } from '../types';
 
-interface PackagesHubProps {
+export interface PackagesHubProps {
   initialPackageId?: string;
   onSelectPackage?: (packageTitle: string) => void;
   onClose?: () => void;
+  mode?: 'admin' | 'public';
+  businesses?: Business[];
+  onSendPackageBiz?: (biz: Business, packageId?: string) => void;
 }
 
 export const PackagesHub: React.FC<PackagesHubProps> = ({
   initialPackageId = 'pkg_basic',
   onSelectPackage,
-  onClose
+  onClose,
+  mode = 'admin',
+  businesses = [],
+  onSendPackageBiz
 }) => {
   const [selectedPkgId, setSelectedPkgId] = useState<string>(initialPackageId || 'pkg_basic');
   const [categoryTab, setCategoryTab] = useState<'all' | 'essential' | 'growth' | 'enterprise'>('all');
+  const [copiedPkgId, setCopiedPkgId] = useState<string | null>(null);
+  const [copyToast, setCopyToast] = useState<string | null>(null);
+  const [showBizPickerModal, setShowBizPickerModal] = useState<boolean>(false);
+  const [bizPickerSearch, setBizPickerSearch] = useState<string>('');
+
   const detailsRef = useRef<HTMLDivElement>(null);
   const packagesGridRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +83,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'التفعيل الميداني الرسمي لمنشأتكم ومكانكم على خرائط جوجل مع تثبيت الإحداثيات والبيانات الأساسية وملصق QR.',
       deliveryTime: '24 - 48 ساعة عمل',
       targetAudience: 'المحلات والمنشآت التي تحتاج لظهور رسمي فوري وموثق على خرائط جوجل لسهولة وصول الزبائن وتوصيل الطلبات.',
+      pitchGuide: {
+        hook: 'مكانك مش ظاهر على الخريطة؟ بتخسر زباين ومناديب دليفري كل يوم! في 24 ساعة هنثبت محلك رسمي على جوجل مع ملصق QR هدية للواجهة.',
+        need: 'للأنشطة التي ليس لها موقع جغرافي موثق على خرائط Google أو موقعها غير دقيق أو أرقامها غير محدثة.',
+        objection: 'لو قال: "أنا معروف في منطقتي مش محتاج خريطة" ⬅️ وضّح له: "الزبون الجديد أو المغترب بيبحث بالموبايل أولاً، وشركات الدليفري بتعتمد تماماً على نقطة GPS الدقيقة".'
+      },
       highlights: [
         'تثبيت الموقع الجغرافي الدقيق بنظام GPS',
         'رفع اللوجو وصور الواجهة ومقر المكان بجودة عالية',
@@ -105,6 +126,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'توثيق جوجل + تأسيس وتجهيز صفحات المنصات الاجتماعية وتصميم الإعلانات وهوية العرض مع متابعة 3 أيام.',
       deliveryTime: '3 أيام عمل مع مرافقة حية',
       targetAudience: 'المحلات والشركات الراغبة في انطلاقة رقمية قوية، زيادة المبيعات، وبناء هوية تسويقية تجذب العملاء الجدد.',
+      pitchGuide: {
+        hook: 'الباقة الأكثر طلباً ومبيعاً: توثيق رسمي + صفحات سوشيال ميديا باسمك وهوية مميزة + إعلان احترافي يشد الزبائن + مرافقة ودعم 3 أيام.',
+        need: 'للمحلات والشركات التي تبحث عن بداية قوية ومبيعات فورية دون إضاعة الوقت وتشتيت الجهد.',
+        objection: 'لو قال: "أنا هعمل فيسبوك بنفسي" ⬅️ وضّح له: "تأسيس الصفحات محتاج SEO وهوية بصرية متناسقة مع الخريطة وإعلان منظم يضمن نتائج حقيقية من أول أسبوع".'
+      },
       highlights: [
         'كل مميزات باقة التوثيق الأساسي على خرائط جوجل',
         'كتابة وصف تسويقي احترافي وتحسين الكلمات المفتاحية (SEO)',
@@ -143,6 +169,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'حماية وتطوير السمعة الرقمية للمنشأة، معالجة الملاحظات، وتحفيز الزبائن الحقيقيين على كتابة مراجعات إيجابية موثقة.',
       deliveryTime: '5 - 7 أيام عمل',
       targetAudience: 'العيادات، المطاعم، المتاجر والأنشطة الخدمية التي تعتمد على ثقة الزبائن ومراجعات محركات البحث.',
+      pitchGuide: {
+        hook: 'سمعة محلك هي اللي بتجيب الزبون أو تطفشه: زيادة تقييمات 5 نجوم حقيقية وحماية المكان من التقييمات الكيدية والردود المهنية الراقية.',
+        need: 'للأنشطة الخدمية والمطاعم والعيادات التي تعتمد على التقييمات وثقة العملاء على خرائط جوجل.',
+        objection: 'لو قال: "التقييمات مش فارقة معايا" ⬅️ وضّح له: "أكثر من 90% من الزبائن يقرأون التقييمات قبل زيارة أي مكان جديد، وأي نجمة إضافية ترفع مبيعاتك 9%".'
+      },
       highlights: [
         'فحص شامل لملف النشاط على Google ومعالجة الملاحظات وحماية التقييم العام',
         'منظومة ذكية لتوجيه العملاء الراضين لكتابة تقييمات إيجابية موثقة',
@@ -180,6 +211,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'إنتاج محتوى مرئي قصير جذاب (Reels & TikTok) يبرز أقوى منتجاتك مع تجهيز حملة إعلانية تستهدف سكان منطقتك.',
       deliveryTime: '3 - 5 أيام عمل',
       targetAudience: 'المطاعم، الكافيهات، محلات الملابس، صالونات التجميل وكل نشاط يعتمد على الجاذبية البصرية المباشرة.',
+      pitchGuide: {
+        hook: 'الفيديو هو أسرع وسيلة بيع اليوم: إنتاج مقاطع ريلز احترافية تعرض منتجاتك بجودة سينمائية تشد أهالي منطقتك للشراء.',
+        need: 'للأنشطة التي تعتمد على الإبهار البصري مثل الكافيهات، المطاعم، صالونات التجميل، ومحلات الأزياء.',
+        objection: 'لو قال: "بصور بالموبايل عادي" ⬅️ وضّح له: "المونتاج الاحترافي والموسيقى والهاشتاجات المدروسة بتضاعف المشاهدات وتبرز فخامة المحل".'
+      },
       highlights: [
         'إنتاج مقطعي فيديو قصيرين (2 Reels / TikTok) بمونتاج عصري خاطف',
         'صياغة سكريبت جذاب ومقدمة خاطفة لشد انتباه المتابع خلال أول 3 ثوانٍ',
@@ -217,6 +253,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'إدارة تسويقية ورقمية شاملة لمدة شهر كامل: تصميمات متجددة، إعداد الحملات الممولة، إدارة التقييمات، ومتابعة يومية مستمرة.',
       deliveryTime: 'شهر كامل (30 يوماً متابعة حية)',
       targetAudience: 'أصحاب الأعمال والمحلات المشغولين الذين يريدون فريقاً تسويقياً متكاملاً يتولى إدارة المنصات وضبط الحملات وتطوير المبيعات.',
+      pitchGuide: {
+        hook: 'إدارة تسويقية ورقمية متكاملة لمدة شهر كامل: تصميمات، إعلانات، ومتابعة يومية كأن عندك قسم تسويق كامل شغال لنشاطك بـ 2,000 ج بس.',
+        need: 'لأصحاب الأنشطة المشغولين الذين لا يملكون وقتاً لإدارة الصفحات والإعلانات بأنفسهم.',
+        objection: 'لو قال: "التكلفة كبيرة" ⬅️ وضّح له: "راتب موظف تسويق واحد يتجاوز 5,000 ج، وهنا بتستفيد من فريق كامل: مصمم، كاتب محتوى، ومسؤول إعلانات متفرغين لك شهرياً، مع إمكانية التجديد بـ 1,000 ج فقط".'
+      },
       highlights: [
         'تصميم منشورات وبانرات إعلانية احترافية متجددة طوال الشهر',
         'معالجة وإعادة إخراج صور وفيديوهات المنتجات المرسلة من المحل بأحدث القوالب الجذابة',
@@ -257,6 +298,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'منيو وكتالوج رقمي تفاعلي سريع وسلة طلبات مباشرة على واتساب المحل بدون عمولات وسيطة لتطبيقات التوصيل.',
       deliveryTime: '5 - 7 أيام عمل',
       targetAudience: 'المطاعم، الكافيهات، محلات الحلويات، السوبرماركت، والمتاجر التي تتلقى طلبات توصيل مستمرة.',
+      pitchGuide: {
+        hook: 'منيو رقمي ومتجر واتساب ذكي بـ QR Code: الزبون يطلب أونلاين والطلب يوصلك جاهز على الواتساب بدون عمولات تطبيقات التوصيل.',
+        need: 'للمطاعم، الكافيهات، الحلويات، والمحلات التي تستقبل طلبات وتوصيل للمنازل.',
+        objection: 'لو قال: "عندي منيو ورقي كفاية" ⬅️ وضّح له: "المنيو الورقي بيتبهدل وبيكلف طباعة عند كل تغيير سعر، بينما الرقمي أسرع وأشيك وأسهل في التعديل ويوفر عمولات تطبيقات التوصيل".'
+      },
       highlights: [
         'تصميم وبرمجة منيو/كتالوج رقمي متكامل فائق السرعة عبر رمز QR',
         'سلة مشتريات ذكية ترسل تفاصيل أصناف الطلب والعنوان لواتساب المحل فوراً',
@@ -294,6 +340,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'شراكة سنوية تضمن تصدر المنشأة لنتائج البحث في الدليل مع شارة التوثيق الذهبية وتحديث ربع سنوي طوال 12 شهراً.',
       deliveryTime: 'سنة كاملة (365 يوماً رعاية مستمرة)',
       targetAudience: 'الأنشطة الرائدة، البراندات، والمراكز الخدمية الكبرى التي تريد تصدر قطاعها ومنطقتها باستمرار طوال العام.',
+      pitchGuide: {
+        hook: 'شراكة استراتيجية سنوية مستمرة: توثيق دائم، وتصدر نتائج البحث، وحملات موسمية في الأعياد والمناسبات طوال 12 شهراً.',
+        need: 'للشركات والمؤسسات المستقرة الراغبة في حماية وتنمية تواجدها الرقمي طوال العام بتكلفة اقتصادية مخفضة.',
+        objection: 'لو قال: "الدفع السنوي مقدماً كتير" ⬅️ وضّح له: "التكلفة السنوية توفر أكثر من 50% مقارنة بالاشتراكات الشهرية وتضمن لك شارة الشريك المعتمد وتصدر نتائج البحث طوال العام".'
+      },
       highlights: [
         'ظهور مثبت في صدارة نتائج البحث (Featured Top Result) بتصنيف المحافظة طوال العام',
         'منح شارة التوثيق الذهبية المعتمدة (Gold Certified) كأحد أبرز الخيارات الموصى بها',
@@ -332,6 +383,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       summary: 'حلول مؤسسية متكاملة للشركات، الفروع المتعددة، والأنشطة تحت التجهيز والإنشاء: بناء الهوية المؤسسية، التأسيس الرقمي، وإدارة حملات الافتتاح والانطلاق.',
       deliveryTime: 'وفق الجدول الزمني المحدد للمشروع',
       targetAudience: 'الشركات، السلاسل التجارية، الفروع المتعددة، والمنشآت تحت التجهيز والإنشاء التي تحتاج لحلول مخصصة متكاملة.',
+      pitchGuide: {
+        hook: 'حلول مؤسسية شاملة للمصانع والشركات وسلاسل الفروع والمحلات تحت التجهيز: هوية بصرية كاملة، لافتات، وتأسيس رقمي لجميع الفروع.',
+        need: 'لسلاسل الفروع، الشركات الكبرى، والمحلات الضخمة في مرحلة ما قبل الافتتاح والإنشاء.',
+        objection: 'لو قال: "محتاج دراسة سعر خاصة" ⬅️ وضّح له: "فريق الإدارة العليا يجهز دراسة مخصصة بحسب عدد الفروع ونطاق التجهيز المطلوب مع جلسة استشارية فنية".'
+      },
       highlights: [
         'بناء وتطوير الهوية البصرية والمؤسسية المتكاملة والشعار بالملفات المفتوحة الكاملة',
         'تصميم الواجهات واللافتات والمطبوعات الميدانية وباقات التعبئة والتغليف',
@@ -350,125 +406,149 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
         { name: 'جلسة استشارية وعرض فني ومالي مخصص', desc: 'تحليل دقيق لمتطلبات المنشأة وتقديم خطة تنفيذية مخصصة تلائم ميزانية وأهداف النشاط.' }
       ],
       idealPractices: [
-        '💡 الممارسة المثالية: حجز الجلسة الاستشارية في بدايات مرحلة التجهيز لتوحيد الرؤية البصرية والتسويقية قبل تدشين المكان.',
-        '🤝 الشراكة المؤسسية: يتم تعيين مسؤول اتصال مخصص لمتابعة تنفيذ كافة مراحل الخطة وتسليم المخرجات بدقة.'
+        '💡 الممارسة المثالية: بدء التنسيق مع فريق العمل قبل موعد الافتتاح الرسمي بشهر على الأقل لضبط الخطة الإعلانية.',
+        '🏢 نصيحة الشركات: توحيد وسائل التواصل والربط الإلكتروني بين جميع الفروع لضمان تجربة عميل موحدة.'
       ]
     }
   ];
 
-  const selectedPkg = detailedPackages.find((p) => p.id === selectedPkgId) || detailedPackages[1];
+  const selectedPkg = detailedPackages.find((p) => p.id === selectedPkgId) || detailedPackages[0];
 
   const comparisonRows = [
-    {
-      feature: 'ظهور المنشأة في دليل المنصة والمحافظة',
-      basic: true,
-      pro: true,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'عرض أرقام التواصل وروابط الواتساب المباشرة',
-      basic: true,
-      pro: true,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'التفعيل والتوثيق المعتمد على خرائط Google',
-      basic: true,
-      pro: true,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'تثبيت إحداثيات الموقع بدقة GPS مع ساعات العمل',
-      basic: true,
-      pro: true,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'ملصق باركود QR Code احترافي مخصص للمحل',
-      basic: true,
-      pro: true,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'تحسين محركات البحث والكلمات المفتاحية (SEO)',
-      basic: false,
-      pro: true,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'تأسيس صفحات المنصات الاجتماعية بهوية متناسقة',
-      basic: false,
-      pro: true,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'تصميم إعلانات وبوستات ترويجية احترافية',
-      basic: false,
-      pro: true,
-      vip: 'متجددة طوال الشهر',
-      enterprise: 'حملة إطلاق شاملة',
-    },
-    {
-      feature: 'إدارة وتوجيه تقييمات ومراجعات العملاء',
-      basic: false,
-      pro: false,
-      vip: true,
-      enterprise: true,
-    },
-    {
-      feature: 'إعداد وضبط الحملات الإعلانية الممولة',
-      basic: false,
-      pro: false,
-      vip: 'إدارة واستهداف شهري',
-      enterprise: 'تخطيط وإطلاق متكامل',
-    },
-    {
-      feature: 'تصميم الشعار واللافتات والمطبوعات الميدانية',
-      basic: false,
-      pro: false,
-      vip: false,
-      enterprise: true,
-    },
-    {
-      feature: 'منظومة ولاء العملاء وتكرار الشراء الدائم',
-      basic: false,
-      pro: false,
-      vip: false,
-      enterprise: true,
-    },
-    {
-      feature: 'مدة المرافقة والدعم التسويقي المباشر',
-      basic: 'تسليم 48 ساعة',
-      pro: 'متابعة 3 أيام',
-      vip: 'دعم يومي شهر كامل',
-      enterprise: 'طوال المشروع + شهر',
-    },
-    {
-      feature: 'الاستثمار / السعر الرسمي',
-      basic: '250 ج.م',
-      pro: '750 ج.م',
-      vip: '2,000 ج.م',
-      enterprise: 'تسعير مخصص حسب المشروع',
-    },
+    { feature: 'التفعيل الرسمي على خرائط Google', basic: true, pro: true, vip: true, enterprise: true },
+    { feature: 'تحديث بيانات وساعات العمل والاتصال', basic: true, pro: true, vip: true, enterprise: true },
+    { feature: 'ملصق وكارت QR Code للخريطة', basic: true, pro: true, vip: true, enterprise: true },
+    { feature: 'تحسين الكلمات المفتاحية (Local SEO)', basic: false, pro: true, vip: true, enterprise: true },
+    { feature: 'تأسيس وتنسيق صفحات السوشيال ميديا', basic: false, pro: true, vip: true, enterprise: true },
+    { feature: 'تصميم إعلانات وعرض البضائع', basic: false, pro: true, vip: true, enterprise: true },
+    { feature: 'مرافقة ودعم تشغيلي مباشر', basic: '24-48 ساعة', pro: '3 أيام', vip: 'شهر كامل (30 يوم)', enterprise: 'فريق متفرغ' },
+    { feature: 'إدارة وتوجيه التقييمات الإيجابية', basic: false, pro: false, vip: true, enterprise: true },
+    { feature: 'إدارة وضبط الحملات الإعلانية الممولة', basic: false, pro: false, vip: true, enterprise: true },
+    { feature: 'تصميم الهوية واللافتات الميدانية والفروع', basic: false, pro: false, vip: false, enterprise: true },
+    { feature: 'ميزة التجديد المخفض للشهور التالية', basic: false, pro: false, vip: '1,000 ج فقط', enterprise: 'عقود رعاية' }
   ];
 
-  const getWhatsAppMessage = (pkg: typeof selectedPkg) => {
-    if (pkg.id === 'pkg_corporate') {
-      return encodeURIComponent(
-        `مرحباً دليلك 👋 أود الاستفسار وطلب دراسة وعرض سعر مخصص لـ "باقة الشركات والمشاريع الكبرى" لتجهيز وتطوير منظومة منشأتنا ومكاننا.`
-      );
+  // Copy complete package pitch to clipboard
+  const copyPackagePitch = (pkg: (typeof detailedPackages)[0]) => {
+    const priceText = pkg.priceLabel ? pkg.priceLabel : `${pkg.price.toLocaleString('en-US')} ج.م`;
+    const featuresList = pkg.featuresIncluded
+      .map((f, i) => `${i + 1}. *${f.name}*: ${f.desc}`)
+      .join('\n');
+    const highlightsList = pkg.highlights
+      .map(h => `• ${h}`)
+      .join('\n');
+    const practicesList = pkg.idealPractices
+      .map(p => `• ${p}`)
+      .join('\n');
+
+    const text = `*عرض رسمي معتمد من منصة دليلك 💎*
+━━━━━━━━━━━━━━━━━━━━━
+📌 *الباقة:* ${pkg.title}
+💰 *قيمة الاستثمار:* ${priceText}
+⏱️ *مدة التنفيذ والاستلام:* ${pkg.deliveryTime}
+👥 *الفئة المستهدفة:* ${pkg.targetAudience}
+
+📋 *ما تتضمنه الباقة بدقة:*
+${featuresList}
+
+🎁 *أبرز المزايا والهدايا المشمولة:*
+${highlightsList}
+
+💡 *إرشادات المنصة للنشاط:*
+${practicesList}
+
+━━━━━━━━━━━━━━━━━━━━━
+✨ *منظومة دليلك - التوثيق الميداني والتأسيس الرقمي الشامل في مصر*
+📞 *للتأكيد والبدء الفوري تواصل معنا عبر واتساب*`;
+
+    navigator.clipboard.writeText(text);
+    setCopiedPkgId(pkg.id);
+    setCopyToast(`✓ تم نسخ تفاصيل وعرض «${pkg.shortName}» بنجاح! جاهزة للمشاركة مع التاجر.`);
+    setTimeout(() => setCopiedPkgId(null), 2500);
+    setTimeout(() => setCopyToast(null), 4000);
+  };
+
+  // Copy free listing conditions
+  const copyFreeListingConditions = () => {
+    const text = `*إشعار وسياسة الإدراج المجاني في دليل دليلك 📍*
+━━━━━━━━━━━━━━━━━━━━━
+✨ ترحب منصة دليلك بإدراج نشاطكم التجاري في دليل المحافظة مجاناً وبدون أي مقابل مالي!
+
+📌 *الشرط الأساسي الوحيد للإدراج المجاني:*
+${FREE_DIRECTORY_SERVICE.condition}
+
+💡 *إذا لم يكن لمنشأتكم موقع موثق على الخريطة:*
+${FREE_DIRECTORY_SERVICE.unverifiedNote}
+
+📋 *المميزات المتاحة في الإدراج المجاني:*
+• ظهور اسم المنشأة وتصنيفها للجمهور.
+• عرض أرقام التواصل وروابط الواتساب المباشرة.
+• ربط وتوجيه العنوان لموقعكم المعتمد على الخريطة.
+• عرض مواعيد وساعات العمل طوال الأسبوع.
+• بدون أي رسوم تسجيل وبدون أي اشتراكات دورية (مجاني 100%).
+━━━━━━━━━━━━━━━━━━━━━
+منظومة دليلك - دليل المحافظة المعتمد 🇪🇬`;
+
+    navigator.clipboard.writeText(text);
+    setCopyToast('✓ تم نسخ شروط وسياسة الإدراج المجاني بنجاح! جاهزة للمشاركة مع التاجر.');
+    setTimeout(() => setCopyToast(null), 4000);
+  };
+
+  // Copy corporate pitch
+  const copyCorporatePitch = () => {
+    const text = `*باقة الشركات والمشاريع الكبرى والمحلات تحت التجهيز 🏢*
+━━━━━━━━━━━━━━━━━━━━━
+✨ حلول مؤسسية متكاملة مقدمة من منصة دليلك للشركات والمصانع وسلاسل الفروع:
+
+👑 *محاور الخدمة المؤسسية:*
+1. *الهوية البصرية واللافتات الميدانية:* تصميم الشعار، دليل الهوية، المطبوعات، ولوحات الفروع.
+2. *ربط وتوثيق الفروع الموحد:* تأسيس مركزي لجميع الفروع على Google Maps ومحركات البحث.
+3. *حملات الافتتاح والانتشار:* تخطيط وإدارة حملات الترويج الموجهة لانطلاقة قوية وزيادة الزبائن.
+4. *برامج الولاء والأنظمة الذكية:* بناء منظومات تكرار الشراء والربط مع خدمة العملاء والمناديب.
+
+💼 *يتم تحديد التكلفة والعرض المالي بناءً على عدد الفروع ونطاق التجهيز المطلوب.*
+━━━━━━━━━━━━━━━━━━━━━
+منظومة دليلك - شريك التأسيس والتطوير المؤسسي 🇪🇬`;
+
+    navigator.clipboard.writeText(text);
+    setCopyToast('✓ تم نسخ محاور عرض الشركات والمشاريع الكبرى بنجاح!');
+    setTimeout(() => setCopyToast(null), 4000);
+  };
+
+  // Direct WhatsApp proposal launcher for a specific business
+  const sendPackageToBusinessDirectly = (biz: Business, pkg: (typeof detailedPackages)[0]) => {
+    const phone = (biz.ownerPhone || biz.phone || '').replace(/[^0-9]/g, '');
+    let formattedPhone = phone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '2' + formattedPhone;
+    } else if (!formattedPhone.startsWith('20') && formattedPhone.length === 10) {
+      formattedPhone = '20' + formattedPhone;
     }
-    const priceText = pkg.priceLabel ? pkg.priceLabel : `${pkg.price.toLocaleString('en-US')} جنيه مصري`;
-    return encodeURIComponent(
-      `مرحباً دليلك 👋 أود الاستفسار والاشتراك في "${pkg.title}" بقيمة (${priceText}) لمنشأتنا ومكاننا.`
-    );
+
+    const priceText = pkg.priceLabel ? pkg.priceLabel : `${pkg.price.toLocaleString('en-US')} ج.م`;
+    const ownerName = biz.ownerName ? `أستاذ/ة ${biz.ownerName}` : 'أصحاب وإدارة المنشأة';
+    const bizName = biz.name || 'نشاطكم التجاري';
+
+    const msg = `السلام عليكم ورحمة الله وبركاته، تحياتنا لكم ${ownerName} 🌸
+بخصوص منشأتكم الكريمة: *«${bizName}»*
+
+يسر فريق العمل بمنظومة دليلك تقديم هذا المقترح لتطوير ومضاعفة ظهور نشاطكم:
+
+💎 *«${pkg.title}»*
+💰 *قيمة الاستثمار:* ${priceText}
+⏱️ *مدة التنفيذ والتسليم:* ${pkg.deliveryTime}
+
+📋 *أبرز ما تشمله الباقة لنشاطكم:*
+${pkg.highlights.map(h => `• ${h}`).join('\n')}
+
+💡 *لماذا هذه الباقة بالذات لنشاطكم؟*
+${pkg.targetAudience}
+
+جاهزون للبدء والتنفيذ الفوري بمجرد تأكيدكم، ويسعدنا الإجابة على أي استفسار.
+━━━━━━━━━━━━━━━━━━━━━
+*منظومة دليلك - الإدارة والتوثيق الميداني الرسمي*`;
+
+    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const handleSelectForForm = (pkgTitle: string) => {
@@ -507,16 +587,25 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     }
   };
 
+  // Filtered businesses for picker
+  const searchFilteredBiz = businesses.filter(b => 
+    b.name?.toLowerCase().includes(bizPickerSearch.toLowerCase()) ||
+    b.ownerName?.toLowerCase().includes(bizPickerSearch.toLowerCase()) ||
+    b.ownerPhone?.includes(bizPickerSearch) ||
+    b.phone?.includes(bizPickerSearch) ||
+    b.governorate?.toLowerCase().includes(bizPickerSearch.toLowerCase())
+  );
+
   return (
     <div className="space-y-5 font-['Cairo',sans-serif] text-[var(--text-primary)]">
       {/* ========================================================================= */}
-      {/* 1. ULTRA-COMPACT SLEEK HERO BANNER */}
+      {/* 1. HERO OPERATIONAL BANNER */}
       {/* ========================================================================= */}
       <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-4 sm:p-5 rounded-2xl shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="relative z-10 space-y-1 max-w-2xl">
           <div className="flex items-center gap-2">
             <span className="bg-slate-950/20 text-slate-950 text-[10.5px] sm:text-xs font-black px-3 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1">
-              <span>منظومة باقات دليلك المعتمدة في مصر</span>
+              <span>المرجع التشغيلي والتسويقي للمناديب والإداريين</span>
               <span>💎</span>
             </span>
           </div>
@@ -524,11 +613,11 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             دليل وشرح باقات خدمات منصة دليلك في مصر 🚀
           </h2>
           <p className="text-xs sm:text-xs font-bold text-slate-900/90 leading-relaxed">
-            باقات وحملات تسويقية متكاملة تبدأ من التوثيق الأساسي وتصدر الخرائط، مروراً بباقات النمو والانتشار، وحتى حلول الشركات والمشاريع الكبرى. انقر على أي باقة لمعاينة تفاصيلها فوراً.
+            المرجع الكامل لتوجيه وإقناع أصحاب الأنشطة التجارية؛ يتضمن مميزات كل باقة بدقة، وأسلوب الشرح في دقيقة، والردود على الاعتراضات، مع إمكانية نسخ تفاصيل العرض أو إرساله مباشرة للمنشأة عبر واتساب.
           </p>
         </div>
 
-        <div className="relative z-10 shrink-0 self-end sm:self-center">
+        <div className="relative z-10 shrink-0 self-end sm:self-center flex items-center gap-2">
           <span className="bg-slate-950 text-amber-400 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-md inline-flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>8 باقات معتمدة</span>
@@ -541,24 +630,24 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 1.5. STANDALONE FREE DIRECTORY LISTING NOTICE (خدمة عامة مشروطة وليست باقة) */}
+      {/* 1.5. STANDALONE FREE DIRECTORY LISTING POLICY (سياسة وإشعار الإدراج المجاني) */}
       {/* ========================================================================= */}
       <div className="bg-gradient-to-r from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-2 border-emerald-500/60 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span>خدمة إدراج المنشأة مجاناً 100% (ليست ضمن الباقات التجارية)</span>
+            <span>سياسة إدراج المنشأة مجاناً 100% (توجيه إداري وتشغيلي)</span>
           </div>
           <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
-            هل نشاطكم التجاري موثق بالفعل على خرائط Google؟
+            شرط الظهور المجاني في الدليل: وجود موقع موثق مسبقاً على Google Maps
           </h3>
           <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed">
-            {FREE_DIRECTORY_SERVICE.condition} نوفر لكم ظهوراً وإدراجاً كاملاً في دليل المحافظة مجاناً وبدون أي رسوم.
+            {FREE_DIRECTORY_SERVICE.condition} نوفر للنشاط ظهوراً وإدراجاً كاملاً في دليل المحافظة مجاناً وبدون أي رسوم تسجيل.
           </p>
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-xs text-amber-800 dark:text-amber-300 font-bold flex items-start gap-2">
             <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <span>
-              <strong>إذا لم يكن لمنشأتكم موقع موثق على الخريطة:</strong> نقترح عليكم البدء بـ{' '}
+              <strong>💡 توجيه المندوب إذا لم يكن للمكان موقع موثق:</strong> لا يتم إدراجه مجاناً ويتم توجيهه إلى{' '}
               <button
                 type="button"
                 onClick={() => setSelectedPkgId('pkg_basic')}
@@ -566,21 +655,21 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
               >
                 «باقة التوثيق الأساسي» (250 ج.م)
               </button>{' '}
-              لتفعيل وتثبيت موقعكم رسمياً أولاً.
+              لتفعيل وتثبيت موقعه الجغرافي رسمياً أولاً.
             </span>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0 w-full md:w-auto">
-          <a
-            href={`https://wa.me/201143888355?text=${encodeURIComponent('مرحباً دليلك 👋 نشاطنا موثق بالفعل على خرائط Google، ونود طلب إدراج وظهور المكان في الدليل مجاناً 100%.')}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={copyFreeListingConditions}
             className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
+            title="نسخ نص شروط وسياسة الإدراج المجاني لمشاركتها مع التاجر"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
-            <span>طلب الإدراج المجاني (للمواقع الموثقة)</span>
-          </a>
+            <Copy className="w-3.5 h-3.5" />
+            <span>نسخ شروط وسياسة الإدراج المجاني للعميل 📋</span>
+          </button>
 
           <button
             type="button"
@@ -588,7 +677,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             className="px-4 py-2.5 rounded-xl bg-blue-600/10 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 border border-blue-500/30 font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
           >
             <MapPin className="w-3.5 h-3.5" />
-            <span>معاينة باقة التوثيق الأساسي (250 ج)</span>
+            <span>معاينة باقة التوثيق (250 ج)</span>
           </button>
         </div>
       </div>
@@ -601,7 +690,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-2.5 sm:p-3 text-center space-y-2">
           <div className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400">
             <HelpCircle className="w-4 h-4 text-amber-500" />
-            <span>اختر تصنيف الباقات المناسب لمرحلة مشروعك:</span>
+            <span>اختر تصنيف الباقات المناسب لمرحلة مشروع العميل:</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-black">
             <button
@@ -659,24 +748,24 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
           <div 
             onClick={() => detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             className="bg-gradient-to-r from-amber-500/15 via-amber-500/25 to-yellow-500/15 border-2 border-amber-500/60 rounded-2xl p-3 px-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-amber-500/20 transition-all shadow-sm group animate-fade-in"
-            title="انقر للانتقال المباشر لتفاصيل هذه الباقة"
+            title="انقر للانتقال المباشر لتفاصيل هذه الباقة ودليل شرحها"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
               <div className="text-xs font-black text-[var(--text-primary)] truncate">
-                <span className="text-amber-600 dark:text-amber-400">👇 تم فتح تفاصيل</span>
+                <span className="text-amber-600 dark:text-amber-400">👇 تفاصيل ودليل شرح</span>
                 {' '}
                 <span className="text-[var(--text-primary)] font-black underline decoration-amber-500 underline-offset-4">
                   «{selectedPkg.shortName}»
                 </span>
                 {' '}
                 <span className="text-[var(--text-muted)] font-normal text-[11px] hidden sm:inline">
-                  ({selectedPkg.priceLabel || (selectedPkg.price === 0 ? 'مجاناً' : `${selectedPkg.price.toLocaleString('en-US')} ج.م`)})
+                  ({selectedPkg.priceLabel || (selectedPkg.price === 0 ? 'تسعير مخصص' : `${selectedPkg.price.toLocaleString('en-US')} ج.م`)})
                 </span>
               </div>
             </div>
             <div className="shrink-0 flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 group-hover:translate-y-0.5 transition-transform">
-              <span>تصفح المميزات والاشتراك أدناه</span>
+              <span>تصفح المميزات ودليل التوجيه أدناه</span>
               <span className="text-base">⬇️</span>
             </div>
           </div>
@@ -747,7 +836,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
                   </p>
                 </div>
 
-                {/* Instant Decision Actions (Two Clear Buttons) */}
+                {/* Instant Decision Actions (Two Clear Buttons: Details + Copy) */}
                 <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-color)]">
                   <button
                     type="button"
@@ -763,17 +852,19 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
                   >
                     <span>تفاصيل ومميزات الباقة 👁️</span>
                   </button>
-                  <a
-                    href={`https://wa.me/201143888355?text=${getWhatsAppMessage(pkg)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
-                    title="طلب مباشر عبر واتساب"
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyPackagePitch(pkg);
+                    }}
+                    className="px-3 py-2.5 rounded-xl bg-emerald-600/15 hover:bg-emerald-600 hover:text-white text-emerald-700 dark:text-emerald-300 font-black text-xs flex items-center justify-center gap-1 shadow-xs transition-all active:scale-95 cursor-pointer shrink-0 border border-emerald-500/30"
+                    title="نسخ تفاصيل وعرض الباقة للتاجر"
                   >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>طلب واتساب 💬</span>
-                  </a>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{copiedPkgId === pkg.id ? 'تم النسخ ✓' : 'نسخ 📋'}</span>
+                  </button>
                 </div>
               </div>
             );
@@ -782,7 +873,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. DETAILED VIEW FOR SELECTED PACKAGE (Dynamic Showcase Box) */}
+      {/* 3. DETAILED VIEW FOR SELECTED PACKAGE (Dynamic Operational Showcase Box) */}
       {/* ========================================================================= */}
       <div 
         ref={detailsRef}
@@ -810,7 +901,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
               <p className="text-xs text-[var(--text-muted)] font-bold mt-1">
                 الاستثمار:{' '}
                 <span className={`font-black text-sm ${selectedPkg.id === 'pkg_corporate' ? 'text-amber-500' : selectedPkg.price === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                  {selectedPkg.priceLabel || (selectedPkg.price === 0 ? 'مجاني تماماً 100%' : `${selectedPkg.price.toLocaleString('en-US')} ج.م`)}
+                  {selectedPkg.priceLabel || (selectedPkg.price === 0 ? 'تسعير مخصص' : `${selectedPkg.price.toLocaleString('en-US')} ج.م`)}
                 </span>
                 {' '}| مدة التنفيذ: <span className="text-[var(--text-primary)] font-bold">{selectedPkg.deliveryTime}</span>
               </p>
@@ -833,44 +924,88 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
           </div>
         </div>
 
-        {/* 2-Columns Grid: Deliverables & Audience */}
+        {/* 2-Columns Grid: Deliverables & Rep Sales Guidance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Column 1: Deliverables */}
-          <div className="bg-[var(--bg-surface)] p-4 sm:p-5 rounded-2xl border border-[var(--border-color)] space-y-3.5">
-            <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>ما تتضمنه هذه الباقة بدقة:</span>
-            </h4>
-            
-            <div className="space-y-2.5">
-              {selectedPkg.featuresIncluded.map((feat, idx) => (
-                <div key={idx} className="p-2.5 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] space-y-1 hover:border-amber-500/30 transition-colors">
-                  <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
-                    <span className="w-4 h-4 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-black shrink-0">
-                      ✓
-                    </span>
-                    <span>{feat.name}</span>
+          {/* Column 1: Deliverables & Target Audience */}
+          <div className="space-y-4">
+            <div className="bg-[var(--bg-surface)] p-4 sm:p-5 rounded-2xl border border-[var(--border-color)] space-y-3.5">
+              <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>ما تتضمنه هذه الباقة بدقة:</span>
+              </h4>
+              
+              <div className="space-y-2.5">
+                {selectedPkg.featuresIncluded.map((feat, idx) => (
+                  <div key={idx} className="p-2.5 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] space-y-1 hover:border-amber-500/30 transition-colors">
+                    <div className="flex items-center gap-2 font-black text-xs text-[var(--text-primary)]">
+                      <span className="w-4 h-4 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-black shrink-0">
+                        ✓
+                      </span>
+                      <span>{feat.name}</span>
+                    </div>
+                    <p className="text-[11px] text-[var(--text-secondary)] font-bold pr-6 leading-relaxed">
+                      {feat.desc}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-[var(--text-secondary)] font-bold pr-6 leading-relaxed">
-                    {feat.desc}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Target Audience */}
+            <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
+              <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <Users className="w-4 h-4 text-amber-500" />
+                <span>الأنشطة والفئة المستهدفة:</span>
+              </h4>
+              <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed">
+                {selectedPkg.targetAudience}
+              </p>
             </div>
           </div>
 
-          {/* Column 2: Target Audience & Best Practices & CTA */}
+          {/* Column 2: Rep Sales Guide (Pitching Hook & Objection Handling) */}
           <div className="space-y-4 flex flex-col justify-between">
             <div className="space-y-3.5">
-              {/* Target Audience */}
-              <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-2">
-                <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)] flex items-center gap-2">
-                  <Users className="w-4 h-4 text-amber-500" />
-                  <span>الأنشطة والفئة المستهدفة:</span>
-                </h4>
-                <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed">
-                  {selectedPkg.targetAudience}
-                </p>
+              {/* Sales Guidance for Reps */}
+              <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-yellow-500/10 p-4 sm:p-5 rounded-2xl border-2 border-amber-500/40 space-y-3.5 shadow-sm">
+                <div className="flex items-center justify-between border-b border-amber-500/25 pb-2.5">
+                  <h4 className="font-black text-xs sm:text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>🎯 دليل توجيه وشرح الباقة للتاجر (خاص بالمناديب والإداريين):</span>
+                  </h4>
+                  <span className="text-[10.5px] bg-amber-500 text-slate-950 font-black px-2.5 py-0.5 rounded-md shadow-xs">
+                    دليل المبيعات 💼
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border-color)] space-y-1">
+                    <span className="font-black text-amber-600 dark:text-amber-400 block text-[11px]">
+                      ⚡ كيف تشرح الباقة لصاحب المحل في 30 ثانية؟
+                    </span>
+                    <p className="text-[var(--text-primary)] font-bold leading-relaxed">
+                      "{selectedPkg.pitchGuide?.hook || selectedPkg.summary}"
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border-color)] space-y-1">
+                    <span className="font-black text-blue-600 dark:text-blue-400 block text-[11px]">
+                      🎯 متى تقترح هذه الباقة تحديداً على التاجر؟
+                    </span>
+                    <p className="text-[var(--text-secondary)] font-bold leading-relaxed">
+                      {selectedPkg.pitchGuide?.need || selectedPkg.targetAudience}
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border-color)] space-y-1">
+                    <span className="font-black text-emerald-600 dark:text-emerald-400 block text-[11px]">
+                      🛡️ الرد الاحترافي على اعتراضات العميل الشائعة:
+                    </span>
+                    <p className="text-[var(--text-secondary)] font-bold leading-relaxed">
+                      {selectedPkg.pitchGuide?.objection}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Best Practices */}
@@ -889,38 +1024,47 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
               </div>
             </div>
 
-            {/* Direct Action Buttons */}
+            {/* Direct Operational Action Buttons (No External WA Order Button) */}
             <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
-              <a
-                href={`https://wa.me/201143888355?text=${getWhatsAppMessage(selectedPkg)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`w-full sm:flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer ${
-                  selectedPkg.id === 'pkg_corporate'
-                    ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black shadow-amber-500/25'
-                    : selectedPkg.price === 0
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-                }`}
+              {/* Button 1: Copy Pitch */}
+              <button
+                type="button"
+                onClick={() => copyPackagePitch(selectedPkg)}
+                className="w-full sm:flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+                title="نسخ صيغة العرض والمميزات الكاملة لمشاركتها مع التاجر"
               >
-                <MessageCircle className="w-4 h-4" />
+                <Copy className="w-4 h-4" />
                 <span>
-                  {selectedPkg.id === 'pkg_corporate'
-                    ? 'طلب دراسة وعرض سعر مخصص عبر واتساب 💬'
-                    : selectedPkg.price === 0
-                      ? 'طلب الظهور المجاني عبر واتساب 💬'
-                      : 'طلب هذه الباقة عبر واتساب 💬'}
+                  {copiedPkgId === selectedPkg.id ? 'تم نسخ تفاصيل الباقة بنجاح ✓' : 'نسخ تفاصيل ومميزات الباقة للتاجر 📋'}
                 </span>
-              </a>
+              </button>
 
+              {/* Button 2: Send to Specific Business */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (businesses && businesses.length === 1 && onSendPackageBiz) {
+                    onSendPackageBiz(businesses[0], selectedPkg.id);
+                  } else {
+                    setShowBizPickerModal(true);
+                  }
+                }}
+                className="w-full sm:flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 shadow-md shadow-amber-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer font-black"
+                title="اختيار منشأة وإرسال هذا العرض لها مباشرة"
+              >
+                <Sparkles className="w-4 h-4 stroke-[2.5]" />
+                <span>إرسال الباقة لنشاط محدد 💎</span>
+              </button>
+
+              {/* Button 3: Select for Form (if provided) */}
               {onSelectPackage && (
                 <button
                   type="button"
                   onClick={() => handleSelectForForm(selectedPkg.title)}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+                  className="w-full sm:w-auto py-3 px-4 rounded-xl font-black text-xs bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-primary)] border border-[var(--border-color)] flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
-                  <span>تحديد هذه الباقة في استمارة التسجيل 📝</span>
+                  <span>تحديد في الاستمارة 📝</span>
                 </button>
               )}
             </div>
@@ -929,7 +1073,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3.5. ENTERPRISE & UNDER-CONSTRUCTION SOLUTIONS (باقة الشركات والمشاريع الكبرى) */}
+      {/* 3.5. ENTERPRISE SOLUTIONS (باقة الشركات والمشاريع الكبرى) */}
       {/* ========================================================================= */}
       <div className="bg-gradient-to-br from-amber-500/15 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-400/60 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-500/25 pb-3.5">
@@ -952,15 +1096,14 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             </div>
           </div>
 
-          <a
-            href="https://wa.me/201143888355?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20%D8%AF%D9%84%D9%8A%D9%84%D9%83%20%F0%9F%91%8B%20%D8%A3%D9%88%D8%AF%20%D8%B7%D9%84%D8%A8%20%D8%A7%D8%B3%D8%AA%D8%B4%D8%A7%D8%B1%D8%A9%20%D9%88%D8%AF%D8%B1%D8%A7%D8%B3%D8%A9%20%D8%B9%D8%B1%D8%B6%20%D8%B3%D8%B9%D8%B1%20%D9%85%D8%AE%D8%B5%D8%B5%20%D9%84%D9%80%20%22%D8%A8%D8%A7%D9%82%D8%A9%20%D8%A7%D9%84%D8%B4%D8%B1%D9%83%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D9%85%D8%B4%D8%A7%D8%B1%D9%8A%D8%B9%20%D8%A7%D9%84%D9%83%D8%A8%D8%B1%D9%89%22%20%D9%84%D9%85%D9%86%D8%B4%D8%A3%D8%AA%D9%86%D8%A7."
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={copyCorporatePitch}
             className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-transform active:scale-95 shrink-0 cursor-pointer"
           >
-            <MessageCircle className="w-4 h-4" />
-            <span>طلب استشارة ودراسة عرض سعر مخصص 💬</span>
-          </a>
+            <Copy className="w-4 h-4" />
+            <span>نسخ محاور عرض الشركات والمشاريع الكبرى 📋</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
@@ -996,7 +1139,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
               جدول المقارنة الشاملة بين باقات المنصة بالكامل 📊
             </h3>
             <p className="text-[11px] sm:text-xs text-[var(--text-muted)] font-bold mt-0.5">
-              مقارنة تفصيلية دقيقة بين الباقات المعتمدة من باقة التوثيق الأساسي وحتى باقة الشركات والمشاريع الكبرى
+              مقارنة تفصيلية دقيقة بين الباقات المعتمدة لتوضيح الفروقات للعملاء والأنشطة
             </p>
           </div>
         </div>
@@ -1084,6 +1227,138 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
           </table>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 5. BUSINESS SELECTOR MODAL (نافذة اختيار النشاط لإرسال العرض المخصص) */}
+      {/* ========================================================================= */}
+      {showBizPickerModal && (
+        <div className="fixed inset-0 z-[10001] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-[var(--modal-bg)] border-2 border-amber-500/50 rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col text-[var(--text-primary)]">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-black">
+                  <Sparkles className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                    إرسال عرض «{selectedPkg.shortName}» إلى منشأة 💎
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                    اختر النشاط التجاري لإرسال هذا العرض المخصص له فوراً عبر واتساب
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowBizPickerModal(false)}
+                className="w-8 h-8 rounded-full bg-[var(--input-bg)] hover:text-rose-500 flex items-center justify-center cursor-pointer border border-[var(--border-color)] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <input
+                type="text"
+                value={bizPickerSearch}
+                onChange={(e) => setBizPickerSearch(e.target.value)}
+                placeholder="ابحث باسم النشاط، اسم المالك، رقم الهاتف، أو المحافظة..."
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl py-2.5 pr-10 pl-4 text-xs font-bold focus:outline-none focus:border-amber-500 text-[var(--text-primary)]"
+                autoFocus
+              />
+              <Search className="w-4 h-4 text-[var(--text-muted)] absolute top-3 right-3.5" />
+            </div>
+
+            {/* List of Businesses */}
+            <div className="overflow-y-auto flex-1 space-y-2 pr-1 custom-scrollbar">
+              {(!businesses || businesses.length === 0) ? (
+                <div className="p-6 text-center text-xs text-[var(--text-muted)] font-bold bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-color)] space-y-2">
+                  <p>لا توجد أنشطة مسجلة محملة حالياً في هذه القائمة.</p>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    يمكنك استخدام زر «نسخ تفاصيل ومميزات الباقة للتاجر» ولصقها مباشرة في محادثة واتساب الخاصة بالعميل.
+                  </p>
+                </div>
+              ) : searchFilteredBiz.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[var(--text-muted)] font-bold bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-color)]">
+                  لا توجد منشأة مطابقة للبحث "{bizPickerSearch}"
+                </div>
+              ) : (
+                searchFilteredBiz.slice(0, 20).map((biz) => {
+                  const phone = biz.ownerPhone || biz.phone || '';
+                  return (
+                    <div
+                      key={biz.id}
+                      className="p-3 bg-[var(--bg-surface)] hover:bg-amber-500/5 rounded-2xl border border-[var(--border-color)] hover:border-amber-500/40 transition-colors flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <h4 className="font-black text-xs text-[var(--text-primary)] truncate">
+                          {biz.name}
+                        </h4>
+                        <div className="text-[10.5px] text-[var(--text-muted)] font-bold flex items-center gap-2 flex-wrap">
+                          {biz.ownerName && <span>المالك: {biz.ownerName}</span>}
+                          {phone && <span className="font-mono text-emerald-600 dark:text-emerald-400">{phone}</span>}
+                          {biz.governorate && <span>📍 {biz.governorate}</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {onSendPackageBiz ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowBizPickerModal(false);
+                              onSendPackageBiz(biz, selectedPkg.id);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>تجهيز العرض</span>
+                          </button>
+                        ) : null}
+
+                        {phone ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sendPackageToBusinessDirectly(biz, selectedPkg);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
+                            title="إرسال مباشر عبر واتساب"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>واتساب 💬</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-[var(--border-color)] flex justify-between items-center text-[11px] text-[var(--text-muted)] font-bold">
+              <span>إجمالي المنشآت: {businesses.length}</span>
+              <button
+                type="button"
+                onClick={() => setShowBizPickerModal(false)}
+                className="px-4 py-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-primary)] font-bold cursor-pointer transition-colors"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Copy Feedback Toast Banner */}
+      {copyToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10002] bg-slate-950 text-emerald-400 border-2 border-emerald-500 shadow-2xl rounded-2xl px-5 py-3 text-xs sm:text-sm font-black flex items-center gap-2.5 animate-bounce">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span>{copyToast}</span>
+        </div>
+      )}
     </div>
   );
 };

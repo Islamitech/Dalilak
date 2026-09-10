@@ -231,6 +231,11 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
       {showPackagesHubModal && (
         <PackagesModal
           onClose={() => setShowPackagesHubModal(false)}
+          businesses={businesses}
+          onSendPackageBiz={(biz) => {
+            setShowPackagesHubModal(false);
+            setSelectedPackageBiz(biz);
+          }}
         />
       )}
 
