@@ -1,5 +1,6 @@
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote, AdditionalServiceInvoice } from '../../types';
 import { safeParseJson } from '../../utils/storage';
+import { sanitizeRepName } from '../../utils/repDisplay';
 
 // 🛡️ Comprehensive BiDi Control Characters Regex (strips \u202E, \u202B, \u200E, etc. preventing backwards scrambled text)
 export const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
@@ -288,7 +289,7 @@ export function mapDbToBusiness(item: any): Business {
     coverPhoto: metaCoverPhoto || (parsePhotosArray(item).length > 0 ? parsePhotosArray(item)[0] : undefined),
     videos: finalVideos,
     repId: item.rep_id || item.repId || 'rep_1',
-    repName: item.rep_name || item.repName || 'مندوب معتمد',
+    repName: sanitizeRepName(item.rep_name || item.repName),
     repCommissionRate: metaRepCommissionRate,
     packageId,
     packageName,

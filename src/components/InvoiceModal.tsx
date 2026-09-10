@@ -34,6 +34,7 @@ import {
 } from '../utils/whatsapp';
 import { generateQrDataUrl } from '../utils/qrGenerator';
 import { triggerHaptic } from '../utils/haptics';
+import { getRepDisplayInfo } from '../utils/repDisplay';
 
 interface InvoiceModalProps {
   business: Business | null;
@@ -111,6 +112,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const effectiveInvoiceDate = isAdditional
     ? (currentAdditionalInvoice?.issueDate || new Date().toISOString().split('T')[0])
     : (activeBusiness.invoiceDate || new Date().toISOString().split('T')[0]);
+
+  const repDisplay = getRepDisplayInfo(activeBusiness.repName, {
+    repId: activeBusiness.repId,
+    isFeeExempt,
+    packageId: activeBusiness.packageId,
+  });
 
   const directoryUrl = 'https://www.dalilaak.com/';
 
@@ -318,7 +325,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <span className="text-[10.5px] text-slate-500 font-bold block truncate">
                 {isAdditional 
                   ? `الجهة المصدرة: إدارة منصة دليلك (${currentAdditionalInvoice?.issuedByName || 'الإدارة'})`
-                  : `المندوب: ${activeBusiness.repName || 'مندوب معتمد'}`}
+                  : `${repDisplay.roleLabel} ${repDisplay.displayName}`}
               </span>
             </div>
           </div>

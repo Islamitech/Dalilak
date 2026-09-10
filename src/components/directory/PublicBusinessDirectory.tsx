@@ -7,6 +7,7 @@ import { matchesCategoryFilter } from '../../utils/categoryMatcher';
 import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsapp';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
+import { getRepDisplayInfo } from '../../utils/repDisplay';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import { InteractiveMap } from '../InteractiveMap';
 import {
@@ -716,7 +717,12 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                     {/* Representative & Date Strip */}
                     <div className="flex items-center justify-between text-[10.5px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
-                      <span className="truncate max-w-[140px] text-[var(--text-secondary)]">👤 {biz.repName || 'مندوب ميداني'}</span>
+                      <span className="truncate max-w-[140px] text-[var(--text-secondary)]">
+                        {(() => {
+                          const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: Boolean(biz.isFeeExempt || biz.packagePrice === 0), packageId: biz.packageId });
+                          return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : `👤 ${info.displayName}`;
+                        })()}
+                      </span>
                       <span className="font-mono text-[9.5px] shrink-0">{formatActivityDateTime(biz.createdDate || biz.invoiceDate)}</span>
                     </div>
 
@@ -926,7 +932,10 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       )}
                     </span>
                     <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                      {biz.repName || 'مندوب ميداني'}
+                      {(() => {
+                        const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: Boolean(biz.isFeeExempt || biz.packagePrice === 0), packageId: biz.packageId });
+                        return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
+                      })()}
                     </span>
                   </div>
 
@@ -1129,7 +1138,10 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                         <td className="py-3 px-3">
                           <div className="font-bold text-[var(--text-secondary)] truncate max-w-[130px]">
-                            {biz.repName || 'مندوب ميداني'}
+                            {(() => {
+                              const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: Boolean(biz.isFeeExempt || biz.packagePrice === 0), packageId: biz.packageId });
+                              return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
+                            })()}
                           </div>
                           <div className="text-[10px] font-mono text-[var(--text-muted)]">
                             {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}

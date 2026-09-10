@@ -35,6 +35,7 @@ import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 import { fetchBusinessPhotosOnDemand } from '../services/db';
 import { BaseModal, Button, Badge } from './ui';
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
+import { getRepDisplayInfo } from '../utils/repDisplay';
 
 interface GoogleMapsSyncModalProps {
   business: Business;
@@ -731,8 +732,19 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                     <strong className="text-[var(--text-primary)] font-mono">{business.invoiceDate || new Date().toISOString().split('T')[0]}</strong>
                   </div>
                   <div>
-                    <span>المندوب المسؤول: </span>
-                    <strong className="text-[var(--text-primary)] font-black">{business.repName || 'مندوب معتمد'}</strong>
+                    {(() => {
+                      const repInfo = getRepDisplayInfo(business.repName, {
+                        repId: business.repId,
+                        isFeeExempt: business.isFeeExempt,
+                        packageId: business.packageId,
+                      });
+                      return (
+                        <>
+                          <span>{repInfo.roleLabel} </span>
+                          <strong className="text-[var(--text-primary)] font-black">{repInfo.displayName}</strong>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

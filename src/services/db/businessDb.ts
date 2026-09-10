@@ -8,6 +8,7 @@ import {
   removeOfflineBusiness,
 } from '../offlineSync';
 import { mapDbToBusiness, mapBusinessToDb, mapPartialBusinessToDb, parsePhotosArray, parseVideosArray, BIDI_CONTROL_REGEX, stripBiDiControls } from './dbMappers';
+import { sanitizeRepName } from '../../utils/repDisplay';
 
 export function getCachedBusinesses(): Business[] {
   const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
@@ -28,7 +29,8 @@ export function getCachedBusinesses(): Business[] {
             ? 'مطعم / مأكولات ومشويات'
             : 'خدمات وأنشطة عامة';
         }
-        return { ...b, nameAr: cleanNameAr, ownerName: cleanOwnerName, description: cleanDesc, category: cleanCat };
+        const cleanRepName = sanitizeRepName(b.repName);
+        return { ...b, nameAr: cleanNameAr, ownerName: cleanOwnerName, description: cleanDesc, category: cleanCat, repName: cleanRepName };
       });
   }
   return [];
