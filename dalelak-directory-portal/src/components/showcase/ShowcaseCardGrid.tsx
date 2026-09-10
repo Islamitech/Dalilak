@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Business } from '../../types';
 import { InteractiveMap } from '../InteractiveMap';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
@@ -75,6 +75,16 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
   setSortBy,
   handleRequestLocation,
 }) => {
+  // Progressive loading: show first 12 cards, expand by 12 on each "Load More" click
+  const [visibleCount, setVisibleCount] = useState<number>(12);
+  // Reset visible count whenever filters produce a new result set
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [filteredBusinesses]);
+
+  const visibleBusinesses = filteredBusinesses.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredBusinesses.length;
+
   return (
     <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5 space-y-4">
       {/* Section Header & View Mode Switcher */}
@@ -237,7 +247,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
           {/* 🃏 3-TIER BUSINESSES GRID (البطاقة الموحدة ثلاثية الطبقات) */}
           {filteredBusinesses.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredBusinesses.map((biz, idx) => {
+              {visibleBusinesses.map((biz, idx) => {
                 const mainPhoto =
                   biz.coverPhoto ||
                   (biz.photos && biz.photos.length > 0
@@ -456,6 +466,22 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <button
+                type="button"
+                onClick={() => setVisibleCount(prev => prev + 12)}
+                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-sm px-8 py-3 rounded-2xl transition-all shadow-md cursor-pointer"
+              >
+                <span>تحميل المزيد</span>
+                <span className="text-xs font-bold opacity-70">
+                  ({filteredBusinesses.length - visibleCount} متبقي)
+                </span>
+              </button>
             </div>
           )}
         </div>

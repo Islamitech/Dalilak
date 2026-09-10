@@ -55,6 +55,28 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
   });
 
+  // Unified onboarding completion handler – sets filters based on wizard selections
+  const handleOnboardingComplete = useCallback((selectedCategory: string, selectedGovernorate: string, selectedCity: string) => {
+    setShowOnboarding(false);
+    // Apply category filter if not "all"
+    if (selectedCategory && selectedCategory !== 'all') {
+      setCategoryFilter(selectedCategory);
+    }
+    // Apply governorate and city filters
+    if (selectedGovernorate && selectedGovernorate !== 'all') {
+      setGovFilter(selectedGovernorate);
+    }
+    if (selectedCity && selectedCity !== 'all') {
+      setCityFilter(selectedCity);
+    }
+    // Scroll to explore section if any filter was applied
+    const elem = document.getElementById('explore');
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
+  // Original handlers retained for backward compatibility (not used by new wizard)
   const handleExploreAround = useCallback((governorate = 'الجيزة', city = 'حدائق الأهرام') => {
     setShowOnboarding(false);
     setGovFilter(governorate);
@@ -145,11 +167,18 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [previewPhotoIndex, setPreviewPhotoIndex] = useState<number | null>(null);
   const [copiedBizId, setCopiedBizId] = useState<string | null>(null);
   const [shareToastText, setShareToastText] = useState<string | null>(null);
+  const [photosLoading, setPhotosLoading] = useState<boolean>(false);
 
   // Photos array of the currently selected business
   const currentPhotos = useMemo(() => {
-    return selectedBiz?.photos && selectedBiz.photos.length > 0 ? selectedBiz.photos : [];
-  }, [selectedBiz]);
+    if (selectedBiz?.photos && selectedBiz.photos.length > 0) {
+      return selectedBiz.photos;
+    }
+    if (selectedBiz?.coverPhoto) {
+      return [selectedBiz.coverPhoto];
+    }
+    return [];
+  }, [selectedBiz?.id, selectedBiz?.photos, selectedBiz?.coverPhoto]);
 
   // Photo slider navigation handlers
   const handlePrevPhoto = useCallback(() => {
@@ -262,6 +291,18 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     injectBusinessSchemaLd(selectedBiz);
   }, [selectedBiz]);
 
+  // Silently request user GPS location on initial mount for smart proximity sorting
+  useEffect(() => {
+    if (userCoords || typeof navigator === 'undefined' || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => {}, // Silent fail if permission not granted
+      { enableHighAccuracy: false, timeout: 6000 }
+    );
+  }, []);
+
   // On-demand full photo gallery loader for selected business (Skipped for rejected)
   useEffect(() => {
     if (
@@ -270,6 +311,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       (selectedBiz.photos && selectedBiz.photos.length > 1)
     )
       return;
+
+    setPhotosLoading(true);
     let isCurrent = true;
     const bizId = selectedBiz.id;
 
@@ -312,8 +355,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             );
           }
         }
+        if (isCurrent) setPhotosLoading(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isCurrent) setPhotosLoading(false);
+      });
 
     return () => {
       isCurrent = false;
@@ -403,7 +449,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   };
 
   // Close Business and restore browser URL
+  // If the business was opened via a deep link, reset the category filter to the closed business's category
   const handleCloseBusiness = () => {
+    // Preserve the category of the currently selected business before clearing it
+    const closedBiz = selectedBiz;
     setSelectedBiz(null);
     try {
       const url = new URL(window.location.href);
@@ -414,8 +463,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       const cleanPath = url.pathname.startsWith('/biz') ? '/' : url.pathname;
       window.history.replaceState(null, '', cleanPath + (url.search ? url.search : ''));
     } catch {}
+    // If this component was opened with an initialBizId (deep link), restore the category filter
+    if (initialBizId && closedBiz && closedBiz.category) {
+      setCategoryFilter(closedBiz.category);
+    }
   };
-
   // Share Business Direct Link
   const handleShareBusiness = async (biz: Business, e?: React.MouseEvent) => {
     if (e) {
@@ -715,7 +767,29 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       return [...list].sort((a, b) => (a.nameAr || '').localeCompare(b.nameAr || '', 'ar'));
     }
 
-    return list;
+    // Default Sorting ('default'):
+    // 1. If user coordinates exist, automatically prioritize proximity
+    if (userCoords) {
+      return [...list].sort((a, b) => {
+        const distA = calculateDistanceKm(userCoords.lat, userCoords.lng, a.lat, a.lng);
+        const distB = calculateDistanceKm(userCoords.lat, userCoords.lng, b.lat, b.lng);
+        return distA - distB;
+      });
+    }
+
+    // 2. Otherwise, apply a stable daily shuffle so items are not stuck in static registration order
+    const seed = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const shuffled = [...list];
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+    }
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      h = ((h << 5) - h + i) | 0;
+      const j = Math.abs(h) % (i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }, [
     publicBusinesses,
     showFavoritesOnly,
@@ -799,12 +873,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-300">
-      {/* 0. Interactive Onboarding Experience («دليلك يبدأ من مكانك») */}
+      {/* 0. Interactive Onboarding Experience (Guided Wizard) */}
       {showOnboarding && (
         <InteractiveOnboardingExperience
-          onExploreAround={handleExploreAround}
-          onSearchSpecific={handleSearchSpecific}
-          onAddBusinessFree={handleAddBusinessFree}
+          onComplete={handleOnboardingComplete}
           onSkip={handleSkipOnboarding}
         />
       )}
@@ -920,6 +992,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         onOpenVideoModal={(biz) => setSelectedVideoBiz(biz)}
         handleDownloadVCard={handleDownloadVCard}
         vCardDownloadedBizId={vCardDownloadedBizId}
+        photosLoading={photosLoading}
       />
 
       {/* 7. Photo Lightbox */}

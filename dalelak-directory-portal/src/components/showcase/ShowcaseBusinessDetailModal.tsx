@@ -38,6 +38,7 @@ export interface ShowcaseBusinessDetailModalProps {
   onOpenVideoModal: (biz: Business) => void;
   handleDownloadVCard: (biz: Business) => void;
   vCardDownloadedBizId: string | null;
+  photosLoading?: boolean;
 }
 
 export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalProps> = ({
@@ -52,6 +53,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
   onOpenVideoModal,
   handleDownloadVCard,
   vCardDownloadedBizId,
+  photosLoading = false,
 }) => {
   const [isDescExpanded, setIsDescExpanded] = useState<boolean>(false);
 
@@ -202,7 +204,11 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
           {/* Hero Image */}
           <div className="space-y-3">
             <div
-              onClick={() => onOpenPhotoPreview(0)}
+              onClick={() => {
+                if (selectedBiz.coverPhoto || (selectedBiz.photos && selectedBiz.photos.length > 0)) {
+                  onOpenPhotoPreview(0);
+                }
+              }}
               className="group relative h-56 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 shadow-md border border-[var(--border-color)] cursor-pointer"
               title="انقر لتكبير الصور"
             >
@@ -219,6 +225,14 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
+
+              {/* Photos Async Loading Indicator */}
+              {photosLoading && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-slate-950/80 backdrop-blur-md text-amber-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/30 flex items-center gap-1.5 z-20 shadow-md animate-fade-in">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                  <span>جاري تحميل الألبوم...</span>
+                </div>
+              )}
 
               <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
                 <div className="flex items-center gap-2">
