@@ -4,7 +4,7 @@ import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../../data/mockData';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../../utils/dateFormatters';
 import { matchesBusinessSearch } from '../../utils/arabicSearch';
 import { matchesCategoryFilter } from '../../utils/categoryMatcher';
-import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsappMessages';
+import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsapp';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';

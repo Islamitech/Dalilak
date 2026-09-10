@@ -9,7 +9,7 @@ import {
   cleanWhatsAppText,
   OFFICIAL_PLATFORM_HEADER,
   getVenueContextLabel,
-} from '../../utils/whatsappMessages';
+} from '../../utils/whatsapp';
 import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 import {
   Store,

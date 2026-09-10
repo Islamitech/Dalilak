@@ -30,7 +30,7 @@ import {
   generateGoogleVerificationOtpWhatsAppMessage,
   getGoogleOtpSentAlertWhatsAppUrl,
   generateGoogleOtpSentAlertWhatsAppMessage,
-} from '../utils/whatsappMessages';
+} from '../utils/whatsapp';
 import { sanitizeExternalUrl } from '../utils/urlSanitizer';
 import { fetchBusinessPhotosOnDemand } from '../services/db';
 import { BaseModal, Button, Badge } from './ui';

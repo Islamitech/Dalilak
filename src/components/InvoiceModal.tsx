@@ -31,7 +31,7 @@ import {
   generateUpgradeOffersWhatsAppMessage,
   getAdditionalInvoiceWhatsAppUrl,
   generateAdditionalInvoiceWhatsAppMessage,
-} from '../utils/whatsappMessages';
+} from '../utils/whatsapp';
 import { generateQrDataUrl } from '../utils/qrGenerator';
 import { triggerHaptic } from '../utils/haptics';
 

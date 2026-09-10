@@ -29,7 +29,7 @@ import {
   getGoogleOtpSentAlertWhatsAppUrl,
   generateGoogleMapsVerifiedWhatsAppMessage,
   getGoogleMapsVerifiedWhatsAppUrl,
-} from '../../utils/whatsappMessages';
+} from '../../utils/whatsapp';
 import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 
 interface EditLocationTabProps {

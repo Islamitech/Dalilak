@@ -27,7 +27,7 @@ import {
   AlertTriangle,
   Tag,
 } from 'lucide-react';
-import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsappMessages';
+import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsapp';
 import { extractGooglePlaceData, isGoogleMapsUrl } from '../../utils/googlePlaceExtractor';
 import { findDuplicatePhoneEntity } from '../../utils/phoneValidator';
 

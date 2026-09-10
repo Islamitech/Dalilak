@@ -1,5 +1,5 @@
 import { Business } from '../types';
-import { cleanWhatsAppText, formatWhatsAppPhone, safeWhatsAppEncode } from './whatsappMessages';
+import { cleanWhatsAppText, formatWhatsAppPhone, safeWhatsAppEncode } from './whatsapp';
 
 const DIRECTORY_URL = 'https://www.dalilaak.com/?ref=app';
 

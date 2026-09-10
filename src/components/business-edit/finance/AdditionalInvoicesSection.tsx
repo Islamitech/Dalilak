@@ -3,7 +3,7 @@ import { Business, AdditionalServiceInvoice } from '../../../types';
 import {
   getAdditionalInvoiceWhatsAppUrl,
   getConsolidatedCollectionWhatsAppUrl,
-} from '../../../utils/whatsappMessages';
+} from '../../../utils/whatsapp';
 import { FilePlus, Send, DollarSign, FileText, Trash2 } from 'lucide-react';
 
 export interface AdditionalInvoicesSectionProps {

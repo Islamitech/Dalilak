@@ -9,7 +9,7 @@ import {
   getOverdueWarningWhatsAppUrl,
   generateLegalActionExecutedWhatsAppMessage,
   getLegalActionExecutedWhatsAppUrl,
-} from '../../../utils/whatsappMessages';
+} from '../../../utils/whatsapp';
 import {
   MessageCircle,
   FileText,

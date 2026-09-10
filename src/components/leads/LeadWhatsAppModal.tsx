@@ -10,7 +10,7 @@ import {
   Gift,
   HelpCircle,
 } from 'lucide-react';
-import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsappMessages';
+import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsapp';
 
 interface LeadWhatsAppModalProps {
   lead: InterestedLead | null;

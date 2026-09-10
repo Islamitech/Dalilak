@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, User, AdminFollowUpNote } from '../../../types';
-import { formatWhatsAppPhone } from '../../../utils/whatsappMessages';
+import { formatWhatsAppPhone } from '../../../utils/whatsapp';
 import { triggerHaptic } from '../../../utils/haptics';
 import { 
   X, 

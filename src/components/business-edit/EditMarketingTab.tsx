@@ -33,7 +33,7 @@ import {
   generateBusinessCheckupWhatsAppMessage,
   getSocialProofUpgradeWhatsAppUrl,
   generateSocialProofUpgradeWhatsAppMessage,
-} from '../../utils/whatsappMessages';
+} from '../../utils/whatsapp';
 
 interface EditMarketingTabProps {
   formData: Business;
