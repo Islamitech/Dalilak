@@ -2,6 +2,7 @@ import makeWASocketImport, {
   useMultiFileAuthState,
   DisconnectReason,
   WASocket,
+  Browsers,
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import qrcode from 'qrcode';
@@ -38,6 +39,7 @@ export interface BroadcastProgress {
   startedAt: string;
   finishedAt?: string;
   logs: BroadcastLogItem[];
+  lastIndex?: number;
 }
 
 export interface WhatsAppSessionStatus {
@@ -230,7 +232,9 @@ export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
       auth: state,
       logger,
       printQRInTerminal: false,
-      browser: ['Dalelak System', 'Chrome', '1.0.0'],
+      browser: Browsers.windows('Desktop'),
+      syncFullHistory: false,
+      markOnlineOnConnect: true,
       connectTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
     });
@@ -283,11 +287,25 @@ export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
           connectionState = 'disconnected';
           connectedUser = null;
           qrCodeUrl = null;
+          sock = null;
           try {
             if (fs.existsSync(AUTH_DIR)) {
               fs.rmSync(AUTH_DIR, { recursive: true, force: true });
             }
           } catch {}
+
+          // If a campaign was running, pause it instead of losing progress!
+          if (activeCampaign && activeCampaign.status === 'running') {
+            activeCampaign.status = 'paused';
+            console.log('⏸️ Active campaign automatically paused due to session logout. Progress saved for resumption.');
+          }
+
+          // Automatically prepare a fresh QR code so the admin can re-pair smoothly
+          if (!isExplicitDisconnect) {
+            setTimeout(() => {
+              initWhatsAppGateway().catch((err) => console.warn('Auto re-init QR notice:', err));
+            }, 1500);
+          }
         } else {
           connectionState = 'disconnected';
           qrCodeUrl = null;
@@ -404,6 +422,249 @@ export function compileBroadcastMessage(
 /**
  * ⚡ Starts Automated Throttled WhatsApp Broadcast with Anti-Ban Protection
  */
+// Campaign In-Memory Persistence for Pause & Resume
+let cachedCampaignBusinesses: Business[] = [];
+let cachedCampaignOptions: {
+  templateType: string;
+  customText?: string;
+  minDelaySeconds?: number;
+  maxDelaySeconds?: number;
+  skipRecentlyContacted?: boolean;
+} | null = null;
+
+/**
+ * 🔄 Executes Campaign Dispatch Loop with Human Presence & Anti-Ban Protection
+ */
+async function executeCampaignLoop(
+  businesses: Business[],
+  options: {
+    templateType: string;
+    customText?: string;
+    minDelaySeconds?: number;
+    maxDelaySeconds?: number;
+    skipRecentlyContacted?: boolean;
+  },
+  startIndex = 0
+) {
+  abortRequested = false;
+  const minDelay = Math.max(5, options.minDelaySeconds || 12);
+  const maxDelay = Math.max(minDelay + 3, options.maxDelaySeconds || 20);
+
+  console.log(`📢 Executing WhatsApp Campaign from index ${startIndex + 1}/${businesses.length}...`);
+
+  for (let i = startIndex; i < businesses.length; i++) {
+    if (abortRequested) {
+      console.log(`🛑 Broadcast Campaign was aborted by administrator.`);
+      if (activeCampaign) {
+        activeCampaign.status = 'aborted';
+        activeCampaign.finishedAt = new Date().toISOString();
+      }
+      break;
+    }
+
+    const biz = businesses[i];
+    if (activeCampaign) {
+      activeCampaign.current = i + 1;
+      activeCampaign.lastIndex = i;
+      activeCampaign.currentBusinessName = biz.nameAr || biz.name;
+    }
+
+    const rawPhone = biz.phone || biz.ownerPhone;
+
+    // ☎️ 1. EXCLUDE LANDLINES AND SHORT HOTLINES
+    if (isLandlineOrHotline(rawPhone)) {
+      if (activeCampaign) {
+        activeCampaign.skipped++;
+        activeCampaign.logs.unshift({
+          businessId: biz.id,
+          businessName: biz.nameAr || biz.name || 'منشأة',
+          phone: rawPhone || 'غير متوفر',
+          status: 'skipped',
+          reason: 'رقم هاتف أرضي / خط ساخن (لا يدعم واتساب) ☎️',
+          timestamp: new Date().toISOString(),
+        });
+        if (activeCampaign.logs.length > 200) {
+          activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+        }
+      }
+      console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped landline: ${biz.nameAr} (${rawPhone})`);
+      // Gentle micro-delay (120ms) to prevent network traffic spikes
+      await new Promise((r) => setTimeout(r, 120));
+      continue;
+    }
+
+    const jid = formatPhoneToWhatsAppJid(rawPhone);
+
+    if (!jid) {
+      if (activeCampaign) {
+        activeCampaign.skipped++;
+        activeCampaign.logs.unshift({
+          businessId: biz.id,
+          businessName: biz.nameAr || biz.name || 'منشأة',
+          phone: rawPhone || 'غير متوفر',
+          status: 'skipped',
+          reason: 'رقم هاتف غير صالح أو وهمي (01000000000)',
+          timestamp: new Date().toISOString(),
+        });
+        if (activeCampaign.logs.length > 200) {
+          activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+        }
+      }
+      await new Promise((r) => setTimeout(r, 120));
+      continue;
+    }
+
+    // 🛡️ 2. PREVENT DUPLICATE SPAM: Skip if contacted recently
+    if (options.skipRecentlyContacted !== false && isRecentlyContacted(rawPhone, biz.id)) {
+      if (activeCampaign) {
+        activeCampaign.skipped++;
+        activeCampaign.logs.unshift({
+          businessId: biz.id,
+          businessName: biz.nameAr || biz.name || 'منشأة',
+          phone: rawPhone || 'غير متوفر',
+          status: 'skipped',
+          reason: 'تم إرسال رسالة له مسبقاً (تخطي ذكي لمنع التكرار)',
+          timestamp: new Date().toISOString(),
+        });
+        if (activeCampaign.logs.length > 200) {
+          activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+        }
+      }
+      console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped duplicate: ${biz.nameAr} (${rawPhone})`);
+      await new Promise((r) => setTimeout(r, 120));
+      continue;
+    }
+
+    // 🔌 Check socket connectivity and auto-wait if temporarily disconnected
+    if (!sock || connectionState !== 'connected') {
+      console.warn(`[Campaign] Socket not connected at index ${i + 1}/${businesses.length}, waiting up to 25s for reconnect...`);
+      let reconnected = false;
+      for (let w = 0; w < 50; w++) {
+        if (abortRequested) break;
+        await new Promise((r) => setTimeout(r, 500));
+        if (sock && connectionState === 'connected') {
+          reconnected = true;
+          break;
+        }
+      }
+      if (!reconnected) {
+        console.warn(`[Campaign] Socket disconnected. Automatically pausing campaign at index ${i + 1}/${businesses.length}. Progress is saved!`);
+        if (activeCampaign) {
+          activeCampaign.status = 'paused';
+          activeCampaign.lastIndex = i;
+          activeCampaign.logs.unshift({
+            businessId: biz.id,
+            businessName: biz.nameAr || biz.name || 'منشأة',
+            phone: rawPhone || 'غير متوفر',
+            status: 'skipped',
+            reason: 'تم تجميد الحملة مؤقتاً بسبب انقطاع الاتصال (يمكن استئنافها بعد إعادة الاتصال) ⏸️',
+            timestamp: new Date().toISOString(),
+          });
+        }
+        break;
+      }
+    }
+
+    // 🔍 3. VERIFY WHATSAPP ACCOUNT REGISTRATION (sock.onWhatsApp)
+    try {
+      // Micro-pause before query so it doesn't trigger USync anti-scraping
+      await new Promise((r) => setTimeout(r, 350));
+      const waCheck = await sock!.onWhatsApp(jid);
+      const targetAccount = Array.isArray(waCheck) ? waCheck.find((c) => c && c.exists) : null;
+      if (!targetAccount || !targetAccount.exists) {
+        if (activeCampaign) {
+          activeCampaign.skipped++;
+          activeCampaign.logs.unshift({
+            businessId: biz.id,
+            businessName: biz.nameAr || biz.name || 'منشأة',
+            phone: rawPhone || 'غير متوفر',
+            status: 'skipped',
+            reason: 'الرقم غير مسجل في تطبيق WhatsApp ❌',
+            timestamp: new Date().toISOString(),
+          });
+          if (activeCampaign.logs.length > 200) {
+            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+          }
+        }
+        console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped non-WhatsApp account: ${biz.nameAr} (${rawPhone})`);
+        await new Promise((r) => setTimeout(r, 200));
+        continue;
+      }
+    } catch (waErr: any) {
+      console.warn(`[Campaign] Notice during onWhatsApp verification for ${rawPhone}:`, waErr?.message);
+    }
+
+    const messageBody = compileBroadcastMessage(options.templateType, biz, options.customText);
+
+    try {
+      // 🛡️ 4. HUMAN PRESENCE & TYPING SIMULATION (Emulates human writing behavior)
+      try {
+        await sock!.presenceSubscribe?.(jid).catch(() => {});
+        await sock!.sendPresenceUpdate?.('composing', jid).catch(() => {});
+        // Human typing simulation (between 1800ms and 3000ms)
+        const typingDelay = Math.floor(1800 + Math.random() * 1200);
+        await new Promise((r) => setTimeout(r, typingDelay));
+        await sock!.sendPresenceUpdate?.('paused', jid).catch(() => {});
+      } catch (presErr) {
+        // Non-blocking
+      }
+
+      await sock!.sendMessage(jid, { text: messageBody });
+      recordSentTarget(rawPhone!, biz.id);
+
+      if (activeCampaign) {
+        activeCampaign.successful++;
+        activeCampaign.logs.unshift({
+          businessId: biz.id,
+          businessName: biz.nameAr || biz.name || 'منشأة',
+          phone: rawPhone!,
+          status: 'sent',
+          timestamp: new Date().toISOString(),
+        });
+        // Keep live logs array efficient for polling
+        if (activeCampaign.logs.length > 200) {
+          activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+        }
+      }
+      console.log(`[Campaign ${i + 1}/${businesses.length}] Sent to ${biz.nameAr} (${rawPhone})`);
+    } catch (sendErr: any) {
+      console.error(`[Campaign ${i + 1}/${businesses.length}] Failed to send to ${biz.nameAr}:`, sendErr?.message);
+      if (activeCampaign) {
+        activeCampaign.failed++;
+        activeCampaign.logs.unshift({
+          businessId: biz.id,
+          businessName: biz.nameAr || biz.name || 'منشأة',
+          phone: rawPhone!,
+          status: 'failed',
+          reason: sendErr?.message || 'فشل إرسال الرسالة عبر المقبس',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    // 🛡️ 5. ANTI-BAN RANDOM JITTER THROTTLING (If not last item and not aborted)
+    if (i < businesses.length - 1 && !abortRequested) {
+      const jitterSeconds = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
+      console.log(`⏳ Anti-Ban pacing: Waiting ${jitterSeconds} seconds before next dispatch...`);
+
+      const sleepChunks = jitterSeconds * 4;
+      for (let s = 0; s < sleepChunks; s++) {
+        if (abortRequested) break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+  }
+
+  if (activeCampaign && activeCampaign.status === 'running') {
+    activeCampaign.status = 'completed';
+    activeCampaign.finishedAt = new Date().toISOString();
+    console.log(`🎉 Broadcast Campaign completed successfully!`);
+  }
+}
+
+/**
+ * ⚡ Starts Automated Throttled WhatsApp Broadcast with Anti-Ban Protection
+ */
 export async function startWhatsAppBroadcast(
   businesses: Business[],
   options: {
@@ -429,10 +690,8 @@ export async function startWhatsAppBroadcast(
   }
 
   const campaignId = `camp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  abortRequested = false;
-
-  const minDelay = Math.max(5, options.minDelaySeconds || 12);
-  const maxDelay = Math.max(minDelay + 3, options.maxDelaySeconds || 20);
+  cachedCampaignBusinesses = [...businesses];
+  cachedCampaignOptions = { ...options };
 
   activeCampaign = {
     id: campaignId,
@@ -445,193 +704,11 @@ export async function startWhatsAppBroadcast(
     status: 'running',
     startedAt: new Date().toISOString(),
     logs: [],
+    lastIndex: 0,
   };
 
-  // Launch background worker without blocking HTTP response
-  (async () => {
-    console.log(`📢 Starting WhatsApp Broadcast Campaign [${campaignId}] for ${businesses.length} businesses...`);
-
-    for (let i = 0; i < businesses.length; i++) {
-      if (abortRequested) {
-        console.log(`🛑 Broadcast Campaign [${campaignId}] was aborted by administrator.`);
-        if (activeCampaign) {
-          activeCampaign.status = 'aborted';
-          activeCampaign.finishedAt = new Date().toISOString();
-        }
-        break;
-      }
-
-      const biz = businesses[i];
-      if (activeCampaign) {
-        activeCampaign.current = i + 1;
-        activeCampaign.currentBusinessName = biz.nameAr || biz.name;
-      }
-
-      const rawPhone = biz.phone || biz.ownerPhone;
-
-      // ☎️ 1. EXCLUDE LANDLINES AND SHORT HOTLINES
-      if (isLandlineOrHotline(rawPhone)) {
-        if (activeCampaign) {
-          activeCampaign.skipped++;
-          activeCampaign.logs.unshift({
-            businessId: biz.id,
-            businessName: biz.nameAr || biz.name || 'منشأة',
-            phone: rawPhone || 'غير متوفر',
-            status: 'skipped',
-            reason: 'رقم هاتف أرضي / خط ساخن (لا يدعم واتساب) ☎️',
-            timestamp: new Date().toISOString(),
-          });
-          if (activeCampaign.logs.length > 200) {
-            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
-          }
-        }
-        console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped landline: ${biz.nameAr} (${rawPhone})`);
-        continue;
-      }
-
-      const jid = formatPhoneToWhatsAppJid(rawPhone);
-
-      if (!jid) {
-        if (activeCampaign) {
-          activeCampaign.skipped++;
-          activeCampaign.logs.unshift({
-            businessId: biz.id,
-            businessName: biz.nameAr || biz.name || 'منشأة',
-            phone: rawPhone || 'غير متوفر',
-            status: 'skipped',
-            reason: 'رقم هاتف غير صالح أو وهمي (01000000000)',
-            timestamp: new Date().toISOString(),
-          });
-          if (activeCampaign.logs.length > 200) {
-            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
-          }
-        }
-        continue;
-      }
-
-      // 🛡️ 2. PREVENT DUPLICATE SPAM: Skip if contacted recently
-      if (options.skipRecentlyContacted !== false && isRecentlyContacted(rawPhone, biz.id)) {
-        if (activeCampaign) {
-          activeCampaign.skipped++;
-          activeCampaign.logs.unshift({
-            businessId: biz.id,
-            businessName: biz.nameAr || biz.name || 'منشأة',
-            phone: rawPhone || 'غير متوفر',
-            status: 'skipped',
-            reason: 'تم إرسال رسالة له مسبقاً (تخطي ذكي لمنع التكرار)',
-            timestamp: new Date().toISOString(),
-          });
-          if (activeCampaign.logs.length > 200) {
-            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
-          }
-        }
-        console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped duplicate: ${biz.nameAr} (${rawPhone})`);
-        continue;
-      }
-
-      // 🔌 Check socket connectivity and auto-wait if temporarily disconnected
-      if (!sock || connectionState !== 'connected') {
-        console.warn(`[Campaign] Socket not connected at index ${i + 1}/${businesses.length}, waiting for reconnect...`);
-        let reconnected = false;
-        for (let w = 0; w < 30; w++) {
-          if (abortRequested) break;
-          await new Promise((r) => setTimeout(r, 500));
-          if (sock && connectionState === 'connected') {
-            reconnected = true;
-            break;
-          }
-        }
-        if (!reconnected) {
-          console.error(`[Campaign] Socket reconnect timed out, aborting campaign.`);
-          if (activeCampaign) {
-            activeCampaign.status = 'aborted';
-            activeCampaign.finishedAt = new Date().toISOString();
-          }
-          break;
-        }
-      }
-
-      // 🔍 3. VERIFY WHATSAPP ACCOUNT REGISTRATION (sock.onWhatsApp)
-      try {
-        const waCheck = await sock!.onWhatsApp(jid);
-        const targetAccount = Array.isArray(waCheck) ? waCheck.find((c) => c && c.exists) : null;
-        if (!targetAccount || !targetAccount.exists) {
-          if (activeCampaign) {
-            activeCampaign.skipped++;
-            activeCampaign.logs.unshift({
-              businessId: biz.id,
-              businessName: biz.nameAr || biz.name || 'منشأة',
-              phone: rawPhone || 'غير متوفر',
-              status: 'skipped',
-              reason: 'الرقم غير مسجل في تطبيق WhatsApp ❌',
-              timestamp: new Date().toISOString(),
-            });
-            if (activeCampaign.logs.length > 200) {
-              activeCampaign.logs = activeCampaign.logs.slice(0, 200);
-            }
-          }
-          console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped non-WhatsApp account: ${biz.nameAr} (${rawPhone})`);
-          continue;
-        }
-      } catch (waErr: any) {
-        console.warn(`[Campaign] Notice during onWhatsApp verification for ${rawPhone}:`, waErr?.message);
-      }
-
-      const messageBody = compileBroadcastMessage(options.templateType, biz, options.customText);
-
-      try {
-        await sock!.sendMessage(jid, { text: messageBody });
-        recordSentTarget(rawPhone!, biz.id);
-
-        if (activeCampaign) {
-          activeCampaign.successful++;
-          activeCampaign.logs.unshift({
-            businessId: biz.id,
-            businessName: biz.nameAr || biz.name || 'منشأة',
-            phone: rawPhone!,
-            status: 'sent',
-            timestamp: new Date().toISOString(),
-          });
-          // Keep live logs array efficient for polling
-          if (activeCampaign.logs.length > 200) {
-            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
-          }
-        }
-        console.log(`[Campaign ${i + 1}/${businesses.length}] Sent to ${biz.nameAr} (${rawPhone})`);
-      } catch (sendErr: any) {
-        console.error(`[Campaign ${i + 1}/${businesses.length}] Failed to send to ${biz.nameAr}:`, sendErr?.message);
-        if (activeCampaign) {
-          activeCampaign.failed++;
-          activeCampaign.logs.unshift({
-            businessId: biz.id,
-            businessName: biz.nameAr || biz.name || 'منشأة',
-            phone: rawPhone!,
-            status: 'failed',
-            reason: sendErr?.message || 'فشل إرسال الرسالة عبر المقبس',
-            timestamp: new Date().toISOString(),
-          });
-        }
-      }
-
-      // 🛡️ ANTI-BAN RANDOM JITTER THROTTLING (If not last item and not aborted)
-      if (i < businesses.length - 1 && !abortRequested) {
-        const jitterSeconds = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
-        console.log(`⏳ Anti-Ban pacing: Waiting ${jitterSeconds} seconds before next dispatch...`);
-
-        const sleepChunks = jitterSeconds * 4;
-        for (let s = 0; s < sleepChunks; s++) {
-          if (abortRequested) break;
-          await new Promise((r) => setTimeout(r, 250));
-        }
-      }
-    }
-
-    if (activeCampaign && activeCampaign.status === 'running') {
-      activeCampaign.status = 'completed';
-      activeCampaign.finishedAt = new Date().toISOString();
-      console.log(`🎉 Broadcast Campaign [${campaignId}] completed successfully!`);
-    }
-  })().catch((err) => {
+  // Launch background worker
+  executeCampaignLoop(businesses, options, 0).catch((err) => {
     console.error('Fatal error in broadcast campaign worker:', err);
     if (activeCampaign) {
       activeCampaign.status = 'aborted';
@@ -641,22 +718,73 @@ export async function startWhatsAppBroadcast(
 
   return {
     success: true,
-    message: `تم بدء حملة الإرسال التلقائي بنجاح (${businesses.length} منشأة) مع تفعيل صمام الأمان ضد الحظر.`,
+    message: `تم بدء حملة الإرسال التلقائي بنجاح (${businesses.length} منشأة) مع تفعيل أعلى معايير الأمان ومحاكاة السلوك البشري.`,
     campaignId,
   };
 }
 
 /**
- * 🛑 Requests Emergency Abort for Running Broadcast
+ * ⏯️ Resumes a Paused WhatsApp Broadcast Campaign
+ */
+export async function resumeWhatsAppBroadcast(): Promise<{ success: boolean; message: string }> {
+  if (connectionState !== 'connected' || !sock) {
+    return {
+      success: false,
+      message: 'محرك WhatsApp غير متصل حالياً. يرجى التأكد من مسح الرمز واتصال المحرك أولاً قبل الاستئناف.',
+    };
+  }
+
+  if (!activeCampaign || activeCampaign.status !== 'paused') {
+    return {
+      success: false,
+      message: 'لا توجد حملة متوقفة مؤقتاً للاستئناف.',
+    };
+  }
+
+  if (!cachedCampaignBusinesses || cachedCampaignBusinesses.length === 0 || !cachedCampaignOptions) {
+    return {
+      success: false,
+      message: 'بيانات الحملة السابقة غير متوفرة في الذاكرة.',
+    };
+  }
+
+  const resumeIndex = Math.min((activeCampaign.lastIndex ?? -1) + 1, cachedCampaignBusinesses.length);
+  if (resumeIndex >= cachedCampaignBusinesses.length) {
+    activeCampaign.status = 'completed';
+    activeCampaign.finishedAt = new Date().toISOString();
+    return {
+      success: true,
+      message: 'الحملة مكتملة بالفعل.',
+    };
+  }
+
+  activeCampaign.status = 'running';
+
+  executeCampaignLoop(cachedCampaignBusinesses, cachedCampaignOptions, resumeIndex).catch((err) => {
+    console.error('Fatal error in resumed campaign worker:', err);
+    if (activeCampaign) {
+      activeCampaign.status = 'aborted';
+      activeCampaign.finishedAt = new Date().toISOString();
+    }
+  });
+
+  return {
+    success: true,
+    message: `تم استئناف الحملة بنجاح من المنشأة رقم ${resumeIndex + 1} من أصل ${cachedCampaignBusinesses.length}.`,
+  };
+}
+
+/**
+ * 🛑 Requests Emergency Abort for Running or Paused Broadcast
  */
 export function abortWhatsAppBroadcast(): { success: boolean; message: string } {
-  if (!activeCampaign || activeCampaign.status !== 'running') {
-    return { success: false, message: 'لا توجد حملة قيد التشغيل حالياً لإيقافها.' };
+  if (!activeCampaign || (activeCampaign.status !== 'running' && activeCampaign.status !== 'paused')) {
+    return { success: false, message: 'لا توجد حملة قيد التشغيل أو متوقفة مؤقتاً لإنهائها.' };
   }
 
   abortRequested = true;
   activeCampaign.status = 'aborted';
   activeCampaign.finishedAt = new Date().toISOString();
-  return { success: true, message: 'تم تفعيل زر الطوارئ وإيقاف الحملة فوراً بنجاح.' };
+  return { success: true, message: 'تم تفعيل زر الطوارئ وإلغاء الحملة فوراً بنجاح.' };
 }
 

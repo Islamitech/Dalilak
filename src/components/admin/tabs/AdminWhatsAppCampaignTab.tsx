@@ -66,6 +66,7 @@ export interface BroadcastProgress {
   startedAt: string;
   finishedAt?: string;
   logs: BroadcastLogItem[];
+  lastIndex?: number;
 }
 
 export interface WhatsAppSessionStatus {
@@ -409,6 +410,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isStartingCampaign, setIsStartingCampaign] = useState(false);
   const [isAbortingCampaign, setIsAbortingCampaign] = useState(false);
+  const [isResumingCampaign, setIsResumingCampaign] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasCopiedCommand, setHasCopiedCommand] = useState(false);
   const [skipRecentlyContacted, setSkipRecentlyContacted] = useState(true);
@@ -493,7 +495,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     fetchStatus();
 
     const intervalMs =
-      sessionStatus.activeCampaign?.status === 'running'
+      sessionStatus.activeCampaign?.status === 'running' || sessionStatus.activeCampaign?.status === 'paused'
         ? 1500
         : sessionStatus.state === 'qr_ready' || sessionStatus.state === 'connecting'
         ? 2500
@@ -771,6 +773,32 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     }
   };
 
+  // Resume Paused Campaign
+  const handleResumeCampaign = async () => {
+    triggerHaptic();
+    setIsResumingCampaign(true);
+    try {
+      const res = await safeFetchGatewayApi('/api/admin/whatsapp/broadcast-resume', {
+        method: 'POST',
+        headers: {
+          ...getApiAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (res.success) {
+        onShowNotification?.(res.data?.message || 'تم استئناف الحملة بنجاح ⏯️', 'success');
+        fetchStatus();
+      } else {
+        onShowNotification?.(res.error || 'فشل استئناف الحملة', 'error');
+      }
+    } catch (err: any) {
+      onShowNotification?.(err?.message || 'خطأ في استئناف الحملة', 'error');
+    } finally {
+      setIsResumingCampaign(false);
+    }
+  };
+
   // 📲 DIRECT DISPATCH HANDLER (Universal for PC WhatsApp Web & Mobile)
   const handleMobileSendCurrent = () => {
     if (!currentMobileBiz) return;
@@ -814,6 +842,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   };
 
   const isCampaignRunning = sessionStatus.activeCampaign?.status === 'running';
+  const isCampaignPaused = sessionStatus.activeCampaign?.status === 'paused';
   const campaign = sessionStatus.activeCampaign;
   const progressPercent = campaign && campaign.total > 0 ? Math.round((campaign.current / campaign.total) * 100) : 0;
 
@@ -1463,7 +1492,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         </>
       )}
 
-      {/* ── LIVE ACTIVE CAMPAIGN PROGRESS MONITOR (IF RUNNING OR COMPLETED) ── */}
+      {/* ── LIVE ACTIVE CAMPAIGN PROGRESS MONITOR (IF RUNNING, PAUSED, OR COMPLETED) ── */}
       {dispatchMode === 'server_gateway' && campaign && campaign.status !== 'idle' && (
         <div className="bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-5 animate-slideDown">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
@@ -1475,12 +1504,20 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500" />
                     </>
+                  ) : isCampaignPaused ? (
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400" />
                   ) : (
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-slate-400" />
                   )}
                 </span>
                 <h3 className="font-black text-lg text-white">
-                  {isCampaignRunning ? 'حملة إرسال نشطة قيد التنفيذ الآن...' : 'نتائج آخر حملة إرسال'}
+                  {isCampaignRunning ? (
+                    'حملة إرسال نشطة قيد التنفيذ الآن...'
+                  ) : isCampaignPaused ? (
+                    <span className="text-amber-400">الحملة متوقفة مؤقتاً (جاهزة للاستئناف) ⏸️</span>
+                  ) : (
+                    'نتائج آخر حملة إرسال'
+                  )}
                 </h3>
                 <span className="text-xs text-[var(--text-secondary)] font-mono">[{campaign.id}]</span>
               </div>
@@ -1489,22 +1526,61 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   جارٍ معالجة الآن: <strong>{campaign.currentBusinessName}</strong>
                 </p>
               )}
+              {isCampaignPaused && (
+                <p className="text-xs text-amber-300">
+                  توقفت الحملة عند المنشأة رقم <strong>{(campaign.lastIndex ?? 0) + 1}</strong> من أصل{' '}
+                  <strong>{campaign.total}</strong>. يمكنك استئنافها بعد مسح رمز QR أو تأكيد الاتصال.
+                </p>
+              )}
             </div>
 
-            {/* Emergency Abort Switch */}
-            {isCampaignRunning && (
-              <button
-                type="button"
-                onClick={handleAbortCampaign}
-                disabled={isAbortingCampaign}
-                className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs sm:text-sm transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 animate-pulse"
-                title="إيقاف الطوارئ الفوري للحملة"
-              >
-                <Square className="w-4 h-4 fill-current" />
-                <span>{isAbortingCampaign ? 'جارٍ الإيقاف...' : '🛑 إيقاف الحملة فوراً (طوارئ)'}</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Resume Button if Paused */}
+              {isCampaignPaused && (
+                <button
+                  type="button"
+                  onClick={handleResumeCampaign}
+                  disabled={isResumingCampaign || sessionStatus.state !== 'connected'}
+                  className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                  title={sessionStatus.state !== 'connected' ? 'يرجى مسح رمز QR والاتصال أولاً' : 'استئناف الحملة من حيث توقفت'}
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>
+                    {isResumingCampaign
+                      ? 'جارٍ الاستئناف...'
+                      : `استئناف الحملة من المنشأة ${(campaign.lastIndex ?? 0) + 1} ⏯️`}
+                  </span>
+                </button>
+              )}
+
+              {/* Emergency Abort Switch */}
+              {(isCampaignRunning || isCampaignPaused) && (
+                <button
+                  type="button"
+                  onClick={handleAbortCampaign}
+                  disabled={isAbortingCampaign}
+                  className="px-4 py-2.5 rounded-2xl bg-rose-600/90 hover:bg-rose-600 text-white font-black text-xs sm:text-sm transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95"
+                  title="إلغاء الحملة نهائياً"
+                >
+                  <Square className="w-4 h-4 fill-current" />
+                  <span>{isAbortingCampaign ? 'جارٍ الإلغاء...' : isCampaignPaused ? 'إلغاء نهائي 🛑' : '🛑 إيقاف الحملة فوراً (طوارئ)'}</span>
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Alert Guidance when paused due to disconnect */}
+          {isCampaignPaused && sessionStatus.state !== 'connected' && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-xs text-amber-200 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">انقطع اتصال WhatsApp أثناء الحملة وتم حفظ التقدم بأمان (توقفت عند المنشأة {(campaign.lastIndex ?? 0) + 1})</p>
+                <p className="text-[11px] text-slate-300">
+                  يرجى مسح رمز الـ QR الجديد من قسم "بوابة ربط WhatsApp Web" بالأعلى لإعادة الاتصال، وفور ظهور "متصل ونشط" اضغط على زر "استئناف الحملة" لتكمل عملها تلقائياً بدون أي تكرار.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Progress Bar & Numerical Metrics */}
           <div className="space-y-2">

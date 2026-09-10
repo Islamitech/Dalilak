@@ -10,6 +10,7 @@ import {
   disconnectWhatsAppGateway,
   getWhatsAppSessionStatus,
   startWhatsAppBroadcast,
+  resumeWhatsAppBroadcast,
   abortWhatsAppBroadcast,
 } from './src/server/whatsapp-gateway.js';
 
@@ -1374,6 +1375,23 @@ app.post('/api/admin/whatsapp/broadcast-abort', (req, res) => {
   } catch (err: any) {
     console.error('WhatsApp abort error:', err);
     return res.status(500).json({ success: false, error: err?.message || 'فشل إيقاف الحملة' });
+  }
+});
+
+// 6. استئناف الحملة المتوقفة مؤقتاً
+app.post('/api/admin/whatsapp/broadcast-resume', async (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: استئناف الحملات محصور بالسوبر أدمن حصراً (403 Forbidden)',
+      });
+    }
+    const result = await resumeWhatsAppBroadcast();
+    return res.json(result);
+  } catch (err: any) {
+    console.error('WhatsApp resume error:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'فشل استئناف الحملة' });
   }
 });
 
