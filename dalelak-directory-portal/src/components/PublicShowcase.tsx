@@ -136,6 +136,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [sortBy, setSortBy] = useState<'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha'>('default');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocatingUser, setIsLocatingUser] = useState<boolean>(false);
+  const [randomTrigger, setRandomTrigger] = useState<number>(0);
 
   // Search Autocomplete & Recent History
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
@@ -297,6 +298,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setSortBy('nearest'); // Activate "قريب مني" automatically on first load
       },
       () => {}, // Silent fail if permission not granted
       { enableHighAccuracy: false, timeout: 6000 }
@@ -768,25 +770,12 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
 
     // Default Sorting ('default'):
-    // 1. If user coordinates exist, automatically prioritize proximity
-    if (userCoords) {
-      return [...list].sort((a, b) => {
-        const distA = calculateDistanceKm(userCoords.lat, userCoords.lng, a.lat, a.lng);
-        const distB = calculateDistanceKm(userCoords.lat, userCoords.lng, b.lat, b.lng);
-        return distA - distB;
-      });
-    }
-
-    // 2. Otherwise, apply a stable daily shuffle so items are not stuck in static registration order
-    const seed = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // When "قريب مني" is turned off, shuffle the filtered list completely randomly
+    // so every toggle or filter reset presents a fresh, random arrangement
+    // respecting all active filters (e.g. governorate Giza, category, etc.)
     const shuffled = [...list];
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) {
-      h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
-    }
     for (let i = shuffled.length - 1; i > 0; i--) {
-      h = ((h << 5) - h + i) | 0;
-      const j = Math.abs(h) % (i + 1);
+      const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
@@ -801,6 +790,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     categoryFilter,
     sortBy,
     userCoords,
+    randomTrigger,
   ]);
 
   // Dynamic WhatsApp Message generator for Package Orders
@@ -869,6 +859,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     setCategoryFilter('all');
     setShowFavoritesOnly(false);
     setSortBy('default');
+    setRandomTrigger((prev) => prev + 1);
   };
 
   return (
