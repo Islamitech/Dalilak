@@ -216,7 +216,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
       )}
 
       {/* MODAL: LOGIN DIALOG */}
-      {showLoginModal && user && (
+      {showLoginModal && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
           onOpenAbout={() => setShowAboutModal(true)}
