@@ -1011,6 +1011,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         sortBy={sortBy}
         setSortBy={setSortBy}
         handleRequestLocation={handleRequestLocation}
+        isTourActive={showOnboarding}
+        tourStep={tourStep}
       />
 
 

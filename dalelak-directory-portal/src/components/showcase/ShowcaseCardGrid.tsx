@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Business } from '../../types';
+import { CinematicTourStep } from '../onboarding/CinematicHeroTour';
 import { InteractiveMap } from '../InteractiveMap';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
@@ -52,6 +53,8 @@ export interface ShowcaseCardGridProps {
   sortBy?: string;
   setSortBy?: (s: 'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha') => void;
   handleRequestLocation?: () => void;
+  isTourActive?: boolean;
+  tourStep?: CinematicTourStep | null;
 }
 
 export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
@@ -74,6 +77,8 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
   sortBy,
   setSortBy,
   handleRequestLocation,
+  isTourActive = false,
+  tourStep = null,
 }) => {
   // Progressive loading: show first 12 cards, expand by 12 on each "Load More" click
   const [visibleCount, setVisibleCount] = useState<number>(12);
@@ -86,7 +91,14 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
   const hasMore = visibleCount < filteredBusinesses.length;
 
   return (
-    <section id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5 space-y-4">
+    <section
+      id="explore"
+      className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5 space-y-4 rounded-3xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        tourStep === 'results_spotlight'
+          ? 'ring-2 ring-amber-500/60 bg-amber-500/[0.015]'
+          : ''
+      }`}
+    >
       {/* Section Header & View Mode Switcher */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
         <div>

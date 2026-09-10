@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Business } from '../../types';
-
-export type CinematicTourStep =
-  | 'welcome'
-  | 'typewriter'
-  | 'search_spotlight'
-  | 'gov_spotlight'
-  | 'completed';
+import { CinematicTourStep } from '../onboarding/CinematicHeroTour';
+export type { CinematicTourStep };
 import {
   EGYPT_GOVERNORATES,
   HADAYEK_ALAHRAM_ZONES,
@@ -214,9 +209,9 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
             {/* Search Input Box */}
             <div
               id="tour-search-box"
-              className={`relative flex-1 rounded-xl transition-all duration-500 ${
+              className={`relative flex-1 rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                 tourStep === 'search_spotlight'
-                  ? 'ring-4 ring-amber-500 shadow-2xl shadow-amber-500/50 scale-[1.01]'
+                  ? 'ring-2 ring-amber-500 shadow-xl shadow-amber-500/30 scale-[1.025] z-10'
                   : ''
               }`}
             >
@@ -373,9 +368,9 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
             {/* Quick Area / Governorate Selector */}
             <div
               id="tour-gov-selector"
-              className={`sm:w-44 shrink-0 rounded-xl transition-all duration-500 ${
+              className={`sm:w-44 shrink-0 rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                 tourStep === 'gov_spotlight'
-                  ? 'ring-4 ring-amber-500 shadow-2xl shadow-amber-500/50 scale-[1.02]'
+                  ? 'ring-2 ring-amber-500 shadow-xl shadow-amber-500/30 scale-[1.035] z-10'
                   : ''
               }`}
             >
