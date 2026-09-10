@@ -54,6 +54,59 @@ if (!fs.existsSync(AUTH_DIR)) {
   fs.mkdirSync(AUTH_DIR, { recursive: true });
 }
 
+// Persistent Sent Log File (Protects against duplicate messaging across campaigns)
+const SENT_LOG_PATH = path.resolve(process.cwd(), 'data/whatsapp_sent_log.json');
+
+function loadSentRegistry(): Record<string, { timestamp: string; bizId?: string; phone: string }> {
+  try {
+    if (fs.existsSync(SENT_LOG_PATH)) {
+      const raw = fs.readFileSync(SENT_LOG_PATH, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.warn('Error reading sent log:', err);
+  }
+  return {};
+}
+
+function recordSentTarget(phone: string, bizId?: string) {
+  try {
+    const reg = loadSentRegistry();
+    const now = new Date().toISOString();
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone) {
+      reg[cleanPhone] = { timestamp: now, bizId, phone: cleanPhone };
+    }
+    if (bizId) {
+      reg[`biz_${bizId}`] = { timestamp: now, bizId, phone: cleanPhone };
+    }
+    fs.writeFileSync(SENT_LOG_PATH, JSON.stringify(reg, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Error persisting sent target:', err);
+  }
+}
+
+export function isRecentlyContacted(rawPhone?: string | null, bizId?: string | null, hours = 48): boolean {
+  try {
+    const reg = loadSentRegistry();
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
+
+    if (bizId && reg[`biz_${bizId}`]) {
+      const entryTime = new Date(reg[`biz_${bizId}`].timestamp).getTime();
+      if (entryTime > cutoff) return true;
+    }
+
+    if (rawPhone) {
+      const cleanPhone = rawPhone.replace(/\D/g, '');
+      if (cleanPhone && reg[cleanPhone]) {
+        const entryTime = new Date(reg[cleanPhone].timestamp).getTime();
+        if (entryTime > cutoff) return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
 // In-Memory Global State
 let sock: WASocket | null = null;
 let connectionState: WhatsAppConnectionState = 'disconnected';
@@ -317,6 +370,7 @@ export async function startWhatsAppBroadcast(
     customText?: string;
     minDelaySeconds?: number;
     maxDelaySeconds?: number;
+    skipRecentlyContacted?: boolean;
   }
 ): Promise<{ success: boolean; message: string; campaignId?: string }> {
   if (connectionState !== 'connected' || !sock) {
@@ -390,10 +444,50 @@ export async function startWhatsAppBroadcast(
         continue;
       }
 
+      // 🛡️ PREVENT DUPLICATE SPAM: Skip if contacted recently
+      if (options.skipRecentlyContacted !== false && isRecentlyContacted(rawPhone, biz.id)) {
+        if (activeCampaign) {
+          activeCampaign.skipped++;
+          activeCampaign.logs.unshift({
+            businessId: biz.id,
+            businessName: biz.nameAr || biz.name || 'منشأة',
+            phone: rawPhone || 'غير متوفر',
+            status: 'skipped',
+            reason: 'تم إرسال رسالة له مسبقاً (تخطي ذكي لمنع التكرار)',
+            timestamp: new Date().toISOString(),
+          });
+        }
+        console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped duplicate: ${biz.nameAr} (${rawPhone})`);
+        continue;
+      }
+
+      // 🔌 Check socket connectivity and auto-wait if temporarily disconnected
+      if (!sock || connectionState !== 'connected') {
+        console.warn(`[Campaign] Socket not connected at index ${i + 1}/${businesses.length}, waiting for reconnect...`);
+        let reconnected = false;
+        for (let w = 0; w < 30; w++) {
+          if (abortRequested) break;
+          await new Promise((r) => setTimeout(r, 500));
+          if (sock && connectionState === 'connected') {
+            reconnected = true;
+            break;
+          }
+        }
+        if (!reconnected) {
+          console.error(`[Campaign] Socket reconnect timed out, aborting campaign.`);
+          if (activeCampaign) {
+            activeCampaign.status = 'aborted';
+            activeCampaign.finishedAt = new Date().toISOString();
+          }
+          break;
+        }
+      }
+
       const messageBody = compileBroadcastMessage(options.templateType, biz, options.customText);
 
       try {
         await sock!.sendMessage(jid, { text: messageBody });
+        recordSentTarget(rawPhone!, biz.id);
 
         if (activeCampaign) {
           activeCampaign.successful++;
@@ -404,6 +498,10 @@ export async function startWhatsAppBroadcast(
             status: 'sent',
             timestamp: new Date().toISOString(),
           });
+          // Keep live logs array efficient for polling
+          if (activeCampaign.logs.length > 200) {
+            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+          }
         }
         console.log(`[Campaign ${i + 1}/${businesses.length}] Sent to ${biz.nameAr} (${rawPhone})`);
       } catch (sendErr: any) {

@@ -1299,17 +1299,39 @@ app.post('/api/admin/whatsapp/broadcast', async (req, res) => {
       templateType = 'honorary_invitation',
       customText = '',
       targetBusinessIds = [],
+      targetBusinesses = [],
       minDelaySeconds = 10,
       maxDelaySeconds = 20,
+      skipRecentlyContacted = true,
     } = req.body;
 
-    businesses = loadStoredBusinesses();
     let targetList: Business[] = [];
 
-    if (Array.isArray(targetBusinessIds) && targetBusinessIds.length > 0) {
+    // Prioritize direct full businesses list from authenticated admin client (e.g. from Supabase)
+    if (Array.isArray(targetBusinesses) && targetBusinesses.length > 0) {
+      targetList = targetBusinesses;
+      // Auto-sync into server persistent store so server cache is always complete
+      try {
+        const stored = loadStoredBusinesses();
+        const map = new Map<string, Business>();
+        stored.forEach((b) => {
+          if (b && b.id) map.set(b.id, b);
+        });
+        targetBusinesses.forEach((b: Business) => {
+          if (b && b.id) map.set(b.id, { ...map.get(b.id), ...b });
+        });
+        const merged = Array.from(map.values());
+        persistStoredBusinesses(merged);
+        businesses = merged;
+      } catch (syncErr) {
+        console.warn('Notice syncing businesses store:', syncErr);
+      }
+    } else if (Array.isArray(targetBusinessIds) && targetBusinessIds.length > 0) {
+      businesses = loadStoredBusinesses();
       const idSet = new Set(targetBusinessIds);
       targetList = businesses.filter((b) => idSet.has(b.id));
     } else {
+      businesses = loadStoredBusinesses();
       targetList = businesses;
     }
 
@@ -1325,6 +1347,7 @@ app.post('/api/admin/whatsapp/broadcast', async (req, res) => {
       customText,
       minDelaySeconds: Number(minDelaySeconds) || 10,
       maxDelaySeconds: Number(maxDelaySeconds) || 20,
+      skipRecentlyContacted: Boolean(skipRecentlyContacted),
     });
 
     return res.json(result);

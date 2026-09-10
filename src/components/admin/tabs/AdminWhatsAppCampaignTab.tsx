@@ -370,6 +370,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [isAbortingCampaign, setIsAbortingCampaign] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasCopiedCommand, setHasCopiedCommand] = useState(false);
+  const [skipRecentlyContacted, setSkipRecentlyContacted] = useState(true);
 
   // Throttling & Pacing state
   const [pacingPreset, setPacingPreset] = useState<'balanced' | 'ultra_safe' | 'fast' | 'custom'>('balanced');
@@ -659,6 +660,24 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           templateType: selectedTemplate,
           customText: selectedTemplate === 'custom' ? customText : undefined,
           targetBusinessIds: targetBusinesses.map((b) => b.id),
+          targetBusinesses: targetBusinesses.map((b) => ({
+            id: b.id,
+            name: b.name,
+            nameAr: b.nameAr,
+            phone: b.phone,
+            ownerPhone: b.ownerPhone,
+            ownerName: b.ownerName,
+            governorate: b.governorate,
+            city: b.city,
+            category: b.category,
+            packageId: b.packageId,
+            verificationStatus: b.verificationStatus,
+            invoiceNumber: (b as any).invoiceNumber,
+            isFeeExempt: (b as any).isFeeExempt,
+            isAlreadyOnGoogle: (b as any).isAlreadyOnGoogle,
+            registrationType: (b as any).registrationType,
+          })),
+          skipRecentlyContacted,
           minDelaySeconds,
           maxDelaySeconds,
         }),
@@ -1463,7 +1482,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               <p className="text-xl font-black text-emerald-400 font-mono mt-0.5">{campaign.successful}</p>
             </div>
             <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
-              <p className="text-[11px] text-amber-400">مستبعد (أرقام وهمية) ⚠️</p>
+              <p className="text-[11px] text-amber-400">مستبعد (وهمية / مكررة) ⚠️</p>
               <p className="text-xl font-black text-amber-400 font-mono mt-0.5">{campaign.skipped}</p>
             </div>
             <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl">
@@ -1870,9 +1889,19 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
             <div className="space-y-3 text-xs">
               <div className="p-3.5 rounded-2xl bg-white/5 border border-[var(--border-color)] space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">عدد المنشآت المستهدفة:</span>
+                  <span className="text-[var(--text-secondary)]">إجمالي المنشآت المشمولة بالفلاتر:</span>
+                  <span className="font-black text-white font-mono text-sm">{targetBusinesses.length} منشأة</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--text-secondary)]">منشآت بأرقام هواتف صالحة للإرسال:</span>
                   <span className="font-black text-emerald-400 font-mono text-sm">{validPhoneCount} منشأة</span>
                 </div>
+                {dummyPhoneCount > 0 && (
+                  <div className="flex justify-between text-amber-400">
+                    <span>أرقام وهمية أو أصفار (سيتم استبعادها آلياً):</span>
+                    <span className="font-mono font-bold">{dummyPhoneCount} منشأة</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-[var(--text-secondary)]">معدل التباعد الزمني (صمام الأمان):</span>
                   <span className="font-bold text-amber-400 font-mono">{minDelaySeconds} - {maxDelaySeconds} ثانية عشوائي</span>
@@ -1885,10 +1914,23 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 </div>
               </div>
 
+              {/* Duplicate Prevention Toggle */}
+              <label className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={skipRecentlyContacted}
+                  onChange={(e) => setSkipRecentlyContacted(e.target.checked)}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-slate-900 border-white/20 cursor-pointer"
+                />
+                <span className="text-[11px] text-emerald-300 font-bold">
+                  استبعاد من تم مراسلتهم بنجاح مسبقاً (حماية ذكية ضد تكرار الإرسال) 🛡️
+                </span>
+              </label>
+
               <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed flex items-start gap-2">
                 <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  ستعمل الحملة في الخلفية تلقائياً عبر السيرفر. يمكنك إيقاف الحملة في أي لحظة عبر زر الطوارئ 🛑.
+                  ستعمل الحملة في الخلفية تلقائياً وبشكل متتابع عبر السيرفر لكل المنشآت المستهدفة ({targetBusinesses.length}). يمكنك إيقاف الحملة في أي لحظة عبر زر الطوارئ 🛑.
                 </span>
               </div>
             </div>
