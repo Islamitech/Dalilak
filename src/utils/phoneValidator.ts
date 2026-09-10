@@ -31,9 +31,33 @@ export function normalizePhoneNumber(raw?: string | null): string {
 }
 
 /**
+ * 🚫 Placeholder and Dummy Phone Number Detector
+ * Identifies standard dummy placeholder numbers (e.g., 01000000000, 00000000000)
+ * that are assigned when an entity has no phone number, ensuring they never cause
+ * false duplicate rejections.
+ */
+export function isDummyPhoneNumber(raw?: string | null): boolean {
+  if (!raw || typeof raw !== 'string') return true;
+  const digits = raw.replace(/\D/g, '');
+  if (!digits || digits.length < 7) return true;
+  // All identical digits (e.g. 00000000000, 11111111111)
+  if (/^(.)\1+$/.test(digits)) return true;
+  // Starts with Egyptian prefix 010/011/012/015 followed entirely by zeros
+  if (/^01[0125]0{7,}$/.test(digits)) return true;
+  // Normalized 10 digits missing 0: 1000000000, etc.
+  if (/^1[0125]0{7,}$/.test(digits)) return true;
+  // Known default dummy constants in system
+  if (['01000000000', '01100000000', '01200000000', '01500000000', '00000000000', '0100000000'].includes(digits)) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Compares two phone strings for semantic equality
  */
 export function isSamePhoneNumber(a?: string | null, b?: string | null): boolean {
+  if (isDummyPhoneNumber(a) || isDummyPhoneNumber(b)) return false;
   const normA = normalizePhoneNumber(a);
   const normB = normalizePhoneNumber(b);
   if (!normA || !normB) return false;
@@ -63,6 +87,8 @@ export function findDuplicatePhoneEntity(
     excludeLeadId?: string;
   }
 ): DuplicatePhoneMatch | null {
+  if (isDummyPhoneNumber(candidatePhone)) return null;
+
   const target = normalizePhoneNumber(candidatePhone);
   if (!target || target.length < 7) return null;
 
@@ -75,6 +101,7 @@ export function findDuplicatePhoneEntity(
 
     const phones = [b.phone, b.ownerPhone, b.secondaryPhone].filter(Boolean);
     for (const p of phones) {
+      if (isDummyPhoneNumber(p)) continue;
       if (isSamePhoneNumber(target, p)) {
         return {
           type: 'business',
@@ -95,6 +122,7 @@ export function findDuplicatePhoneEntity(
 
     const phones = [l.phone, l.secondaryPhone].filter(Boolean);
     for (const p of phones) {
+      if (isDummyPhoneNumber(p)) continue;
       if (isSamePhoneNumber(target, p)) {
         return {
           type: 'lead',
