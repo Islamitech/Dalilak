@@ -63,43 +63,7 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
           <X className="w-5 h-5 stroke-[2.5]" />
         </button>
 
-        {/* Modal Top Branding Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3 pl-12 shrink-0">
-          {/* Main Title with Sparkle Icon */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-amber-500/20 shrink-0">
-              <Sparkles className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <h2 id="packages-modal-title" className="font-black text-base sm:text-xl text-[var(--text-primary)] leading-tight">
-                دليل وشرح باقات منصة دليلك
-              </h2>
-              <p className="text-[11px] sm:text-xs text-[var(--text-muted)] font-bold mt-0.5">
-                المرجع الشامل للتوثيق الميداني والتأسيس الرقمي وإدارة المنشآت في مصر
-              </p>
-            </div>
-          </div>
 
-          {/* Official Badge (Dalelak Platform Seal) */}
-          <div className="hidden lg:flex items-center gap-2.5 bg-[var(--input-bg)] border border-amber-500/30 rounded-2xl px-3.5 py-1.5 shadow-sm">
-            <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-              <MapPin className="w-4 h-4 stroke-[2.5]" />
-            </div>
-            <div className="flex flex-col text-right leading-none">
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-xs text-amber-500">
-                  دليلك
-                </span>
-                <span className="bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-amber-500/30">
-                  المنظومة المعتمدة
-                </span>
-              </div>
-              <span className="text-[9px] text-[var(--text-muted)] font-bold mt-1">
-                المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات الميدانية
-              </span>
-            </div>
-          </div>
-        </div>
 
         {/* Scrollable Modal Body */}
         <div className="overflow-y-auto flex-1 pr-1 pl-1 space-y-4 custom-scrollbar">

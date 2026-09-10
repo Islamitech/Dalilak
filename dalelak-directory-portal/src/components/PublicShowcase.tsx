@@ -20,7 +20,6 @@ import {
   ShowcaseNavbar,
   ShowcaseHeroSearch,
   ShowcaseCardGrid,
-  ShowcasePackagesSection,
   ShowcaseConsultationFooter,
   ShowcaseBusinessDetailModal,
   ShowcasePhotoLightbox,
@@ -1016,18 +1015,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         handleRequestLocation={handleRequestLocation}
       />
 
-      {/* 4. Packages & Campaigns Section */}
-      <ShowcasePackagesSection
-        onOpenPackagesModal={openPackagesModal}
-        getPackageWhatsAppUrl={getPackageWhatsAppUrl}
-        onSelectPackageForConsultation={(title) => {
-          setFormSelectedPackage(title);
-          const formElem = document.getElementById('consultation') || document.getElementById('free-listing');
-          if (formElem) {
-            formElem.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
-      />
+
 
       {/* 5. Why Dalelak & Consultation Form & Footer */}
       <ShowcaseConsultationFooter
