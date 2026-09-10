@@ -11,7 +11,7 @@ import { RepActivitiesTab } from './rep-profile/RepActivitiesTab';
 import { RepIdCardTab } from './rep-profile/RepIdCardTab';
 import { RepFinanceTab } from './rep-profile/RepFinanceTab';
 import { RepReferralTab } from './rep-profile/RepReferralTab';
-import { UnifiedProfileModal } from './UnifiedProfileModal';
+import { AdminProfileModal as UnifiedProfileModal } from './AdminProfileModal';
 import {
   Shield,
   ShieldCheck,

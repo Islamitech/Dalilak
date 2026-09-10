@@ -1,6 +1,7 @@
 import { Business, InterestedLead, PayoutRequest } from '../types';
 import { supabase, isSupabaseConfigured, supabaseRestFetch } from '../lib/supabase';
 import { uploadMediaToSupabaseStorage } from './storage';
+import { mapBusinessToDb, mapLeadToDb, mapPayoutToDb } from './db/dbMappers';
 
 const DB_NAME = 'dalelak_offline_db';
 const DB_VERSION = 1;
@@ -566,62 +567,9 @@ export async function syncAllPendingOfflineData(
           videos: cleanVideos,
         };
 
-        // Step C: Save to Supabase Cloud
-        const repLocationUrl = cleanBizToSave.repLocationUrl || (cleanBizToSave.lat && cleanBizToSave.lng ? `https://www.google.com/maps?q=${cleanBizToSave.lat},${cleanBizToSave.lng}` : null);
-        const googleMapsUrl = (cleanBizToSave.googleMapsUrl && cleanBizToSave.googleMapsUrl.trim().startsWith('http') && !cleanBizToSave.googleMapsUrl.includes('search/?api=1&query=')) ? cleanBizToSave.googleMapsUrl.trim() : null;
+        // Step C: Save to Supabase Cloud using Unified DB Mapper (Single Source of Truth)
+        const dbPayload = mapBusinessToDb(cleanBizToSave);
 
-        const isAlreadyOnGoogle = Boolean(cleanBizToSave.isAlreadyOnGoogle || cleanBizToSave.packageId === 'pkg_already_on_google' || cleanBizToSave.registrationType === 'already_on_google');
-        const isFeeExempt = Boolean(isAlreadyOnGoogle || cleanBizToSave.isFeeExempt || cleanBizToSave.packagePrice === 0);
-
-        const dbPayload: any = {
-          id: cleanBizToSave.id,
-          name_ar: cleanBizToSave.nameAr,
-          name_en: cleanBizToSave.nameEn || null,
-          category: cleanBizToSave.category || 'عام',
-          governorate: cleanBizToSave.governorate || 'القاهرة',
-          city: cleanBizToSave.city || 'القاهرة',
-          street: cleanBizToSave.street || 'الموقع الجغرافي المسجل على الخريطة',
-          landmark: cleanBizToSave.landmark || null,
-          phone: cleanBizToSave.phone,
-          secondary_phone: cleanBizToSave.secondaryPhone || null,
-          working_hours: cleanBizToSave.workingHours || 'يومياً',
-          description: cleanBizToSave.description || `نشاط ${cleanBizToSave.nameAr}`,
-          lat: Number(cleanBizToSave.lat) || 30.0444,
-          lng: Number(cleanBizToSave.lng) || 31.2357,
-          owner_name: cleanBizToSave.ownerName || 'صاحب النشاط',
-          owner_phone: cleanBizToSave.ownerPhone || cleanBizToSave.phone,
-          owner_email: cleanBizToSave.ownerEmail || null,
-          national_id: cleanBizToSave.nationalId || null,
-          photos: cleanPhotos,
-          package_id: cleanBizToSave.packageId || 'pkg_basic',
-          package_name: cleanBizToSave.packageName || '1. باقة التوثيق الأساسي',
-          package_price: Number(cleanBizToSave.packagePrice) || 250,
-          amount_paid: Number(cleanBizToSave.amountPaid) || 0,
-          payment_status: cleanBizToSave.paymentStatus || 'unpaid',
-          verification_status: cleanBizToSave.verificationStatus || 'pending',
-          rep_id: cleanBizToSave.repId || 'rep_1',
-          rep_name: cleanBizToSave.repName || 'مندوب معتمد',
-          invoice_number: cleanBizToSave.invoiceNumber,
-          invoice_date: cleanBizToSave.invoiceDate,
-          created_at: cleanBizToSave.createdDate || new Date().toISOString(),
-          notes: JSON.stringify({
-            paymentMethod: cleanBizToSave.paymentMethod,
-            cashCollectedByRep: cleanBizToSave.cashCollectedByRep,
-            repCommissionRate: cleanBizToSave.repCommissionRate,
-            isFeeExempt,
-            feeExemptionReason: cleanBizToSave.feeExemptionReason,
-            isAlreadyOnGoogle,
-            registrationType: isAlreadyOnGoogle ? 'already_on_google' : (cleanBizToSave.registrationType || 'new_verification'),
-            googleSyncStatus: cleanBizToSave.googleSyncStatus,
-            googlePlaceId: cleanBizToSave.googlePlaceId,
-            googleSyncDate: cleanBizToSave.googleSyncDate,
-            repLocationUrl,
-            googleMapsUrl,
-            videos: cleanVideos,
-            adminFollowUps: Array.isArray(cleanBizToSave.adminFollowUps) ? cleanBizToSave.adminFollowUps : [],
-            userNotes: cleanBizToSave.notes,
-          }),
-        };
 
         let isSaved = false;
 
@@ -666,30 +614,8 @@ export async function syncAllPendingOfflineData(
       if (onProgress) onProgress(currentIndex, totalItems, `مزامنة عميل مهتم: ${lead.clientName}`);
 
       try {
-        const cleanPhone = lead.phone || '01000000000';
-        const leadPayload = {
-          id: lead.id,
-          client_name: lead.clientName,
-          business_name: lead.businessName || null,
-          business_category: lead.businessCategory || null,
-          phone: cleanPhone,
-          secondary_phone: lead.secondaryPhone || null,
-          governorate: lead.governorate || 'الجيزة',
-          city: lead.city || null,
-          street: lead.street || null,
-          lat: lead.lat ?? null,
-          lng: lead.lng ?? null,
-          location_url: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
-          interest_level: lead.interestLevel || 'high',
-          notes: lead.notes || null,
-          admin_follow_ups: Array.isArray(lead.adminFollowUps) ? lead.adminFollowUps : [],
-          follow_up_date: lead.followUpDate || null,
-          created_at: lead.createdDate || new Date().toISOString(),
-          rep_id: lead.repId || 'rep_1',
-          rep_name: lead.repName || 'مندوب معتمد',
-          last_contacted_date: lead.lastContactedDate || null,
-          status: lead.status || 'pending_followup',
-        };
+        const leadPayload = mapLeadToDb(lead);
+
 
         let leadSaved = false;
 
@@ -717,8 +643,8 @@ export async function syncAllPendingOfflineData(
               name_en: lead.clientName || null,
               category: (lead.businessCategory && lead.businessCategory !== 'عملاء مهتمون' && lead.businessCategory !== 'عميل مهتم') ? lead.businessCategory : 'خدمات وأنشطة عامة',
               owner_name: (lead.clientName && lead.clientName !== 'عميل مهتم') ? lead.clientName : (lead.businessName || 'صاحب المنشأة'),
-              phone: cleanPhone,
-              owner_phone: cleanPhone, // Required not-null constraint
+              phone: lead.phone || '01000000000',
+              owner_phone: lead.phone || '01000000000', // Required not-null constraint
               secondary_phone: lead.secondaryPhone || null,
               governorate: lead.governorate || 'الجيزة',
               city: lead.city || 'الجيزة',
@@ -782,21 +708,8 @@ export async function syncAllPendingOfflineData(
       if (onProgress) onProgress(currentIndex, totalItems, `مزامنة طلب صرف: ${payout.amount} ج.م`);
 
       try {
-        const payoutPayload = {
-          id: payout.id,
-          rep_id: payout.repId,
-          rep_name: payout.repName || 'مندوب معتمد',
-          rep_phone: payout.repPhone || null,
-          amount: Number(payout.amount) || 0,
-          method: payout.method || 'instapay',
-          account_details: payout.accountDetails || '',
-          status: payout.status || 'pending',
-          request_date: payout.requestDate || new Date().toISOString(),
-          receipt_photo: payout.receiptPhoto || null,
-          transaction_ref: payout.transactionRef || null,
-          admin_notes: payout.adminNotes || null,
-          type: payout.type || 'payout',
-        };
+        const payoutPayload = mapPayoutToDb(payout);
+
 
         let payoutSaved = false;
 
