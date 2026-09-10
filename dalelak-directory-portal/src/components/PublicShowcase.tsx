@@ -15,6 +15,7 @@ import {
   downloadBusinessVCard,
   injectBusinessSchemaLd,
 } from '../utils/directoryEnhancements';
+import { matchesCategoryFilter } from '../utils/categoryMatcher';
 import {
   ShowcaseNavbar,
   ShowcaseHeroSearch,
