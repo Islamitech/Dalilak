@@ -15,7 +15,8 @@ import {
   Award,
   Search,
   CheckCircle2,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown
 } from 'lucide-react';
 import { Business } from '../types';
 
@@ -65,6 +66,15 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
   const [showBizPicker, setShowBizPicker] = useState<boolean>(false);
   const [bizPickerSearch, setBizPickerSearch] = useState<string>('');
   const [selectedBizPkg, setSelectedBizPkg] = useState<GoogleStylePackage | null>(null);
+  const [expandedPkgIds, setExpandedPkgIds] = useState<Record<string, boolean>>({});
+  const [isCorporateExpanded, setIsCorporateExpanded] = useState<boolean>(false);
+
+  const toggleExpand = (pkgId: string) => {
+    setExpandedPkgIds(prev => ({
+      ...prev,
+      [pkgId]: !prev[pkgId]
+    }));
+  };
 
   // 3 Primary Categories (No Bloat, Google Minimalist Standard)
   const TRACKS: { id: 'foundational' | 'growth' | 'digital'; label: string }[] = [
@@ -537,15 +547,58 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 </div>
               </div>
 
-              {/* View More Link (Opens Focused Detail Modal) */}
-              <div className="pt-4 mt-4 border-t border-[var(--border-color)] text-center">
+                {/* In-Card Accordion Dropdown (تنسدل البطاقة كنموذج Google) */}
+                {expandedPkgIds[pkg.id] && (
+                  <div className="pt-3.5 mt-2 border-t border-[var(--border-color)] space-y-3 animate-fade-in text-xs">
+                    {/* Target Persona */}
+                    <div className="p-3 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)]">
+                      <span className="font-black text-amber-700 dark:text-amber-400 block mb-1 text-[11px]">
+                        الفئة المستهدفة:
+                      </span>
+                      <p className="text-[11.5px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                        {pkg.forWhom}
+                      </p>
+                    </div>
+
+                    {/* Detailed Features Breakdown */}
+                    <div className="space-y-2">
+                      <span className="font-black text-slate-900 dark:text-white block text-[11.5px]">
+                        تفاصيل الخدمات والمخرجات المشمولة:
+                      </span>
+                      <div className="space-y-1.5">
+                        {pkg.fullFeatures.map((feat, idx) => (
+                          <div key={idx} className="p-2.5 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] space-y-0.5">
+                            <span className="font-bold text-slate-900 dark:text-white block text-xs">✓ {feat.title}</span>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{feat.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Delivery Time */}
+                    <div className="flex items-center justify-between p-2.5 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-[11px]">
+                      <span className="font-bold text-slate-500 dark:text-slate-400">مدة التنفيذ والتسليم:</span>
+                      <span className="font-black text-amber-600 dark:text-amber-400">{pkg.deliveryTime}</span>
+                    </div>
+
+                    {mode === 'admin' && (
+                      <div className="p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/30 space-y-1 text-[11px]">
+                        <span className="font-black text-amber-700 dark:text-amber-300 block">دليل مندوب المبيعات:</span>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{pkg.pitchGuide.hook}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* Accordion Toggle (انزلاق وانسدال البطاقة) */}
+              <div className="pt-3 mt-3 border-t border-[var(--border-color)] text-center">
                 <button
                   type="button"
-                  onClick={() => setDetailModalPkg(pkg)}
-                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:underline cursor-pointer inline-flex items-center gap-1"
+                  onClick={() => toggleExpand(pkg.id)}
+                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 cursor-pointer inline-flex items-center gap-1.5 transition-all active:scale-95"
                 >
-                  <span>عرض التفاصيل الكاملة</span>
-                  <ArrowLeft className="w-3 h-3" />
+                  <span>{expandedPkgIds[pkg.id] ? 'عرض تفاصيل أقل' : 'عرض التفاصيل الكاملة والمخرجات'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedPkgIds[pkg.id] ? 'rotate-180 text-amber-500' : ''}`} />
                 </button>
               </div>
             </div>
@@ -555,39 +608,64 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
 
       {/* 4. Bottom Discrete Enterprise Section (Zero Extra Explanations) */}
       <div className="pt-6 border-t border-[var(--border-color)]">
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-center sm:text-right space-y-1">
-            <span className="text-[10.5px] font-black text-amber-600 dark:text-amber-400 uppercase">
-              حلول الشركات والمشاريع الكبرى
-            </span>
-            <h4 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
-              الهوية المؤسسية الكاملة وتأسيس سلاسل الفروع
-            </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-              دراسة مخصصة للشركات والمجمعات والمصانع وسلاسل الفروع تحت الإنشاء والتوسع.
-            </p>
-          </div>
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 sm:p-5 flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-right space-y-1">
+              <span className="text-[10.5px] font-black text-amber-600 dark:text-amber-400 uppercase">
+                حلول الشركات والمشاريع الكبرى
+              </span>
+              <h4 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
+                الهوية المؤسسية الكاملة وتأسيس سلاسل الفروع
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                دراسة مخصصة للشركات والمجمعات والمصانع وسلاسل الفروع تحت الإنشاء والتوسع.
+              </p>
+            </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {mode === 'public' ? (
-              <a
-                href="https://wa.me/201143888355?text=مرحباً%20دليلك،%20نود%20الاستفسار%20عن%20باقة%20الشركات%20والمشاريع%20الكبرى."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-5 py-2.5 rounded-xl bg-[var(--input-bg)] hover:bg-amber-500 hover:text-slate-950 text-[var(--text-primary)] font-black text-xs border border-[var(--border-color)] transition-all"
-              >
-                طلب استشارة وعرض سعر
-              </a>
-            ) : (
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setDetailModalPkg(CORPORATE_PACKAGE)}
-                className="px-5 py-2.5 rounded-xl bg-[var(--input-bg)] hover:bg-amber-500 hover:text-slate-950 text-[var(--text-primary)] font-black text-xs border border-[var(--border-color)] transition-all cursor-pointer"
+                onClick={() => setIsCorporateExpanded(!isCorporateExpanded)}
+                className="px-3.5 py-2 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-slate-700 dark:text-slate-300 font-bold text-xs border border-[var(--border-color)] cursor-pointer inline-flex items-center gap-1 transition-all"
               >
-                تفاصيل حلول الشركات
+                <span>{isCorporateExpanded ? 'عرض أقل' : 'المخرجات والتفاصيل'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCorporateExpanded ? 'rotate-180 text-amber-500' : ''}`} />
               </button>
-            )}
+
+              {mode === 'public' ? (
+                <a
+                  href="https://wa.me/201143888355?text=مرحباً%20دليلك،%20نود%20الاستفسار%20عن%20باقة%20الشركات%20والمشاريع%20الكبرى."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm transition-all"
+                >
+                  طلب استشارة وعرض سعر
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDetailModalPkg(CORPORATE_PACKAGE)}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm transition-all cursor-pointer"
+                >
+                  تفاصيل حلول الشركات
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Corporate In-Card Expansion */}
+          {isCorporateExpanded && (
+            <div className="pt-4 border-t border-[var(--border-color)] space-y-3 animate-fade-in text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {CORPORATE_PACKAGE.deliverables.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-slate-700 dark:text-slate-200 font-medium">
+                    <Check className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 stroke-[2.5]" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
