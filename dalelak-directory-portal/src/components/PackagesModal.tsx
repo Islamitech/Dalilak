@@ -71,12 +71,11 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
               <Sparkles className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h2 id="packages-modal-title" className="font-black text-base sm:text-xl text-[var(--text-primary)] leading-tight flex items-center gap-2">
-                <span>دليل وشرح باقات منصة دليلك</span>
-                <span>💎</span>
+              <h2 id="packages-modal-title" className="font-black text-base sm:text-xl text-[var(--text-primary)] leading-tight">
+                دليل وشرح باقات منصة دليلك
               </h2>
               <p className="text-[11px] sm:text-xs text-[var(--text-muted)] font-bold mt-0.5">
-                المرجع الشامل للتوثيق الميداني والتأسيس الرقمي والإدارة الكاملة في مصر
+                المرجع الشامل للتوثيق الميداني والتأسيس الرقمي وإدارة المنشآت في مصر
               </p>
             </div>
           </div>
@@ -92,7 +91,7 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
                   دليلك
                 </span>
                 <span className="bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-amber-500/30">
-                  المنظومة الشاملة 🇪🇬
+                  المنظومة المعتمدة
                 </span>
               </div>
               <span className="text-[9px] text-[var(--text-muted)] font-bold mt-1">

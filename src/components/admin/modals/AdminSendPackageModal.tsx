@@ -43,142 +43,130 @@ interface PackageOptionItem {
 const PACKAGES_OPTIONS: PackageOptionItem[] = [
   {
     id: 'pkg_basic',
-    name: 'باقة التوثيق الأساسي وتثبيت خريطة Google',
+    name: 'باقة التوثيق وتثبيت الموقع على Google Maps',
     priceText: '250 جنيه',
-    subtext: 'سداد لمرة واحدة + هدية ملصق QR للواجهة',
+    subtext: 'سداد لمرة واحدة + فاتورة معتمدة وملصق QR تفاعلي',
     icon: MapPin,
-    badge: 'توثيق رسمي 📍',
+    badge: 'توثيق رسمي',
     color: 'blue',
     delivery: '24 - 48 ساعة',
     highlights: [
-      'تثبيت لوكيشن المحل بنقطة جغرافية دقيقة ومظبوطة بنظام GPS على خرائط Google',
-      'إضافة اسم محلك وتليفوناتك ومواعيد الفتح والقفل طوال الأسبوع',
-      'رفع الشعار وصور واجهة المحل والبضاعة بجودة واضحة تشد عين الزبون',
-      'تظبيط بيانات النشاط عشان تظهر في أوائل نتائج البحث لما حد يبحث في منطقتك',
-      'فاتورة إلكترونية رسمية معتمدة برمز QR لمشاركتها فوراً',
-      'هدية خاصة: تصميم ملصق باركود QR Code شيك جاهز للطباعة والتعليق على باب المحل'
+      'تثبيت الموقع الجغرافي للمنشأة بدقة GPS معتمدة على خرائط Google',
+      'تسجيل الاسم الرسمي والنشاط وأرقام التواصل وقنوات الاتصال وساعات العمل',
+      'رفع الصور الرسمية للمقر والواجهة والخدمات بجودة عالية تعزز الموثوقية',
+      'فاتورة إلكترونية معتمدة برمز QR مع ملصق باركود تفاعلي للمقر'
     ]
   },
   {
     id: 'pkg_pro',
-    name: 'عرض التأسيس والربط الذكي والإعلانات',
+    name: 'عرض التأسيس الرقمي وإطلاق الحملة التعريفية',
     priceText: '750 جنيه',
-    subtext: 'الأكثر طلباً ومبيعاً ⭐ (صفحات + إعلانات + ربط واتساب + 3 أيام دعم)',
+    subtext: 'الأكثر طلباً (تأسيس منصات + ربط قنوات الحجز + إعلان تعريفي + 3 أيام دعم)',
     icon: Zap,
-    badge: 'الأكثر طلباً ⭐',
+    badge: 'الأكثر طلباً',
     color: 'emerald',
-    delivery: '3 أيام عمل مع مرافقة حية',
+    delivery: '3 أيام عمل مع مرافقة تنفيذية',
     highlights: [
-      'تأسيس وضبط صفحات فيسبوك والمنصات باسم وشعار متناسق يعكس فخامة محلك',
-      'ربط زرار الواتساب المباشر بالصفحة لتلقي رسائل وطلبات الزبائن فوراً على تليفونك',
-      'تصميم إعلان ترويجي احترافي جذاب لبضاعتك أو أكلك بطريقة تشد عين الزبون',
-      'صياغة كلام تسويقي بيّاع بلهجة مفهومة ومحفزة تشجع أهالي المنطقة على الشراء',
-      'مرافقة وتوجيه ودعم مباشر لمدة 3 أيام خطوة بخطوة للرد على الزبائن ونشر العروض'
+      'إنشاء وتنسيق المنصات الرسمية بهوية متناسقة تعبر عن التخصص ومكانة المنشأة',
+      'ربط زر المحادثة الفورية بالواتساب وقنوات الاتصال لتلقي الاستفسارات والحجوزات مباشرة',
+      'تصميم إعلان تعريفي احترافي يبرز خدمات أو منتجات المنشأة بمظهر راقٍ',
+      'مرافقة واستشارات تنفيذية لمدة 3 أيام لضبط التفاعل واستقبال أولى الاستفسارات'
     ]
   },
   {
     id: 'pkg_reputation',
-    name: 'باقة درع السمعة وزيادة التقييمات الإيجابية',
+    name: 'باقة إدارة السمعة وتنمية التقييمات الإيجابية',
     priceText: '950 جنيه',
-    subtext: 'رفع التقييم لـ 5 نجوم + كروت واستيكرات باركود للعملاء',
+    subtext: 'رفع التقييمات لـ 5 نجوم + بطاقات وملصقات QR ذكية',
     icon: ShieldCheck,
-    badge: 'حماية السمعة 🛡️',
+    badge: 'حماية السمعة والتقييمات',
     color: 'indigo',
     delivery: '5 - 7 أيام عمل',
     highlights: [
-      'فحص شامل لملف نشاطك على جوجل ومعالجة الملاحظات وحماية التقييم العام',
-      'طريقة ذكية وسهلة لتشجيع الزبائن الراضين إنهم يكتبوا تقييمات ممتازة من 5 نجوم',
-      'معالجة الشكاوى بهدوء وسرية عبر قنوات داخلية قبل ما تتحول لتقييم سلبي يضر المكان',
-      'تصميم كروت وملصقات باركود ذكية شيك للتقييم بمسحة واحدة بكاميرا الموبايل في 5 ثواني',
-      'صياغة نماذج ردود شيك ومهذبة تعكس رقي تعاملك وتكبر مكانك في عين الزوار الجدد'
+      'فحص شامل لملف المنشأة الرقمي ومعالجة الملاحظات لتحسين التقييم العام',
+      'منظومة تفاعلية لتشجيع العملاء والمراجعين الراضين على توثيق تجاربهم الإيجابية بسهولة',
+      'تصميم بطاقات وملصقات باركود ذكية (QR) لتقييم المنشأة فورياً بكاميرا الهاتف في ثوانٍ',
+      'توجيه الشكاوى الحساسة إلى قنوات تواصل داخلية لمعالجتها باحترافية وسرية'
     ]
   },
   {
     id: 'pkg_reels',
-    name: 'باقة فيديو ريلز وصناعة المحتوى المرئي الخاطف',
+    name: 'باقة الإنتاج المرئي القصير وإعلانات الفيديو',
     priceText: '1,250 جنيه',
-    subtext: '2 فيديو ريلز احترافي + تجهيز إعلان لمنطقتك',
+    subtext: 'إنتاج مقطعي ريلز احترافيين + إطلاق حملة إعلانية ممولة',
     icon: Camera,
-    badge: 'انتشار سريع 🎬',
+    badge: 'إنتاج مرئي وترويج',
     color: 'rose',
     delivery: '3 - 5 أيام عمل',
     highlights: [
-      'إنتاج مقطعي فيديو قصيرين (2 Reels / TikTok) بمونتاج عصري خاطف للأنظار',
-      'صياغة فكرة وسيناريو بمقدمة سريعة في أول 3 ثوانٍ تمنع الزبون إنه يقلب الفيديو',
-      'تصميم أغلفة لافتة واختيار أنسب الموسيقى والهاشتاجات الرائجة في منطقتك',
-      'إعداد وتجهيز حملة إعلانية ممولة للفيديو تستهدف سكان منطقتك والمدن القريبة منك',
-      'تسليم الفيديوهات بجودتها الأصلية لاستخدامها الدائم في حالات الواتساب وصفحاتك'
+      'إنتاج مقطعي فيديو قصيرين (2 Reels / Short Videos) بمونتاج وإخراج احترافي حديث',
+      'صياغة سيناريو مركز يبرز نقاط التميز والتجهيزات في الثواني الأولى للمشاهد',
+      'تصميم أغلفة مميزة وإدراج هوية المنشأة ومعلومات التواصل بوضوح',
+      'إعداد وإطلاق حملة إعلانية ممولة تستهدف الجمهور المهتم في نطاقكم الجغرافي'
     ]
   },
   {
     id: 'pkg_vip',
-    name: 'باقة الدعم والإدارة التسويقية الشاملة VIP',
-    priceText: '2,000 جنيه / شهر',
-    subtext: 'إدارة متكاملة شهر كامل (30 يوماً) + تجديد بـ 1,000 ج فقط',
+    name: 'باقة الإدارة التسويقية والرقمية الشاملة (VIP)',
+    priceText: '2,000 جنيه / شهرياً',
+    subtext: 'إدارة متكاملة لمدة شهر (30 يوماً) + إمكانية التجديد بـ 1,000 ج',
     icon: Crown,
-    badge: 'الإدارة الكاملة 👑',
+    badge: 'إدارة تسويقية شاملة',
     color: 'amber',
     delivery: 'شهر كامل (30 يوماً متواصلة)',
     highlights: [
-      'تصميم منشورات وبانرات إعلانية احترافية متجددة طوال الشهر لعرض منتجاتك وعروضك',
-      'معالجة وتطوير صور وفيديوهات المنتجات المرسلة من المحل وإخراجها بقوالب شيك تفتح النفس',
-      'جدولة ونشر المحتوى بانتظام عشان صفحتك تفضل نشطة وحاضرة قدام الزباين باستمرار',
-      'تجهيز وضبط الحملات الإعلانية الممولة جغرافياً لتقليل تكلفة الرسالة',
-      'إدارة التقييمات وصياغة الردود المهنية لتعزيز سمعة المنشأة ومصداقيتها أمام الجمهور',
-      'دعم وتوجيه واستشارات تسويقية يومية مع صاحب العمل لتطوير المبيعات وطريقة إغلاق الطلبات',
-      'ميزة التجديد المخفض: بعد انتهاء الشهر الأول، تقدر تكمل معانا إدارة بـ 1,000 ج بس شهرياً'
+      'تصميم ونشر محتوى دوري منتظم يعكس هوية وتخصص المنشأة طوال الشهر (30 يوماً)',
+      'إعداد وإدارة الحملات الإعلانية الممولة جغرافياً للوصول للعملاء المستهدفين بأفضل تكلفة',
+      'تحسين ومعالجة المواد التعريفية وصور المنشأة وإخراجها بقوالب بصرية متناسقة',
+      'استشارات تسويقية دورية مع إمكانية التجديد للشهر التالي بنصف التكلفة (1,000 ج)'
     ]
   },
   {
     id: 'pkg_smart_menu',
-    name: 'باقة المنيو التفاعلي ومتجر الواتساب الذكي السريع',
+    name: 'باقة القائمة والكتالوج الرقمي التفاعلي (Smart QR)',
     priceText: '3,500 جنيه',
-    subtext: 'منيو إلكتروني تفاعلي + سلة طلبات واتساب بدون أي عمولات',
+    subtext: 'كتالوج وقائمة رقمية تفاعلية + نظام سلة وطلب مباشر بدون عمولات',
     icon: Store,
-    badge: 'متجر ذكي 📱',
+    badge: 'قائمة رقمية ومتجر ذكي',
     color: 'cyan',
     delivery: '5 - 7 أيام عمل',
     highlights: [
-      'تصميم وبرمجة منيو وكتالوج إلكتروني فائق السرعة يفتح على كافة الهواتف بدون أي تطبيقات',
-      'سلة مشتريات ذكية ترسل تفاصيل أصناف الطلب والأسعار والعنوان لواتساب المحل فوراً وبدون عمولات',
-      'لوحة تحكم سهلة جداً لتحديث الأسعار وتغيير الأصناف وإضافة عروض بضغطة زر من الموبايل',
-      'تصميم ستاندات ولافتات كود QR شيك جداً لوضعها على الطاولات وكاونتر المحل لتسريع الطلب',
-      'توفير عمولات تطبيقات التوصيل الوسيطة (15% إلى 25%) والاحتفاظ بكامل أرباحك الصافية لنفسك'
+      'كتالوج وقائمة رقمية تفاعلية تفتح بمسح الباركود بكاميرا الهاتف دون تحميل تطبيقات',
+      'نظام سلة وحجز فوري يرسل تفاصيل الخدمة أو الطلب مباشرة إلى واتساب المنشأة دون وسيط',
+      'لوحة تحكم سهلة من الهاتف لتعديل الأسعار والخدمات والأصناف المتاحة في أي وقت',
+      'تصميم ستاندات وبطاقات QR فاخرة للاستقبال والمكاتب لتيسير استعراض الخدمات والطلب'
     ]
   },
   {
     id: 'pkg_annual_partner',
-    name: 'باقة الشريك الماسي والظهور والتوثيق السنوي',
+    name: 'باقة الرعاية السنوية وتصدر نتائج البحث المعتمدة',
     priceText: '6,000 جنيه / سنوياً',
-    subtext: 'صدارة دائم لمدة عام + شارة التوثيق الذهبية + تحديثات موسمية',
+    subtext: 'صدارة نتائج البحث بالمحافظة + شارة التوثيق الذهبية + تحديثات دورية',
     icon: Sparkles,
-    badge: 'شريك ماسي 💎',
+    badge: 'رعاية سنوية معتمدة',
     color: 'yellow',
     delivery: '12 شهراً متواصلة',
     highlights: [
-      'ظهور مثبت في صدارة نتائج البحث (Featured Top Result) بتصنيف المحافظة طوال العام',
-      'منح شارة التوثيق الذهبية المعتمدة (Gold Certified) كأحد أبرز الخيارات الموصى بها',
-      'تمييز علامة وشعار المكان على الخريطة التفاعلية للدليل للمستخدمين والباحثين القريبين',
-      'تحديث ربع سنوي شامل للصور، العروض، والمحتوى لمواكبة مواسم التسوق والأعياد (4 مرات سنوياً)',
-      'أولوية استثنائية في الدعم الفني وتحديث البيانات السريع على مدار العام'
+      'تثبيت وظهور دائم في صدارة نتائج البحث في دليل المحافظة على مدار 12 شهراً',
+      'منح المنشأة شارة التوثيق الذهبية المعتمدة كعلامة ثقة رسمية معلنة للجمهور',
+      'تمييز موقع وشعار المنشأة على الخريطة التفاعلية للدليل للمستخدمين في النطاق المحيط',
+      'تحديثات دورية ربع سنوية (4 مرات بالعام) للبيانات والصور والخدمات لمواكبة التطورات'
     ]
   },
   {
     id: 'pkg_corporate',
-    name: 'باقة الشركات والمشاريع الكبرى والمحلات تحت التجهيز',
+    name: 'باقة التأسيس المؤسسي المتكامل وسلاسل الفروع',
     priceText: 'تسعير مخصص حسب المشروع',
-    subtext: 'دراسة مخصصة للمشاريع والفروع والأنشطة تحت التجهيز والإنشاء',
+    subtext: 'دراسة مخصصة للمشاريع الكبرى والشركات وسلاسل الفروع',
     icon: Building2,
-    badge: 'حلول مؤسسية 🏢',
+    badge: 'حلول مؤسسية متكاملة',
     color: 'purple',
     delivery: 'حسب متطلبات المشروع',
     highlights: [
-      'تصميم وتطوير الهوية البصرية والمؤسسية المتكاملة والشعار بالملفات المفتوحة الكاملة للطباعة فوراً',
-      'تصميم الواجهات الخارجية واللافتات والبانرات الميدانية وباقات التعبئة والتغليف والزي الموحد',
-      'تأسيس وتوثيق رقمي موحد لكافة الفروع والمواقع على الخرائط والمنصات لسهولة وصول الزبائن لأقرب فرع',
-      'تخطيط وإدارة حملات الإطلاق والافتتاح الكبرى لضمان أعلى تفاعل ومبيعات متصاعدة من اليوم الأول',
-      'بناء منظومات ولاء العملاء وتكرار الشراء وتدريب فرق العمل والتشغيل على أساليب البيع',
-      'جلسة استشارية متخصصة مع الإدارة العليا وتصميم عرض فني ومالي مفصل بناءً على دراسة احتياجات النشاط'
+      'تطوير الهوية المؤسسية الكاملة (الشعار، دليل الهوية البصرية، والمطبوعات الرسمية)',
+      'تأسيس وتوثيق رقمي موحد لكافة الفروع والمواقع على الخرائط والمنصات الرسمية',
+      'تخطيط وإدارة حملات الإطلاق والافتتاح الكبرى لتحقيق أعلى تفاعل وحضور ميداني ورقمي',
+      'جلسة استشارية متخصصة مع الإدارة التنفيذية وتقديم دراسة فنية ومالية مفصلة'
     ]
   },
   {
@@ -187,59 +175,59 @@ const PACKAGES_OPTIONS: PackageOptionItem[] = [
     priceText: 'مجاناً (0 ج.م)',
     subtext: 'خدمة عامة مشروطة بوجود موقع موثق على Google Maps',
     icon: Check,
-    badge: 'إدراج مجاني 🎁',
+    badge: 'إدراج وظهور مجاني',
     color: 'emerald',
     delivery: 'فوري خلال 24 ساعة',
     highlights: [
-      'ظهور اسم المنشأة وتصنيفها في دليل المحافظة للجمهور مجاناً وبدون أي رسوم تسجيل',
-      'عرض أرقام الهواتف وزرار الواتساب المباشر عشان الزبون يوصلك ويتصل بيك علطول',
+      'ظهور اسم وتصنيف المنشأة في دليل المحافظة للجمهور مجاناً وبدون أي رسوم تسجيل',
+      'عرض أرقام الهواتف وزر الواتساب المباشر لتسهيل تواصل المراجعين والعملاء',
       'تثبيت وتوجيه العنوان لموقعكم المعتمد على الخريطة التفاعلية للدليل',
       'عرض مواعيد وساعات العمل طوال أيام الأسبوع وتوضيح حالة المكان',
-      'شرط الاستفادة: يشترط أن يكون للنشاط موقع موثق بالفعل على Google Maps (وإذا لم يتوفر يُقترح البدء بباقة التوثيق 250 ج)'
+      'شرط الاستفادة: يشترط أن يكون للمنشأة موقع جغرافي موثق بالفعل على Google Maps'
     ]
   }
 ];
 
 function generatePackageWhatsAppMessage(pkg: PackageOptionItem, biz: Business): string {
-  const ownerSalutation = biz.ownerName ? `أستاذ/ة ${biz.ownerName} المحترم/ة 🌸` : 'أصحاب وإدارة المنشأة المحترمين 🌸';
-  const bizName = biz.nameAr || biz.name || 'نشاطكم الكريم';
+  const ownerSalutation = biz.ownerName ? `أستاذ/ة ${biz.ownerName} المحترم/ة` : 'أصحاب وإدارة المنشأة المحترمين';
+  const bizName = biz.nameAr || biz.name || 'منشأتكم الكريمة';
   const locationInfo = biz.governorate && biz.city ? ` (${biz.governorate} - ${biz.city})` : (biz.governorate ? ` (${biz.governorate})` : '');
 
   if (pkg.id === 'pkg_free_notice') {
     return (
-      `السلام عليكم ورحمة الله وبركاته 🌸\n` +
-      `تحياتنا لحضرتك ${ownerSalutation} بخصوص نشاطكم الكريم: *«${bizName}»*${locationInfo}\n` +
+      `السلام عليكم ورحمة الله وبركاته،\n` +
+      `تحياتنا لكم ${ownerSalutation} بخصوص منشأتكم الكريمة: *«${bizName}»*${locationInfo}\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `يسعدنا في «منظومة دليلك» نوضح لحضرتك تفاصيل:\n` +
-      `🎁 *خدمة إدراج وظهور المنشأة في دليل المحافظة مجاناً 100%*\n\n` +
-      `💰 *التكلفة:* مجاني تماماً وبدون أي اشتراكات دورية (0 ج.م)\n` +
-      `⏱️ *وقت التفعيل:* خلال 24 ساعة بمجرد التأكيد\n` +
-      `📌 *الشرط الأساسي الوحيد:* أن يكون للنشاط موقع جغرافي موثق بالفعل على خرائط Google.\n\n` +
-      `📋 *المميزات اللي هتاخدها في الإدراج المجاني:*\n` +
+      `يسرنا في «منظومة دليلك» إحاطتكم بتفاصيل:\n` +
+      `*خدمة إدراج وظهور المنشأة في دليل المحافظة مجاناً 100%*\n\n` +
+      `- التكلفة: مجاني تماماً وبدون أي اشتراكات دورية (0 ج.م)\n` +
+      `- وقت التفعيل: خلال 24 ساعة بمجرد التأكيد\n` +
+      `- الشرط الأساسي الوحيد: أن يكون للمنشأة موقع جغرافي موثق بالفعل على خرائط Google.\n\n` +
+      `المزايا المتاحة في الإدراج المجاني:\n` +
       pkg.highlights.map(h => `• ${h}`).join('\n') +
       `\n\n` +
-      `💡 *ملحوظة:* لو المحل مش متسجل على الخريطة أو مكانه مش مظبوط، بنقترح تبدأ بـ «باقة التوثيق الأساسي» (250 ج) عشان نثبت مكانك على جوجل الأول.\n\n` +
+      `ملاحظة: في حال لم يكن موقع المنشأة مسجلاً بدقة على الخريطة، نقترح البدء بـ «باقة التوثيق الأساسي» (250 ج) لتثبيت الموقع الجغرافي أولاً.\n\n` +
       `للتأكيد والبدء فوراً، يرجى الرد بكلمة «تأكيد الإدراج» لإتمام التسجيل في الدليل.\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `منظومة دليلك - دليل المحافظة المعتمد في مصر 🇪🇬`
+      `منظومة دليلك - شريك التوثيق والتطوير الرقمي المعتمد في مصر`
     );
   }
 
   return (
-    `السلام عليكم ورحمة الله وبركاته 🌸\n` +
-    `تحياتنا لحضرتك ${ownerSalutation} بخصوص نشاطكم الكريم: *«${bizName}»*${locationInfo}\n` +
+    `السلام عليكم ورحمة الله وبركاته،\n` +
+    `تحياتنا لكم ${ownerSalutation} بخصوص منشأتكم الكريمة: *«${bizName}»*${locationInfo}\n` +
     `━━━━━━━━━━━━━━━━━━━━━\n` +
-    `يسعدنا في «منظومة دليلك» نوضح لحضرتك تفاصيل وعرض:\n` +
-    `💎 *«${pkg.name}»*\n\n` +
-    `💰 *التكلفة الرسمية:* *${pkg.priceText}* (${pkg.subtext})\n` +
-    `⏱️ *مدة التنفيذ والمتابعة:* *${pkg.delivery}*\n\n` +
-    `📋 *إيه اللي هيتعمل لنشاطك في الباقة دي بالظبط وبشكل مبسط؟*\n` +
-    pkg.highlights.map(h => `✓ ${h}`).join('\n') +
+    `يسعدنا في «منظومة دليلك» تقديم تفاصيل العرض التنفيذي المقترح:\n` +
+    `*«${pkg.name}»*\n\n` +
+    `- التكلفة: *${pkg.priceText}* (${pkg.subtext})\n` +
+    `- مدة التنفيذ والتسليم: *${pkg.delivery}*\n\n` +
+    `المخرجات والخدمات التنفيذية المشمولة:\n` +
+    pkg.highlights.map(h => `• ${h}`).join('\n') +
     `\n\n` +
-    `🤝 هدفنا نساعد محلك يتعرف ويزيد زباينه بشكل عملي وبسيط بدون أي تعقيدات تقنية، وبنوفر لحضرتك فاتورة معتمدة ومتابعة خطوة بخطوة.\n\n` +
-    `لبدء التنفيذ وحجز الموعد، يرجى الرد بكلمة «موافق» أو إرسال استفسارك للبدء فوراً.\n` +
+    `نحرص على تعزيز الحضور الرقمي والمهني لمنشأتكم وتيسير وصول العملاء والمراجعين باحترافية، مع توفير فاتورة رسمية معتمدة برمز QR ومتابعة مستمرة.\n\n` +
+    `لبدء التنفيذ أو الاستفسار، يسعدنا تواصلكم والرد بكلمة «تأكيد» للبدء الفوري.\n` +
     `━━━━━━━━━━━━━━━━━━━━━\n` +
-    `منظومة دليلك - في ضهر كل تاجر ونشاط في مصر 🇪🇬`
+    `منظومة دليلك - شريك التوثيق والتطوير الرقمي المعتمد في مصر`
   );
 }
 
@@ -258,147 +246,124 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
 
   const currentPkg = PACKAGES_OPTIONS.find(p => p.id === selectedPkgId) || PACKAGES_OPTIONS[1];
   const messageText = generatePackageWhatsAppMessage(currentPkg, business);
-
   const rawPhone = business.ownerPhone || business.phone || '';
-  const cleanPhone = formatWhatsAppPhone(rawPhone);
-  const waUrl = cleanPhone 
-    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messageText)}`
-    : `https://wa.me/?text=${encodeURIComponent(messageText)}`;
+  const formattedPhone = formatWhatsAppPhone(rawPhone);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(messageText);
-    triggerHaptic('success');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(messageText);
+      setCopied(true);
+      triggerHaptic();
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Fallback
+    }
   };
 
-  const handleLogFollowUp = () => {
-    if (!onUpdateBusiness) return;
-    const authorName = currentUser?.name || 'مدير النظام';
-    const authorRole = currentUser?.role || 'admin';
+  const handleSendWhatsApp = () => {
+    triggerHaptic();
+    const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(messageText)}`;
+    window.open(url, '_blank');
 
-    const newNote: AdminFollowUpNote = {
-      id: `fu_pkg_${Date.now()}`,
-      authorId: currentUser?.id || 'admin',
-      authorName,
-      authorRole,
-      type: 'general',
-      status: 'completed',
-      text: `تم إرسال تفاصيل «${currentPkg.name}» بقيمة (${currentPkg.priceText}) للمنشأة عبر واتساب.`,
-      createdAt: new Date().toISOString()
-    };
-
-    const existingFollowUps = business.adminFollowUps || [];
-    const updatedBiz: Business = {
-      ...business,
-      adminFollowUps: [newNote, ...existingFollowUps]
-    };
-
-    onUpdateBusiness(updatedBiz);
-    triggerHaptic('success');
-    setLoggedNote(true);
-    setTimeout(() => setLoggedNote(false), 3000);
+    // Automatically append follow-up note if handler available
+    if (onUpdateBusiness && !loggedNote) {
+      const now = new Date().toISOString();
+      const newNote: AdminFollowUpNote = {
+        id: 'pkg_note_' + Date.now(),
+        date: now,
+        author: currentUser?.displayName || currentUser?.username || 'مشغل دليلك',
+        text: `تم إرسال تفاصيل «${currentPkg.name}» عبر واتساب إلى المنشأة.`
+      };
+      const existingNotes = business.adminFollowUpNotes || [];
+      const updatedNotes = [newNote, ...existingNotes];
+      onUpdateBusiness({
+        ...business,
+        adminFollowUpNotes: updatedNotes,
+        updatedAt: now
+      });
+      setLoggedNote(true);
+    }
   };
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-hidden modal-overlay animate-fade-in font-['Cairo']"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       style={{ direction: 'rtl' }}
     >
       <div 
-        className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative modal-content transition-all duration-300 my-auto max-h-[92vh] flex flex-col overflow-hidden"
+        className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative animate-fade-in my-auto max-h-[92vh] flex flex-col"
         role="dialog"
         aria-modal="true"
       >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm z-20 hover:scale-105 active:scale-95"
-          aria-label="إغلاق"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Modal Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3 pl-10 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-amber-500/20 shrink-0">
-              <Sparkles className="w-5 h-5 stroke-[2.5]" />
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] flex items-center gap-2">
-                <span>إرسال تفاصيل باقة تسويقية للمنشأة</span>
-                <span>💎</span>
+              <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
+                إرسال تفاصيل الباقة للمنشأة
               </h3>
-              <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                توليد عرض مخصص وإرساله مباشرة لواتساب صاحب المكان
+              <p className="text-xs text-[var(--text-muted)] font-bold">
+                المنشأة: <span className="text-amber-500">{business.name}</span>
+                {business.ownerName && <span> • المالك: {business.ownerName}</span>}
               </p>
             </div>
           </div>
 
-          {/* Business Meta Pill */}
-          <div className="bg-[var(--input-bg)] border border-amber-500/30 rounded-2xl px-3 py-1.5 flex items-center gap-2 shrink-0 self-start sm:self-center">
-            <Building2 className="w-4 h-4 text-amber-500 shrink-0" />
-            <div className="text-right">
-              <p className="font-black text-xs text-[var(--text-primary)] leading-tight">{business.nameAr}</p>
-              <p className="text-[10px] text-[var(--text-muted)] font-mono">
-                {business.ownerName || 'صاحب المنشأة'} • {business.ownerPhone || business.phone || 'بدون هاتف'}
-              </p>
-            </div>
-          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center cursor-pointer transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Scrollable Body */}
-        <div className="overflow-y-auto flex-1 pr-1 pl-1 space-y-4 custom-scrollbar">
-          {/* 1. Package Selector Grid */}
+        <div className="overflow-y-auto flex-1 space-y-4 pr-1 pl-1 custom-scrollbar">
+          {/* Select Package Segment */}
           <div className="space-y-2">
-            <label className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-              <span>اختر الباقة المراد إرسال تفاصيلها:</span>
+            <label className="text-xs font-black text-[var(--text-muted)] block">
+              1. اختر الباقة أو العرض المراد إرساله:
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {PACKAGES_OPTIONS.map((pkg) => {
                 const isSelected = selectedPkgId === pkg.id;
                 const IconComp = pkg.icon;
-                const isPro = pkg.id === 'pkg_pro';
-
                 return (
                   <button
                     key={pkg.id}
                     type="button"
                     onClick={() => {
                       setSelectedPkgId(pkg.id);
-                      triggerHaptic('light');
+                      setLoggedNote(false);
+                      triggerHaptic();
                     }}
-                    className={`p-2.5 sm:p-3 rounded-2xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-2 relative ${
+                    className={`p-2.5 rounded-2xl border text-right transition-all flex flex-col justify-between cursor-pointer space-y-1.5 ${
                       isSelected
-                        ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-950/30 ring-2 ring-amber-500/30 shadow-sm scale-[1.01]'
-                        : isPro
-                        ? 'bg-[var(--input-bg)] border-amber-400/50 hover:border-amber-400'
-                        : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40'
+                        ? 'border-amber-500 bg-amber-500/10 shadow-md ring-1 ring-amber-500/50'
+                        : 'border-[var(--border-color)] bg-[var(--bg-surface)] hover:border-amber-500/30'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${
-                        isSelected ? 'bg-amber-500 text-slate-950 font-black' : 'bg-[var(--bg-card)] text-amber-500'
+                    <div className="flex items-center justify-between gap-1">
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+                        isSelected ? 'bg-amber-500 text-slate-950' : 'bg-[var(--input-bg)] text-amber-500'
                       }`}>
                         <IconComp className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 truncate max-w-[110px]">
+                      <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded bg-[var(--input-bg)] text-[var(--text-muted)]">
                         {pkg.badge}
                       </span>
                     </div>
 
                     <div>
-                      <h4 className="font-black text-xs text-[var(--text-primary)] leading-snug line-clamp-1">
+                      <div className="text-xs font-black text-[var(--text-primary)] leading-tight line-clamp-1">
                         {pkg.name}
-                      </h4>
-                      <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+                      </div>
+                      <div className="text-[11px] font-mono font-bold text-amber-500 mt-0.5">
                         {pkg.priceText}
-                      </p>
+                      </div>
                     </div>
                   </button>
                 );
@@ -406,119 +371,73 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
             </div>
           </div>
 
-          {/* 2. Selected Package Deliverables Summary */}
-          <div className="bg-[var(--input-bg)] border border-[var(--border-color)] p-3.5 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="font-black text-xs text-[var(--text-primary)]">
-                  {currentPkg.name}
-                </span>
-                <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                  ({currentPkg.priceText})
-                </span>
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] font-bold flex items-center gap-1">
-                <Clock className="w-3 h-3 text-amber-500" />
-                <span>مدة التنفيذ: {currentPkg.delivery}</span>
-              </div>
+          {/* Package Highlights Review */}
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs font-black text-[var(--text-primary)]">
+              <span>المخرجات التنفيذية للباقة المختارة:</span>
+              <span className="text-amber-500 text-[11px]">مدة التنفيذ: {currentPkg.delivery}</span>
             </div>
-
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-[var(--text-secondary)] font-bold pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-[var(--text-secondary)] font-bold">
               {currentPkg.highlights.map((h, i) => (
-                <li key={i} className="flex items-start gap-1.5 leading-snug">
-                  <span className="text-emerald-500 font-black shrink-0">✓</span>
-                  <span className="text-[11px]">{h}</span>
-                </li>
+                <div key={i} className="flex items-start gap-1.5">
+                  <span className="text-emerald-500 font-black shrink-0 mt-0.5">✓</span>
+                  <span className="leading-snug">{h}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
 
-          {/* 3. WhatsApp Message Preview Box */}
+          {/* WhatsApp Message Preview */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-                <span>معاينة نص الرسالة الصادرة للواتساب:</span>
-              </label>
+            <div className="flex items-center justify-between text-xs font-black text-[var(--text-muted)]">
+              <span>2. معاينة نص الرسالة الموجهة لمنشأة العميل:</span>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[3]" />
-                    <span className="text-emerald-500 font-black">تم النسخ بنجاح!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3" />
-                    <span>نسخ النص فقط</span>
-                  </>
-                )}
+                <Copy className="w-3 h-3" />
+                <span>{copied ? 'تم النسخ بنجاح ✓' : 'نسخ النص'}</span>
               </button>
             </div>
-
-            <div className="bg-slate-950 text-slate-200 p-3.5 sm:p-4 rounded-2xl font-mono text-xs leading-relaxed whitespace-pre-wrap border border-slate-800 select-all max-h-56 overflow-y-auto custom-scrollbar">
+            <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 text-xs text-[var(--text-primary)] font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar select-all">
               {messageText}
             </div>
           </div>
+
+          {/* Phone verification check */}
+          {!formattedPhone && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
+              <X className="w-4 h-4 shrink-0" />
+              <span>تنبيه: لا يوجد رقم هاتف صالح مسجل لهذه المنشأة للإرسال المباشر. يمكنك نسخ الرسالة يدوياً.</span>
+            </div>
+          )}
         </div>
 
-        {/* Modal Footer Actions */}
-        <div className="pt-3 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {onUpdateBusiness && (
-              <button
-                type="button"
-                onClick={handleLogFollowUp}
-                className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 w-full sm:w-auto ${
-                  loggedNote
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 font-black'
-                    : 'bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] border-[var(--border-color)]'
-                }`}
-                title="تسجيل ملاحظة في سجل المتابعات الإدارية للنشاط"
-              >
-                <ClipboardList className="w-3.5 h-3.5 text-amber-500" />
-                <span>{loggedNote ? 'تم التدوين في المتابعات ✓' : 'تسجيل كمتابعة إدارية 📝'}</span>
-              </button>
-            )}
+        {/* Footer Actions */}
+        <div className="pt-3 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-primary)] font-black text-xs sm:text-sm border border-[var(--border-color)] flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Copy className="w-4 h-4" />
+            <span>{copied ? 'تم نسخ الرسالة ✓' : 'نسخ نص العرض'}</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="px-3 py-2 rounded-xl text-xs font-bold bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-secondary)] border border-[var(--border-color)] transition-all cursor-pointer flex items-center justify-center gap-1.5 w-full sm:w-auto"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'تم النسخ' : 'نسخ النص'}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] border border-[var(--border-color)] transition-all cursor-pointer w-1/3 sm:w-auto text-center"
-            >
-              إلغاء
-            </button>
-
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                triggerHaptic('success');
-                if (onUpdateBusiness && !loggedNote) {
-                  handleLogFollowUp();
-                }
-              }}
-              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25 transition-all active:scale-95 cursor-pointer"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>إرسال عبر واتساب للمنشأة 💬</span>
-            </a>
-          </div>
+          <button
+            type="button"
+            disabled={!formattedPhone}
+            onClick={handleSendWhatsApp}
+            className={`w-full sm:flex-1 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 ${
+              formattedPhone
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 cursor-pointer'
+                : 'bg-slate-700 text-slate-400 opacity-50 cursor-not-allowed'
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>إرسال العرض فوراً عبر واتساب ({formattedPhone || 'بدون رقم'})</span>
+          </button>
         </div>
       </div>
     </div>,

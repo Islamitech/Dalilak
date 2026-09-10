@@ -47,10 +47,10 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
             </div>
             <div>
               <h2 className="font-black text-base sm:text-lg text-[var(--text-primary)]">
-                دليل وشرح باقات منصة دليلك 💎
+                دليل وشرح باقات منصة دليلك
               </h2>
               <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                المرجع التشغيلي والتسويقي للمناديب والإداريين لشرح الباقات للعملاء وتوجيه الأنشطة
+                المرجع التشغيلي والتسويقي لشرح وتوجيه الباقات للمنشآت والعملاء
               </p>
             </div>
           </div>
