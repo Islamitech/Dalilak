@@ -25,10 +25,10 @@ export function useAppNotifications({
 
   const addNotification = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    setNotifications((prev) => [...prev, { id, message, type, createdAt: Date.now() }]);
+    setNotifications((prev) => [...prev, { id, message, type, createdAt: Date.now() }].slice(-3));
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-    }, 5500);
+    }, 4500);
   }, []);
 
   // Persistent System Notifications for Bell Notification Center

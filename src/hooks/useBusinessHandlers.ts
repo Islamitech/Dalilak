@@ -72,7 +72,15 @@ export function useBusinessHandlers({
   addSystemNotification,
   handleLogout,
 }: UseBusinessHandlersProps) {
-  const handleAddBusiness = useCallback(async (newBiz: Business) => {
+  const handleAddBusiness = useCallback(
+    async (
+      newBiz: Business,
+      options?: {
+        skipNavigation?: boolean;
+        skipNotification?: boolean;
+        skipInvoiceModal?: boolean;
+      }
+    ) => {
     // 🛡️ CRITICAL SECURITY GATE: Strictly reject submissions from deleted/blacklisted representatives
     const targetRepId = newBiz.repId || currentRep.id || user?.id;
     const targetRepName = newBiz.repName || currentRep.name || user?.name;
@@ -127,10 +135,14 @@ export function useBusinessHandlers({
       safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(directoryCache));
     } catch {}
 
-    setActiveTab('home');
+    if (!options?.skipNavigation) {
+      setActiveTab('home');
+    }
 
     // ⚡ Open the invoice immediately so the representative and client can view and photograph it
-    setSelectedInvoiceBiz(normalizedBiz);
+    if (!options?.skipInvoiceModal) {
+      setSelectedInvoiceBiz(normalizedBiz);
+    }
 
     // ⚡ 2. Instant Cross-Tab Broadcast (Real-Time across all windows)
     try {
@@ -141,30 +153,34 @@ export function useBusinessHandlers({
       }
     } catch {}
 
-    addNotification(`تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وهو متاح الآن في قائمتك والدليل.`, 'success');
+    if (!options?.skipNotification) {
+      addNotification(`تم تسجيل النشاط التجاري "${normalizedBiz.nameAr}" بنجاح وهو متاح الآن في قائمتك والدليل.`, 'success');
 
-    // Broadcast notification for Admin
-    addSystemNotification({
-      title: 'تسجيل نشاط تجاري جديد',
-      message: `قام المندوب "${normalizedBiz.repName || user?.name || 'ميداني'}" بتسجيل نشاط جديد "${normalizedBiz.nameAr}" في (${normalizedBiz.governorate} - ${normalizedBiz.city}).`,
-      type: 'info',
-      category: 'business',
-      targetRole: 'admin',
-      linkTab: 'admin',
-    });
-
-    // Personal confirmation notification for registering representative
-    if (normalizedBiz.repId || user?.id) {
+      // Broadcast notification for Admin
       addSystemNotification({
-        title: `تم تسجيل نشاطك: ${normalizedBiz.nameAr}`,
-        message: `تم تسليم وحفظ بيانات النشاط "${normalizedBiz.nameAr}" بنجاح وجاري مراجعته وتوثيقه.`,
-        type: 'success',
+        title: 'تسجيل نشاط تجاري جديد',
+        message: `قام المندوب "${normalizedBiz.repName || user?.name || 'ميداني'}" بتسجيل نشاط جديد "${normalizedBiz.nameAr}" في (${normalizedBiz.governorate} - ${normalizedBiz.city}).`,
+        type: 'info',
         category: 'business',
-        targetUserId: normalizedBiz.repId || user?.id,
+        targetRole: 'admin',
+        linkTab: 'admin',
         entityId: normalizedBiz.id,
         entityType: 'business',
-        linkTab: 'home',
       });
+
+      // Personal confirmation notification for registering representative
+      if (normalizedBiz.repId || user?.id) {
+        addSystemNotification({
+          title: `تم تسجيل نشاطك: ${normalizedBiz.nameAr}`,
+          message: `تم تسليم وحفظ بيانات النشاط "${normalizedBiz.nameAr}" بنجاح وجاري مراجعته وتوثيقه.`,
+          type: 'success',
+          category: 'business',
+          targetUserId: normalizedBiz.repId || user?.id,
+          entityId: normalizedBiz.id,
+          entityType: 'business',
+          linkTab: 'home',
+        });
+      }
     }
 
     // ⚡ 3. ASYNCHRONOUS DATABASE SYNC (Non-blocking background save to Supabase Cloud - Zero Refetch)

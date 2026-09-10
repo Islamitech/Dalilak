@@ -73,7 +73,14 @@ interface AdminDashboardProps {
   onDirectConvertLead?: (lead: InterestedLead) => void;
   initialDossierRep?: Representative | null;
   onClearInitialDossierRep?: () => void;
-  onAddBusiness?: (biz: Business) => Promise<void> | void;
+  onAddBusiness?: (
+    biz: Business,
+    options?: {
+      skipNavigation?: boolean;
+      skipNotification?: boolean;
+      skipInvoiceModal?: boolean;
+    }
+  ) => Promise<void> | void;
   onShowNotification?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 

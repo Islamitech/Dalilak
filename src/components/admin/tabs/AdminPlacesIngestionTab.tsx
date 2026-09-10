@@ -74,7 +74,14 @@ interface CategoryThreshold {
 interface AdminPlacesIngestionTabProps {
   currentUser: User;
   businesses: Business[];
-  onAddBusiness?: (biz: Business) => Promise<void> | void;
+  onAddBusiness?: (
+    biz: Business,
+    options?: {
+      skipNavigation?: boolean;
+      skipNotification?: boolean;
+      skipInvoiceModal?: boolean;
+    }
+  ) => Promise<void> | void;
   onShowNotification?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
@@ -602,9 +609,14 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           createdDate: new Date().toISOString(),
         };
 
-        await saveBusinessToDb(newBiz);
         if (onAddBusiness) {
-          await onAddBusiness(newBiz);
+          await onAddBusiness(newBiz, {
+            skipNavigation: true,
+            skipNotification: true,
+            skipInvoiceModal: true,
+          });
+        } else {
+          await saveBusinessToDb(newBiz);
         }
         successCount++;
       }

@@ -13,13 +13,24 @@ export const AppToastContainer: React.FC<AppToastContainerProps> = ({
   setNotifications,
   showSyncBadge,
 }) => {
+  const visibleNotifications = notifications.slice(-3);
+
   return (
     <div
-      className="fixed inset-x-0 z-[70] flex flex-col items-center gap-2 pointer-events-none px-2.5 sm:px-4"
-      style={{ top: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
+      className="fixed z-[70] pointer-events-none px-3 sm:px-0 top-18 inset-x-0 flex flex-col items-center gap-2 sm:top-auto sm:bottom-6 sm:left-6 sm:right-auto sm:inset-x-auto sm:items-start sm:max-w-sm sm:flex-col-reverse"
       aria-live="polite"
       aria-atomic="false"
     >
+      {notifications.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setNotifications([])}
+          className="pointer-events-auto bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white text-[11px] font-bold px-3 py-1 rounded-full border border-slate-700 shadow-md backdrop-blur-md transition-all active:scale-95 flex items-center gap-1 cursor-pointer mb-1"
+        >
+          <span>إغلاق كافة الإشعارات ({notifications.length})</span>
+          <X className="w-3 h-3" />
+        </button>
+      )}
       {showSyncBadge && (
         <div
           className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-700 backdrop-blur-xl text-xs font-black shadow-xl animate-fade-in transition-all"
@@ -28,7 +39,7 @@ export const AppToastContainer: React.FC<AppToastContainerProps> = ({
           <span>تم تحديث البيانات للتو</span>
         </div>
       )}
-      {notifications.map((n) => {
+      {visibleNotifications.map((n) => {
         const icons: Record<string, React.ReactNode> = {
           success: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
           error:   <AlertCircle className="w-4 h-4 text-rose-400" />,
