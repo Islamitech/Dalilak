@@ -82,11 +82,43 @@ interface AdminWhatsAppCampaignTabProps {
   onShowNotification?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-// 🛡️ Phone validator helper (same standard as backend)
+// ☎️ Identifies Egyptian Landline Area Codes and Short Hotlines
+export function isLandlineOrHotline(phone?: string | null): boolean {
+  if (!phone || typeof phone !== 'string') return false;
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return false;
+
+  // Short hotlines or landlines (5 to 8 digits that don't start with 01)
+  if (digits.length <= 8 && !digits.startsWith('01')) return true;
+
+  // Egyptian landlines starting with 02, 03, 013, 040-097
+  if (
+    /^(?:0020|20)?(?:02|03|013|040|045|047|048|050|055|062|064|065|066|068|069|082|084|086|088|092|093|095|096|097)\d{5,8}$/.test(
+      digits
+    )
+  ) {
+    return true;
+  }
+
+  // Explicit Cairo/Giza and Alexandria landlines with 7 or 8 local digits
+  if (/^(?:02|03)\d{7,8}$/.test(digits)) return true;
+
+  return false;
+}
+
+export function isEgyptianMobile(phone?: string | null): boolean {
+  if (!phone || typeof phone !== 'string') return false;
+  const digits = phone.replace(/\D/g, '');
+  return /^(?:0020|20)?(?:0)?1[0125]\d{8}$/.test(digits);
+}
+
+// 🛡️ Phone validator helper (must be valid mobile, not landline, not dummy)
 function isValidTargetPhone(phone?: string | null): boolean {
   if (!phone || typeof phone !== 'string') return false;
   const digits = phone.replace(/\D/g, '');
-  if (digits.length < 8) return false;
+  if (digits.length < 9) return false;
+
+  // Reject dummy placeholder numbers
   if (
     /^0+$/.test(digits) ||
     digits === '01000000000' ||
@@ -97,7 +129,16 @@ function isValidTargetPhone(phone?: string | null): boolean {
   ) {
     return false;
   }
-  return true;
+
+  // Reject landlines and hotlines
+  if (isLandlineOrHotline(digits)) {
+    return false;
+  }
+
+  if (isEgyptianMobile(digits)) return true;
+  if (digits.length >= 11 && !digits.startsWith('0')) return true;
+
+  return false;
 }
 
 function formatPhoneForWaLink(rawPhone?: string | null): string | null {
@@ -539,7 +580,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   };
 
   // Filtered Target Businesses
-  const { targetBusinesses, validPhoneCount, dummyPhoneCount, governorateList, categoryList } = useMemo(() => {
+  const { targetBusinesses, validPhoneCount, landlineCount, dummyPhoneCount, governorateList, categoryList } = useMemo(() => {
     const govs = new Set<string>();
     const cats = new Set<string>();
 
@@ -570,11 +611,14 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     });
 
     let valids = 0;
+    let landlines = 0;
     let dummies = 0;
     filtered.forEach((b) => {
       const p = b.phone || b.ownerPhone;
       if (isValidTargetPhone(p)) {
         valids++;
+      } else if (isLandlineOrHotline(p)) {
+        landlines++;
       } else {
         dummies++;
       }
@@ -583,6 +627,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     return {
       targetBusinesses: filtered,
       validPhoneCount: valids,
+      landlineCount: landlines,
       dummyPhoneCount: dummies,
       governorateList: Array.from(govs),
       categoryList: Array.from(cats),
@@ -628,6 +673,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const currentMobileBiz: Business | undefined = targetBusinesses[mobileQueueIndex];
   const currentMobilePhone = currentMobileBiz?.phone || currentMobileBiz?.ownerPhone;
   const isCurrentMobilePhoneValid = isValidTargetPhone(currentMobilePhone);
+  const isCurrentMobilePhoneLandline = isLandlineOrHotline(currentMobilePhone);
   const currentMobileWaDigits = formatPhoneForWaLink(currentMobilePhone);
 
   // Launch Server Gateway Campaign
@@ -969,7 +1015,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                     {currentMobilePhone || 'لا يوجد هاتف'}
                   </p>
                   {!isCurrentMobilePhoneValid && (
-                    <span className="text-[10px] text-amber-400 font-bold">⚠️ رقم وهمي (أصفار) يفضل تخطيه</span>
+                    <span className="text-[10px] text-amber-400 font-bold">
+                      {isCurrentMobilePhoneLandline
+                        ? '☎️ رقم أرضي / خط ساخن لا يدعم واتساب - يفضل تخطيه'
+                        : '⚠️ رقم وهمي أو غير صالح - يفضل تخطيه'}
+                    </span>
                   )}
                 </div>
               </div>
@@ -1657,18 +1707,26 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               </div>
 
               {/* Phone Quality Audit Alert */}
-              <div className="p-3 rounded-2xl bg-white/5 border border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div className="space-y-0.5">
-                  <p className="font-black text-white">
-                    جاهز للإرسال: <span className="text-emerald-400 font-mono">{validPhoneCount}</span> رقم صالح
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="space-y-1">
+                  <p className="font-black text-white flex items-center gap-2">
+                    <span>أرقام محمول صالحة للواتساب:</span>
+                    <span className="text-emerald-400 font-mono text-sm">{validPhoneCount}</span>
                   </p>
-                  {dummyPhoneCount > 0 && (
-                    <p className="text-[11px] text-amber-400">
-                      سيتم تلقائياً تخطي <span className="font-mono font-bold">{dummyPhoneCount}</span> رقم وهمي (مثل 01000000000)
-                    </p>
-                  )}
+                  <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                    {landlineCount > 0 && (
+                      <span className="text-blue-400 font-bold">
+                        ☎️ تم استبعاد {landlineCount} رقم أرضي / خط ساخن
+                      </span>
+                    )}
+                    {dummyPhoneCount > 0 && (
+                      <span className="text-amber-400 font-bold">
+                        ⚠️ تم استبعاد {dummyPhoneCount} رقم وهمي
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-[11px] text-[var(--text-secondary)] font-mono">
+                <div className="text-[11px] text-[var(--text-secondary)] font-mono shrink-0">
                   نسبة السلامة: {targetBusinesses.length > 0 ? Math.round((validPhoneCount / targetBusinesses.length) * 100) : 0}%
                 </div>
               </div>
@@ -1893,13 +1951,19 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <span className="font-black text-white font-mono text-sm">{targetBusinesses.length} منشأة</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">منشآت بأرقام هواتف صالحة للإرسال:</span>
+                  <span className="text-[var(--text-secondary)]">منشآت بأرقام محمول صالحة للإرسال:</span>
                   <span className="font-black text-emerald-400 font-mono text-sm">{validPhoneCount} منشأة</span>
                 </div>
+                {landlineCount > 0 && (
+                  <div className="flex justify-between text-blue-400">
+                    <span>أرقام أرضية وخطوط ساخنة (استبعاد آلي):</span>
+                    <span className="font-mono font-bold">{landlineCount} منشأة ☎️</span>
+                  </div>
+                )}
                 {dummyPhoneCount > 0 && (
                   <div className="flex justify-between text-amber-400">
-                    <span>أرقام وهمية أو أصفار (سيتم استبعادها آلياً):</span>
-                    <span className="font-mono font-bold">{dummyPhoneCount} منشأة</span>
+                    <span>أرقام وهمية أو غير صالحة (استبعاد آلي):</span>
+                    <span className="font-mono font-bold">{dummyPhoneCount} منشأة ⚠️</span>
                   </div>
                 )}
                 <div className="flex justify-between">

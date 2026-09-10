@@ -121,6 +121,42 @@ let activeCampaign: BroadcastProgress | null = null;
 let abortRequested = false;
 
 /**
+ * ☎️ Identifies Egyptian Landline Area Codes and Short Hotlines
+ * Cairo/Giza: 02, Alexandria: 03, Benha/Qalyubia: 013, Provincial codes: 040-097, Hotlines: 16xxx/19xxx
+ */
+export function isLandlineOrHotline(phone?: string | null): boolean {
+  if (!phone || typeof phone !== 'string') return false;
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return false;
+
+  // Short hotlines or short landlines (length <= 8 and not starting with mobile prefix 01)
+  if (digits.length <= 8 && !digits.startsWith('01')) return true;
+
+  // Egyptian landline prefixes
+  if (
+    /^(?:0020|20)?(?:02|03|013|040|045|047|048|050|055|062|064|065|066|068|069|082|084|086|088|092|093|095|096|097)\d{5,8}$/.test(
+      digits
+    )
+  ) {
+    return true;
+  }
+
+  // Explicit Cairo/Giza and Alexandria landline patterns
+  if (/^(?:02|03)\d{7,8}$/.test(digits)) return true;
+
+  return false;
+}
+
+/**
+ * 📱 Validates if a number is a genuine Egyptian mobile (010, 011, 012, 015)
+ */
+export function isEgyptianMobile(phone?: string | null): boolean {
+  if (!phone || typeof phone !== 'string') return false;
+  const digits = phone.replace(/\D/g, '');
+  return /^(?:0020|20)?(?:0)?1[0125]\d{8}$/.test(digits);
+}
+
+/**
  * 📱 Formats Egyptian / International phone to WhatsApp JID
  */
 export function formatPhoneToWhatsAppJid(rawPhone?: string | null): string | null {
@@ -140,14 +176,19 @@ export function formatPhoneToWhatsAppJid(rawPhone?: string | null): string | nul
     return null;
   }
 
+  // Reject Egyptian landlines and hotlines
+  if (isLandlineOrHotline(digits)) {
+    return null;
+  }
+
   // Handle Egyptian prefixes
   if (digits.startsWith('0020')) {
     digits = digits.slice(2);
   } else if (digits.startsWith('01') && digits.length === 11) {
     digits = '2' + digits;
-  } else if (digits.startsWith('1') && digits.length === 10) {
+  } else if (digits.startsWith('1') && digits.length === 10 && ['0', '1', '2', '5'].includes(digits[1])) {
     digits = '20' + digits;
-  } else if (!digits.startsWith('20') && digits.length === 10) {
+  } else if (!digits.startsWith('20') && digits.length === 10 && ['0', '1', '2', '5'].includes(digits[0])) {
     digits = '20' + digits;
   }
 
@@ -427,6 +468,27 @@ export async function startWhatsAppBroadcast(
       }
 
       const rawPhone = biz.phone || biz.ownerPhone;
+
+      // ☎️ 1. EXCLUDE LANDLINES AND SHORT HOTLINES
+      if (isLandlineOrHotline(rawPhone)) {
+        if (activeCampaign) {
+          activeCampaign.skipped++;
+          activeCampaign.logs.unshift({
+            businessId: biz.id,
+            businessName: biz.nameAr || biz.name || 'منشأة',
+            phone: rawPhone || 'غير متوفر',
+            status: 'skipped',
+            reason: 'رقم هاتف أرضي / خط ساخن (لا يدعم واتساب) ☎️',
+            timestamp: new Date().toISOString(),
+          });
+          if (activeCampaign.logs.length > 200) {
+            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+          }
+        }
+        console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped landline: ${biz.nameAr} (${rawPhone})`);
+        continue;
+      }
+
       const jid = formatPhoneToWhatsAppJid(rawPhone);
 
       if (!jid) {
@@ -440,11 +502,14 @@ export async function startWhatsAppBroadcast(
             reason: 'رقم هاتف غير صالح أو وهمي (01000000000)',
             timestamp: new Date().toISOString(),
           });
+          if (activeCampaign.logs.length > 200) {
+            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+          }
         }
         continue;
       }
 
-      // 🛡️ PREVENT DUPLICATE SPAM: Skip if contacted recently
+      // 🛡️ 2. PREVENT DUPLICATE SPAM: Skip if contacted recently
       if (options.skipRecentlyContacted !== false && isRecentlyContacted(rawPhone, biz.id)) {
         if (activeCampaign) {
           activeCampaign.skipped++;
@@ -456,6 +521,9 @@ export async function startWhatsAppBroadcast(
             reason: 'تم إرسال رسالة له مسبقاً (تخطي ذكي لمنع التكرار)',
             timestamp: new Date().toISOString(),
           });
+          if (activeCampaign.logs.length > 200) {
+            activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+          }
         }
         console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped duplicate: ${biz.nameAr} (${rawPhone})`);
         continue;
@@ -481,6 +549,32 @@ export async function startWhatsAppBroadcast(
           }
           break;
         }
+      }
+
+      // 🔍 3. VERIFY WHATSAPP ACCOUNT REGISTRATION (sock.onWhatsApp)
+      try {
+        const waCheck = await sock!.onWhatsApp(jid);
+        const targetAccount = Array.isArray(waCheck) ? waCheck.find((c) => c && c.exists) : null;
+        if (!targetAccount || !targetAccount.exists) {
+          if (activeCampaign) {
+            activeCampaign.skipped++;
+            activeCampaign.logs.unshift({
+              businessId: biz.id,
+              businessName: biz.nameAr || biz.name || 'منشأة',
+              phone: rawPhone || 'غير متوفر',
+              status: 'skipped',
+              reason: 'الرقم غير مسجل في تطبيق WhatsApp ❌',
+              timestamp: new Date().toISOString(),
+            });
+            if (activeCampaign.logs.length > 200) {
+              activeCampaign.logs = activeCampaign.logs.slice(0, 200);
+            }
+          }
+          console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped non-WhatsApp account: ${biz.nameAr} (${rawPhone})`);
+          continue;
+        }
+      } catch (waErr: any) {
+        console.warn(`[Campaign] Notice during onWhatsApp verification for ${rawPhone}:`, waErr?.message);
       }
 
       const messageBody = compileBroadcastMessage(options.templateType, biz, options.customText);
