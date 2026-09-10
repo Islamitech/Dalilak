@@ -14,7 +14,9 @@ import {
   Camera,
   Send,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
+import { CopyButton } from '../shared/CopyButton';
 
 export interface RemitInfoModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
   const [isCompressingReceipt, setIsCompressingReceipt] = useState(false);
   const [isSubmittingRemit, setIsSubmittingRemit] = useState(false);
   const [remitSuccess, setRemitSuccess] = useState(false);
+  const [formError, setFormError] = useState<string>('');
 
   if (!isOpen) return null;
 
@@ -61,8 +64,9 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
 
   const handleSubmitRemittance = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
     if (!remitReceiptPhoto) {
-      alert('يرجى إرفاق صورة أو لقطة شاشة لإيصال السداد');
+      setFormError('يرجى إرفاق صورة أو لقطة شاشة لإيصال السداد.');
       return;
     }
     setIsSubmittingRemit(true);
@@ -96,7 +100,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
       }, 2500);
     } catch (err) {
       console.error('Failed to submit remittance:', err);
-      alert('حدث خطأ أثناء إرسال إيصال السداد، يرجى المحاولة مرة أخرى');
+      setFormError('حدث خطأ أثناء إرسال إيصال السداد، يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSubmittingRemit(false);
     }
@@ -220,6 +224,13 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmitRemittance} className="space-y-4">
+            {formError && (
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 p-2.5 rounded-xl font-bold text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <div className="bg-amber-500/15 border border-amber-500/30 p-3.5 rounded-2xl space-y-1 text-amber-900 font-medium">
               <div className="flex items-center justify-between font-black text-xs">
                 <span>المبلغ المستحق لتوريده للمنصة:</span>
@@ -244,17 +255,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
                     @daz31181
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText('@daz31181');
-                    alert('تم نسخ معرف إنستاباي: @daz31181');
-                  }}
-                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Copy className="w-3 h-3" />
-                  <span>نسخ</span>
-                </button>
+                <CopyButton textToCopy="@daz31181" size="xs" />
               </div>
 
               <div className="bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 flex items-center justify-between">
@@ -266,17 +267,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
                     01143888355
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText('01143888355');
-                    alert('تم نسخ رقم فودافون كاش: 01143888355');
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Copy className="w-3 h-3" />
-                  <span>نسخ</span>
-                </button>
+                <CopyButton textToCopy="01143888355" size="xs" />
               </div>
             </div>
 
