@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus, User } from '../../../types';
 import { formatStandardDateTime } from '../../../utils/dateFormatters';
-import { getFollowUpUrgency, getBusinessFollowUpSummary } from '../../../utils/followUpUtils';
-import { formatWhatsAppPhone } from '../../../utils/whatsappMessages';
+import { getBusinessFollowUpSummary } from '../../../utils/followUpUtils';
 import { triggerHaptic } from '../../../utils/haptics';
-import { ConfirmDialog } from '../../ConfirmDialog';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
+import { BaseModal } from '../../ui/BaseModal';
+import { Button } from '../../ui/Button';
+import { Badge } from '../../ui/Badge';
+import { WhatsAppButton } from '../../shared/WhatsAppButton';
 import {
   ClipboardList,
-  X,
-  Phone,
-  MessageCircle,
   Plus,
   Clock,
   Calendar,
@@ -18,12 +17,10 @@ import {
   Check,
   Trash2,
   ExternalLink,
-  MapPin,
-  CheckCircle2,
-  AlertCircle,
+  Phone,
 } from 'lucide-react';
 
-interface BusinessFollowUpModalProps {
+export interface BusinessFollowUpModalProps {
   business: Business;
   isOpen: boolean;
   onClose: () => void;
@@ -54,30 +51,12 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
   const [newNextDate, setNewNextDate] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [noteToDeleteId, setNoteToDeleteId] = useState<string | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   if (!isOpen) return null;
 
   const rawPhone = business.phone || business.ownerPhone || '';
-  const cleanPhone = formatWhatsAppPhone(rawPhone);
-  const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}` : undefined;
-
   const followUps = business.adminFollowUps || [];
   const fuSummary = getBusinessFollowUpSummary(business);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartY(e.touches[0].clientY);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartY === null) return;
-    const diff = e.changedTouches[0].clientY - touchStartY;
-    if (diff > 75) {
-      triggerHaptic('light');
-      onClose();
-    }
-    setTouchStartY(null);
-  };
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,86 +123,72 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
     triggerHaptic('light');
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[10060] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-fade-in text-right">
-      <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] transition-all duration-300 max-h-[95vh] sm:max-h-[90vh] flex flex-col">
-        
-        {/* Mobile Pull Handle */}
-        <div
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className="w-full sm:hidden flex justify-center pt-0 pb-1 cursor-grab active:cursor-grabbing select-none"
-          title="اسحب لأسفل للإغلاق"
-        >
-          <div className="w-12 h-1.5 bg-slate-400/40 rounded-full" />
-        </div>
-
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] hover:bg-rose-500/10 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-bold border border-[var(--border-color)] cursor-pointer z-10"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* ── HEADER ── */}
-        <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3 pl-8">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black shrink-0 border ${
-              fuSummary.hasOverdue
-                ? 'bg-rose-500/15 border-rose-500/30 text-rose-500 animate-pulse'
-                : 'bg-amber-500/15 border-amber-500/30 text-amber-500'
-            }`}>
-              <ClipboardList className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base font-black text-[var(--text-primary)] leading-none">
-                  {business.nameAr}
-                </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-500/10 text-[var(--text-muted)] border border-[var(--border-color)]">
-                  {business.category} • {business.governorate}
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--text-muted)] font-bold mt-1">
-                سجل المتابعات الإدارية وإدارة علاقات العملاء (CRM)
-              </p>
-            </div>
+  return (
+    <>
+      <BaseModal
+        isOpen={isOpen}
+        onClose={onClose}
+        size="lg"
+        title={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>{business.nameAr}</span>
+            <Badge variant="neutral" size="xs">
+              {business.category} • {business.governorate}
+            </Badge>
           </div>
+        }
+        subtitle="سجل المتابعات الإدارية وإدارة علاقات العملاء (CRM)"
+        icon={<ClipboardList className="w-5 h-5" />}
+        headerActions={
+          rawPhone && (
+            <WhatsAppButton
+              phone={rawPhone}
+              label="واتساب"
+              size="sm"
+            />
+          )
+        }
+        footer={
+          <div className="w-full flex items-center justify-between gap-2">
+            {onOpenFullEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenFullEdit(business);
+                }}
+                className="text-amber-600 hover:underline text-xs font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <span>فتح بطاقة النشاط الكاملة والتعديل</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
 
-          {/* Quick WhatsApp Link */}
-          {waUrl && (
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 shrink-0 ml-2"
-              title="محادثة واتساب سريعة مع العميل"
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onClose}
+              className="mr-auto"
             >
-              <MessageCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">واتساب</span>
-            </a>
-          )}
-        </div>
-
-        {/* ── OVERDUE ALERT BANNER (If Any) ── */}
-        {fuSummary.hasOverdue && (
-          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2.5 rounded-2xl text-xs font-black flex items-center justify-between gap-2 animate-pulse shadow-xs">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>تنبيه عاجل: توجد {fuSummary.overdueCount} متابعات متأخرة تجاوزت موعدها المحدد وتتطلب تدخلاً فورياً!</span>
-            </div>
-            <span className="text-[10px] bg-rose-500/25 text-rose-700 px-2 py-0.5 rounded-md shrink-0">
-              متأخرة 🚨
-            </span>
+              إغلاق النافذة
+            </Button>
           </div>
-        )}
+        }
+      >
+        <div className="space-y-4">
+          {/* Overdue Alert Banner */}
+          {fuSummary.hasOverdue && (
+            <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-3 rounded-2xl text-xs font-black flex items-center justify-between gap-2 shadow-xs">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>تنبيه عاجل: توجد {fuSummary.overdueCount} متابعات متأخرة تجاوزت موعدها المحدد وتتطلب تدخلاً فورياً!</span>
+              </div>
+              <Badge variant="danger" size="xs">متأخرة</Badge>
+            </div>
+          )}
 
-        {/* ── SCROLLABLE CONTENT AREA ── */}
-        <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar text-xs flex-1">
-          
-          {/* ── FORM: ADD QUICK NOTE ── */}
-          <form onSubmit={handleAddNote} className="bg-[var(--input-bg)] border border-[var(--border-color)] p-3.5 rounded-2xl space-y-3 shadow-inner">
+          {/* Form: Add Quick Note */}
+          <form onSubmit={handleAddNote} className="bg-[var(--input-bg)] border border-[var(--border-color)] p-4 rounded-2xl space-y-3 shadow-inner">
             <div className="flex items-center justify-between">
               <span className="font-black text-xs text-[var(--text-primary)] flex items-center gap-1.5">
                 <Plus className="w-3.5 h-3.5 text-amber-500 stroke-[3]" />
@@ -248,156 +213,138 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
                   key={idx}
                   type="button"
                   onClick={() => {
-                    setNewText(tpl);
-                    setErrorMsg(null);
+                    setNewText((prev) => (prev ? `${prev} - ${tpl}` : tpl));
+                    triggerHaptic('selection');
                   }}
-                  className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)] text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 whitespace-nowrap cursor-pointer transition-colors"
+                  className="shrink-0 bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-secondary)] hover:text-amber-600 border border-[var(--border-color)] hover:border-amber-500/40 text-[10.5px] font-bold px-2 py-1 rounded-lg transition-all active:scale-95 cursor-pointer"
                 >
                   {tpl}
                 </button>
               ))}
             </div>
 
-            {/* Note Textarea */}
-            <textarea
-              rows={2}
-              value={newText}
-              onChange={(e) => {
-                setNewText(e.target.value);
-                if (errorMsg) setErrorMsg(null);
-              }}
-              placeholder="اكتب تفاصيل المكالمة أو الإجراء أو الملاحظة هنا..."
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] rounded-xl p-2.5 text-xs font-medium focus:outline-none transition-colors leading-relaxed resize-none shadow-xs"
-            />
+            {/* Textarea */}
+            <div>
+              <textarea
+                value={newText}
+                onChange={(e) => {
+                  setNewText(e.target.value);
+                  if (errorMsg) setErrorMsg(null);
+                }}
+                rows={2}
+                placeholder="اكتب تفاصيل المكالمة، الاتفاق، أو الزيارة الميدانية هنا..."
+                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs rounded-xl p-2.5 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-[var(--text-muted)]"
+              />
+              {errorMsg && <p className="text-rose-500 text-[11px] font-bold mt-1">{errorMsg}</p>}
+            </div>
 
-            {/* Controls: Type + Status + Next Date */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
-              {/* Type Select */}
-              <div>
-                <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1">
-                  طبيعة الإجراء:
-                </label>
+            {/* Controls Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Type Selection */}
                 <select
                   value={newType}
                   onChange={(e) => setNewType(e.target.value as AdminFollowUpType)}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="call">📞 اتصال هاتفي</option>
-                  <option value="visit">🏃 زيارة ميدانية</option>
-                  <option value="payment">💰 تحصيل مالي</option>
-                  <option value="verification">🌐 خرائط Google</option>
-                  <option value="general">📝 ملاحظة عامة</option>
+                  {Object.entries(TYPE_CONFIG).map(([val, cfg]) => (
+                    <option key={val} value={val}>
+                      {cfg.icon} {cfg.label}
+                    </option>
+                  ))}
                 </select>
-              </div>
 
-              {/* Status Select */}
-              <div>
-                <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1">
-                  حالة الإجراء:
-                </label>
+                {/* Status Selection */}
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as AdminFollowUpStatus)}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="pending">⏳ معلق للمتابعة</option>
-                  <option value="urgent">🚨 عاجل وهام</option>
-                  <option value="completed">✅ تم الإنجاز</option>
+                  <option value="pending">⏳ معلقة (بانتظار إجراء)</option>
+                  <option value="completed">✓ منجزة ومكتملة</option>
+                  <option value="urgent">🚨 عاجلة وفورية</option>
                 </select>
+
+                {/* Next Date Input */}
+                <div className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-color)] py-1 px-2 rounded-xl text-[11px] text-[var(--text-muted)]">
+                  <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="text-[10px]">الموعد القادم:</span>
+                  <input
+                    type="date"
+                    value={newNextDate}
+                    onChange={(e) => setNewNextDate(e.target.value)}
+                    className="bg-transparent text-[var(--text-primary)] outline-none text-[11px] font-mono cursor-pointer"
+                  />
+                </div>
               </div>
 
-              {/* Next Follow-up Date */}
-              <div>
-                <label className="text-[10.5px] font-bold text-[var(--text-muted)] block mb-1">
-                  موعد المتابعة القادم:
-                </label>
-                <input
-                  type="date"
-                  value={newNextDate}
-                  onChange={(e) => setNewNextDate(e.target.value)}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-            </div>
-
-            {/* Error message */}
-            {errorMsg && (
-              <div className="bg-rose-500/15 border border-rose-500/30 text-rose-600 p-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="flex items-center justify-end pt-1">
-              <button
+              <Button
                 type="submit"
-                disabled={!newText.trim()}
-                className={`font-black text-xs py-2 px-5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer ${
-                  newText.trim()
-                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
-                    : 'bg-slate-700/40 text-slate-500 cursor-not-allowed'
-                }`}
+                variant="primary"
+                size="sm"
+                icon={<Plus className="w-3.5 h-3.5" />}
               >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                <span>تسجيل المتابعة</span>
-              </button>
+                تسجيل المتابعة
+              </Button>
             </div>
           </form>
 
-          {/* ── TIMELINE LIST ── */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-1.5">
-              <h4 className="font-black text-xs text-[var(--text-primary)] flex items-center gap-1.5">
+          {/* Timeline History */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
+              <span className="font-black text-xs text-[var(--text-primary)] flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-amber-500" />
-                <span>سجل المتابعات السابقة ({followUps.length})</span>
-              </h4>
-              <span className="text-[10.5px] text-[var(--text-muted)] font-bold">
-                مرتبة من الأحدث للأقدم
+                <span>سجل الإجراءات السابق ({followUps.length}):</span>
               </span>
+              {followUps.length > 0 && (
+                <span className="text-[10px] text-[var(--text-muted)] font-bold">
+                  مرتب من الأحدث إلى الأقدم
+                </span>
+              )}
             </div>
 
             {followUps.length === 0 ? (
-              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 text-center space-y-1.5 text-[var(--text-muted)]">
-                <ClipboardList className="w-7 h-7 mx-auto opacity-30" />
-                <p className="font-bold text-xs">لا توجد متابعات مسجلة لهذا النشاط بعد.</p>
-                <p className="text-[10px]">استخدم النموذج أعلاه لتوثيق اتصالاتك وملاحظاتك الميدانية.</p>
+              <div className="text-center py-8 bg-[var(--input-bg)]/40 rounded-2xl border border-dashed border-[var(--border-color)] space-y-2">
+                <ClipboardList className="w-8 h-8 text-slate-400 mx-auto opacity-40" />
+                <p className="text-xs text-[var(--text-muted)] font-bold">
+                  لا توجد متابعات مسجلة لهذا النشاط حتى الآن.
+                </p>
+                <p className="text-[10.5px] text-[var(--text-muted)]">
+                  استخدم النموذج أعلاه لتدوين مكالمة أو زيارة ميدانية لتنسيق العمل مع الإدارة.
+                </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {followUps.map((note) => {
-                  const tConfig = TYPE_CONFIG[note.type] || TYPE_CONFIG.general;
-                  const urgencyInfo = getFollowUpUrgency(note);
+                  const cfg = TYPE_CONFIG[note.type] || TYPE_CONFIG.general;
                   const isCompleted = note.status === 'completed';
+                  const isUrgent = note.status === 'urgent';
 
                   return (
                     <div
                       key={note.id}
-                      className={`bg-[var(--bg-card)] border rounded-2xl p-3 space-y-2 transition-all shadow-2xs ${
-                        urgencyInfo.urgency === 'overdue'
-                          ? 'border-rose-500/40 bg-rose-500/5'
-                          : urgencyInfo.urgency === 'due_today'
-                          ? 'border-amber-500/40 bg-amber-500/5'
-                          : 'border-[var(--border-color)] hover:border-amber-500/30'
+                      className={`p-3.5 rounded-2xl border transition-all space-y-2 ${
+                        isCompleted
+                          ? 'bg-[var(--bg-card)] border-[var(--border-color)] opacity-75'
+                          : isUrgent
+                          ? 'bg-rose-500/5 border-rose-500/30'
+                          : 'bg-[var(--bg-card)] border-[var(--border-color)] shadow-xs'
                       }`}
                     >
-                      {/* Note Header: Type + Author + Urgency Pill + Date */}
-                      <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-[var(--border-color)] pb-1.5 text-[11px]">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${tConfig.bg}`}>
-                            {tConfig.icon} {tConfig.label}
+                      {/* Note Header */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap border-b border-[var(--border-color)]/60 pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${cfg.bg}`}>
+                            {cfg.icon} {cfg.label}
                           </span>
 
-                          <span className="font-black text-[var(--text-primary)]">
-                            {note.authorName}
-                          </span>
+                          <Badge
+                            variant={isCompleted ? 'success' : isUrgent ? 'danger' : 'warning'}
+                            size="xs"
+                          >
+                            {isCompleted ? 'مكتملة ✓' : isUrgent ? 'عاجلة 🚨' : 'معلقة ⏳'}
+                          </Badge>
 
-                          {/* Urgency Traffic-Light Pill */}
-                          <span className={`text-[9.5px] px-2 py-0.5 rounded-full border ${urgencyInfo.badgeClass}`}>
-                            {urgencyInfo.label}
-                          </span>
-
-                          {/* Quick Toggle Status */}
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(note.id)}
@@ -406,13 +353,11 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
                                 ? 'bg-slate-500/10 text-slate-500 border-slate-500/30 hover:bg-emerald-500/20'
                                 : 'bg-emerald-500/20 text-emerald-700 border-emerald-500/40 hover:bg-emerald-500/30'
                             }`}
-                            title={isCompleted ? 'إعادة فتح المتابعة كمعلقة' : 'تحديد المتابعة كمكتملة'}
                           >
                             {isCompleted ? 'إعادة الفتح ↺' : 'إنجاز ✓'}
                           </button>
                         </div>
 
-                        {/* Date & Actions */}
                         <div className="flex items-center gap-1.5 mr-auto">
                           <span className="text-[10px] font-mono text-[var(--text-muted)] dir-ltr">
                             {formatStandardDateTime(note.createdAt)}
@@ -448,33 +393,7 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
             )}
           </div>
         </div>
-
-        {/* ── FOOTER ACTIONS ── */}
-        <div className="pt-2 border-t border-[var(--border-color)] flex items-center justify-between gap-2">
-          {onOpenFullEdit && (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onOpenFullEdit(business);
-              }}
-              className="text-amber-600 hover:underline text-xs font-bold flex items-center gap-1 cursor-pointer"
-            >
-              <span>فتح بطاقة النشاط الكاملة والتعديل</span>
-              <ExternalLink className="w-3 h-3" />
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="mr-auto bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-[var(--text-secondary)] text-xs font-bold py-2 px-4 rounded-xl border border-[var(--border-color)] cursor-pointer transition-colors"
-          >
-            إغلاق النافذة
-          </button>
-        </div>
-
-      </div>
+      </BaseModal>
 
       {/* Confirm Delete Note Dialog */}
       <ConfirmDialog
@@ -487,7 +406,6 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
         onConfirm={confirmDeleteNote}
         onCancel={() => setNoteToDeleteId(null)}
       />
-    </div>,
-    document.body
+    </>
   );
 };
