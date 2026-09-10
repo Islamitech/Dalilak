@@ -120,23 +120,103 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
     setPullGoogleNotice('جاري فحص صور Google وتدوير صورة جديدة غير مكررة...');
 
     try {
-      const res = await fetch('/api/admin/places-photo-rotate', {
-        method: 'POST',
-        headers: getApiAuthHeaders(),
-        body: JSON.stringify({
-          googlePlaceId: formData.googlePlaceId,
-          placeName: formData.nameAr || formData.name,
-          currentPhotos: formData.photos || [],
-          lat: formData.lat,
-          lng: formData.lng,
-        }),
-      });
+      let data: any = null;
+      try {
+        const res = await fetch('/api/admin/places-photo-rotate', {
+          method: 'POST',
+          headers: getApiAuthHeaders(),
+          body: JSON.stringify({
+            googlePlaceId: formData.googlePlaceId,
+            placeName: formData.nameAr || formData.name,
+            currentPhotos: formData.photos || [],
+            lat: formData.lat,
+            lng: formData.lng,
+          }),
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch {}
 
-      if (!res.ok) {
-        throw new Error('فشل استدعاء محرك تدوير الصور من الخادم');
+      // Resilient Client Engine Fallback if server returns 405 (e.g. Vercel Static)
+      if (!data || !data.success) {
+        const apiKey =
+          (import.meta as any).env?.VITE_GOOGLE_PLACES_API_KEY ||
+          'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
+
+        let googlePhotos: Array<{ name: string }> = [];
+        if (formData.googlePlaceId) {
+          const pRes = await fetch(
+            `https://places.googleapis.com/v1/places/${encodeURIComponent(formData.googlePlaceId)}`,
+            {
+              headers: {
+                'X-Goog-Api-Key': apiKey,
+                'X-Goog-FieldMask': 'id,photos',
+              },
+            }
+          );
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            if (Array.isArray(pData.photos)) googlePhotos = pData.photos;
+          }
+        }
+        if (googlePhotos.length === 0 && (formData.nameAr || formData.name)) {
+          const sRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': apiKey,
+              'X-Goog-FieldMask': 'places.id,places.photos',
+            },
+            body: JSON.stringify({
+              textQuery: formData.nameAr || formData.name,
+              languageCode: 'ar',
+            }),
+          });
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            if (sData.places && sData.places[0] && Array.isArray(sData.places[0].photos)) {
+              googlePhotos = sData.places[0].photos;
+            }
+          }
+        }
+
+        if (googlePhotos.length > 0) {
+          const seenSignatures = new Set(
+            (formData.photos || []).map((u) => u.split('=')[0].replace(/^https?:\/\//, ''))
+          );
+          for (let i = 0; i < googlePhotos.length; i++) {
+            const item = googlePhotos[i];
+            if (!item || !item.name) continue;
+            const mRes = await fetch(
+              `https://places.googleapis.com/v1/${item.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${apiKey}&skipHttpRedirect=true`
+            );
+            if (mRes.ok) {
+              const mData = await mRes.json();
+              if (mData?.photoUri) {
+                const baseUri = mData.photoUri.split('=')[0].replace(/^https?:\/\//, '');
+                if (!seenSignatures.has(baseUri)) {
+                  data = {
+                    success: true,
+                    photo: mData.photoUri,
+                    photoIndex: i + 1,
+                    totalAvailable: googlePhotos.length,
+                    message: `تم سحب وتدوير صورة جديدة بنجاح (${i + 1} من ${googlePhotos.length}) - تكلفة: 0.007$ فقط`,
+                  };
+                  break;
+                }
+              }
+            }
+          }
+          if (!data) {
+            data = {
+              success: true,
+              allPhotosRotated: true,
+              message: `تم سحب كافة الصور المتاحة لهذا المكان على خرائط Google بالفعل (${googlePhotos.length} صور)`,
+            };
+          }
+        }
       }
-
-      const data = await res.json();
       if (data.success && data.photo) {
         if (setFormData) {
           setFormData((prev) => {

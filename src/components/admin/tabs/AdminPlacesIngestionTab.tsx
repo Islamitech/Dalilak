@@ -17,6 +17,15 @@ import {
   Store,
   Loader2,
   Filter,
+  Sliders,
+  Hash,
+  Stethoscope,
+  Scissors,
+  Dumbbell,
+  Briefcase,
+  Utensils,
+  Coffee,
+  Info,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
@@ -52,12 +61,26 @@ interface BatchSearchMetrics {
   estimatedCost: string;
 }
 
+interface CategoryThreshold {
+  label: string;
+  keyword: string;
+  type: string;
+  icon: string;
+  defaultMinRating: number;
+  defaultMinReviews: number;
+  explanation: string;
+}
+
 interface AdminPlacesIngestionTabProps {
   currentUser: User;
   businesses: Business[];
   onAddBusiness?: (biz: Business) => Promise<void> | void;
   onShowNotification?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
+
+const GOOGLE_API_KEY =
+  (import.meta as any).env?.VITE_GOOGLE_PLACES_API_KEY ||
+  'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
 
 const EGYPTIAN_HUBS = [
   { label: 'حدائق الأهرام - الجيزة', query: 'حدائق الأهرام', gov: 'الجيزة', city: 'حدائق الأهرام', lat: 29.9822, lng: 31.1165 },
@@ -71,14 +94,98 @@ const EGYPTIAN_HUBS = [
   { label: 'الإسكندرية (سموحة ومحطة الرمل)', query: 'سموحة الإسكندرية', gov: 'الإسكندرية', city: 'الإسكندرية', lat: 31.2156, lng: 29.9553 },
 ];
 
-const CATEGORY_PRESETS = [
-  { label: 'جميع الأنشطة الرائجة بالمنطقة', keyword: 'أنشطة وأماكن رائجة', type: 'general' },
-  { label: 'مطاعم ومأكولات ومشويات', keyword: 'مطاعم', type: 'commercial' },
-  { label: 'كافيهات ومقاهي', keyword: 'كافيهات ومقاهي', type: 'commercial' },
-  { label: 'ورش سيارات وميكانيكا وصيانة (⭐ 4.3 / 15)', keyword: 'ورش وميكانيكي سيارات', type: 'craft' },
-  { label: 'سباكة وكهرباء وخدمات حرفية (⭐ 4.3 / 15)', keyword: 'سباك وكهربائي وصيانة منزلية', type: 'craft' },
-  { label: 'سوبرماركت وأسواق تجارية', keyword: 'سوبرماركت ومحلات', type: 'commercial' },
-  { label: 'عيادات ومراكز طبية وصيدليات', keyword: 'عيادات وصيدليات', type: 'commercial' },
+// 🏛️ مصفوفة التقييمات الطبيعية المتوازنة لكل فئة في السوق المصري
+const CATEGORY_PRESETS: CategoryThreshold[] = [
+  {
+    label: 'مطاعم ومأكولات ومشويات',
+    keyword: 'مطاعم',
+    type: 'restaurants',
+    icon: 'utensils',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 60,
+    explanation: 'إقبال استهلاكي كثيف ومراجعات واسعة',
+  },
+  {
+    label: 'كافيهات ومقاهي ومشروبات',
+    keyword: 'كافيهات',
+    type: 'cafes',
+    icon: 'coffee',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 50,
+    explanation: 'إقبال شبابي ومراجعات مستمرة',
+  },
+  {
+    label: 'ورش وميكانيكا وصيانة سيارات',
+    keyword: 'ورش صيانة وميكانيكي سيارات',
+    type: 'craft',
+    icon: 'wrench',
+    defaultMinRating: 4.3,
+    defaultMinReviews: 15,
+    explanation: 'كفاءة حرفية نادرة بمراجعات تخصصية مركزة (15 مقيم كافية)',
+  },
+  {
+    label: 'سباكة وكهرباء وصيانة منزلية',
+    keyword: 'سباك وكهربائي وصيانة منزلية',
+    type: 'craft',
+    icon: 'wrench',
+    defaultMinRating: 4.3,
+    defaultMinReviews: 12,
+    explanation: 'خدمات حرفية ميدانية بمراجعات نوعية موثوقة',
+  },
+  {
+    label: 'عيادات ومراكز طبية وصيدليات',
+    keyword: 'عيادات ومراكز طبية وصيدليات',
+    type: 'medical',
+    icon: 'stethoscope',
+    defaultMinRating: 4.4,
+    defaultMinReviews: 20,
+    explanation: 'معيار طبي دقيق لعيادات متخصصة (20 مقيم تمثل سمعة ممتازة)',
+  },
+  {
+    label: 'سوبرماركت ومحلات تجارة وتجزئة',
+    keyword: 'سوبرماركت ومحلات تجارية',
+    type: 'retail',
+    icon: 'store',
+    defaultMinRating: 4.1,
+    defaultMinReviews: 40,
+    explanation: 'مبيعات يومية سريعة وتقييمات استهلاكية',
+  },
+  {
+    label: 'صالونات ومراكز تجميل وعناية',
+    keyword: 'صالون حلاقة ومراكز تجميل',
+    type: 'beauty',
+    icon: 'scissors',
+    defaultMinRating: 4.3,
+    defaultMinReviews: 25,
+    explanation: 'خدمات عناية شخصية تعتمد على الثقة المباشرة',
+  },
+  {
+    label: 'أندية وجيم وصالات رياضية',
+    keyword: 'جيم وصالات رياضية',
+    type: 'gym',
+    icon: 'dumbbell',
+    defaultMinRating: 4.3,
+    defaultMinReviews: 35,
+    explanation: 'اشتراكات دورية وتقييمات للمعدات والمدربين',
+  },
+  {
+    label: 'خدمات مهنية ومكاتب وعقارات',
+    keyword: 'مكاتب وشركات خدمات مهنية وعقارات',
+    type: 'corporate',
+    icon: 'briefcase',
+    defaultMinRating: 4.4,
+    defaultMinReviews: 10,
+    explanation: 'استشارات مهنية متخصصة بمراجعات عملاء رسمية',
+  },
+  {
+    label: 'جميع الأنشطة الرائجة المتنوعة',
+    keyword: 'أنشطة وأماكن رائجة',
+    type: 'general',
+    icon: 'layers',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 30,
+    explanation: 'معيار وسطي متوازن لكافة القطاعات',
+  },
 ];
 
 export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = ({
@@ -101,11 +208,19 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   }
 
   // State Management
-  const [selectedHubIndex, setSelectedHubIndex] = useState<number>(0);
+  const [selectedHubIndex, setSelectedHubIndex] = useState<number>(1); // الشيخ زايد و 6 أكتوبر
   const [isCustomHub, setIsCustomHub] = useState<boolean>(false);
   const [customHubName, setCustomHubName] = useState<string>('');
-  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<number>(1);
-  const [searchQuery, setSearchQuery] = useState<string>('مطاعم في حدائق الأهرام');
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<number>(0); // مطاعم
+  const [searchQuery, setSearchQuery] = useState<string>('مطاعم في الشيخ زايد');
+  
+  // 🔢 خانة إدخال عدد السحب المطلوب (طلب المستخدم الصريح)
+  const [pullCount, setPullCount] = useState<number>(10);
+
+  // ⭐ معايير الجودة الطبيعية القابلة للتحكم
+  const [minRating, setMinRating] = useState<number>(CATEGORY_PRESETS[0].defaultMinRating);
+  const [minReviews, setMinReviews] = useState<number>(CATEGORY_PRESETS[0].defaultMinReviews);
+
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [candidatePlaces, setCandidatePlaces] = useState<CandidatePlace[]>([]);
   const [metrics, setMetrics] = useState<BatchSearchMetrics | null>(null);
@@ -133,13 +248,197 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     if (cat && hub?.query) {
       setSearchQuery(`${cat.keyword} في ${hub.query}`);
     }
+    // تحديث التقييمات والمراجعات الطبيعية تلقائياً لتطابق الفئة الجديدة
+    if (cat) {
+      setMinRating(cat.defaultMinRating);
+      setMinReviews(cat.defaultMinReviews);
+    }
   };
 
   const currentHub = isCustomHub
     ? { label: customHubName || 'نطاق مخصص', gov: 'الجيزة', city: customHubName || 'مصر', lat: undefined, lng: undefined }
     : EGYPTIAN_HUBS[selectedHubIndex];
 
-  // Live Batch Search
+  const currentCat = CATEGORY_PRESETS[selectedCategoryIndex];
+
+  // 🛡️ Helper: Check if place matches craft profile
+  const isCraftActivity = (primaryType?: string, typeDisplayName?: string, name?: string): boolean => {
+    const text = `${primaryType || ''} ${typeDisplayName || ''} ${name || ''}`.toLowerCase();
+    const craftKeywords = [
+      'car_repair', 'auto_repair', 'mechanic', 'plumber', 'electrician', 'locksmith',
+      'carpenter', 'handyman', 'workshop', 'maintenance', 'repair',
+      'ميكانيك', 'ورشة', 'سباك', 'كهربائي', 'صيانة', 'حداد', 'نجار', 'عفشجي', 'دوكو', 'سمكري', 'تكييف'
+    ];
+    return craftKeywords.some((kw) => text.includes(kw));
+  };
+
+  // ⚡ DIRECT RESILIENT BROWSER ENGINE (حماية 100% من أخطاء 405 و 404 على Vercel و CDN)
+  const executeDirectClientPlacesSearch = async (
+    queryText: string,
+    targetCount: number,
+    thresholdRating: number,
+    thresholdReviews: number
+  ): Promise<{ places: CandidatePlace[]; metrics: BatchSearchMetrics }> => {
+    const searchBody: Record<string, unknown> = {
+      textQuery: queryText,
+      languageCode: 'ar',
+      maxResultCount: Math.min(20, Math.max(1, targetCount)),
+    };
+
+    if (currentHub?.lat && currentHub?.lng) {
+      searchBody.locationBias = {
+        circle: {
+          center: { latitude: currentHub.lat, longitude: currentHub.lng },
+          radius: 6000.0,
+        },
+      };
+    }
+
+    const fieldMask = [
+      'places.id',
+      'places.displayName',
+      'places.primaryType',
+      'places.primaryTypeDisplayName',
+      'places.formattedAddress',
+      'places.location',
+      'places.rating',
+      'places.userRatingCount',
+      'places.internationalPhoneNumber',
+      'places.nationalPhoneNumber',
+      'places.regularOpeningHours',
+      'places.photos',
+      'places.googleMapsUri',
+    ].join(',');
+
+    const googleRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-FieldMask': fieldMask,
+      },
+      body: JSON.stringify(searchBody),
+    });
+
+    if (!googleRes.ok) {
+      const errText = await googleRes.text().catch(() => '');
+      throw new Error(`تعذر الاتصال بخدمة Google Places API: كود ${googleRes.status} (${errText.slice(0, 80)})`);
+    }
+
+    const googleData = await googleRes.json();
+    const rawPlaces = Array.isArray(googleData.places) ? googleData.places : [];
+
+    // Zero-Cost Deduplication
+    const existingIds = new Set<string>();
+    businesses.forEach((b) => {
+      if (b.googlePlaceId) existingIds.add(b.googlePlaceId);
+      if (b.googleMapsUrl) {
+        const m = b.googleMapsUrl.match(/place_id:([A-Za-z0-9_-]+)/);
+        if (m) existingIds.add(m[1]);
+      }
+    });
+    const existingNames = new Set(businesses.map((b) => (b.nameAr || b.name || '').trim().toLowerCase()));
+
+    let duplicatesCount = 0;
+    let qualifiedCount = 0;
+
+    const candidateList: CandidatePlace[] = await Promise.all(
+      rawPlaces.map(async (p: any) => {
+        const placeId = p.id || '';
+        const name = p.displayName?.text || '';
+        const cleanName = name.trim();
+        const primaryType = p.primaryType || '';
+        const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
+        const rating = typeof p.rating === 'number' ? p.rating : 0;
+        const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
+        const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
+        const formattedAddress = p.formattedAddress || '';
+        const lat = p.location?.latitude;
+        const lng = p.location?.longitude;
+        const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
+
+        // Deduplication check
+        const isDuplicate = existingIds.has(placeId) || (cleanName.length > 3 && existingNames.has(cleanName.toLowerCase()));
+        if (isDuplicate) duplicatesCount++;
+
+        // Adaptive Quality check based on Natural Category Thresholds
+        const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, cleanName) || currentCat.type === 'craft';
+        const isQualityApproved = rating >= thresholdRating && userRatingCount >= thresholdReviews;
+
+        let qualityBadgeText = '';
+        if (isQualityApproved) {
+          qualityBadgeText = `${isCraft ? 'حرفي معتمد' : 'رائج معتمد'} ⭐ ${rating} (${userRatingCount} مقيّم)`;
+          if (!isDuplicate) qualifiedCount++;
+        } else {
+          qualityBadgeText = `دون المعايير الطبيعية (المطلوب: ${thresholdRating}★ و ${thresholdReviews} مقيّم) حالياً: ${rating}★ (${userRatingCount})`;
+        }
+
+        // 🛡️ توحيد سحب الصور الصارم: سحب صورة الغلاف الأولى فقط للمنشأة المؤهلة
+        let coverPhoto: string | undefined = undefined;
+        if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
+          const firstPhotoName = p.photos[0].name;
+          if (firstPhotoName) {
+            try {
+              const mediaUrl = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`;
+              const mediaRes = await fetch(mediaUrl);
+              if (mediaRes.ok) {
+                const mediaData = await mediaRes.json();
+                if (mediaData && mediaData.photoUri) {
+                  coverPhoto = mediaData.photoUri;
+                }
+              }
+            } catch {}
+          }
+        }
+
+        let workingHours: string | undefined = undefined;
+        if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
+          const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
+          if (todayDesc) {
+            workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
+          }
+        }
+
+        return {
+          id: placeId,
+          displayName: cleanName,
+          category: primaryTypeDisplayName || currentCat.label,
+          primaryType,
+          primaryTypeDisplayName,
+          formattedAddress,
+          lat,
+          lng,
+          phone,
+          rating,
+          userRatingCount,
+          workingHours,
+          googleMapsUri,
+          coverPhoto,
+          photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
+          isDuplicate,
+          isQualityApproved,
+          qualityBadgeText,
+          isCraft,
+        };
+      })
+    );
+
+    const textSearchCost = 0.032;
+    const photoFetchCost = qualifiedCount * 0.007;
+    const totalEstCost = (textSearchCost + photoFetchCost).toFixed(3);
+
+    return {
+      places: candidateList,
+      metrics: {
+        totalFound: rawPlaces.length,
+        duplicatesCount,
+        qualifiedCount,
+        estimatedCost: `$${totalEstCost}`,
+      },
+    };
+  };
+
+  // 🚀 Live Batch Search (Hybrid Dual-Engine with Automatic 405 Fallback)
   const handleExecuteScan = async () => {
     if (!searchQuery.trim()) {
       if (onShowNotification) onShowNotification('يرجى كتابة استعلام البحث أولاً', 'warning');
@@ -153,48 +452,70 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     setIngestionMessage(null);
 
     try {
-      const existingPlaceIds = businesses
-        .map((b) => b.googlePlaceId)
-        .filter((id): id is string => Boolean(id));
+      let data: { places: CandidatePlace[]; metrics: BatchSearchMetrics } | null = null;
 
-      const res = await fetch('/api/admin/places-batch-search', {
-        method: 'POST',
-        headers: getApiAuthHeaders(),
-        body: JSON.stringify({
-          query: searchQuery.trim(),
-          category: CATEGORY_PRESETS[selectedCategoryIndex]?.type,
-          lat: currentHub?.lat,
-          lng: currentHub?.lng,
-          existingPlaceIds,
-        }),
-      });
+      // 1. محاولة استدعاء السيرفر المحلي أولاً
+      try {
+        const existingPlaceIds = businesses
+          .map((b) => b.googlePlaceId)
+          .filter((id): id is string => Boolean(id));
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `خطأ الخادم: ${res.status}`);
+        const res = await fetch('/api/admin/places-batch-search', {
+          method: 'POST',
+          headers: getApiAuthHeaders(),
+          body: JSON.stringify({
+            query: searchQuery.trim(),
+            category: currentCat.type,
+            lat: currentHub?.lat,
+            lng: currentHub?.lng,
+            pullCount: pullCount,
+            minRating: minRating,
+            minReviews: minReviews,
+            existingPlaceIds,
+          }),
+        });
+
+        // إذا نجح السيرفر
+        if (res.ok) {
+          const serverJson = await res.json();
+          if (serverJson.success && Array.isArray(serverJson.places)) {
+            data = {
+              places: serverJson.places,
+              metrics: serverJson.metrics,
+            };
+          }
+        } else if (res.status === 405 || res.status === 404 || res.status === 502) {
+          console.warn(`[Places Ingestion] Server returned ${res.status}. Falling back to resilient direct client engine...`);
+        }
+      } catch (serverErr) {
+        console.warn('[Places Ingestion] Backend server unreachable. Falling back to direct client engine...', serverErr);
       }
 
-      const data = await res.json();
-      if (data.success && Array.isArray(data.places)) {
-        setCandidatePlaces(data.places);
-        setMetrics(data.metrics || null);
+      // 2. إذا كان السيرفر غير متاح أو في بيئة Vercel Static (التي تسبب خطأ 405) -> تشغيل المحرك المباشر فوراً!
+      if (!data) {
+        data = await executeDirectClientPlacesSearch(searchQuery.trim(), pullCount, minRating, minReviews);
+      }
 
-        // Auto-select qualified non-duplicates by default
+      if (data && Array.isArray(data.places)) {
+        setCandidatePlaces(data.places);
+        setMetrics(data.metrics);
+
+        // تحديد كافة المنشآت المؤهلة وغير المكررة افتراضياً
         const qualifiedIds = new Set<string>();
-        data.places.forEach((p: CandidatePlace) => {
+        data.places.forEach((p) => {
           if (p.isQualityApproved && !p.isDuplicate) {
             qualifiedIds.add(p.id);
           }
         });
         setSelectedPlaceIds(qualifiedIds);
 
-        const msg = `🔍 تم العثور على ${data.places.length} منشأة (${data.metrics?.qualifiedCount || 0} مؤهلة للاعتماد)`;
+        const msg = `🔍 تم بنجاح سحب ${data.places.length} منشأة (${data.metrics.qualifiedCount} مؤهلة لمعايير الجودة)`;
         if (onShowNotification) onShowNotification(msg, 'success');
       } else {
-        throw new Error(data.error || 'لم يتم استلام بيانات صحيحة من محرك الاستيراد');
+        throw new Error('لم يتم استلام أي نتائج من محرك خرائط Google');
       }
     } catch (err: any) {
-      const errMsg = err?.message || 'فشل الاتصال بمحرك البحث المجمع لخرائط Google';
+      const errMsg = err?.message || 'فشل الاتصال بمحرك البحث لخرائط Google';
       if (onShowNotification) onShowNotification(errMsg, 'error');
     } finally {
       setIsScanning(false);
@@ -245,7 +566,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         const newBiz: Business = {
           id: `biz_gplaces_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           nameAr: p.displayName,
-          category: p.category || 'خدمات وأنشطة عامة',
+          category: p.category || currentCat.label,
           governorate: currentHub?.gov || 'الجيزة',
           city: currentHub?.city || 'حدائق الأهرام',
           street: p.formattedAddress || currentHub?.city || '',
@@ -328,7 +649,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               <span>منظومة استيراد الأماكن الذكية وتدوير الصور الموفرة</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-2xl leading-relaxed">
-              محرك مسح مجمّع يربط خرائط Google مباشرة بقاعدة بيانات دليلك، مع تطبيق فلترة تكيفية (تجارية ⭐4.2/80 • حرفية ⭐4.3/15) وحظر التكرار المحلي التام ($0.00) وسحب صورة الغلاف الأولى فقط.
+              محرك مسح هجين يعمل بسلاسة على السيرفر و Vercel، يربط خرائط Google مباشرة بدليلك مع منع التكرار ($0.00)، وتطبيق التقييمات الطبيعية المتوازنة لكل فئة، وسحب صورة الغلاف الأولى فقط.
             </p>
           </div>
 
@@ -344,13 +665,19 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       </div>
 
       {/* ── SEARCH SCOPE CONTROLS & QUERY BUILDER ── */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-        <h3 className="text-sm font-black text-[var(--text-primary)] flex items-center gap-2">
-          <Filter className="w-4 h-4 text-amber-500" />
-          <span>تحديد نطاق المسح والتصنيف الجغرافي</span>
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+        <h3 className="text-sm font-black text-[var(--text-primary)] flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-amber-500" />
+            <span>إعدادات المسح الذكي والتصنيف ومعايير الجودة</span>
+          </span>
+          <span className="text-xs font-bold text-[var(--text-muted)]">
+            محدد طبيعة الفئة: <strong className="text-amber-500">{currentCat.label}</strong>
+          </span>
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        {/* Row 1: Hub & Category Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* 1. Hub / Region Selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-black text-[var(--text-muted)] flex items-center gap-1">
@@ -366,7 +693,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                   handleHubChange(Number(e.target.value));
                 }
               }}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden cursor-pointer"
             >
               {EGYPTIAN_HUBS.map((h, i) => (
                 <option key={i} value={i}>
@@ -399,59 +726,159 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           <div className="space-y-1.5">
             <label className="text-xs font-black text-[var(--text-muted)] flex items-center gap-1">
               <Layers className="w-3.5 h-3.5 text-amber-500" />
-              <span>التصنيف المستهدف ومعايير الجودة</span>
+              <span>فئة النشاط المستهدفة</span>
             </label>
             <select
               value={selectedCategoryIndex}
               onChange={(e) => handleCategoryChange(Number(e.target.value))}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden cursor-pointer"
             >
               {CATEGORY_PRESETS.map((c, i) => (
                 <option key={i} value={i}>
-                  {c.type === 'craft' ? '🛠️ ' : '🏢 '}
+                  {c.type === 'craft' ? '🛠️ ' : c.type === 'medical' ? '🩺 ' : '🏢 '}
                   {c.label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* 3. Search Query Input & Trigger */}
-          <div className="space-y-1.5 md:col-span-3">
-            <label className="text-xs font-black text-[var(--text-muted)] flex items-center justify-between">
-              <span>استعلام البحث الموجه لـ Google Places API</span>
-              <span className="text-[10px] text-amber-600 font-bold">يمكنك التعديل اليدوي على نص الاستعلام</span>
-            </label>
-            <div className="flex flex-col sm:flex-row items-center gap-2">
-              <div className="relative flex-1 w-full">
-                <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+          {/* 3. خانة عدد السحب المطلوب (طلب المستخدم) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-[var(--text-muted)] flex items-center gap-1">
+                <Hash className="w-3.5 h-3.5 text-amber-500" />
+                <span>العدد المطلوب سحبه (أماكن)</span>
+              </label>
+              <div className="flex items-center gap-1">
+                {[5, 10, 15, 20].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setPullCount(num)}
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                      pullCount === num
+                        ? 'bg-amber-500 text-slate-950 shadow-xs'
+                        : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={pullCount}
+              onChange={(e) => setPullCount(Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden font-mono"
+            />
+          </div>
+        </div>
+
+        {/* Row 2: فرض التقييمات الطبيعية للفئة الحالية (طلب المستخدم) */}
+        <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-amber-500" />
+              <span className="text-xs font-black text-[var(--text-primary)]">
+                معايير الفرز الذكية الطبيعية لفئة: <strong className="text-amber-500">{currentCat.label}</strong>
+              </span>
+            </div>
+            <div className="text-[11px] text-[var(--text-muted)] font-medium flex items-center gap-1">
+              <Info className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span>{currentCat.explanation}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {/* Min Rating Threshold */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)]">
+              <div>
+                <div className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span>الحد الأدنى للتقييم المطلوب</span>
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                  الطبيعي للفئة: ⭐ {currentCat.defaultMinRating}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="نص استعلام البحث في خرائط Google..."
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black py-3 pr-10 pl-3 rounded-2xl focus:border-amber-500 focus:outline-hidden"
+                  type="number"
+                  step="0.1"
+                  min={3.0}
+                  max={5.0}
+                  value={minRating}
+                  onChange={(e) => setMinRating(parseFloat(e.target.value) || 4.0)}
+                  className="w-20 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-2 rounded-xl text-center font-mono focus:border-amber-500 focus:outline-hidden"
                 />
               </div>
-
-              <button
-                type="button"
-                onClick={handleExecuteScan}
-                disabled={isScanning || !searchQuery.trim()}
-                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-black py-3 px-6 rounded-2xl shadow-md hover:from-amber-400 hover:to-yellow-400 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-all shrink-0"
-              >
-                {isScanning ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>جاري المسح الذكي...</span>
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4" />
-                    <span>بدء المسح الذكي لخرائط Google</span>
-                  </>
-                )}
-              </button>
             </div>
+
+            {/* Min Reviews Count Threshold */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)]">
+              <div>
+                <div className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1">
+                  <Coins className="w-3.5 h-3.5 text-amber-500" />
+                  <span>الحد الأدنى لعدد المقيمين</span>
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                  الطبيعي للفئة: {currentCat.defaultMinReviews} مقيّم
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="1"
+                  min={1}
+                  max={1000}
+                  value={minReviews}
+                  onChange={(e) => setMinReviews(parseInt(e.target.value, 10) || 10)}
+                  className="w-20 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-2 rounded-xl text-center font-mono focus:border-amber-500 focus:outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: Search Query Input & Trigger */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-black text-[var(--text-muted)] flex items-center justify-between">
+            <span>استعلام البحث الموجه لخرائط Google</span>
+            <span className="text-[10px] text-amber-600 font-bold">يمكنك كتابة نص مخصص بحرية تامة</span>
+          </label>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="نص استعلام البحث في خرائط Google..."
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black py-3 pr-10 pl-3 rounded-2xl focus:border-amber-500 focus:outline-hidden"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExecuteScan}
+              disabled={isScanning || !searchQuery.trim()}
+              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-black py-3 px-6 rounded-2xl shadow-md hover:from-amber-400 hover:to-yellow-400 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-all shrink-0"
+            >
+              {isScanning ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جاري المسح الذكي ({pullCount} أماكن)...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  <span>بدء المسح الذكي لخرائط Google</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -476,7 +903,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           {/* Card 2: Zero-Cost Local Deduplication */}
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[var(--text-muted)]">مستبعد محلياً (تكرار)</span>
+              <span className="text-xs font-bold text-slate-400">مستبعد محلياً (تكرار)</span>
               <span className="p-2 rounded-xl bg-slate-500/10 text-slate-400">
                 <ShieldCheck className="w-4 h-4" />
               </span>
@@ -498,7 +925,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             <div className="text-2xl font-black text-emerald-600 mt-2 font-mono">
               {metrics.qualifiedCount}
             </div>
-            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">مطابق لمعايير النجوم والمقيمين</div>
+            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
+              مطابق لـ (⭐{minRating} و {minReviews} مقيم)
+            </div>
           </div>
 
           {/* Card 4: Estimated Cost */}
@@ -633,11 +1062,11 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                       ) : place.isQualityApproved ? (
                         <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-md shadow-xs backdrop-blur-md flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
-                          <span>مؤهل للجودة الذكية</span>
+                          <span>مؤهل للجودة الطبيعية</span>
                         </span>
                       ) : (
                         <span className="bg-rose-900/90 text-rose-200 text-[9.5px] font-black px-2 py-0.5 rounded-md backdrop-blur-md">
-                          دون حد الجودة
+                          دون حد الجودة الطبيعي
                         </span>
                       )}
 
