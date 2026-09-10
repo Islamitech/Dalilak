@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Business } from '../../types';
+
+export type CinematicTourStep =
+  | 'welcome'
+  | 'typewriter'
+  | 'search_spotlight'
+  | 'gov_spotlight'
+  | 'completed';
 import {
   EGYPT_GOVERNORATES,
   HADAYEK_ALAHRAM_ZONES,
@@ -66,6 +73,8 @@ export interface ShowcaseHeroSearchProps {
   onOpenPackagesModal: (pkgId?: string) => void;
   activeView?: 'grid' | 'map';
   setActiveView?: (view: 'grid' | 'map') => void;
+  isTourActive?: boolean;
+  tourStep?: CinematicTourStep | null;
 }
 
 const POPULAR_CATEGORIES = [
@@ -112,8 +121,33 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
   onOpenPackagesModal,
   activeView = 'grid',
   setActiveView,
+  isTourActive = false,
+  tourStep = null,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Kinetic Typewriter Effect for Hero Headline
+  const FULL_HEADLINE = 'ابحث عن أي نشاط، وتواصل في ثوانٍ';
+  const [typewriterIndex, setTypewriterIndex] = useState<number>(FULL_HEADLINE.length);
+
+  useEffect(() => {
+    if (tourStep === 'typewriter') {
+      setTypewriterIndex(0);
+      let i = 0;
+      const interval = setInterval(() => {
+        i += 1;
+        setTypewriterIndex(i);
+        if (i >= FULL_HEADLINE.length) {
+          clearInterval(interval);
+        }
+      }, 45);
+      return () => clearInterval(interval);
+    } else if (tourStep === 'welcome') {
+      setTypewriterIndex(0);
+    } else {
+      setTypewriterIndex(FULL_HEADLINE.length);
+    }
+  }, [tourStep]);
 
   const activeFiltersCount = [
     govFilter !== 'all',
@@ -124,7 +158,11 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
     showFavoritesOnly,
   ].filter(Boolean).length;
   return (
-    <section className="relative overflow-hidden pt-5 pb-5 sm:pt-7 sm:pb-6 border-b border-[var(--border-color)]">
+    <section
+      className={`relative overflow-hidden pt-5 pb-5 sm:pt-7 sm:pb-6 border-b border-[var(--border-color)] transition-all duration-1000 ease-out origin-center ${
+        isTourActive ? 'scale-[1.02] sm:scale-[1.05] z-40' : 'scale-100'
+      }`}
+    >
       {/* Background ambient glow */}
       <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-[var(--bg-primary)] to-[var(--bg-primary)] pointer-events-none" />
       <div className="absolute top-0 right-1/4 w-96 h-64 bg-amber-500/8 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
@@ -137,19 +175,51 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
             <Sparkles className="w-3 h-3 text-amber-500" />
             <span>الدليل الميداني المعتمد في مصر • {publicBusinesses.length}+ مكان موثق</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
-            ابحث عن أي نشاط، وتواصل في ثوانٍ
-          </h1>
-          <p className="text-xs text-[var(--text-muted)] font-medium">
-            عناوين دقيقة • أرقام تواصل مباشرة • مواقع معتمدة على الخريطة
-          </p>
+
+          {tourStep === 'welcome' ? (
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-amber-500 dark:text-amber-400 leading-tight tracking-tight animate-fade-in">
+              مرحباً بك في دليلك ✦
+            </h1>
+          ) : tourStep === 'typewriter' ? (
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[var(--text-primary)] leading-tight tracking-tight min-h-[40px]">
+              {FULL_HEADLINE.slice(0, typewriterIndex)}
+              <span className="inline-block w-0.5 h-6 sm:h-8 bg-amber-500 align-middle ml-1 animate-pulse" />
+            </h1>
+          ) : (
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
+              ابحث عن أي نشاط، وتواصل في ثوانٍ
+            </h1>
+          )}
+
+          {tourStep === 'welcome' ? (
+            <p className="text-xs text-[var(--text-muted)] font-medium animate-fade-in">
+              منصتك الذكية الأولى لاكتشاف وتوثيق الأنشطة والخدمات في مصر
+            </p>
+          ) : (
+            <p
+              className={`text-xs text-[var(--text-muted)] font-medium transition-opacity duration-700 ${
+                tourStep === 'typewriter' && typewriterIndex < FULL_HEADLINE.length
+                  ? 'opacity-0'
+                  : 'opacity-100'
+              }`}
+            >
+              عناوين دقيقة • أرقام تواصل مباشرة • مواقع معتمدة على الخريطة
+            </p>
+          )}
         </div>
 
         {/* 🔍 Seeker-First Smart Search Bar */}
         <div className="max-w-4xl mx-auto bg-[var(--bg-card)] border-2 border-amber-500/30 rounded-2xl p-2 sm:p-2.5 shadow-xl shadow-amber-500/5 backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             {/* Search Input Box */}
-            <div className="relative flex-1">
+            <div
+              id="tour-search-box"
+              className={`relative flex-1 rounded-xl transition-all duration-500 ${
+                tourStep === 'search_spotlight'
+                  ? 'ring-4 ring-amber-500 shadow-2xl shadow-amber-500/50 scale-[1.01]'
+                  : ''
+              }`}
+            >
               <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
@@ -301,7 +371,14 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
             </div>
 
             {/* Quick Area / Governorate Selector */}
-            <div className="sm:w-44 shrink-0">
+            <div
+              id="tour-gov-selector"
+              className={`sm:w-44 shrink-0 rounded-xl transition-all duration-500 ${
+                tourStep === 'gov_spotlight'
+                  ? 'ring-4 ring-amber-500 shadow-2xl shadow-amber-500/50 scale-[1.02]'
+                  : ''
+              }`}
+            >
               <div className="relative">
                 <MapPin className="w-3.5 h-3.5 text-amber-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <select

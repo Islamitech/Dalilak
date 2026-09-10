@@ -39,6 +39,7 @@ import {
 } from '../services/db';
 import { sanitizePlaceNameAndAddress } from '../utils/googlePlaceExtractor';
 import { findDuplicatePhoneEntity } from '../utils/phoneValidator';
+import { findClosestCategory, BUSINESS_CATEGORIES } from '../data/mockData';
 
 interface UseAppEntityHandlersProps {
   user: User | null;
@@ -592,7 +593,7 @@ export function useAppEntityHandlers({
     const rawCat = lead.businessCategory?.trim();
     const finalCategory = (rawCat && rawCat !== 'عميل مهتم' && rawCat !== 'عملاء مهتمون')
       ? rawCat
-      : 'خدمات وأنشطة عامة';
+      : 'نشاط تجاري / خدمي آخر';
 
     const timestamp = Date.now();
     const isTrending = Boolean(lead.isTrending || lead.interestLevel === 'trending_free');

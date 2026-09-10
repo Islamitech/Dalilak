@@ -11,10 +11,12 @@ import {
   BUSINESS_CATEGORIES,
   CATEGORY_GROUPS,
   getGroupFromCategory,
+  findClosestCategory,
   PACKAGES,
   EXEMPT_PACKAGE,
   ALREADY_ON_GOOGLE_PACKAGE,
 } from '../data/mockData';
+import { getCategoryGroupFor } from '../utils/categoryMatcher';
 import { canUserManageFeeExemption } from '../utils/permissions';
 import { compressImageFile } from '../utils/imageCompressor';
 import { fetchLocationAddress } from '../utils/geocoding';
@@ -100,6 +102,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   const [showMap, setShowMap] = useState<boolean>(false);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [autoFillNotice, setAutoFillNotice] = useState<string | null>(null);
+  const [categoryWarningNotice, setCategoryWarningNotice] = useState<string | null>(null);
 
   // Package & Payments
   const isRep = currentUser ? currentUser.role === 'rep' : Boolean(currentRep);
@@ -208,8 +211,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       const rawCat = initialLead.businessCategory?.trim();
       if (rawCat && rawCat !== 'عميل مهتم' && rawCat !== 'عملاء مهتمون') {
         setCategory(rawCat);
-        const found = getGroupFromCategory(rawCat);
-        if (found) setSelectedGroup(found.group);
+        const inferredGroup = getCategoryGroupFor(rawCat);
+        setSelectedGroup(inferredGroup);
+        setCategoryWarningNotice(null);
       }
       if (initialLead.locationUrl) {
         setAlreadyGoogleMapsUrl(initialLead.locationUrl);
@@ -681,6 +685,14 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
       {registrationType !== 'interested_lead' && (
         <>
+          {/* ⚠️ تنبيه التصنيف غير المعتمد */}
+          {categoryWarningNotice && (
+            <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-200 p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in mb-3">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>{categoryWarningNotice}</span>
+            </div>
+          )}
+
           {/* 1. البيانات الأساسية للنشاط */}
           <FormGeneralInfoSection
             nameAr={nameAr}
@@ -690,7 +702,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
             selectedGroup={selectedGroup}
             handleGroupChange={handleGroupChange}
             category={category}
-            setCategory={setCategory}
+            setCategory={(cat) => {
+              setCategory(cat);
+              setCategoryWarningNotice(null);
+            }}
             governorate={governorate}
             setGovernorate={setGovernorate}
           />
@@ -724,9 +739,16 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               }
             }}
             setCategory={(cat) => {
-              setCategory(cat);
-              const grp = getGroupFromCategory(cat);
-              if (grp) setSelectedGroup(grp.group);
+              const closest = findClosestCategory(cat);
+              if (closest) {
+                setCategory(closest.category);
+                setSelectedGroup(closest.group);
+                setCategoryWarningNotice(null);
+              } else {
+                setCategory(cat);
+                const grp = getGroupFromCategory(cat);
+                if (grp) setSelectedGroup(grp.group);
+              }
             }}
             setSelectedGroup={setSelectedGroup}
             setStreet={setStreet}

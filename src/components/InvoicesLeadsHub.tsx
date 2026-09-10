@@ -23,9 +23,14 @@ import {
   Copy,
   Check,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Zap,
+  Loader2,
 } from 'lucide-react';
 import { InterestedLead, LeadInterestLevel, LeadStatus, Representative, User, Business } from '../types';
-import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../data/mockData';
+import { EGYPT_GOVERNORATES, CATEGORY_GROUPS, findClosestCategory, BUSINESS_CATEGORIES } from '../data/mockData';
+import { getCategoryGroupFor } from '../utils/categoryMatcher';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { formatActivityDateTime } from '../utils/dateFormatters';
 import { sanitizeExternalUrl } from '../utils/urlSanitizer';
@@ -37,6 +42,7 @@ import {
   cleanWhatsAppText,
 } from '../utils/whatsappMessages';
 import { findDuplicatePhoneEntity } from '../utils/phoneValidator';
+import { extractGooglePlaceData, isGoogleMapsUrl } from '../utils/googlePlaceExtractor';
 
 interface InvoicesLeadsHubProps {
   leads: InterestedLead[];
@@ -91,6 +97,54 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   const [newNotes, setNewNotes] = useState<string>('');
   const [formError, setFormError] = useState<string>('');
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+
+  // 🏷️ Accordion state (Single expanded card at a time - UX Overhaul)
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+
+  // ⚡ Inline lead form Google link extraction states
+  const [isExtractingInlineLead, setIsExtractingInlineLead] = useState<boolean>(false);
+  const [inlineExtractNotice, setInlineExtractNotice] = useState<string | null>(null);
+  const [rawImportedCategory, setRawImportedCategory] = useState<string | null>(null);
+
+  const handleAutoExtractInlineLead = async (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setIsExtractingInlineLead(true);
+    setInlineExtractNotice('جاري فحص الرابط واستخراج بيانات المنشأة من خرائط Google...');
+    try {
+      const data = await extractGooglePlaceData(trimmed);
+      if (data) {
+        if (data.name) {
+          setNewBizName(data.name);
+          if (!newClientName.trim()) {
+            setNewClientName(`مسؤول ${data.name}`);
+          }
+        }
+        if (data.phone) setNewPhone(data.phone);
+        if (data.governorate) setNewGovernorate(data.governorate);
+        if (data.city) setNewCity(data.city);
+        if (data.resolvedUrl) setNewLocationUrl(data.resolvedUrl);
+
+        if (data.category) {
+          const cleanCat = data.category.trim();
+          setNewCategory(cleanCat);
+          const inferredGroup = getCategoryGroupFor(cleanCat);
+          setNewGroup(inferredGroup);
+          setRawImportedCategory(null);
+        }
+        setInlineExtractNotice('✅ تم استخراج البيانات وتحديث الحقول بنجاح');
+        setTimeout(() => setInlineExtractNotice(null), 5000);
+      } else {
+        setInlineExtractNotice('⚠️ تعذر استخراج كامل البيانات تلقائياً، يمكنك إكمال الحقول يدوياً.');
+        setTimeout(() => setInlineExtractNotice(null), 4000);
+      }
+    } catch {
+      setInlineExtractNotice('⚠️ حدث خطأ في الاتصال، يمكنك إدخال البيانات يدوياً.');
+      setTimeout(() => setInlineExtractNotice(null), 4000);
+    } finally {
+      setIsExtractingInlineLead(false);
+    }
+  };
 
   /** Extract clean map URL and clean notes text from combined notes field */
   const extractNotesAndMapUrl = useCallback((notes?: string, locationUrl?: string): { cleanText: string; mapUrl?: string } => {
@@ -150,6 +204,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
         !q ||
         (l.clientName || '').toLowerCase().includes(q) ||
         (l.businessName || '').toLowerCase().includes(q) ||
+        (l.businessCategory || '').toLowerCase().includes(q) ||
+        (l.notes || '').toLowerCase().includes(q) ||
         (l.phone || '').includes(q) ||
         (l.city || '').toLowerCase().includes(q);
 
@@ -219,11 +275,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
       ? rawBiz
       : cleanClientName;
 
+    // Retain authentic category as extracted or selected
+    const finalCategory = newCategory.trim() || rawImportedCategory?.trim() || 'نشاط تجاري / خدمي آخر';
+
     const newLead: InterestedLead = {
       id: leadId,
       clientName: cleanClientName,
       businessName: cleanBizName,
-      businessCategory: newCategory,
+      businessCategory: finalCategory,
       phone: cleanPhone,
       governorate: newGovernorate,
       city: newCity.trim() || undefined,
@@ -253,6 +312,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     setNewInterestLevel('medium');
     setNewIsTrending(false);
     setNewLocationUrl('');
+    setRawImportedCategory(null);
+    setInlineExtractNotice(null);
     setNewNotes('');
     setFormError('');
   };
@@ -425,36 +486,396 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
             </div>
           </div>
 
-          {/* Add Lead Quick Button */}
+          {/* Add Lead Quick Button (Toggles Inline Form) */}
           <button
             type="button"
-            onClick={() => setShowAddLeadModal(true)}
-            className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-2xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0 transition-transform active:scale-95 self-stretch sm:self-auto"
+            onClick={() => {
+              setShowAddLeadModal(!showAddLeadModal);
+              if (showAddLeadModal) resetNewLeadForm();
+            }}
+            className={`font-black text-xs px-4 py-2.5 rounded-2xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0 transition-transform active:scale-95 self-stretch sm:self-auto ${
+              showAddLeadModal
+                ? 'bg-rose-500 hover:bg-rose-600 text-white'
+                : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950'
+            }`}
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ تسجيل شخص مهتم جديد</span>
+            {showAddLeadModal ? (
+              <>
+                <X className="w-4 h-4 stroke-[3]" />
+                <span>إلغاء وإغلاق النموذج</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>+ تسجيل شخص مهتم جديد</span>
+              </>
+            )}
           </button>
         </div>
 
-        {/* KPI Summary Cards */}
+        {/* KPI Summary Cards (Interactive Filters) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+          <button
+            type="button"
+            onClick={() => { setLeadStatusFilter('all'); setLeadInterestFilter('all'); }}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'all' && leadInterestFilter === 'all'
+                ? 'bg-amber-500/15 border-amber-500 shadow-sm ring-1 ring-amber-500/30'
+                : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40'
+            }`}
+          >
             <span className="text-[11px] text-[var(--text-muted)] font-bold block">إجمالي المهتمين</span>
             <span className="text-lg font-black text-amber-500 font-mono">{totalLeadsCount}</span>
-          </div>
-          <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'pending_followup' ? 'all' : 'pending_followup')}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'pending_followup'
+                ? 'bg-amber-500/15 border-amber-500 shadow-sm ring-1 ring-amber-500/30'
+                : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40'
+            }`}
+          >
             <span className="text-[11px] text-amber-700 dark:text-amber-400 font-bold block">بانتظار المتابعة</span>
             <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{pendingLeadsCount}</span>
-          </div>
-          <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'contacted' ? 'all' : 'contacted')}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'contacted'
+                ? 'bg-blue-500/15 border-blue-500 shadow-sm ring-1 ring-blue-500/30'
+                : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-blue-500/40'
+            }`}
+          >
             <span className="text-[11px] text-blue-700 dark:text-blue-400 font-bold block">تم التواصل معهم</span>
             <span className="text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{contactedLeadsCount}</span>
-          </div>
-          <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'converted' ? 'all' : 'converted')}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'converted'
+                ? 'bg-emerald-500/15 border-emerald-500 shadow-sm ring-1 ring-emerald-500/30'
+                : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/40'
+            }`}
+          >
             <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold block">تحولوا لمشتركين</span>
-            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{convertedLeadsCount} ⭐</span>
-          </div>
+            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{convertedLeadsCount}</span>
+          </button>
         </div>
+
+        {/* ========================================================
+            INLINE REGISTRATION FORM (Replaces Pop-up Modal)
+            ======================================================== */}
+        {showAddLeadModal && (
+          <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl p-4 sm:p-6 space-y-4 text-xs text-[var(--text-primary)] shadow-lg animate-fade-in">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                    تسجيل شخص مهتم / زيارة جديدة
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] font-bold">
+                    حفظ بيانات المنشأة والشخص في سجل المراجعات للمتابعة لاحقاً
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddLeadModal(false);
+                  resetNewLeadForm();
+                }}
+                className="w-8 h-8 rounded-full bg-[var(--input-bg)] hover:bg-rose-500/20 text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center font-bold cursor-pointer transition-colors"
+                title="إغلاق النموذج"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {formError && (
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl font-bold text-xs">
+                {formError}
+              </div>
+            )}
+
+            {/* Link-First Auto-Extraction */}
+            <div className="bg-gradient-to-r from-blue-500/10 via-[var(--bg-card)] to-indigo-500/10 border border-blue-500/30 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-blue-500" />
+                  <span>استيراد فوري عبر رابط خرائط Google (اختياري)</span>
+                </label>
+                <span className="text-[10px] bg-blue-500/15 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full font-black">
+                  تعبئة تلقائية
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="url"
+                  dir="ltr"
+                  value={newLocationUrl}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewLocationUrl(val);
+                    if (isGoogleMapsUrl(val)) {
+                      handleAutoExtractInlineLead(val);
+                    }
+                  }}
+                  placeholder="الصق رابط خرائط Google (maps.app.goo.gl/...)"
+                  className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] focus:border-blue-500 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs font-mono focus:outline-none text-right"
+                />
+                <button
+                  type="button"
+                  disabled={isExtractingInlineLead || !newLocationUrl.trim()}
+                  onClick={() => handleAutoExtractInlineLead(newLocationUrl)}
+                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black px-4 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-sm cursor-pointer transition-transform active:scale-95"
+                >
+                  {isExtractingInlineLead ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>جاري الاستيراد...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>استيراد فوري</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              {inlineExtractNotice && (
+                <div className="text-[11px] font-bold p-2 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 flex items-center gap-2">
+                  <span>{inlineExtractNotice}</span>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleAddLeadSubmit} className="space-y-3">
+              {/* Mode Toggle: Normal Lead vs Trending Venue */}
+              <div className="grid grid-cols-2 gap-2 bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--border-color)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewIsTrending(false);
+                    if (newInterestLevel === 'trending_free') setNewInterestLevel('medium');
+                  }}
+                  className={`py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    !newIsTrending
+                      ? 'bg-amber-500 text-slate-950 shadow-md'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>عميل مهتم عادي</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewIsTrending(true);
+                    setNewInterestLevel('trending_free');
+                  }}
+                  className={`py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    newIsTrending
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>منشأة رائجة (إدراج مجاني)</span>
+                </button>
+              </div>
+
+              {/* Names & Phone Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">
+                    {newIsTrending ? 'اسم المسؤول / صاحب المكان *' : 'اسم الشخص / صاحب المنشأة *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: أ. محمد أحمد"
+                    value={newClientName}
+                    onChange={(e) => setNewClientName(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم المكان / المحل *</label>
+                  <input
+                    type="text"
+                    required={newIsTrending}
+                    placeholder="مثال: مطعم أو كافيه أو متجر..."
+                    value={newBizName}
+                    onChange={(e) => setNewBizName(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">رقم الهاتف / واتساب *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="010XXXXXXXX"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
+                  />
+                  {duplicateNewPhone && (
+                    <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span>
+                        مسجل مسبقاً مع {duplicateNewPhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicateNewPhone.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Category Selection (Always visible with warning if raw category was extracted) */}
+              <div className="space-y-2 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+                {rawImportedCategory && (
+                  <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-200 p-2 rounded-xl text-[11px] font-bold flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>
+                      تصنيف Google المستخرج: <strong>"{rawImportedCategory}"</strong> — يرجى تأكيد التصنيف المعتمد:
+                    </span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)]">مجموعة الأنشطة *</label>
+                    <select
+                      value={newGroup}
+                      onChange={(e) => {
+                        const grpName = e.target.value;
+                        setNewGroup(grpName);
+                        const found = CATEGORY_GROUPS.find((g) => g.group === grpName);
+                        if (found && found.items.length > 0) {
+                          setNewCategory(found.items[0]);
+                        }
+                      }}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    >
+                      {CATEGORY_GROUPS.map((g) => (
+                        <option key={g.group} value={g.group}>
+                          {g.icon} {g.group}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1 text-[var(--text-primary)] flex items-center justify-between">
+                      <span>نوع النشاط والتصنيف *</span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                        معتمد بدليلك
+                      </span>
+                    </label>
+                    <select
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-emerald-700 dark:text-emerald-300 font-black rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    >
+                      {newCategory && !(CATEGORY_GROUPS.find((g) => g.group === newGroup)?.items || []).includes(newCategory) && (
+                        <option value={newCategory}>
+                          {newCategory} (تصنيف خرائط Google)
+                        </option>
+                      )}
+                      {(CATEGORY_GROUPS.find((g) => g.group === newGroup)?.items || []).map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location & Follow-up Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">المحافظة *</label>
+                  <select
+                    value={newGovernorate}
+                    onChange={(e) => setNewGovernorate(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                  >
+                    {EGYPT_GOVERNORATES.map((gov) => (
+                      <option key={gov} value={gov}>
+                        {gov}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">المدينة / المنطقة</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: الدقي / المهندسين"
+                    value={newCity}
+                    onChange={(e) => setNewCity(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1 text-[var(--text-primary)]">موعد المتابعة القادم</label>
+                  <input
+                    type="date"
+                    value={newFollowUpDate}
+                    onChange={(e) => setNewFollowUpDate(e.target.value)}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-[var(--text-primary)]">ملاحظات الزيارة أو الاتفاق</label>
+                <textarea
+                  rows={2}
+                  placeholder="سجل أي ملاحظات خاصة بالعميل أو تفاصيل الزيارة..."
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-color)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddLeadModal(false);
+                    resetNewLeadForm();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold text-xs cursor-pointer transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs shadow-md transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>حفظ السجل في المراجعات</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Leads Search & Filter Toolbar */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
@@ -528,161 +949,81 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
             </div>
           ) : (
             filteredLeads.map((lead) => {
+              const isExpanded = expandedLeadId === lead.id;
+              const cleanBizName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
+                ? lead.businessName.trim()
+                : '';
+              const cleanClientName = (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
+                ? lead.clientName.trim()
+                : '';
+              const displayTitle = cleanBizName || cleanClientName || 'منشأة بدون اسم';
+              const rawCat = (lead.businessCategory && lead.businessCategory !== 'عميل مهتم' && lead.businessCategory !== 'عملاء مهتمون')
+                ? lead.businessCategory.trim()
+                : '';
+              const verifiedCat = rawCat || '';
+              const { cleanText, mapUrl } = extractNotesAndMapUrl(lead.notes, lead.locationUrl);
+              const linkId = `lead-card-${lead.id}`;
+
               return (
                 <div
                   key={lead.id}
-                  className="bg-[var(--bg-surface)] p-4 rounded-3xl border border-[var(--border-color)] space-y-3 hover:border-amber-500/40 transition-all shadow-xs"
+                  className={`bg-[var(--bg-surface)] rounded-2xl border transition-all duration-200 shadow-xs ${
+                    isExpanded
+                      ? 'border-amber-500/50 shadow-md ring-1 ring-amber-500/20'
+                      : 'border-[var(--border-color)] hover:border-amber-500/40'
+                  }`}
                 >
-                  {/* Top Row: Name, Status, Badges */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-bold shrink-0">
+                  {/* Collapsed / Summary Row (Always Visible) */}
+                  <div className="p-3 sm:p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-bold shrink-0">
                         <UserCheck className="w-5 h-5" />
                       </div>
-                      <div>
-                        {(() => {
-                          const cleanBizName = (lead.businessName && lead.businessName !== 'عميل مهتم' && lead.businessName !== 'عملاء مهتمون')
-                            ? lead.businessName.trim()
-                            : '';
-                          const cleanClientName = (lead.clientName && lead.clientName !== 'عميل مهتم' && lead.clientName !== 'عملاء مهتمون')
-                            ? lead.clientName.trim()
-                            : '';
-                          const displayTitle = cleanBizName || cleanClientName || 'منشأة بدون اسم';
-                          const cleanCat = (lead.businessCategory && lead.businessCategory !== 'عميل مهتم' && lead.businessCategory !== 'عملاء مهتمون')
-                            ? lead.businessCategory
-                            : '';
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-black text-sm text-[var(--text-primary)] truncate max-w-[200px] sm:max-w-xs">
+                            {displayTitle}
+                          </h4>
 
-                          return (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-black text-sm text-[var(--text-primary)]">{displayTitle}</h4>
-                              {cleanClientName && cleanClientName !== cleanBizName && (
-                                <span className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold text-[11px] px-2 py-0.5 rounded-md border border-[var(--border-color)]">
-                                  المسؤول: {cleanClientName}
-                                </span>
-                              )}
-                              {cleanCat && (
-                                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10.5px] px-2 py-0.5 rounded-md border border-amber-500/30">
-                                  {cleanCat}
-                                </span>
-                              )}
-                              {(lead.isTrending || lead.interestLevel === 'trending_free') && (
-                                <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                                  <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
-                                  <span>منشأة رائجة (إدراج مجاني)</span>
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })()}
-                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <MapPin className="w-3 h-3" />
-                          <span>{lead.governorate} {lead.city ? `- ${lead.city}` : ''} {lead.street ? `(${lead.street})` : ''}</span>
-                          {((lead.lat && lead.lng) || lead.locationUrl) && (
-                            <a
-                              href={sanitizeExternalUrl(lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10.5px] font-bold"
-                            >
-                              <Navigation className="w-2.5 h-2.5" />
-                              <span>نقطة الخريطة 📍</span>
-                              <ExternalLink className="w-2.5 h-2.5" />
-                            </a>
+                          {verifiedCat && (
+                            <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10.5px] px-2 py-0.5 rounded-md border border-amber-500/30">
+                              {verifiedCat}
+                            </span>
                           )}
-                        </p>
+
+                          <span className="text-[11px] text-[var(--text-muted)] font-bold flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-amber-500 shrink-0" />
+                            <span>{lead.governorate} {lead.city ? `- ${lead.city}` : ''}</span>
+                          </span>
+
+                          <a
+                            href={`tel:${lead.phone}`}
+                            className="font-mono font-bold text-[11px] text-amber-700 dark:text-amber-300 dir-ltr hover:underline bg-[var(--input-bg)] px-1.5 py-0.5 rounded border border-[var(--border-color)]"
+                          >
+                            {lead.phone}
+                          </a>
+
+                          {lead.followUpDate && (
+                            <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[var(--input-bg)] px-1.5 py-0.5 rounded border border-[var(--border-color)]">
+                              متابعة: {lead.followUpDate}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 flex-wrap self-end sm:self-auto">
-                      {getInterestBadge(lead.interestLevel)}
-                      {getStatusBadge(lead.status)}
-                    </div>
-                  </div>
-
-                  {/* Details & Notes */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                    <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
-                      <span className="text-[var(--text-muted)] font-bold text-[11px]">رقم الهاتف:</span>
-                      <a
-                        href={`tel:${lead.phone}`}
-                        className="font-mono font-bold text-amber-700 dark:text-amber-300 dir-ltr text-right hover:underline"
-                      >
-                        {lead.phone}
-                      </a>
-                    </div>
-
-                    <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
-                      <span className="text-[var(--text-muted)] font-bold text-[11px]">موعد المتابعة:</span>
-                      <span className="font-bold text-[var(--text-primary)]">
-                        {lead.followUpDate || 'غير محدد'}
-                      </span>
-                    </div>
-
-                    <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
-                      <span className="text-[var(--text-muted)] font-bold text-[11px]">المندوب المسجل:</span>
-                      <span className="font-bold text-[var(--text-secondary)] truncate max-w-[140px]">
-                        {lead.repName}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Notes snippet — Map URL extracted as compact button (Update 34) */}
-                  {(() => {
-                    const { cleanText, mapUrl } = extractNotesAndMapUrl(lead.notes, lead.locationUrl);
-                    const linkId = `lead-card-${lead.id}`;
-                    return (
-                      <>
-                        {cleanText && (
-                          <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 rounded-xl text-xs text-[var(--text-secondary)] leading-relaxed break-words">
-                            <strong className="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mb-0.5">ملاحظات الزيارة الميدانية:</strong>
-                            {cleanText}
-                          </div>
-                        )}
-                        {mapUrl && (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => handleCopyLink(linkId, mapUrl!)}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 dark:text-blue-300 text-[10px] font-bold transition-colors"
-                              title="نسخ رابط الخريطة"
-                            >
-                              {copiedLinkId === linkId ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                              {copiedLinkId === linkId ? 'تم النسخ ✓' : 'نسخ رابط الخريطة'}
-                            </button>
-                            <a
-                              href={sanitizeExternalUrl(mapUrl)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 dark:text-green-300 text-[10px] font-bold transition-colors"
-                            >
-                              <MapPin className="w-3 h-3" />
-                              فتح الخريطة
-                            </a>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-
-
-                  {/* Latest Admin Follow-up Note Snippet */}
-                  {lead.adminFollowUps && lead.adminFollowUps.length > 0 && (
-                    <div className="bg-purple-500/10 border border-purple-500/25 p-2.5 rounded-xl text-xs text-purple-950 dark:text-purple-200 space-y-1">
-                      <div className="flex items-center justify-between font-bold text-[10px] text-purple-700 dark:text-purple-300">
-                        <span className="flex items-center gap-1">
-                          <span>آخر متابعة إدارية:</span>
-                          <strong className="text-[var(--text-primary)]">{lead.adminFollowUps[0].authorName}</strong>
+                    {/* Left Side: Badges + Quick WhatsApp + Accordion Toggle */}
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap">
+                      {(lead.isTrending || lead.interestLevel === 'trending_free') && (
+                        <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                          <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
+                          <span>رائجة</span>
                         </span>
-                        <span className="font-mono text-[9px]">{formatActivityDateTime(lead.adminFollowUps[0].createdAt)}</span>
-                      </div>
-                      <p className="line-clamp-2 font-medium">{lead.adminFollowUps[0].text}</p>
-                    </div>
-                  )}
+                      )}
 
-                  {/* Action Buttons Toolbar */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)] text-xs">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* 1. Send WhatsApp Intro or Permission Button */}
+                      {getStatusBadge(lead.status)}
+
+                      {/* Quick WhatsApp intro button */}
                       {lead.isTrending || lead.interestLevel === 'trending_free' ? (
                         <a
                           href={getTrendingVenuePermissionWhatsAppUrl(lead.phone, {
@@ -698,11 +1039,11 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                               status: lead.status === 'pending_followup' ? 'contacted' : lead.status,
                             });
                           }}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
-                          title="إرسال رسالة طلب السماح بالإدراج المجاني التام عبر واتساب"
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                          title="طلب سماح بالإدراج عبر واتساب"
                         >
                           <Share2 className="w-3.5 h-3.5" />
-                          <span>طلب سماح بالإدراج (واتساب) 🌟</span>
+                          <span className="hidden sm:inline">طلب سماح</span>
                         </a>
                       ) : (
                         <button
@@ -711,380 +1052,213 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                             setWhatsAppModalLead(lead);
                             setCustomMsgType('intro');
                           }}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
-                          title="إرسال رسالة تعريفية أو عرض عبر واتساب"
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                          title="مراسلة واتساب"
                         >
                           <Share2 className="w-3.5 h-3.5" />
-                          <span>مراسلة واتساب</span>
+                          <span className="hidden sm:inline">واتساب</span>
                         </button>
                       )}
 
-                      {/* 2. Direct Call */}
-                      <a
-                        href={`tel:${lead.phone}`}
-                        className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-primary)] font-bold px-3 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1.5 transition-colors"
-                      >
-                        <Phone className="w-3.5 h-3.5 text-amber-500" />
-                        <span>اتصال</span>
-                      </a>
-
-                      {/* 3. Follow-up Notes (Admins & Reps) */}
+                      {/* Accordion Toggle Button */}
                       <button
                         type="button"
-                        onClick={() => setSelectedFollowUpLead(lead)}
-                        className="bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 font-black px-3 py-1.5 rounded-xl border border-purple-500/30 shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-                        title="عرض وتسجيل المتابعات والملاحظات الإدارية"
+                        onClick={() => setExpandedLeadId(isExpanded ? null : lead.id)}
+                        className={`flex items-center gap-1 text-xs font-black px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                          isExpanded
+                            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                            : 'bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] border-[var(--border-color)]'
+                        }`}
+                        title={isExpanded ? 'طي التفاصيل' : 'عرض التفاصيل الكاملة'}
                       >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>متابعات ({lead.adminFollowUps?.length || 0})</span>
-                      </button>
-
-                      {/* 4. Convert to Registered Business */}
-                      {onDirectConvertLead && lead.status !== 'converted' && (
-                        <button
-                          type="button"
-                          onClick={() => onDirectConvertLead(lead)}
-                          className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-                          title="تحويل فوري إلى نشاط معتمد وموثق بالدليل بدون رسوم"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>⭐ تحويل فوري لتسجيل معتمد</span>
-                        </button>
-                      )}
-
-                      {lead.status !== 'converted' && (
-                        <button
-                          type="button"
-                          onClick={() => onConvertToBusiness(lead)}
-                          className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 cursor-pointer transition-transform active:scale-95"
-                          title="فتح نموذج التسجيل وتعبئة البيانات يدوياً خطوة بخطوة"
-                        >
-                          <FileText className="w-3 h-3 text-amber-500" />
-                          <span>فتح بالنموذج</span>
-                        </button>
-                      )}
-
-                      {lead.status === 'converted' && (
-                        <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs px-2.5 py-1.5 rounded-xl border border-emerald-500/30 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>تم التحويل لمشترك معتمد</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1 mr-auto">
-                      {/* Edit / Update Status */}
-                      <button
-                        type="button"
-                        onClick={() => setEditingLead(lead)}
-                        className="p-1.5 rounded-lg bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 transition-colors cursor-pointer"
-                        title="تعديل بيانات العميل وحالة المتابعة"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-
-                      {/* Delete Lead */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`هل أنت متأكد من حذف الشخص المهتم "${lead.clientName}"؟`)) {
-                            onDeleteLead(lead.id);
-                          }
-                        }}
-                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-600 transition-colors cursor-pointer"
-                        title="حذف هذا السجل"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                        <span>{isExpanded ? 'أقل' : 'المزيد'}</span>
+                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
+
+                  {/* Expanded Section */}
+                  {isExpanded && (
+                    <div className="border-t border-[var(--border-color)] p-3.5 sm:p-4 bg-[var(--bg-card)]/50 rounded-b-2xl space-y-3 animate-fade-in text-xs">
+                      {/* Grid info: Client Name, Rep, Interest */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {cleanClientName && cleanClientName !== cleanBizName && (
+                          <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
+                            <span className="text-[var(--text-muted)] font-bold text-[11px]">المسؤول / صاحب المكان:</span>
+                            <span className="font-bold text-[var(--text-primary)]">{cleanClientName}</span>
+                          </div>
+                        )}
+
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
+                          <span className="text-[var(--text-muted)] font-bold text-[11px]">المندوب المسجل:</span>
+                          <span className="font-bold text-[var(--text-secondary)] truncate max-w-[140px]">{lead.repName}</span>
+                        </div>
+
+                        <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
+                          <span className="text-[var(--text-muted)] font-bold text-[11px]">مستوى الاهتمام:</span>
+                          <div>{getInterestBadge(lead.interestLevel)}</div>
+                        </div>
+
+                        {lead.street && (
+                          <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] flex items-center justify-between sm:col-span-2">
+                            <span className="text-[var(--text-muted)] font-bold text-[11px]">الشارع / العنوان:</span>
+                            <span className="font-bold text-[var(--text-primary)]">{lead.street}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Map Location Link */}
+                      {((lead.lat && lead.lng) || lead.locationUrl) && (
+                        <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/25 rounded-xl">
+                          <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-bold text-[11px] text-emerald-800 dark:text-emerald-300">نقطة الخريطة الجغرافية محددة:</span>
+                          <a
+                            href={sanitizeExternalUrl(lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold text-[11px] inline-flex items-center gap-1 mr-auto"
+                          >
+                            <span>فتح الرابط في خرائط Google</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Notes snippet & Map Link Button */}
+                      {cleanText && (
+                        <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 rounded-xl text-xs text-[var(--text-secondary)] leading-relaxed break-words">
+                          <strong className="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mb-0.5">ملاحظات الزيارة الميدانية:</strong>
+                          {cleanText}
+                        </div>
+                      )}
+
+                      {mapUrl && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(linkId, mapUrl)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 dark:text-blue-300 text-[11px] font-bold transition-colors cursor-pointer"
+                            title="نسخ رابط الخريطة"
+                          >
+                            {copiedLinkId === linkId ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedLinkId === linkId ? 'تم النسخ' : 'نسخ رابط الخريطة'}</span>
+                          </button>
+                          <a
+                            href={sanitizeExternalUrl(mapUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 dark:text-green-300 text-[11px] font-bold transition-colors"
+                          >
+                            <MapPin className="w-3 h-3" />
+                            <span>فتح الخريطة</span>
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Admin Follow-ups */}
+                      {lead.adminFollowUps && lead.adminFollowUps.length > 0 && (
+                        <div className="bg-purple-500/10 border border-purple-500/25 p-2.5 rounded-xl text-xs text-purple-950 dark:text-purple-200 space-y-1">
+                          <div className="flex items-center justify-between font-bold text-[10px] text-purple-700 dark:text-purple-300">
+                            <span className="flex items-center gap-1">
+                              <span>آخر متابعة إدارية:</span>
+                              <strong className="text-[var(--text-primary)]">{lead.adminFollowUps[0].authorName}</strong>
+                            </span>
+                            <span className="font-mono text-[9px]">{formatActivityDateTime(lead.adminFollowUps[0].createdAt)}</span>
+                          </div>
+                          <p className="line-clamp-2 font-medium">{lead.adminFollowUps[0].text}</p>
+                        </div>
+                      )}
+
+                      {/* Full Action Toolbar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-color)]">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* Call */}
+                          <a
+                            href={`tel:${lead.phone}`}
+                            className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-primary)] font-bold px-3 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1.5 transition-colors text-xs"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-amber-500" />
+                            <span>اتصال</span>
+                          </a>
+
+                          {/* Follow-up Notes */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFollowUpLead(lead)}
+                            className="bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 font-black px-3 py-1.5 rounded-xl border border-purple-500/30 shadow-xs flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 text-xs"
+                            title="عرض وتسجيل المتابعات والملاحظات الإدارية"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>متابعات ({lead.adminFollowUps?.length || 0})</span>
+                          </button>
+
+                          {/* Direct Convert to Business */}
+                          {onDirectConvertLead && lead.status !== 'converted' && (
+                            <button
+                              type="button"
+                              onClick={() => onDirectConvertLead(lead)}
+                              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 text-xs"
+                              title="تحويل فوري إلى نشاط معتمد وموثق بالدليل بدون رسوم"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>تحويل فوري لتسجيل معتمد</span>
+                            </button>
+                          )}
+
+                          {/* Open in full Registration Form */}
+                          {lead.status !== 'converted' && (
+                            <button
+                              type="button"
+                              onClick={() => onConvertToBusiness(lead)}
+                              className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 cursor-pointer transition-transform active:scale-95 text-xs"
+                              title="فتح نموذج التسجيل وتعبئة البيانات يدوياً خطوة بخطوة"
+                            >
+                              <FileText className="w-3 h-3 text-amber-500" />
+                              <span>فتح بالنموذج الكامل</span>
+                            </button>
+                          )}
+
+                          {lead.status === 'converted' && (
+                            <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs px-2.5 py-1.5 rounded-xl border border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>تم التحويل لمشترك معتمد</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Edit and Delete */}
+                        <div className="flex items-center gap-1 mr-auto">
+                          <button
+                            type="button"
+                            onClick={() => setEditingLead(lead)}
+                            className="p-1.5 rounded-lg bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 transition-colors cursor-pointer"
+                            title="تعديل بيانات العميل وحالة المتابعة"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`هل أنت متأكد من حذف الشخص المهتم "${lead.clientName}"؟`)) {
+                                onDeleteLead(lead.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-600 transition-colors cursor-pointer"
+                            title="حذف هذا السجل"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })
           )}
         </div>
       </div>
-
-      {/* ========================================================
-          MODAL: ADD NEW INTERESTED LEAD
-          ======================================================== */}
-      {showAddLeadModal &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
-            <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 space-y-4 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
-                    <UserCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-base text-[var(--text-primary)]">
-                      تسجيل شخص مهتم / زيارة جديدة
-                    </h3>
-                    <p className="text-[11px] text-[var(--text-muted)] font-bold">
-                      حفظ بيانات الشخص في سجل المراجعات دون طلب باقة حالياً
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddLeadModal(false)}
-                  className="w-8 h-8 rounded-full bg-[var(--input-bg)] hover:bg-rose-500/20 text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center font-bold cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {formError && (
-                <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl font-bold text-xs">
-                  {formError}
-                </div>
-              )}
-
-              <form onSubmit={handleAddLeadSubmit} className="space-y-3">
-                {/* Mode Selector: Normal Lead vs Trending Free Directory */}
-                <div className="grid grid-cols-2 gap-2 bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--border-color)]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewIsTrending(false);
-                      if (newInterestLevel === 'trending_free') setNewInterestLevel('medium');
-                    }}
-                    className={`py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      !newIsTrending
-                        ? 'bg-amber-500 text-slate-950 shadow-md'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>عميل مهتم عادي</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewIsTrending(true);
-                      setNewInterestLevel('trending_free');
-                    }}
-                    className={`py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      newIsTrending
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>منشأة رائجة (إدراج مجاني) 🌟</span>
-                  </button>
-                </div>
-
-                {newIsTrending && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3 text-xs text-emerald-950 dark:text-emerald-200 space-y-1">
-                    <div className="font-black flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
-                      <Sparkles className="w-4 h-4 text-emerald-500" />
-                      <span>منشأة أكثر رواجاً بالمنطقة (طلب سماح بإدراج شرفي مجاني)</span>
-                    </div>
-                    <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                      يتم حفظ المنشأة في سجل المراجعات للتواصل وطلب الإذن بنشر المكان بالدليل مجاناً تماماً وبدون أي رسوم أو اشتراكات.
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">
-                    {newIsTrending ? 'اسم المسؤول / صاحب المكان *' : 'اسم الشخص / صاحب المنشأة *'}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="مثال: أ. محمد أحمد"
-                    value={newClientName}
-                    onChange={(e) => setNewClientName(e.target.value)}
-                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">اسم المكان / المحل *</label>
-                    <input
-                      type="text"
-                      required={newIsTrending}
-                      placeholder="مثال: مطعم أو كافيه أو متجر..."
-                      value={newBizName}
-                      onChange={(e) => setNewBizName(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">رقم الهاتف / واتساب *</label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="010XXXXXXXX"
-                      value={newPhone}
-                      onChange={(e) => setNewPhone(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
-                    />
-                    {duplicateNewPhone && (
-                      <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                        <span>
-                          ⛔ مسجل مسبقاً مع {duplicateNewPhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicateNewPhone.name} {duplicateNewPhone.location ? `(${duplicateNewPhone.location})` : ''}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المحافظة *</label>
-                    <select
-                      value={newGovernorate}
-                      onChange={(e) => setNewGovernorate(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    >
-                      {EGYPT_GOVERNORATES.map((gov) => (
-                        <option key={gov} value={gov}>
-                          {gov}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">المدينة / المنطقة</label>
-                    <input
-                      type="text"
-                      placeholder="مثال: الدقي / المهندسين"
-                      value={newCity}
-                      onChange={(e) => setNewCity(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Category Selection */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">مجموعة الأنشطة *</label>
-                    <select
-                      value={newGroup}
-                      onChange={(e) => {
-                        const grpName = e.target.value;
-                        setNewGroup(grpName);
-                        const found = CATEGORY_GROUPS.find((g) => g.group === grpName);
-                        if (found && found.items.length > 0) {
-                          setNewCategory(found.items[0]);
-                        }
-                      }}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    >
-                      {CATEGORY_GROUPS.map((g) => (
-                        <option key={g.group} value={g.group}>
-                          {g.icon} {g.group}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">نوع النشاط والتصنيف *</label>
-                    <select
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    >
-                      {(CATEGORY_GROUPS.find((g) => g.group === newGroup)?.items || []).map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">درجة الاهتمام</label>
-                    <select
-                      value={newInterestLevel}
-                      onChange={(e) => {
-                        const val = e.target.value as LeadInterestLevel;
-                        setNewInterestLevel(val);
-                        if (val === 'trending_free') setNewIsTrending(true);
-                      }}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    >
-                      <option value="trending_free">🌟 منشأة رائجة (طلب سماح بإدراج مجاني)</option>
-                      <option value="high">🔥 مهتم جداً (أولوية عالية)</option>
-                      <option value="medium">⏳ يحتاج تفكير ومتابعة</option>
-                      <option value="need_visit">📅 طلب زيارة ميدانية قادمة</option>
-                      <option value="intro_sent">💬 طلب إرسال رسالة تعريفية</option>
-                      <option value="low">متردد / استفسار عام</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">تاريخ المتابعة المقترح</label>
-                    <input
-                      type="date"
-                      value={newFollowUpDate}
-                      onChange={(e) => setNewFollowUpDate(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                    />
-                  </div>
-                </div>
-
-                {newIsTrending && (
-                  <div>
-                    <label className="block font-bold mb-1 text-[var(--text-primary)]">
-                      رابط خرائط Google للمنشأة أو موقعها (اختياري)
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://maps.google.com/?q=..."
-                      value={newLocationUrl}
-                      onChange={(e) => setNewLocationUrl(e.target.value)}
-                      className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block font-bold mb-1 text-[var(--text-primary)]">ملاحظات المتابعة (اختياري)</label>
-                  <textarea
-                    rows={2}
-                    placeholder="مثال: العميل طلب التفكير ومراجعة الشركاء، سيتم مراسلته بالأسعار..."
-                    value={newNotes}
-                    onChange={(e) => setNewNotes(e.target.value)}
-                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-2 border-t border-[var(--border-color)]">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black py-3 rounded-xl shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-4 h-4 stroke-[3]" />
-                    <span>حفظ في سجل المراجعات 📋</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAddLeadModal(false)}
-                    className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold py-3 px-4 rounded-xl border border-[var(--border-color)] cursor-pointer"
-                  >
-                    إلغاء
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )}
 
       {/* ========================================================
           MODAL: EDIT LEAD / UPDATE STATUS

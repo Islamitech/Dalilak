@@ -211,6 +211,143 @@ export function getGroupFromCategory(catName?: string): CategoryGroup | undefine
   return CATEGORY_GROUPS.find((g) => g.items.includes(catName));
 }
 
+/**
+ * تطبيع النص العربي للبحث والمطابقة الذكية
+ */
+function normalizeArabicTaxonomy(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[\u064B-\u065F]/g, '') // إزالة التشكيل
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/[ة]/g, 'ه')
+    .replace(/[ى]/g, 'ي')
+    .replace(/[\/\\\-_,\.]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * دالة المطابقة الذكية للربط بين مدخلات Google Maps والتصنيفات المعتمدة في دليلك
+ */
+export function findClosestCategory(rawCategory?: string | null): { category: string; group: string } | null {
+  if (!rawCategory || typeof rawCategory !== 'string') return null;
+  const trimmed = rawCategory.trim();
+  if (!trimmed || trimmed === 'عميل مهتم' || trimmed === 'عملاء مهتمون') return null;
+
+  // 1. المطابقة الدقيقة الحرفية في عناصر المجموعات
+  for (const groupObj of CATEGORY_GROUPS) {
+    if (groupObj.items.includes(trimmed)) {
+      return { category: trimmed, group: groupObj.group };
+    }
+  }
+
+  const normalizedRaw = normalizeArabicTaxonomy(trimmed);
+  if (!normalizedRaw) return null;
+
+  // 2. مطابقة باختصارات المظلة الشائعة من Google Maps
+  const COMMON_ALIASES: Array<{ terms: string[]; category: string; group: string }> = [
+    {
+      terms: ['ملابس', 'متجر ملابس', 'محل ملابس', 'ازياء', 'clothing store', 'clothing', 'fashion store', 'apparel', 'clothes'],
+      category: 'محل ملابس رجالي وبدل',
+      group: 'الملابس والأزياء والإكسسوارات'
+    },
+    {
+      terms: ['سوق', 'اسواق', 'ماركت', 'market', 'bazaar', 'بازار', 'معرض تجاري', 'سوبرماركت', 'هايبر'],
+      category: 'سوبر ماركت / هايبر وبقالة',
+      group: 'المطاعم والأغذية والمشروبات'
+    },
+    {
+      terms: ['مطعم', 'restaurant', 'مشاوي', 'مشويات', 'ماكولات', 'وجبات', 'diner'],
+      category: 'مطعم / مأكولات ومشويات',
+      group: 'المطاعم والأغذية والمشروبات'
+    },
+    {
+      terms: ['كافيه', 'مقهى', 'مقهي', 'قهوه', 'كوفي', 'cafe', 'coffee'],
+      category: 'كافيه / مقهى وكوفي شوب',
+      group: 'المطاعم والأغذية والمشروبات'
+    },
+    {
+      terms: ['صيدلية', 'صيدليه', 'pharmacy', 'drugstore'],
+      category: 'صيدلية وخدمات دوائية',
+      group: 'العيادات والرعاية الصحية والطبية'
+    },
+    {
+      terms: ['عيادة', 'عياده', 'مركز طبي', 'مستوصف', 'clinic'],
+      category: 'عيادة طبية / مركز تخصصي',
+      group: 'العيادات والرعاية الصحية والطبية'
+    },
+    {
+      terms: ['حلاقة', 'حلاقه', 'حلاق', 'صالون رجالي', 'barber'],
+      category: 'صالون حلاقة رجالي وعناية',
+      group: 'التجميل والعناية الشخصية واللياقة'
+    },
+    {
+      terms: ['جيم', 'لياقة', 'لياقه', 'فيتنس', 'gym', 'fitness'],
+      category: 'جيم وصالة لياقة بدنية (Fitness)',
+      group: 'التجميل والعناية الشخصية واللياقة'
+    },
+    {
+      terms: ['فندق', 'منتجع', 'hotel', 'resort'],
+      category: 'فندق وشقق فندقية ومنتجعات',
+      group: 'السياحة والفنادق والمناسبات'
+    }
+  ];
+
+  for (const alias of COMMON_ALIASES) {
+    for (const term of alias.terms) {
+      const normTerm = normalizeArabicTaxonomy(term);
+      if (normalizedRaw === normTerm || normalizedRaw.includes(normTerm) || normTerm.includes(normalizedRaw)) {
+        return { category: alias.category, group: alias.group };
+      }
+    }
+  }
+
+  // 3. المطابقة بالتطبيع الكامل ومطابقة الكلمات المفتاحية
+  const rawWords = normalizedRaw.split(' ').map(w => (w.startsWith('ال') && w.length > 3 ? w.slice(2) : w)).filter(w => w.length >= 3);
+
+  let bestMatch: { category: string; group: string; score: number } | null = null;
+
+  for (const groupObj of CATEGORY_GROUPS) {
+    for (const item of groupObj.items) {
+      const normItem = normalizeArabicTaxonomy(item);
+
+      // تطابق نصي تام بعد التطبيع
+      if (normItem === normalizedRaw) {
+        return { category: item, group: groupObj.group };
+      }
+
+      // تطابق احتواء كامل
+      if (normItem.includes(normalizedRaw) || normalizedRaw.includes(normItem)) {
+        return { category: item, group: groupObj.group };
+      }
+
+      // حساب تطابق الكلمات الفردية
+      const itemWords = normItem.split(' ').map(w => (w.startsWith('ال') && w.length > 3 ? w.slice(2) : w)).filter(w => w.length >= 3);
+      let matchedWordCount = 0;
+
+      for (const rw of rawWords) {
+        if (itemWords.includes(rw)) {
+          matchedWordCount += 1;
+        }
+      }
+
+      if (matchedWordCount > 0) {
+        if (!bestMatch || matchedWordCount > bestMatch.score) {
+          bestMatch = { category: item, group: groupObj.group, score: matchedWordCount };
+        }
+      }
+    }
+  }
+
+  if (bestMatch) {
+    return { category: bestMatch.category, group: bestMatch.group };
+  }
+
+  return null;
+}
+
+
 export const PACKAGES: PackageOption[] = [
   {
     id: 'pkg_basic',

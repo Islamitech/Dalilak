@@ -24,7 +24,7 @@ import {
   ShowcaseBusinessDetailModal,
   ShowcasePhotoLightbox,
 } from './showcase';
-import { InteractiveOnboardingExperience } from './onboarding/InteractiveOnboardingExperience';
+import { CinematicHeroTour, CinematicTourStep } from './onboarding/CinematicHeroTour';
 import { MessageCircle } from 'lucide-react';
 
 export interface PublicShowcaseProps {
@@ -45,13 +45,21 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
 
-  // Interactive Onboarding Experience State («دليلك يبدأ من مكانك»)
+  // Cinematic Interactive In-Situ Onboarding Tour State
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     if (isPreviewMode || initialBizId) return false;
     try {
       return !localStorage.getItem('dalelak_onboarding_completed');
     } catch {
       return false;
+    }
+  });
+  const [tourStep, setTourStep] = useState<CinematicTourStep | null>(() => {
+    if (isPreviewMode || initialBizId) return null;
+    try {
+      return !localStorage.getItem('dalelak_onboarding_completed') ? 'welcome' : null;
+    } catch {
+      return null;
     }
   });
 
@@ -864,11 +872,26 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-300">
-      {/* 0. Interactive Onboarding Experience (Guided Wizard) */}
+      {/* 0. Cinematic In-Situ Walkthrough Tour */}
       {showOnboarding && (
-        <InteractiveOnboardingExperience
-          onComplete={handleOnboardingComplete}
-          onSkip={handleSkipOnboarding}
+        <CinematicHeroTour
+          isActive={showOnboarding}
+          onComplete={() => {
+            setShowOnboarding(false);
+            setTourStep(null);
+          }}
+          onSkip={() => {
+            setShowOnboarding(false);
+            setTourStep(null);
+          }}
+          onSelectSuggestion={(sug) => {
+            setSearchQuery(sug);
+          }}
+          onSelectGovernorate={(gov) => {
+            setGovFilter(gov);
+          }}
+          currentGov={govFilter}
+          onStepChange={(st) => setTourStep(st)}
         />
       )}
 
@@ -877,7 +900,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         theme={theme}
         toggleTheme={toggleTheme}
         onOpenPackagesModal={openPackagesModal}
-        onReopenOnboarding={() => setShowOnboarding(true)}
+        onReopenOnboarding={() => {
+          setShowOnboarding(true);
+          setTourStep('welcome');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
       {/* 2. Hero & Search Hub */}
@@ -915,6 +942,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         onOpenPackagesModal={openPackagesModal}
         activeView={activeView}
         setActiveView={setActiveView}
+        isTourActive={showOnboarding}
+        tourStep={tourStep}
       />
 
       {/* 3. Directory Showcase Cards & Map */}

@@ -3,7 +3,14 @@ import { InterestedLead, LeadInterestLevel, Representative, Business } from '../
 import { saveLeadToDb } from '../../services/db';
 import { InteractiveMap } from '../InteractiveMap';
 import { triggerHaptic } from '../../utils/haptics';
-import { EGYPT_GOVERNORATES } from '../../data/mockData';
+import {
+  EGYPT_GOVERNORATES,
+  CATEGORY_GROUPS,
+  BUSINESS_CATEGORIES,
+  findClosestCategory,
+  getGroupFromCategory,
+} from '../../data/mockData';
+import { getCategoryGroupFor } from '../../utils/categoryMatcher';
 import {
   UserCheck,
   CheckCircle2,
@@ -18,6 +25,7 @@ import {
   Sparkles,
   Zap,
   AlertTriangle,
+  Tag,
 } from 'lucide-react';
 import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsappMessages';
 import { extractGooglePlaceData, isGoogleMapsUrl } from '../../utils/googlePlaceExtractor';
@@ -58,7 +66,11 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   const [isLocatingLead, setIsLocatingLead] = useState<boolean>(false);
   const [leadLocationNotice, setLeadLocationNotice] = useState<string | null>(null);
 
-  const [leadCategory, setLeadCategory] = useState<string>('');
+  // 🏷️ Category Selection & Mapping State
+  const [leadCategory, setLeadCategory] = useState<string>('نشاط تجاري / خدمي آخر');
+  const [leadSelectedGroup, setLeadSelectedGroup] = useState<string>('أنشطة وخدمات عامة أخرى');
+  const [leadGoogleCategoryRaw, setLeadGoogleCategoryRaw] = useState<string | null>(null);
+
   const [leadGoogleUrl, setLeadGoogleUrl] = useState<string>('');
   const [isExtractingLead, setIsExtractingLead] = useState<boolean>(false);
   const [leadExtractNotice, setLeadExtractNotice] = useState<string | null>(null);
@@ -82,10 +94,22 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
             setLeadClientName(`مسؤول ${data.name}`);
           }
         }
-        setIsTrendingLead(true);
-        setLeadInterest('trending_free');
+        // Keep current trending choice; do not force isTrendingLead to true (Fixes Hidden Bug #2)
+        if (isTrendingLead) {
+          setLeadInterest('trending_free');
+        }
         if (data.phone) setLeadPhone(data.phone);
-        if (data.category) setLeadCategory(data.category);
+
+        // 🏷️ Smart Category Extraction & Authentic Preservation
+        let resolvedCategory = '';
+        if (data.category) {
+          const cleanCat = data.category.trim();
+          setLeadCategory(cleanCat);
+          const inferredGroup = getCategoryGroupFor(cleanCat);
+          setLeadSelectedGroup(inferredGroup);
+          setLeadGoogleCategoryRaw(null);
+          resolvedCategory = cleanCat;
+        }
         if (data.governorate) setLeadGov(data.governorate);
         if (data.city) setLeadCity(data.city);
         if (data.street || data.address) setLeadStreet(data.street || data.address || '');
@@ -100,7 +124,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
 
         const summaryParts = [
           data.name ? `الاسم: ${data.name}` : null,
-          data.category ? `🏷️ التصنيف: ${data.category}${data.group ? ` (${data.group})` : ''}` : null,
+          data.category ? `🏷️ التصنيف: ${resolvedCategory || data.category}` : null,
           data.phone ? `الهاتف: ${data.phone}` : null,
           data.city ? `المنطقة: ${data.city}` : null,
         ]
@@ -232,11 +256,14 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         ? rawClient
         : (finalBizName ? `مسؤول ${finalBizName}` : 'صاحب المنشأة');
 
+      // Retain authentic category as extracted or chosen
+      const finalCategory = leadCategory.trim() || leadGoogleCategoryRaw?.trim() || 'نشاط تجاري / خدمي آخر';
+
       const lead: InterestedLead = {
         id: `lead_${Date.now()}`,
         clientName: finalClientName,
         businessName: finalBizName,
-        businessCategory: leadCategory.trim() || undefined,
+        businessCategory: finalCategory,
         phone: leadPhone.trim(),
         governorate: leadGov,
         city: leadCity.trim() || undefined,
@@ -463,6 +490,74 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
               onChange={(e) => setLeadBizName(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500"
             />
+          </div>
+        </div>
+
+        {/* 🏷️ القسم والتصنيف المعتمد (مع تنبيه حالة التصنيف المستخرج من Google) */}
+        <div className="space-y-2 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+          {leadGoogleCategoryRaw && (
+            <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-200 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>
+                ⚠️ تصنيف Google المستخرج: <strong>"{leadGoogleCategoryRaw}"</strong> — يرجى اختيار التصنيف المعتمد من القائمة أدناه:
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block font-bold mb-1 text-[var(--text-primary)]">
+                القسم الرئيسي للنشاط *
+              </label>
+              <select
+                value={leadSelectedGroup}
+                onChange={(e) => {
+                  const newGrp = e.target.value;
+                  setLeadSelectedGroup(newGrp);
+                  const grpObj = CATEGORY_GROUPS.find((g) => g.group === newGrp);
+                  if (grpObj && grpObj.items.length > 0) {
+                    setLeadCategory(grpObj.items[0]);
+                  }
+                }}
+                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-bold focus:outline-none focus:border-emerald-500 cursor-pointer text-xs"
+              >
+                {CATEGORY_GROUPS.map((g) => (
+                  <option key={g.group} value={g.group}>
+                    {g.icon} {g.group}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-bold mb-1 text-[var(--text-primary)] flex items-center justify-between">
+                <span>التخصص / التصنيف المعتمد *</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                  معتمد بدليلك
+                </span>
+              </label>
+              {(() => {
+                const grpObj = CATEGORY_GROUPS.find((g) => g.group === leadSelectedGroup) || CATEGORY_GROUPS[CATEGORY_GROUPS.length - 1];
+                return (
+                  <select
+                    value={leadCategory}
+                    onChange={(e) => setLeadCategory(e.target.value)}
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-emerald-700 dark:text-emerald-300 font-black rounded-xl p-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer text-xs"
+                  >
+                    {leadCategory && !grpObj.items.includes(leadCategory) && (
+                      <option value={leadCategory}>
+                        {leadCategory} (تصنيف خرائط Google)
+                      </option>
+                    )}
+                    {grpObj.items.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                );
+              })()}
+            </div>
           </div>
         </div>
 

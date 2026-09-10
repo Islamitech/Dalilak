@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
-import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG } from './src/data/mockData.js';
+import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG, BUSINESS_CATEGORIES } from './src/data/mockData.js';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from './src/types.js';
 
 const app = express();
@@ -1149,10 +1149,17 @@ app.post('/api/businesses', (req, res) => {
 
     const newBiz: Business = req.body;
 
-    // 🛡️ Input Validation: التحقق من الحقول المطلوبة
-    const validationError = validateRequiredFields(req.body, ['nameAr', 'phone']);
+    // 🛡️ Input Validation: التحقق من الحقول المطلوبة والتصنيف المعتمد
+    const validationError = validateRequiredFields(req.body, ['nameAr', 'phone', 'category']);
     if (validationError) {
       return res.status(400).json({ error: validationError });
+    }
+
+    // Clean and preserve authentic category
+    if (!newBiz.category || typeof newBiz.category !== 'string' || !newBiz.category.trim()) {
+      newBiz.category = 'نشاط تجاري / خدمي آخر';
+    } else {
+      newBiz.category = newBiz.category.trim();
     }
 
     if (!newBiz.id) {

@@ -3,6 +3,7 @@ import { Business, User } from '../../types';
 import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../../data/mockData';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../../utils/dateFormatters';
 import { matchesBusinessSearch } from '../../utils/arabicSearch';
+import { matchesCategoryFilter } from '../../utils/categoryMatcher';
 import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsappMessages';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
@@ -172,15 +173,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         if (govFilter !== 'all' && !(b.governorate || '').includes(govFilter)) {
           return false;
         }
-        if (categoryFilter !== 'all') {
-          const grp = CATEGORY_GROUPS.find((g) => g.group === categoryFilter);
-          if (grp) {
-            if (!grp.items.includes(b.category) && !b.category.includes(categoryFilter)) {
-              return false;
-            }
-          } else if (!b.category.includes(categoryFilter)) {
-            return false;
-          }
+        if (categoryFilter !== 'all' && !matchesCategoryFilter(b, categoryFilter)) {
+          return false;
         }
         if (verificationFilter === 'fully_paid') {
           if (!b.isFeeExempt && b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;

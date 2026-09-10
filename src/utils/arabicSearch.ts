@@ -101,5 +101,13 @@ export function matchesBusinessSearch(biz: Business, rawQuery: string): boolean 
     return true;
   }
 
+  // 7. Semantic Description & Notes (e.g. searching specific goods/services described in details)
+  if (
+    matchesArabicSearch(biz.description, normQ) ||
+    matchesArabicSearch(biz.notes, normQ)
+  ) {
+    return true;
+  }
+
   return false;
 }

@@ -478,6 +478,23 @@ export default function App() {
         {/* TAB 3: REGISTER NEW BUSINESS FORM */}
         {activeTab === 'add' && (
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-10 h-10 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
+            {convertingLead && (
+              <div className="max-w-4xl mx-auto mb-4 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-yellow-500/15 border border-amber-500/40 rounded-2xl p-3 flex items-center justify-between gap-3 animate-fade-in text-xs shadow-xs">
+                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>
+                    جاري تحويل بيانات: <strong>"{convertingLead.businessName || convertingLead.clientName}"</strong> إلى تسجيل نشاط.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConvertingLead(null)}
+                  className="bg-[var(--input-bg)] hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-black px-3 py-1 rounded-xl border border-[var(--border-color)] transition-colors cursor-pointer shrink-0 text-xs"
+                >
+                  إلغاء وبدء استمارة فارغة
+                </button>
+              </div>
+            )}
             <BusinessForm
               currentUser={user}
               onSubmitBusiness={(newBiz) => {

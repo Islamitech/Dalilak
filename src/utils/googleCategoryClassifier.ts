@@ -128,6 +128,15 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
     ],
     weight: 18
   },
+  {
+    group: 'الملابس والأزياء والإكسسوارات',
+    category: 'محل ملابس رجالي وبدل',
+    keywords: [
+      'ملابس', 'متجر ملابس', 'محل ملابس', 'ملبوسات', 'أزياء', 'ازياء',
+      'clothing store', 'clothing', 'fashion store', 'apparel', 'clothes shop', 'clothes'
+    ],
+    weight: 8
+  },
 
   // ── 2. المطاعم والأغذية والمشروبات ──
   {
@@ -156,6 +165,15 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
       'supermarket', 'hypermarket', 'grocery', 'mart'
     ],
     weight: 18
+  },
+  {
+    group: 'المطاعم والأغذية والمشروبات',
+    category: 'سوبر ماركت / هايبر وبقالة',
+    keywords: [
+      'سوق', 'سويقة', 'سويقه', 'أسواق', 'اسواق',
+      'market', 'bazaar', 'بازار', 'معرض تجاري'
+    ],
+    weight: 8
   },
   {
     group: 'المطاعم والأغذية والمشروبات',
@@ -217,6 +235,15 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
   },
 
   // ── 3. العيادات والرعاية الصحية والطبية ──
+  {
+    group: 'العيادات والرعاية الصحية والطبية',
+    category: 'عيادة طبية / مركز تخصصي',
+    keywords: [
+      'عيادة', 'عياده', 'مركز طبي', 'مجمع طبي', 'عيادات',
+      'clinic', 'medical center', 'polyclinic', 'medical clinic'
+    ],
+    weight: 8
+  },
   {
     group: 'العيادات والرعاية الصحية والطبية',
     category: 'صيدلية وخدمات دوائية',
@@ -862,6 +889,14 @@ const GOOGLE_TAXONOMY_RULES: TaxonomyRule[] = [
       'charity', 'ngo'
     ],
     weight: 21
+  },
+  {
+    group: 'أنشطة وخدمات عامة أخرى',
+    category: 'نشاط تجاري / خدمي آخر',
+    keywords: [
+      'متجر', 'محل', 'دكان', 'معرض', 'store', 'shop'
+    ],
+    weight: 4
   }
 ];
 

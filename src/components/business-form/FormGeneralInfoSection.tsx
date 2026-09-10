@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
-import { CATEGORY_GROUPS, EGYPT_GOVERNORATES } from '../../data/mockData';
+import { CATEGORY_GROUPS, EGYPT_GOVERNORATES, getGroupFromCategory } from '../../data/mockData';
 
 interface FormGeneralInfoSectionProps {
   nameAr: string;
@@ -28,6 +28,7 @@ export const FormGeneralInfoSection: React.FC<FormGeneralInfoSectionProps> = ({
   setGovernorate,
 }) => {
   const currentGroupObj = CATEGORY_GROUPS.find((g) => g.group === selectedGroup) || CATEGORY_GROUPS[0];
+  const isKnownCategory = getGroupFromCategory(category) !== undefined;
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-md transition-colors duration-300">
@@ -96,6 +97,11 @@ export const FormGeneralInfoSection: React.FC<FormGeneralInfoSectionProps> = ({
             onChange={(e) => setCategory(e.target.value)}
             className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm text-xs sm:text-sm cursor-pointer"
           >
+            {!isKnownCategory && category && (
+              <option value={category} className="text-emerald-600 font-bold">
+                {category} (تصنيف خرائط Google)
+              </option>
+            )}
             {currentGroupObj.items.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
