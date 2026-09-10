@@ -10,6 +10,8 @@ export interface ActiveFilterChipsProps {
   onClearCity: () => void;
   openNowOnly: boolean;
   onClearOpenNow: () => void;
+  hasVideoOnly?: boolean;
+  onClearHasVideo?: () => void;
   sortBy: string;
   onClearSort: () => void;
   onResetAll: () => void;
@@ -25,6 +27,8 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
   onClearCity,
   openNowOnly,
   onClearOpenNow,
+  hasVideoOnly = false,
+  onClearHasVideo,
   sortBy,
   onClearSort,
   onResetAll,
@@ -89,6 +93,22 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
           >
             <X className="w-2.5 h-2.5" />
           </button>
+        </span>
+      )}
+
+      {hasVideoOnly && (
+        <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-900 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-bold animate-fade-in">
+          <span>يحتوي على فيديو</span>
+          {onClearHasVideo && (
+            <button
+              type="button"
+              onClick={onClearHasVideo}
+              className="w-4 h-4 rounded-full hover:bg-purple-200 flex items-center justify-center cursor-pointer transition-colors"
+              title="إلغاء هذا الفلتر"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          )}
         </span>
       )}
 

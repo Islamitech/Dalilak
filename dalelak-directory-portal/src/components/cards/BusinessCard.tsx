@@ -107,28 +107,35 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
         </button>
 
-        {/* Bottom-Left (Inside Photo): Distance or Video indicator */}
+        {/* Center (Inside Photo): Video Play Button Overlay */}
+        {business.videos && business.videos.length > 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenVideoModal) {
+                  onOpenVideoModal(business);
+                } else {
+                  onOpenBusiness(business);
+                }
+              }}
+              className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-950/65 hover:bg-amber-500 text-white hover:text-slate-950 border-2 border-white/90 hover:border-amber-400 backdrop-blur-md shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 group/play cursor-pointer"
+              title="مشاهدة الفيديو التعريفي"
+              aria-label={`مشاهدة الفيديو التعريفي لـ ${business.nameAr}`}
+            >
+              <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current translate-x-[-1px] group-hover/play:scale-110 transition-transform" />
+            </button>
+          </div>
+        )}
+
+        {/* Bottom-Left (Inside Photo): Distance indicator */}
         <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5">
           {distanceKm !== null && (
             <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-900/60 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
               <Compass className="w-3 h-3 text-amber-400 shrink-0" />
               <span>{formatDistanceString(distanceKm)}</span>
             </span>
-          )}
-
-          {business.videos && business.videos.length > 0 && onOpenVideoModal && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenVideoModal(business);
-              }}
-              className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-950/60 text-purple-300 border border-purple-500/30 backdrop-blur-md shadow-xs hover:bg-purple-900/80 cursor-pointer"
-              title="فيديو تعريفي"
-            >
-              <Play className="w-2.5 h-2.5 fill-purple-300" />
-              <span>فيديو</span>
-            </button>
           )}
         </div>
       </div>

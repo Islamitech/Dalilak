@@ -114,6 +114,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
         onSortChange={onSortChange}
         openNowOnly={openNowOnly}
         onToggleOpenNow={onToggleOpenNow}
+        hasVideoOnly={hasVideoOnly}
+        onToggleHasVideo={onToggleHasVideo}
         onOpenFilterDrawer={() => setDrawerOpen(true)}
         activeFiltersCount={activeFiltersCount}
         showViewToggle={true}
@@ -132,6 +134,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
         onClearCity={() => onCityChange('all')}
         openNowOnly={openNowOnly}
         onClearOpenNow={onToggleOpenNow}
+        hasVideoOnly={hasVideoOnly}
+        onClearHasVideo={onToggleHasVideo}
         sortBy={sortBy}
         onClearSort={() => onSortChange('default')}
         onResetAll={onResetAllFilters}

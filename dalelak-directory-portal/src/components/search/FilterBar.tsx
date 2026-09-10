@@ -14,6 +14,7 @@ import {
   Compass,
   Layers,
   Map as MapIcon,
+  Video,
 } from 'lucide-react';
 
 export interface FilterBarProps {
@@ -23,6 +24,8 @@ export interface FilterBarProps {
   onSortChange: (sort: 'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha') => void;
   openNowOnly: boolean;
   onToggleOpenNow: () => void;
+  hasVideoOnly?: boolean;
+  onToggleHasVideo?: () => void;
   onOpenFilterDrawer: () => void;
   activeFiltersCount: number;
   activeView?: 'grid' | 'map';
@@ -48,6 +51,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onSortChange,
   openNowOnly,
   onToggleOpenNow,
+  hasVideoOnly = false,
+  onToggleHasVideo,
   onOpenFilterDrawer,
   activeFiltersCount,
   activeView = 'grid',
@@ -129,6 +134,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <Compass className={`w-3.5 h-3.5 ${sortBy === 'nearest' ? 'text-blue-600' : 'text-slate-400'}`} />
             <span>الأقرب أولاً</span>
           </button>
+
+          {/* Quick Toggle: Has Video */}
+          {onToggleHasVideo && (
+            <button
+              type="button"
+              onClick={onToggleHasVideo}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
+                hasVideoOnly
+                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-800'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+              title="عرض الأنشطة التي تحتوي على فيديو تعريفي فقط"
+            >
+              <Video className={`w-3.5 h-3.5 ${hasVideoOnly ? 'text-purple-600' : 'text-slate-400'}`} />
+              <span>فيديو</span>
+            </button>
+          )}
         </div>
 
         {/* Right: Sort Dropdown & View Mode Switcher */}

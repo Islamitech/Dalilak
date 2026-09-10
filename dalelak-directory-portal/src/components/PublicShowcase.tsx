@@ -352,15 +352,15 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       return [...list].sort((a, b) => (a.nameAr || '').localeCompare(b.nameAr || '', 'ar'));
     }
 
-    // Default Sorting ('default'):
+    // Default Sorting ('default'): Unbiased, natural listing (no video forcing)
     return [...list].sort((a, b) => {
       const aFeatured = a.isFeatured || a.partnerStatus === 'certified' ? 1 : 0;
       const bFeatured = b.isFeatured || b.partnerStatus === 'certified' ? 1 : 0;
       if (bFeatured !== aFeatured) return bFeatured - aFeatured;
 
-      const aMedia = (a.photos?.length || 0) + (a.videos?.length || 0) * 2;
-      const bMedia = (b.photos?.length || 0) + (b.videos?.length || 0) * 2;
-      if (bMedia !== aMedia) return bMedia - aMedia;
+      const aHasPhoto = (a.photos?.length || 0) > 0 || !!a.coverPhoto ? 1 : 0;
+      const bHasPhoto = (b.photos?.length || 0) > 0 || !!b.coverPhoto ? 1 : 0;
+      if (bHasPhoto !== aHasPhoto) return bHasPhoto - aHasPhoto;
 
       const aTime = new Date(a.createdDate || 0).getTime();
       const bTime = new Date(b.createdDate || 0).getTime();
