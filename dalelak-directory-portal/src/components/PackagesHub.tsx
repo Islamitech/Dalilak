@@ -54,7 +54,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
   initialPackageId,
   onSelectPackage,
   onClose,
-  mode = 'admin',
+  mode = 'public',
   businesses = [],
   onSendPackageBiz
 }) => {
@@ -402,10 +402,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
     <div className="space-y-6 font-['Cairo',sans-serif] text-[var(--text-primary)] max-w-6xl mx-auto py-2">
       {/* 1. Ultra-Clean Minimal Title (Zero Clutter, No Helper Wizard) */}
       <div className="text-center space-y-1">
-        <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
           باقات وحلول منصة دليلك
         </h2>
-        <p className="text-xs sm:text-sm text-[var(--text-muted)] font-medium">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
           اختر المسار المناسب لاحتياج منشأتكم بأسعار معتمدة وتنفيذ فوري
         </p>
       </div>
@@ -423,7 +423,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 className={`px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
                   isActive
                     ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {t.label}
@@ -461,10 +461,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                       </span>
                     )}
                   </div>
-                  <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)] leading-snug">
+                  <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug">
                     {pkg.name}
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] font-medium leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                     {pkg.shortDesc}
                   </p>
                 </div>
@@ -472,11 +472,11 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 {/* Price & Cadence */}
                 <div className="pt-2 pb-1 border-t border-[var(--border-color)]">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl sm:text-3xl font-black font-mono text-[var(--text-primary)]">
+                    <span className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white">
                       {pkg.priceText}
                     </span>
                   </div>
-                  <span className="text-[11px] font-bold text-[var(--text-muted)] block mt-0.5">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mt-0.5">
                     {pkg.billingCadence}
                   </span>
                 </div>
@@ -527,10 +527,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 </div>
 
                 {/* Deliverables Checklist (Concise points like Google) */}
-                <div className="space-y-2 pt-2 border-t border-[var(--border-color)] text-xs text-[var(--text-secondary)] font-medium">
+                <div className="space-y-2 pt-2 border-t border-[var(--border-color)] text-xs text-slate-700 dark:text-slate-200 font-medium">
                   {pkg.deliverables.map((item, idx) => (
                     <div key={idx} className="flex items-start gap-2 leading-relaxed">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5 stroke-[2.5]" />
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 stroke-[2.5]" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -542,7 +542,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 <button
                   type="button"
                   onClick={() => setDetailModalPkg(pkg)}
-                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer inline-flex items-center gap-1"
+                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:underline cursor-pointer inline-flex items-center gap-1"
                 >
                   <span>عرض التفاصيل الكاملة</span>
                   <ArrowLeft className="w-3 h-3" />
@@ -560,10 +560,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
             <span className="text-[10.5px] font-black text-amber-600 dark:text-amber-400 uppercase">
               حلول الشركات والمشاريع الكبرى
             </span>
-            <h4 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+            <h4 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
               الهوية المؤسسية الكاملة وتأسيس سلاسل الفروع
             </h4>
-            <p className="text-xs text-[var(--text-muted)] font-medium">
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
               دراسة مخصصة للشركات والمجمعات والمصانع وسلاسل الفروع تحت الإنشاء والتوسع.
             </p>
           </div>
@@ -601,11 +601,11 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-[var(--input-bg)] px-2 py-0.5 rounded border border-amber-500/20">
                   {detailModalPkg.badge || 'تفاصيل الباقة'}
                 </span>
-                <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)] mt-1">
+                <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white mt-1">
                   {detailModalPkg.name}
                 </h3>
-                <p className="text-xs text-[var(--text-muted)] font-bold">
-                  التكلفة: <span className="text-amber-500">{detailModalPkg.priceText}</span> ({detailModalPkg.billingCadence}) | مدة التنفيذ: {detailModalPkg.deliveryTime}
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-bold">
+                  التكلفة: <span className="text-amber-600 dark:text-amber-400">{detailModalPkg.priceText}</span> ({detailModalPkg.billingCadence}) | مدة التنفيذ: {detailModalPkg.deliveryTime}
                 </p>
               </div>
               <button
@@ -620,24 +620,24 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
             <div className="overflow-y-auto flex-1 space-y-4 pr-1 custom-scrollbar text-xs">
               {/* Target Persona */}
               <div className="p-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)]">
-                <span className="font-black text-amber-600 dark:text-amber-400 block mb-0.5">
+                <span className="font-black text-amber-700 dark:text-amber-400 block mb-0.5">
                   الفئة المستهدفة:
                 </span>
-                <p className="text-[11.5px] text-[var(--text-secondary)] font-medium leading-relaxed">
+                <p className="text-[11.5px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
                   {detailModalPkg.forWhom}
                 </p>
               </div>
 
               {/* Detailed Breakdown */}
               <div className="space-y-2">
-                <span className="font-black text-[var(--text-primary)] block text-xs">
+                <span className="font-black text-slate-900 dark:text-white block text-xs">
                   الخدمات والمخرجات التنفيذية المشمولة:
                 </span>
                 <div className="space-y-2">
                   {detailModalPkg.fullFeatures.map((feat, idx) => (
                     <div key={idx} className="p-2.5 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)] space-y-0.5">
-                      <span className="font-black text-[var(--text-primary)] block">✓ {feat.title}</span>
-                      <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed">{feat.desc}</p>
+                      <span className="font-black text-slate-900 dark:text-white block">✓ {feat.title}</span>
+                      <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed">{feat.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -698,7 +698,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
       )}
 
       {/* 6. Admin Business Selector Modal */}
-      {showBizPicker && selectedBizPkg && (
+      {mode === 'admin' && showBizPicker && selectedBizPkg && (
         <div className="fixed inset-0 z-[10002] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in">
           <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col text-[var(--text-primary)]">
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">

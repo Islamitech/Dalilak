@@ -68,6 +68,7 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
         {/* Scrollable Modal Body */}
         <div className="overflow-y-auto flex-1 pr-1 pl-1 space-y-4 custom-scrollbar">
           <PackagesHub 
+            mode="public"
             initialPackageId={initialPackageId} 
             onSelectPackage={onSelectPackage}
             onClose={onClose}
