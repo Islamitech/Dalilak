@@ -1,19 +1,19 @@
-import React, { useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 import { Business } from '../types';
 import { VideoWatermarkBadge } from './VideoWatermarkBadge';
-import { safeWhatsAppEncode, formatWhatsAppPhone, cleanWhatsAppText } from '../utils/whatsappMessages';
+import { BaseModal, Button, Badge } from './ui';
+import { useWhatsAppAction } from '../hooks/useWhatsAppAction';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 import { 
-  X, 
   MapPin, 
   Phone, 
   MessageCircle, 
   Navigation, 
   Clock, 
-  CheckCircle2, 
   Sparkles,
   Share2,
-  Film
+  Film,
+  Check
 } from 'lucide-react';
 
 interface VideoPlayerModalProps {
@@ -27,18 +27,9 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   videoUrl,
   onClose,
 }) => {
-  useEffect(() => {
-    if (!business) return;
-    document.body.style.overflow = 'hidden';
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [business, onClose]);
+  const { send } = useWhatsAppAction();
+  const { copy, copied } = useCopyToClipboard();
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   if (!business) return null;
 
@@ -47,67 +38,78 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
 
   const isVerified = business.verificationStatus === 'verified' || business.googleSyncStatus === 'synced';
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({
-        title: `فيديو نشاط ${business.nameAr} على منصة دليلك`,
-        text: `شاهد فيديو نشاط "${business.nameAr}" الموثق في ${business.governorate}:`,
-        url: window.location.href,
-      }).catch(() => {});
+      try {
+        await navigator.share({
+          title: `فيديو نشاط ${business.nameAr} على منصة دليلك`,
+          text: `شاهد فيديو نشاط "${business.nameAr}" الموثق في ${business.governorate}:`,
+          url: window.location.href,
+        });
+      } catch {
+        // Ignored or dismissed share
+      }
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('تم نسخ رابط الصفحة بنجاح!');
+      await copy(window.location.href);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
-      <div 
-        className="relative w-full max-w-lg bg-slate-900 border border-amber-500/40 rounded-3xl overflow-hidden shadow-2xl flex flex-col text-slate-100 my-auto animate-fade-in-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Top Header Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-950/80 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
-              <Film className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-black text-sm text-white line-clamp-1 flex items-center gap-1.5">
-                <span>{business.nameAr}</span>
-                {isVerified && (
-                  <span className="text-[9.5px] font-bold px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                    ✓ موثق
-                  </span>
-                )}
-              </h3>
-              <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-amber-500 shrink-0" />
-                <span>{business.governorate} • {business.city}</span>
-              </p>
-            </div>
-          </div>
+  const handleWhatsApp = () => {
+    const waPhone = business.phone || business.ownerPhone;
+    if (!waPhone) return;
+    send(
+      waPhone,
+      `مرحباً بك نشاط "${business.nameAr}"، رأيت الفيديو الخاص بكم على منصة دليلك.`
+    );
+  };
 
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-              title="مشاركة"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
-              aria-label="إغلاق"
-            >
-              <X className="w-4 h-4" />
-            </button>
+  const hasMapsUrl = Boolean(business.googleMapsUrl && business.googleMapsUrl.trim().startsWith('http'));
+
+  const headerActions = (
+    <div className="flex items-center gap-1.5">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleShare}
+        icon={shareSuccess || copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
+        title="مشاركة رابط الصفحة"
+      >
+        <span className="text-xs">{shareSuccess || copied ? 'تم النسخ' : ''}</span>
+      </Button>
+    </div>
+  );
+
+  return (
+    <BaseModal
+      isOpen={Boolean(business && activeVideo)}
+      onClose={onClose}
+      title={business.nameAr}
+      subtitle={`${business.governorate} • ${business.city}`}
+      icon={<Film className="w-5 h-5 text-amber-500" />}
+      headerActions={headerActions}
+      size="sm"
+      bodyClassName="!p-0"
+    >
+      <div className="flex flex-col bg-slate-950 text-slate-100" dir="rtl">
+        {/* Verification Status Bar */}
+        {isVerified && (
+          <div className="px-4 py-1.5 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between text-xs">
+            <Badge variant="success" size="sm" dot>
+              نشاط موثق رسمياً
+            </Badge>
+            {business.workingHours && (
+              <span className="text-[10.5px] text-slate-400 font-medium flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-500" />
+                <span>{business.workingHours}</span>
+              </span>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Cinematic Video Player Container */}
-        <div className="relative aspect-[9/13] max-h-[58vh] bg-black flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-[9/13] max-h-[55vh] bg-black flex items-center justify-center overflow-hidden">
           <video
             src={activeVideo}
             controls
@@ -122,14 +124,14 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
         </div>
 
         {/* Video Bottom Summary & Fast Actions */}
-        <div className="p-4 bg-slate-950/90 border-t border-white/10 space-y-3">
+        <div className="p-4 bg-slate-900/95 border-t border-white/10 space-y-3">
           <div className="flex items-center justify-between text-xs">
             <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-xl font-bold flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5" />
               <span>فيديو ميداني موثق (30 ثانية)</span>
             </span>
 
-            {business.workingHours && (
+            {!isVerified && business.workingHours && (
               <span className="text-[10.5px] text-slate-400 font-medium flex items-center gap-1">
                 <Clock className="w-3 h-3 text-amber-500" />
                 <span>{business.workingHours}</span>
@@ -138,14 +140,14 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
           </div>
 
           {business.description && (
-            <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed bg-slate-900/60 p-2.5 rounded-xl border border-white/5 font-medium">
+            <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed bg-slate-800/60 p-2.5 rounded-xl border border-white/5 font-medium">
               {business.description}
             </p>
           )}
 
           {/* Fast Contact Buttons */}
           <div className="grid grid-cols-3 gap-2 pt-1">
-            {business.phone && (
+            {business.phone ? (
               <a
                 href={`tel:${business.phone}`}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-md"
@@ -153,50 +155,44 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
                 <Phone className="w-3.5 h-3.5" />
                 <span>اتصال</span>
               </a>
-            )}
+            ) : <div />}
 
-            {(() => {
-              const waPhone = formatWhatsAppPhone(business.phone || business.ownerPhone);
-              const waText = cleanWhatsAppText(`مرحباً بك نشاط "${business.nameAr}"، رأيت الفيديو الخاص بكم على منصة دليلك.`);
-              return waPhone ? (
-                <a
-                  href={`https://wa.me/${waPhone}?text=${safeWhatsAppEncode(waText)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>واتساب</span>
-                </a>
-              ) : null;
-            })()}
+            {(business.phone || business.ownerPhone) ? (
+              <button
+                type="button"
+                onClick={handleWhatsApp}
+                className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>واتساب</span>
+              </button>
+            ) : <div />}
 
-            {business.googleMapsUrl && business.googleMapsUrl.trim().startsWith('http') ? (
+            {hasMapsUrl ? (
               <a
-                href={business.googleMapsUrl.trim()}
+                href={business.googleMapsUrl!.trim()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-md"
                 title="الموقع موثق رسمياً: فتح على خرائط Google"
               >
                 <Navigation className="w-3.5 h-3.5" />
-                <span>الخريطة 🗺️</span>
+                <span>الخريطة</span>
               </a>
             ) : (
               <button
                 type="button"
                 disabled
                 className="bg-slate-800 text-slate-500 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 cursor-not-allowed opacity-60"
-                title="الموقع غير مدرج بعد على خرائط Google (قيد مراجعة وتوثيق الإدارة ⏳)"
+                title="الموقع قيد المراجعة والتوثيق من قبل الإدارة"
               >
                 <Navigation className="w-3.5 h-3.5 opacity-40" />
-                <span>قيد التوثيق ⏳</span>
+                <span>قيد التوثيق</span>
               </button>
             )}
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </BaseModal>
   );
 };
