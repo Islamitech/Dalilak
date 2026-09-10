@@ -46,60 +46,60 @@ export const ShowcasePackagesSection: React.FC<ShowcasePackagesSectionProps> = (
         {/* 🌟 1. STANDALONE FREE LISTING CARD (خدمة إدراج مجانية مشروطة بموقع موثق) */}
         <div
           id="free-listing"
-          className="max-w-4xl mx-auto bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/5 border-2 border-emerald-500/80 rounded-3xl p-6 sm:p-9 shadow-2xl shadow-emerald-500/10 space-y-6"
+          className="max-w-4xl mx-auto bg-[var(--bg-card)] border border-slate-200 hover:border-slate-300 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 transition-colors"
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-color)] pb-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-800 text-[11px] font-black px-3 py-1 rounded-full border border-emerald-500/40">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <div className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-800 text-[11px] font-black px-3 py-1 rounded-full border border-slate-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span>خدمة إدراج مجاني عامة · بدون أي رسوم</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
                 {FREE_DIRECTORY_SERVICE.title}
               </h3>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] font-bold leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] font-medium leading-relaxed">
                 {FREE_DIRECTORY_SERVICE.description}
               </p>
             </div>
 
-            <div className="text-right sm:text-left bg-emerald-500/15 border border-emerald-500/30 px-5 py-3 rounded-2xl shrink-0">
+            <div className="text-right sm:text-left bg-slate-50 border border-slate-200 px-5 py-3 rounded-xl shrink-0">
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-black text-emerald-600 font-mono">
+                <span className="text-3xl sm:text-4xl font-black text-slate-900 font-mono">
                   0
                 </span>
-                <span className="text-xs font-bold text-emerald-700">جنيه مصري</span>
+                <span className="text-xs font-bold text-slate-600">جنيه مصري</span>
               </div>
-              <span className="text-[11px] font-black text-emerald-800 block mt-0.5">
+              <span className="text-[11px] font-black text-emerald-700 block mt-0.5">
                 مجاني 100% مدى الحياة
               </span>
             </div>
           </div>
 
           {/* Explicit Condition & Recommendation Callout */}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-amber-700 font-black text-xs sm:text-sm">
-                <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
+              <div className="flex items-center gap-2 text-amber-800 font-black text-xs sm:text-sm">
+                <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>شرط الإدراج المجاني في المنصة:</span>
               </div>
-              <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
                 {FREE_DIRECTORY_SERVICE.condition}
               </p>
             </div>
 
-            <div className="bg-[var(--bg-card)] border border-amber-500/30 rounded-xl p-3 text-xs space-y-1.5 shrink-0 max-w-sm">
-              <div className="flex items-center gap-1.5 font-black text-amber-600 text-[11px]">
-                <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <div className="bg-[var(--bg-card)] border border-amber-500/20 rounded-xl p-3 text-xs space-y-1.5 shrink-0 max-w-sm">
+              <div className="flex items-center gap-1.5 font-black text-amber-700 text-[11px]">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span>مكانك ليس موثقاً على خرائط Google حتى الآن؟</span>
               </div>
-              <p className="text-[11px] text-[var(--text-muted)] font-bold leading-relaxed">
+              <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
                 {FREE_DIRECTORY_SERVICE.unverifiedNote}
               </p>
               {onOpenPackagesModal && (
                 <button
                   type="button"
                   onClick={() => onOpenPackagesModal('pkg_basic')}
-                  className="inline-flex items-center gap-1 text-[11px] font-black text-blue-600 hover:underline cursor-pointer pt-0.5"
+                  className="inline-flex items-center gap-1 text-[11px] font-black text-slate-900 hover:text-amber-700 underline cursor-pointer pt-0.5"
                 >
                   <span>معاينة وتفاصيل باقة التوثيق الأساسي (250 ج)</span>
                   <ArrowLeft className="w-3 h-3" />
@@ -111,8 +111,8 @@ export const ShowcasePackagesSection: React.FC<ShowcasePackagesSectionProps> = (
           {/* Free features list */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {FREE_DIRECTORY_SERVICE.features.map((feat, i) => (
-              <div key={i} className="flex items-start gap-2.5 text-xs text-[var(--text-secondary)] font-bold">
-                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+              <div key={i} className="flex items-start gap-2.5 text-xs text-[var(--text-secondary)] font-medium">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 stroke-[2.5]" />
                 <span className="leading-relaxed">{feat}</span>
               </div>
             ))}
@@ -124,9 +124,9 @@ export const ShowcasePackagesSection: React.FC<ShowcasePackagesSectionProps> = (
               href={`https://wa.me/201143888355?text=${encodeURIComponent('مرحباً دليلك 👋 نشاطنا التجاري لديه موقع موثق بالفعل على خرائط Google، ونود طلب إدراج وظهور المكان في الدليل مجاناً 100%.')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:flex-1 py-3.5 rounded-2xl font-black text-xs sm:text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full sm:flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-4 h-4 text-emerald-400" />
               <span>طلب الإدراج المجاني للأنشطة الموثقة عبر واتساب</span>
             </a>
 
@@ -134,20 +134,12 @@ export const ShowcasePackagesSection: React.FC<ShowcasePackagesSectionProps> = (
               <button
                 type="button"
                 onClick={() => onOpenPackagesModal('pkg_basic')}
-                className="w-full sm:w-auto px-5 py-3.5 rounded-2xl font-black text-xs text-blue-600 hover:text-white hover:bg-blue-600 bg-blue-500/10 border border-blue-500/30 text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full sm:w-auto px-4 py-3 rounded-xl font-bold text-xs text-slate-700 hover:text-slate-900 hover:bg-slate-100 bg-slate-50 border border-slate-200 text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
               >
-                <MapPin className="w-3.5 h-3.5" />
+                <MapPin className="w-3.5 h-3.5 text-slate-500" />
                 <span>طلب التوثيق الأساسي (250 ج) إذا لم تكن موثقاً</span>
               </button>
             )}
-
-            <a
-              href="#consultation"
-              onClick={() => onSelectPackageForConsultation?.('طلب إدراج مجاني (نشاط موثق)')}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl font-black text-xs text-[var(--text-secondary)] hover:text-emerald-600 bg-[var(--input-bg)] border border-[var(--border-color)] hover:border-emerald-500/40 text-center transition-all cursor-pointer"
-            >
-              تسجيل البيانات عبر النموذج
-            </a>
           </div>
         </div>
 

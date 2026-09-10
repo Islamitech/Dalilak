@@ -6,6 +6,8 @@ export interface Business {
   id: string;
   nameAr: string;
   nameEn?: string;
+  name?: string;
+  updatedAt?: string;
   category: string;
   governorate: string;
   city: string;
@@ -59,6 +61,7 @@ export interface Business {
   convertedFromLeadId?: string; // معرف العميل المهتم الذي تم تحويل النشاط منه
   notes?: string;
   adminFollowUps?: AdminFollowUpNote[]; // سجل الملاحظات والمتابعات الإدارية الداخلية
+  adminFollowUpNotes?: AdminFollowUpNote[]; // كنية بديلة للتوافق
   createdDate: string;
   isDeleted?: boolean; // أثر السيرفر: هل تم حذف المكان ناعماً
   deletedAt?: string;  // تاريخ الحذف الإداري
@@ -100,6 +103,8 @@ export interface AdminFollowUpNote {
   authorId: string;
   authorName: string;
   authorRole?: string;
+  author?: string;
+  date?: string;
   type: AdminFollowUpType;
   status?: AdminFollowUpStatus;
   category?: AdminFollowUpCategory;
@@ -172,6 +177,8 @@ export interface FilterState {
 export interface User {
   id: string;
   name: string;
+  displayName?: string;
+  username?: string;
   email: string;
   phone?: string;
   role: 'admin' | 'rep' | 'supervisor' | 'accountant';

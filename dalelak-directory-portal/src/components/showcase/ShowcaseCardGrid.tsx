@@ -263,7 +263,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                 return (
                   <div
                     key={biz.id}
-                    className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1"
+                    className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-400/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between hover:-translate-y-0.5"
                   >
                     {/* Layer 1: Pure 4:3 Image with strict max 3 overlays */}
                     <div
@@ -283,10 +283,10 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                       {/* Top-Right: Official Verification Shield */}
                       <div className="absolute top-3 right-3 z-10">
                         <span
-                          className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 shadow-md backdrop-blur-md border border-amber-400 font-sans"
+                          className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-600 text-white shadow-xs backdrop-blur-md font-sans"
                           title="منشأة معتمدة وموثقة في دليلك"
                         >
-                          <ShieldCheck className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
+                          <ShieldCheck className="w-3.5 h-3.5 text-white stroke-[2.5]" />
                           <span>موثق</span>
                         </span>
                       </div>
@@ -389,11 +389,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className={`py-2 px-1 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 ${
-                              isOfficial
-                                ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-500/30'
-                                : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/30'
-                            }`}
+                            className="py-2 px-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-200"
                             title={isOfficial ? 'فتح على خرائط Google' : 'الموقع الجغرافي للمكان على الخريطة'}
                           >
                             <Navigation className="w-3.5 h-3.5" />
@@ -406,7 +402,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                               e.stopPropagation();
                               handleOpenBusiness(biz);
                             }}
-                            className="py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1 bg-[var(--input-bg)] text-[var(--text-muted)] border border-[var(--border-color)]"
+                            className="py-2 px-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1 bg-slate-50 text-[var(--text-muted)] border border-slate-200"
                           >
                             <MapPin className="w-3.5 h-3.5" />
                             <span>الموقع</span>
@@ -420,17 +416,17 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="py-2 px-1 rounded-xl text-xs font-black bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                            className="py-2 px-1 rounded-lg text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
                             title="محادثة واتساب مباشرة"
                           >
-                            <MessageCircle className="w-3.5 h-3.5" />
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                             <span>واتساب</span>
                           </a>
                         ) : (
                           <button
                             type="button"
                             disabled
-                            className="py-2 px-1 rounded-xl text-xs bg-[var(--input-bg)] text-[var(--text-muted)] border border-[var(--border-color)] font-bold flex items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+                            className="py-2 px-1 rounded-lg text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1 opacity-50 cursor-not-allowed"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             <span>واتساب</span>
@@ -442,22 +438,20 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                           <a
                             href={`tel:${biz.phone}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="py-2 px-1 rounded-xl text-xs font-black bg-amber-500/20 hover:bg-amber-500 text-amber-600 hover:text-slate-950 border border-amber-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                            className="py-2 px-1 rounded-lg text-xs font-bold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 hover:border-amber-200 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
                             title="اتصال هاتفي فوري"
                           >
-                            <Phone className="w-3.5 h-3.5" />
+                            <Phone className="w-3.5 h-3.5 text-slate-600" />
                             <span>اتصال</span>
                           </a>
                         ) : (
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenBusiness(biz);
-                            }}
-                            className="py-2 px-1 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                            disabled
+                            className="py-2 px-1 rounded-lg text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1 opacity-50 cursor-not-allowed"
                           >
-                            <span>تفاصيل</span>
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>اتصال</span>
                           </button>
                         )}
                       </div>

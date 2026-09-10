@@ -451,21 +451,21 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
           return (
             <div
               key={pkg.id}
-              className={`bg-[var(--bg-card)] rounded-3xl p-5 sm:p-6 border flex flex-col justify-between transition-all duration-200 ${
+              className={`bg-[var(--bg-card)] rounded-2xl p-5 sm:p-6 border flex flex-col justify-between transition-all duration-200 ${
                 isPro
-                  ? 'border-amber-400 ring-2 ring-amber-400/30 shadow-lg'
-                  : 'border-[var(--border-color)] hover:border-amber-500/40 shadow-xs'
+                  ? 'border-amber-400 ring-1 ring-amber-400/40 shadow-md'
+                  : 'border-[var(--border-color)] hover:border-slate-300 shadow-xs'
               }`}
             >
               <div className="space-y-4">
                 {/* Header: Badge & Title */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-[var(--input-bg)] text-amber-600 border border-amber-500/20">
+                    <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-[var(--input-bg)] text-amber-700 border border-amber-400/30">
                       {pkg.badge}
                     </span>
                     {isPro && (
-                      <span className="text-[10.5px] font-black text-amber-500 flex items-center gap-1">
+                      <span className="text-[10.5px] font-black text-amber-600 flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
                         <span>الأكثر طلباً</span>
                       </span>
@@ -498,13 +498,13 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                       href={`https://wa.me/201143888355?text=${encodeURIComponent(`مرحباً دليلك، أود الاستفسار والاشتراك في «${pkg.name}» (${pkg.priceText}).`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`w-full py-3 px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer ${
+                      className={`w-full py-3 px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer ${
                         isPro
-                          ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                          ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                          : 'bg-slate-900 hover:bg-slate-800 text-white'
                       }`}
                     >
-                      <MessageCircle className="w-4 h-4" />
+                      <MessageCircle className={`w-4 h-4 ${isPro ? 'text-slate-950' : 'text-emerald-400'}`} />
                       <span>طلب الباقة عبر واتساب</span>
                     </a>
                   ) : (
@@ -512,10 +512,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                       <button
                         type="button"
                         onClick={() => copyProposal(pkg)}
-                        className={`flex-1 py-2.5 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer ${
+                        className={`flex-1 py-2.5 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer ${
                           isPro
                             ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                            : 'bg-slate-900 hover:bg-slate-800 text-white'
                         }`}
                       >
                         <Copy className="w-3.5 h-3.5" />

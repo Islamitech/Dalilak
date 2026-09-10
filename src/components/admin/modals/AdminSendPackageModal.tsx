@@ -270,14 +270,20 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
       const now = new Date().toISOString();
       const newNote: AdminFollowUpNote = {
         id: 'pkg_note_' + Date.now(),
+        createdAt: now,
         date: now,
-        author: currentUser?.displayName || currentUser?.username || 'مشغل دليلك',
+        authorId: currentUser?.id || 'admin',
+        authorName: currentUser?.name || 'مشغل دليلك',
+        author: currentUser?.name || 'مشغل دليلك',
+        type: 'general',
+        category: 'whatsapp',
         text: `تم إرسال تفاصيل «${currentPkg.name}» عبر واتساب إلى المنشأة.`
       };
-      const existingNotes = business.adminFollowUpNotes || [];
+      const existingNotes = business.adminFollowUpNotes || business.adminFollowUps || [];
       const updatedNotes = [newNote, ...existingNotes];
       onUpdateBusiness({
         ...business,
+        adminFollowUps: updatedNotes,
         adminFollowUpNotes: updatedNotes,
         updatedAt: now
       });

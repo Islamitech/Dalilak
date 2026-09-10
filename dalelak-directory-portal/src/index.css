@@ -4,35 +4,63 @@
    الأنماط الموحدة والمتغيرات (Light-Only Theme System)
    ============================================ */
 :root {
-  /* الذهبي / الكهرماني (الهوية البصرية) */
-  --gold: #d4af37;
-  --gold-light: #f5d742;
+  /* ===== 1. هوية البراند الذهبية الفاخرة (Brand Gold - 8-10%) ===== */
+  /* مخصصة حصرياً للشعار، الأزرار الأساسية Primary CTAs، شارات VIP، وعناصر الهوية */
+  --brand-gold: #c59b27;
+  --brand-gold-hover: #b8860b;
+  --brand-gold-light: #d4af37;
+  --brand-gold-subtle: #fefce8;
+  --brand-gold-border: #facc15;
+  /* للتوافق مع المكونات القائمة */
+  --gold: #c59b27;
+  --gold-light: #d4af37;
   --gold-dark: #b8860b;
+
+  /* ===== 2. الألوان الوظيفية الدقيقة (Semantic / Functional Colors - 5%) ===== */
+  /* Warning: لون وظيفي فقط للتنبيهات، حالات قيد المراجعة، والانتظار */
+  --warning: #d97706;
+  --warning-hover: #b45309;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fde68a;
   --amber-primary: #d97706;
   --amber-hover: #b45309;
   --amber-subtle: #fffbeb;
-  
-  /* الحالة الوظيفية */
+
+  /* Success: للعمليات الناجحة والاعتماد الرسمي (Verified) */
   --success: #059669;
-  --warning: #d97706;
+  --success-hover: #047857;
+  --success-subtle: #ecfdf5;
+  --success-border: #a7f3d0;
+
+  /* Danger: للأخطاء، الحذف، والمنشآت المرفوضة */
   --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-subtle: #fef2f2;
+  --danger-border: #fecaca;
+
+  /* Info: للإشعارات والمعلومات التوضيحية */
   --info: #2563eb;
-  
+  --info-hover: #1d4ed8;
+  --info-subtle: #eff6ff;
+  --info-border: #bfdbfe;
+
   /* الخطوط */
   --font-family: 'Cairo', 'Readex Pro', sans-serif;
-  
-  /* الحواف */
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 32px;
-  --radius-xl: 48px;
-  
+
+  /* ===== 3. سلم الحواف الرصين (Enterprise Border Radii) ===== */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
   /* الانتقالات */
   --transition-fast: 0.15s ease;
   --transition-medium: 0.25s ease;
   --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* ===== النظام البصري النهاري الموحد والوحيد (Light-Only System) ===== */
+  /* ===== 4. النظام البصري الأساسي (White & Slate - 85%) ===== */
   --bg-primary: #f8fafc;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
@@ -41,17 +69,21 @@
   --text-muted: #64748b;
   --border-color: #e2e8f0;
   --border-hover: #cbd5e1;
-  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+
+  /* ظلال باردة ومحايدة متوافقة مع Slate (Cold Slate Shadows) */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+
   --map-bg: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-  --nav-bg: rgba(255, 255, 255, 0.96);
+  --nav-bg: rgba(255, 255, 255, 0.88);
   --input-bg: #ffffff;
 
   /* المودالات والأسطح والخريطة */
   --modal-bg: #ffffff;
   --modal-border: #e2e8f0;
-  --modal-overlay: rgba(15, 23, 42, 0.45);
+  --modal-overlay: rgba(15, 23, 42, 0.50);
   --map-header-bg: #f8fafc;
   --map-header-border: #e2e8f0;
   --map-footer-bg: #ffffff;
@@ -59,7 +91,7 @@
   --map-control-border: #e2e8f0;
   --map-control-text: #0f172a;
   --map-coord-bg: #f8fafc;
-  --map-coord-text: #b45309;
+  --map-coord-text: #64748b;
   --alert-error-bg: #fef2f2;
   --alert-error-border: #fecaca;
   --alert-error-text: #b91c1c;

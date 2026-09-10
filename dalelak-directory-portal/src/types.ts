@@ -6,6 +6,10 @@ export interface Business {
   id: string;
   nameAr: string;
   nameEn?: string;
+  name?: string;
+  updatedAt?: string;
+  isFeatured?: boolean;
+  partnerStatus?: string;
   category: string;
   governorate: string;
   city: string;

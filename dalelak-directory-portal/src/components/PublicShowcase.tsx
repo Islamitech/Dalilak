@@ -882,7 +882,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     setCategoryFilter('all');
     setShowFavoritesOnly(false);
     setSortBy('default');
-    setRandomTrigger((prev) => prev + 1);
   };
 
   return (

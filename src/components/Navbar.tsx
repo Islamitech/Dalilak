@@ -109,26 +109,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => window.open('https://www.dalilaak.com/', '_blank')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
             >
-              <Globe className="w-3.5 h-3.5 text-teal-500" />
-              <span>دليل الأنشطة 🌐</span>
+              <Globe className="w-3.5 h-3.5 text-slate-600" />
+              <span>دليل الأنشطة</span>
             </button>
             {onOpenPackages && (
               <button
                 type="button"
                 onClick={onOpenPackages}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 transition-colors cursor-pointer font-bold"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>باقات دليلك 💎</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>باقات دليلك</span>
               </button>
             )}
             {onOpenAbout && (
               <button
                 type="button"
                 onClick={onOpenAbout}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[var(--text-muted)] hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
               >
                 <Info className="w-3.5 h-3.5" />
                 <span>من نحن</span>
@@ -138,7 +138,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onOpenTerms}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[var(--text-muted)] hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>شروط الاستخدام</span>
