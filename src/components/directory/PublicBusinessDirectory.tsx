@@ -90,7 +90,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('needs_followup');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list') || 'list');
 
   const isRep = currentUser?.role === 'rep';
@@ -126,6 +126,11 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     const directoryApproved = displayableBusinesses.filter((b) => b.verificationStatus === 'verified').length;
     const pendingDirectory = displayableBusinesses.filter((b) => b.verificationStatus !== 'verified').length;
 
+    const hasRealGoogleMapsUrl = (url: string) => {
+      const trimmed = url.trim();
+      return trimmed.startsWith('http') && !trimmed.includes('search/?api=1&query=') && !trimmed.includes('maps?q=') && !trimmed.includes('google.com/maps?q=');
+    };
+
     const googleMapsVerified = displayableBusinesses.filter((b) => {
       const url = (b.googleMapsUrl || '').trim();
       const hasRealUrl = url.startsWith('http') && !url.includes('search/?api=1&query=');
@@ -137,6 +142,14 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     const fullyPaid = displayableBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
     const exempt = displayableBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
 
+    // حساب الأنشطة التي تحتاج متابعة: غير موثقة على Google Maps، أو غير مسددة، أو غير معتمدة بالدليل
+    const needsFollowup = displayableBusinesses.filter((b) => {
+      const isDocumented = b.googleMapsUrl && hasRealGoogleMapsUrl(b.googleMapsUrl);
+      const isPaid = b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250);
+      const isApproved = b.verificationStatus === 'verified';
+      return !(isDocumented && isPaid && isApproved);
+    }).length;
+
     return {
       totalRegistered,
       directoryApproved,
@@ -145,6 +158,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       govs,
       fullyPaid,
       exempt,
+      needsFollowup,
       total: totalRegistered,
     };
   }, [displayableBusinesses]);
@@ -176,6 +190,16 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           if (b.verificationStatus !== 'verified') return false;
         } else if (verificationFilter === 'in_progress') {
           if (b.verificationStatus === 'verified') return false;
+        } else if (verificationFilter === 'needs_followup') {
+          const hasRealGoogleMapsUrl = (url: string) =>
+            url.startsWith('http') &&
+            !url.includes('search/?api=1&query=') &&
+            !url.includes('maps?q=') &&
+            !url.includes('google.com/maps?q=');
+          const isDocumented = b.googleMapsUrl && hasRealGoogleMapsUrl(b.googleMapsUrl.trim());
+          const isPaid = b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250);
+          const isApproved = b.verificationStatus === 'verified';
+          if (isDocumented && isPaid && isApproved) return false; // exclude complete businesses
         }
         return true;
       })
@@ -421,6 +445,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         {/* Row 2: Status Quick Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
           {[
+            { key: 'needs_followup', label: '🔔 يحتاج متابعة', count: homeStats.needsFollowup },
             { key: 'all', label: '⭐ جميع الأنشطة', count: homeStats.total },
             { key: 'verified', label: '✅ موثقة ومعتمدة', count: homeStats.directoryApproved },
             ...(homeStats.pendingDirectory > 0 ? [{ key: 'in_progress', label: '⏳ قيد المراجعة', count: homeStats.pendingDirectory }] : []),
@@ -432,7 +457,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               onClick={() => setVerificationFilter(tab.key as any)}
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 border ${
                 verificationFilter === tab.key
-                  ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black'
+                  ? (tab.key === 'needs_followup' ? 'bg-rose-500 text-slate-950 border-rose-600 shadow-xs font-black' : 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black')
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
               }`}
             >
