@@ -846,6 +846,8 @@ app.get('/api/google-place-resolver', async (req, res) => {
 
 const SUPER_ADMIN_EMAIL = 'ahmedhufne@gmail.com';
 const SUPER_ADMIN_PHONE = '01143888355';
+const PRIMARY_WHATSAPP_SENDER_PHONE = '01556221141';
+const SUPER_ADMIN_PHONES = ['01143888355', '01556221141'];
 const GOOGLE_PLACES_API_KEY =
   process.env.GOOGLE_PLACES_API_KEY ||
   process.env.VITE_GOOGLE_PLACES_API_KEY ||
@@ -857,8 +859,8 @@ function isRequestSuperAdmin(req: express.Request): boolean {
   const bodyEmail = (req.body?.userEmail || '').toLowerCase().trim();
   const bodyPhone = (req.body?.userPhone || '').trim();
 
-  if (authHeaderEmail === SUPER_ADMIN_EMAIL.toLowerCase() || authHeaderPhone === SUPER_ADMIN_PHONE) return true;
-  if (bodyEmail === SUPER_ADMIN_EMAIL.toLowerCase() || bodyPhone === SUPER_ADMIN_PHONE) return true;
+  if (authHeaderEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(authHeaderPhone)) return true;
+  if (bodyEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(bodyPhone)) return true;
 
   const reqUser = getRequestUser(req);
   if (reqUser) {
@@ -866,7 +868,7 @@ function isRequestSuperAdmin(req: express.Request): boolean {
     if (rep) {
       const repEmail = (rep.email || '').toLowerCase().trim();
       const repPhone = (rep.phone || '').trim();
-      if (repEmail === SUPER_ADMIN_EMAIL.toLowerCase() || repPhone === SUPER_ADMIN_PHONE) return true;
+      if (repEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(repPhone)) return true;
     }
   }
   return false;

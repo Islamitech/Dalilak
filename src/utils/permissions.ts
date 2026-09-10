@@ -208,6 +208,8 @@ export function canUserManageFeeExemption(user: User | null | undefined): boolea
  */
 export const SUPER_ADMIN_EMAIL = 'ahmedhufne@gmail.com';
 export const SUPER_ADMIN_PHONE = '01143888355';
+export const PRIMARY_WHATSAPP_SENDER_PHONE = '01556221141';
+export const SUPER_ADMIN_PHONES = ['01143888355', '01556221141'];
 
 /**
  * Checks whether a given user / rep is the designated Super Admin
@@ -216,7 +218,7 @@ export function isSuperAdmin(user?: { email?: string; phone?: string; id?: strin
   if (!user) return false;
   const email = (user.email || user.repData?.email || '').toLowerCase().trim();
   const phone = (user.phone || user.repData?.phone || '').trim();
-  return email === SUPER_ADMIN_EMAIL.toLowerCase() || phone === SUPER_ADMIN_PHONE;
+  return email === SUPER_ADMIN_EMAIL.toLowerCase() || phone === SUPER_ADMIN_PHONE || phone === PRIMARY_WHATSAPP_SENDER_PHONE;
 }
 
 /**

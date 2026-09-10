@@ -34,9 +34,11 @@ import {
   SkipForward,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
-import { isSuperAdmin } from '../../../utils/permissions';
+import { isSuperAdmin, PRIMARY_WHATSAPP_SENDER_PHONE } from '../../../utils/permissions';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { triggerHaptic } from '../../../utils/haptics';
+
+export { PRIMARY_WHATSAPP_SENDER_PHONE };
 
 export interface BroadcastLogItem {
   businessId: string;
@@ -196,7 +198,8 @@ const TEMPLATE_DEFINITIONS = [
 🔗 *يمكنكم معاينة بطاقة منشأتكم الرقمية عبر الرابط المعتمد التالي:*
 {url}
 
-لأي استفسار أو تحديث لبيانات العمل وساعات النشاط، يسعدنا تواصلكم المباشر عبر هذا الرقم.
+📞 *للتواصل المباشر مع إدارة المنصة:* 01556221141
+لأي استفسار أو تحديث لبيانات العمل وساعات النشاط، يسعدنا تواصلكم المباشر.
 مع خالص التحية،
 *فريق إدارة منصة دليلك المعتمد*`,
   },
@@ -215,6 +218,7 @@ const TEMPLATE_DEFINITIONS = [
 🌐 *رابط ملفكم المباشر في الدليل:*
 {url}
 
+📞 *للتواصل والاستفسار المباشر:* 01556221141
 يمكنكم مشاركة الرابط مع عملائكم واستقبال الاتصالات وطلبات الاتجاهات مباشرة.
 نتمنى لكم دوام التوفيق والنجاح!
 *منصة دليلك*`,
@@ -236,6 +240,7 @@ const TEMPLATE_DEFINITIONS = [
 🔗 رابط المعاينة والتحقق:
 {url}
 
+📞 *للتواصل المباشر مع الإدارة:* 01556221141
 نشكر ثقتكم ونتطلع دائماً لخدمتكم بأفضل معايير الجودة.
 *إدارة الشؤون الإدارية - دليلك*`,
   },
@@ -247,7 +252,7 @@ const TEMPLATE_DEFINITIONS = [
     description: 'اكتب نصك الخاص مع إمكانية استخدام المتغيرات: {name}، {owner}، {location}، {url}',
     defaultText: `تحية طيبة لإدارة {name}،
 
-يسعدنا التواصل معكم من منصة دليلك...
+يسعدنا التواصل معكم من منصة دليلك (هاتف: 01556221141)...
 رابط ملفكم: {url}`,
   },
 ];
@@ -808,10 +813,16 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       {dispatchMode === 'mobile_direct' && (
         <div className="bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-6 shadow-xl space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>جاهز للعمل من أي هاتف وشبكة 5G دون الحاجة لتشغيل جهاز الكمبيوتر</span>
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>جاهز للعمل من أي هاتف وشبكة 5G دون الحاجة لتشغيل جهاز الكمبيوتر</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-black">
+                  <span>📱 رقم الإرسال الأساسي المعتمد:</span>
+                  <span className="font-mono text-white tracking-wider" dir="ltr">{PRIMARY_WHATSAPP_SENDER_PHONE}</span>
+                </div>
               </div>
               <h2 className="text-xl font-black text-white">طابور الإرسال المباشر الذكي عبر تطبيق WhatsApp</h2>
             </div>
@@ -1001,7 +1012,12 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                         <p className="text-lg font-black text-white font-mono" dir="ltr">
                           {sessionStatus.connectedUser.phone}
                         </p>
-                        <p className="text-xs text-[var(--text-secondary)]">{sessionStatus.connectedUser.name || 'إدارة دليلك'}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {sessionStatus.connectedUser.phone.includes(PRIMARY_WHATSAPP_SENDER_PHONE) ||
+                          sessionStatus.connectedUser.phone.includes('1556221141')
+                            ? '⭐ هاتف إدارة المنصة الأساسي المعتمد'
+                            : sessionStatus.connectedUser.name || 'إدارة دليلك'}
+                        </p>
                       </div>
                       <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40 shadow-inner">
                         <CheckCircle2 className="w-6 h-6" />
@@ -1028,7 +1044,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       />
                     </div>
                     <div className="space-y-1 text-xs">
-                      <p className="font-black text-white">افتح واتساب على هاتفك &gt; الأجهزة المرتبطة &gt; ربط جهاز</p>
+                      <p className="font-black text-white">
+                        افتح واتساب على هاتف الإدارة ({PRIMARY_WHATSAPP_SENDER_PHONE}) &gt; الأجهزة المرتبطة &gt; ربط جهاز
+                      </p>
                       <p className="text-[var(--text-secondary)]">وجّه الكاميرا نحو الرمز أعلاه لتفعيل الإرسال الجماعي فوراً</p>
                     </div>
                   </div>
@@ -1037,12 +1055,17 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 {/* DISCONNECTED / CONNECTING PROMPT */}
                 {sessionStatus.state === 'disconnected' && (
                   <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
-                    <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
-                      <Info className="w-4 h-4 shrink-0" />
-                      <span>المحرك غير مرتبط بهاتف الإدارة حالياً</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
+                        <Info className="w-4 h-4 shrink-0" />
+                        <span>المحرك غير مرتبط بهاتف الإدارة حالياً</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-lg bg-white/10 text-slate-200 font-mono text-[11px] font-bold" dir="ltr">
+                        المعتمد: {PRIMARY_WHATSAPP_SENDER_PHONE}
+                      </span>
                     </div>
                     <p className="text-[var(--text-secondary)] leading-relaxed">
-                      اضغط على زر <strong>"ربط هاتف الإدارة (مسح QR)"</strong> بالأسفل لتوليد كود الربط السريع. الجلسة تُحفظ
+                      اضغط على زر <strong>"ربط هاتف الإدارة (مسح QR)"</strong> بالأسفل لتوليد كود الربط السريع لهاتف المنصة المعتمد (<strong>{PRIMARY_WHATSAPP_SENDER_PHONE}</strong>). الجلسة تُحفظ
                       محلياً ولا تتطلب إعادة المسح في كل مرة.
                     </p>
                   </div>
@@ -1693,7 +1716,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--text-secondary)]">الحساب المرسل:</span>
-                  <span className="font-mono text-white" dir="ltr">{sessionStatus.connectedUser?.phone || 'هاتف الإدارة'}</span>
+                  <span className="font-mono text-white" dir="ltr">
+                    {sessionStatus.connectedUser?.phone || `${PRIMARY_WHATSAPP_SENDER_PHONE} (هاتف الإدارة الأساسي)`}
+                  </span>
                 </div>
               </div>
 

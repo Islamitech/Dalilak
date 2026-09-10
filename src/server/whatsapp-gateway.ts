@@ -13,6 +13,8 @@ const makeWASocket = (makeWASocketImport as any).default || makeWASocketImport;
 
 export type WhatsAppConnectionState = 'disconnected' | 'connecting' | 'qr_ready' | 'connected';
 
+export const PRIMARY_WHATSAPP_SENDER_PHONE = '01556221141';
+
 export interface BroadcastLogItem {
   businessId: string;
   businessName: string;
@@ -257,6 +259,7 @@ export function compileBroadcastMessage(
       `🌟 نودّ إبلاغكم باعتماد *إدراج شرفي موثق ومجاني بالكامل* لمنشأتكم في دليلنا المعتمد الرسمي — *بدون أي رسوم أو اشتراكات نهائياً*، تقديراً لتميزكم وسمعتكم الطيبة.\n\n` +
       `🔗 *رابط المنصة والدليل المعتمد:*\n` +
       `${directoryUrl}\n\n` +
+      `📞 *للتواصل المباشر مع إدارة المنصة:* 01556221141\n` +
       `يسعدنا تواجدكم معنا كشريك نجاح متميز.\n` +
       `إدارة منصة دليلك المعتمدة`
     );
@@ -268,6 +271,7 @@ export function compileBroadcastMessage(
       `يسعدنا إحاطتكم علماً بأن صفحة منشأتكم المعتمدة منشورة ومتاحة الآن على منصة دليلك بكافة التفاصيل والموقع الدقيق للجمهور.\n\n` +
       `🔗 *رابط المعاينة المباشر لصفحتكم:*\n` +
       `${directoryUrl}\n\n` +
+      `📞 *للتواصل والاستفسار:* 01556221141\n` +
       `مع تمنياتنا لكم بدوام التوفيق والازدهار،\n` +
       `فريق توثيق المنظومة — منصة دليلك`
     );
@@ -286,6 +290,7 @@ export function compileBroadcastMessage(
       `• *حالة التوثيق:* معتمد ومفعل بالدليل ✓\n\n` +
       `🔗 *رابط المنصة الرسمي:*\n` +
       `${directoryUrl}\n\n` +
+      `📞 *للتواصل المباشر:* 01556221141\n` +
       `شاكرين حسن تعاونكم،\n` +
       `الإدارة العامة — منصة دليلك`
     );
