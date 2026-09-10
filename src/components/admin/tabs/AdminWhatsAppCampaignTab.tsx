@@ -27,6 +27,11 @@ import {
   FileText,
   Building,
   RotateCw,
+  Settings2,
+  Share2,
+  ArrowRight,
+  ArrowLeft,
+  SkipForward,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
@@ -87,6 +92,85 @@ function isValidTargetPhone(phone?: string | null): boolean {
     return false;
   }
   return true;
+}
+
+function formatPhoneForWaLink(rawPhone?: string | null): string | null {
+  if (!rawPhone) return null;
+  let digits = rawPhone.replace(/\D/g, '');
+  if (digits.length < 8) return null;
+  if (!isValidTargetPhone(digits)) return null;
+
+  if (digits.startsWith('0020')) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith('01') && digits.length === 11) {
+    digits = '2' + digits;
+  } else if (digits.startsWith('1') && digits.length === 10) {
+    digits = '20' + digits;
+  } else if (!digits.startsWith('20') && digits.length === 10) {
+    digits = '20' + digits;
+  }
+  return digits;
+}
+
+// 🛡️ SAFE API FETCH HELPER (Prevents "Unexpected end of JSON input" on Vercel 405/404 or empty responses)
+async function safeFetchGatewayApi(
+  endpoint: string,
+  options?: RequestInit,
+  customBaseUrl?: string
+): Promise<{ success: boolean; data?: any; error?: string; isVercelStatic?: boolean }> {
+  try {
+    const rawBase = (customBaseUrl || localStorage.getItem('dalelak_whatsapp_gateway_url') || '').trim();
+    const baseUrl = rawBase ? rawBase.replace(/\/$/, '') : '';
+    const url = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
+
+    const res = await fetch(url, options);
+    const rawText = await res.text();
+
+    if (!rawText || rawText.trim().length === 0) {
+      if (res.status === 405 || res.status === 404) {
+        return {
+          success: false,
+          isVercelStatic: true,
+          error:
+            'خادم الواتساب (Baileys) غير نشط على استضافة Vercel الحالية. يتطلب تشغيل خادم Node.js، أو يمكنك استخدام «الوضع المباشر للجوال» بالأسفل للإرسال فوراً من هاتفك.',
+        };
+      }
+      return {
+        success: false,
+        error: `استجابة فارغة من السيرفر (كود ${res.status})`,
+      };
+    }
+
+    if (rawText.trim().startsWith('<!doctype') || rawText.trim().startsWith('<html')) {
+      return {
+        success: false,
+        isVercelStatic: true,
+        error:
+          'استجابت الاستضافة بصفحة ويب عادية بدلاً من السيرفر. يرجى تفعيل «الوضع المباشر للجوال» أو تشغيل خادم المنصة محلياً.',
+      };
+    }
+
+    try {
+      const parsed = JSON.parse(rawText);
+      return {
+        success: res.ok && parsed.success !== false,
+        data: parsed,
+        error: parsed.error,
+      };
+    } catch {
+      return {
+        success: false,
+        error: `استجابة غير صالحة من السيرفر (كود ${res.status})`,
+      };
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message?.includes('Failed to fetch')
+        ? 'تعذر الاتصال بخادم الواتساب. تأكد من تشغيل السيرفر بأمر npm run dev أو استخدم «الوضع المباشر للجوال».'
+        : err?.message || 'خطأ في الاتصال بالسيرفر',
+    };
+  }
 }
 
 // 📋 Pre-configured high-conversion official message templates
@@ -173,7 +257,32 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   businesses,
   onShowNotification,
 }) => {
-  // Session & Polling state
+  // ── DUAL ENGINE MODE STATE ──
+  // Auto-detect if currently running on static hosting (e.g. Vercel) to offer Mobile Direct Mode natively
+  const isLikelyStaticHosting = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const h = window.location.hostname.toLowerCase();
+    return h.includes('vercel.app') || h.includes('dalilaak.com');
+  }, []);
+
+  const [dispatchMode, setDispatchMode] = useState<'server_gateway' | 'mobile_direct'>(() => {
+    const saved = localStorage.getItem('dalelak_whatsapp_dispatch_mode');
+    if (saved === 'server_gateway' || saved === 'mobile_direct') return saved;
+    return isLikelyStaticHosting ? 'mobile_direct' : 'server_gateway';
+  });
+
+  const handleModeChange = (mode: 'server_gateway' | 'mobile_direct') => {
+    setDispatchMode(mode);
+    localStorage.setItem('dalelak_whatsapp_dispatch_mode', mode);
+  };
+
+  // Custom Gateway Server URL config (e.g. for connecting mobile to PC local server)
+  const [showServerSettings, setShowServerSettings] = useState(false);
+  const [gatewayCustomUrl, setGatewayCustomUrl] = useState<string>(() => {
+    return localStorage.getItem('dalelak_whatsapp_gateway_url') || '';
+  });
+
+  // Server Session & Polling state
   const [sessionStatus, setSessionStatus] = useState<WhatsAppSessionStatus>({
     state: 'disconnected',
     qrCodeUrl: null,
@@ -181,6 +290,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     lastActive: null,
     activeCampaign: null,
   });
+  const [isServerReachable, setIsServerReachable] = useState<boolean | null>(null);
+  const [serverNoticeMessage, setServerNoticeMessage] = useState<string | null>(null);
+
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -202,6 +314,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [selectedTemplate, setSelectedTemplate] = useState<string>('honorary_invitation');
   const [customText, setCustomText] = useState<string>(TEMPLATE_DEFINITIONS[0].defaultText);
   const [previewBizIndex, setPreviewBizIndex] = useState<number>(0);
+
+  // ── MOBILE DIRECT QUEUE STATE ──
+  const [mobileQueueIndex, setMobileQueueIndex] = useState<number>(0);
+  const [sentBusinessIds, setSentBusinessIds] = useState<Set<string>>(() => new Set());
+  const [skippedBusinessIds, setSkippedBusinessIds] = useState<Set<string>>(() => new Set());
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -229,19 +346,32 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     }
   };
 
-  // Fetch Status from Server
+  // Save Gateway URL
+  const handleSaveGatewayUrl = (url: string) => {
+    setGatewayCustomUrl(url);
+    localStorage.setItem('dalelak_whatsapp_gateway_url', url.trim());
+    fetchStatus();
+  };
+
+  // Safe Fetch Status from Server
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/whatsapp/status', {
+      const res = await safeFetchGatewayApi('/api/admin/whatsapp/status', {
         headers: getApiAuthHeaders(),
       });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success && data.status) {
-        setSessionStatus(data.status);
+
+      if (res.success && res.data?.status) {
+        setSessionStatus(res.data.status);
+        setIsServerReachable(true);
+        setServerNoticeMessage(null);
+      } else {
+        setIsServerReachable(false);
+        if (res.isVercelStatic) {
+          setServerNoticeMessage(res.error || null);
+        }
       }
-    } catch (e) {
-      console.warn('WhatsApp gateway status fetch failed:', e);
+    } catch {
+      setIsServerReachable(false);
     }
   }, []);
 
@@ -268,19 +398,29 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     triggerHaptic();
     setIsConnecting(true);
     try {
-      const res = await fetch('/api/admin/whatsapp/connect', {
+      const res = await safeFetchGatewayApi('/api/admin/whatsapp/connect', {
         method: 'POST',
         headers: {
           ...getApiAuthHeaders(),
           'Content-Type': 'application/json',
         },
       });
-      const data = await res.json();
-      if (data.success && data.status) {
-        setSessionStatus(data.status);
+
+      if (res.success && res.data?.status) {
+        setSessionStatus(res.data.status);
+        setIsServerReachable(true);
+        setServerNoticeMessage(null);
         onShowNotification?.('تم بدء تشغيل محرك الواتساب، انتظر ظهور رمز الـ QR أو استعادة الجلسة', 'info');
       } else {
-        onShowNotification?.(data.error || 'فشل الاتصال بمحرك الواتساب', 'error');
+        if (res.isVercelStatic) {
+          onShowNotification?.(
+            'سيرفر Baileys يتطلب تشغيل بيئة Node.js (أو تفعيل الوضع المباشر للجوال أدناه)',
+            'warning'
+          );
+          setServerNoticeMessage(res.error || null);
+        } else {
+          onShowNotification?.(res.error || 'فشل الاتصال بمحرك الواتساب', 'error');
+        }
       }
     } catch (err: any) {
       onShowNotification?.(err?.message || 'خطأ في الاتصال بالسيرفر', 'error');
@@ -297,15 +437,15 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     triggerHaptic();
     setIsDisconnecting(true);
     try {
-      const res = await fetch('/api/admin/whatsapp/disconnect', {
+      const res = await safeFetchGatewayApi('/api/admin/whatsapp/disconnect', {
         method: 'POST',
         headers: {
           ...getApiAuthHeaders(),
           'Content-Type': 'application/json',
         },
       });
-      const data = await res.json();
-      if (data.success) {
+
+      if (res.success) {
         setSessionStatus({
           state: 'disconnected',
           qrCodeUrl: null,
@@ -315,7 +455,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         });
         onShowNotification?.('تم قطع الاتصال وحذف الجلسة بنجاح', 'success');
       } else {
-        onShowNotification?.(data.error || 'تعذر قطع الاتصال', 'error');
+        onShowNotification?.(res.error || 'تعذر قطع الاتصال', 'error');
       }
     } catch (err: any) {
       onShowNotification?.(err?.message || 'خطأ في السيرفر', 'error');
@@ -335,10 +475,8 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     });
 
     const filtered = businesses.filter((b) => {
-      // Exclude soft-deleted
       if ((b as any).isDeleted) return false;
 
-      // Audience Filter
       if (audienceFilter === 'honorary') {
         const isHonorary = b.isFeeExempt || b.isAlreadyOnGoogle || b.registrationType === 'already_on_google';
         if (!isHonorary) return false;
@@ -346,12 +484,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         if (b.verificationStatus !== 'verified') return false;
       }
 
-      // Governorate Filter
       if (governorateFilter !== 'all' && b.governorate !== governorateFilter) {
         return false;
       }
 
-      // Category Filter
       if (categoryFilter !== 'all' && b.category !== categoryFilter) {
         return false;
       }
@@ -379,6 +515,25 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     };
   }, [businesses, audienceFilter, governorateFilter, categoryFilter]);
 
+  // Interpolator for a specific business
+  const compileMessageForBiz = useCallback(
+    (biz: Business) => {
+      const name = biz.nameAr || biz.name || 'المنشأة الكريمة';
+      const owner = biz.ownerName || 'صاحب المنشأة';
+      const location = [biz.street, biz.city, biz.governorate].filter(Boolean).join(' - ') || 'المحافظة';
+      const appUrl = (window.location.origin || 'https://www.dalilaak.com').replace(/\/$/, '');
+      const url = `${appUrl}/?place=${biz.id}`;
+
+      let text = customText || '';
+      text = text.replace(/{name}/g, name);
+      text = text.replace(/{owner}/g, owner);
+      text = text.replace(/{location}/g, location);
+      text = text.replace(/{url}/g, url);
+      return text;
+    },
+    [customText]
+  );
+
   // Live Message Preview interpolator
   const sampleBiz = targetBusinesses[previewBizIndex] || businesses[0] || {
     id: 'sample',
@@ -390,21 +545,16 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   };
 
   const previewMessage = useMemo(() => {
-    const name = sampleBiz.nameAr || sampleBiz.name || 'المنشأة الكريمة';
-    const owner = sampleBiz.ownerName || 'صاحب المنشأة';
-    const location = [sampleBiz.street, sampleBiz.city, sampleBiz.governorate].filter(Boolean).join(' - ') || 'المحافظة';
-    const appUrl = (window.location.origin || 'https://www.dalilaak.com').replace(/\/$/, '');
-    const url = `${appUrl}/?place=${sampleBiz.id}`;
+    return compileMessageForBiz(sampleBiz);
+  }, [compileMessageForBiz, sampleBiz]);
 
-    let text = customText || '';
-    text = text.replace(/{name}/g, name);
-    text = text.replace(/{owner}/g, owner);
-    text = text.replace(/{location}/g, location);
-    text = text.replace(/{url}/g, url);
-    return text;
-  }, [customText, sampleBiz]);
+  // Current Mobile Queue Business
+  const currentMobileBiz: Business | undefined = targetBusinesses[mobileQueueIndex];
+  const currentMobilePhone = currentMobileBiz?.phone || currentMobileBiz?.ownerPhone;
+  const isCurrentMobilePhoneValid = isValidTargetPhone(currentMobilePhone);
+  const currentMobileWaDigits = formatPhoneForWaLink(currentMobilePhone);
 
-  // Launch Campaign
+  // Launch Server Gateway Campaign
   const handleLaunchCampaign = async () => {
     if (sessionStatus.state !== 'connected') {
       onShowNotification?.('محرك الواتساب غير متصل. يرجى مسح رمز الـ QR أولاً وتأكيد الاتصال.', 'warning');
@@ -424,7 +574,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     setShowConfirmModal(false);
 
     try {
-      const res = await fetch('/api/admin/whatsapp/broadcast', {
+      const res = await safeFetchGatewayApi('/api/admin/whatsapp/broadcast', {
         method: 'POST',
         headers: {
           ...getApiAuthHeaders(),
@@ -439,12 +589,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         }),
       });
 
-      const data = await res.json();
-      if (data.success) {
-        onShowNotification?.(data.message || 'تم إطلاق حملة المراسلة بنجاح في الخلفية!', 'success');
+      if (res.success) {
+        onShowNotification?.(res.data?.message || 'تم إطلاق حملة المراسلة بنجاح في الخلفية!', 'success');
         fetchStatus();
       } else {
-        onShowNotification?.(data.error || 'تعذر إطلاق الحملة', 'error');
+        onShowNotification?.(res.error || 'تعذر إطلاق الحملة', 'error');
       }
     } catch (err: any) {
       onShowNotification?.(err?.message || 'خطأ أثناء بدء الحملة', 'error');
@@ -461,24 +610,60 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     triggerHaptic();
     setIsAbortingCampaign(true);
     try {
-      const res = await fetch('/api/admin/whatsapp/broadcast-abort', {
+      const res = await safeFetchGatewayApi('/api/admin/whatsapp/broadcast-abort', {
         method: 'POST',
         headers: {
           ...getApiAuthHeaders(),
           'Content-Type': 'application/json',
         },
       });
-      const data = await res.json();
-      if (data.success) {
-        onShowNotification?.(data.message || 'تم تفعيل زر الطوارئ وإيقاف الحملة بنجاح', 'info');
+
+      if (res.success) {
+        onShowNotification?.(res.data?.message || 'تم تفعيل زر الطوارئ وإيقاف الحملة بنجاح', 'info');
         fetchStatus();
       } else {
-        onShowNotification?.(data.error || 'فشل إيقاف الحملة', 'error');
+        onShowNotification?.(res.error || 'فشل إيقاف الحملة', 'error');
       }
     } catch (err: any) {
       onShowNotification?.(err?.message || 'خطأ في إيقاف الحملة', 'error');
     } finally {
       setIsAbortingCampaign(false);
+    }
+  };
+
+  // 📲 MOBILE DIRECT DISPATCH HANDLER
+  const handleMobileSendCurrent = () => {
+    if (!currentMobileBiz) return;
+    if (!isCurrentMobilePhoneValid || !currentMobileWaDigits) {
+      onShowNotification?.('رقم الهاتف مسجل كأصفار أو غير صالح للإرسال، يفضل تخطيه', 'warning');
+      return;
+    }
+
+    triggerHaptic();
+    const msg = compileMessageForBiz(currentMobileBiz);
+    const encodedText = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?phone=${currentMobileWaDigits}&text=${encodedText}`;
+
+    // Mark as sent in session set
+    setSentBusinessIds((prev) => new Set(prev).add(currentMobileBiz.id));
+
+    // Open WhatsApp natively on device
+    window.open(waUrl, '_blank');
+
+    onShowNotification?.(`تم فتح محادثة WhatsApp لـ: ${currentMobileBiz.nameAr || currentMobileBiz.name}`, 'success');
+
+    // Auto-advance to next if not at end
+    if (mobileQueueIndex < targetBusinesses.length - 1) {
+      setMobileQueueIndex((i) => i + 1);
+    }
+  };
+
+  const handleMobileSkipCurrent = () => {
+    if (!currentMobileBiz) return;
+    triggerHaptic();
+    setSkippedBusinessIds((prev) => new Set(prev).add(currentMobileBiz.id));
+    if (mobileQueueIndex < targetBusinesses.length - 1) {
+      setMobileQueueIndex((i) => i + 1);
     }
   };
 
@@ -489,7 +674,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fadeIn text-[var(--text-primary)]" dir="rtl">
       {/* ── HEADER BANNER ── */}
-      <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-3xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-0 w-60 h-60 bg-amber-500/10 rounded-full blur-2xl pointer-events-none -ml-10 -mb-10" />
 
@@ -504,12 +689,22 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
             </h1>
             <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
               إرسال مباشر بنقرة واحدة لكافة المنشآت المسجلة والشرفية المستوردة مع{' '}
-              <strong className="text-amber-400">صمام الأمان الذكي ضد الحظر (Anti-Ban Jitter)</strong> بدون فتح شات يدوي أو
-              تكاليف رسائل.
+              <strong className="text-amber-400">صمام الأمان الذكي ضد الحظر (Anti-Ban Jitter)</strong> أو عبر{' '}
+              <strong className="text-emerald-400">الوضع المباشر السريع للجوال</strong> بدون تكاليف.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 self-start md:self-center">
+          <div className="flex items-center gap-2 self-start md:self-center">
+            <button
+              type="button"
+              onClick={() => setShowServerSettings(!showServerSettings)}
+              className="p-2.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+              title="إعدادات خادم البوابة"
+            >
+              <Settings2 className="w-4 h-4" />
+              <span className="hidden sm:inline">إعدادات السيرفر</span>
+            </button>
+
             <button
               type="button"
               onClick={fetchStatus}
@@ -524,264 +719,497 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         </div>
       </div>
 
-      {/* ── GRID: 1. GATEWAY SOCKET STATUS & 2. ANTI-BAN PACING CONFIG ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* CARD 1: WHATSAPP WEB GATEWAY STATUS (Col 12 / 5) */}
-        <div className="lg:col-span-5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
-                  <Smartphone className="w-5 h-5" />
+      {/* ── COLLAPSIBLE SERVER CONNECTIVITY SETTINGS ── */}
+      {showServerSettings && (
+        <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl shadow-sm space-y-4 animate-slideDown text-xs">
+          <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+            <div className="flex items-center gap-2 font-black text-sm">
+              <Settings2 className="w-4 h-4 text-amber-500" />
+              <span>إعدادات اتصال سيرفر الواتساب (Remote Gateway URL)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {isServerReachable ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-black border border-emerald-500/30">
+                  🟢 السيرفر متصل وجاهز
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-black border border-amber-500/30">
+                  🔴 السيرفر غير نشط محلياً
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-bold text-[var(--text-secondary)] block">
+              رابط خادم Node.js المخصص (إذا كنت تتصفح من الجوال عبر Wi-Fi أو نفق سحابي):
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={gatewayCustomUrl}
+                onChange={(e) => setGatewayCustomUrl(e.target.value)}
+                placeholder="مثال: http://192.168.1.15:3001 أو اتركه فارغاً للافتراضي"
+                className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl px-3 py-2 text-xs font-mono text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-emerald-500"
+                dir="ltr"
+              />
+              <button
+                type="button"
+                onClick={() => handleSaveGatewayUrl(gatewayCustomUrl)}
+                className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black cursor-pointer text-xs"
+              >
+                حفظ واختبار
+              </button>
+            </div>
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+              * استضافة Vercel تعمل كواجهة ساكنة؛ محرك Baileys يعمل داخل خادم المنصة (`server.ts`). عند استخدام الجوال،
+              يمكنك كتابة IP جهاز الكمبيوتر على نفس شبكة الواي فاي للربط الآلي، أو التبديل للوضع المباشر للجوال أدناه.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── DUAL-ENGINE MODE TOGGLE SELECTOR ── */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 px-2 text-xs font-black text-[var(--text-secondary)]">
+          <span>اختر مسار الإرسال المفضل:</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 flex-1 sm:max-w-xl">
+          <button
+            type="button"
+            onClick={() => handleModeChange('mobile_direct')}
+            className={`py-2.5 px-3 rounded-2xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              dispatchMode === 'mobile_direct'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                : 'bg-white/5 text-[var(--text-secondary)] hover:text-white border border-[var(--border-color)]'
+            }`}
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>الوضع المباشر للجوال (100% بدون خادم) 📲</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleModeChange('server_gateway')}
+            className={`py-2.5 px-3 rounded-2xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              dispatchMode === 'server_gateway'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                : 'bg-white/5 text-[var(--text-secondary)] hover:text-white border border-[var(--border-color)]'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>سيرفر Baileys الآلي (صمام الأمان) ⚡</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── MODE 1: MOBILE DIRECT DISPATCH ENGINE (100% CLIENT-SIDE ON VERCEL & SMARTPHONE) ── */}
+      {dispatchMode === 'mobile_direct' && (
+        <div className="bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-6 shadow-xl space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>جاهز للعمل من أي هاتف وشبكة 5G دون الحاجة لتشغيل جهاز الكمبيوتر</span>
+              </div>
+              <h2 className="text-xl font-black text-white">طابور الإرسال المباشر الذكي عبر تطبيق WhatsApp</h2>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-slate-300">التقدم في الطابور:</span>
+              <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 font-mono font-black">
+                {targetBusinesses.length > 0 ? mobileQueueIndex + 1 : 0} / {targetBusinesses.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Current Mobile Business Card */}
+          {currentMobileBiz ? (
+            <div className="bg-[var(--bg-card)] border border-emerald-500/30 rounded-3xl p-6 shadow-md space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-mono font-black text-xs">
+                      #{mobileQueueIndex + 1}
+                    </span>
+                    <h3 className="font-black text-lg text-white">
+                      {currentMobileBiz.nameAr || currentMobileBiz.name}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] flex items-center gap-2">
+                    <span>المسؤول: {currentMobileBiz.ownerName || 'غير محدد'}</span>
+                    <span>•</span>
+                    <span>الموقع: {[currentMobileBiz.city, currentMobileBiz.governorate].filter(Boolean).join(' - ')}</span>
+                  </p>
                 </div>
-                <div>
-                  <h2 className="font-black text-sm sm:text-base">بوابة ربط WhatsApp Web</h2>
-                  <p className="text-[11px] text-[var(--text-secondary)]">سيرفر Baileys الخفيف المدمج</p>
+
+                <div className="text-right sm:text-left">
+                  <p className="text-[11px] text-[var(--text-secondary)]">رقم هاتف المنشأة:</p>
+                  <p
+                    className={`font-mono text-base font-black ${
+                      isCurrentMobilePhoneValid ? 'text-emerald-400' : 'text-amber-400'
+                    }`}
+                    dir="ltr"
+                  >
+                    {currentMobilePhone || 'لا يوجد هاتف'}
+                  </p>
+                  {!isCurrentMobilePhoneValid && (
+                    <span className="text-[10px] text-amber-400 font-bold">⚠️ رقم وهمي (أصفار) يفضل تخطيه</span>
+                  )}
                 </div>
               </div>
 
-              {/* Status Badge */}
-              <div className="flex items-center gap-2">
+              {/* Message Preview Container */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] font-bold">
+                  <span>معاينة نص الرسالة الجاهزة للإرسال:</span>
+                  <span className="text-[11px] text-amber-400">القالب: {selectedTemplate}</span>
+                </div>
+                <div className="bg-[#0b141a] rounded-2xl p-4 border border-[#202c33] text-xs text-emerald-50 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto font-sans">
+                  {compileMessageForBiz(currentMobileBiz)}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleMobileSendCurrent}
+                  disabled={!isCurrentMobilePhoneValid}
+                  className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm sm:text-base transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50"
+                >
+                  <MessageCircle className="w-5 h-5 fill-current" />
+                  <span>إرسال إلى {currentMobileBiz.nameAr || currentMobileBiz.name} عبر WhatsApp 💬</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleMobileSkipCurrent}
+                  className="py-4 px-5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-white/10"
+                >
+                  <SkipForward className="w-4 h-4" />
+                  <span>تخطي للنشاط التالي ⏭️</span>
+                </button>
+              </div>
+
+              {/* Queue Controls Bar */}
+              <div className="flex items-center justify-between text-xs pt-3 border-t border-[var(--border-color)]">
+                <button
+                  type="button"
+                  onClick={() => setMobileQueueIndex((i) => Math.max(0, i - 1))}
+                  disabled={mobileQueueIndex === 0}
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text-secondary)] hover:text-white transition-all disabled:opacity-30 cursor-pointer flex items-center gap-1"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>النشاط السابق</span>
+                </button>
+
+                <div className="flex items-center gap-3 font-mono text-[11px]">
+                  <span className="text-emerald-400 font-bold">تم إرساله بالجلسة: {sentBusinessIds.size}</span>
+                  <span>•</span>
+                  <span className="text-amber-400 font-bold">مستبعد: {skippedBusinessIds.size}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileQueueIndex((i) => Math.min(targetBusinesses.length - 1, i + 1))}
+                  disabled={mobileQueueIndex >= targetBusinesses.length - 1}
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text-secondary)] hover:text-white transition-all disabled:opacity-30 cursor-pointer flex items-center gap-1"
+                >
+                  <span>النشاط التالي</span>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-slate-400 bg-white/5 rounded-3xl">
+              لا توجد منشآت تطابق الفلاتر المحددة حالياً.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MODE 2: BAILEYS SERVER GATEWAY SOCKET & PACING CONFIG ── */}
+      {dispatchMode === 'server_gateway' && (
+        <>
+          {serverNoticeMessage && (
+            <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1.5 flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1 flex-1 leading-relaxed">
+                <p className="font-black text-sm">تنبيه بنية الاستضافة (Vercel Static Hosting):</p>
+                <p>{serverNoticeMessage}</p>
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('mobile_direct')}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all cursor-pointer"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>التبديل الآن إلى «الوضع المباشر للجوال» 📲</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* CARD 1: WHATSAPP WEB GATEWAY STATUS */}
+            <div className="lg:col-span-5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-black text-sm sm:text-base">بوابة ربط WhatsApp Web</h2>
+                      <p className="text-[11px] text-[var(--text-secondary)]">سيرفر Baileys الخفيف المدمج</p>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-2">
+                    {sessionStatus.state === 'connected' ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 text-xs font-black animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        متصل ونشط
+                      </span>
+                    ) : sessionStatus.state === 'qr_ready' ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30 text-xs font-black">
+                        <QrCode className="w-3.5 h-3.5" />
+                        امسح رمز QR
+                      </span>
+                    ) : sessionStatus.state === 'connecting' ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-black">
+                        <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                        جارٍ الاتصال...
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30 text-xs font-black">
+                        <span className="w-2 h-2 rounded-full bg-slate-500" />
+                        غير متصل
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* CONNECTED STATE DETAILS */}
+                {sessionStatus.state === 'connected' && sessionStatus.connectedUser && (
+                  <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-xs text-emerald-400 font-bold">الحساب المتصل حالياً بالإرسال:</p>
+                        <p className="text-lg font-black text-white font-mono" dir="ltr">
+                          {sessionStatus.connectedUser.phone}
+                        </p>
+                        <p className="text-xs text-[var(--text-secondary)]">{sessionStatus.connectedUser.name || 'إدارة دليلك'}</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40 shadow-inner">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-[var(--text-secondary)] border-t border-emerald-500/20 pt-2 flex items-center justify-between">
+                      <span>آخر نشاط موثق:</span>
+                      <span className="font-mono" dir="ltr">
+                        {sessionStatus.lastActive ? new Date(sessionStatus.lastActive).toLocaleTimeString('ar-EG') : 'الآن'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* QR CODE READY STATE */}
+                {sessionStatus.state === 'qr_ready' && sessionStatus.qrCodeUrl && (
+                  <div className="flex flex-col items-center justify-center p-4 bg-white/5 border border-blue-500/30 rounded-2xl space-y-3 text-center">
+                    <div className="p-3 bg-white rounded-2xl shadow-xl border-2 border-emerald-500">
+                      <img
+                        src={sessionStatus.qrCodeUrl}
+                        alt="WhatsApp QR Code"
+                        className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
+                      />
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <p className="font-black text-white">افتح واتساب على هاتفك &gt; الأجهزة المرتبطة &gt; ربط جهاز</p>
+                      <p className="text-[var(--text-secondary)]">وجّه الكاميرا نحو الرمز أعلاه لتفعيل الإرسال الجماعي فوراً</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* DISCONNECTED / CONNECTING PROMPT */}
+                {sessionStatus.state === 'disconnected' && (
+                  <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
+                    <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
+                      <Info className="w-4 h-4 shrink-0" />
+                      <span>المحرك غير مرتبط بهاتف الإدارة حالياً</span>
+                    </div>
+                    <p className="text-[var(--text-secondary)] leading-relaxed">
+                      اضغط على زر <strong>"ربط هاتف الإدارة (مسح QR)"</strong> بالأسفل لتوليد كود الربط السريع. الجلسة تُحفظ
+                      محلياً ولا تتطلب إعادة المسح في كل مرة.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 border-t border-[var(--border-color)]">
                 {sessionStatus.state === 'connected' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 text-xs font-black animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    متصل ونشط
-                  </span>
-                ) : sessionStatus.state === 'qr_ready' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30 text-xs font-black">
-                    <QrCode className="w-3.5 h-3.5" />
-                    امسح رمز QR
-                  </span>
-                ) : sessionStatus.state === 'connecting' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-black">
-                    <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                    جارٍ الاتصال...
-                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDisconnect}
+                    disabled={isDisconnecting || isCampaignRunning}
+                    className="w-full py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/30 transition-all font-black text-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span>{isDisconnecting ? 'جارٍ قطع الاتصال...' : 'قطع الاتصال وحذف الجلسة'}</span>
+                  </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30 text-xs font-black">
-                    <span className="w-2 h-2 rounded-full bg-slate-500" />
-                    غير متصل
-                  </span>
+                  <button
+                    type="button"
+                    onClick={handleConnect}
+                    disabled={isConnecting}
+                    className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    <span>{isConnecting ? 'جارٍ توليد الرمز...' : 'ربط هاتف الإدارة (توليد / مسح QR)'}</span>
+                  </button>
                 )}
               </div>
             </div>
 
-            {/* CONNECTED STATE DETAILS */}
-            {sessionStatus.state === 'connected' && sessionStatus.connectedUser && (
-              <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs text-emerald-400 font-bold">الحساب المتصل حالياً بالإرسال:</p>
-                    <p className="text-lg font-black text-white font-mono" dir="ltr">
-                      {sessionStatus.connectedUser.phone}
-                    </p>
-                    <p className="text-xs text-[var(--text-secondary)]">{sessionStatus.connectedUser.name || 'إدارة دليلك'}</p>
+            {/* CARD 2: ANTI-BAN THROTTLING VALVE SETTINGS */}
+            <div className="lg:col-span-7 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 shadow-sm space-y-5 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-black text-sm sm:text-base">صمام الأمان الذكي ضد الحظر (Anti-Ban Jitter)</h2>
+                      <p className="text-[11px] text-[var(--text-secondary)]">محاكاة السلوك البشري الطبيعي لتفادي حظر الرقم</p>
+                    </div>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40 shadow-inner">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
-                </div>
 
-                <div className="text-[11px] text-[var(--text-secondary)] border-t border-emerald-500/20 pt-2 flex items-center justify-between">
-                  <span>آخر نشاط موثق:</span>
-                  <span className="font-mono" dir="ltr">
-                    {sessionStatus.lastActive ? new Date(sessionStatus.lastActive).toLocaleTimeString('ar-EG') : 'الآن'}
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
+                    حماية مفعلة 🛡️
                   </span>
                 </div>
-              </div>
-            )}
 
-            {/* QR CODE READY STATE */}
-            {sessionStatus.state === 'qr_ready' && sessionStatus.qrCodeUrl && (
-              <div className="flex flex-col items-center justify-center p-4 bg-white/5 border border-blue-500/30 rounded-2xl space-y-3 text-center">
-                <div className="p-3 bg-white rounded-2xl shadow-xl border-2 border-emerald-500">
-                  <img
-                    src={sessionStatus.qrCodeUrl}
-                    alt="WhatsApp QR Code"
-                    className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
+                {/* Pacing Presets */}
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-[var(--text-secondary)]">اختر معدل التباعد الزمني بين الرسائل:</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPreset('balanced')}
+                      className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+                        pacingPreset === 'balanced'
+                          ? 'bg-amber-500/15 border-amber-500 text-[var(--text-primary)] shadow-sm'
+                          : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-amber-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-black text-xs">
+                        <span>متزن وآمن (موصى به)</span>
+                        {pacingPreset === 'balanced' && <Check className="w-3.5 h-3.5 text-amber-500" />}
+                      </div>
+                      <p className="text-[11px] text-amber-400 mt-1 font-mono font-bold">10 - 20 ثانية عشوائي</p>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">الحل الأمثل للحملات المعتادة</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPreset('ultra_safe')}
+                      className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+                        pacingPreset === 'ultra_safe'
+                          ? 'bg-emerald-500/15 border-emerald-500 text-[var(--text-primary)] shadow-sm'
+                          : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-black text-xs">
+                        <span>فائق الأمان</span>
+                        {pacingPreset === 'ultra_safe' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                      </div>
+                      <p className="text-[11px] text-emerald-400 mt-1 font-mono font-bold">15 - 30 ثانية عشوائي</p>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للحملات الضخمة &gt; 500 منشأة</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPreset('fast')}
+                      className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+                        pacingPreset === 'fast'
+                          ? 'bg-blue-500/15 border-blue-500 text-[var(--text-primary)] shadow-sm'
+                          : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-blue-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-black text-xs">
+                        <span>سريع نسبي</span>
+                        {pacingPreset === 'fast' && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                      </div>
+                      <p className="text-[11px] text-blue-400 mt-1 font-mono font-bold">6 - 12 ثانية عشوائي</p>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للقوائم الصغيرة والمستعجلة</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Delay Sliders */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-[var(--border-color)] space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-amber-500" />
+                      <span>الحد الأدنى للانتظار (ثوانٍ):</span>
+                    </span>
+                    <span className="font-black text-amber-400 font-mono">{minDelaySeconds} ثانية</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="30"
+                    value={minDelaySeconds}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setMinDelaySeconds(val);
+                      if (maxDelaySeconds < val + 2) setMaxDelaySeconds(val + 5);
+                      setPacingPreset('custom');
+                    }}
+                    className="w-full accent-amber-500 cursor-pointer"
+                  />
+
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-amber-500" />
+                      <span>الحد الأقصى للانتظار (ثوانٍ):</span>
+                    </span>
+                    <span className="font-black text-amber-400 font-mono">{maxDelaySeconds} ثانية</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={minDelaySeconds + 2}
+                    max="60"
+                    value={maxDelaySeconds}
+                    onChange={(e) => {
+                      setMaxDelaySeconds(Number(e.target.value));
+                      setPacingPreset('custom');
+                    }}
+                    className="w-full accent-amber-500 cursor-pointer"
                   />
                 </div>
-                <div className="space-y-1 text-xs">
-                  <p className="font-black text-white">افتح واتساب على هاتفك &gt; الأجهزة المرتبطة &gt; ربط جهاز</p>
-                  <p className="text-[var(--text-secondary)]">وجّه الكاميرا نحو الرمز أعلاه لتفعيل الإرسال الجماعي فوراً</p>
-                </div>
               </div>
-            )}
 
-            {/* DISCONNECTED / CONNECTING PROMPT */}
-            {sessionStatus.state === 'disconnected' && (
-              <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
-                <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
-                  <Info className="w-4 h-4 shrink-0" />
-                  <span>المحرك غير مرتبط بهاتف الإدارة حالياً</span>
-                </div>
-                <p className="text-[var(--text-secondary)] leading-relaxed">
-                  اضغط على زر <strong>"ربط هاتف الإدارة (مسح QR)"</strong> بالأسفل لتوليد كود الربط السريع. الجلسة تُحفظ
-                  محلياً ولا تتطلب إعادة المسح في كل مرة.
+              <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 flex items-start gap-2.5">
+                <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>كيف يعمل صمام الحماية؟</strong> يُرسل المحرك كل رسالة ثم يختار فاصلاً زمنياً عشوائياً مختلفاً (مثلاً:
+                  14.2 ث ثم 18.7 ث ثم 11.1 ث). خوارزميات مكافحة السبام في واتساب تعتبر هذا النمط تصرّفاً بشرياً أصيلاً فلا تحظر
+                  الرقم.
                 </p>
               </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="pt-2 border-t border-[var(--border-color)]">
-            {sessionStatus.state === 'connected' ? (
-              <button
-                type="button"
-                onClick={handleDisconnect}
-                disabled={isDisconnecting || isCampaignRunning}
-                className="w-full py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/30 transition-all font-black text-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <XCircle className="w-4 h-4" />
-                <span>{isDisconnecting ? 'جارٍ قطع الاتصال...' : 'قطع الاتصال وحذف الجلسة'}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleConnect}
-                disabled={isConnecting}
-                className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <QrCode className="w-4 h-4" />
-                <span>{isConnecting ? 'جارٍ توليد الرمز...' : 'ربط هاتف الإدارة (توليد / مسح QR)'}</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* CARD 2: ANTI-BAN THROTTLING VALVE SETTINGS (Col 12 / 7) */}
-        <div className="lg:col-span-7 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 shadow-sm space-y-5 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="font-black text-sm sm:text-base">صمام الأمان الذكي ضد الحظر (Anti-Ban Jitter)</h2>
-                  <p className="text-[11px] text-[var(--text-secondary)]">محاكاة السلوك البشري الطبيعي لتفادي حظر الرقم</p>
-                </div>
-              </div>
-
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
-                حماية مفعلة 🛡️
-              </span>
-            </div>
-
-            {/* Pacing Presets */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-[var(--text-secondary)]">اختر معدل التباعد الزمني بين الرسائل:</label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSelectPreset('balanced')}
-                  className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                    pacingPreset === 'balanced'
-                      ? 'bg-amber-500/15 border-amber-500 text-[var(--text-primary)] shadow-sm'
-                      : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-amber-500/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between font-black text-xs">
-                    <span>متزن وآمن (موصى به)</span>
-                    {pacingPreset === 'balanced' && <Check className="w-3.5 h-3.5 text-amber-500" />}
-                  </div>
-                  <p className="text-[11px] text-amber-400 mt-1 font-mono font-bold">10 - 20 ثانية عشوائي</p>
-                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">الحل الأمثل للحملات المعتادة</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectPreset('ultra_safe')}
-                  className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                    pacingPreset === 'ultra_safe'
-                      ? 'bg-emerald-500/15 border-emerald-500 text-[var(--text-primary)] shadow-sm'
-                      : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between font-black text-xs">
-                    <span>فائق الأمان</span>
-                    {pacingPreset === 'ultra_safe' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
-                  </div>
-                  <p className="text-[11px] text-emerald-400 mt-1 font-mono font-bold">15 - 30 ثانية عشوائي</p>
-                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للحملات الضخمة &gt; 500 منشأة</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectPreset('fast')}
-                  className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                    pacingPreset === 'fast'
-                      ? 'bg-blue-500/15 border-blue-500 text-[var(--text-primary)] shadow-sm'
-                      : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-blue-500/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between font-black text-xs">
-                    <span>سريع نسبي</span>
-                    {pacingPreset === 'fast' && <Check className="w-3.5 h-3.5 text-blue-500" />}
-                  </div>
-                  <p className="text-[11px] text-blue-400 mt-1 font-mono font-bold">6 - 12 ثانية عشوائي</p>
-                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للقوائم الصغيرة والمستعجلة</p>
-                </button>
-              </div>
-            </div>
-
-            {/* Custom Delay Sliders */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-[var(--border-color)] space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-amber-500" />
-                  <span>الحد الأدنى للانتظار (ثوانٍ):</span>
-                </span>
-                <span className="font-black text-amber-400 font-mono">{minDelaySeconds} ثانية</span>
-              </div>
-              <input
-                type="range"
-                min="5"
-                max="30"
-                value={minDelaySeconds}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setMinDelaySeconds(val);
-                  if (maxDelaySeconds < val + 2) setMaxDelaySeconds(val + 5);
-                  setPacingPreset('custom');
-                }}
-                className="w-full accent-amber-500 cursor-pointer"
-              />
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="font-bold flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-amber-500" />
-                  <span>الحد الأقصى للانتظار (ثوانٍ):</span>
-                </span>
-                <span className="font-black text-amber-400 font-mono">{maxDelaySeconds} ثانية</span>
-              </div>
-              <input
-                type="range"
-                min={minDelaySeconds + 2}
-                max="60"
-                value={maxDelaySeconds}
-                onChange={(e) => {
-                  setMaxDelaySeconds(Number(e.target.value));
-                  setPacingPreset('custom');
-                }}
-                className="w-full accent-amber-500 cursor-pointer"
-              />
             </div>
           </div>
-
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 flex items-start gap-2.5">
-            <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              <strong>كيف يعمل صمام الحماية؟</strong> يُرسل المحرك كل رسالة ثم يختار فاصلاً زمنياً عشوائياً مختلفاً (مثلاً:
-              14.2 ث ثم 18.7 ث ثم 11.1 ث). خوارزميات مكافحة السبام في واتساب تعتبر هذا النمط تصرّفاً بشرياً أصيلاً فلا تحظر
-              الرقم.
-            </p>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* ── LIVE ACTIVE CAMPAIGN PROGRESS MONITOR (IF RUNNING OR COMPLETED) ── */}
-      {campaign && campaign.status !== 'idle' && (
+      {dispatchMode === 'server_gateway' && campaign && campaign.status !== 'idle' && (
         <div className="bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-5 animate-slideDown">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div className="space-y-1">
@@ -858,7 +1286,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
             </div>
           </div>
 
-          {/* Live Dispatch Logs (Last 15 records) */}
+          {/* Live Dispatch Logs */}
           {campaign.logs && campaign.logs.length > 0 && (
             <div className="space-y-2 border-t border-white/10 pt-4">
               <div className="flex items-center justify-between text-xs font-bold text-slate-300">
@@ -939,7 +1367,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setAudienceFilter('all')}
+                    onClick={() => {
+                      setAudienceFilter('all');
+                      setMobileQueueIndex(0);
+                    }}
                     className={`py-2 px-3 rounded-xl border text-xs font-black transition-all cursor-pointer ${
                       audienceFilter === 'all'
                         ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
@@ -950,7 +1381,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAudienceFilter('honorary')}
+                    onClick={() => {
+                      setAudienceFilter('honorary');
+                      setMobileQueueIndex(0);
+                    }}
                     className={`py-2 px-3 rounded-xl border text-xs font-black transition-all cursor-pointer ${
                       audienceFilter === 'honorary'
                         ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
@@ -961,7 +1395,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAudienceFilter('verified')}
+                    onClick={() => {
+                      setAudienceFilter('verified');
+                      setMobileQueueIndex(0);
+                    }}
                     className={`py-2 px-3 rounded-xl border text-xs font-black transition-all cursor-pointer ${
                       audienceFilter === 'verified'
                         ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
@@ -979,7 +1416,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-1 block">المحافظة:</label>
                   <select
                     value={governorateFilter}
-                    onChange={(e) => setGovernorateFilter(e.target.value)}
+                    onChange={(e) => {
+                      setGovernorateFilter(e.target.value);
+                      setMobileQueueIndex(0);
+                    }}
                     className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
                   >
                     <option value="all">كافة المحافظات ({businesses.length})</option>
@@ -995,7 +1435,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-1 block">التصنيف:</label>
                   <select
                     value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    onChange={(e) => {
+                      setCategoryFilter(e.target.value);
+                      setMobileQueueIndex(0);
+                    }}
                     className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
                   >
                     <option value="all">كافة التصنيفات</option>
@@ -1150,63 +1593,81 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
             </div>
           </div>
 
-          {/* FINAL LAUNCH CALL-TO-ACTION CARD */}
-          <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-3xl p-6 shadow-xl space-y-4">
-            <div className="space-y-1">
-              <h4 className="font-black text-base text-white flex items-center gap-2">
-                <Send className="w-4 h-4 text-emerald-400" />
-                <span>جاهز لإطلاق الحملة الجماعية</span>
-              </h4>
+          {/* FINAL LAUNCH CALL-TO-ACTION CARD (FOR SERVER GATEWAY MODE) */}
+          {dispatchMode === 'server_gateway' ? (
+            <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="space-y-1">
+                <h4 className="font-black text-base text-white flex items-center gap-2">
+                  <Send className="w-4 h-4 text-emerald-400" />
+                  <span>جاهز لإطلاق الحملة عبر خادم Baileys</span>
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  سيتم إرسال الرسائل تلقائياً في الخلفية إلى{' '}
+                  <strong className="text-emerald-400">{validPhoneCount} منشأة</strong> مع فاصل زمني عشوائي من{' '}
+                  <strong className="text-amber-400">{minDelaySeconds} إلى {maxDelaySeconds} ثانية</strong>.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[11px] space-y-1 text-slate-300">
+                <div className="flex justify-between">
+                  <span>الوقت التقديري للحملة:</span>
+                  <span className="font-mono text-amber-400 font-bold">
+                    {Math.round((validPhoneCount * ((minDelaySeconds + maxDelaySeconds) / 2)) / 60)} دقيقة
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>التكلفة المالية:</span>
+                  <span className="font-mono text-emerald-400 font-black">0.00 ج.م ($0.00 مجاني)</span>
+                </div>
+              </div>
+
+              {sessionStatus.state !== 'connected' ? (
+                <button
+                  type="button"
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                  className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <QrCode className="w-5 h-5" />
+                  <span>اربط WhatsApp أولاً لتفعيل الإرسال</span>
+                </button>
+              ) : isCampaignRunning ? (
+                <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-center text-xs text-amber-300 font-black">
+                  ⏳ توجد حملة قيد التنفيذ حالياً، يمكنك متابعة شريط التقدم بالأعلى.
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(true)}
+                  disabled={validPhoneCount === 0 || isStartingCampaign}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm sm:text-base transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50"
+                >
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>🚀 بدء حملة الإرسال الجماعي الآن</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            /* QUICK SHORTCUT CARD FOR MOBILE DIRECT MODE */
+            <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-3xl p-5 shadow-xl space-y-3">
+              <div className="flex items-center gap-2 text-emerald-400 font-black text-sm">
+                <Smartphone className="w-4 h-4" />
+                <span>الوضع المباشر للجوال نشط</span>
+              </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                سيتم إرسال الرسائل تلقائياً في الخلفية إلى{' '}
-                <strong className="text-emerald-400">{validPhoneCount} منشأة</strong> مع فاصل زمني عشوائي من{' '}
-                <strong className="text-amber-400">{minDelaySeconds} إلى {maxDelaySeconds} ثانية</strong>.
+                يمكنك التمرير للأعلى واستخدام زر <strong>«إرسال عبر WhatsApp 💬»</strong> لمراسلة المنشآت تباعاً بنقرة واحدة
+                لكل منشأة بدون الحاجة لأي خادم خارجي.
               </p>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[11px] space-y-1 text-slate-300">
-              <div className="flex justify-between">
-                <span>الوقت التقديري للحملة:</span>
-                <span className="font-mono text-amber-400 font-bold">
-                  {Math.round((validPhoneCount * ((minDelaySeconds + maxDelaySeconds) / 2)) / 60)} دقيقة
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>التكلفة المالية:</span>
-                <span className="font-mono text-emerald-400 font-black">0.00 ج.م ($0.00 مجاني)</span>
+              <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>إجمالي المنشآت: {targetBusinesses.length}</span>
+                <span>المتبقي في الطابور: {Math.max(0, targetBusinesses.length - mobileQueueIndex)}</span>
               </div>
             </div>
-
-            {sessionStatus.state !== 'connected' ? (
-              <button
-                type="button"
-                onClick={handleConnect}
-                disabled={isConnecting}
-                className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2"
-              >
-                <QrCode className="w-5 h-5" />
-                <span>اربط WhatsApp أولاً لتفعيل الإرسال</span>
-              </button>
-            ) : isCampaignRunning ? (
-              <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-center text-xs text-amber-300 font-black">
-                ⏳ توجد حملة قيد التنفيذ حالياً، يمكنك متابعة شريط التقدم بالأعلى.
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(true)}
-                disabled={validPhoneCount === 0 || isStartingCampaign}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm sm:text-base transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50"
-              >
-                <Play className="w-5 h-5 fill-current" />
-                <span>🚀 بدء حملة الإرسال الجماعي الآن</span>
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
-      {/* ── FINAL CONFIRMATION MODAL ── */}
+      {/* ── FINAL CONFIRMATION MODAL (FOR SERVER CAMPAIGN) ── */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 animate-scaleUp">
@@ -1239,7 +1700,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed flex items-start gap-2">
                 <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  ستعمل الحملة في الخلفية تلقائياً حتى لو قمت بتصفح شاشات أخرى. يمكنك إيقاف الحملة في أي لحظة عبر زر الطوارئ 🛑.
+                  ستعمل الحملة في الخلفية تلقائياً عبر السيرفر. يمكنك إيقاف الحملة في أي لحظة عبر زر الطوارئ 🛑.
                 </span>
               </div>
             </div>
