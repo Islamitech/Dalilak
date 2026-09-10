@@ -3,7 +3,7 @@ import { Business, AdminFollowUpNote, AdminFollowUpType, AdminFollowUpStatus, Ad
 import { isSuperAdmin } from '../../utils/permissions';
 import { formatStandardDateTime } from '../../utils/dateFormatters';
 import { getFollowUpUrgency } from '../../utils/followUpUtils';
-import { ConfirmDialog } from '../ConfirmDialog';
+import { ConfirmDialog } from '../ui';
 import {
   ClipboardList,
   Plus,

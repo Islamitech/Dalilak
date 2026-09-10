@@ -3,7 +3,7 @@ import { Business, User } from '../../../types';
 import { BusinessFollowUpModal } from '../modals/BusinessFollowUpModal';
 import { AdminSendPackageModal } from '../modals/AdminSendPackageModal';
 import { PackagesModal } from '../../PackagesModal';
-import { ConfirmDialog } from '../../ConfirmDialog';
+import { ConfirmDialog } from '../../ui';
 import {
   BusinessesFilterBar,
   BusinessesMobileCard,

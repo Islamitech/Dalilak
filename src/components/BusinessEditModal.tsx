@@ -42,7 +42,7 @@ import { EditMarketingTab } from './business-edit/EditMarketingTab';
 import { EditFollowUpsTab } from './business-edit/EditFollowUpsTab';
 
 import { fetchBusinessPhotosOnDemand } from '../services/db';
-import { ConfirmDialog } from './ConfirmDialog';
+import { ConfirmDialog } from './ui';
 
 interface BusinessEditModalProps {
   business: Business | null;

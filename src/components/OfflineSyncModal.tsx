@@ -10,7 +10,6 @@ import {
   Clock,
   Store,
   Users,
-  X,
   Database,
   ShieldCheck,
   Trash2,
@@ -24,7 +23,7 @@ import {
   removeOfflineLead,
   removeOfflineBusiness,
 } from '../services/offlineSync';
-import { ConfirmDialog } from './ConfirmDialog';
+import { BaseModal, Button, Badge, ConfirmDialog } from './ui';
 
 interface OfflineSyncModalProps {
   isOpen: boolean;
@@ -92,7 +91,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
     if (!navigator.onLine) {
       setSyncResult({
         success: false,
-        text: '⚠️ هاتفك غير متصل بالإنترنت حالياً. يرجى تفعيل بيانات الهاتف أو شبكة الواي فاي ثم إعادة المحاولة.',
+        text: 'هاتفك غير متصل بالإنترنت حالياً. يرجى تفعيل بيانات الهاتف أو شبكة الواي فاي ثم إعادة المحاولة.',
       });
       return;
     }
@@ -110,18 +109,18 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
       if (result.syncedCount > 0) {
         setSyncResult({
           success: true,
-          text: `🎉 تم بنجاح مزامنة ورفع ${result.syncedCount} عنصراً إلى قاعدة البيانات السحابية!`,
+          text: `تم بنجاح مزامنة ورفع ${result.syncedCount} عنصراً إلى قاعدة البيانات السحابية!`,
         });
         if (onSyncComplete) onSyncComplete();
       } else if (result.failedCount > 0) {
         setSyncResult({
           success: false,
-          text: `⚠️ تعذر مزامنة بعض العناصر لضعف الاتصال. سيتم تكرار المحاولة تلقائياً فور استقرار الشبكة.`,
+          text: 'تعذر مزامنة بعض العناصر لضعف الاتصال. سيتم تكرار المحاولة تلقائياً فور استقرار الشبكة.',
         });
       } else {
         setSyncResult({
           success: true,
-          text: '✨ كافة بياناتك متزامنة ومحدثة بالكامل مع السيرفر السحابي.',
+          text: 'كافة بياناتك متزامنة ومحدثة بالكامل مع السيرفر السحابي.',
         });
       }
     } catch {
@@ -143,37 +142,50 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in" dir="rtl">
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between border-b border-slate-700/60">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${isOnline ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-              {isOnline ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
-            </div>
-            <div>
-              <h3 className="font-black text-sm sm:text-base flex items-center gap-2">
-                <span>مركز المزامنة والعمل بدون إنترنت</span>
-                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  IndexedDB 🛡️
-                </span>
-              </h3>
-              <p className="text-[11px] text-slate-300 font-bold mt-0.5">
-                {isOnline ? '🟢 هاتفك متصل بالإنترنت وجاهز للمزامنة' : '🔴 وضع عدم الاتصال (أوفلاين) - بياناتك محفوظة بأمان'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+  const modalFooter = (
+    <div className="w-full flex flex-col sm:flex-row gap-2.5">
+      <Button
+        variant="primary"
+        size="md"
+        onClick={handleStartManualSync}
+        disabled={isSyncing || totalPending === 0}
+        loading={isSyncing}
+        icon={<CloudUpload className="w-4 h-4" />}
+        className="flex-1 font-black"
+      >
+        {isSyncing ? 'جاري المزامنة السحابية...' : `مزامنة الآن (${totalPending})`}
+      </Button>
 
-        {/* Body Content */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-right">
+      <Button
+        variant="secondary"
+        size="md"
+        onClick={handleExportBackup}
+        disabled={totalPending === 0}
+        icon={<Download className="w-4 h-4" />}
+        className="sm:flex-none"
+      >
+        تصدير نسخة احتياطية
+      </Button>
+    </div>
+  );
+
+  return (
+    <>
+      <BaseModal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="مركز المزامنة والعمل بدون إنترنت"
+        subtitle={isOnline ? 'هاتفك متصل بالإنترنت وجاهز للمزامنة' : 'وضع عدم الاتصال (أوفلاين) - بياناتك محفوظة بأمان'}
+        icon={isOnline ? <Wifi className="w-5 h-5 text-emerald-500" /> : <WifiOff className="w-5 h-5 text-amber-500" />}
+        headerActions={
+          <Badge variant="success" size="xs">
+            IndexedDB
+          </Badge>
+        }
+        footer={modalFooter}
+        size="lg"
+      >
+        <div className="space-y-4 text-right">
           {/* Status Alert */}
           {syncResult && (
             <div
@@ -242,7 +254,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
             {offlineBusinesses.length === 0 ? (
               <div className="border border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center text-xs text-[var(--text-muted)] font-bold bg-[var(--input-bg)]/40 space-y-1">
                 <ShieldCheck className="w-6 h-6 text-emerald-500 mx-auto" />
-                <p className="text-[var(--text-primary)] font-black">جميع الأنشطة متزامنة ومحفوظة سحابياً بنجاح! ☁️</p>
+                <p className="text-[var(--text-primary)] font-black">جميع الأنشطة متزامنة ومحفوظة سحابياً بنجاح</p>
                 <p className="text-[11px]">عند تسجيل نشاط في أي منطقة بدون شبكة، سيتم حفظه هنا تلقائياً دون أي فقدان.</p>
               </div>
             ) : (
@@ -254,7 +266,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0 font-black">
-                        🏪
+                        <Store className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-black text-[var(--text-primary)] truncate">{biz.nameAr}</div>
@@ -265,10 +277,9 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="bg-amber-500/15 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>بانتظار المزامنة</span>
-                      </span>
+                      <Badge variant="warning" size="xs" dot>
+                        بانتظار المزامنة
+                      </Badge>
                       <button
                         type="button"
                         onClick={() => setConfirmDelete({ type: 'biz', id: biz.id, name: biz.nameAr })}
@@ -302,7 +313,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 flex items-center justify-center shrink-0 font-black">
-                        👤
+                        <Users className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-black text-[var(--text-primary)] truncate">
@@ -315,10 +326,9 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="bg-blue-500/15 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-500/25 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>بانتظار الرفع</span>
-                      </span>
+                      <Badge variant="info" size="xs" dot>
+                        بانتظار الرفع
+                      </Badge>
                       <button
                         type="button"
                         onClick={() => setConfirmDelete({ type: 'lead', id: lead.id, name: lead.clientName })}
@@ -342,29 +352,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Footer Actions */}
-        <div className="p-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] flex flex-col sm:flex-row gap-2.5">
-          <button
-            onClick={handleStartManualSync}
-            disabled={isSyncing || totalPending === 0}
-            className="flex-1 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 disabled:opacity-50 text-white text-xs font-black py-3 px-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            {isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
-            <span>{isSyncing ? 'جاري المزامنة السحابية...' : `مزامنة الآن (${totalPending}) ⚡`}</span>
-          </button>
-
-          <button
-            onClick={handleExportBackup}
-            disabled={totalPending === 0}
-            className="flex-1 sm:flex-none bg-[var(--bg-card)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold py-3 px-3.5 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="تصدير نسخة احتياطية محلية بصيغة JSON"
-          >
-            <Download className="w-4 h-4 text-amber-500" />
-            <span>تصدير نسخة احتياطية 📥</span>
-          </button>
-        </div>
-      </div>
+      </BaseModal>
 
       {/* Confirmation Dialog for Offline Items Deletion */}
       <ConfirmDialog
@@ -386,6 +374,6 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
         }}
         onCancel={() => setConfirmDelete(null)}
       />
-    </div>
+    </>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Business, AdditionalServiceInvoice, AdminFollowUpCategory } from '../../types';
 import { AdminReceiptModal } from '../admin/modals/AdminReceiptModal';
-import { ConfirmDialog } from '../ConfirmDialog';
+import { ConfirmDialog } from '../ui';
 import { AddServiceInvoiceModal } from '../modals/AddServiceInvoiceModal';
 import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
 import { DollarSign } from 'lucide-react';
