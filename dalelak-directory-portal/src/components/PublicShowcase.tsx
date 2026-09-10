@@ -145,7 +145,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [sortBy, setSortBy] = useState<'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha'>('default');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocatingUser, setIsLocatingUser] = useState<boolean>(false);
-  const [randomTrigger, setRandomTrigger] = useState<number>(0);
+  const [dismissGpsBanner, setDismissGpsBanner] = useState<boolean>(false);
 
   // Search Autocomplete & Recent History
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
@@ -301,13 +301,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     injectBusinessSchemaLd(selectedBiz);
   }, [selectedBiz]);
 
-  // Silently request user GPS location on initial mount for smart proximity sorting
+  // Silently request user GPS location on initial mount for proximity distance calculation
   useEffect(() => {
     if (userCoords || typeof navigator === 'undefined' || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setSortBy('nearest'); // Activate "قريب مني" automatically on first load
+        // NOTE: We do not automatically force setSortBy('nearest') here to avoid sudden card jumps
       },
       () => {}, // Silent fail if permission not granted
       { enableHighAccuracy: false, timeout: 6000 }
@@ -779,15 +779,30 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
 
     // Default Sorting ('default'):
-    // When "قريب مني" is turned off, shuffle the filtered list completely randomly
-    // so every toggle or filter reset presents a fresh, random arrangement
-    // respecting all active filters (e.g. governorate Giza, category, etc.)
-    const shuffled = [...list];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+    // Stable, deterministic sorting to eliminate random jumps:
+    // 1. Certified / Featured partners first
+    // 2. Multimedia completeness (photos + videos)
+    // 3. Newest creation date fallback
+    // 4. Deterministic fallback by entity ID
+    return [...list].sort((a, b) => {
+      // 1. Certified Partner / Featured Priority
+      const aFeatured = (a.isFeatured || a.partnerStatus === 'certified') ? 1 : 0;
+      const bFeatured = (b.isFeatured || b.partnerStatus === 'certified') ? 1 : 0;
+      if (bFeatured !== aFeatured) return bFeatured - aFeatured;
+
+      // 2. Rich Multimedia Completeness
+      const aMedia = (a.photos?.length || 0) + ((a.videos?.length || 0) * 2);
+      const bMedia = (b.photos?.length || 0) + ((b.videos?.length || 0) * 2);
+      if (bMedia !== aMedia) return bMedia - aMedia;
+
+      // 3. Newest Creation Date
+      const aTime = new Date(a.createdDate || 0).getTime();
+      const bTime = new Date(b.createdDate || 0).getTime();
+      if (bTime !== aTime) return bTime - aTime;
+
+      // 4. Stable Deterministic ID Fallback
+      return (a.id || '').localeCompare(b.id || '');
+    });
   }, [
     publicBusinesses,
     showFavoritesOnly,
@@ -799,7 +814,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     categoryFilter,
     sortBy,
     userCoords,
-    randomTrigger,
   ]);
 
   // Dynamic WhatsApp Message generator for Package Orders
@@ -946,6 +960,38 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
         isTourActive={showOnboarding}
         tourStep={tourStep}
       />
+
+      {/* 2.5. GPS Proximity Quick Action Notification Pill */}
+      {userCoords && sortBy !== 'nearest' && !dismissGpsBanner && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="bg-gradient-to-r from-blue-600/10 via-amber-500/10 to-emerald-600/10 border border-blue-500/30 dark:border-blue-500/20 rounded-2xl p-3 px-4 flex items-center justify-between gap-3 shadow-xs animate-fade-in">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 animate-pulse" />
+              <p className="text-xs font-black text-[var(--text-primary)] truncate">
+                <span>📍 تم تحديد موقعك الجغرافي بنجاح</span>
+                <span className="text-[var(--text-muted)] font-normal hidden sm:inline"> - يمكنك الآن ترتيب الأنشطة لتظهر الأقرب إليك أولاً</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSortBy('nearest')}
+                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+              >
+                <span>رتب حسب الأقرب لك 📍</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissGpsBanner(true)}
+                className="w-7 h-7 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-muted)] flex items-center justify-center text-xs cursor-pointer transition-colors"
+                title="إغلاق الإشعار"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. Directory Showcase Cards & Map */}
       <ShowcaseCardGrid

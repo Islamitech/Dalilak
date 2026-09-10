@@ -39,7 +39,7 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-[99999] bg-black/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto modal-overlay animate-fade-in"
+      className="fixed inset-0 z-[99999] bg-black/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-hidden modal-overlay animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();

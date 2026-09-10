@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -45,6 +45,8 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
 }) => {
   const [selectedPkgId, setSelectedPkgId] = useState<string>(initialPackageId || 'pkg_basic');
   const [categoryTab, setCategoryTab] = useState<'all' | 'essential' | 'growth' | 'enterprise'>('all');
+  const detailsRef = useRef<HTMLDivElement>(null);
+  const packagesGridRef = useRef<HTMLDivElement>(null);
 
   const detailedPackages = [
     {
@@ -485,6 +487,26 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     return true;
   });
 
+  const handleSelectPackage = (pkgId: string) => {
+    setSelectedPkgId(pkgId);
+    setTimeout(() => {
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+
+  const handleCategoryChange = (tab: 'all' | 'essential' | 'growth' | 'enterprise') => {
+    setCategoryTab(tab);
+    const tabPackages = detailedPackages.filter((pkg) => {
+      if (tab === 'essential') return ['pkg_basic', 'pkg_pro'].includes(pkg.id);
+      if (tab === 'growth') return ['pkg_reputation', 'pkg_reels', 'pkg_vip'].includes(pkg.id);
+      if (tab === 'enterprise') return ['pkg_smart_menu', 'pkg_annual_partner', 'pkg_corporate'].includes(pkg.id);
+      return true;
+    });
+    if (tabPackages.length > 0) {
+      setSelectedPkgId(tabPackages[0].id);
+    }
+  };
+
   return (
     <div className="space-y-5 font-['Cairo',sans-serif] text-[var(--text-primary)]">
       {/* ========================================================================= */}
@@ -574,7 +596,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       {/* ========================================================================= */}
       {/* 2. CATEGORY TABS & INTERACTIVE PACKAGE CARDS */}
       {/* ========================================================================= */}
-      <div className="space-y-3">
+      <div ref={packagesGridRef} className="space-y-3">
         {/* Category Navigation Pills */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-2.5 sm:p-3 text-center space-y-2">
           <div className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400">
@@ -584,10 +606,10 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-black">
             <button
               type="button"
-              onClick={() => setCategoryTab('all')}
+              onClick={() => handleCategoryChange('all')}
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                 categoryTab === 'all'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
             >
@@ -595,10 +617,10 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setCategoryTab('essential')}
+              onClick={() => handleCategoryChange('essential')}
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                 categoryTab === 'essential'
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-blue-600 text-white shadow-md scale-105'
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
             >
@@ -607,10 +629,10 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setCategoryTab('growth')}
+              onClick={() => handleCategoryChange('growth')}
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                 categoryTab === 'growth'
-                  ? 'bg-emerald-600 text-white shadow-md'
+                  ? 'bg-emerald-600 text-white shadow-md scale-105'
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
             >
@@ -619,10 +641,10 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setCategoryTab('enterprise')}
+              onClick={() => handleCategoryChange('enterprise')}
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                 categoryTab === 'enterprise'
-                  ? 'bg-purple-600 text-white shadow-md'
+                  ? 'bg-purple-600 text-white shadow-md scale-105'
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
             >
@@ -632,37 +654,70 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
           </div>
         </div>
 
-        {/* Package Decision Cards Grid */}
+        {/* Active Selection Indicator Banner */}
+        {selectedPkg && (
+          <div 
+            onClick={() => detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="bg-gradient-to-r from-amber-500/15 via-amber-500/25 to-yellow-500/15 border-2 border-amber-500/60 rounded-2xl p-3 px-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-amber-500/20 transition-all shadow-sm group animate-fade-in"
+            title="انقر للانتقال المباشر لتفاصيل هذه الباقة"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+              <div className="text-xs font-black text-[var(--text-primary)] truncate">
+                <span className="text-amber-600 dark:text-amber-400">👇 تم فتح تفاصيل</span>
+                {' '}
+                <span className="text-[var(--text-primary)] font-black underline decoration-amber-500 underline-offset-4">
+                  «{selectedPkg.shortName}»
+                </span>
+                {' '}
+                <span className="text-[var(--text-muted)] font-normal text-[11px] hidden sm:inline">
+                  ({selectedPkg.priceLabel || (selectedPkg.price === 0 ? 'مجاناً' : `${selectedPkg.price.toLocaleString('en-US')} ج.م`)})
+                </span>
+              </div>
+            </div>
+            <div className="shrink-0 flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 group-hover:translate-y-0.5 transition-transform">
+              <span>تصفح المميزات والاشتراك أدناه</span>
+              <span className="text-base">⬇️</span>
+            </div>
+          </div>
+        )}
+
+        {/* Package Decision Cards Grid (Compact, Catchy & Uniform) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
           {filteredPackages.map((pkg) => {
             const IconComp = pkg.icon;
             const isSelected = selectedPkgId === pkg.id;
+            const isPro = pkg.id === 'pkg_pro';
 
             return (
               <div
                 key={pkg.id}
-                onClick={() => setSelectedPkgId(pkg.id)}
-                className={`p-4 sm:p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 shadow-sm select-none relative group ${
+                onClick={() => handleSelectPackage(pkg.id)}
+                className={`p-4 sm:p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-3.5 select-none relative group ${
                   isSelected
-                    ? `${pkg.activeBorder} shadow-amber-500/10 shadow-lg scale-[1.01]`
-                    : `bg-[var(--bg-card)] border-[var(--border-color)] ${pkg.cardBorder} hover:shadow-md`
+                    ? `${pkg.activeBorder} shadow-amber-500/20 shadow-xl scale-[1.01]`
+                    : isPro
+                      ? 'bg-gradient-to-b from-amber-500/10 via-[var(--bg-card)] to-[var(--bg-card)] border-amber-400 dark:border-amber-400 shadow-amber-500/20 shadow-md ring-2 ring-amber-400/40 hover:shadow-xl'
+                      : `bg-[var(--bg-card)] border-[var(--border-color)] ${pkg.cardBorder} hover:shadow-md`
                 }`}
               >
-                <div className="space-y-3">
+                <div className="space-y-2.5">
+                  {/* Top Bar: Icon + Badge */}
                   <div className="flex items-center justify-between gap-1.5">
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${pkg.iconBg} flex items-center justify-center font-black shadow-xs shrink-0 group-hover:scale-105 transition-transform`}>
                       <IconComp className="w-5 h-5 stroke-[2.5]" />
                     </div>
-                    <span className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-full border ${pkg.badgeColor} truncate`}>
+                    <span className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-full border ${isPro ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border-amber-400 font-black' : pkg.badgeColor} truncate`}>
                       {pkg.badge}
                     </span>
                   </div>
 
+                  {/* Title & Subtitle */}
                   <div>
                     <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] leading-snug">
                       {pkg.shortName}
                     </h3>
-                    <p className="text-[11px] text-[var(--text-muted)] font-mono font-bold mt-0.5">
+                    <p className="text-[11px] text-[var(--text-muted)] font-mono font-bold mt-0.5 truncate">
                       {pkg.englishTitle}
                     </p>
                   </div>
@@ -686,36 +741,40 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
                     </p>
                   </div>
 
-                  {/* Highlights Bullet points */}
-                  <ul className="space-y-1.5 pt-1 text-[11px] text-[var(--text-secondary)] font-bold">
-                    {pkg.highlights.slice(0, 3).map((h, i) => (
-                      <li key={i} className="flex items-center gap-1.5">
-                        <span className="text-emerald-500 font-black">✓</span>
-                        <span className="truncate">{h}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* 1-2 line Key Value Proposition */}
+                  <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed line-clamp-2 min-h-[2.5rem]">
+                    {pkg.summary}
+                  </p>
                 </div>
 
-                {/* Instant Decision Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedPkgId(pkg.id);
-                    handleSelectForForm(pkg.title);
-                  }}
-                  className={`w-full py-2.5 px-3 rounded-xl font-black text-xs transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 ${
-                    isSelected
-                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-md'
-                      : 'bg-gradient-to-r from-amber-500/15 to-yellow-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-slate-950 border border-amber-500/30'
-                  }`}
-                >
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>
-                    اختر هذه الباقة ({pkg.id === 'pkg_corporate' ? 'تسعير مخصص' : pkg.price === 0 ? 'مجاناً' : `${pkg.price} ج`})
-                  </span>
-                </button>
+                {/* Instant Decision Actions (Two Clear Buttons) */}
+                <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-color)]">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectPackage(pkg.id);
+                    }}
+                    className={`flex-1 py-2.5 px-3 rounded-xl font-black text-xs transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 ${
+                      isSelected
+                        ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-md'
+                        : 'bg-gradient-to-r from-amber-500/15 to-yellow-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-slate-950 border border-amber-500/30'
+                    }`}
+                  >
+                    <span>تفاصيل ومميزات الباقة 👁️</span>
+                  </button>
+                  <a
+                    href={`https://wa.me/201143888355?text=${getWhatsAppMessage(pkg)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
+                    title="طلب مباشر عبر واتساب"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>طلب واتساب 💬</span>
+                  </a>
+                </div>
               </div>
             );
           })}
@@ -725,11 +784,14 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
       {/* ========================================================================= */}
       {/* 3. DETAILED VIEW FOR SELECTED PACKAGE (Dynamic Showcase Box) */}
       {/* ========================================================================= */}
-      <div className={`bg-[var(--bg-card)] border-2 rounded-3xl p-4 sm:p-6 space-y-5 shadow-xl transition-all duration-300 ${
-        selectedPkg.isFlagship 
-          ? 'border-amber-400 bg-gradient-to-br from-amber-500/5 via-[var(--bg-card)] to-yellow-500/5' 
-          : 'border-amber-500/30'
-      }`}>
+      <div 
+        ref={detailsRef}
+        className={`bg-[var(--bg-card)] border-2 rounded-3xl p-4 sm:p-6 space-y-5 shadow-xl transition-all duration-300 scroll-mt-6 ${
+          selectedPkg.isFlagship 
+            ? 'border-amber-400 bg-gradient-to-br from-amber-500/5 via-[var(--bg-card)] to-yellow-500/5' 
+            : 'border-amber-500/30'
+        }`}
+      >
         {/* Detail Box Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-4">
           <div className="flex items-center gap-3">
@@ -755,9 +817,19 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             </div>
           </div>
 
-          <div className="bg-[var(--input-bg)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-xs font-bold text-[var(--text-secondary)] flex items-center gap-1.5 shrink-0 self-start sm:self-center">
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>التسليم والمتابعة: {selectedPkg.deliveryTime}</span>
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+            <div className="bg-[var(--input-bg)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-xs font-bold text-[var(--text-secondary)] flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <span>التسليم: {selectedPkg.deliveryTime}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => packagesGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="bg-[var(--input-bg)] hover:bg-[var(--border-color)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1 cursor-pointer transition-colors"
+              title="العودة لأعلى شبكة الباقات"
+            >
+              <span>الباقات ⬆️</span>
+            </button>
           </div>
         </div>
 
@@ -848,7 +920,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
                   className="w-full sm:flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
-                  <span>اختيار هذه الباقة في النموذج</span>
+                  <span>تحديد هذه الباقة في استمارة التسجيل 📝</span>
                 </button>
               )}
             </div>

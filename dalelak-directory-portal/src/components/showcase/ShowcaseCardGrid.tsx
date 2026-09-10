@@ -264,7 +264,6 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                   <div
                     key={biz.id}
                     className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-500/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1"
-                    style={{ animationDelay: `${idx * 40}ms`, animation: 'fadeInUp 0.35s ease-out both' }}
                   >
                     {/* Layer 1: Pure 4:3 Image with strict max 3 overlays */}
                     <div

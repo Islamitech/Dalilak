@@ -208,10 +208,26 @@ export default function App() {
               .map((r) => mapRawToBusiness(r))
               .filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
 
-            setBusinesses(() => {
+            setBusinesses((prev) => {
               const updated = mapped.sort(
                 (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
               );
+
+              // 🛡️ Data Equality Check: Preserve reference if data hasn't changed to avoid unnecessary re-renders/reshuffles
+              if (
+                prev.length === updated.length &&
+                prev.every((b, i) => {
+                  const u = updated[i];
+                  return (
+                    b.id === u?.id &&
+                    b.updatedAt === u?.updatedAt &&
+                    b.nameAr === u?.nameAr &&
+                    b.verificationStatus === u?.verificationStatus
+                  );
+                })
+              ) {
+                return prev;
+              }
 
               try {
                 // Keep cache lightweight (metadata only, zero base64) so localStorage quota is never exceeded and loads in 0ms
@@ -318,9 +334,21 @@ export default function App() {
           if (e.newValue) {
             const parsed = JSON.parse(e.newValue);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setBusinesses(
-                parsed.filter((b: any) => (b.verificationStatus === 'verified' || b.verification_status === 'verified') && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted')
+              const filtered = parsed.filter(
+                (b: any) =>
+                  (b.verificationStatus === 'verified' || b.verification_status === 'verified') &&
+                  b.publishedStatus !== 'draft' &&
+                  b.publishedStatus !== 'unlisted'
               );
+              setBusinesses((prev) => {
+                if (
+                  prev.length === filtered.length &&
+                  prev.every((b, i) => b.id === filtered[i]?.id && b.updatedAt === filtered[i]?.updatedAt)
+                ) {
+                  return prev;
+                }
+                return filtered;
+              });
             }
           }
         } catch {}
