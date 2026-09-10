@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  --color-brand-gold: #c59b27;
+  --color-brand-gold-hover: #b8860b;
+  --color-brand-gold-light: #d4af37;
+  --color-brand-gold-subtle: #fefce8;
+  --color-brand-gold-border: #facc15;
+
+  --color-warning: #d97706;
+  --color-warning-hover: #b45309;
+  --color-warning-subtle: #fffbeb;
+  --color-warning-border: #fde68a;
+
+  --color-success: #059669;
+  --color-success-hover: #047857;
+  --color-success-subtle: #ecfdf5;
+  --color-success-border: #a7f3d0;
+
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-subtle: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  --color-info: #2563eb;
+  --color-info-hover: #1d4ed8;
+  --color-info-subtle: #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  --color-bg-primary: #f8fafc;
+  --color-bg-surface: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748b;
+  --color-border-color: #e2e8f0;
+  --color-border-hover: #cbd5e1;
+}
+
 /* ============================================
    الأنماط الموحدة والمتغيرات (Light-Only Theme System)
    ============================================ */
@@ -12,9 +51,9 @@
   --brand-gold-subtle: #fefce8;
   --brand-gold-border: #facc15;
   /* للتوافق مع المكونات القائمة */
-  --gold: #c59b27;
-  --gold-light: #d4af37;
-  --gold-dark: #b8860b;
+  --gold: var(--brand-gold);
+  --gold-light: var(--brand-gold-light);
+  --gold-dark: var(--brand-gold-hover);
 
   /* ===== 2. الألوان الوظيفية الدقيقة (Semantic / Functional Colors - 5%) ===== */
   /* Warning: لون وظيفي فقط للتنبيهات، حالات قيد المراجعة، والانتظار */
@@ -22,9 +61,9 @@
   --warning-hover: #b45309;
   --warning-subtle: #fffbeb;
   --warning-border: #fde68a;
-  --amber-primary: #d97706;
-  --amber-hover: #b45309;
-  --amber-subtle: #fffbeb;
+  --amber-primary: var(--warning);
+  --amber-hover: var(--warning-hover);
+  --amber-subtle: var(--warning-subtle);
 
   /* Success: للعمليات الناجحة والاعتماد الرسمي (Verified) */
   --success: #059669;
@@ -45,7 +84,15 @@
   --info-border: #bfdbfe;
 
   /* الخطوط */
-  --font-family: 'Cairo', 'Readex Pro', sans-serif;
+  --font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* سلم الطبقات المعياري (Standard Enterprise Z-Index Scale) */
+  --z-dropdown: 40;
+  --z-sticky: 40;
+  --z-modal: 50;
+  --z-overlay: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
 
   /* ===== 3. سلم الحواف الرصين (Enterprise Border Radii) ===== */
   --radius-xs: 6px;
@@ -141,64 +188,56 @@
 
 /* 1. DANGER / UNPAID / UNSUBMITTED (Red / Rose) */
 .badge-danger {
-  background-color: #fee2e2 !important;
-  color: #991b1b !important;
-  border: 1px solid #f87171 !important;
+  background-color: var(--danger-subtle) !important;
+  color: var(--danger) !important;
+  border: 1px solid var(--danger-border) !important;
 }
-
 
 /* 2. WARNING / REVIEW / DEBT (Amber / Orange) */
 .badge-warning {
-  background-color: #fef3c7 !important;
-  color: #92400e !important;
-  border: 1px solid #fbbf24 !important;
+  background-color: var(--warning-subtle) !important;
+  color: var(--warning-hover) !important;
+  border: 1px solid var(--warning-border) !important;
 }
-
 
 /* 3. SUCCESS / VERIFIED / FULLY PAID (Emerald / Green) */
 .badge-success {
-  background-color: #dcfce7 !important;
-  color: #166534 !important;
-  border: 1px solid #4ade80 !important;
+  background-color: var(--success-subtle) !important;
+  color: var(--success-hover) !important;
+  border: 1px solid var(--success-border) !important;
 }
-
 
 /* 4. OPERATIONAL ALERT CARDS */
 .alert-card-danger {
-  background-color: #fff1f2 !important;
-  border: 1px solid #fda4af !important;
+  background-color: var(--danger-subtle) !important;
+  border: 1px solid var(--danger-border) !important;
   color: #881337 !important;
 }
 .alert-card-danger .alert-title {
   color: #9f1239 !important;
 }
 .alert-card-danger .alert-desc {
-  color: #be123c !important;
+  color: var(--danger-hover) !important;
 }
 .alert-card-danger .alert-icon-box {
-  background-color: #fecdd3 !important;
-  color: #e11d48 !important;
+  background-color: var(--danger-border) !important;
+  color: var(--danger) !important;
 }
 
-
-
-
-
-
 .alert-card-warning {
-  background-color: #fffbeb !important;
-  border: 1px solid #fde68a !important;
+  background-color: var(--warning-subtle) !important;
+  border: 1px solid var(--warning-border) !important;
   color: #78350f !important;
 }
 .alert-card-warning .alert-title {
   color: #78350f !important;
 }
 .alert-card-warning .alert-desc {
-  color: #92400e !important;
+  color: var(--warning-hover) !important;
 }
 .alert-card-warning .alert-icon-box {
-  background-color: #fef08a !important;
-  color: #d97706 !important;
+  background-color: var(--warning-border) !important;
+  color: var(--warning) !important;
 }
 
 
@@ -222,7 +261,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(212, 175, 55, 0.7);
 }
-
+/* Standardized Modal Overlay & Backdrop */
+.modal-overlay {
+  background-color: var(--modal-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
 
 /* Map Pin Icon */
 .pin-icon {

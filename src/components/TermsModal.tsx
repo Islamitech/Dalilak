@@ -9,7 +9,8 @@ import {
   Building2,
   Cpu,
   ChevronLeft,
-  Briefcase
+  Briefcase,
+  X
 } from 'lucide-react';
 
 interface TermsModalProps {
@@ -26,15 +27,15 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay">
+    <div className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm"
-          aria-label="إغلاق"
+          className="absolute top-4 end-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm"
+          aria-label="إغلاق النافذة"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
 
         {/* Header */}

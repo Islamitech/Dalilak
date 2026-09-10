@@ -14,7 +14,8 @@ import {
   Briefcase,
   Coffee,
   Calendar,
-  Building
+  Building,
+  X
 } from 'lucide-react';
 
 interface AboutUsModalProps {
@@ -75,16 +76,16 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
   const currentPhoto = HQ_PHOTOS[activePhotoIdx];
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay" dir="rtl">
+    <div className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-5 overflow-y-auto" dir="rtl">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-3xl w-full p-4 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm z-10"
-          aria-label="إغلاق"
+          className="absolute top-4 end-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm z-10"
+          aria-label="إغلاق النافذة"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
 
         {/* Brand Header */}
@@ -270,15 +271,16 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
       {/* Lightbox Modal */}
       {lightboxPhoto && (
         <div
-          className="fixed inset-0 z-[10050] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setLightboxPhoto(null)}
         >
           <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setLightboxPhoto(null)}
-              className="absolute -top-10 left-0 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center font-black cursor-pointer text-sm"
+              className="absolute -top-10 end-0 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center font-black cursor-pointer text-sm"
+              aria-label="إغلاق المعاينة"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
             <img
               src={lightboxPhoto}

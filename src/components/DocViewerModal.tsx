@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { toPng } from 'html-to-image';
 import { Representative } from '../types';
 import { Logo } from './Logo';
-import { Printer, Download, ShieldCheck, FileSignature, Loader2 } from 'lucide-react';
+import { Printer, Download, ShieldCheck, FileSignature, Loader2, X } from 'lucide-react';
 import { downloadSinglePhoto } from '../utils/photoDownloader';
 import { generateQrDataUrl } from '../utils/qrGenerator';
 import { formatStandardDate } from '../utils/dateFormatters';
@@ -60,14 +60,15 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-colors duration-300">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] hover:bg-rose-500/20 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-black border border-[var(--border-color)] cursor-pointer no-print z-10"
+          className="absolute top-4 end-4 bg-[var(--input-bg)] hover:bg-rose-500/20 text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors text-xs font-black border border-[var(--border-color)] cursor-pointer no-print z-10"
+          aria-label="إغلاق النافذة"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
 
         {/* Printable Official Document Container */}

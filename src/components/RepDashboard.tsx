@@ -3,7 +3,7 @@ import { Business, Representative, PayoutRequest } from '../types';
 import { calculateRepSettlement } from '../utils/commission';
 import { getRepReferralSummary, getRepReferralCode } from '../utils/referral';
 import { UserAvatar } from './UserAvatar';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Sparkles, Lock } from 'lucide-react';
 
 interface RepDashboardProps {
   rep: Representative;
@@ -129,9 +129,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                     : `+${Math.abs(settlement.withdrawableBalance).toLocaleString()}`}
                 </span>
                 <span className="text-[10px] font-sans font-bold text-[var(--text-muted)]">ج.م</span>
-                <span className="text-[10px] text-amber-500 group-hover:translate-x-[-2px] transition-transform font-bold mr-1">
-                  ←
-                </span>
+                <ArrowLeft className="w-3 h-3 text-amber-500 group-hover:translate-x-[-2px] transition-transform ms-1" />
               </div>
             </div>
           </button>
@@ -148,13 +146,17 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             title="اضغط للانتقال المباشر إلى نافذة وبرنامج الإحالة في صفحة ملفي"
           >
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                 referralSummary.isUnlocked
                   ? 'bg-purple-500/20 text-purple-600'
                   : 'bg-slate-500/15 text-slate-500'
               }`}
             >
-              {referralSummary.isUnlocked ? '✨' : '🔒'}
+              {referralSummary.isUnlocked ? (
+                <Sparkles className="w-4 h-4 text-purple-600" />
+              ) : (
+                <Lock className="w-4 h-4 text-slate-500" />
+              )}
             </div>
             <div className="text-right">
               <div className="flex items-center gap-1.5">
@@ -175,9 +177,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                     ? referralCode
                     : `متبقي ${Math.max(0, 25 - myBusinesses.length)} نشاط`}
                 </span>
-                <span className="text-[10px] text-purple-500 group-hover:translate-x-[-2px] transition-transform font-bold mr-1">
-                  ←
-                </span>
+                <ArrowLeft className="w-3 h-3 text-purple-500 group-hover:translate-x-[-2px] transition-transform ms-1" />
               </div>
             </div>
           </button>

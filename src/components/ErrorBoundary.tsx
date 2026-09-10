@@ -1,4 +1,5 @@
 import React, { ErrorInfo, ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -66,18 +67,18 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 font-['Cairo',sans-serif]">
-          <div className="bg-slate-800 border border-amber-500/30 rounded-3xl p-6 max-w-md w-full text-center space-y-4 shadow-2xl">
-            <div className="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-2xl mx-auto flex items-center justify-center text-2xl font-black border border-amber-500/40">
-              ⚠️
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 max-w-md w-full text-center space-y-4 shadow-2xl">
+            <div className="w-14 h-14 bg-amber-500/15 text-amber-500 rounded-2xl mx-auto flex items-center justify-center border border-amber-500/30">
+              <AlertTriangle className="w-7 h-7" />
             </div>
-            <h2 className="text-lg font-black text-white">حدث خطأ أثناء تحميل الصفحة</h2>
+            <h2 className="text-lg font-black text-[var(--text-primary)]">حدث خطأ أثناء تحميل الصفحة</h2>
             {this.state.error && (
-              <div className="bg-slate-950 p-3 rounded-xl border border-rose-500/30 text-rose-300 font-mono text-[11px] dir-ltr text-left overflow-x-auto max-h-32">
+              <div className="bg-[var(--input-bg)] p-3 rounded-xl border border-rose-500/30 text-rose-600 font-mono text-[11px] dir-ltr text-left overflow-x-auto max-h-32">
                 {this.state.error.message || String(this.state.error)}
               </div>
             )}
-            <p className="text-xs text-slate-300 font-bold leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] font-bold leading-relaxed">
               يرجى إعادة تحميل الصفحة لتنشيط التطبيق. إذا استمرت المشكلة قم بمسح الذاكرة المؤقتة للمتصفح.
             </p>
             <button
@@ -91,7 +92,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 } catch {}
                 window.location.reload();
               }}
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs cursor-pointer"
+              className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl shadow-md transition-all active:scale-95 text-xs cursor-pointer"
             >
               إعادة تحميل المنصة الآن
             </button>

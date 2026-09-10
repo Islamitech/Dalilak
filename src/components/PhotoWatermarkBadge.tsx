@@ -17,10 +17,10 @@ export const PhotoWatermarkBadge: React.FC<PhotoWatermarkBadgeProps> = ({
   className = '',
 }) => {
   const positionClasses = {
-    'bottom-right': 'bottom-3 right-3 sm:bottom-4 sm:right-4',
-    'bottom-left': 'bottom-3 left-3 sm:bottom-4 sm:left-4',
-    'top-right': 'top-3 right-3 sm:top-4 sm:right-4',
-    'top-left': 'top-3 left-3 sm:top-4 sm:left-4',
+    'bottom-right': 'bottom-3 end-3 sm:bottom-4 sm:end-4',
+    'bottom-left': 'bottom-3 start-3 sm:bottom-4 sm:start-4',
+    'top-right': 'top-3 end-3 sm:top-4 sm:end-4',
+    'top-left': 'top-3 start-3 sm:top-4 sm:start-4',
   }[position];
 
   const sizeStyles = {

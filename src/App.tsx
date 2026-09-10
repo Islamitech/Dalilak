@@ -419,7 +419,7 @@ export default function App() {
       />
 
       {/* Main App Container */}
-      <main className="flex-1 w-full mx-auto max-w-7xl p-3 sm:p-5 pb-28 sm:pb-12">
+      <main className="flex-1 w-full mx-auto max-w-7xl p-3 sm:p-5 pb-28 md:pb-12">
         {/* 🛰️ Live Offline & Sync Status Banner */}
         <AppOfflineBanner
           offlineSyncStatus={offlineSyncStatus}

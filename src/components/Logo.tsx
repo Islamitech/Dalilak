@@ -18,8 +18,8 @@ export const Logo: React.FC<LogoProps> = ({
   const iconDimensions = {
     sm: 'w-8 h-8 sm:w-9 sm:h-9',
     md: 'w-10 h-10 sm:w-11 sm:h-11',
-    lg: 'w-13 h-13 sm:w-14 sm:h-14',
-    xl: 'w-16 h-16 sm:w-18 sm:h-18',
+    lg: 'w-12 h-12 sm:w-14 sm:h-14',
+    xl: 'w-16 h-16 sm:w-20 sm:h-20',
     '2xl': 'w-20 h-20 sm:w-24 sm:h-24',
   }[size];
 

@@ -26,6 +26,7 @@ import {
   FileText,
   Eye,
   Star,
+  X,
 } from 'lucide-react';
 
 interface PublicBusinessDirectoryProps {
@@ -376,20 +377,21 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         {/* Row 1: Search + Governorate + View Switcher */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-amber-500 absolute right-3.5 top-3" />
+            <Search className="w-4 h-4 text-amber-500 absolute start-3.5 top-3" />
             <input
               type="text"
               placeholder="ابحث باسم المحل، المالك، الهاتف، أو المدينة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs sm:text-sm rounded-2xl pr-10 pl-8 py-2.5 focus:outline-none focus:border-amber-500 font-bold shadow-inner placeholder:text-[var(--text-muted)]"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs sm:text-sm rounded-xl ps-10 pe-9 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-bold shadow-inner placeholder:text-[var(--text-muted)]"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute left-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                className="absolute end-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                aria-label="مسح البحث"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>

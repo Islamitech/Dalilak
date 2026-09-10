@@ -28,21 +28,19 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-hidden modal-overlay animate-fade-in">
+    <div className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-5 overflow-hidden animate-fade-in">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto max-h-[90vh] flex flex-col">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm z-10"
-          aria-label="إغلاق"
+          className="absolute top-4 end-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--border-color)] cursor-pointer transition-colors shadow-sm z-10"
+          aria-label="إغلاق النافذة"
         >
           <X className="w-4 h-4" />
         </button>
 
-
-
         {/* Scrollable Modal Content */}
-        <div className="overflow-y-auto flex-1 pr-1 space-y-4 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 pe-1 space-y-4 custom-scrollbar">
           <PackagesHub 
             mode={mode}
             businesses={businesses}

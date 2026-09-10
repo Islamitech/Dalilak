@@ -39,7 +39,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
                 className="flex flex-col items-center justify-center -mt-6 group cursor-pointer"
               >
                 <div
-                  className={`w-13 h-13 rounded-2xl flex items-center justify-center text-slate-950 font-extrabold shadow-xl transition-all duration-300 transform active:scale-90 ${
+                  className={`w-[3.25rem] h-[3.25rem] rounded-2xl flex items-center justify-center text-slate-950 font-extrabold shadow-xl transition-all duration-300 transform active:scale-90 ${
                     isActive
                       ? 'bg-gradient-to-tr from-amber-400 via-amber-500 to-yellow-500 ring-4 ring-amber-500/30 scale-105'
                       : 'bg-gradient-to-tr from-amber-500 to-yellow-500 group-hover:scale-105'

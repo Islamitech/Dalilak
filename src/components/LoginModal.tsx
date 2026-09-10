@@ -8,7 +8,7 @@ import {
   RegisterForm,
   ImagePreviewModal,
 } from './auth';
-import { ShieldCheck, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, UserPlus, AlertCircle, CheckCircle2, X } from 'lucide-react';
 
 export interface LoginModalProps {
   onClose: () => void;
@@ -58,9 +58,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {!isInline && (
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer z-10"
+          aria-label="إغلاق النافذة"
+          className="absolute top-4 end-4 bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-[var(--border-color)] cursor-pointer z-10 transition-colors"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
       )}
 
@@ -243,7 +244,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
+    <div className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {modalBox}
     </div>,
     document.body

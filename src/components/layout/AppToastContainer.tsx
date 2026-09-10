@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { ToastNotification } from '../../types';
 
 interface AppToastContainerProps {
@@ -15,7 +15,7 @@ export const AppToastContainer: React.FC<AppToastContainerProps> = ({
 }) => {
   return (
     <div
-      className="fixed right-0 left-0 z-[9999] flex flex-col items-center gap-2 pointer-events-none px-2.5 sm:px-4"
+      className="fixed inset-x-0 z-[70] flex flex-col items-center gap-2 pointer-events-none px-2.5 sm:px-4"
       style={{ top: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
       aria-live="polite"
       aria-atomic="false"
@@ -23,18 +23,17 @@ export const AppToastContainer: React.FC<AppToastContainerProps> = ({
       {showSyncBadge && (
         <div
           className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-700 backdrop-blur-xl text-xs font-black shadow-xl animate-fade-in transition-all"
-          style={{ direction: 'rtl' }}
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span>تم تحديث البيانات للتو 🔄</span>
+          <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+          <span>تم تحديث البيانات للتو</span>
         </div>
       )}
       {notifications.map((n) => {
-        const icons: Record<string, string> = {
-          success: '✅',
-          error: '❌',
-          warning: '⚠️',
-          info: 'ℹ️',
+        const icons: Record<string, React.ReactNode> = {
+          success: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
+          error:   <AlertCircle className="w-4 h-4 text-rose-400" />,
+          warning: <AlertTriangle className="w-4 h-4 text-amber-400" />,
+          info:    <Info className="w-4 h-4 text-sky-400" />,
         };
         const colors: Record<string, string> = {
           success: 'from-emerald-950/98 to-emerald-900/95 border-emerald-500/60 text-emerald-50',
@@ -55,7 +54,6 @@ export const AppToastContainer: React.FC<AppToastContainerProps> = ({
           <div
             key={n.id}
             className={`pointer-events-auto w-full max-w-[calc(100vw-1.25rem)] sm:max-w-sm relative overflow-hidden rounded-2xl border bg-gradient-to-br ${colorClass} shadow-2xl backdrop-blur-xl toast-slide-down`}
-            style={{ direction: 'rtl' }}
           >
             {/* Progress Bar */}
             <div

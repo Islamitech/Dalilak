@@ -100,7 +100,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 modal-overlay">
+    <div className="fixed inset-0 z-50 modal-overlay flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div 
         className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl text-[var(--text-primary)] relative modal-content flex flex-col overflow-hidden max-h-[95vh] sm:max-h-[92vh] animate-fade-in"
       >
@@ -112,7 +112,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             </div>
             <div className="min-w-0">
               <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)] truncate">
-                بوابة الدفع والتحصيل المعتمدة 💳
+                بوابة الدفع والتحصيل المعتمدة
               </h3>
               <p className="text-[11px] text-[var(--text-muted)] truncate font-medium">
                 {business.nameAr} • باقة {business.packageName}
