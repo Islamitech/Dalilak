@@ -384,7 +384,7 @@ export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const pathMatch = window.location.pathname.match(/\/biz\/([^/?#]+)/i);
   const pathBizId = pathMatch ? decodeURIComponent(pathMatch[1]) : '';
-  const rawBizParam = urlParams.get('biz') || urlParams.get('b') || urlParams.get('preview') || urlParams.get('id') || pathBizId || '';
+  const rawBizParam = urlParams.get('biz') || urlParams.get('place') || urlParams.get('b') || urlParams.get('preview') || urlParams.get('id') || pathBizId || '';
   // Extract canonical entity ID if embedded inside slug (e.g. "مطعم-أبو-خالد-biz_1788118588424" -> "biz_1788118588424")
   const idMatch = rawBizParam.match(/(biz_[a-zA-Z0-9_-]+)/i);
   const initialBizId = idMatch ? idMatch[1] : rawBizParam;

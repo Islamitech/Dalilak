@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin, PRIMARY_WHATSAPP_SENDER_PHONE } from '../../../utils/permissions';
+import { getDisplayDirectoryUrl } from '../../../utils/directoryUrl';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { triggerHaptic } from '../../../utils/haptics';
 
@@ -526,8 +527,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       const name = biz.nameAr || biz.name || 'المنشأة الكريمة';
       const owner = biz.ownerName || 'صاحب المنشأة';
       const location = [biz.street, biz.city, biz.governorate].filter(Boolean).join(' - ') || 'المحافظة';
-      const appUrl = (window.location.origin || 'https://www.dalilaak.com').replace(/\/$/, '');
-      const url = `${appUrl}/?place=${biz.id}`;
+      // 🛡️ STRICT PRIVACY & PUBLIC DIRECTORY ROUTING:
+      // NEVER leak internal admin app origin (e.g. dalilak-two.vercel.app).
+      // Always attach the official PUBLIC Directory URL specific to this business (https://www.dalilaak.com/biz/...)
+      const url = getDisplayDirectoryUrl(biz);
 
       let text = customText || '';
       text = text.replace(/{name}/g, name);

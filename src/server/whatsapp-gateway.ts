@@ -8,6 +8,7 @@ import qrcode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
 import { Business } from '../types';
+import { getDisplayDirectoryUrl } from '../utils/directoryUrl';
 
 const makeWASocket = (makeWASocketImport as any).default || makeWASocketImport;
 
@@ -249,7 +250,8 @@ export function compileBroadcastMessage(
   const venueName = biz.nameAr || biz.name || 'منشأتكم الكريمة';
   const ownerName = biz.ownerName || 'المسؤول';
   const location = [biz.governorate, biz.city].filter(Boolean).join(' - ') || 'المنطقة';
-  const directoryUrl = 'https://www.dalilaak.com/';
+  // 🛡️ STRICT PRIVACY: Official public directory venue URL (e.g. https://www.dalilaak.com/biz/...)
+  const directoryUrl = getDisplayDirectoryUrl(biz);
 
   if (templateType === 'honorary_invitation') {
     return (
@@ -257,7 +259,7 @@ export function compileBroadcastMessage(
       `تحياتنا لإدارة «${venueName}» الكرام (${location})،\n\n` +
       `تشرّف فريق منصة «دليلك» بالتواصل معكم بعد اعتماد منشأتكم ضمن قائمة المعالم التجارية الرائدة بالمنطقة.\n\n` +
       `🌟 نودّ إبلاغكم باعتماد *إدراج شرفي موثق ومجاني بالكامل* لمنشأتكم في دليلنا المعتمد الرسمي — *بدون أي رسوم أو اشتراكات نهائياً*، تقديراً لتميزكم وسمعتكم الطيبة.\n\n` +
-      `🔗 *رابط المنصة والدليل المعتمد:*\n` +
+      `🔗 *رابط بطاقة منشأتكم بالدليل العام المعتمد:*\n` +
       `${directoryUrl}\n\n` +
       `📞 *للتواصل المباشر مع إدارة المنصة:* 01556221141\n` +
       `يسعدنا تواجدكم معنا كشريك نجاح متميز.\n` +
@@ -269,7 +271,7 @@ export function compileBroadcastMessage(
     return (
       `مرحباً بحضراتكم إدارة «${venueName}»،\n\n` +
       `يسعدنا إحاطتكم علماً بأن صفحة منشأتكم المعتمدة منشورة ومتاحة الآن على منصة دليلك بكافة التفاصيل والموقع الدقيق للجمهور.\n\n` +
-      `🔗 *رابط المعاينة المباشر لصفحتكم:*\n` +
+      `🔗 *رابط المعاينة المباشر لصفحتكم بالدليل العام:*\n` +
       `${directoryUrl}\n\n` +
       `📞 *للتواصل والاستفسار:* 01556221141\n` +
       `مع تمنياتنا لكم بدوام التوفيق والازدهار،\n` +
@@ -288,7 +290,7 @@ export function compileBroadcastMessage(
       `• *رقم الإشعار:* ${invNum}\n` +
       `• *نوع الإدراج:* إدراج شرفي معتمد (مجاني بالكامل 0 ج.م)\n` +
       `• *حالة التوثيق:* معتمد ومفعل بالدليل ✓\n\n` +
-      `🔗 *رابط المنصة الرسمي:*\n` +
+      `🔗 *رابط المعاينة والتوثيق بالدليل العام:*\n` +
       `${directoryUrl}\n\n` +
       `📞 *للتواصل المباشر:* 01556221141\n` +
       `شاكرين حسن تعاونكم،\n` +
