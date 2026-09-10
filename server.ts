@@ -31,23 +31,32 @@ app.use((_req, res, next) => {
     'Content-Security-Policy',
     "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; img-src 'self' https: data: blob:; media-src 'self' https: data: blob:; connect-src 'self' https: wss:;"
   );
-  // CORS: السماح فقط من المصادر الموثوقة
-  const allowedOrigins = [
-    process.env.APP_URL,
-    'http://localhost:3001',
-    'http://localhost:5173',
-    'https://www.dalilaak.com',
-    'https://dalilaak.com',
-  ].filter(Boolean) as string[];
+  // CORS: السماح من المصادر الموثوقة ومنظومة Vercel وشبكة الحاسوب المحلية
   const origin = _req.headers.origin || '';
-  if (origin && allowedOrigins.includes(origin)) {
+  const isVercelOrigin = origin.endsWith('.vercel.app') || origin.includes('vercel.app');
+  const isAllowedOrigin =
+    isVercelOrigin ||
+    origin === 'http://localhost:3001' ||
+    origin === 'http://localhost:5173' ||
+    origin === 'http://127.0.0.1:3001' ||
+    origin === 'https://www.dalilaak.com' ||
+    origin === 'https://dalilaak.com' ||
+    (process.env.APP_URL && origin === process.env.APP_URL);
+
+  if (isAllowedOrigin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else if (!origin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0] || 'http://localhost:5173');
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
+
+  // دعم Private Network Access في المتصفحات الحديثة (Chrome/Edge)
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id, x-user-id');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, x-session-id, x-user-id, x-user-email, x-user-phone'
+  );
   if (_req.method === 'OPTIONS') {
     return res.status(204).end();
   }

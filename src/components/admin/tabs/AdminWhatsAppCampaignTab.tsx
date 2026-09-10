@@ -32,6 +32,9 @@ import {
   ArrowRight,
   ArrowLeft,
   SkipForward,
+  Laptop,
+  Terminal,
+  Copy,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin, PRIMARY_WHATSAPP_SENDER_PHONE } from '../../../utils/permissions';
@@ -115,7 +118,7 @@ function formatPhoneForWaLink(rawPhone?: string | null): string | null {
   return digits;
 }
 
-// 🛡️ SAFE API FETCH HELPER (Prevents "Unexpected end of JSON input" on Vercel 405/404 or empty responses)
+// 🛡️ SAFE API FETCH HELPER (With Smart Localhost Auto-Probe & Vercel Fallback)
 async function safeFetchGatewayApi(
   endpoint: string,
   options?: RequestInit,
@@ -126,18 +129,73 @@ async function safeFetchGatewayApi(
     const baseUrl = rawBase ? rawBase.replace(/\/$/, '') : '';
     const url = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
 
-    const res = await fetch(url, options);
-    const rawText = await res.text();
+    let res: Response;
+    let rawText = '';
+
+    try {
+      res = await fetch(url, options);
+      rawText = await res.text();
+    } catch (fetchErr: any) {
+      // If primary relative request failed to connect and no customBaseUrl was set,
+      // automatically attempt to probe local PC server at http://localhost:3001
+      if (!baseUrl) {
+        try {
+          const localUrl = `http://localhost:3001${endpoint}`;
+          const localRes = await fetch(localUrl, options);
+          const localText = await localRes.text();
+          if (localText && !localText.trim().startsWith('<!doctype') && !localText.trim().startsWith('<html')) {
+            const parsed = JSON.parse(localText);
+            localStorage.setItem('dalelak_whatsapp_gateway_url', 'http://localhost:3001');
+            return {
+              success: localRes.ok && parsed.success !== false,
+              data: parsed,
+              error: parsed.error,
+            };
+          }
+        } catch {
+          // Localhost not active
+        }
+      }
+      throw fetchErr;
+    }
+
+    // If request returned empty or static HTML (e.g. Vercel SPA) and no customBaseUrl was set,
+    // probe local PC server at http://localhost:3001 before failing
+    if (
+      !baseUrl &&
+      (!rawText ||
+        rawText.trim().length === 0 ||
+        res.status === 405 ||
+        res.status === 404 ||
+        rawText.trim().startsWith('<!doctype') ||
+        rawText.trim().startsWith('<html'))
+    ) {
+      try {
+        const localUrl = `http://localhost:3001${endpoint}`;
+        const localRes = await fetch(localUrl, options);
+        const localText = await localRes.text();
+        if (localText && !localText.trim().startsWith('<!doctype') && !localText.trim().startsWith('<html')) {
+          const parsed = JSON.parse(localText);
+          localStorage.setItem('dalelak_whatsapp_gateway_url', 'http://localhost:3001');
+          return {
+            success: localRes.ok && parsed.success !== false,
+            data: parsed,
+            error: parsed.error,
+          };
+        }
+      } catch {
+        // Localhost not active
+      }
+
+      return {
+        success: false,
+        isVercelStatic: true,
+        error:
+          'سيرفر Baileys الآلي يتطلب تشغيل خادم المنصة محلياً على هذا الحاسوب (عبر npm run dev أو الرابط المحلي http://localhost:3001). يمكنك استخدام «الوضع المباشر للكمبيوتر عبر WhatsApp Web» فوراً بنقرة واحدة.',
+      };
+    }
 
     if (!rawText || rawText.trim().length === 0) {
-      if (res.status === 405 || res.status === 404) {
-        return {
-          success: false,
-          isVercelStatic: true,
-          error:
-            'خادم الواتساب (Baileys) غير نشط على استضافة Vercel الحالية. يتطلب تشغيل خادم Node.js، أو يمكنك استخدام «الوضع المباشر للجوال» بالأسفل للإرسال فوراً من هاتفك.',
-        };
-      }
       return {
         success: false,
         error: `استجابة فارغة من السيرفر (كود ${res.status})`,
@@ -149,7 +207,7 @@ async function safeFetchGatewayApi(
         success: false,
         isVercelStatic: true,
         error:
-          'استجابت الاستضافة بصفحة ويب عادية بدلاً من السيرفر. يرجى تفعيل «الوضع المباشر للجوال» أو تشغيل خادم المنصة محلياً.',
+          'استجاب السيرفر بصفحة واجهة ساكنة. يرجى تفعيل «الوضع المباشر للحاسوب عبر WhatsApp Web» أو تشغيل الخادم محلياً.',
       };
     }
 
@@ -170,7 +228,7 @@ async function safeFetchGatewayApi(
     return {
       success: false,
       error: err?.message?.includes('Failed to fetch')
-        ? 'تعذر الاتصال بخادم الواتساب. تأكد من تشغيل السيرفر بأمر npm run dev أو استخدم «الوضع المباشر للجوال».'
+        ? 'تعذر الاتصال بسيرفر الواتساب. تأكد من تشغيل السيرفر على هذا الحاسوب (npm run dev) أو استخدم «الوضع المباشر السريع للكمبيوتر».'
         : err?.message || 'خطأ في الاتصال بالسيرفر',
     };
   }
@@ -271,6 +329,12 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     return h.includes('vercel.app') || h.includes('dalilaak.com');
   }, []);
 
+  // Device detection: PC / Laptop vs Mobile phone
+  const isDesktop = useMemo(() => {
+    if (typeof navigator === 'undefined') return true;
+    return !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }, []);
+
   const [dispatchMode, setDispatchMode] = useState<'server_gateway' | 'mobile_direct'>(() => {
     const saved = localStorage.getItem('dalelak_whatsapp_dispatch_mode');
     if (saved === 'server_gateway' || saved === 'mobile_direct') return saved;
@@ -305,6 +369,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [isStartingCampaign, setIsStartingCampaign] = useState(false);
   const [isAbortingCampaign, setIsAbortingCampaign] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [hasCopiedCommand, setHasCopiedCommand] = useState(false);
 
   // Throttling & Pacing state
   const [pacingPreset, setPacingPreset] = useState<'balanced' | 'ultra_safe' | 'fast' | 'custom'>('balanced');
@@ -420,7 +485,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       } else {
         if (res.isVercelStatic) {
           onShowNotification?.(
-            'سيرفر Baileys يتطلب تشغيل بيئة Node.js (أو تفعيل الوضع المباشر للجوال أدناه)',
+            isDesktop
+              ? 'تنبيه: سيرفر Baileys يتطلب تشغيل السيرفر محلياً على الحاسوب، أو استخدم الوضع المباشر (WhatsApp Web) للإرسال الفوري بدون سيرفر!'
+              : 'سيرفر Baileys يتطلب تشغيل بيئة Node.js (أو تفعيل الوضع المباشر للجوال أدناه)',
             'warning'
           );
           setServerNoticeMessage(res.error || null);
@@ -639,7 +706,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     }
   };
 
-  // 📲 MOBILE DIRECT DISPATCH HANDLER
+  // 📲 DIRECT DISPATCH HANDLER (Universal for PC WhatsApp Web & Mobile)
   const handleMobileSendCurrent = () => {
     if (!currentMobileBiz) return;
     if (!isCurrentMobilePhoneValid || !currentMobileWaDigits) {
@@ -650,15 +717,21 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     triggerHaptic();
     const msg = compileMessageForBiz(currentMobileBiz);
     const encodedText = encodeURIComponent(msg);
-    const waUrl = `https://api.whatsapp.com/send?phone=${currentMobileWaDigits}&text=${encodedText}`;
+    // On Desktop PC, open WhatsApp Web directly; on mobile, open native app
+    const waUrl = isDesktop
+      ? `https://web.whatsapp.com/send?phone=${currentMobileWaDigits}&text=${encodedText}`
+      : `https://api.whatsapp.com/send?phone=${currentMobileWaDigits}&text=${encodedText}`;
 
     // Mark as sent in session set
     setSentBusinessIds((prev) => new Set(prev).add(currentMobileBiz.id));
 
-    // Open WhatsApp natively on device
+    // Open WhatsApp natively on device / browser
     window.open(waUrl, '_blank');
 
-    onShowNotification?.(`تم فتح محادثة WhatsApp لـ: ${currentMobileBiz.nameAr || currentMobileBiz.name}`, 'success');
+    onShowNotification?.(
+      `تم فتح محادثة ${isDesktop ? 'WhatsApp Web' : 'WhatsApp'} لـ: ${currentMobileBiz.nameAr || currentMobileBiz.name}`,
+      'success'
+    );
 
     // Auto-advance to next if not at end
     if (mobileQueueIndex < targetBusinesses.length - 1) {
@@ -770,8 +843,8 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               </button>
             </div>
             <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-              * استضافة Vercel تعمل كواجهة ساكنة؛ محرك Baileys يعمل داخل خادم المنصة (`server.ts`). عند استخدام الجوال،
-              يمكنك كتابة IP جهاز الكمبيوتر على نفس شبكة الواي فاي للربط الآلي، أو التبديل للوضع المباشر للجوال أدناه.
+              * استضافة Vercel تعمل كواجهة ساكنة؛ محرك Baileys يعمل داخل خادم المنصة (`server.ts`). عند استخدام الحاسوب أو الجوال،
+              يمكنك كتابة IP أو تشغيل الخادم محلياً للربط الآلي، أو التبديل للوضع المباشر (WhatsApp Web / الجوال) بدون خادم.
             </p>
           </div>
         </div>
@@ -793,8 +866,8 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 : 'bg-white/5 text-[var(--text-secondary)] hover:text-white border border-[var(--border-color)]'
             }`}
           >
-            <Smartphone className="w-4 h-4" />
-            <span>الوضع المباشر للجوال (100% بدون خادم) 📲</span>
+            {isDesktop ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+            <span>{isDesktop ? 'الوضع المباشر للكمبيوتر (WhatsApp Web • فوري) 💻' : 'الوضع المباشر للجوال (100% بدون خادم) 📲'}</span>
           </button>
 
           <button
@@ -812,22 +885,30 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         </div>
       </div>
 
-      {/* ── MODE 1: MOBILE DIRECT DISPATCH ENGINE (100% CLIENT-SIDE ON VERCEL & SMARTPHONE) ── */}
+      {/* ── MODE 1: DIRECT DISPATCH ENGINE (100% CLIENT-SIDE ON VERCEL & SMARTPHONE/DESKTOP) ── */}
       {dispatchMode === 'mobile_direct' && (
         <div className="bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-6 shadow-xl space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>جاهز للعمل من أي هاتف وشبكة 5G دون الحاجة لتشغيل جهاز الكمبيوتر</span>
+                  {isDesktop ? <Laptop className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
+                  <span>
+                    {isDesktop
+                      ? 'يعمل مباشرة عبر متصفح الكمبيوتر (WhatsApp Web) بنقرة واحدة ودون الحاجة لتشغيل أي سيرفر'
+                      : 'جاهز للعمل من أي هاتف وشبكة 5G دون الحاجة لتشغيل جهاز الكمبيوتر'}
+                  </span>
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-black">
                   <span>📱 رقم الإرسال الأساسي المعتمد:</span>
                   <span className="font-mono text-white tracking-wider" dir="ltr">{PRIMARY_WHATSAPP_SENDER_PHONE}</span>
                 </div>
               </div>
-              <h2 className="text-xl font-black text-white">طابور الإرسال المباشر الذكي عبر تطبيق WhatsApp</h2>
+              <h2 className="text-xl font-black text-white">
+                {isDesktop
+                  ? 'طابور الإرسال المباشر الذكي عبر متصفح الكمبيوتر (WhatsApp Web)'
+                  : 'طابور الإرسال المباشر الذكي عبر تطبيق WhatsApp'}
+              </h2>
             </div>
 
             <div className="flex items-center gap-2 text-xs">
@@ -894,7 +975,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm sm:text-base transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50"
                 >
                   <MessageCircle className="w-5 h-5 fill-current" />
-                  <span>إرسال إلى {currentMobileBiz.nameAr || currentMobileBiz.name} عبر WhatsApp 💬</span>
+                  <span>
+                    {isDesktop
+                      ? `إرسال إلى ${currentMobileBiz.nameAr || currentMobileBiz.name} عبر WhatsApp Web 💻`
+                      : `إرسال إلى ${currentMobileBiz.nameAr || currentMobileBiz.name} عبر WhatsApp 💬`}
+                  </span>
                 </button>
 
                 <button
@@ -948,19 +1033,89 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       {dispatchMode === 'server_gateway' && (
         <>
           {serverNoticeMessage && (
-            <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1.5 flex items-start gap-3">
-              <Info className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div className="space-y-1 flex-1 leading-relaxed">
-                <p className="font-black text-sm">تنبيه بنية الاستضافة (Vercel Static Hosting):</p>
-                <p>{serverNoticeMessage}</p>
-                <button
-                  type="button"
-                  onClick={() => handleModeChange('mobile_direct')}
-                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all cursor-pointer"
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>التبديل الآن إلى «الوضع المباشر للجوال» 📲</span>
-                </button>
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-500/15 via-slate-900 to-slate-950 border-2 border-amber-500/30 text-xs text-slate-200 space-y-4 shadow-xl">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                  {isDesktop ? <Laptop className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}
+                </div>
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h3 className="font-black text-sm text-amber-400">
+                      دليل تشغيل سيرفر الواتساب الآلي (Vercel vs Local Node.js)
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">
+                      بنية الاستضافة السحابية
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    موقع دليلك مرفوع على Vercel كواجهة ساكنة (Static Web App)، بينما يحتاج محرك Baileys الآلي إلى بيئة تشغيل Node.js حقيقية للحفاظ على جلسة الواتساب في الخلفية. اختر الخيار الأنسب لك:
+                  </p>
+                </div>
+              </div>
+
+              {/* TWO PATHS CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {/* PATH 1: Direct WhatsApp Web / Mobile (Instant, Zero Server) */}
+                <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-emerald-400 font-black text-xs">
+                      {isDesktop ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                      <span>المسار الأول (فوري وبدون أي تشغيل سيرفر):</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      {isDesktop
+                        ? 'إرسال مباشر من متصفح الكمبيوتر عبر WhatsApp Web الرسمي؛ يفتح لك المحادثة المعبأة فوراً بنقرة واحدة دون الحاجة لتشغيل أي سيرفر.'
+                        : 'إرسال مباشر من الهاتف عبر تطبيق WhatsApp المباشر دون الحاجة لأي خوادم خارجية.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('mobile_direct')}
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md active:scale-98"
+                  >
+                    {isDesktop ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                    <span>{isDesktop ? 'التبديل الآن إلى WhatsApp Web للكمبيوتر 💻' : 'التبديل للوضع المباشر للجوال 📲'}</span>
+                  </button>
+                </div>
+
+                {/* PATH 2: Run Local Baileys Server */}
+                <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-amber-400 font-black text-xs">
+                      <Terminal className="w-4 h-4" />
+                      <span>المسار الثاني (تشغيل السيرفر الآلي على جهازك):</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      إذا كنت على جهاز الكمبيوتر وتريد الإرسال الجماعي الآلي بالخلفية: اضغط مرتين على ملف <span className="font-mono text-amber-300 font-bold">تشغيل_سيرفر_الواتساب.bat</span> في مجلد المشروع، أو نفّذ الأمر التالي:
+                    </p>
+                    <div className="flex items-center justify-between gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 font-mono text-emerald-400 text-xs">
+                      <span>npm run dev</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText('npm run dev');
+                          setHasCopiedCommand(true);
+                          setTimeout(() => setHasCopiedCommand(false), 2000);
+                        }}
+                        className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-[11px]"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{hasCopiedCommand ? 'تم النسخ!' : 'نسخ'}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchStatus();
+                      onShowNotification?.('جاري إعادة فحص الاتصال بمحرك السيرفر المحلي...', 'info');
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-white/10 active:scale-98"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>إعادة فحص الاتصال بالسيرفر الآن 🔄</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1071,6 +1226,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       اضغط على زر <strong>"ربط هاتف الإدارة (مسح QR)"</strong> بالأسفل لتوليد كود الربط السريع لهاتف المنصة المعتمد (<strong>{PRIMARY_WHATSAPP_SENDER_PHONE}</strong>). الجلسة تُحفظ
                       محلياً ولا تتطلب إعادة المسح في كل مرة.
                     </p>
+                    {!isServerReachable && (
+                      <p className="text-[11px] text-amber-300/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 leading-relaxed">
+                        💡 <strong>تنبيه:</strong> إذا كنت تتصفح من رابط Vercel السحابي، يتطلب هذا الوضع تشغيل خادم المنصة محلياً (<code className="font-mono text-white">npm run dev</code>)، أو يمكنك التبديل للوضع المباشر للكمبيوتر بالأعلى للإرسال فوراً بدون سيرفر.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
