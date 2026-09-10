@@ -5,6 +5,13 @@ import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG, BUSINESS_CATEGORIES } from './src/data/mockData.js';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from './src/types.js';
+import {
+  initWhatsAppGateway,
+  disconnectWhatsAppGateway,
+  getWhatsAppSessionStatus,
+  startWhatsAppBroadcast,
+  abortWhatsAppBroadcast,
+} from './src/server/whatsapp-gateway.js';
 
 const app = express();
 const DEFAULT_PORT = Number(process.env.PORT) || 3001;
@@ -1208,6 +1215,134 @@ app.post('/api/admin/places-photo-rotate', async (req, res) => {
   }
 });
 
+// =============================================================================
+// 📢 SUPER ADMIN EXCLUSIVE: EMBEDDED BAILEYS WHATSAPP BROADCAST GATEWAY
+// (إرسال جماعي مباشر 0.00$ بدون تأكيد يدوي + صمام أمان ذكي ضد الحظر Random Jitter)
+// =============================================================================
+
+// 1. استعلام حالة جلسة الواتساب والتقدم اللحظي للحملات
+app.get('/api/admin/whatsapp/status', (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: بوابة واتساب محصورة بالسوبر أدمن حصراً (403 Forbidden)',
+      });
+    }
+    const status = getWhatsAppSessionStatus();
+    return res.json({ success: true, status });
+  } catch (err: any) {
+    console.error('WhatsApp status error:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'فشل استعلام حالة واتساب' });
+  }
+});
+
+// 2. طلب تفعيل / ربط المحرك وتوليد رمز الاستجابة السريع (QR Code)
+app.post('/api/admin/whatsapp/connect', async (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: بوابة واتساب محصورة بالسوبر أدمن حصراً (403 Forbidden)',
+      });
+    }
+    const status = await initWhatsAppGateway();
+    return res.json({ success: true, status });
+  } catch (err: any) {
+    console.error('WhatsApp connect error:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'فشل بدء اتصال بوابة واتساب' });
+  }
+});
+
+// 3. قطع الاتصال وحذف بيانات الاعتماد بأمان
+app.post('/api/admin/whatsapp/disconnect', async (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: بوابة واتساب محصورة بالسوبر أدمن حصراً (403 Forbidden)',
+      });
+    }
+    await disconnectWhatsAppGateway();
+    return res.json({
+      success: true,
+      message: 'تم إنهاء جلسة واتساب وحذف ملفات الاعتماد بأمان.',
+    });
+  } catch (err: any) {
+    console.error('WhatsApp disconnect error:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'فشل قطع الاتصال بجلسة واتساب' });
+  }
+});
+
+// 4. إطلاق حملة إرسال جماعي مباشرة مع صمام الأمان الذكي
+app.post('/api/admin/whatsapp/broadcast', async (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: إطلاق حملات الواتساب الجماعية محصور بالسوبر أدمن حصراً (403 Forbidden)',
+      });
+    }
+
+    const {
+      templateType = 'honorary_invitation',
+      customText = '',
+      targetBusinessIds = [],
+      minDelaySeconds = 10,
+      maxDelaySeconds = 20,
+    } = req.body;
+
+    businesses = loadStoredBusinesses();
+    let targetList: Business[] = [];
+
+    if (Array.isArray(targetBusinessIds) && targetBusinessIds.length > 0) {
+      const idSet = new Set(targetBusinessIds);
+      targetList = businesses.filter((b) => idSet.has(b.id));
+    } else {
+      targetList = businesses;
+    }
+
+    if (targetList.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'لم يتم العثور على أي منشآت مستهدفة صالحة للإرسال.',
+      });
+    }
+
+    const result = await startWhatsAppBroadcast(targetList, {
+      templateType,
+      customText,
+      minDelaySeconds: Number(minDelaySeconds) || 10,
+      maxDelaySeconds: Number(maxDelaySeconds) || 20,
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    console.error('WhatsApp broadcast route error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'حدث خطأ أثناء محاولة إطلاق حملة الواتساب الجماعية',
+    });
+  }
+});
+
+// 5. زر إيقاف الطوارئ اللحظي للحملة الجارية
+app.post('/api/admin/whatsapp/broadcast-abort', (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: إيقاف الحملات محصور بالسوبر أدمن حصراً (403 Forbidden)',
+      });
+    }
+    const result = abortWhatsAppBroadcast();
+    return res.json(result);
+  } catch (err: any) {
+    console.error('WhatsApp abort error:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'فشل إيقاف الحملة' });
+  }
+});
+
 app.get('/api/test-mode', (_req, res) => {
   businesses = loadStoredBusinesses();
   representatives = loadStoredReps();
@@ -1939,6 +2074,19 @@ async function startServer() {
   }
 
   listenOnPort(DEFAULT_PORT);
+
+  // 🔄 استعادة جلسة الواتساب المحفوظة تلقائياً في الخلفية عند بدء السيرفر إذا وُجدت بيانات اعتماد
+  try {
+    const credsPath = path.resolve(process.cwd(), 'data/baileys_auth_info/creds.json');
+    if (fs.existsSync(credsPath)) {
+      console.log('📱 [WhatsApp Gateway] Detected saved credentials. Auto-restoring session in background...');
+      initWhatsAppGateway().catch((err) => {
+        console.warn('📱 [WhatsApp Gateway] Background auto-restore note:', err?.message);
+      });
+    }
+  } catch (e) {
+    // Non-blocking
+  }
 }
 
 startServer();

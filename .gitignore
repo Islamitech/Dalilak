@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+data/baileys_auth_info/
+dist-directory/

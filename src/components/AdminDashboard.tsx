@@ -29,6 +29,7 @@ import { RepAccountDossierModal } from './RepAccountDossierModal';
 import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { AdminAuditTrashTab } from './admin/tabs/AdminAuditTrashTab';
 import { AdminPlacesIngestionTab } from './admin/tabs/AdminPlacesIngestionTab';
+import { AdminWhatsAppCampaignTab } from './admin/tabs/AdminWhatsAppCampaignTab';
 import { isSuperAdmin } from '../utils/permissions';
 
 import {
@@ -42,6 +43,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  MessageCircle,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -116,16 +118,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onAddBusiness,
   onShowNotification,
 }) => {
-  // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash, Places Ingestion)
-  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash' | 'places_ingestion'>(() => {
+  // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash, Places Ingestion, WhatsApp Campaign)
+  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash' | 'places_ingestion' | 'whatsapp_campaign'>(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlSubtab = urlParams.get('subtab');
-    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion'].includes(urlSubtab)) {
+    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion', 'whatsapp_campaign'].includes(urlSubtab)) {
       return urlSubtab as any;
     }
 
     const savedSubtab = localStorage.getItem('dalelak_active_admin_tab');
-    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion'].includes(savedSubtab)) {
+    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion', 'whatsapp_campaign'].includes(savedSubtab)) {
       return savedSubtab as any;
     }
 
@@ -535,6 +537,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           )}
 
+          {/* ── SUPER ADMIN EXCLUSIVE: BULK WHATSAPP CAMPAIGN TAB (حملات واتساب الجماعية المباشرة 0.00$) ── */}
+          {isSuperAdmin(currentUser) && (
+            <button
+              type="button"
+              data-active={activeAdminTab === 'whatsapp_campaign'}
+              onClick={() => setActiveAdminTab('whatsapp_campaign')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+                activeAdminTab === 'whatsapp_campaign'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                  : 'text-emerald-500 hover:text-emerald-400 hover:bg-[var(--input-bg)] border border-emerald-500/30'
+              }`}
+              title="إرسال رسائل WhatsApp جماعية مباشرة لكافة الأنشطة بدون شات يدوي (حصري للسوبر أدمن)"
+            >
+              <MessageCircle className="w-4 h-4 fill-current" />
+              <span>حملات WhatsApp الجماعية 📢</span>
+            </button>
+          )}
+
           {/* ── SUPER ADMIN EXCLUSIVE TAB BUTTON (مخفي تماماً عن باقي الحسابات) ── */}
           {isSuperAdmin(currentUser) && (
             <button
@@ -723,6 +743,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           currentUser={currentUser!}
           businesses={businesses}
           onAddBusiness={onAddBusiness}
+          onShowNotification={onShowNotification}
+        />
+      )}
+
+      {/* ── TAB 9: CONFIDENTIAL SUPER ADMIN BULK WHATSAPP CAMPAIGN (حصري للـ Super Admin) ── */}
+      {activeAdminTab === 'whatsapp_campaign' && isSuperAdmin(currentUser) && (
+        <AdminWhatsAppCampaignTab
+          currentUser={currentUser!}
+          businesses={businesses}
           onShowNotification={onShowNotification}
         />
       )}
