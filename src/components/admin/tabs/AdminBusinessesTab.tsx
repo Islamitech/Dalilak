@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Business, User } from '../../../types';
 import { BusinessFollowUpModal } from '../modals/BusinessFollowUpModal';
+import { AdminSendPackageModal } from '../modals/AdminSendPackageModal';
+import { PackagesModal } from '../../PackagesModal';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import {
   BusinessesFilterBar,
@@ -85,6 +87,10 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   // State for fast CRM Follow-up modal
   const [selectedFollowUpBiz, setSelectedFollowUpBiz] = useState<Business | null>(null);
+  // State for Send Package proposal modal
+  const [selectedPackageBiz, setSelectedPackageBiz] = useState<Business | null>(null);
+  // State for Packages Hub modal (reference view)
+  const [showPackagesHubModal, setShowPackagesHubModal] = useState<boolean>(false);
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-sm animate-fade-in transition-colors duration-300">
@@ -112,6 +118,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
         directoryApprovedCount={directoryApprovedCount}
         pendingApprovalCount={pendingApprovalCount}
         onResetFilters={onResetFilters}
+        onOpenPackagesHub={() => setShowPackagesHubModal(true)}
       />
 
       {/* Businesses Data: Mobile Cards (< md) + Desktop Table (>= md) */}
@@ -134,6 +141,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                   onSetEditingBusinessInitialTab={onSetEditingBusinessInitialTab}
                   onShowInvoice={onShowInvoice}
                   onSelectFollowUpBiz={setSelectedFollowUpBiz}
+                  onSendPackageBiz={setSelectedPackageBiz}
                   onConfirmDelete={setConfirmDelete}
                 />
               ))}
@@ -163,6 +171,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
                       onSetEditingBusinessInitialTab={onSetEditingBusinessInitialTab}
                       onShowInvoice={onShowInvoice}
                       onSelectFollowUpBiz={setSelectedFollowUpBiz}
+                      onSendPackageBiz={setSelectedPackageBiz}
                     />
                   ))}
                 </tbody>
@@ -199,6 +208,29 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
             onSetEditingBusinessInitialTab('admin_followup');
             onSetEditingBusiness(biz);
           }}
+        />
+      )}
+
+      {/* Send Package Proposal Modal */}
+      {selectedPackageBiz && (
+        <AdminSendPackageModal
+          isOpen={Boolean(selectedPackageBiz)}
+          onClose={() => setSelectedPackageBiz(null)}
+          business={selectedPackageBiz}
+          currentUser={currentUser || null}
+          onUpdateBusiness={(updated) => {
+            setSelectedPackageBiz(updated);
+            if (onUpdateBusiness) {
+              onUpdateBusiness(updated);
+            }
+          }}
+        />
+      )}
+
+      {/* Packages Hub Reference Modal */}
+      {showPackagesHubModal && (
+        <PackagesModal
+          onClose={() => setShowPackagesHubModal(false)}
         />
       )}
 

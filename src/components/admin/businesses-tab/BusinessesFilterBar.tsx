@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Globe,
+  Sparkles,
 } from 'lucide-react';
 
 interface BusinessesFilterBarProps {
@@ -35,6 +36,7 @@ interface BusinessesFilterBarProps {
   directoryApprovedCount: number;
   pendingApprovalCount?: number;
   onResetFilters?: () => void;
+  onOpenPackagesHub?: () => void;
 }
 
 export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
@@ -60,6 +62,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
   directoryApprovedCount,
   pendingApprovalCount,
   onResetFilters,
+  onOpenPackagesHub,
 }) => {
   return (
     <>
@@ -225,6 +228,18 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
         </div>
 
         <div className="flex items-center gap-2 mr-auto sm:mr-0">
+          {onOpenPackagesHub && (
+            <button
+              type="button"
+              onClick={onOpenPackagesHub}
+              className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+              title="استعراض وشرح باقات خدمات منصة دليلك المعتمدة"
+            >
+              <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>دليل وشرح الباقات 💎</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => exportBusinessesToCsv(filteredBusinesses)}

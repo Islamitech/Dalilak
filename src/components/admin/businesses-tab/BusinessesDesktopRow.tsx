@@ -16,6 +16,7 @@ import {
   ClipboardList,
   FileText,
   Eye,
+  Sparkles,
 } from 'lucide-react';
 
 export interface BusinessesDesktopRowProps {
@@ -26,6 +27,7 @@ export interface BusinessesDesktopRowProps {
   onSetEditingBusinessInitialTab: (tab: string | undefined) => void;
   onShowInvoice: (biz: Business) => void;
   onSelectFollowUpBiz: (biz: Business) => void;
+  onSendPackageBiz?: (biz: Business) => void;
 }
 
 export const BusinessesDesktopRow: React.FC<BusinessesDesktopRowProps> = ({
@@ -36,6 +38,7 @@ export const BusinessesDesktopRow: React.FC<BusinessesDesktopRowProps> = ({
   onSetEditingBusinessInitialTab,
   onShowInvoice,
   onSelectFollowUpBiz,
+  onSendPackageBiz,
 }) => {
   const {
     isDirectoryApproved,
@@ -259,6 +262,18 @@ export const BusinessesDesktopRow: React.FC<BusinessesDesktopRowProps> = ({
               </span>
             ) : null}
           </button>
+
+          {/* 3.5 زر إرسال تفاصيل باقة تسويقية عبر واتساب */}
+          {onSendPackageBiz && (
+            <button
+              type="button"
+              onClick={() => onSendPackageBiz(biz)}
+              className="w-8 h-8 rounded-xl bg-gradient-to-r from-amber-500/15 to-yellow-500/15 hover:from-amber-500 hover:to-yellow-500 text-amber-600 dark:text-amber-400 hover:text-slate-950 border border-amber-500/30 flex items-center justify-center transition-all shadow-2xs cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              title="إرسال تفاصيل باقة تسويقية للمنشأة عبر واتساب 💎"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           {/* 4. زر معاينة وإصدار الفاتورة */}
           <button

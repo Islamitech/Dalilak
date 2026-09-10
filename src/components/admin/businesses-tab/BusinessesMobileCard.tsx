@@ -15,6 +15,7 @@ import {
   Zap,
   Globe,
   MapPin,
+  Sparkles,
 } from 'lucide-react';
 
 interface BusinessesMobileCardProps {
@@ -26,6 +27,7 @@ interface BusinessesMobileCardProps {
   onShowInvoice: (biz: Business) => void;
   onSelectFollowUpBiz: (biz: Business) => void;
   onConfirmDelete: (item: { id: string; name: string }) => void;
+  onSendPackageBiz?: (biz: Business) => void;
 }
 
 export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
@@ -37,6 +39,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
   onShowInvoice,
   onSelectFollowUpBiz,
   onConfirmDelete,
+  onSendPackageBiz,
 }) => {
   const {
     isDirectoryApproved,
@@ -262,6 +265,18 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
             </span>
           ) : null}
         </button>
+
+        {onSendPackageBiz && (
+          <button
+            type="button"
+            onClick={() => onSendPackageBiz(biz)}
+            className="bg-gradient-to-r from-amber-500/15 to-yellow-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-700 dark:text-amber-400 font-black text-xs p-2 rounded-xl border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+            title="إرسال تفاصيل باقة تسويقية للمنشأة عبر واتساب 💎"
+          >
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span className="text-[10.5px]">باقة 💎</span>
+          </button>
+        )}
 
         <button
           type="button"
