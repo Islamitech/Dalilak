@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Business } from '../types';
 import { fetchLocationAddress } from '../utils/geocoding';
+import { getCategoryIcon } from '../utils/directoryEnhancements';
 import { triggerHaptic } from '../utils/haptics';
 import {
   MapTileLayerType,
@@ -260,47 +261,128 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         accuracyCircleRef.current = circle;
       }
     } else {
-      // View Mode: Render ONLY verified Businesses as native Leaflet markers
+      // View Mode: Render Businesses with Smart Screen-Space Marker Clustering
       const filteredBusinesses = businesses.filter((b) => {
-        if (b.verificationStatus !== 'verified') return false;
+        if (typeof b.lat !== 'number' || typeof b.lng !== 'number' || isNaN(b.lat) || isNaN(b.lng)) return false;
         if (selectedGovFilter !== 'all' && !(b.governorate || '').includes(selectedGovFilter)) {
           return false;
         }
         return true;
       });
 
+      // Cluster pins within ~52 screen pixels of each other to avoid overlap
+      const clusterRadiusPx = 52;
+      const clusters: Array<{
+        centerLat: number;
+        centerLng: number;
+        items: Business[];
+      }> = [];
+
       filteredBusinesses.forEach((biz) => {
-        const isVerified = biz.verificationStatus === 'verified';
-        const color = isVerified ? '#10b981' : '#f59e0b';
-        const bg = isVerified ? '#064e3b' : '#78350f';
+        const pt = map.latLngToLayerPoint([biz.lat, biz.lng]);
 
-        const safeName = escapeHtml(biz.nameAr || 'نشاط تجاري');
-        const bizIcon = window.L.divIcon({
-          className: 'custom-biz-pin',
-          html: `
-            <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
-              <div style="background: ${bg}; border: 1.5px solid ${color}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; items-center; gap: 4px;">
-                <span style="color: ${color};">📍</span>
-                <span>${safeName}</span>
+        let placed = false;
+        for (const cl of clusters) {
+          const clPt = map.latLngToLayerPoint([cl.centerLat, cl.centerLng]);
+          const dist = Math.hypot(pt.x - clPt.x, pt.y - clPt.y);
+          if (dist < clusterRadiusPx) {
+            cl.items.push(biz);
+            cl.centerLat = (cl.centerLat * (cl.items.length - 1) + biz.lat) / cl.items.length;
+            cl.centerLng = (cl.centerLng * (cl.items.length - 1) + biz.lng) / cl.items.length;
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          clusters.push({
+            centerLat: biz.lat,
+            centerLng: biz.lng,
+            items: [biz],
+          });
+        }
+      });
+
+      clusters.forEach((cluster) => {
+        if (cluster.items.length === 1) {
+          const biz = cluster.items[0];
+          const isVerified = biz.verificationStatus === 'verified';
+          const isSelected = selectedBiz?.id === biz.id;
+          const color = isVerified ? '#10b981' : '#f59e0b';
+          const bg = isVerified ? '#064e3b' : '#78350f';
+          const safeName = escapeHtml(biz.nameAr || 'منشأة معتمدة');
+          const categoryIcon = getCategoryIcon(biz.category);
+
+          const showFullPill = zoomLevel >= 15;
+          const htmlContent = showFullPill
+            ? `
+              <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none;">
+                <div style="background: ${isSelected ? '#f59e0b' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 9px; border-radius: 9999px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 5px; transition: transform 0.2s; font-family: Cairo, sans-serif;">
+                  <span style="font-size: 13px;">${categoryIcon}</span>
+                  <span>${safeName}</span>
+                </div>
+                <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${isSelected ? '#f59e0b' : color}; margin-top: -1px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));"></div>
+                <div style="width: 4px; height: 4px; border-radius: 9999px; background: ${isSelected ? '#ffffff' : color}; margin-top: -2px;"></div>
               </div>
-            </div>
-          `,
-          iconSize: [120, 32],
-          iconAnchor: [60, 16],
-        });
+            `
+            : `
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
+                <div style="background: ${isSelected ? '#f59e0b' : color}; width: 28px; height: 28px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 3px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">
+                  ${categoryIcon}
+                </div>
+              </div>
+            `;
 
-        const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
+          const bizIcon = window.L.divIcon({
+            className: 'custom-biz-pin',
+            html: htmlContent,
+            iconSize: showFullPill ? [140, 38] : [28, 28],
+            iconAnchor: showFullPill ? [70, 38] : [14, 14],
+          });
 
-        marker.on('click', () => {
-          setSelectedBiz(biz);
-          map.flyTo([biz.lat, biz.lng], 17, { duration: 0.8 });
-          if (onSelectBusiness) onSelectBusiness(biz);
-        });
+          const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
 
-        markersGroup.addLayer(marker);
+          marker.on('click', () => {
+            setSelectedBiz(biz);
+            map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), { duration: 0.7 });
+            if (onSelectBusiness) onSelectBusiness(biz);
+          });
+
+          markersGroup.addLayer(marker);
+        } else {
+          // Cluster pin
+          const clusterIcon = window.L.divIcon({
+            className: 'custom-cluster-pin',
+            html: `
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
+                <div style="background: linear-gradient(135deg, #d97706, #b45309); border: 2.5px solid #fef08a; color: #ffffff; width: 44px; height: 44px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(217, 119, 6, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; font-family: Cairo, sans-serif;">
+                  <span style="font-size: 13px; font-weight: 900; line-height: 1;">${cluster.items.length}</span>
+                  <span style="font-size: 8px; font-weight: 800; color: #fef08a; line-height: 1;">أماكن</span>
+                </div>
+              </div>
+            `,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
+          });
+
+          const clusterMarker = window.L.marker([cluster.centerLat, cluster.centerLng], { icon: clusterIcon });
+
+          clusterMarker.on('click', () => {
+            const currentZoom = map.getZoom();
+            if (currentZoom < 18) {
+              const bounds = window.L.latLngBounds(cluster.items.map((b) => [b.lat, b.lng]));
+              map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+            } else {
+              setSelectedBiz(cluster.items[0]);
+              if (onSelectBusiness) onSelectBusiness(cluster.items[0]);
+            }
+          });
+
+          markersGroup.addLayer(clusterMarker);
+        }
       });
     }
-  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy]);
+  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy, zoomLevel, selectedBiz]);
 
   // Handle Resize & Fullscreen Invalidation
   useEffect(() => {
@@ -452,7 +534,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const mapHeight = isExpanded ? 'flex-1 h-full min-h-[480px]' : heightClass;
 
   const filteredBusinessesCount = businesses.filter((b) => {
-    if (selectedGovFilter !== 'all' && !b.governorate.includes(selectedGovFilter)) {
+    if (typeof b.lat !== 'number' || typeof b.lng !== 'number' || isNaN(b.lat) || isNaN(b.lng)) return false;
+    if (selectedGovFilter !== 'all' && !(b.governorate || '').includes(selectedGovFilter)) {
       return false;
     }
     return true;
@@ -524,6 +607,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <MapSelectedBusinessDrawer
               business={selectedBiz}
               onClose={() => setSelectedBiz(null)}
+              onSelectBusiness={onSelectBusiness}
               onEditBusiness={onEditBusiness}
             />
           )}

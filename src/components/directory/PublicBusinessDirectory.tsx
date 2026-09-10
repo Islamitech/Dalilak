@@ -8,6 +8,7 @@ import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsapp';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
+import { InteractiveMap } from '../InteractiveMap';
 import {
   Store,
   ShieldCheck,
@@ -93,7 +94,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [verificationFilter, setVerificationFilter] = useState<'all' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('needs_followup');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list') || 'list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list' | 'map') || 'list');
 
   const isRep = currentUser?.role === 'rep';
   const isManagerial = ['admin', 'supervisor', 'accountant'].includes(currentUser?.role || '');
@@ -410,8 +411,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               ))}
             </select>
 
-            {/* View Switcher: Grid vs List */}
-            <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0">
+            {/* View Switcher: Grid vs List vs Map */}
+            <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0 gap-0.5">
               <button
                 onClick={() => { setViewMode('grid'); safeSetLocalStorageItem('dalelak_home_view_mode', 'grid'); }}
                 className={`p-1.5 rounded-xl transition-all cursor-pointer ${
@@ -433,6 +434,18 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 title="عرض القائمة المجدولة"
               >
                 <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { setViewMode('map'); safeSetLocalStorageItem('dalelak_home_view_mode', 'map'); }}
+                className={`px-2 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 ${
+                  viewMode === 'map'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+                title="عرض الخريطة التفاعلية المباشرة"
+              >
+                <MapPin className="w-4 h-4" />
+                <span className="text-[10.5px] font-black hidden sm:inline">الخريطة</span>
               </button>
             </div>
           </div>
@@ -1197,6 +1210,22 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── 5. INTERACTIVE MAP MODE ── */}
+      {(!isLoadingData || businesses.length > 0) && viewMode === 'map' && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3 shadow-lg animate-fade-in">
+          <InteractiveMap
+            businesses={filteredBusinesses}
+            mode="view"
+            onSelectBusiness={(b) => {
+              if (onEditBusiness) onEditBusiness(b);
+              else if (onShowInvoice) onShowInvoice(b);
+            }}
+            onEditBusiness={onEditBusiness}
+            heightClass="h-[520px] sm:h-[640px]"
+          />
         </div>
       )}
     </div>

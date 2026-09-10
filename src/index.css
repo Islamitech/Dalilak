@@ -540,3 +540,15 @@ button, a, input, select, textarea {
   }
 }
 
+/* ============================================
+   Leaflet Custom Map Markers & Clusters
+   ============================================ */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.custom-biz-pin, .custom-cluster-pin, .custom-picker-pin {
+  background: transparent !important;
+  border: none !important;
+}
+
