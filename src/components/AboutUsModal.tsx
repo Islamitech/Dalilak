@@ -75,7 +75,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
   const currentPhoto = HQ_PHOTOS[activePhotoIdx];
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay" dir="rtl">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay" dir="rtl">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-3xl w-full p-4 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
         
         {/* Close Button */}
@@ -130,7 +130,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
               <Building className="w-4 h-4 text-amber-500" />
               <span>جولة داخل المقر الرئيسي لمنظومة دليلك 🏢</span>
             </h3>
-            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+            <span className="text-[10px] text-amber-600 font-extrabold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
               {activePhotoIdx + 1} من {HQ_PHOTOS.length}
             </span>
           </div>
@@ -147,7 +147,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
             {/* Overlay Caption */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-transparent flex flex-col justify-between p-3.5 sm:p-4 pointer-events-none">
               <div className="flex items-center justify-between">
-                <span className="bg-slate-950/80 backdrop-blur-xs text-amber-400 border border-amber-500/40 text-[10px] sm:text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow">
+                <span className="bg-slate-900/50 backdrop-blur-xs text-amber-400 border border-amber-500/40 text-[10px] sm:text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow">
                   {currentPhoto.icon}
                   <span>{currentPhoto.title}</span>
                 </span>
@@ -222,7 +222,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
             </div>
             <div>
               <div className="font-black text-[var(--text-primary)] text-xs">الموقع الرسمي والدليل المعتمد:</div>
-              <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
+              <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="text-amber-600 font-mono font-bold hover:underline dir-ltr text-right inline-block">
                 https://www.dalilaak.com/
               </a>
             </div>
@@ -234,7 +234,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
             </div>
             <div>
               <div className="font-black text-[var(--text-primary)] text-xs">البريد الإلكتروني والتواصل الرسمي:</div>
-              <a href="mailto:info@dalilaak.com" className="text-blue-600 dark:text-blue-400 font-mono font-bold hover:underline dir-ltr text-right inline-block">
+              <a href="mailto:info@dalilaak.com" className="text-blue-600 font-mono font-bold hover:underline dir-ltr text-right inline-block">
                 info@dalilaak.com
               </a>
             </div>
@@ -250,7 +250,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
                 onClose();
                 onOpenTerms();
               }}
-              className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
+              className="text-xs text-amber-600 hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
             >
               <span>الاطلاع على شروط وأحكام الاستخدام</span>
               <ChevronLeft className="w-3.5 h-3.5" />

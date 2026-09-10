@@ -119,13 +119,13 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
       <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border border-emerald-500/30 rounded-3xl p-5 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold shadow-inner">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-black text-base text-[var(--text-primary)] flex items-center gap-2">
                 <span>سجل متابعة ومراجعات العملاء المهتمين (CRM Leads)</span>
-                <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                <span className="bg-emerald-500/15 text-emerald-700 text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                   {leadStats.total} عميل مهتم
                 </span>
               </h3>
@@ -139,7 +139,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
           <div className="flex items-center gap-2 bg-[var(--bg-card)] border border-emerald-500/30 px-3.5 py-2 rounded-2xl">
             <Sparkles className="w-4 h-4 text-emerald-500" />
             <span className="text-xs font-bold text-[var(--text-muted)]">معدل التحويل لاشتراكات:</span>
-            <span className="font-black text-sm text-emerald-600 dark:text-emerald-400 font-mono">
+            <span className="font-black text-sm text-emerald-600 font-mono">
               {leadStats.conversionRate}% ({leadStats.converted} من {leadStats.total})
             </span>
           </div>
@@ -152,16 +152,16 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
             <span className="text-xl font-black text-[var(--text-primary)] font-mono">{leadStats.total}</span>
           </div>
           <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 rounded-2xl space-y-1">
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block">بانتظار المتابعة</span>
-            <span className="text-xl font-black text-amber-600 dark:text-amber-400 font-mono">{leadStats.pendingFollowup}</span>
+            <span className="text-[11px] font-bold text-amber-600 block">بانتظار المتابعة</span>
+            <span className="text-xl font-black text-amber-600 font-mono">{leadStats.pendingFollowup}</span>
           </div>
           <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 rounded-2xl space-y-1">
-            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block">تم التواصل معهم</span>
-            <span className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono">{leadStats.contacted}</span>
+            <span className="text-[11px] font-bold text-blue-600 block">تم التواصل معهم</span>
+            <span className="text-xl font-black text-blue-600 font-mono">{leadStats.contacted}</span>
           </div>
           <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 rounded-2xl space-y-1">
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block">تحولوا لاشتراكات فعلية</span>
-            <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">{leadStats.converted}</span>
+            <span className="text-[11px] font-bold text-emerald-600 block">تحولوا لاشتراكات فعلية</span>
+            <span className="text-xl font-black text-emerald-600 font-mono">{leadStats.converted}</span>
           </div>
         </div>
       </div>
@@ -228,7 +228,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
 
         <div className="flex items-center justify-between text-xs text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
           <span>
-            النتائج المطابقة: <strong className="font-mono font-black text-emerald-600 dark:text-emerald-400">{filteredLeads.length}</strong> عميل مهتم
+            النتائج المطابقة: <strong className="font-mono font-black text-emerald-600">{filteredLeads.length}</strong> عميل مهتم
           </span>
           {(leadSearchQuery || leadStatusFilter !== 'all' || leadInterestFilter !== 'all' || leadGovFilter !== 'all') && (
             <button
@@ -283,17 +283,17 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                               {displayTitle}
                             </h4>
                             {lead.interestLevel === 'high' && (
-                              <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30">
+                              <span className="bg-rose-500/15 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30">
                                 اهتمام مرتفع
                               </span>
                             )}
                             {lead.interestLevel === 'medium' && (
-                              <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                              <span className="bg-amber-500/15 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
                                 اهتمام متوسط
                               </span>
                             )}
                             {(lead.isTrending || lead.interestLevel === 'trending_free') && (
-                              <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full">
+                              <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full">
                                 منشأة رائجة (إدراج مجاني)
                               </span>
                             )}
@@ -302,7 +302,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                             {cleanClientName && cleanClientName !== cleanBizName && (
                               <span>صاحب النشاط: <strong className="text-[var(--text-primary)]">{cleanClientName}</strong></span>
                             )}
-                            {cleanCat && <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px] font-bold">{cleanCat}</span>}
+                            {cleanCat && <span className="bg-amber-500/10 text-amber-700 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px] font-bold">{cleanCat}</span>}
                           </p>
                         </>
                       );
@@ -319,10 +319,10 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                     }}
                     className={`text-[11px] font-black px-2.5 py-1 rounded-xl border cursor-pointer focus:outline-none ${
                       lead.status === 'converted'
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                        ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
                         : lead.status === 'contacted'
-                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
-                        : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        ? 'bg-blue-500/15 text-blue-700 border-blue-500/30'
+                        : 'bg-amber-500/15 text-amber-700 border-amber-500/30'
                     }`}
                   >
                     <option value="pending_followup">بانتظار المتابعة</option>
@@ -368,7 +368,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                           <button
                             type="button"
                             onClick={() => handleCopyLink(linkId, mapUrl!)}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 dark:text-blue-300 text-[10px] font-bold transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 text-[10px] font-bold transition-colors"
                             title="نسخ رابط الخريطة"
                           >
                             {copiedLinkId === linkId ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
@@ -378,7 +378,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                             href={sanitizeExternalUrl(mapUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 dark:text-green-300 text-[10px] font-bold transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 text-[10px] font-bold transition-colors"
                           >
                             <MapPin className="w-3 h-3" />
                             فتح الخريطة
@@ -392,8 +392,8 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
 
                 {/* Latest Admin Follow-up Note Snippet */}
                 {lead.adminFollowUps && lead.adminFollowUps.length > 0 && (
-                  <div className="bg-purple-500/10 border border-purple-500/25 p-2.5 rounded-xl text-[11px] text-purple-900 dark:text-purple-200 space-y-1">
-                    <div className="flex items-center justify-between font-bold text-[10px] text-purple-700 dark:text-purple-300">
+                  <div className="bg-purple-500/10 border border-purple-500/25 p-2.5 rounded-xl text-[11px] text-purple-900 space-y-1">
+                    <div className="flex items-center justify-between font-bold text-[10px] text-purple-700">
                       <span className="flex items-center gap-1">
                         <span>آخر متابعة إدارية:</span>
                         <strong className="text-[var(--text-primary)]">{lead.adminFollowUps[0].authorName}</strong>
@@ -409,7 +409,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <a
                       href={`tel:${lead.phone}`}
-                      className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
+                      className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 border border-blue-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
                     >
                       <Phone className="w-3 h-3" />
                       <span>اتصال</span>
@@ -419,7 +419,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                         href={waUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
+                        className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
                       >
                         <MessageSquare className="w-3 h-3" />
                         <span>واتساب</span>
@@ -430,7 +430,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                         href={sanitizeExternalUrl(lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
+                        className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/25 font-bold text-xs flex items-center gap-1 transition-colors"
                       >
                         <MapPin className="w-3 h-3" />
                         <span>الموقع</span>
@@ -440,7 +440,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectFollowUpLead(lead)}
-                      className="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/25 font-black text-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      className="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 border border-purple-500/25 font-black text-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       <span>المتابعات ({lead.adminFollowUps?.length || 0})</span>
@@ -463,7 +463,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                       <button
                         type="button"
                         onClick={() => onConvertToBusiness(lead)}
-                        className="px-2.5 py-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] border border-[var(--border-color)] font-bold text-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                        className="px-2.5 py-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-secondary)] border border-[var(--border-color)] font-bold text-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
                         title="فتح نموذج التسجيل وتعديل البيانات يدوياً"
                       >
                         <FileText className="w-3 h-3 text-amber-500" />
@@ -471,7 +471,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                       </button>
                     )}
                     {lead.status === 'converted' && (
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>مشترك مسجل بالدليل</span>
                       </span>

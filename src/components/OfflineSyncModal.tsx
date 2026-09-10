@@ -179,8 +179,8 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
             <div
               className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 animate-fade-in ${
                 syncResult.success
-                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300'
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-700'
+                  : 'bg-rose-500/15 border border-rose-500/40 text-rose-700'
               }`}
             >
               {syncResult.success ? (
@@ -195,7 +195,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
           {/* Pending Queue Statistics Cards */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 text-center">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-1.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center mx-auto mb-1.5">
                 <Store className="w-4 h-4" />
               </div>
               <div className="font-black text-xl text-[var(--text-primary)]">{offlineBusinesses.length}</div>
@@ -203,7 +203,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
             </div>
 
             <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 text-center">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-1.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 flex items-center justify-center mx-auto mb-1.5">
                 <Users className="w-4 h-4" />
               </div>
               <div className="font-black text-xl text-[var(--text-primary)]">{offlineLeads.length}</div>
@@ -214,7 +214,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
           {/* Sync Progress Indicator */}
           {isSyncing && syncProgress && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-2">
-              <div className="flex items-center justify-between text-xs font-black text-amber-700 dark:text-amber-300">
+              <div className="flex items-center justify-between text-xs font-black text-amber-700">
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
                   <span>{syncProgress.message}</span>
@@ -223,7 +223,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                   {syncProgress.current} من {syncProgress.total}
                 </span>
               </div>
-              <div className="w-full bg-amber-200 dark:bg-amber-950/60 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-amber-200 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-amber-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
@@ -253,7 +253,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                     className="p-3 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 font-black">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0 font-black">
                         🏪
                       </div>
                       <div className="min-w-0">
@@ -265,7 +265,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1">
+                      <span className="bg-amber-500/15 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>بانتظار المزامنة</span>
                       </span>
@@ -289,7 +289,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
             <div className="space-y-2">
               <h4 className="font-black text-xs text-[var(--text-primary)] flex items-center justify-between">
                 <span>قائمة العملاء المهتمين المحفوظة محلياً على الهاتف:</span>
-                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 font-mono">
+                <span className="text-[11px] font-bold text-blue-600 font-mono">
                   {offlineLeads.length} عميل
                 </span>
               </h4>
@@ -301,7 +301,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                     className="p-3 bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-black">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 flex items-center justify-center shrink-0 font-black">
                         👤
                       </div>
                       <div className="min-w-0">
@@ -315,7 +315,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-500/25 flex items-center gap-1">
+                      <span className="bg-blue-500/15 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-500/25 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>بانتظار الرفع</span>
                       </span>
@@ -335,7 +335,7 @@ export const OfflineSyncModal: React.FC<OfflineSyncModalProps> = ({
           )}
 
           {/* Security Guarantee Note */}
-          <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-300 font-bold">
+          <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-800 font-bold">
             <Database className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed">
               <strong>ضمان الأمان الميداني (Zero Data Loss):</strong> يتم حفظ جميع صور وبيانات النشاط داخل قاعدة بيانات المتصفح الدائمة <strong>IndexedDB</strong> على جهازك مباشرة، ولا يتم حذف أي نشاط محلياً حتى يتم استلام تأكيد الحفظ السحابي بنجاح.

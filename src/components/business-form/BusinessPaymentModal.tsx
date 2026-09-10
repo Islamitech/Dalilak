@@ -61,7 +61,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in"
       dir="rtl"
     >
       <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 space-y-5 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] overflow-y-auto">
@@ -114,10 +114,10 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
         {/* Payment Status / Exemption Box */}
         {isFeeExempt ? (
           <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border-2 border-emerald-500/40 rounded-2xl p-4 text-center space-y-2.5">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <h4 className="font-black text-sm text-emerald-800 dark:text-emerald-300">
+            <h4 className="font-black text-sm text-emerald-800">
               نشاط رائج بالمنطقة (إدراج مجاني معفى من الرسوم - 0 ج.م)
             </h4>
             <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
@@ -126,10 +126,10 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
           </div>
         ) : isRepUser ? (
           <div className="bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 sm:p-5 text-center space-y-2.5 animate-fade-in shadow-xs">
-            <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+            <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
               <Clock className="w-6 h-6" />
             </div>
-            <h4 className="font-black text-sm sm:text-base text-amber-800 dark:text-amber-300">
+            <h4 className="font-black text-sm sm:text-base text-amber-800">
               فاتورة غير مدفوعة (مؤجلة لحين التوثيق) ⏳
             </h4>
             <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed max-w-md mx-auto">
@@ -152,7 +152,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                   }}
                   className={`p-3 rounded-2xl border-2 font-black text-center transition-all cursor-pointer shadow-xs ${
                     paymentStatus === 'fully_paid'
-                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
                       : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/40'
                   }`}
                 >
@@ -171,7 +171,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                   }}
                   className={`p-3 rounded-2xl border-2 font-black text-center transition-all cursor-pointer shadow-xs ${
                     paymentStatus === 'partially_paid'
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20'
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-700 ring-2 ring-amber-500/20'
                       : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40'
                   }`}
                 >
@@ -189,7 +189,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                   }}
                   className={`p-3 rounded-2xl border-2 font-black text-center transition-all cursor-pointer shadow-xs ${
                     paymentStatus === 'unpaid'
-                      ? 'bg-rose-500/20 border-rose-500 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/20'
+                      ? 'bg-rose-500/20 border-rose-500 text-rose-700 ring-2 ring-rose-500/20'
                       : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-rose-500/40'
                   }`}
                 >
@@ -203,7 +203,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
             {/* Custom Amount for Partial Payments */}
             {paymentStatus === 'partially_paid' && (
               <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl space-y-1.5 animate-fade-in">
-                <label className="block text-xs font-bold text-amber-800 dark:text-amber-300">
+                <label className="block text-xs font-bold text-amber-800">
                   المبلغ المحصل فعلياً بالجنيه (عربون):
                 </label>
                 <div className="flex items-center gap-2">
@@ -225,10 +225,10 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
             {/* Payment Method Selector & Financial Summary (Hidden when unpaid/deferred) */}
             {paymentStatus === 'unpaid' ? (
               <div className="bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 sm:p-5 text-center space-y-2.5 animate-fade-in shadow-xs">
-                <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
                   <Clock className="w-6 h-6" />
                 </div>
-                <h4 className="font-black text-sm sm:text-base text-amber-800 dark:text-amber-300">
+                <h4 className="font-black text-sm sm:text-base text-amber-800">
                   فاتورة غير مدفوعة (مؤجلة لحين التوثيق) ⏳
                 </h4>
                 <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed max-w-md mx-auto">
@@ -247,7 +247,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                       onClick={() => setPaymentMethod('gateway_online')}
                       className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between shadow-xs ${
                         paymentMethod === 'gateway_online'
-                          ? 'bg-blue-500/15 border-blue-500 ring-2 ring-blue-500/20 text-blue-800 dark:text-blue-300'
+                          ? 'bg-blue-500/15 border-blue-500 ring-2 ring-blue-500/20 text-blue-800'
                           : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-blue-500/30'
                       }`}
                     >
@@ -268,7 +268,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                           </div>
                         </div>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-emerald-600">
                         إيداع العمولة في الرصيد مباشرة بدون عهدة
                       </div>
                     </div>
@@ -277,7 +277,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                       onClick={() => setPaymentMethod('cash_by_rep')}
                       className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between shadow-xs ${
                         paymentMethod === 'cash_by_rep'
-                          ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/20 text-amber-800 dark:text-amber-300'
+                          ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/20 text-amber-800'
                           : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/30'
                       }`}
                     >
@@ -298,7 +298,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                           </div>
                         </div>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-amber-700 dark:text-amber-400">
+                      <div className="mt-2 pt-2 border-t border-[var(--border-color)] text-[10.5px] font-bold text-amber-700">
                         تحصيل نقدي: يتم تسجيل توريد حصة المنصة
                       </div>
                     </div>
@@ -311,7 +311,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                     <span className="font-black text-xs text-[var(--text-primary)]">
                       الموقف المالي ({currentRep?.commissionRate || 42.86}%):
                     </span>
-                    <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                    <span className="bg-amber-500/20 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full">
                       المحصل: {amountPaid} ج.م
                     </span>
                   </div>
@@ -321,7 +321,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                       <span className="text-[10px] text-[var(--text-muted)] block font-bold">
                         عمولتك المعتمدة:
                       </span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-black font-mono text-sm">
+                      <span className="text-emerald-600 font-black font-mono text-sm">
                         +{Math.round((amountPaid * (currentRep?.commissionRate || 42.86)) / 100)} ج.م
                       </span>
                     </div>
@@ -333,7 +333,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
                       <span
                         className={`font-black font-mono text-sm ${
                           paymentMethod === 'cash_by_rep'
-                            ? 'text-rose-600 dark:text-rose-400'
+                            ? 'text-rose-600'
                             : 'text-slate-500'
                         }`}
                       >

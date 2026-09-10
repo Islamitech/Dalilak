@@ -92,7 +92,7 @@ export const AnnualStatementModal: React.FC<AnnualStatementModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       dir="rtl"
     >
       <div className="bg-[var(--modal-bg)] border-2 border-amber-500/50 rounded-3xl max-w-4xl w-full p-4 sm:p-6 space-y-4 text-xs text-[var(--text-primary)] shadow-2xl relative animate-fade-in my-auto max-h-[94vh] overflow-y-auto">

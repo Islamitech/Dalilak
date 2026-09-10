@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 /* ============================================
-   الأنماط الموحدة والمتغيرات (Unified Theme System)
+   الأنماط الموحدة والمتغيرات (Light-Only Theme System)
    ============================================ */
 :root {
-  /* الذهبي */
+  /* الذهبي / الكهرماني (الهوية البصرية) */
   --gold: #d4af37;
   --gold-light: #f5d742;
   --gold-dark: #b8860b;
+  --amber-primary: #d97706;
+  --amber-hover: #b45309;
+  --amber-subtle: #fffbeb;
   
-  /* الحالة */
-  --success: #16a34a;
-  --warning: #ea580c;
+  /* الحالة الوظيفية */
+  --success: #059669;
+  --warning: #d97706;
   --danger: #dc2626;
   --info: #2563eb;
   
@@ -21,93 +24,53 @@
   /* الحواف */
   --radius-sm: 12px;
   --radius-md: 20px;
-  --radius-lg: 40px;
-  --radius-xl: 60px;
+  --radius-lg: 32px;
+  --radius-xl: 48px;
   
   /* الانتقالات */
-  --transition-fast: 0.2s ease;
-  --transition-medium: 0.3s ease;
-  --transition-slow: 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+  --transition-fast: 0.15s ease;
+  --transition-medium: 0.25s ease;
+  --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* ===== الوضع النهاري (الافتراضي) ===== */
-  --bg-primary: #f0f2f5;
+  /* ===== النظام البصري النهاري الموحد والوحيد (Light-Only System) ===== */
+  --bg-primary: #f8fafc;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
-  --text-primary: #1a1a2e;
-  --text-secondary: #3d4f6a;
-  --text-muted: #7c8ba5;
-  --border-color: rgba(0, 0, 0, 0.10);
-  --border-hover: rgba(212, 175, 55, 0.4);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --map-bg: linear-gradient(135deg, #e4e9f0, #d8dfe8);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --map-bg: linear-gradient(135deg, #f1f5f9, #e2e8f0);
   --nav-bg: rgba(255, 255, 255, 0.96);
-  --input-bg: #f5f7fa;
+  --input-bg: #ffffff;
 
-  /* إضافية للمودالات والخريطة */
+  /* المودالات والأسطح والخريطة */
   --modal-bg: #ffffff;
-  --modal-border: rgba(0, 0, 0, 0.10);
-  --modal-overlay: rgba(15, 23, 42, 0.55);
-  --map-header-bg: #edf0f5;
-  --map-header-border: rgba(0, 0, 0, 0.08);
-  --map-footer-bg: #f5f7fa;
-  --map-control-bg: rgba(255, 255, 255, 0.96);
-  --map-control-border: rgba(0, 0, 0, 0.10);
-  --map-control-text: #1a1a2e;
-  --map-coord-bg: #edf0f5;
-  --map-coord-text: #92400e;
+  --modal-border: #e2e8f0;
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+  --map-header-bg: #f8fafc;
+  --map-header-border: #e2e8f0;
+  --map-footer-bg: #ffffff;
+  --map-control-bg: #ffffff;
+  --map-control-border: #e2e8f0;
+  --map-control-text: #0f172a;
+  --map-coord-bg: #f8fafc;
+  --map-coord-text: #b45309;
   --alert-error-bg: #fef2f2;
-  --alert-error-border: #f87171;
+  --alert-error-border: #fecaca;
   --alert-error-text: #b91c1c;
   --alert-success-bg: #f0fdf4;
-  --alert-success-border: #4ade80;
+  --alert-success-border: #bbf7d0;
   --alert-success-text: #15803d;
   --alert-warning-bg: #fffbeb;
-  --alert-warning-border: #fbbf24;
-  --alert-warning-text: #92400e;
-  --payment-surface: #f5f7fa;
-  --payment-border: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="dark"], body.dark-mode {
-  /* ===== الوضع الداكن (الليلي) ===== */
-  --bg-primary: #0f1219;
-  --bg-surface: #181d28;
-  --bg-card: #1a2035;
-  --text-primary: #eef0f6;
-  --text-secondary: #a8b4c8;
-  --text-muted: #6b7a94;
-  --border-color: rgba(255, 255, 255, 0.09);
-  --border-hover: rgba(212, 175, 55, 0.3);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
-  --map-bg: linear-gradient(135deg, #111827, #1a2035);
-  --nav-bg: rgba(15, 18, 25, 0.96);
-  --input-bg: #111827;
-
-  /* إضافية للمودالات والخريطة */
-  --modal-bg: #1a2035;
-  --modal-border: rgba(255, 255, 255, 0.10);
-  --modal-overlay: rgba(2, 6, 23, 0.82);
-  --map-header-bg: rgba(17, 24, 39, 0.92);
-  --map-header-border: rgba(255, 255, 255, 0.08);
-  --map-footer-bg: #111827;
-  --map-control-bg: rgba(26, 32, 53, 0.96);
-  --map-control-border: rgba(255, 255, 255, 0.10);
-  --map-control-text: #e2e8f0;
-  --map-coord-bg: #1a2035;
-  --map-coord-text: #fbbf24;
-  --alert-error-bg: rgba(153, 27, 27, 0.25);
-  --alert-error-border: #ef4444;
-  --alert-error-text: #fca5a5;
-  --alert-success-bg: rgba(22, 101, 52, 0.25);
-  --alert-success-border: #22c55e;
-  --alert-success-text: #86efac;
-  --alert-warning-bg: rgba(146, 64, 14, 0.25);
-  --alert-warning-border: #f59e0b;
-  --alert-warning-text: #fcd34d;
-  --payment-surface: #111827;
-  --payment-border: rgba(255, 255, 255, 0.08);
+  --alert-warning-border: #fde68a;
+  --alert-warning-text: #b45309;
+  --payment-surface: #f8fafc;
+  --payment-border: #e2e8f0;
 }
 
 @layer base {
@@ -150,11 +113,7 @@
   color: #991b1b !important;
   border: 1px solid #f87171 !important;
 }
-body.dark-mode .badge-danger, [data-theme="dark"] .badge-danger {
-  background-color: rgba(185, 28, 28, 0.28) !important;
-  color: #fca5a5 !important;
-  border: 1px solid rgba(239, 68, 68, 0.5) !important;
-}
+
 
 /* 2. WARNING / REVIEW / DEBT (Amber / Orange) */
 .badge-warning {
@@ -162,11 +121,7 @@ body.dark-mode .badge-danger, [data-theme="dark"] .badge-danger {
   color: #92400e !important;
   border: 1px solid #fbbf24 !important;
 }
-body.dark-mode .badge-warning, [data-theme="dark"] .badge-warning {
-  background-color: rgba(180, 83, 9, 0.28) !important;
-  color: #fde68a !important;
-  border: 1px solid rgba(245, 158, 11, 0.5) !important;
-}
+
 
 /* 3. SUCCESS / VERIFIED / FULLY PAID (Emerald / Green) */
 .badge-success {
@@ -174,11 +129,7 @@ body.dark-mode .badge-warning, [data-theme="dark"] .badge-warning {
   color: #166534 !important;
   border: 1px solid #4ade80 !important;
 }
-body.dark-mode .badge-success, [data-theme="dark"] .badge-success {
-  background-color: rgba(21, 128, 61, 0.28) !important;
-  color: #86efac !important;
-  border: 1px solid rgba(34, 197, 94, 0.5) !important;
-}
+
 
 /* 4. OPERATIONAL ALERT CARDS */
 .alert-card-danger {
@@ -197,21 +148,10 @@ body.dark-mode .badge-success, [data-theme="dark"] .badge-success {
   color: #e11d48 !important;
 }
 
-body.dark-mode .alert-card-danger, [data-theme="dark"] .alert-card-danger {
-  background-color: rgba(136, 19, 55, 0.25) !important;
-  border: 1px solid rgba(244, 63, 94, 0.4) !important;
-  color: #fecdd3 !important;
-}
-body.dark-mode .alert-card-danger .alert-title, [data-theme="dark"] .alert-card-danger .alert-title {
-  color: #fecdd3 !important;
-}
-body.dark-mode .alert-card-danger .alert-desc, [data-theme="dark"] .alert-card-danger .alert-desc {
-  color: #fda4af !important;
-}
-body.dark-mode .alert-card-danger .alert-icon-box, [data-theme="dark"] .alert-card-danger .alert-icon-box {
-  background-color: rgba(225, 29, 72, 0.3) !important;
-  color: #fb7185 !important;
-}
+
+
+
+
 
 .alert-card-warning {
   background-color: #fffbeb !important;
@@ -229,21 +169,10 @@ body.dark-mode .alert-card-danger .alert-icon-box, [data-theme="dark"] .alert-ca
   color: #d97706 !important;
 }
 
-body.dark-mode .alert-card-warning, [data-theme="dark"] .alert-card-warning {
-  background-color: rgba(120, 53, 15, 0.25) !important;
-  border: 1px solid rgba(245, 158, 11, 0.4) !important;
-  color: #fde68a !important;
-}
-body.dark-mode .alert-card-warning .alert-title, [data-theme="dark"] .alert-card-warning .alert-title {
-  color: #fde68a !important;
-}
-body.dark-mode .alert-card-warning .alert-desc, [data-theme="dark"] .alert-card-warning .alert-desc {
-  color: #fef08a !important;
-}
-body.dark-mode .alert-card-warning .alert-icon-box, [data-theme="dark"] .alert-card-warning .alert-icon-box {
-  background-color: rgba(217, 119, 6, 0.3) !important;
-  color: #fbbf24 !important;
-}
+
+
+
+
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
@@ -253,9 +182,7 @@ body.dark-mode .alert-card-warning .alert-icon-box, [data-theme="dark"] .alert-c
 ::-webkit-scrollbar-track {
   background: rgba(148, 163, 184, 0.08);
 }
-body.dark-mode ::-webkit-scrollbar-track {
-  background: rgba(17, 24, 39, 0.6);
-}
+
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.3);
   border-radius: 9999px;
@@ -263,9 +190,7 @@ body.dark-mode ::-webkit-scrollbar-track {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(212, 175, 55, 0.7);
 }
-body.dark-mode ::-webkit-scrollbar-thumb {
-  background: rgba(168, 180, 200, 0.3);
-}
+
 
 /* Map Pin Icon */
 .pin-icon {
@@ -413,9 +338,7 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   transform: translateY(-4px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(212, 175, 55, 0.08);
 }
-body.dark-mode .card-lift:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(212, 175, 55, 0.1);
-}
+
 
 
 /* ============================================
@@ -472,9 +395,7 @@ textarea:focus-visible {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
-body.dark-mode .hover-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-}
+
 
 @media print {
   body {

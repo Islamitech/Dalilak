@@ -42,7 +42,7 @@ export const AdminPaymentConfigModal: React.FC<AdminPaymentConfigModalProps> = (
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
       <form
         onSubmit={handleSubmit}
         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 max-h-[92vh] overflow-y-auto"
@@ -72,7 +72,7 @@ export const AdminPaymentConfigModal: React.FC<AdminPaymentConfigModalProps> = (
               placeholder="01143888355"
               value={vodaNumber}
               onChange={(e) => setVodaNumber(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-700 dark:text-emerald-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-xs"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-700 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-xs"
             />
           </div>
 
@@ -85,7 +85,7 @@ export const AdminPaymentConfigModal: React.FC<AdminPaymentConfigModalProps> = (
               placeholder="@daz31181"
               value={instaHandle}
               onChange={(e) => setInstaHandle(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-purple-500/40 text-purple-700 dark:text-purple-300 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-purple-500 dir-ltr text-right shadow-xs"
+              className="w-full bg-[var(--input-bg)] border border-purple-500/40 text-purple-700 font-mono font-black rounded-xl p-3 focus:outline-none focus:border-purple-500 dir-ltr text-right shadow-xs"
             />
             <span className="text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5 block">
               مثال: @daz31181 لاستقبال التحويلات اللحظية من تطبيق InstaPay

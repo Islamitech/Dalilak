@@ -155,7 +155,7 @@ export const RepLedgerTable: React.FC<RepLedgerTableProps> = ({
                       <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                       <span>{m.monthLabel}</span>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700">
                       {m.verifiedBiz} موثق ✅
                     </span>
                   </div>
@@ -174,7 +174,7 @@ export const RepLedgerTable: React.FC<RepLedgerTableProps> = ({
                       <span className="text-[9.5px] text-[var(--text-muted)] font-bold block">
                         العمولة المكتسبة
                       </span>
-                      <span className="font-black text-xs text-emerald-600 dark:text-emerald-400 font-mono">
+                      <span className="font-black text-xs text-emerald-600 font-mono">
                         {m.earnedCommission.toLocaleString()} ج.م
                       </span>
                     </div>
@@ -183,7 +183,7 @@ export const RepLedgerTable: React.FC<RepLedgerTableProps> = ({
                       <span className="text-[9.5px] text-[var(--text-muted)] font-bold block">
                         المصروف بحوالات
                       </span>
-                      <span className="font-black text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      <span className="font-black text-xs text-blue-600 font-mono">
                         {m.payoutsReceived.toLocaleString()} ج.م
                       </span>
                     </div>
@@ -192,7 +192,7 @@ export const RepLedgerTable: React.FC<RepLedgerTableProps> = ({
                       <span className="text-[9.5px] text-[var(--text-muted)] font-bold block">
                         المتبقي الصافي
                       </span>
-                      <span className="font-black text-xs text-amber-600 dark:text-amber-400 font-mono">
+                      <span className="font-black text-xs text-amber-600 font-mono">
                         {netRemaining.toLocaleString()} ج.م
                       </span>
                     </div>
@@ -211,7 +211,7 @@ export const RepLedgerTable: React.FC<RepLedgerTableProps> = ({
       {/* ── 🏛️ ANNUAL STATEMENT & FISCAL ARCHIVE ── */}
       <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border-2 border-amber-500/30 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center font-bold shrink-0">
             <FileText className="w-5 h-5" />
           </div>
           <div>

@@ -261,7 +261,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       <div className="flex items-center justify-between gap-1">
                         <h4
                           className={`text-xs font-black leading-tight truncate ${
-                            !item.read ? 'text-amber-600 dark:text-amber-400' : 'text-[var(--text-primary)]'
+                            !item.read ? 'text-amber-600' : 'text-[var(--text-primary)]'
                           }`}
                         >
                           {item.title}

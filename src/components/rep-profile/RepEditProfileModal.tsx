@@ -171,7 +171,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto" dir="rtl">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto" dir="rtl">
       <form
         onSubmit={handleSaveProfileData}
         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-5 sm:p-6 space-y-4 text-xs my-auto shadow-2xl text-[var(--text-primary)] transition-colors duration-300 max-h-[92vh] flex flex-col"
@@ -199,7 +199,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
         </div>
 
         {validationError && (
-          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-600 dark:text-rose-300 p-3 rounded-xl flex items-start gap-2 text-xs font-bold shrink-0 animate-shake">
+          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-600 p-3 rounded-xl flex items-start gap-2 text-xs font-bold shrink-0 animate-shake">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
             <span>{validationError}</span>
           </div>
@@ -209,11 +209,11 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
           {/* SECTION 1: OFFICIAL ACCREDITATION & IDENTITY */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3 shadow-xs">
             <div className="flex items-center justify-between border-b border-[var(--border-color)]/60 pb-2">
-              <span className="font-black text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span className="font-black text-xs text-amber-600 flex items-center gap-1.5">
                 <IdCard className="w-4 h-4 text-amber-500" />
                 <span>بيانات الهوية الرسمية والتكليف الميداني</span>
               </span>
-              <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-600 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" />
                 <span>موثق رسمياً</span>
               </span>
@@ -227,7 +227,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
                     الاسم الكامل (ثلاثي) *
                   </label>
                   {isAdmin ? (
-                    <span className="text-[9px] bg-amber-500/15 text-amber-600 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30">
+                    <span className="text-[9px] bg-amber-500/15 text-amber-600 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30">
                       صلاحية إدارة 👑
                     </span>
                   ) : (
@@ -256,7 +256,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
                   <label className="block text-[var(--text-primary)] font-bold">
                     الرقم القومي (14 رقم)
                   </label>
-                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5">
+                  <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
                     <CheckCircle2 className="w-2.5 h-2.5" /> مطابقة الشؤون القانونية
                   </span>
                 </div>
@@ -282,7 +282,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
                 <label className="block text-[var(--text-primary)] font-bold mb-1">
                   كود بطاقة التكليف الميداني (رقم المعرف ID)
                 </label>
-                <div className="bg-[var(--bg-card)]/50 border border-[var(--border-color)] text-amber-600 dark:text-amber-400 font-mono font-bold rounded-xl p-2.5 flex items-center justify-between">
+                <div className="bg-[var(--bg-card)]/50 border border-[var(--border-color)] text-amber-600 font-mono font-bold rounded-xl p-2.5 flex items-center justify-between">
                   <span>{repCode}</span>
                   <span className="text-[9px] bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">كود رسمي</span>
                 </div>
@@ -314,7 +314,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
                     المسمى الوظيفي والدرجة المعتمدة
                   </label>
                   {isAdmin && (
-                    <span className="text-[9px] bg-amber-500/15 text-amber-600 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30">
+                    <span className="text-[9px] bg-amber-500/15 text-amber-600 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30">
                       صلاحية إدارة 👑
                     </span>
                   )}
@@ -329,7 +329,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
                 ) : (
                   <div className="bg-[var(--bg-card)]/50 border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 flex items-center justify-between">
                     <span>{rep.roleTitle || 'مندوب مبيعات وتوثيق ميداني معتمد'}</span>
-                    <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-md border border-emerald-500/30">
+                    <span className="text-[10px] bg-emerald-500/15 text-emerald-600 font-bold px-2 py-0.5 rounded-md border border-emerald-500/30">
                       درجة أولى
                     </span>
                   </div>
@@ -340,7 +340,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
 
           {/* SECTION 2: CONTACT INFORMATION */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3 shadow-xs">
-            <span className="font-black text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 border-b border-[var(--border-color)]/60 pb-2">
+            <span className="font-black text-xs text-amber-600 flex items-center gap-1.5 border-b border-[var(--border-color)]/60 pb-2">
               <Phone className="w-4 h-4 text-amber-500" />
               <span>بيانات الاتصال وحساب الدخول</span>
             </span>
@@ -352,7 +352,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
                     رقم الهاتف المعتمد (11 رقم مصري) *
                   </label>
                   {!isAdmin && (
-                    <span className="text-[9px] bg-amber-500/15 text-amber-600 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-0.5">
+                    <span className="text-[9px] bg-amber-500/15 text-amber-600 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-0.5">
                       <Lock className="w-2.5 h-2.5" /> يتطلب اعتماد المسؤول
                     </span>
                   )}
@@ -366,7 +366,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2.5 font-mono dir-ltr text-right focus:outline-none focus:border-amber-500 shadow-xs"
                 />
                 {rep.phoneStatus === 'pending_approval' && rep.pendingPhone && (
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-1">
+                  <p className="text-[10px] text-amber-600 font-bold mt-1">
                     ⏳ طلب تغيير قيد المراجعة: <span dir="ltr">{rep.pendingPhone}</span>
                   </p>
                 )}
@@ -390,7 +390,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
 
           {/* SECTION 3: REFERRAL NETWORK & COMMISSION SYSTEM */}
           <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-color)] space-y-3 shadow-xs">
-            <span className="font-black text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 border-b border-[var(--border-color)]/60 pb-2">
+            <span className="font-black text-xs text-amber-600 flex items-center gap-1.5 border-b border-[var(--border-color)]/60 pb-2">
               <Percent className="w-4 h-4 text-amber-500" />
               <span>منظومة العمولات وبرنامج الإحالة المعتمد</span>
             </span>
@@ -415,7 +415,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
               {/* Commission Rate */}
               <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-emerald-500/30">
                 <p className="text-[10px] text-[var(--text-muted)] font-bold mb-1">نسبة العمولة الرسمية</p>
-                <p className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                <p className="font-mono font-black text-xs text-emerald-600">
                   {rep.commissionRate || 42.86}% <span className="text-[9px] font-normal">(عمولة فورية)</span>
                 </p>
               </div>
@@ -442,7 +442,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPasswordChange(!showPasswordChange)}
-                className="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer"
+                className="text-xs text-amber-600 font-bold hover:underline cursor-pointer"
               >
                 {showPasswordChange ? 'إلغاء تغيير الكلمة' : 'تغيير كلمة المرور'}
               </button>
@@ -513,7 +513,7 @@ export const RepEditProfileModal: React.FC<RepEditProfileModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold px-4 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-xs"
+            className="bg-[var(--input-bg)] text-[var(--text-secondary)] font-bold px-4 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer hover:bg-slate-200 transition-colors text-xs"
           >
             إغلاق
           </button>

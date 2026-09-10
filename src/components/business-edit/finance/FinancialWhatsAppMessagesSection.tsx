@@ -75,7 +75,7 @@ export const FinancialWhatsAppMessagesSection: React.FC<FinancialWhatsAppMessage
               <FileText className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span>1. الفاتورة الإلكترونية الأولية وتأكيد التسجيل 📄</span>
             </div>
-            <span className="text-[9.5px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
+            <span className="text-[9.5px] bg-amber-500/15 text-amber-700 font-bold px-2 py-0.5 rounded-md">
               عند التسجيل
             </span>
           </div>
@@ -150,8 +150,8 @@ export const FinancialWhatsAppMessagesSection: React.FC<FinancialWhatsAppMessage
             <span
               className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
                 isFullyPaid
-                  ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-slate-500/20 text-slate-500 dark:text-slate-400'
+                  ? 'bg-emerald-500/20 text-emerald-700'
+                  : 'bg-slate-500/20 text-slate-500'
               }`}
             >
               {isFullyPaid ? (
@@ -234,7 +234,7 @@ export const FinancialWhatsAppMessagesSection: React.FC<FinancialWhatsAppMessage
         {/* 3 & 4. رسائل الإنذار والملاحقة القضائية (مقتصرة على الأنشطة الموثقة ذات المديونية) */}
         {isVerifiedWithDebt && (
           <div className="space-y-2.5 pt-1 border-t border-rose-500/20 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-xs font-black text-rose-600 dark:text-rose-400">
+            <div className="flex items-center gap-1.5 text-xs font-black text-rose-600">
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>رسائل الإنذار والمطالبة القانونية (تظهر فقط للأنشطة الموثقة المتأخرة):</span>
             </div>
@@ -242,11 +242,11 @@ export const FinancialWhatsAppMessagesSection: React.FC<FinancialWhatsAppMessage
             {/* إنذار مهلة السداد 24 ساعة */}
             <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 space-y-2 transition-all">
               <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1.5 font-black text-xs text-rose-700 dark:text-rose-400">
+                <div className="flex items-center gap-1.5 font-black text-xs text-rose-700">
                   <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                   <span>3. إنذار رسمي بانتهاء مهلة السداد بعد التوثيق ⚠️</span>
                 </div>
-                <span className="text-[9.5px] bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold px-2 py-0.5 rounded-md">
+                <span className="text-[9.5px] bg-rose-500/20 text-rose-700 font-bold px-2 py-0.5 rounded-md">
                   مهلة 24 ساعة
                 </span>
               </div>
@@ -308,11 +308,11 @@ export const FinancialWhatsAppMessagesSection: React.FC<FinancialWhatsAppMessage
             {/* إشعار التحذير القضائي والملاحقة */}
             <div className="bg-red-500/15 border border-red-500/40 rounded-xl p-3 space-y-2 transition-all">
               <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1.5 font-black text-xs text-red-700 dark:text-red-400">
+                <div className="flex items-center gap-1.5 font-black text-xs text-red-700">
                   <ShieldCheck className="w-3.5 h-3.5 text-red-500 shrink-0" />
                   <span>4. إشعار تنفيذ الإجراءات والتحذير القضائي 🛑</span>
                 </div>
-                <span className="text-[9.5px] bg-red-500/25 text-red-700 dark:text-red-300 font-black px-2 py-0.5 rounded-md animate-pulse">
+                <span className="text-[9.5px] bg-red-500/25 text-red-700 font-black px-2 py-0.5 rounded-md animate-pulse">
                   بعد انتهاء المهلة
                 </span>
               </div>

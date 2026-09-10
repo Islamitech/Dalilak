@@ -160,7 +160,7 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
       </div>
 
       {pullGoogleNotice && (
-        <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 text-xs font-bold flex items-center gap-2 animate-fade-in">
+        <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-900 border border-blue-500/30 text-xs font-bold flex items-center gap-2 animate-fade-in">
           {isPullingGooglePhotos && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />}
           <span>{pullGoogleNotice}</span>
         </div>
@@ -259,7 +259,7 @@ export const EditMediaTab: React.FC<EditMediaTabProps> = ({
                           e.stopPropagation();
                           handleSetPrimaryPhoto(idx);
                         }}
-                        className="w-full bg-slate-950/85 hover:bg-amber-500 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-400 text-[10px] font-black py-1 px-1.5 rounded-lg transition-all flex items-center justify-center gap-1 backdrop-blur-xs shadow-md cursor-pointer active:scale-95"
+                        className="w-full bg-slate-900/50 hover:bg-amber-500 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-400 text-[10px] font-black py-1 px-1.5 rounded-lg transition-all flex items-center justify-center gap-1 backdrop-blur-xs shadow-md cursor-pointer active:scale-95"
                         title="تعيين هذه الصورة لتظهر كغلاف رئيسي للنشاط في الدليل"
                       >
                         <Star className="w-3 h-3 text-amber-400" />

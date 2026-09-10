@@ -50,22 +50,22 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
   return (
     <div
       dir="rtl"
-      className="fixed inset-0 z-[999999] flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-[999999] flex items-center justify-center p-3 sm:p-6 bg-slate-900/50 backdrop-blur-sm animate-fade-in overflow-y-auto"
     >
       {/* Ambient background glow effects */}
       <div className="fixed top-1/4 -right-20 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed bottom-1/4 -left-20 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Modal Card */}
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-amber-500/20 overflow-hidden flex flex-col my-auto transition-all duration-300">
+      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-amber-500/20 overflow-hidden flex flex-col my-auto transition-all duration-300">
         
         {/* Top Header Bar */}
-        <div className="px-5 sm:px-8 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="px-5 sm:px-8 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
           {step > 0 ? (
             <button
               type="button"
               onClick={() => setStep((prev) => (prev - 1) as Step)}
-              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-amber-500 transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-slate-100"
             >
               <ArrowRight className="w-4 h-4" />
               <span>رجوع</span>
@@ -87,7 +87,7 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                         ? 'bg-amber-500 text-slate-950 ring-4 ring-amber-500/20 shadow-md scale-105'
                         : isDone
                         ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
+                        : 'bg-slate-100 text-slate-400'
                     }`}
                   >
                     {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : idx + 1}
@@ -95,10 +95,10 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                   <span
                     className={`hidden sm:inline text-xs font-bold ${
                       isCurrent
-                        ? 'text-amber-600 dark:text-amber-400'
+                        ? 'text-amber-600'
                         : isDone
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-slate-400 dark:text-slate-500'
+                        ? 'text-emerald-600'
+                        : 'text-slate-400'
                     }`}
                   >
                     {s.title}
@@ -106,7 +106,7 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                   {idx < stepsData.length - 1 && (
                     <div
                       className={`w-5 sm:w-8 h-0.5 rounded transition-all ${
-                        isDone ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'
+                        isDone ? 'bg-emerald-500' : 'bg-slate-200'
                       }`}
                     />
                   )}
@@ -119,7 +119,7 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
           <button
             type="button"
             onClick={handleSkip}
-            className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer py-1 px-2.5 rounded-lg hover:bg-slate-100"
           >
             <span>تخطي</span>
             <X className="w-4 h-4" />
@@ -133,14 +133,14 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
           {step === 0 && (
             <div className="space-y-5 animate-fade-in">
               <div className="text-center space-y-1.5">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>دليلك الذكي بين يديك</span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
                   على ماذا تبحث اليوم؟
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
                   اختر مجال النشاط الذي ترغب في استكشافه أو تصفح كل الأنشطة دفعة واحدة
                 </p>
               </div>
@@ -155,8 +155,8 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                   }}
                   className={`col-span-2 sm:col-span-3 p-3.5 rounded-2xl border transition-all text-center flex items-center justify-center gap-2.5 cursor-pointer font-black text-sm ${
                     selectedCategory === 'all'
-                      ? 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/30'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                      ? 'border-amber-500 bg-amber-500/10 text-amber-700 ring-2 ring-amber-500/30'
+                      : 'border-slate-200 bg-slate-50/70 hover:border-amber-400 hover:bg-amber-50/50 text-slate-800'
                   }`}
                 >
                   <span className="text-xl">⭐</span>
@@ -175,8 +175,8 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                       }}
                       className={`p-3 sm:p-4 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group ${
                         isSelected
-                          ? 'border-amber-500 bg-amber-500/15 text-amber-800 dark:text-amber-300 shadow-md ring-2 ring-amber-500/30 scale-[1.02]'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:scale-[1.02]'
+                          ? 'border-amber-500 bg-amber-500/15 text-amber-800 shadow-md ring-2 ring-amber-500/30 scale-[1.02]'
+                          : 'border-slate-200 bg-slate-50/50 hover:border-amber-400 hover:bg-amber-50/50 text-slate-700 hover:scale-[1.02]'
                       }`}
                     >
                       <span className="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">
@@ -196,14 +196,14 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
           {step === 1 && (
             <div className="space-y-5 animate-fade-in">
               <div className="text-center space-y-1.5">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold">
                   <MapPin className="w-3.5 h-3.5" />
                   <span>تحديد النطاق الجغرافي</span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
                   هل تفضل منطقة محددة؟
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
                   اختر المحافظة أو تصفح كل المحافظات لرؤية جميع الأماكن
                 </p>
               </div>
@@ -220,7 +220,7 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                   className={`w-full py-3 px-4 rounded-2xl border font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
                     selectedGovernorate === 'all'
                       ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:border-amber-400 text-slate-800 dark:text-slate-200'
+                      : 'border-slate-200 bg-slate-50 hover:border-amber-400 text-slate-800'
                   }`}
                 >
                   <span>📍 تصفح جميع محافظات ومناطق مصر</span>
@@ -245,7 +245,7 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                           className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
                             isSelected
                               ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md font-black'
-                              : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 hover:border-amber-400 text-slate-700 dark:text-slate-300'
+                              : 'border-slate-200 bg-slate-50 hover:border-amber-400 text-slate-700'
                           }`}
                         >
                           {gov}
@@ -257,9 +257,9 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
 
                 {/* Cities List (shown when a specific governorate is picked) */}
                 {selectedGovernorate !== 'all' && (
-                  <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-slate-800/80 border border-amber-500/20 space-y-2.5 animate-fade-in">
+                  <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-500/20 space-y-2.5 animate-fade-in">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-amber-800 dark:text-amber-300">
+                      <span className="text-xs font-black text-amber-800">
                         المدن والمناطق في ({selectedGovernorate}):
                       </span>
                     </div>
@@ -271,7 +271,7 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                         className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           selectedCity === 'all'
                             ? 'bg-amber-600 text-white font-black'
-                            : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:border-amber-400'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:border-amber-400'
                         }`}
                       >
                         كل مدن {selectedGovernorate}
@@ -287,7 +287,7 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                               isCitySelected
                                 ? 'bg-amber-600 text-white font-black'
-                                : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:border-amber-400'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:border-amber-400'
                             }`}
                           >
                             {city}
@@ -320,34 +320,34 @@ export const InteractiveOnboardingExperience: React.FC<InteractiveOnboardingExpe
                 <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/20 text-3xl sm:text-4xl animate-bounce-subtle">
                   🚀
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
                   أنت جاهز لبدء الاستكشاف!
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
                   تم إعداد الدليل وتطبيق الفلاتر المناسبة لتجربة بحث سريعة ومباشرة
                 </p>
               </div>
 
               {/* Selections Summary Card */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 space-y-3 max-w-md mx-auto text-right">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 max-w-md mx-auto text-right">
                 <div className="text-xs font-black text-slate-400">ملخص اختياراتك:</div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
                     <span className="text-slate-400 block mb-0.5 font-bold">النشاط:</span>
-                    <span className="font-black text-amber-600 dark:text-amber-400">
+                    <span className="font-black text-amber-600">
                       {selectedCategory === 'all' ? 'جميع الأنشطة' : selectedCategory}
                     </span>
                   </div>
-                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
                     <span className="text-slate-400 block mb-0.5 font-bold">المحافظة:</span>
-                    <span className="font-black text-amber-600 dark:text-amber-400">
+                    <span className="font-black text-amber-600">
                       {selectedGovernorate === 'all' ? 'جميع المحافظات' : selectedGovernorate}
                     </span>
                   </div>
                   {selectedGovernorate !== 'all' && (
-                    <div className="col-span-2 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="col-span-2 bg-white p-2.5 rounded-xl border border-slate-100">
                       <span className="text-slate-400 block mb-0.5 font-bold">المدينة / المنطقة:</span>
-                      <span className="font-black text-amber-600 dark:text-amber-400">
+                      <span className="font-black text-amber-600">
                         {selectedCity === 'all' ? 'كل المدن' : selectedCity}
                       </span>
                     </div>

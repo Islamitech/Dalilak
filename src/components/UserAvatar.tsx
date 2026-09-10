@@ -114,7 +114,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         {initialLetter}
       </span>
       {isPending && (
-        <span className="absolute inset-0 rounded-2xl bg-slate-950/80 backdrop-blur-[1px] flex items-center justify-center text-[9px] font-black text-amber-300 text-center p-0.5 leading-tight">
+        <span className="absolute inset-0 rounded-2xl bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center text-[9px] font-black text-amber-300 text-center p-0.5 leading-tight">
           🔒 قيد المراجعة
         </span>
       )}

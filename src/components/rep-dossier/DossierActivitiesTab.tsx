@@ -146,7 +146,7 @@ export const DossierActivitiesTab: React.FC<DossierActivitiesTabProps> = ({
                     <td className="p-3">
                       <p className="font-extrabold text-sm text-[var(--text-primary)]">{biz.nameAr}</p>
                       <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] mt-0.5">
-                        <span className="text-amber-700 dark:text-amber-400 font-bold">{biz.category}</span>
+                        <span className="text-amber-700 font-bold">{biz.category}</span>
                         <span>•</span>
                         <span>{biz.governorate} ({biz.city})</span>
                       </div>
@@ -158,7 +158,7 @@ export const DossierActivitiesTab: React.FC<DossierActivitiesTabProps> = ({
 
                     <td className="p-3 font-bold">
                       {isExempt ? (
-                        <span className="text-teal-600 dark:text-teal-400 font-black">إدراج مجاني (0 ج)</span>
+                        <span className="text-teal-600 font-black">إدراج مجاني (0 ج)</span>
                       ) : (
                         <div>
                           <span className="text-[var(--text-primary)]">{biz.packagePrice || 250} ج.م</span>
@@ -172,14 +172,14 @@ export const DossierActivitiesTab: React.FC<DossierActivitiesTabProps> = ({
                         <span className="text-[10px] font-bold text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded-md">معفى</span>
                       ) : isCash ? (
                         <div className="space-y-1">
-                          <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30 inline-block">
+                          <span className="text-[10px] font-black text-amber-700 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30 inline-block">
                             كاش باليد ({paid} ج)
                           </span>
                           {biz.paymentReceiptPhoto && (
                             <button
                               type="button"
                               onClick={() => onSelectReceiptPhoto(biz.paymentReceiptPhoto!)}
-                              className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                              className="text-[10px] font-bold text-emerald-700 bg-emerald-500/15 hover:bg-emerald-500/25 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
                               title="معاينة وتدقيق صورة إيصال / لقطة شاشة التحصيل"
                             >
                               <Camera className="w-3 h-3 text-emerald-500" />
@@ -189,14 +189,14 @@ export const DossierActivitiesTab: React.FC<DossierActivitiesTabProps> = ({
                         </div>
                       ) : paid > 0 ? (
                         <div className="space-y-1">
-                          <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30 inline-block">
+                          <span className="text-[10px] font-black text-purple-700 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30 inline-block">
                             تحويل للمنصة
                           </span>
                           {biz.paymentReceiptPhoto && (
                             <button
                               type="button"
                               onClick={() => onSelectReceiptPhoto(biz.paymentReceiptPhoto!)}
-                              className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                              className="text-[10px] font-bold text-emerald-700 bg-emerald-500/15 hover:bg-emerald-500/25 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
                               title="معاينة وتدقيق صورة إيصال / لقطة شاشة التحصيل"
                             >
                               <Camera className="w-3 h-3 text-emerald-500" />
@@ -209,7 +209,7 @@ export const DossierActivitiesTab: React.FC<DossierActivitiesTabProps> = ({
                       )}
                     </td>
 
-                    <td className="p-3 font-black text-amber-600 dark:text-amber-400 font-mono">
+                    <td className="p-3 font-black text-amber-600 font-mono">
                       {isExempt ? '0 ج.م' : `${commEarned} ج.م`}
                     </td>
 

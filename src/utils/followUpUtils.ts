@@ -47,7 +47,7 @@ export function getFollowUpUrgency(note: AdminFollowUpNote): FollowUpUrgencyInfo
     return {
       urgency: 'completed',
       label: 'تم الإنجاز ✓',
-      badgeClass: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40',
+      badgeClass: 'bg-emerald-500/20 text-emerald-700 border-emerald-500/40',
       daysDiff: 0,
     };
   }
@@ -61,7 +61,7 @@ export function getFollowUpUrgency(note: AdminFollowUpNote): FollowUpUrgencyInfo
       return {
         urgency: 'overdue',
         label: `🔴 متأخرة منذ ${daysText}`,
-        badgeClass: 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/50 animate-pulse font-black',
+        badgeClass: 'bg-rose-500/20 text-rose-700 border-rose-500/50 animate-pulse font-black',
         daysDiff: diff,
       };
     }
@@ -70,7 +70,7 @@ export function getFollowUpUrgency(note: AdminFollowUpNote): FollowUpUrgencyInfo
       return {
         urgency: 'due_today',
         label: '🟡 مستحقة اليوم',
-        badgeClass: 'bg-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-500/50 font-black',
+        badgeClass: 'bg-amber-500/25 text-amber-900 border-amber-500/50 font-black',
         daysDiff: 0,
       };
     }
@@ -79,7 +79,7 @@ export function getFollowUpUrgency(note: AdminFollowUpNote): FollowUpUrgencyInfo
     return {
       urgency: 'upcoming',
       label: `🟢 مجدولة (${daysText})`,
-      badgeClass: 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30 font-bold',
+      badgeClass: 'bg-teal-500/15 text-teal-700 border-teal-500/30 font-bold',
       daysDiff: diff,
     };
   }
@@ -89,7 +89,7 @@ export function getFollowUpUrgency(note: AdminFollowUpNote): FollowUpUrgencyInfo
     return {
       urgency: 'overdue',
       label: '🔴 عاجل وهام',
-      badgeClass: 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/50 font-black animate-pulse',
+      badgeClass: 'bg-rose-500/20 text-rose-700 border-rose-500/50 font-black animate-pulse',
       daysDiff: 0,
     };
   }
@@ -97,7 +97,7 @@ export function getFollowUpUrgency(note: AdminFollowUpNote): FollowUpUrgencyInfo
   return {
     urgency: 'none',
     label: '⏳ معلق للمتابعة',
-    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-bold',
+    badgeClass: 'bg-amber-500/15 text-amber-700 border-amber-500/30 font-bold',
     daysDiff: 0,
   };
 }

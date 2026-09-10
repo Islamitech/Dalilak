@@ -55,7 +55,7 @@ export const PaymentReceiptSection: React.FC<PaymentReceiptSectionProps> = ({
           </h4>
         </div>
         {formData.paymentReceiptPhoto && (
-          <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-black border border-emerald-500/30 flex items-center gap-1">
+          <span className="text-[10px] bg-emerald-500/20 text-emerald-700 px-2 py-0.5 rounded-full font-black border border-emerald-500/30 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
             <span>مرفق ومسجل بالنظام</span>
           </span>
@@ -85,7 +85,7 @@ export const PaymentReceiptSection: React.FC<PaymentReceiptSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onPreviewReceipt(formData.paymentReceiptPhoto!)}
-                className="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer pt-0.5"
+                className="text-xs text-amber-600 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer pt-0.5"
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>معاينة الإيصال بالحجم الكامل</span>

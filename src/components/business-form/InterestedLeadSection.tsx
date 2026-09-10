@@ -366,7 +366,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
           }}
           className={`p-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
             isTrendingLead
-              ? 'bg-gradient-to-r from-amber-500/25 via-yellow-500/25 to-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-500 shadow-md scale-[1.01]'
+              ? 'bg-gradient-to-r from-amber-500/25 via-yellow-500/25 to-amber-500/25 text-amber-900 border-amber-500 shadow-md scale-[1.01]'
               : 'border-transparent text-[var(--text-muted)] hover:text-amber-500'
           }`}
         >
@@ -378,11 +378,11 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       {isTrendingLead && (
         <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border-2 border-amber-500/40 p-3.5 rounded-2xl space-y-2.5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+            <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
               <span>ميزة استقطاب المنشآت الأكثر رواجاً (إدراج مجاني 0 ج.م)</span>
             </span>
-            <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-black border border-amber-500/30">
+            <span className="text-[10px] bg-amber-500/20 text-amber-800 px-2 py-0.5 rounded-full font-black border border-amber-500/30">
               طلب السماح أولاً
             </span>
           </div>
@@ -403,7 +403,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       )}
 
       {leadSuccessMsg && (
-        <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
+        <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 p-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
           <span>{leadSuccessMsg}</span>
         </div>
@@ -412,11 +412,11 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
       {/* ⚡ استيراد فوري مباشر عبر رابط خرائط Google (Link-First Architecture) */}
       <div className="bg-gradient-to-r from-blue-500/10 via-[var(--bg-card)] to-indigo-500/10 border-2 border-blue-500/30 rounded-2xl p-3.5 space-y-2.5 shadow-xs">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-black text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+          <label className="text-xs font-black text-blue-700 flex items-center gap-1.5">
             <Zap className="w-4 h-4 text-blue-500 fill-blue-500/30" />
             <span>استيراد تلقائي عبر رابط خرائط Google (بدون إرهاق الخريطة)</span>
           </label>
-          <span className="text-[10px] bg-blue-500/15 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full font-black border border-blue-500/20">
+          <span className="text-[10px] bg-blue-500/15 text-blue-800 px-2 py-0.5 rounded-full font-black border border-blue-500/20">
             ⚡ تعبئة فورية
           </span>
         </div>
@@ -457,7 +457,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         </div>
 
         {leadExtractNotice && (
-          <div className="text-[11px] font-bold p-2.5 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 flex items-center gap-2 animate-fade-in">
+          <div className="text-[11px] font-bold p-2.5 rounded-xl bg-blue-500/15 text-blue-900 border border-blue-500/30 flex items-center gap-2 animate-fade-in">
             {isExtractingLead && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />}
             <span>{leadExtractNotice}</span>
           </div>
@@ -496,7 +496,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         {/* 🏷️ القسم والتصنيف المعتمد (مع تنبيه حالة التصنيف المستخرج من Google) */}
         <div className="space-y-2 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
           {leadGoogleCategoryRaw && (
-            <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-200 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+            <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
               <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
               <span>
                 ⚠️ تصنيف Google المستخرج: <strong>"{leadGoogleCategoryRaw}"</strong> — يرجى اختيار التصنيف المعتمد من القائمة أدناه:
@@ -532,7 +532,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
             <div>
               <label className="block font-bold mb-1 text-[var(--text-primary)] flex items-center justify-between">
                 <span>التخصص / التصنيف المعتمد *</span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
                   معتمد بدليلك
                 </span>
               </label>
@@ -542,7 +542,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
                   <select
                     value={leadCategory}
                     onChange={(e) => setLeadCategory(e.target.value)}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-emerald-700 dark:text-emerald-300 font-black rounded-xl p-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer text-xs"
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-emerald-700 font-black rounded-xl p-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer text-xs"
                   >
                     {leadCategory && !grpObj.items.includes(leadCategory) && (
                       <option value={leadCategory}>
@@ -574,7 +574,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-mono font-bold focus:outline-none focus:border-emerald-500"
             />
             {duplicatePhone && (
-              <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
+              <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
                 <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                 <span>
                   ⛔ مسجل مسبقاً مع {duplicatePhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicatePhone.name} {duplicatePhone.location ? `(${duplicatePhone.location})` : ''}
@@ -656,7 +656,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         {/* 📍 GPS Coordinates & Interactive Map for Lead */}
         <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3.5 sm:p-4 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-[var(--border-color)]">
-            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-center gap-2 text-emerald-600">
               <MapPin className="w-4 h-4" />
               <span className="font-extrabold text-xs text-[var(--text-primary)]">
                 نقطة موقع المحل / النشاط على الخريطة (GPS)
@@ -687,14 +687,14 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
                 }}
                 className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer shadow-xs ${
                   showLeadMap
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                    ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/40'
                     : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-emerald-500/10'
                 }`}
               >
                 {showLeadMap ? (
-                  <EyeOff className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <EyeOff className="w-3.5 h-3.5 text-emerald-600" />
                 ) : (
-                  <MapIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <MapIcon className="w-3.5 h-3.5 text-emerald-600" />
                 )}
                 <span>{showLeadMap ? 'إخفاء الخريطة' : 'تحديد على الخريطة'}</span>
                 {showLeadMap ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -707,7 +707,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-[var(--text-muted)] font-bold">حالة الموقع:</span>
               {hasLeadLocation ? (
-                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold dir-ltr bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                <span className="font-mono text-emerald-600 font-bold dir-ltr bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
                   {leadLat.toFixed(6)}, {leadLng.toFixed(6)}
                 </span>
               ) : (
@@ -721,7 +721,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
                 href={`https://www.google.com/maps?q=${leadLat},${leadLng}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold text-[10.5px] inline-flex items-center gap-1"
+                className="text-emerald-600 hover:underline font-bold text-[10.5px] inline-flex items-center gap-1"
               >
                 <span>معاينة على Google Maps</span>
                 <ExternalLink className="w-3 h-3" />
@@ -730,7 +730,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
           </div>
 
           {leadLocationNotice && (
-            <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+            <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>{leadLocationNotice}</span>
             </div>

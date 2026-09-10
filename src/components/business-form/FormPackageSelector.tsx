@@ -36,9 +36,9 @@ export const FormPackageSelector: React.FC<FormPackageSelectorProps> = ({
             </h3>
           </div>
           <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
-            هذا النشاط قائم بالفعل في الشارع ومفعل على خرائط Google. يتم إدراجه في دليل المنظومة كنشاط موثق رسمياً <strong className="text-blue-600 dark:text-blue-400 font-bold">(إدراج مجاني 0 ج.م بدون أي مديونية أو عمولات)</strong> مع توليد فاتورة ترحيبية فورية وإشعار انضمام.
+            هذا النشاط قائم بالفعل في الشارع ومفعل على خرائط Google. يتم إدراجه في دليل المنظومة كنشاط موثق رسمياً <strong className="text-blue-600 font-bold">(إدراج مجاني 0 ج.م بدون أي مديونية أو عمولات)</strong> مع توليد فاتورة ترحيبية فورية وإشعار انضمام.
           </p>
-          <div className="flex items-center gap-2 pt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center gap-2 pt-1 text-xs font-bold text-emerald-600">
             <CheckCircle2 className="w-4 h-4" />
             <span>قيد المراجعة والاعتماد للرفع على الدليل من قبل الإدارة (0 ج.م)</span>
           </div>
@@ -63,12 +63,12 @@ export const FormPackageSelector: React.FC<FormPackageSelectorProps> = ({
                 </div>
                 <span className="font-black text-sm text-[var(--text-primary)]">باقة التوثيق الأساسي لخرائط Google</span>
               </div>
-              <span className="font-mono font-black text-base text-amber-600 dark:text-amber-400">250 ج.م</span>
+              <span className="font-mono font-black text-base text-amber-600">250 ج.م</span>
             </div>
             <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
               التفعيل الميداني الرسمي واستخراج الإحداثيات الدقيقة على خرائط Google، تثبيت مواعيد العمل والهواتف، ورفع الصور مع إصدار الفاتورة المعتمدة وهدية تصميم باركود QR.
             </p>
-            <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+            <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-amber-700">
               <span>عمولة المندوب المعتمدة:</span>
               <span className="font-mono font-black">+{Math.round((250 * (currentRep?.commissionRate || 42.86)) / 100)} ج.م</span>
               <span className="text-[10px] text-[var(--text-muted)]">(تتاح الباقات الإضافية للتطوير والترقية لاحقاً من قسم التفاصيل)</span>
@@ -96,7 +96,7 @@ export const FormPackageSelector: React.FC<FormPackageSelectorProps> = ({
                   <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
                     منشأة رائجة ومعلم بالمنطقة (إدراج مجاني بدون مقابل مالي)
                   </h4>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-black">
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-700 px-2 py-0.5 rounded-full font-black">
                     خاص بالإدارة
                   </span>
                 </div>

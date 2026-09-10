@@ -624,7 +624,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   return (
     <form onSubmit={handleInitiateSubmit} className="max-w-3xl mx-auto space-y-6 pb-36 sm:pb-24">
       {errorMsg && (
-        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-bold animate-pulse-subtle">
+        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-bold animate-pulse-subtle">
           <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -632,7 +632,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
 
       {/* 📋 Auto-Restored Draft Notification Banner */}
       {draftRestored && (
-        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border-2 border-amber-500/40 text-amber-900 dark:text-amber-200 p-3.5 rounded-2xl flex items-center justify-between gap-2 text-xs font-bold animate-fade-in shadow-xs">
+        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border-2 border-amber-500/40 text-amber-900 p-3.5 rounded-2xl flex items-center justify-between gap-2 text-xs font-bold animate-fade-in shadow-xs">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
             <span>تم استرجاع مسودة تسجيل غير مكتملة تلقائياً 📋</span>
@@ -644,7 +644,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
               resetForm();
               triggerHaptic('medium');
             }}
-            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/40 px-3 py-1.5 rounded-xl text-[11px] font-black transition-colors cursor-pointer shrink-0"
+            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 border border-rose-500/40 px-3 py-1.5 rounded-xl text-[11px] font-black transition-colors cursor-pointer shrink-0"
           >
             مسح المسودة
           </button>
@@ -687,7 +687,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
         <>
           {/* ⚠️ تنبيه التصنيف غير المعتمد */}
           {categoryWarningNotice && (
-            <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-200 p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in mb-3">
+            <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in mb-3">
               <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
               <span>{categoryWarningNotice}</span>
             </div>
@@ -777,7 +777,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
           />
 
           {errorMsg && (
-            <div className="bg-rose-500/15 border-2 border-rose-500/50 text-rose-700 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-black animate-pulse-subtle shadow-md">
+            <div className="bg-rose-500/15 border-2 border-rose-500/50 text-rose-700 p-4 rounded-2xl flex items-center gap-2.5 text-xs font-black animate-pulse-subtle shadow-md">
               <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
               <span>{errorMsg}</span>
             </div>

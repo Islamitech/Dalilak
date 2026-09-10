@@ -121,7 +121,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({
         <div className="flex items-center gap-2 font-bold">
           <span>نتبع معايير الجودة العالمية</span>
           <span>•</span>
-          <span className="text-emerald-600 dark:text-emerald-400">نظام محمي ومعتمد</span>
+          <span className="text-emerald-600">نظام محمي ومعتمد</span>
         </div>
       </div>
     </footer>

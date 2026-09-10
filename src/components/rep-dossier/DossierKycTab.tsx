@@ -263,7 +263,7 @@ export const DossierKycTab: React.FC<DossierKycTabProps> = ({
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-purple-500 shrink-0" />
                 <div>
-                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold block">انضم بدعوة من:</span>
+                  <span className="text-[10px] text-purple-700 font-bold block">انضم بدعوة من:</span>
                   <span className="font-black text-[var(--text-primary)]">
                     {(() => {
                       const inviter = allReps.find((r) => isReferredByInviter(rep, r));
@@ -272,7 +272,7 @@ export const DossierKycTab: React.FC<DossierKycTabProps> = ({
                   </span>
                 </div>
               </div>
-              <span className="font-mono font-black bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[11px]">
+              <span className="font-mono font-black bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-purple-500/30 text-purple-700 text-[11px]">
                 {rep.referredByCode}
               </span>
             </div>

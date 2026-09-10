@@ -171,7 +171,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
               <span>معاملات معلقة قيد التحويل</span>
             </span>
             {totalPendingCount > 0 && (
-              <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+              <span className="bg-amber-500/20 text-amber-600 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
                 {totalPendingCount} معلق
               </span>
             )}
@@ -323,13 +323,13 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                         </h4>
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
                           isRemittance 
-                            ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30'
-                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30'
+                            ? 'bg-blue-500/15 text-blue-600 border-blue-500/30'
+                            : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
                         }`}>
                           {isRemittance ? 'إشعار سداد وتوريد للمنصة' : 'طلب سحب عمولة'}
                         </span>
                         {rep && (
-                          <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                          <span className="bg-amber-500/15 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md">
                             {rep.roleTitle || `مندوب ${rep.governorate}`}
                           </span>
                         )}
@@ -345,16 +345,16 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
 
                   <div className="flex items-center gap-2">
                     <span className={`font-mono font-black text-lg ${
-                      isRemittance ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'
+                      isRemittance ? 'text-blue-600' : 'text-emerald-600'
                     }`}>
                       {payout.amount.toLocaleString()} ج.م
                     </span>
                     <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black ${
                       payout.status === 'approved'
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
                         : payout.status === 'rejected'
-                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse-subtle'
+                        ? 'bg-rose-500/15 text-rose-600 border border-rose-500/30'
+                        : 'bg-amber-500/15 text-amber-600 border border-amber-500/30 animate-pulse-subtle'
                     }`}>
                       {payout.status === 'approved'
                         ? isRemittance ? 'تم اعتماد السداد' : 'تم الصرف والتحويل'
@@ -379,14 +379,14 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                     <span className="text-[var(--text-muted)] block text-[10px] font-bold">
                       {isRemittance ? 'رقم الحساب / المحفظة المحول منها أو إليها:' : 'رقم المحفظة / معرف إنستاباي:'}
                     </span>
-                    <span className="font-mono font-black text-amber-700 dark:text-amber-300 text-sm">
+                    <span className="font-mono font-black text-amber-700 text-sm">
                       {payout.accountDetails}
                     </span>
                   </div>
                   {payout.transactionRef && (
                     <div className="sm:col-span-2">
                       <span className="text-[var(--text-muted)] block text-[10px] font-bold">رقم المعاملة / الحوالة المسجلة:</span>
-                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="font-mono font-bold text-emerald-600">
                         {payout.transactionRef}
                       </span>
                     </div>
@@ -418,7 +418,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                       <button
                         type="button"
                         onClick={() => onSelectReceiptPhoto(payout.receiptPhoto!)}
-                        className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+                        className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors shrink-0"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>معاينة الإيصال</span>
@@ -429,7 +429,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                   {payout.adminNotes && (
                     <div className="sm:col-span-2">
                       <span className="text-[var(--text-muted)] block text-[10px] font-bold">ملاحظات الإدارة:</span>
-                      <p className="font-bold text-slate-700 dark:text-slate-300">{payout.adminNotes}</p>
+                      <p className="font-bold text-slate-700">{payout.adminNotes}</p>
                     </div>
                   )}
                 </div>
@@ -442,7 +442,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                         href={waUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 font-bold px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+                        className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 font-bold px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
                       >
                         <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
                         <span>مراسلة واتساب</span>
@@ -453,7 +453,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                       <button
                         type="button"
                         onClick={() => onInspectRep(repToInspect)}
-                        className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 font-black px-3.5 py-1.5 rounded-xl border border-amber-500/40 flex items-center gap-1.5 text-xs transition-transform active:scale-95 cursor-pointer shadow-xs"
+                        className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 font-black px-3.5 py-1.5 rounded-xl border border-amber-500/40 flex items-center gap-1.5 text-xs transition-transform active:scale-95 cursor-pointer shadow-xs"
                         title="استعراض حالة المندوب، كشف الحساب والأنشطة المسجلة"
                       >
                         <Eye className="w-3.5 h-3.5 text-amber-500" />

@@ -36,7 +36,7 @@ export const AdditionalInvoicesSection: React.FC<AdditionalInvoicesSectionProps>
                 فواتير الخدمات الإضافية الصادرة عن المنصة 🧾
               </h4>
               {formData.additionalInvoices && formData.additionalInvoices.length > 0 && (
-                <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-amber-500/20 text-amber-600 font-black px-2 py-0.5 rounded-full">
                   {formData.additionalInvoices.length} فاتورة
                 </span>
               )}
@@ -102,10 +102,10 @@ export const AdditionalInvoicesSection: React.FC<AdditionalInvoicesSectionProps>
                     <span
                       className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
                         isPaid
-                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                          ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
                           : (inv.amountPaid || 0) > 0
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                          : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                          ? 'bg-amber-500/15 text-amber-600 border-amber-500/30'
+                          : 'bg-rose-500/15 text-rose-600 border-rose-500/30'
                       }`}
                     >
                       {isPaid
@@ -171,7 +171,7 @@ export const AdditionalInvoicesSection: React.FC<AdditionalInvoicesSectionProps>
                     <button
                       type="button"
                       onClick={() => onShowInvoice(formData, inv.id)}
-                      className="bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-[var(--border-color)] px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      className="bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-600 border border-[var(--border-color)] px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
                       title="معاينة وطباعة الفاتورة"
                     >
                       <FileText className="w-3.5 h-3.5" />
@@ -196,7 +196,7 @@ export const AdditionalInvoicesSection: React.FC<AdditionalInvoicesSectionProps>
                       <button
                         type="button"
                         disabled
-                        className="p-1.5 text-slate-500/30 dark:text-slate-600 cursor-not-allowed rounded-xl"
+                        className="p-1.5 text-slate-500/30 cursor-not-allowed rounded-xl"
                         title="محظور الحذف: لا يمكن حذف فاتورة تم تحصيلها أو سدادها حفاظاً على النزاهة المحاسبية 🔒"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -222,7 +222,7 @@ export const AdditionalInvoicesSection: React.FC<AdditionalInvoicesSectionProps>
             لا توجد فواتير خدمات إضافية صادرة لهذا النشاط حتى الآن.
           </p>
           {isAdminOrFinancial && (
-            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
+            <p className="text-[11px] text-amber-600 font-bold">
               يمكن لإدارة المنصة إصدار فواتير للخدمات المستقلة والتحصيل الإلكتروني عبر الزر أعلاه.
             </p>
           )}

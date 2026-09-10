@@ -33,11 +33,11 @@ interface BusinessFollowUpModalProps {
 }
 
 const TYPE_CONFIG: Record<AdminFollowUpType, { label: string; icon: string; bg: string }> = {
-  call: { label: 'اتصال هاتفي', icon: '📞', bg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' },
-  visit: { label: 'زيارة ميدانية', icon: '🏃', bg: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' },
-  payment: { label: 'تحصيل مالي', icon: '💰', bg: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' },
-  verification: { label: 'خرائط Google', icon: '🌐', bg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' },
-  general: { label: 'ملاحظة عامة', icon: '📝', bg: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' },
+  call: { label: 'اتصال هاتفي', icon: '📞', bg: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
+  visit: { label: 'زيارة ميدانية', icon: '🏃', bg: 'bg-purple-500/15 text-purple-700 border-purple-500/30' },
+  payment: { label: 'تحصيل مالي', icon: '💰', bg: 'bg-amber-500/15 text-amber-700 border-amber-500/30' },
+  verification: { label: 'خرائط Google', icon: '🌐', bg: 'bg-blue-500/15 text-blue-700 border-blue-500/30' },
+  general: { label: 'ملاحظة عامة', icon: '📝', bg: 'bg-slate-500/15 text-slate-700 border-slate-500/30' },
 };
 
 export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
@@ -145,7 +145,7 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10060] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-fade-in text-right">
+    <div className="fixed inset-0 z-[10060] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-fade-in text-right">
       <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] transition-all duration-300 max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         
         {/* Mobile Pull Handle */}
@@ -208,12 +208,12 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
 
         {/* ── OVERDUE ALERT BANNER (If Any) ── */}
         {fuSummary.hasOverdue && (
-          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-2xl text-xs font-black flex items-center justify-between gap-2 animate-pulse shadow-xs">
+          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2.5 rounded-2xl text-xs font-black flex items-center justify-between gap-2 animate-pulse shadow-xs">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
               <span>تنبيه عاجل: توجد {fuSummary.overdueCount} متابعات متأخرة تجاوزت موعدها المحدد وتتطلب تدخلاً فورياً!</span>
             </div>
-            <span className="text-[10px] bg-rose-500/25 text-rose-700 dark:text-rose-200 px-2 py-0.5 rounded-md shrink-0">
+            <span className="text-[10px] bg-rose-500/25 text-rose-700 px-2 py-0.5 rounded-md shrink-0">
               متأخرة 🚨
             </span>
           </div>
@@ -322,7 +322,7 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
 
             {/* Error message */}
             {errorMsg && (
-              <div className="bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <div className="bg-rose-500/15 border border-rose-500/30 text-rose-600 p-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
@@ -404,7 +404,7 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
                             className={`text-[9px] font-bold px-2 py-0.5 rounded-md border cursor-pointer transition-transform active:scale-95 ${
                               isCompleted
                                 ? 'bg-slate-500/10 text-slate-500 border-slate-500/30 hover:bg-emerald-500/20'
-                                : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                                : 'bg-emerald-500/20 text-emerald-700 border-emerald-500/40 hover:bg-emerald-500/30'
                             }`}
                             title={isCompleted ? 'إعادة فتح المتابعة كمعلقة' : 'تحديد المتابعة كمكتملة'}
                           >
@@ -458,7 +458,7 @@ export const BusinessFollowUpModal: React.FC<BusinessFollowUpModalProps> = ({
                 onClose();
                 onOpenFullEdit(business);
               }}
-              className="text-amber-600 dark:text-amber-400 hover:underline text-xs font-bold flex items-center gap-1 cursor-pointer"
+              className="text-amber-600 hover:underline text-xs font-bold flex items-center gap-1 cursor-pointer"
             >
               <span>فتح بطاقة النشاط الكاملة والتعديل</span>
               <ExternalLink className="w-3 h-3" />

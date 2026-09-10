@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, SystemNotification } from '../types';
 import { Logo } from './Logo';
-import { ThemeToggle } from './ThemeToggle';
 import { NotificationCenter } from './NotificationCenter';
 import {
   LogIn,
@@ -110,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => window.open('https://www.dalilaak.com/', '_blank')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-teal-700 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-colors cursor-pointer"
             >
               <Globe className="w-3.5 h-3.5 text-teal-500" />
               <span>دليل الأنشطة 🌐</span>
@@ -119,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onOpenPackages}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                 <span>باقات دليلك 💎</span>
@@ -193,7 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-black border border-amber-500/30 shadow-xs'
+                      ? 'bg-amber-500/15 text-amber-600 font-black border border-amber-500/30 shadow-xs'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]'
                   }`}
                 >
@@ -237,7 +236,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         if (repCode) url.searchParams.set('ref', repCode);
                         window.open(url.toString(), '_blank');
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-teal-600 dark:text-teal-400 hover:bg-teal-500/10 transition-colors text-right cursor-pointer"
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-teal-600 hover:bg-teal-500/10 transition-colors text-right cursor-pointer"
                     >
                       <Globe className="w-4 h-4 shrink-0 text-teal-500" />
                       <span>دليل الأنشطة العام 🌐</span>
@@ -251,7 +250,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setIsServicesMenuOpen(false);
                         onOpenPackages();
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors text-right cursor-pointer"
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-600 hover:bg-amber-500/10 transition-colors text-right cursor-pointer"
                     >
                       <Sparkles className="w-4 h-4 shrink-0 text-amber-500" />
                       <span>باقات دليلك 💎</span>
@@ -316,9 +315,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             onNavigateTab={onNavigateTab}
           />
 
-          {/* Theme Toggle Button (Light/Dark Switcher) */}
-          <ThemeToggle />
-
           {user ? (
             <div className="flex items-center gap-1 sm:gap-2">
               <button
@@ -361,7 +357,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <p className="text-[11px] sm:text-xs font-black text-[var(--text-primary)] group-hover:text-amber-500 transition-colors truncate max-w-[70px] xs:max-w-[100px] sm:max-w-[150px] leading-tight">
                     {user.name}
                   </p>
-                  <span className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400 font-extrabold leading-none mt-0.5 max-w-[160px] truncate" title={currentRoleTitle || user.repData?.roleTitle || user.roleTitle}>
+                  <span className="text-[9px] sm:text-[10px] text-amber-600 font-extrabold leading-none mt-0.5 max-w-[160px] truncate" title={currentRoleTitle || user.repData?.roleTitle || user.roleTitle}>
                     {currentRoleTitle || user.repData?.roleTitle || user.roleTitle || (
                       user.role === 'admin'
                         ? 'مدير النظام 🛡️'

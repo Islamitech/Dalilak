@@ -114,11 +114,11 @@ export const ContextualFollowUpStrip: React.FC<ContextualFollowUpStripProps> = (
                 <span className="text-xs font-black text-[var(--text-primary)]">
                   متابعات {categoryLabel}
                 </span>
-                <span className="text-[10px] font-mono font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 px-1.5 py-0.2 rounded-full border border-amber-500/20">
+                <span className="text-[10px] font-mono font-bold bg-amber-500/10 text-amber-700 px-1.5 py-0.2 rounded-full border border-amber-500/20">
                   {categoryNotes.length}
                 </span>
                 {urgency?.urgency === 'overdue' && (
-                  <span className="text-[9.5px] font-black bg-rose-500/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.2 rounded border border-rose-500/30 animate-pulse flex items-center gap-0.5">
+                  <span className="text-[9.5px] font-black bg-rose-500/20 text-rose-600 px-1.5 py-0.2 rounded border border-rose-500/30 animate-pulse flex items-center gap-0.5">
                     <AlertTriangle className="w-2.5 h-2.5" />
                     <span>متأخرة</span>
                   </span>
@@ -170,7 +170,7 @@ export const ContextualFollowUpStrip: React.FC<ContextualFollowUpStripProps> = (
         {isExpanded && (
           <div className="mt-3 pt-3 border-t border-[var(--border-color)] space-y-2.5 animate-fade-in">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="font-black text-amber-600 dark:text-amber-400">
+              <span className="font-black text-amber-600">
                 تدوين ملاحظة سريعة في تبويب ({categoryLabel}):
               </span>
               <div className="flex items-center gap-1">

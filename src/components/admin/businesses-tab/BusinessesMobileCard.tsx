@@ -64,9 +64,9 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
           <h4 className="font-black text-sm text-[var(--text-primary)] truncate">{biz.nameAr}</h4>
           {biz.nameEn && <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{biz.nameEn}</p>}
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            <span className="inline-block text-[11px] text-amber-700 dark:text-amber-400 font-bold">{biz.category}</span>
+            <span className="inline-block text-[11px] text-amber-700 font-bold">{biz.category}</span>
             {isExempt && (
-              <span className="text-[9.5px] bg-teal-500/20 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-md font-black border border-teal-500/30">
+              <span className="text-[9.5px] bg-teal-500/20 text-teal-700 px-2 py-0.5 rounded-md font-black border border-teal-500/30">
                 رائج (معفى من الرسوم)
               </span>
             )}
@@ -74,29 +74,29 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1">
           {isDirectoryApproved ? (
-            <span className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+            <span className="bg-emerald-500/20 text-emerald-800 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
               <CheckCircle2 className="w-2.5 h-2.5" />
               <span>معتمد بالدليل</span>
             </span>
           ) : biz.verificationStatus === 'rejected' ? (
-            <span className="bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+            <span className="bg-rose-500/20 text-rose-800 border border-rose-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
               <AlertTriangle className="w-2.5 h-2.5" />
               <span>مرفوض بالدليل</span>
             </span>
           ) : (
-            <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+            <span className="bg-amber-500/20 text-amber-800 border border-amber-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
               <Clock className="w-2.5 h-2.5" />
               <span>قيد مراجعة الدليل</span>
             </span>
           )}
 
           {hasGoogleMap ? (
-            <span className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
+            <span className="bg-blue-500/15 text-blue-800 border border-blue-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
               <Globe className="w-2.5 h-2.5" />
               <span>موثق بـ Google</span>
             </span>
           ) : isInGoogleReview ? (
-            <span className="bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
+            <span className="bg-purple-500/15 text-purple-800 border border-purple-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
               <Clock className="w-2.5 h-2.5" />
               <span>قيد توثيق Google</span>
             </span>
@@ -110,7 +110,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
             <button
               type="button"
               onClick={() => onSelectFollowUpBiz(biz)}
-              className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-[9px] font-black px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer animate-pulse"
+              className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 border border-rose-500/40 text-[9px] font-black px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer animate-pulse"
               title="متابعات متأخرة تحتاج تدخلاً عاجلاً"
             >
               <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
@@ -120,7 +120,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
             <button
               type="button"
               onClick={() => onSelectFollowUpBiz(biz)}
-              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[9px] font-black px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer"
+              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 border border-amber-500/40 text-[9px] font-black px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer"
               title="متابعات مستحقة اليوم"
             >
               <Clock className="w-2.5 h-2.5 text-amber-500" />
@@ -130,7 +130,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
             <button
               type="button"
               onClick={() => onSelectFollowUpBiz(biz)}
-              className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer transition-colors"
+              className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer transition-colors"
               title="عرض وسجل المتابعات الإدارية"
             >
               <ClipboardList className="w-2.5 h-2.5 text-amber-500" />
@@ -142,7 +142,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
 
       {/* Urgent Alert if Verified on Google with Remaining Debt */}
       {isGoogleVerifiedWithDebt && (
-        <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-black flex items-center justify-between gap-2">
+        <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2.5 rounded-xl text-xs font-black flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
             <span className="truncate">موثقة ومطلوب التحصيل</span>
@@ -182,7 +182,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
               href={sanitizeExternalUrl(biz.repLocationUrl || `https://www.google.com/maps?q=${biz.lat},${biz.lng}`)}
               target="_blank"
               rel="noreferrer"
-              className="text-[9px] text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1"
+              className="text-[9px] text-amber-600 font-bold hover:underline inline-flex items-center gap-1"
             >
               <MapPin className="w-2.5 h-2.5" />
               <span>موقع المندوب</span>
@@ -192,7 +192,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
                 href={sanitizeExternalUrl(biz.googleMapsUrl)}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
+                className="text-[9px] text-emerald-600 font-bold hover:underline inline-flex items-center gap-1"
               >
                 <CheckCircle2 className="w-2.5 h-2.5" />
                 <span>الخريطة الموثقة</span>
@@ -212,11 +212,11 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
       <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-xs space-y-1">
         <div className="flex items-center justify-between font-mono">
           <span className="text-[10.5px] text-[var(--text-secondary)]">سعر الباقة الإجمالي:</span>
-          <span className="font-black text-amber-600 dark:text-amber-400">{isExempt ? 'مجاني (0 ج.م)' : formatEGP(biz.packagePrice || 250)}</span>
+          <span className="font-black text-amber-600">{isExempt ? 'مجاني (0 ج.م)' : formatEGP(biz.packagePrice || 250)}</span>
         </div>
         <div className="flex items-center justify-between font-mono">
           <span className="text-[10.5px] text-[var(--text-secondary)]">المبلغ المسدد:</span>
-          <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatEGP(biz.amountPaid || 0)}</span>
+          <span className="font-bold text-emerald-600">{formatEGP(biz.amountPaid || 0)}</span>
         </div>
         {debtAmount > 0 && (
           <div className="flex items-center justify-between font-mono font-bold text-rose-500">
@@ -225,7 +225,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
           </div>
         )}
         {biz.additionalInvoices && biz.additionalInvoices.length > 0 && (
-          <div className="flex items-center justify-between text-[10.5px] font-bold text-sky-600 dark:text-sky-400 pt-1 border-t border-[var(--border-color)]">
+          <div className="flex items-center justify-between text-[10.5px] font-bold text-sky-600 pt-1 border-t border-[var(--border-color)]">
             <span>خدمات إضافية ({biz.additionalInvoices.length}):</span>
             <span className="font-mono">
               {formatEGP(biz.additionalInvoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0))} محصل
@@ -270,7 +270,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
           <button
             type="button"
             onClick={() => onSendPackageBiz(biz)}
-            className="bg-gradient-to-r from-amber-500/15 to-yellow-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-700 dark:text-amber-400 font-black text-xs p-2 rounded-xl border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+            className="bg-gradient-to-r from-amber-500/15 to-yellow-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-700 font-black text-xs p-2 rounded-xl border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
             title="إرسال تفاصيل باقة تسويقية للمنشأة عبر واتساب 💎"
           >
             <Sparkles className="w-4 h-4 text-amber-500" />

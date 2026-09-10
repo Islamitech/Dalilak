@@ -94,7 +94,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
             <Layers className="w-4 h-4 text-amber-500" />
             <span>الأنشطة والخدمات الميدانية</span>
             {filteredBusinesses.length > 0 && (
-              <span className="text-xs font-mono bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">
+              <span className="text-xs font-mono bg-amber-500/15 text-amber-600 px-2 py-0.5 rounded-full border border-amber-500/20">
                 {filteredBusinesses.length}
               </span>
             )}
@@ -178,15 +178,15 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                     key={`skel-${i}`}
                     className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col animate-pulse"
                   >
-                    <div className="aspect-[4/3] bg-gradient-to-br from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900" />
+                    <div className="aspect-[4/3] bg-gradient-to-br from-slate-200 to-slate-100" />
                     <div className="p-4 space-y-3">
                       <div className="space-y-2">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
-                        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
+                        <div className="h-4 bg-slate-200 rounded-lg w-3/4" />
+                        <div className="h-3 bg-slate-200 rounded-md w-1/2" />
                       </div>
                       <div className="pt-3 border-t border-[var(--border-color)] flex items-center gap-2">
-                        <div className="h-9 bg-slate-200 dark:bg-slate-800 rounded-xl flex-1" />
-                        <div className="h-9 w-9 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+                        <div className="h-9 bg-slate-200 rounded-xl flex-1" />
+                        <div className="h-9 w-9 bg-slate-200 rounded-xl shrink-0" />
                       </div>
                     </div>
                   </div>
@@ -229,7 +229,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                 <button
                   type="button"
                   onClick={resetAllFilters}
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2.5 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2.5 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
                 >
                   إعادة ضبط خيارات البحث
                 </button>
@@ -326,7 +326,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                       {/* Bottom-Left (Inside Photo): GPS Distance if available */}
                       {distanceKm !== null && (
                         <div className="absolute bottom-3 left-3 z-10">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-950/80 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-900/50 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
                             <Compass className="w-3 h-3 text-amber-400 shrink-0" />
                             <span>{formatDistanceString(distanceKm)}</span>
                           </span>
@@ -342,7 +342,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                       >
                         {/* Category & Region */}
                         <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--text-muted)]">
-                          <span className="text-amber-600 dark:text-amber-400 font-extrabold truncate">
+                          <span className="text-amber-600 font-extrabold truncate">
                             {biz.category}
                           </span>
                           <span className="truncate text-[11px] font-medium text-[var(--text-muted)]">
@@ -391,8 +391,8 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                             onClick={(e) => e.stopPropagation()}
                             className={`py-2 px-1 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 ${
                               isOfficial
-                                ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 dark:text-blue-400 hover:text-white border border-blue-500/30'
-                                : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-white border border-emerald-500/30'
+                                ? 'bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-500/30'
+                                : 'bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/30'
                             }`}
                             title={isOfficial ? 'فتح على خرائط Google' : 'الموقع الجغرافي للمكان على الخريطة'}
                           >
@@ -420,7 +420,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="py-2 px-1 rounded-xl text-xs font-black bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-white border border-emerald-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                            className="py-2 px-1 rounded-xl text-xs font-black bg-emerald-500/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
                             title="محادثة واتساب مباشرة"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
@@ -442,7 +442,7 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                           <a
                             href={`tel:${biz.phone}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="py-2 px-1 rounded-xl text-xs font-black bg-amber-500/20 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-slate-950 border border-amber-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                            className="py-2 px-1 rounded-xl text-xs font-black bg-amber-500/20 hover:bg-amber-500 text-amber-600 hover:text-slate-950 border border-amber-500/30 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
                             title="اتصال هاتفي فوري"
                           >
                             <Phone className="w-3.5 h-3.5" />

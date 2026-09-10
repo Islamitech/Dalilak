@@ -66,10 +66,10 @@ export const FormOwnerInfoSection: React.FC<FormOwnerInfoSectionProps> = ({
       </div>
 
       {duplicateMatch && (
-        <div className="bg-rose-500/15 border-2 border-rose-500/40 text-rose-700 dark:text-rose-300 p-3.5 rounded-2xl flex items-start gap-2.5 text-xs font-bold animate-pulse-subtle shadow-xs">
+        <div className="bg-rose-500/15 border-2 border-rose-500/40 text-rose-700 p-3.5 rounded-2xl flex items-start gap-2.5 text-xs font-bold animate-pulse-subtle shadow-xs">
           <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <div className="font-black text-rose-600 dark:text-rose-400 text-sm">
+            <div className="font-black text-rose-600 text-sm">
               ⛔ رقم الهاتف ({duplicateMatch.phone}) مسجل بالفعل مسبقاً!
             </div>
             <div className="text-xs leading-relaxed opacity-95">

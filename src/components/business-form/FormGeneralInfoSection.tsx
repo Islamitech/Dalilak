@@ -41,7 +41,7 @@ export const FormGeneralInfoSection: React.FC<FormGeneralInfoSectionProps> = ({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-[var(--text-primary)] font-bold">اسم النشاط باللغة العربية</label>
-            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">عربي أو إنجليزي</span>
+            <span className="text-[10px] text-amber-600 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">عربي أو إنجليزي</span>
           </div>
           <input
             type="text"
@@ -55,7 +55,7 @@ export const FormGeneralInfoSection: React.FC<FormGeneralInfoSectionProps> = ({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-[var(--text-primary)] font-bold">اسم النشاط بالإنجليزية</label>
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-500/10 px-1.5 py-0.5 rounded">اختياري / بديل</span>
+            <span className="text-[10px] text-blue-600 font-bold bg-blue-500/10 px-1.5 py-0.5 rounded">اختياري / بديل</span>
           </div>
           <input
             type="text"
@@ -88,14 +88,14 @@ export const FormGeneralInfoSection: React.FC<FormGeneralInfoSectionProps> = ({
         <div>
           <label className="block text-[var(--text-primary)] font-bold mb-1 flex items-center justify-between">
             <span>التخصص / التصنيف الداخلي *</span>
-            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
+            <span className="text-[10px] text-amber-600 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
               {currentGroupObj.items.length} تخصص متاح
             </span>
           </label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm text-xs sm:text-sm cursor-pointer"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 font-black rounded-xl p-3 focus:outline-none focus:border-amber-500 shadow-sm text-xs sm:text-sm cursor-pointer"
           >
             {!isKnownCategory && category && (
               <option value={category} className="text-emerald-600 font-bold">

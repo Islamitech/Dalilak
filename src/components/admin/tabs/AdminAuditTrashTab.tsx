@@ -204,7 +204,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="بحث بالاسم، رقم الهاتف، أو اسم من قام بالحذف / التدوين..."
-              className="w-full bg-slate-950/80 border border-slate-700 text-white text-xs rounded-xl pr-9 pl-3 py-2 focus:outline-none focus:border-amber-500 placeholder-slate-500"
+              className="w-full bg-slate-900/50 border border-slate-700 text-white text-xs rounded-xl pr-9 pl-3 py-2 focus:outline-none focus:border-amber-500 placeholder-slate-500"
             />
           </div>
         </div>
@@ -241,7 +241,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                           {biz.category} • {biz.governorate} • {biz.phone}
                         </span>
                       </div>
-                      <span className="bg-rose-500/15 text-rose-600 dark:text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-md border border-rose-500/30 shrink-0">
+                      <span className="bg-rose-500/15 text-rose-600 font-black text-[10px] px-2 py-0.5 rounded-md border border-rose-500/30 shrink-0">
                         محذوف ناعم (أثر السيرفر)
                       </span>
                     </div>
@@ -249,7 +249,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                     <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] space-y-1">
                       <div className="flex items-center justify-between text-[var(--text-secondary)]">
                         <span className="font-bold">من قام بالحذف:</span>
-                        <span className="font-black text-rose-600 dark:text-rose-400">
+                        <span className="font-black text-rose-600">
                           {biz.deletedBy || 'مدير النظام'} {biz.deletedByRole ? `(${biz.deletedByRole})` : ''}
                         </span>
                       </div>
@@ -331,7 +331,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                           {rep.roleTitle || rep.role} • {rep.governorate} • {rep.phone}
                         </span>
                       </div>
-                      <span className="bg-rose-500/15 text-rose-600 dark:text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-md border border-rose-500/30 shrink-0">
+                      <span className="bg-rose-500/15 text-rose-600 font-black text-[10px] px-2 py-0.5 rounded-md border border-rose-500/30 shrink-0">
                         حساب محذوف ناعم
                       </span>
                     </div>
@@ -339,7 +339,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                     <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] text-[11px] space-y-1">
                       <div className="flex items-center justify-between text-[var(--text-secondary)]">
                         <span className="font-bold">من قام بالحذف:</span>
-                        <span className="font-black text-rose-600 dark:text-rose-400">
+                        <span className="font-black text-rose-600">
                           {rep.deletedBy || 'مدير النظام'} {rep.deletedByRole ? `(${rep.deletedByRole})` : ''}
                         </span>
                       </div>
@@ -416,7 +416,7 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                           {item.sourceGovernorate ? <span className="text-[10px] text-[var(--text-muted)]">({item.sourceGovernorate})</span> : null}
                         </span>
 
-                        <span className="text-[11px] font-black text-purple-600 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
+                        <span className="text-[11px] font-black text-purple-600 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
                           كاتب المتابعة: {item.note.authorName} ({item.note.authorRole || 'إدارة'})
                         </span>
 

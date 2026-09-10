@@ -56,7 +56,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-xl border border-emerald-500/30">
+            <span className="text-xs font-black bg-emerald-500/15 text-emerald-600 px-3 py-1 rounded-xl border border-emerald-500/30">
               {
                 repBusinesses.filter(
                   (b) => b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced'
@@ -166,7 +166,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                         <p className="font-extrabold text-sm text-[var(--text-primary)]">
                           {biz.nameAr}
                         </p>
-                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">
+                        <p className="text-[11px] text-amber-600 font-bold mt-0.5">
                           {biz.category} • {biz.city}
                         </p>
                       </div>
@@ -197,7 +197,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                         <span className="text-[10px] text-[var(--text-muted)] block font-semibold">
                           المدفوع
                         </span>
-                        <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">
+                        <span className="font-extrabold text-emerald-600 text-xs">
                           {isExempt ? '0 ج' : `${paid} ج`}
                         </span>
                       </div>
@@ -205,7 +205,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                         <span className="text-[10px] text-[var(--text-muted)] block font-semibold">
                           عمولتك
                         </span>
-                        <span className="font-black text-amber-600 dark:text-amber-400 text-xs">
+                        <span className="font-black text-amber-600 text-xs">
                           {isExempt ? '0 ج' : `${commEarned} ج`}
                         </span>
                       </div>
@@ -220,11 +220,11 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                             معفى
                           </span>
                         ) : isCash ? (
-                          <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
+                          <span className="text-[10px] font-black text-amber-700 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
                             💵 كاش بيدك ({paid} ج)
                           </span>
                         ) : paid > 0 ? (
-                          <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
+                          <span className="text-[10px] font-black text-purple-700 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
                             💳 تحويل للمنصة
                           </span>
                         ) : (
@@ -244,7 +244,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                         <a
                           href={`tel:${phoneToCall}`}
                           onClick={() => triggerHaptic('light')}
-                          className="flex-1 py-2 px-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                          className="flex-1 py-2 px-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
                         >
                           <Phone className="w-3.5 h-3.5" />
                           <span>اتصال</span>
@@ -256,7 +256,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => triggerHaptic('light')}
-                          className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                          className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
                           <span>واتساب</span>
@@ -268,7 +268,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => triggerHaptic('light')}
-                          className="flex-1 py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
+                          className="flex-1 py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors active:scale-95"
                         >
                           <MapPin className="w-3.5 h-3.5" />
                           <span>الخريطة</span>
@@ -312,7 +312,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                           <p className="font-extrabold text-sm text-[var(--text-primary)]">
                             {biz.nameAr}
                           </p>
-                          <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
+                          <p className="text-[10px] text-amber-700 font-bold">
                             {biz.category} • {biz.city}
                           </p>
                         </td>
@@ -323,7 +323,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
 
                         <td className="p-3 font-bold">
                           {isExempt ? (
-                            <span className="text-teal-600 dark:text-teal-400 font-black">
+                            <span className="text-teal-600 font-black">
                               إدراج مجاني (0 ج)
                             </span>
                           ) : (
@@ -344,11 +344,11 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                               معفى
                             </span>
                           ) : isCash ? (
-                            <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
+                            <span className="text-[10px] font-black text-amber-700 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
                               💵 كاش بيدك ({paid} ج)
                             </span>
                           ) : paid > 0 ? (
-                            <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
+                            <span className="text-[10px] font-black text-purple-700 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/30">
                               💳 تحويل للمنصة
                             </span>
                           ) : (
@@ -358,7 +358,7 @@ export const RepActivitiesTab: React.FC<RepActivitiesTabProps> = ({
                           )}
                         </td>
 
-                        <td className="p-3 font-black text-emerald-600 dark:text-emerald-400 font-mono text-sm">
+                        <td className="p-3 font-black text-emerald-600 font-mono text-sm">
                           {isExempt ? '0 ج.م' : `${commEarned} ج.م`}
                         </td>
 

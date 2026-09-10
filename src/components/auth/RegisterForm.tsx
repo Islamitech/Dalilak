@@ -386,7 +386,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             placeholder="01012345678"
             value={regPhone}
             onChange={(e) => setRegPhone(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
           />
         </div>
       </div>
@@ -403,7 +403,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             placeholder="29805120104892"
             value={regNationalId}
             onChange={(e) => setRegNationalId(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-sm placeholder:text-slate-400"
           />
         </div>
 
@@ -429,7 +429,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           <label className="block text-[var(--text-primary)] font-extrabold">
             كود الدعوة / الإحالة (اختياري)
           </label>
-          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+          <span className="text-[10px] text-amber-600 font-bold">
             إذا تمت دعوتك من مندوب معتمد
           </span>
         </div>
@@ -438,10 +438,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           placeholder="مثال: DALIL-7711"
           value={regReferralCode}
           onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
-          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 uppercase shadow-sm placeholder:text-slate-400"
+          className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 font-mono font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-500 uppercase shadow-sm placeholder:text-slate-400"
         />
         {matchedInviter && (
-          <div className="mt-1.5 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-bold animate-fade-in">
+          <div className="mt-1.5 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-700 font-bold animate-fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>
               تم التعرف على الداعي: <strong>{matchedInviter.name}</strong> (
@@ -454,7 +454,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       {/* COMPACT & STREAMLINED IDENTITY ATTACHMENTS (3 Uploads) */}
       <div className="bg-[var(--bg-surface)]/70 border border-[var(--border-color)] rounded-2xl p-3 space-y-2.5 shadow-xs">
         <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-1.5">
-          <span className="font-black text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+          <span className="font-black text-xs text-amber-600 flex items-center gap-1.5">
             <FileCheck className="w-4 h-4" />
             <span>مستندات التحقق والتفعيل (لسجلات مدير المنظومة فقط) *</span>
           </span>
@@ -510,7 +510,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         />
 
         {/* Security & Privacy Reassurance Notice */}
-        <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-[10px] sm:text-[11px] text-blue-900 dark:text-blue-300 font-bold flex items-start gap-2 leading-relaxed">
+        <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-[10px] sm:text-[11px] text-blue-900 font-bold flex items-start gap-2 leading-relaxed">
           <Lock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
           <span>
             <strong>خصوصيتك وأمان بياناتك أولويتنا:</strong> كافة المستندات الشخصية مشفرة ومحفوظة

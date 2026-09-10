@@ -62,7 +62,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
   // 1. Institutional Suspension Screen (Protection against rejected business leaks)
   if (selectedBiz.verificationStatus === 'rejected') {
     return (
-      <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in text-right">
+      <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in text-right">
         <div className="bg-[var(--bg-card)] border border-rose-500/30 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl animate-fade-in-scale relative overflow-hidden flex flex-col items-center text-center space-y-5">
           <div className="absolute -top-12 -right-12 w-36 h-36 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -80,7 +80,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             <Lock className="w-8 h-8" />
           </div>
 
-          <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
+          <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-500/15 text-rose-600 border border-rose-500/30 flex items-center gap-1.5">
             <ShieldAlert className="w-3.5 h-3.5" />
             <span>غير متاح حالياً</span>
           </span>
@@ -108,7 +108,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
 
   // 2. Verified or In-Review Business Full Detail Modal
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] flex flex-col text-right text-xs">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-[var(--border-color)] flex items-center justify-between gap-3">
@@ -119,7 +119,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                 <span>منشأة معتمدة</span>
               </span>
             ) : (
-              <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+              <span className="bg-amber-500/20 text-amber-600 border border-amber-500/30 text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
                 <Clock className="w-3.5 h-3.5" />
                 <span>قيد المراجعة</span>
               </span>
@@ -168,7 +168,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             <button
               type="button"
               onClick={(e) => handleShareBusiness(selectedBiz, e)}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-600 dark:text-amber-400 font-black text-xs flex items-center gap-1.5 transition-all border border-amber-500/30 cursor-pointer shadow-xs"
+              className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-600 font-black text-xs flex items-center gap-1.5 transition-all border border-amber-500/30 cursor-pointer shadow-xs"
               title="مشاركة رابط هذه المنشأة"
             >
               {copiedBizId === selectedBiz.id ? (
@@ -193,7 +193,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
         {/* Preview Banner */}
         {(isPreviewMode ||
           (selectedBiz.verificationStatus !== 'verified' && selectedBiz.googleSyncStatus !== 'synced')) && (
-          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 flex items-center gap-2 text-amber-700 dark:text-amber-300 text-xs font-black">
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 flex items-center gap-2 text-amber-700 text-xs font-black">
             <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
             <span>معاينة فورية: هذه المنشأة مسجلة بنجاح — قيد المراجعة الإدارية والاعتماد للنشر على الخريطة العامة</span>
           </div>
@@ -228,7 +228,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
 
               {/* Photos Async Loading Indicator */}
               {photosLoading && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-slate-950/80 backdrop-blur-md text-amber-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/30 flex items-center gap-1.5 z-20 shadow-md animate-fade-in">
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-slate-900/50 backdrop-blur-sm text-amber-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/30 flex items-center gap-1.5 z-20 shadow-md animate-fade-in">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
                   <span>جاري تحميل الألبوم...</span>
                 </div>
@@ -236,7 +236,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
 
               <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
                 <div className="flex items-center gap-2">
-                  <span className="bg-slate-950/80 backdrop-blur-md text-amber-400 text-[11px] font-black px-3 py-1 rounded-full border border-amber-500/30 shadow-md">
+                  <span className="bg-slate-900/50 backdrop-blur-sm text-amber-400 text-[11px] font-black px-3 py-1 rounded-full border border-amber-500/30 shadow-md">
                     {selectedBiz.category}
                   </span>
                   <PhotoWatermarkBadge position="top-right" size="md" className="!relative !top-auto !right-auto" />
@@ -270,7 +270,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                     </span>
                   </p>
                   {selectedBiz.googleRatingEnabled && selectedBiz.googleRating && (
-                    <div className="inline-flex items-center gap-1 bg-slate-950/80 border border-amber-400/50 text-amber-300 px-2 py-0.5 rounded-lg text-xs font-black backdrop-blur-md shadow-sm">
+                    <div className="inline-flex items-center gap-1 bg-slate-900/50 border border-amber-400/50 text-amber-300 px-2 py-0.5 rounded-lg text-xs font-black backdrop-blur-md shadow-sm">
                       <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       <span>{selectedBiz.googleRating.toFixed(1)}</span>
                       <span className="text-[10px] text-slate-300">
@@ -328,7 +328,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
               href={getSmartWhatsAppUrl(selectedBiz)}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 font-black text-xs py-3 px-2 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-xs active:scale-95 transition-all cursor-pointer text-center"
+              className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 border border-emerald-500/40 font-black text-xs py-3 px-2 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-xs active:scale-95 transition-all cursor-pointer text-center"
             >
               <MessageCircle className="w-4 h-4 shrink-0" />
               <span>محادثة واتساب</span>
@@ -344,7 +344,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                   className={`font-black text-xs py-3 px-2 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-xs active:scale-95 transition-all cursor-pointer text-center ${
                     isOfficial
                       ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
-                      : 'bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                      : 'bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border border-blue-500/30'
                   }`}
                 >
                   <Navigation className="w-4 h-4 shrink-0" />
@@ -416,7 +416,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                                     ? 'text-amber-400 fill-amber-400'
                                     : s === Math.ceil(rating) && rating % 1 >= 0.3
                                     ? 'text-amber-400 fill-amber-400/60'
-                                    : 'text-slate-400 dark:text-slate-700'
+                                    : 'text-slate-400'
                                 }`}
                               />
                             ))}
@@ -430,7 +430,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                           {breakdown.map((item) => (
                             <div key={item.stars} className="flex items-center gap-2 text-[10px] font-bold">
                               <span className="w-2.5 text-slate-400 text-center">{item.stars}</span>
-                              <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-700"
                                   style={{ width: `${item.pct}%` }}
@@ -453,7 +453,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                       حالة التوثيق ومراجعات Google Maps
                     </span>
                   </div>
-                  <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                  <span className="bg-amber-500/20 text-amber-600 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
                     قيد المراجعة
                   </span>
                 </div>
@@ -571,7 +571,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             href={getSmartWhatsAppUrl(selectedBiz)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 min-w-[125px] bg-emerald-500/15 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white border border-emerald-500/40 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+            className="flex-1 min-w-[125px] bg-emerald-500/15 hover:bg-emerald-500 text-emerald-700 hover:text-white border border-emerald-500/40 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
           >
             <MessageCircle className="w-4 h-4" />
             <span>محادثة واتساب</span>
@@ -616,7 +616,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             href={getSmartWhatsAppUrl(selectedBiz)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"
+            className="flex-1 bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/25 font-black text-xs py-3 rounded-2xl flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"
           >
             <MessageCircle className="w-4 h-4" />
             <span>واتساب</span>

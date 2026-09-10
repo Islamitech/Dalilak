@@ -513,7 +513,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
                 activeAdminTab === 'audit_trash'
                   ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md'
-                  : 'text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:bg-[var(--input-bg)] border border-amber-500/30'
+                  : 'text-amber-600 hover:text-amber-500 hover:bg-[var(--input-bg)] border border-amber-500/30'
               }`}
               title="سلة المحذوفات وسجل أثر السيرفر"
             >

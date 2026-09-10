@@ -59,7 +59,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
               <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
                 {rep.name}
               </h2>
-              <span className="text-[10px] bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md border border-amber-500/30">
+              <span className="text-[10px] bg-amber-500/15 text-amber-800 font-bold px-2 py-0.5 rounded-md border border-amber-500/30">
                 مندوب {rep.governorate}
               </span>
             </div>
@@ -77,9 +77,9 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             onClick={() => onNavigateToProfile?.('finance')}
             className={`group flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border transition-all cursor-pointer shadow-xs active:scale-95 ${
               settlement.isDebtToPlatform
-                ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/35 hover:border-amber-500/60 text-amber-900 dark:text-amber-200'
+                ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/35 hover:border-amber-500/60 text-amber-900'
                 : settlement.withdrawableBalance > 0
-                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/35 hover:border-emerald-500/60 text-emerald-900 dark:text-emerald-200'
+                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/35 hover:border-emerald-500/60 text-emerald-900'
                 : 'bg-[var(--input-bg)] hover:bg-[var(--border-color)]/30 border-[var(--border-color)] hover:border-amber-500/40 text-[var(--text-primary)]'
             }`}
             title="اضغط للانتقال المباشر إلى كشف الحساب والعمولات في صفحة ملفي"
@@ -87,10 +87,10 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             <div
               className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                 settlement.isDebtToPlatform
-                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                  ? 'bg-amber-500/20 text-amber-600'
                   : settlement.withdrawableBalance > 0
-                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-slate-500/15 text-slate-600 dark:text-slate-400'
+                  ? 'bg-emerald-500/20 text-emerald-600'
+                  : 'bg-slate-500/15 text-slate-600'
               }`}
             >
               {settlement.isDebtToPlatform ? '⚠️' : '💳'}
@@ -101,9 +101,9 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                 <span
                   className={`text-[9px] font-black px-1.5 py-0.2 rounded ${
                     settlement.isDebtToPlatform
-                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                      ? 'bg-amber-500/20 text-amber-700'
                       : settlement.withdrawableBalance > 0
-                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                      ? 'bg-emerald-500/20 text-emerald-700'
                       : 'bg-slate-500/10 text-[var(--text-muted)]'
                   }`}
                 >
@@ -118,9 +118,9 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                 <span
                   className={
                     settlement.isDebtToPlatform
-                      ? 'text-amber-600 dark:text-amber-400'
+                      ? 'text-amber-600'
                       : settlement.withdrawableBalance > 0
-                      ? 'text-emerald-600 dark:text-emerald-400'
+                      ? 'text-emerald-600'
                       : 'text-[var(--text-primary)]'
                   }
                 >
@@ -142,7 +142,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             onClick={() => onNavigateToProfile?.('referral')}
             className={`group flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border transition-all cursor-pointer shadow-xs active:scale-95 ${
               referralSummary.isUnlocked
-                ? 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/35 hover:border-purple-500/60 text-purple-900 dark:text-purple-200'
+                ? 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/35 hover:border-purple-500/60 text-purple-900'
                 : 'bg-[var(--input-bg)] hover:bg-[var(--border-color)]/30 border-[var(--border-color)] hover:border-amber-500/40 text-[var(--text-primary)]'
             }`}
             title="اضغط للانتقال المباشر إلى نافذة وبرنامج الإحالة في صفحة ملفي"
@@ -150,7 +150,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
             <div
               className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                 referralSummary.isUnlocked
-                  ? 'bg-purple-500/20 text-purple-600 dark:text-purple-300'
+                  ? 'bg-purple-500/20 text-purple-600'
                   : 'bg-slate-500/15 text-slate-500'
               }`}
             >
@@ -162,8 +162,8 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
                 <span
                   className={`text-[9px] font-black px-1.5 py-0.2 rounded ${
                     referralSummary.isUnlocked
-                      ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300'
-                      : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                      ? 'bg-purple-500/20 text-purple-700'
+                      : 'bg-amber-500/15 text-amber-700'
                   }`}
                 >
                   {referralSummary.isUnlocked ? 'مفعل' : `${myBusinesses.length}/25 نشاط`}
@@ -189,7 +189,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
         <div className="bg-gradient-to-br from-amber-500/15 via-[var(--bg-card)] to-yellow-500/10 border-2 border-amber-500/40 rounded-3xl p-5 sm:p-6 space-y-4 shadow-lg text-right animate-fade-in">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-500/20 pb-3.5">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xl shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center font-black text-xl shrink-0">
                 🚀
               </div>
               <div>
@@ -246,7 +246,7 @@ export const RepDashboard: React.FC<RepDashboardProps> = ({
           </div>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[11px] text-amber-800 dark:text-amber-300 font-bold">
+            <p className="text-[11px] text-amber-800 font-bold">
               💡 نصيحة للبداية: الأنشطة الرائجة والمحلات الحيوية تضمن لك سرعة الإنجاز وتحقيق أول عمولة اليوم.
             </p>
             <button

@@ -181,7 +181,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
   const progressPct = target > 0 ? Math.min(100, (bizCount / target) * 100) : 0;
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <form
         onSubmit={handleSave}
         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 max-h-[95vh] overflow-y-auto"
@@ -219,7 +219,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
               <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 p-3 rounded-2xl">
                 <div className="text-center bg-[var(--bg-card)]/80 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--border-color)]">
                   <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-0.5">الأنشطة المسجلة</span>
-                  <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                  <span className="text-sm sm:text-base font-black text-emerald-600 font-mono">
                     {bizCount} نشاط
                   </span>
                 </div>
@@ -231,7 +231,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                 </div>
                 <div className="text-center bg-[var(--bg-card)]/80 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--border-color)]">
                   <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-0.5">نسبة الإنجاز</span>
-                  <span className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 font-mono">
+                  <span className="text-sm sm:text-base font-black text-amber-600 font-mono">
                     {progressPct.toFixed(1)}%
                   </span>
                 </div>
@@ -246,7 +246,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                       مراجعة وثائق الهوية والتحقق الرسمية (KYC)
                     </span>
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/30">
                     مطلوب للاعتماد
                   </span>
                 </div>
@@ -262,8 +262,8 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
                           editingRep.activationFacePhoto || editingRep.avatar
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                            ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
+                            : 'bg-rose-500/15 text-rose-600 border border-rose-500/30'
                         }`}
                       >
                         {editingRep.activationFacePhoto || editingRep.avatar ? 'مرفقة ✓' : 'غير مرفقة ✕'}
@@ -333,8 +333,8 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
                           editingRep.nationalIdCardPhoto
-                            ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
-                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                            ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30'
+                            : 'bg-rose-500/15 text-rose-600 border border-rose-500/30'
                         }`}
                       >
                         {editingRep.nationalIdCardPhoto ? 'أمامي ✓' : 'غير مرفق ✕'}
@@ -401,8 +401,8 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
                           editingRep.nationalIdCardBackPhoto
-                            ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
-                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                            ? 'bg-purple-500/15 text-purple-600 border border-purple-500/30'
+                            : 'bg-rose-500/15 text-rose-600 border border-rose-500/30'
                         }`}
                       >
                         {editingRep.nationalIdCardBackPhoto ? 'خلفي ✓' : 'غير مرفق ✕'}
@@ -502,7 +502,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                               onUpdateRepresentative({ ...editingRep, status: 'suspended', avatarStatus: 'rejected' });
                             }
                           }}
-                          className="bg-rose-500/20 hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-black text-xs py-2 px-3 rounded-xl border border-rose-500/40 cursor-pointer transition-colors"
+                          className="bg-rose-500/20 hover:bg-rose-500 text-rose-700 hover:text-white font-black text-xs py-2 px-3 rounded-xl border border-rose-500/40 cursor-pointer transition-colors"
                         >
                           <span>رفض الحساب 🔴</span>
                         </button>
@@ -516,7 +516,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                             onUpdateRepresentative({ ...editingRep, status: 'suspended' });
                           }
                         }}
-                        className="bg-amber-500/20 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black text-xs py-2 px-3.5 rounded-xl border border-amber-500/40 cursor-pointer transition-colors"
+                        className="bg-amber-500/20 hover:bg-amber-500 text-amber-900 hover:text-slate-950 font-black text-xs py-2 px-3.5 rounded-xl border border-amber-500/40 cursor-pointer transition-colors"
                       >
                         <span>تعليق الحساب مؤقتاً ⏳</span>
                       </button>
@@ -638,7 +638,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                   placeholder="010xxxxxxx"
                   value={modalPhone}
                   onChange={(e) => setModalPhone(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 dark:text-amber-300 font-mono font-black text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-xs"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-800 font-mono font-black text-xs sm:text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500 dir-ltr text-right shadow-xs"
                 />
               </div>
 
@@ -726,7 +726,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
           {/* Referral Settings Section */}
           <div className="bg-[var(--bg-surface)] p-3.5 sm:p-4 rounded-3xl border border-[var(--border-color)] space-y-2.5 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="font-extrabold text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+              <span className="font-extrabold text-xs text-amber-700 flex items-center gap-1.5">
                 <Users className="w-4 h-4" />
                 <span>إعدادات نظام الإحالة والدعوة الميدانية</span>
               </span>
@@ -737,7 +737,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                   onChange={(e) => setModalAdminBypassReferral(e.target.checked)}
                   className="w-4 h-4 text-amber-500 rounded border-gray-300 focus:ring-amber-400"
                 />
-                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">تجاوز المهام وفتح كود الدعوة فوراً</span>
+                <span className="text-xs font-black text-emerald-600">تجاوز المهام وفتح كود الدعوة فوراً</span>
               </label>
             </div>
 
@@ -748,7 +748,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                   type="text"
                   value={modalReferralCode}
                   onChange={(e) => setModalReferralCode(e.target.value.toUpperCase())}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-mono font-bold rounded-xl p-2 focus:outline-none focus:border-amber-500 uppercase"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 font-mono font-bold rounded-xl p-2 focus:outline-none focus:border-amber-500 uppercase"
                 />
               </div>
 
@@ -759,7 +759,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
                   placeholder="مثال: DALIL-7711"
                   value={modalReferredByCode}
                   onChange={(e) => setModalReferredByCode(e.target.value.toUpperCase())}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 dark:text-amber-300 font-mono font-bold rounded-xl p-2 focus:outline-none focus:border-amber-500 uppercase"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-amber-700 font-mono font-bold rounded-xl p-2 focus:outline-none focus:border-amber-500 uppercase"
                 />
               </div>
             </div>

@@ -23,7 +23,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     <div
       className={`p-4 rounded-3xl border transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
         isGold
-          ? 'bg-amber-500/10 border-amber-500/30 dark:bg-amber-500/10 dark:border-amber-500/30'
+          ? 'bg-amber-500/10 border-amber-500/30'
           : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-amber-500/30'
       } ${className}`}
     >

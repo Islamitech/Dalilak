@@ -412,10 +412,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
     <div className="space-y-6 font-['Cairo',sans-serif] text-[var(--text-primary)] max-w-6xl mx-auto py-2">
       {/* 1. Ultra-Clean Minimal Title (Zero Clutter, No Helper Wizard) */}
       <div className="text-center space-y-1">
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
           باقات وحلول منصة دليلك
         </h2>
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
+        <p className="text-xs sm:text-sm text-slate-600 font-medium">
           اختر المسار المناسب لاحتياج منشأتكم بأسعار معتمدة وتنفيذ فوري
         </p>
       </div>
@@ -433,7 +433,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 className={`px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
                   isActive
                     ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {t.label}
@@ -461,7 +461,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 {/* Header: Badge & Title */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-[var(--input-bg)] text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-[var(--input-bg)] text-amber-600 border border-amber-500/20">
                       {pkg.badge}
                     </span>
                     {isPro && (
@@ -471,10 +471,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                       </span>
                     )}
                   </div>
-                  <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug">
+                  <h3 className="font-black text-base sm:text-lg text-slate-900 leading-snug">
                     {pkg.name}
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
                     {pkg.shortDesc}
                   </p>
                 </div>
@@ -482,11 +482,11 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 {/* Price & Cadence */}
                 <div className="pt-2 pb-1 border-t border-[var(--border-color)]">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white">
+                    <span className="text-2xl sm:text-3xl font-black font-mono text-slate-900">
                       {pkg.priceText}
                     </span>
                   </div>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mt-0.5">
+                  <span className="text-[11px] font-bold text-slate-500 block mt-0.5">
                     {pkg.billingCadence}
                   </span>
                 </div>
@@ -537,10 +537,10 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 </div>
 
                 {/* Deliverables Checklist (Concise points like Google) */}
-                <div className="space-y-2 pt-2 border-t border-[var(--border-color)] text-xs text-slate-700 dark:text-slate-200 font-medium">
+                <div className="space-y-2 pt-2 border-t border-[var(--border-color)] text-xs text-slate-700 font-medium">
                   {pkg.deliverables.map((item, idx) => (
                     <div key={idx} className="flex items-start gap-2 leading-relaxed">
-                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 stroke-[2.5]" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -552,24 +552,24 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                   <div className="pt-3.5 mt-2 border-t border-[var(--border-color)] space-y-3 animate-fade-in text-xs">
                     {/* Target Persona */}
                     <div className="p-3 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)]">
-                      <span className="font-black text-amber-700 dark:text-amber-400 block mb-1 text-[11px]">
+                      <span className="font-black text-amber-700 block mb-1 text-[11px]">
                         الفئة المستهدفة:
                       </span>
-                      <p className="text-[11.5px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                      <p className="text-[11.5px] text-slate-700 font-medium leading-relaxed">
                         {pkg.forWhom}
                       </p>
                     </div>
 
                     {/* Detailed Features Breakdown */}
                     <div className="space-y-2">
-                      <span className="font-black text-slate-900 dark:text-white block text-[11.5px]">
+                      <span className="font-black text-slate-900 block text-[11.5px]">
                         تفاصيل الخدمات والمخرجات المشمولة:
                       </span>
                       <div className="space-y-1.5">
                         {pkg.fullFeatures.map((feat, idx) => (
                           <div key={idx} className="p-2.5 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] space-y-0.5">
-                            <span className="font-bold text-slate-900 dark:text-white block text-xs">✓ {feat.title}</span>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{feat.desc}</p>
+                            <span className="font-bold text-slate-900 block text-xs">✓ {feat.title}</span>
+                            <p className="text-[11px] text-slate-600 leading-relaxed">{feat.desc}</p>
                           </div>
                         ))}
                       </div>
@@ -577,14 +577,14 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
 
                     {/* Delivery Time */}
                     <div className="flex items-center justify-between p-2.5 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)] text-[11px]">
-                      <span className="font-bold text-slate-500 dark:text-slate-400">مدة التنفيذ والتسليم:</span>
-                      <span className="font-black text-amber-600 dark:text-amber-400">{pkg.deliveryTime}</span>
+                      <span className="font-bold text-slate-500">مدة التنفيذ والتسليم:</span>
+                      <span className="font-black text-amber-600">{pkg.deliveryTime}</span>
                     </div>
 
                     {mode === 'admin' && (
                       <div className="p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/30 space-y-1 text-[11px]">
-                        <span className="font-black text-amber-700 dark:text-amber-300 block">دليل مندوب المبيعات:</span>
-                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{pkg.pitchGuide.hook}</p>
+                        <span className="font-black text-amber-700 block">دليل مندوب المبيعات:</span>
+                        <p className="text-slate-700 leading-relaxed">{pkg.pitchGuide.hook}</p>
                       </div>
                     )}
                   </div>
@@ -595,7 +595,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 <button
                   type="button"
                   onClick={() => toggleExpand(pkg.id)}
-                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 cursor-pointer inline-flex items-center gap-1.5 transition-all active:scale-95"
+                  className="text-xs font-bold text-amber-600 hover:text-amber-500 cursor-pointer inline-flex items-center gap-1.5 transition-all active:scale-95"
                 >
                   <span>{expandedPkgIds[pkg.id] ? 'عرض تفاصيل أقل' : 'عرض التفاصيل الكاملة والمخرجات'}</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedPkgIds[pkg.id] ? 'rotate-180 text-amber-500' : ''}`} />
@@ -611,13 +611,13 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 sm:p-5 flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-center sm:text-right space-y-1">
-              <span className="text-[10.5px] font-black text-amber-600 dark:text-amber-400 uppercase">
+              <span className="text-[10.5px] font-black text-amber-600 uppercase">
                 حلول الشركات والمشاريع الكبرى
               </span>
-              <h4 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
+              <h4 className="font-black text-sm sm:text-base text-slate-900">
                 الهوية المؤسسية الكاملة وتأسيس سلاسل الفروع
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+              <p className="text-xs text-slate-600 font-medium">
                 دراسة مخصصة للشركات والمجمعات والمصانع وسلاسل الفروع تحت الإنشاء والتوسع.
               </p>
             </div>
@@ -626,7 +626,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
               <button
                 type="button"
                 onClick={() => setIsCorporateExpanded(!isCorporateExpanded)}
-                className="px-3.5 py-2 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-slate-700 dark:text-slate-300 font-bold text-xs border border-[var(--border-color)] cursor-pointer inline-flex items-center gap-1 transition-all"
+                className="px-3.5 py-2 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border-color)] text-slate-700 font-bold text-xs border border-[var(--border-color)] cursor-pointer inline-flex items-center gap-1 transition-all"
               >
                 <span>{isCorporateExpanded ? 'عرض أقل' : 'المخرجات والتفاصيل'}</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCorporateExpanded ? 'rotate-180 text-amber-500' : ''}`} />
@@ -658,7 +658,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
             <div className="pt-4 border-t border-[var(--border-color)] space-y-3 animate-fade-in text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {CORPORATE_PACKAGE.deliverables.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-slate-700 dark:text-slate-200 font-medium">
+                  <div key={idx} className="flex items-start gap-2 text-slate-700 font-medium">
                     <Check className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 stroke-[2.5]" />
                     <span>{item}</span>
                   </div>
@@ -671,19 +671,19 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
 
       {/* 5. Package Detail Modal (Clean & Focused on Click) */}
       {detailModalPkg && (
-        <div className="fixed inset-0 z-[10001] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+        <div className="fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-fade-in">
           <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[88vh] flex flex-col text-[var(--text-primary)] relative">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
               <div>
-                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-[var(--input-bg)] px-2 py-0.5 rounded border border-amber-500/20">
+                <span className="text-[10px] font-black text-amber-600 bg-[var(--input-bg)] px-2 py-0.5 rounded border border-amber-500/20">
                   {detailModalPkg.badge || 'تفاصيل الباقة'}
                 </span>
-                <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white mt-1">
+                <h3 className="font-black text-base sm:text-lg text-slate-900 mt-1">
                   {detailModalPkg.name}
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-bold">
-                  التكلفة: <span className="text-amber-600 dark:text-amber-400">{detailModalPkg.priceText}</span> ({detailModalPkg.billingCadence}) | مدة التنفيذ: {detailModalPkg.deliveryTime}
+                <p className="text-xs text-slate-600 font-bold">
+                  التكلفة: <span className="text-amber-600">{detailModalPkg.priceText}</span> ({detailModalPkg.billingCadence}) | مدة التنفيذ: {detailModalPkg.deliveryTime}
                 </p>
               </div>
               <button
@@ -698,24 +698,24 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
             <div className="overflow-y-auto flex-1 space-y-4 pr-1 custom-scrollbar text-xs">
               {/* Target Persona */}
               <div className="p-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)]">
-                <span className="font-black text-amber-700 dark:text-amber-400 block mb-0.5">
+                <span className="font-black text-amber-700 block mb-0.5">
                   الفئة المستهدفة:
                 </span>
-                <p className="text-[11.5px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                <p className="text-[11.5px] text-slate-700 font-medium leading-relaxed">
                   {detailModalPkg.forWhom}
                 </p>
               </div>
 
               {/* Detailed Breakdown */}
               <div className="space-y-2">
-                <span className="font-black text-slate-900 dark:text-white block text-xs">
+                <span className="font-black text-slate-900 block text-xs">
                   الخدمات والمخرجات التنفيذية المشمولة:
                 </span>
                 <div className="space-y-2">
                   {detailModalPkg.fullFeatures.map((feat, idx) => (
                     <div key={idx} className="p-2.5 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)] space-y-0.5">
-                      <span className="font-black text-slate-900 dark:text-white block">✓ {feat.title}</span>
-                      <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed">{feat.desc}</p>
+                      <span className="font-black text-slate-900 block">✓ {feat.title}</span>
+                      <p className="text-[11px] text-slate-700 font-medium leading-relaxed">{feat.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -724,7 +724,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
               {/* Admin Guide (Only in Admin Mode) */}
               {mode === 'admin' && (
                 <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/30 space-y-2">
-                  <span className="font-black text-amber-700 dark:text-amber-300 block text-[11px]">
+                  <span className="font-black text-amber-700 block text-[11px]">
                     دليل توجيه العميل والرد على الاعتراضات:
                   </span>
                   <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed">
@@ -777,7 +777,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
 
       {/* 6. Admin Business Selector Modal */}
       {mode === 'admin' && showBizPicker && selectedBizPkg && (
-        <div className="fixed inset-0 z-[10002] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[10002] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
           <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col text-[var(--text-primary)]">
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
               <div>
@@ -831,7 +831,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                         </h4>
                         <div className="text-[10.5px] text-[var(--text-muted)] font-bold flex items-center gap-2">
                           {biz.ownerName && <span>المالك: {biz.ownerName}</span>}
-                          {phone && <span className="font-mono text-emerald-600 dark:text-emerald-400">{phone}</span>}
+                          {phone && <span className="font-mono text-emerald-600">{phone}</span>}
                         </div>
                       </div>
 

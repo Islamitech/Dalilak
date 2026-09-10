@@ -51,7 +51,7 @@ export function getBusinessOpenStatus(workingHours?: string): OpenStatusResult {
       isOpen: true,
       badgeText: 'مفتوح للخدمة',
       is24Hours: false,
-      statusClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+      statusClass: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
       dotColor: 'bg-emerald-500',
     };
   }
@@ -69,7 +69,7 @@ export function getBusinessOpenStatus(workingHours?: string): OpenStatusResult {
       isOpen: true,
       badgeText: 'مفتوح 24 ساعة',
       is24Hours: true,
-      statusClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+      statusClass: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
       dotColor: 'bg-emerald-500',
     };
   }
@@ -80,7 +80,7 @@ export function getBusinessOpenStatus(workingHours?: string): OpenStatusResult {
       isOpen: false,
       badgeText: 'مغلق مؤقتاً',
       is24Hours: false,
-      statusClass: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
+      statusClass: 'bg-rose-500/15 text-rose-600 border-rose-500/30',
       dotColor: 'bg-rose-500',
     };
   }
@@ -137,7 +137,7 @@ export function getBusinessOpenStatus(workingHours?: string): OpenStatusResult {
           isOpen: true,
           badgeText: 'مفتوح الآن',
           is24Hours: false,
-          statusClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+          statusClass: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
           dotColor: 'bg-emerald-500',
         };
       } else {
@@ -145,7 +145,7 @@ export function getBusinessOpenStatus(workingHours?: string): OpenStatusResult {
           isOpen: false,
           badgeText: 'مغلق حالياً',
           is24Hours: false,
-          statusClass: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
+          statusClass: 'bg-rose-500/15 text-rose-600 border-rose-500/30',
           dotColor: 'bg-rose-500',
         };
       }
@@ -157,7 +157,7 @@ export function getBusinessOpenStatus(workingHours?: string): OpenStatusResult {
     isOpen: true,
     badgeText: 'متاح للزيارة',
     is24Hours: false,
-    statusClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+    statusClass: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
     dotColor: 'bg-emerald-500',
   };
 }

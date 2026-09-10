@@ -177,7 +177,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10030] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
+    <div className="fixed inset-0 z-[10030] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
       <div 
         className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300 overflow-y-auto max-h-[94vh]"
       >
@@ -254,7 +254,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAddInvoiceModal(true)}
-                className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border border-amber-500/30 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
                 title="إصدار فاتورة خدمة إضافية جديدة"
               >
                 <FilePlus className="w-3.5 h-3.5" />
@@ -476,7 +476,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </>
           ) : (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-center text-xs space-y-1.5 animate-fade-in">
-              <div className="font-black text-amber-800 dark:text-amber-300 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+              <div className="font-black text-amber-800 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
                 <span>📷 يرجى الطلب من المسؤول تصوير شاشة الفاتورة بهاتفه</span>
               </div>
               <p className="text-[11px] text-[var(--text-muted)] font-bold leading-relaxed">
@@ -511,7 +511,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         {isPrivilegedUser && (
           <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 p-3 rounded-2xl border border-amber-500/30 no-print space-y-1.5 text-right">
             <div className="flex items-center justify-between">
-              <span className="font-black text-xs text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+              <span className="font-black text-xs text-amber-800 flex items-center gap-1.5">
                 <Gift className="w-3.5 h-3.5 text-amber-500" />
                 <span>عروض الترقية والتطوير (فرص مبيعات إضافية)</span>
               </span>

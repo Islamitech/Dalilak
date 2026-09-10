@@ -17,7 +17,7 @@ export const PermissionsModal: React.FC<PermissionsModalProps> = ({ onClose }) =
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay animate-fade-in">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay animate-fade-in">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto max-h-[90vh] flex flex-col">
         {/* Close Button */}
         <button
@@ -58,7 +58,7 @@ export const PermissionsModal: React.FC<PermissionsModalProps> = ({ onClose }) =
           <button
             type="button"
             onClick={onClose}
-            className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-primary)] font-bold text-xs px-5 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer transition-colors"
+            className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-primary)] font-bold text-xs px-5 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer transition-colors"
           >
             إغلاق الدليل
           </button>

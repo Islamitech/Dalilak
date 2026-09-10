@@ -26,7 +26,7 @@ export const PackageSelectionSection: React.FC<PackageSelectionSectionProps> = (
     <>
       {/* Notice for Representatives */}
       {!isAdminOrFinancial && (
-        <div className="bg-sky-500/10 border border-sky-500/30 text-sky-800 dark:text-sky-300 p-3.5 rounded-2xl text-xs font-bold leading-relaxed flex items-center gap-2.5 shadow-2xs">
+        <div className="bg-sky-500/10 border border-sky-500/30 text-sky-800 p-3.5 rounded-2xl text-xs font-bold leading-relaxed flex items-center gap-2.5 shadow-2xs">
           <ShieldCheck className="w-5 h-5 text-sky-500 shrink-0" />
           <span>
             تنبيه: الفاتورة مؤجلة السداد لحين اكتمال التوثيق. التحصيل والسداد المالي يتم إلكترونياً
@@ -60,7 +60,7 @@ export const PackageSelectionSection: React.FC<PackageSelectionSectionProps> = (
                   <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
                     إعفاء النشاط من الرسوم والتحصيل (نشاط رائج ومعلم بالمنطقة)
                   </h4>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-black">
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-700 px-2 py-0.5 rounded-full font-black">
                     صلاحيات الإدارة
                   </span>
                 </div>
@@ -96,7 +96,7 @@ export const PackageSelectionSection: React.FC<PackageSelectionSectionProps> = (
               <span
                 className={`text-xs font-black px-3 py-1.5 rounded-xl border ${
                   formData.isFeeExempt
-                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
+                    ? 'bg-emerald-500/20 text-emerald-600 border-emerald-500/40'
                     : 'bg-slate-700/40 text-slate-400 border-slate-600'
                 }`}
               >
@@ -215,7 +215,7 @@ export const PackageSelectionSection: React.FC<PackageSelectionSectionProps> = (
               className="w-full bg-[var(--bg-card)] border-2 border-emerald-500 text-emerald-600 font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1"
             />
           ) : (
-            <div className="font-black text-base text-emerald-600 dark:text-emerald-400 pt-0.5">
+            <div className="font-black text-base text-emerald-600 pt-0.5">
               {formData.isFeeExempt ? '0 ج.م (معفى)' : `${formData.amountPaid || 0} ج.م`}
             </div>
           )}
@@ -229,7 +229,7 @@ export const PackageSelectionSection: React.FC<PackageSelectionSectionProps> = (
           </span>
           <div
             className={`font-black text-base pt-0.5 ${
-              remainingDebt > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'
+              remainingDebt > 0 ? 'text-amber-600' : 'text-emerald-600'
             }`}
           >
             {formData.isFeeExempt ? '0 ج.م (لا يوجد دين)' : `${remainingDebt} ج.م`}
@@ -265,7 +265,7 @@ export const PackageSelectionSection: React.FC<PackageSelectionSectionProps> = (
               <option value="bank_transfer">تحويل بنكي رسمي</option>
             </select>
           ) : (
-            <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-500/30">
+            <span className="text-xs font-black text-amber-700 bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-500/30">
               {formData.paymentMethod === 'cash_by_rep'
                 ? '💵 كاش محصل بيد المندوب'
                 : formData.paymentMethod === 'bank_transfer'

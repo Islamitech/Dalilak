@@ -240,11 +240,11 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
         {!formData.isAlreadyOnGoogle && formData.packageId !== 'pkg_already_on_google' && (
           <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-3.5 space-y-2 sm:col-span-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span className="text-[11px] font-black text-amber-600 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-amber-500" />
                 <span>1. الموقع الميداني المسجل (من المندوب - غير موثق)</span>
               </span>
-              <span className="text-[9.5px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
+              <span className="text-[9.5px] bg-amber-500/20 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
                 {isEditMode ? 'قابل للتعديل للمندوب' : 'للمراجعة الإدارية فقط'}
               </span>
             </div>
@@ -335,11 +335,11 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
         {/* 2. رابط خرائط Google المعتمد والموثق */}
         <div className="bg-emerald-500/5 border border-emerald-500/30 rounded-2xl p-3.5 space-y-2 sm:col-span-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <span className="text-[11px] font-black text-emerald-600 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               <span>2. رابط خرائط Google الرسمي الموثق (تضيفه الإدارة بعد التوثيق والظهور)</span>
             </span>
-            <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${formData.googleMapsUrl ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40' : 'bg-slate-500/15 text-slate-400 border-slate-500/30'}`}>
+            <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${formData.googleMapsUrl ? 'bg-emerald-500/20 text-emerald-700 border-emerald-500/40' : 'bg-slate-500/15 text-slate-400 border-slate-500/30'}`}>
               {formData.googleMapsUrl ? 'مفعل على الدليل ✅' : 'معطل بانتظار التوثيق ⏳'}
             </span>
           </div>
@@ -376,7 +376,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                   </button>
                 </div>
                 {syncNotice && (
-                  <div className="text-[11px] font-bold p-2 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 flex items-center gap-2 animate-fade-in">
+                  <div className="text-[11px] font-bold p-2 rounded-xl bg-blue-500/15 text-blue-900 border border-blue-500/30 flex items-center gap-2 animate-fade-in">
                     {isSyncingFromGoogle && <Loader2 className="w-3 h-3 animate-spin text-blue-500 shrink-0" />}
                     <span>{syncNotice}</span>
                   </div>
@@ -391,7 +391,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
               <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-xs text-[var(--text-muted)] space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-bold text-[var(--text-primary)]">رابط خرائط Google المعتمد:</span>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 font-black">
+                  <span className="text-[10px] text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 font-black">
                     🔒 تعديل الرابط مقتصر على الإدارة فقط
                   </span>
                 </div>
@@ -413,13 +413,13 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>فتح المكان المعتمد على خرائط Google 🗺️</span>
                   </a>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                  <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
                     متاح للجمهور والزوار على الدليل
                   </span>
                 </div>
               ) : (
                 <div className="p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-xs text-[var(--text-muted)] space-y-1">
-                  <span className="font-bold text-amber-600 dark:text-amber-400 block">
+                  <span className="font-bold text-amber-600 block">
                     ⏳ لم يتم إدخال رابط خرائط Google الموثق بعد.
                   </span>
                   <span className="text-[10.5px] block leading-relaxed">
@@ -466,7 +466,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             <span
               className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
                 formData.googleRatingEnabled
-                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30'
                   : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
               }`}
             >
@@ -556,7 +556,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                                   ? 'text-amber-400 fill-amber-400'
                                   : s === Math.ceil(rating) && rating % 1 >= 0.3
                                   ? 'text-amber-400 fill-amber-400/60'
-                                  : 'text-slate-300 dark:text-slate-700'
+                                  : 'text-slate-300'
                               }`}
                             />
                           ))}
@@ -571,7 +571,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                       {breakdown.map((item) => (
                         <div key={item.stars} className="flex items-center gap-1.5 text-[9px] font-bold">
                           <span className="w-2 text-slate-400 text-center">{item.stars}</span>
-                          <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-amber-400 rounded-full"
                               style={{ width: `${item.pct}%` }}
@@ -619,7 +619,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                   <KeyRound className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                   <span>1. استئذان وتنسيق مسبق لكود Google (طلب متاح 🤝)</span>
                 </div>
-                <span className="text-[9.5px] bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">
+                <span className="text-[9.5px] bg-blue-500/20 text-blue-700 font-bold px-2 py-0.5 rounded-md">
                   قبل طلب الكود
                 </span>
               </div>
@@ -669,7 +669,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                   <KeyRound className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span>2. إشعار فوري لحظة طلب الكود (الكود وصل 📲)</span>
                 </div>
-                <span className="text-[9.5px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">
+                <span className="text-[9.5px] bg-amber-500/20 text-amber-700 font-bold px-2 py-0.5 rounded-md">
                   بمجرد إرسال SMS
                 </span>
               </div>
@@ -725,8 +725,8 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                 </div>
                 <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md ${
                   formData.googleMapsUrl
-                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-slate-500/20 text-slate-500 dark:text-slate-400'
+                    ? 'bg-emerald-500/20 text-emerald-700'
+                    : 'bg-slate-500/20 text-slate-500'
                 }`}>
                   {formData.googleMapsUrl ? 'جاهز للإرسال ✓' : 'بانتظار الرابط ⏳'}
                 </span>

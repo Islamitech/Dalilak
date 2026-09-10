@@ -60,7 +60,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative text-[var(--text-primary)] transition-colors duration-300">
         {/* Close Button */}
         <button
@@ -244,7 +244,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docType, rep, on
                     </div>
                   </div>
 
-                  <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-2">
+                  <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-2">
                     <div className="text-[10px] text-slate-300 space-y-0.5">
                       <p><span className="text-slate-400">الرقم القومي:</span> <span className="font-mono font-bold text-white">{nationalId}</span></p>
                       <p><span className="text-slate-400">الهاتف:</span> <span className="font-mono font-bold text-white">{rep.phone}</span></p>

@@ -136,7 +136,7 @@ export const EditGeneralInfoTab: React.FC<EditGeneralInfoTabProps> = ({
                     <select
                       value={formData.category || ''}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full bg-[var(--bg-card)] border-2 border-amber-500 text-amber-700 dark:text-amber-300 font-black rounded-xl p-2 text-xs focus:outline-none cursor-pointer"
+                      className="w-full bg-[var(--bg-card)] border-2 border-amber-500 text-amber-700 font-black rounded-xl p-2 text-xs focus:outline-none cursor-pointer"
                     >
                       {!isKnownCategory && formData.category && (
                         <option value={formData.category} disabled className="text-rose-500 font-bold">
@@ -156,12 +156,12 @@ export const EditGeneralInfoTab: React.FC<EditGeneralInfoTabProps> = ({
           ) : (
             <div className="flex items-center gap-2 pt-0.5 flex-wrap">
               {!getGroupFromCategory(formData.category) ? (
-                <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-xs font-black px-3 py-1 rounded-xl border border-rose-500/30 flex items-center gap-1.5">
+                <span className="bg-rose-500/15 text-rose-700 text-xs font-black px-3 py-1 rounded-xl border border-rose-500/30 flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
                   <span>{formData.category || 'غير مصنف'} (يرجى تعديل التصنيف)</span>
                 </span>
               ) : (
-                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-black px-3 py-1 rounded-xl border border-amber-500/30">
+                <span className="bg-amber-500/15 text-amber-700 text-xs font-black px-3 py-1 rounded-xl border border-amber-500/30">
                   🏷️ {formData.category}
                 </span>
               )}
@@ -214,7 +214,7 @@ export const EditGeneralInfoTab: React.FC<EditGeneralInfoTabProps> = ({
         {/* ── فاصل وقسم بيانات المالك والتواصل ── */}
         <div className="sm:col-span-2 pt-2 border-t border-[var(--border-color)]">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xs">
+            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center font-black text-xs">
               <User className="w-3.5 h-3.5" />
             </div>
             <h5 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">بيانات المالك والتواصل</h5>

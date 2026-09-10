@@ -1,17 +1,15 @@
 import React from 'react';
 import { Logo } from '../Logo';
-import { Sun, Moon, Compass, Store, Map as MapIcon, Layers } from 'lucide-react';
+import { Compass, Store, Map as MapIcon, Layers } from 'lucide-react';
 
 export interface ShowcaseNavbarProps {
-  theme: string;
-  toggleTheme: () => void;
+  theme?: string;
+  toggleTheme?: () => void;
   onOpenPackagesModal: (pkgId?: string) => void;
   onReopenOnboarding?: () => void;
 }
 
 export const ShowcaseNavbar: React.FC<ShowcaseNavbarProps> = ({
-  theme,
-  toggleTheme,
   onOpenPackagesModal,
   onReopenOnboarding,
 }) => {
@@ -54,21 +52,8 @@ export const ShowcaseNavbar: React.FC<ShowcaseNavbarProps> = ({
           )}
         </nav>
 
-        {/* Left: Actions (Theme Toggle & Business Owner CTA) */}
+        {/* Left: Actions (Business Owner CTA) */}
         <div className="flex items-center gap-2.5">
-          {/* Theme Switcher */}
-          <button
-            onClick={toggleTheme}
-            aria-label="Toggle Theme"
-            className="w-10 h-10 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] hover:text-amber-500 transition-all cursor-pointer shadow-xs"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-slate-700" />
-            )}
-          </button>
-
           {/* Distinct Business Owner CTA: Clearly separate from seeker search */}
           <button
             type="button"

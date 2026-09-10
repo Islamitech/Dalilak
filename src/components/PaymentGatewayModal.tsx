@@ -100,7 +100,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 modal-overlay">
+    <div className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 modal-overlay">
       <div 
         className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl text-[var(--text-primary)] relative modal-content flex flex-col overflow-hidden max-h-[95vh] sm:max-h-[92vh] animate-fade-in"
       >
@@ -146,13 +146,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           </div>
 
           {/* Notice: Active Wallets & InstaPay */}
-          <div className="bg-emerald-500/10 border border-emerald-500/25 p-2.5 rounded-xl flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+          <div className="bg-emerald-500/10 border border-emerald-500/25 p-2.5 rounded-xl flex items-center gap-2 text-emerald-700 text-xs font-bold">
             <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
             <span>طرق التحصيل الميداني المعتمدة حالياً: <strong>المحافظ الإلكترونية (فودافون كاش)</strong> وشبكة <strong>إنستاباي اللحظية ({activeInstaPayHandle})</strong>.</span>
           </div>
 
           {/* Admin Integration Note */}
-          <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+          <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-800 space-y-1">
             <p className="font-extrabold flex items-center gap-1.5">
               <span>ℹ️ توجيه لمسؤول المنظومة والمحاسب:</span>
             </p>
@@ -176,7 +176,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             <div className="flex items-center gap-1">
               <span>فودافون كاش</span>
               <span className={`text-[8px] px-1 py-0.2 rounded font-black ${
-                selectedMethod === 'vodafone' ? 'bg-slate-950 text-emerald-300' : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                selectedMethod === 'vodafone' ? 'bg-slate-950 text-emerald-300' : 'bg-emerald-500/20 text-emerald-600'
               }`}>مفعل</span>
             </div>
           </button>
@@ -194,7 +194,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             <div className="flex items-center gap-1">
               <span>إنستاباي</span>
               <span className={`text-[8px] px-1 py-0.2 rounded font-black ${
-                selectedMethod === 'instapay' ? 'bg-white/20 text-white' : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
+                selectedMethod === 'instapay' ? 'bg-white/20 text-white' : 'bg-purple-500/20 text-purple-600'
               }`}>مفعل</span>
             </div>
           </button>
@@ -205,13 +205,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             onClick={() => setSelectedMethod('fawry')}
             className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
               selectedMethod === 'fawry'
-                ? 'bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-300 font-black'
+                ? 'bg-amber-500/20 border border-amber-500/40 text-amber-600 font-black'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
             }`}
           >
             <div className="flex items-center gap-1">
               <span>فوري</span>
-              <span className="text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 py-0.2 rounded">تطوير</span>
+              <span className="text-[8px] bg-amber-500/20 text-amber-600 px-1 py-0.2 rounded">تطوير</span>
             </div>
           </button>
 
@@ -221,13 +221,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             onClick={() => setSelectedMethod('card')}
             className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
               selectedMethod === 'card'
-                ? 'bg-blue-500/20 border border-blue-500/40 text-blue-600 dark:text-blue-300 font-black'
+                ? 'bg-blue-500/20 border border-blue-500/40 text-blue-600 font-black'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
             }`}
           >
             <div className="flex items-center gap-1">
               <span>فيزا / كارت</span>
-              <span className="text-[8px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1 py-0.2 rounded">تطوير</span>
+              <span className="text-[8px] bg-blue-500/20 text-blue-600 px-1 py-0.2 rounded">تطوير</span>
             </div>
           </button>
 
@@ -237,13 +237,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             onClick={() => setSelectedMethod('aman')}
             className={`py-2 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-1 ${
               selectedMethod === 'aman'
-                ? 'bg-orange-500/20 border border-orange-500/40 text-orange-600 dark:text-orange-300 font-black'
+                ? 'bg-orange-500/20 border border-orange-500/40 text-orange-600 font-black'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-75'
             }`}
           >
             <div className="flex items-center gap-1">
               <span>أمان</span>
-              <span className="text-[8px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1 py-0.2 rounded">تطوير</span>
+              <span className="text-[8px] bg-orange-500/20 text-orange-600 px-1 py-0.2 rounded">تطوير</span>
             </div>
           </button>
         </div>
@@ -255,13 +255,13 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <p className="text-[var(--text-secondary)] font-bold">التحويل المباشر عبر المحافظ الإلكترونية المعتمدة:</p>
-                <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-md">
+                <span className="bg-emerald-500/20 text-emerald-600 text-[10px] font-black px-2 py-0.5 rounded-md">
                   مفعلة للاستلام
                 </span>
               </div>
 
               {/* Wallet 1 */}
-              <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 font-mono text-emerald-600 dark:text-emerald-400 shadow-sm">
+              <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 font-mono text-emerald-600 shadow-sm">
                 <div className="text-right">
                   <span className="text-[10px] text-[var(--text-muted)] block font-sans font-bold">رقم المحفظة الرئيسي (1):</span>
                   <span className="text-base font-black tracking-wider dir-ltr inline-block">{activeVodafoneNumber}</span>
@@ -286,7 +286,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               </div>
 
               {/* Wallet 2 */}
-              <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 font-mono text-emerald-600 dark:text-emerald-400 shadow-sm">
+              <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-emerald-500/30 font-mono text-emerald-600 shadow-sm">
                 <div className="text-right">
                   <span className="text-[10px] text-[var(--text-muted)] block font-sans font-bold">رقم المحفظة الإضافي (2):</span>
                   <span className="text-base font-black tracking-wider dir-ltr inline-block">{activeVodafoneNumber2}</span>
@@ -324,12 +324,12 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <p className="text-[var(--text-secondary)] font-bold">التحويل اللحظي عبر شبكة إنستاباي (InstaPay):</p>
-                <span className="bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-black px-2 py-0.5 rounded-md">
+                <span className="bg-purple-500/20 text-purple-600 text-[10px] font-black px-2 py-0.5 rounded-md">
                   مفعلة للاستلام
                 </span>
               </div>
 
-              <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-purple-500/30 font-mono text-purple-600 dark:text-purple-400 shadow-sm">
+              <div className="flex items-center justify-between bg-[var(--input-bg)] p-3 rounded-xl border border-purple-500/30 font-mono text-purple-600 shadow-sm">
                 <div className="text-right">
                   <span className="text-[10px] text-[var(--text-muted)] block font-sans font-bold">معرف إنستاباي المعتمد (IPA):</span>
                   <span className="text-base font-black tracking-wider dir-ltr inline-block">{activeInstaPayHandle}</span>
@@ -356,7 +356,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               <div className="bg-[var(--input-bg)] p-2.5 rounded-xl border border-[var(--border-color)] space-y-1 text-[11px] text-[var(--text-secondary)]">
                 <p className="font-bold text-[var(--text-primary)]">📌 خطوات التحويل عبر تطبيق إنستاباي:</p>
                 <p>1. افتح تطبيق <strong>InstaPay</strong> على هاتفك واختر <strong>"إرسال نقود"</strong>.</p>
-                <p>2. اختر التحويل عبر <strong>عنوان الدفع اللحظي (IPA)</strong> أو الحساب وأدخل المعرف: <strong className="text-purple-600 dark:text-purple-400 font-mono">{activeInstaPayHandle}</strong>.</p>
+                <p>2. اختر التحويل عبر <strong>عنوان الدفع اللحظي (IPA)</strong> أو الحساب وأدخل المعرف: <strong className="text-purple-600 font-mono">{activeInstaPayHandle}</strong>.</p>
                 <p>3. أدخل المبلغ المطلوب واضغط تأكيد، ثم أدخل المبلغ المحصل بالأسفل لتحديث الفاتورة فورياً.</p>
               </div>
             </div>
@@ -365,7 +365,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           {/* 3. FAWRY (UNDER DEVELOPMENT - NO FAKE DATA) */}
           {selectedMethod === 'fawry' && (
             <div className="space-y-2.5">
-              <div className="bg-amber-500/15 border border-amber-500/30 p-3.5 rounded-xl space-y-1.5 text-amber-900 dark:text-amber-300">
+              <div className="bg-amber-500/15 border border-amber-500/30 p-3.5 rounded-xl space-y-1.5 text-amber-900">
                 <div className="flex items-center gap-1.5 font-black text-xs">
                   <Clock className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>خدمة الدفع عبر فوري (Fawry) قيد التطوير والربط البرمجي</span>
@@ -378,7 +378,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedMethod('vodafone')}
-                className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
+                className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
               >
                 التحويل الآن عبر المحافظ الإلكترونية المعتمدة ←
               </button>
@@ -388,7 +388,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           {/* 4. VISA / MASTERCARD (UNDER DEVELOPMENT) */}
           {selectedMethod === 'card' && (
             <div className="space-y-2.5">
-              <div className="bg-blue-500/15 border border-blue-500/30 p-3.5 rounded-xl space-y-1.5 text-blue-900 dark:text-blue-300">
+              <div className="bg-blue-500/15 border border-blue-500/30 p-3.5 rounded-xl space-y-1.5 text-blue-900">
                 <div className="flex items-center gap-1.5 font-black text-xs">
                   <Clock className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>الدفع ببطاقات فيزا / ميزة / ماستركارد قيد التطوير</span>
@@ -401,7 +401,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedMethod('vodafone')}
-                className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
+                className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
               >
                 التحويل الآن عبر المحافظ الإلكترونية المعتمدة ←
               </button>
@@ -411,7 +411,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           {/* 5. AMAN (UNDER DEVELOPMENT) */}
           {selectedMethod === 'aman' && (
             <div className="space-y-2.5">
-              <div className="bg-orange-500/15 border border-orange-500/30 p-3.5 rounded-xl space-y-1.5 text-orange-900 dark:text-orange-300">
+              <div className="bg-orange-500/15 border border-orange-500/30 p-3.5 rounded-xl space-y-1.5 text-orange-900">
                 <div className="flex items-center gap-1.5 font-black text-xs">
                   <Clock className="w-4 h-4 text-orange-500 shrink-0" />
                   <span>خدمات التحصيل عبر منافذ أمان (Aman) قيد التجهيز</span>
@@ -424,7 +424,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedMethod('vodafone')}
-                className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
+                className="w-full bg-[var(--input-bg)] hover:bg-emerald-500/10 text-emerald-600 font-bold p-2.5 rounded-xl border border-emerald-500/30 text-center cursor-pointer transition-colors text-xs"
               >
                 التحويل الآن عبر المحافظ الإلكترونية المعتمدة ←
               </button>
@@ -436,7 +436,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             <div className="flex items-center justify-between">
               <label className="block font-bold text-[var(--text-secondary)]">أدخل المبلغ المحول عبر {getMethodName()} (ج.م):</label>
               {remaining === 0 && (
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-600 font-black px-2 py-0.5 rounded-full">
                   مسددة بالكامل
                 </span>
               )}
@@ -454,7 +454,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
                 }
               }}
               onChange={(e) => setSimulatedPayAmount(Math.max(0, Number(e.target.value)))}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-600 dark:text-emerald-400 font-black rounded-xl p-2.5 text-sm focus:outline-none focus:border-emerald-500 disabled:opacity-50 shadow-inner"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-600 font-black rounded-xl p-2.5 text-sm focus:outline-none focus:border-emerald-500 disabled:opacity-50 shadow-inner"
             />
           </div>
 

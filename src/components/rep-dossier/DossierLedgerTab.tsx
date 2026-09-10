@@ -39,14 +39,14 @@ export const DossierLedgerTab: React.FC<DossierLedgerTabProps> = ({
         <div className="space-y-2.5 text-xs">
           <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] font-bold">
             <span>1. إجمالي المبالغ النقدية المحصلة بيد المندوب في الشارع:</span>
-            <span className="font-mono text-blue-600 dark:text-blue-400 font-black text-sm">
+            <span className="font-mono text-blue-600 font-black text-sm">
               {settlement.totalCashInHand.toLocaleString()} ج.م
             </span>
           </div>
 
           <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] font-bold">
             <span>2. استقطاع عمولة المندوب المستحقة فورياً من الكاش ({effectiveRate}%):</span>
-            <span className="font-mono text-amber-600 dark:text-amber-400 font-black text-sm">
+            <span className="font-mono text-amber-600 font-black text-sm">
               - {settlement.repShareFromCash.toLocaleString()} ج.م
             </span>
           </div>
@@ -60,28 +60,28 @@ export const DossierLedgerTab: React.FC<DossierLedgerTabProps> = ({
 
           <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] font-bold">
             <span>4. توريدات الكاش المحولة والمعتمدة من المندوب للمنصة:</span>
-            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black text-sm">
+            <span className="font-mono text-emerald-600 font-black text-sm">
               - {settlement.totalRemittedToPlatform.toLocaleString()} ج.م
             </span>
           </div>
 
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 font-black">
-            <span className="text-amber-900 dark:text-amber-300">5. المتبقي الفعلي من عهدة الكاش المستحقة للمنصة:</span>
-            <span className="font-mono text-amber-700 dark:text-amber-400 text-base">
+            <span className="text-amber-900">5. المتبقي الفعلي من عهدة الكاش المستحقة للمنصة:</span>
+            <span className="font-mono text-amber-700 text-base">
               {settlement.remainingCashDebt.toLocaleString()} ج.م
             </span>
           </div>
 
           <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] font-bold">
             <span>6. عمولات المندوب من مدفوعات المنصة الإلكترونية + أرباح الإحالة:</span>
-            <span className="font-mono text-indigo-600 dark:text-indigo-400 font-black text-sm">
+            <span className="font-mono text-indigo-600 font-black text-sm">
               + {(settlement.totalEarnedCommission - settlement.repShareFromCash).toLocaleString()} ج.م
             </span>
           </div>
 
           <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] font-bold">
             <span>7. الحوالات المنصرفة فعلياً للمندوب (فودافون كاش / إنستاباي / بنك):</span>
-            <span className="font-mono text-rose-600 dark:text-rose-400 font-black text-sm">
+            <span className="font-mono text-rose-600 font-black text-sm">
               - {settlement.totalPaidOut.toLocaleString()} ج.م
             </span>
           </div>
@@ -90,8 +90,8 @@ export const DossierLedgerTab: React.FC<DossierLedgerTabProps> = ({
           <div
             className={`p-3.5 rounded-2xl border-2 flex items-center justify-between text-sm font-black ${
               settlement.isDebtToPlatform
-                ? 'bg-rose-500/15 border-rose-500/60 text-rose-700 dark:text-rose-300 shadow-md'
-                : 'bg-emerald-500/15 border-emerald-500/60 text-emerald-700 dark:text-emerald-300 shadow-md'
+                ? 'bg-rose-500/15 border-rose-500/60 text-rose-700 shadow-md'
+                : 'bg-emerald-500/15 border-emerald-500/60 text-emerald-700 shadow-md'
             }`}
           >
             <div className="flex items-center gap-2">

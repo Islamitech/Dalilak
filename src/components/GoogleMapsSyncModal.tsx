@@ -220,7 +220,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
   const verificationWhatsAppUrl = getGoogleMapsVerifiedWhatsAppUrl(business);
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
+    <div className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto modal-overlay animate-fade-in">
       <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] transition-all duration-300 max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         
         {/* Mobile Pull-Down Handle Bar */}
@@ -265,17 +265,17 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
           {/* Current Status Pill */}
           <div className="hidden sm:block shrink-0">
             {currentStatus === 'synced' ? (
-              <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-black">
+              <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>موثقة بالرابط</span>
               </span>
             ) : currentStatus === 'in_progress' ? (
-              <span className="inline-flex items-center gap-1.5 bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full text-xs font-black">
+              <span className="inline-flex items-center gap-1.5 bg-purple-500/15 text-purple-600 border border-purple-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <Clock className="w-3.5 h-3.5" />
                 <span>قيد مراجعة جوجل</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 px-3 py-1 rounded-full text-xs font-black">
+              <span className="inline-flex items-center gap-1.5 bg-rose-500/15 text-rose-600 border border-rose-500/30 px-3 py-1 rounded-full text-xs font-black">
                 <AlertCircle className="w-3.5 h-3.5" />
                 <span>لم تُرفع لخرائط Google</span>
               </span>
@@ -285,7 +285,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
         {/* FEEDBACK BANNER */}
         {statusFeedback && (
-          <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 py-2 px-3 rounded-2xl text-xs font-black text-center flex items-center justify-center gap-2 animate-fade-in shadow-xs">
+          <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 py-2 px-3 rounded-2xl text-xs font-black text-center flex items-center justify-center gap-2 animate-fade-in shadow-xs">
             <Check className="w-4 h-4 text-emerald-500" />
             <span>{statusFeedback}</span>
           </div>
@@ -608,7 +608,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   className={`py-2.5 px-2 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                     currentStatus === 'not_synced'
                       ? 'bg-rose-500 text-white border-rose-600 shadow-md scale-102 ring-2 ring-rose-400/40'
-                      : 'bg-[var(--bg-card)] text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'
+                      : 'bg-[var(--bg-card)] text-rose-600 border-rose-500/30 hover:bg-rose-500/10'
                   }`}
                 >
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -621,7 +621,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   className={`py-2.5 px-2 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                     currentStatus === 'in_progress'
                       ? 'bg-purple-500 text-white border-purple-600 shadow-md scale-102 ring-2 ring-purple-400/40'
-                      : 'bg-[var(--bg-card)] text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10'
+                      : 'bg-[var(--bg-card)] text-purple-600 border-purple-500/30 hover:bg-purple-500/10'
                   }`}
                 >
                   <Clock className="w-3.5 h-3.5 shrink-0" />
@@ -642,7 +642,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   className={`py-2.5 px-2 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                     currentStatus === 'synced'
                       ? 'bg-emerald-600 text-white border-emerald-700 shadow-md scale-102 ring-2 ring-emerald-400/40'
-                      : 'bg-[var(--bg-card)] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'
+                      : 'bg-[var(--bg-card)] text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10'
                   }`}
                   title={!formatValidGoogleMapsUrl(finalMapUrl) ? 'يرجى إدخال رابط الخريطة المعتمد أولاً' : 'موثقة برابط خرائط Google'}
                 >
@@ -680,7 +680,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs font-bold text-left"
                 />
                 {Boolean(finalMapUrl && isRawCoordinatesUrl(finalMapUrl)) && (
-                  <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2 rounded-xl text-[10.5px] font-bold flex items-start gap-1.5 mt-1.5">
+                  <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 p-2 rounded-xl text-[10.5px] font-bold flex items-start gap-1.5 mt-1.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
                       تنبيه: هذا الرابط عبارة عن إحداثيات موقع ميداني (GPS) وليس رابطاً معتمداً من خرائط Google. يُرجى استخدام رابط المكان الرسمي على الخريطة.
@@ -749,7 +749,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
             {/* Warning when verified but unpaid balance remains */}
             {currentStatus === 'synced' && remainingBalance > 0 && (
-              <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex items-center gap-2.5 text-xs text-amber-700 dark:text-amber-300">
+              <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex items-center gap-2.5 text-xs text-amber-700">
                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                 <span className="font-bold">
                   تنبيه مالي: المكان موثق رسمياً ولكن متبقي عليه مبلغ تحصيل بقيمة <strong className="font-mono font-black">{remainingBalance.toLocaleString()} ج.م</strong>.
@@ -770,7 +770,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
                     {business.invoiceNumber || `INV-${business.id.substring(0, 8).toUpperCase()}`}
                   </span>
                 </div>
-                <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10.5px] font-black px-2.5 py-1 rounded-xl">
+                <span className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 text-[10.5px] font-black px-2.5 py-1 rounded-xl">
                   {business.paymentStatus === 'fully_paid' ? 'مسدد بالكامل' : `متبقي: ${remainingBalance} ج.م`}
                 </span>
               </div>
@@ -834,7 +834,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
 
         {/* ── PHOTO PREVIEW MODAL ───────────────────────────────────────────── */}
         {previewPhoto && (
-          <div className="fixed inset-0 z-[10100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="fixed inset-0 z-[10100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
             <div className="relative max-w-2xl w-full">
               <button
                 onClick={() => setPreviewPhoto(null)}

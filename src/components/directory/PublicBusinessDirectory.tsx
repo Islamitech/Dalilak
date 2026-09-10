@@ -206,7 +206,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       {isRep && !hasRegisteredBiz ? (
         <div className="max-w-md mx-auto w-full">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-black shrink-0">
               <Store className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -214,7 +214,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 <span className="text-xs text-[var(--text-muted)] font-bold">إجمالي المسجل</span>
                 <span className="text-xl font-black text-[var(--text-primary)] font-mono">0</span>
               </div>
-              <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium mt-0.5">
+              <p className="text-[11px] text-amber-700 font-medium mt-0.5">
                 رصيد البداية — سجّل أول نشاط تجاري في منطقتك لبدء تنشيط الإحصاءات وكسب عمولتك
               </p>
             </div>
@@ -224,13 +224,13 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           {/* 1. إجمالي الأنشطة المسجلة */}
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-500/15 text-slate-600 dark:text-slate-300 flex items-center justify-center font-black shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-500/15 text-slate-600 flex items-center justify-center font-black shrink-0">
               <Store className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي المسجل</div>
               {isLoadingData && businesses.length === 0 ? (
-                <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
               ) : (
                 <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.totalRegistered}</div>
               )}
@@ -249,14 +249,14 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold truncate">معتمد 🟢</div>
+                <div className="text-[10.5px] sm:text-[11px] text-emerald-600 font-bold truncate">معتمد 🟢</div>
                 {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
                 ) : (
-                  <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{homeStats.directoryApproved}</div>
+                  <div className="text-base sm:text-lg font-black text-emerald-600 font-mono">{homeStats.directoryApproved}</div>
                 )}
                 {isRep && (
-                  <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-medium block truncate">
+                  <span className="text-[9px] text-emerald-700 font-medium block truncate">
                     أنشطة معتمدة ومطابقة بالدليل
                   </span>
                 )}
@@ -271,14 +271,14 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] sm:text-[11px] text-blue-600 dark:text-blue-400 font-bold truncate">موثق بـ Google 🗺️</div>
+                <div className="text-[10.5px] sm:text-[11px] text-blue-600 font-bold truncate">موثق بـ Google 🗺️</div>
                 {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
                 ) : (
-                  <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{homeStats.googleMapsVerified}</div>
+                  <div className="text-base sm:text-lg font-black text-blue-600 font-mono">{homeStats.googleMapsVerified}</div>
                 )}
                 {isRep && (
-                  <span className="text-[9px] text-blue-700 dark:text-blue-400 font-medium block truncate">
+                  <span className="text-[9px] text-blue-700 font-medium block truncate">
                     أنشطة موثقة رسمياً على الخرائط
                   </span>
                 )}
@@ -293,14 +293,14 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] sm:text-[11px] text-amber-600 dark:text-amber-400 font-bold truncate">قيد المراجعة ⏳</div>
+                <div className="text-[10.5px] sm:text-[11px] text-amber-600 font-bold truncate">قيد المراجعة ⏳</div>
                 {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
                 ) : (
-                  <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{homeStats.pendingDirectory}</div>
+                  <div className="text-base sm:text-lg font-black text-amber-600 font-mono">{homeStats.pendingDirectory}</div>
                 )}
                 {isRep && (
-                  <span className="text-[9px] text-amber-700 dark:text-amber-400 font-medium block truncate">
+                  <span className="text-[9px] text-amber-700 font-medium block truncate">
                     بانتظار تدقيق الإدارة للبيانات
                   </span>
                 )}
@@ -317,12 +317,12 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               <div className="min-w-0 flex-1">
                 <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
                 {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-lg mt-1" />
+                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
                 ) : (
-                  <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-400 font-mono">{homeStats.govs}</div>
+                  <div className="text-base sm:text-lg font-black text-purple-600 font-mono">{homeStats.govs}</div>
                 )}
                 {isRep && (
-                  <span className="text-[9px] text-purple-700 dark:text-purple-400 font-medium block truncate">
+                  <span className="text-[9px] text-purple-700 font-medium block truncate">
                     المناطق الجغرافية لعملك
                   </span>
                 )}
@@ -339,7 +339,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           {isRep && onToggleRepScope && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-2.5 sm:p-3 rounded-2xl">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-amber-600 dark:text-amber-400">استعراض الأنشطة:</span>
+                <span className="text-xs font-black text-amber-600">استعراض الأنشطة:</span>
                 <span className="text-[11px] text-[var(--text-muted)] font-medium">
                   {repScope === 'my' ? 'تعرض حالياً أنشطتك الميدانية المسجلة فقط' : 'تعرض حالياً الأنشطة المعتمدة في الدليل العام'}
                 </span>
@@ -457,7 +457,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
             >
               <span>{tab.label}</span>
               {isLoadingData && businesses.length === 0 ? (
-                <span className="w-3.5 h-3 bg-slate-300 dark:bg-slate-700 animate-pulse rounded-full" />
+                <span className="w-3.5 h-3 bg-slate-300 animate-pulse rounded-full" />
               ) : (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
                   verificationFilter === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
@@ -475,7 +475,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
             onClick={() => setCategoryFilter('all')}
             className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               categoryFilter === 'all'
-                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black border border-amber-500/40'
+                ? 'bg-amber-500/20 text-amber-700 font-black border border-amber-500/40'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
             }`}
           >
@@ -487,7 +487,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               onClick={() => setCategoryFilter(grp.group === categoryFilter ? 'all' : grp.group)}
               className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
                 categoryFilter === grp.group
-                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black border border-amber-500/40 shadow-2xs'
+                  ? 'bg-amber-500/20 text-amber-700 font-black border border-amber-500/40 shadow-2xs'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
               }`}
             >
@@ -502,7 +502,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       {/* ── 1. LOADING SKELETON STATE (Shown ONLY on first cold visit with empty cache) ── */}
       {isLoadingData && businesses.length === 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
+          <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
             <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
             <span>جاري جلب وتحديث الأنشطة التجارية والبيانات من السحابة...</span>
           </div>
@@ -513,14 +513,14 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 key={`skel-${i}`}
                 className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs flex flex-col justify-between animate-pulse"
               >
-                <div className="relative aspect-[16/8.5] bg-slate-200 dark:bg-slate-800" />
+                <div className="relative aspect-[16/8.5] bg-slate-200" />
                 <div className="p-4 space-y-3">
-                  <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
-                  <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
-                  <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-2/3" />
+                  <div className="h-5 bg-slate-200 rounded-lg w-3/4" />
+                  <div className="h-3.5 bg-slate-200 rounded-md w-1/2" />
+                  <div className="h-3.5 bg-slate-200 rounded-md w-2/3" />
                   <div className="pt-3 border-t border-[var(--border-color)] flex items-center justify-between">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
-                    <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded-xl w-24" />
+                    <div className="h-4 bg-slate-200 rounded w-20" />
+                    <div className="h-7 bg-slate-200 rounded-xl w-24" />
                   </div>
                 </div>
               </div>
@@ -566,7 +566,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                   setCategoryFilter('all');
                   setVerificationFilter('all');
                 }}
-                className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 cursor-pointer transition-colors"
               >
                 إعادة ضبط الفلاتر 🔄
               </button>
@@ -709,30 +709,30 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     <div className="flex items-center justify-between text-xs pt-1">
                       <div className="flex items-center gap-1">
                         {isExempt ? (
-                          <span className="text-[11px] font-black text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-md border border-teal-500/20">
+                          <span className="text-[11px] font-black text-teal-700 bg-teal-500/10 px-2 py-0.5 rounded-md border border-teal-500/20">
                             🆓 نشاط رائج (مجاني 0 ج)
                           </span>
                         ) : (
-                          <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                          <span className="text-[11px] font-black text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
                             {biz.packagePrice || 250} ج.م
                           </span>
                         )}
                       </div>
                       <div>
                         {isExempt ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 border border-teal-500/30">
                             ✓ إدراج مجاني
                           </span>
                         ) : remaining === 0 ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
                             ✓ مسدد بالكامل
                           </span>
                         ) : (biz.amountPaid || 0) === 0 ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/30">
                             غير مدفوع ⏳
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30">
                             متبقي {remaining} ج
                           </span>
                         )}
@@ -774,7 +774,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                               href={sanitizeExternalUrl(effectiveUrl, '#')}
                               target="_blank"
                               rel="noreferrer"
-                              className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+                              className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
                               title={isOfficial ? 'الموقع موثق رسمياً: فتح على خرائط Google' : 'الموقع الجغرافي الميداني للنشاط على الخريطة'}
                             >
                               <Navigation className="w-3.5 h-3.5 text-emerald-500" />
@@ -786,7 +786,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                           <button
                             type="button"
                             disabled
-                            className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 dark:border-slate-700/80 cursor-not-allowed opacity-60"
+                            className="p-2 rounded-xl bg-slate-200 text-slate-400 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 cursor-not-allowed opacity-60"
                             title="لم يتم تحديد الموقع الجغرافي بعد"
                           >
                             <Navigation className="w-3.5 h-3.5 opacity-40" />
@@ -892,8 +892,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       <span
                         className={`text-[9.5px] font-black px-2 py-0.5 rounded-full border ${
                           isVerified
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                            : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
                         }`}
                       >
                         {isVerified ? 'معتمد ✓' : 'مراجعة ⏳'}
@@ -905,7 +905,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                   <div className="flex items-center justify-between text-[11px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)]">
                     <span className="font-bold text-[var(--text-secondary)]">
                       {isExempt ? (
-                        <span className="text-teal-600 dark:text-teal-400">مجاني 0 ج</span>
+                        <span className="text-teal-600">مجاني 0 ج</span>
                       ) : (
                         <span>{biz.packagePrice || 250} ج.م ({remaining === 0 ? 'مسدد' : (biz.amountPaid || 0) === 0 ? 'غير مدفوع ⏳' : `متبقي ${remaining}`})</span>
                       )}
@@ -933,7 +933,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                             href={sanitizeExternalUrl(effectiveUrl, '#')}
                             target="_blank"
                             rel="noreferrer"
-                            className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                            className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
                             title={isOfficial ? 'فتح موقع النشاط المعتمد على خرائط Google' : 'معاينة الموقع الجغرافي الميداني للنشاط على الخريطة'}
                           >
                             <MapPin className="w-3.5 h-3.5 text-blue-500" />
@@ -966,7 +966,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                         href={`https://wa.me/2${ownerPhone.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                        className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 border border-emerald-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
                         title="مراسلة واتساب"
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
@@ -976,7 +976,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     {ownerPhone && (
                       <a
                         href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
-                        className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 dark:text-blue-400 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                        className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
                         title="اتصال هاتفي"
                       >
                         <Phone className="w-3.5 h-3.5" />
@@ -1054,12 +1054,12 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                               <div className="text-[10px] font-mono text-[var(--text-muted)] flex items-center gap-1">
                                 <span>{biz.invoiceNumber}</span>
                                 {hasPhotos && (
-                                  <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 rounded">
+                                  <span className="text-[9px] font-bold text-amber-600 bg-amber-500/10 px-1 rounded">
                                     📷 {biz.photos.length}
                                   </span>
                                 )}
                                 {hasVideos && (
-                                  <span className="text-[9px] font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-1 rounded">
+                                  <span className="text-[9px] font-bold text-yellow-600 bg-yellow-500/10 px-1 rounded">
                                     🎬 فيديو
                                   </span>
                                 )}
@@ -1083,8 +1083,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                           <span
                             className={`inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-full border ${
                               isVerified
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                                : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
                             }`}
                           >
                             <span>{isVerified ? 'معتمد 🟢' : 'قيد المراجعة ⏳'}</span>
@@ -1094,20 +1094,20 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                         <td className="py-3 px-3">
                           <div className="font-black text-[var(--text-primary)] font-mono">
                             {isExempt ? (
-                              <span className="text-teal-600 dark:text-teal-400 text-[11px]">مجاني (0 ج)</span>
+                              <span className="text-teal-600 text-[11px]">مجاني (0 ج)</span>
                             ) : (
                               <span>{biz.packagePrice || 250} ج.م</span>
                             )}
                           </div>
                           <div className="text-[10px] font-bold mt-0.5">
                             {isExempt ? (
-                              <span className="text-teal-600 dark:text-teal-400">إدراج ترويجي</span>
+                              <span className="text-teal-600">إدراج ترويجي</span>
                             ) : remaining === 0 ? (
-                              <span className="text-emerald-600 dark:text-emerald-400">مسدد بالكامل ✓</span>
+                              <span className="text-emerald-600">مسدد بالكامل ✓</span>
                             ) : (biz.amountPaid || 0) === 0 ? (
-                              <span className="text-amber-700 dark:text-amber-300 font-bold">غير مدفوع ⏳</span>
+                              <span className="text-amber-700 font-bold">غير مدفوع ⏳</span>
                             ) : (
-                              <span className="text-amber-600 dark:text-amber-400 font-mono">متبقي {remaining} ج</span>
+                              <span className="text-amber-600 font-mono">متبقي {remaining} ج</span>
                             )}
                           </div>
                         </td>
@@ -1140,7 +1140,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                                     href={sanitizeExternalUrl(effectiveUrl, '#')}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
+                                    className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
                                     title={isOfficial ? 'فتح موقع النشاط المعتمد على خرائط Google 🗺️' : 'معاينة الموقع الجغرافي الميداني للنشاط 🗺️'}
                                   >
                                     <MapPin className="w-3.5 h-3.5 text-blue-500" />

@@ -43,7 +43,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
             حساب العمولات والكاش الميداني والذمة المالية
           </h3>
         </div>
-        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+        <span className="text-xs text-emerald-600 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
           <Percent className="w-3 h-3 text-emerald-500" />
           <span>عمولتك المعتمدة {commissionPercentage}%</span>
         </span>
@@ -64,9 +64,9 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
             <div
               className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${
                 settlement.isDebtToPlatform
-                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                  ? 'bg-amber-500/20 text-amber-600'
                   : settlement.withdrawableBalance > 0
-                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                  ? 'bg-emerald-500/20 text-emerald-600'
                   : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
               }`}
             >
@@ -77,9 +77,9 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
               <span
                 className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${
                   settlement.isDebtToPlatform
-                    ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15 border-amber-500/30'
+                    ? 'text-amber-600 bg-amber-500/15 border-amber-500/30'
                     : settlement.withdrawableBalance > 0
-                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
+                    ? 'text-emerald-600 bg-emerald-500/15 border-emerald-500/30'
                     : 'text-[var(--text-muted)] bg-[var(--input-bg)] border-[var(--border-color)]'
                 }`}
               >
@@ -97,7 +97,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
               <button
                 type="button"
                 onClick={onOpenRemitInfoModal}
-                className="w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/40 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                className="w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/40 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
               >
                 <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
                 <span>طلب السداد قيد المراجعة ⏳</span>
@@ -115,7 +115,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
             <button
               type="button"
               onClick={onOpenPayoutModal}
-              className="w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/40 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+              className="w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 font-black text-xs px-3.5 py-2 rounded-xl border border-amber-500/40 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
             >
               <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
               <span>طلب السحب قيد المراجعة ({pendingPayout.amount.toLocaleString()} ج.م) ⏳</span>
@@ -143,7 +143,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
                   <span className="font-black text-[var(--text-primary)]">
                     لديك طلب سحب عمولة مقدم قيد المراجعة:
                   </span>
-                  <span className="font-mono font-black text-amber-600 dark:text-amber-400">
+                  <span className="font-mono font-black text-amber-600">
                     {pendingPayout.amount.toLocaleString()} ج.م
                   </span>
                 </div>
@@ -168,9 +168,9 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
             <span
               className={`text-2xl sm:text-3xl font-black tracking-tight ${
                 settlement.isDebtToPlatform
-                  ? 'text-amber-600 dark:text-amber-400'
+                  ? 'text-amber-600'
                   : settlement.withdrawableBalance > 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
+                  ? 'text-emerald-600'
                   : 'text-[var(--text-primary)]'
               }`}
             >
@@ -184,13 +184,13 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
             <span className="bg-[var(--bg-card)] border border-[var(--border-color)] px-2.5 py-1 rounded-xl text-[var(--text-secondary)]">
               💵 كاش بيدك:{' '}
-              <strong className="text-amber-600 dark:text-amber-400 font-mono">
+              <strong className="text-amber-600 font-mono">
                 {settlement.totalCashInHand} ج
               </strong>
             </span>
             <span className="bg-[var(--bg-card)] border border-[var(--border-color)] px-2.5 py-1 rounded-xl text-[var(--text-secondary)]">
               💎 عمولتك:{' '}
-              <strong className="text-emerald-600 dark:text-emerald-400 font-mono">
+              <strong className="text-emerald-600 font-mono">
                 {settlement.totalEarnedCommission} ج
               </strong>
             </span>
@@ -214,7 +214,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
           <button
             type="button"
             onClick={() => setShowBreakdownList(!showBreakdownList)}
-            className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1"
+            className="text-[11px] font-bold text-amber-600 hover:underline cursor-pointer flex items-center gap-1"
           >
             <span>
               {showBreakdownList ? 'إخفاء كشف الأنشطة ▲' : 'عرض كشف حساب الأنشطة والتحصيلات ▼'}
@@ -240,7 +240,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
 
         {/* Pending Verification Callout */}
         {settlement.pendingVerificationCommission > 0 && (
-          <div className="bg-blue-500/10 border border-blue-500/30 text-blue-900 dark:text-blue-200 p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold mt-1">
+          <div className="bg-blue-500/10 border border-blue-500/30 text-blue-900 p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold mt-1">
             <span>
               ⏳ <strong>أنشطة قيد التوثيق أو الدفع لاحقاً:</strong> لديك{' '}
               <strong className="font-mono font-black">
@@ -249,7 +249,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
               عمولة متوقعة على <strong>({settlement.pendingVerificationCount}) نشاط</strong>، لا
               تضاف للرصيد المتاح للسحب إلا بعد اكتمال التوثيق وسداد الفاتورة.
             </span>
-            <span className="text-[10px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md shrink-0">
+            <span className="text-[10px] bg-blue-500/20 text-blue-700 px-2 py-0.5 rounded-md shrink-0">
               معلقة لحين الاعتماد والسداد
             </span>
           </div>
@@ -265,7 +265,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
               <span className="text-[10px] text-[var(--text-muted)] font-bold block flex items-center gap-1">
                 <span>🏢</span> عمولات الأنشطة المباشرة ({commissionPercentage}%):
               </span>
-              <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+              <span className="text-sm font-black font-mono text-emerald-600">
                 +
                 {Math.round(
                   repBusinesses.reduce(
@@ -281,10 +281,10 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
             </div>
 
             <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5">
-              <span className="text-[10px] text-amber-800 dark:text-amber-300 font-black block flex items-center gap-1">
+              <span className="text-[10px] text-amber-800 font-black block flex items-center gap-1">
                 <span>📈</span> عمولة شبكة الإحالات (3% - 7%):
               </span>
-              <span className="text-sm font-black font-mono text-amber-600 dark:text-amber-400">
+              <span className="text-sm font-black font-mono text-amber-600">
                 +{referralSummary.totalReferralCommission} ج.م
               </span>
               <span className="text-[9.5px] text-[var(--text-muted)] block">
@@ -293,10 +293,10 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
             </div>
 
             <div className="bg-[var(--bg-card)] p-2.5 rounded-xl border border-yellow-500/40 bg-yellow-500/10">
-              <span className="text-[10px] text-yellow-800 dark:text-yellow-300 font-black block flex items-center gap-1">
+              <span className="text-[10px] text-yellow-800 font-black block flex items-center gap-1">
                 <span>🎁</span> مكافآت الإحالة (250 ج/10 أنشطة):
               </span>
-              <span className="text-sm font-black font-mono text-yellow-600 dark:text-yellow-400">
+              <span className="text-sm font-black font-mono text-yellow-600">
                 +{referralSummary.totalGiftsEarned} ج.م
               </span>
               <span className="text-[9.5px] text-[var(--text-muted)] block">
@@ -308,18 +308,18 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
           {/* 2. REFERRAL COMMISSIONS & BONUSES BREAKDOWN SECTION */}
           <div className="bg-gradient-to-r from-amber-500/10 via-[var(--bg-card)] to-yellow-500/10 border border-amber-500/30 rounded-2xl p-3 space-y-2.5">
             <div className="flex items-center justify-between font-black text-xs text-[var(--text-primary)] border-b border-amber-500/20 pb-2">
-              <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+              <div className="flex items-center gap-1.5 text-amber-800">
                 <Gift className="w-4 h-4 text-amber-500 shrink-0" />
                 <span>
                   كشف تفصيلي بعمولات ومكافآت الإحالة ({referralSummary.totalNetEarnings} ج.م):
                 </span>
               </div>
               {referralSummary.isUnlocked ? (
-                <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                <span className="bg-amber-500/20 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full">
                   كودك: {referralCode}
                 </span>
               ) : (
-                <span className="bg-slate-500/20 text-slate-700 dark:text-slate-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                <span className="bg-slate-500/20 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full">
                   🔒 مغلق (يتطلب 25 نشاطاً)
                 </span>
               )}
@@ -367,7 +367,7 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
                             ({invRep.phone})
                           </span>
                           {isMission1Complete ? (
-                            <span className="bg-yellow-500/20 text-yellow-800 dark:text-yellow-300 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-yellow-500/30 flex items-center gap-0.5">
+                            <span className="bg-yellow-500/20 text-yellow-800 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-yellow-500/30 flex items-center gap-0.5">
                               <span>🎁</span> مكافأة +250 ج.م معتمدة
                             </span>
                           ) : (
@@ -386,16 +386,16 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
                           <span className="text-[9px] text-[var(--text-muted)] block font-sans font-bold">
                             نسبة عمولتك:
                           </span>
-                          <span className="font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                          <span className="font-black text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md">
                             {currentRate}%
                           </span>
                         </div>
 
                         <div>
-                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 block font-sans font-bold">
+                          <span className="text-[9px] text-emerald-600 block font-sans font-bold">
                             عمولتك المكتسبة منه:
                           </span>
-                          <span className="font-black text-emerald-600 dark:text-emerald-400">
+                          <span className="font-black text-emerald-600">
                             +{commissionEarned} ج.م
                           </span>
                         </div>
@@ -468,19 +468,19 @@ export const RepFinanceSummaryCards: React.FC<RepFinanceSummaryCardsProps> = ({
                           <span className="font-black text-[var(--text-primary)]">{paid} ج.م</span>
                         </div>
                         <div>
-                          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 block font-sans font-bold">
+                          <span className="text-[9px] text-emerald-600 block font-sans font-bold">
                             {paid > 0 ? `عمولتك (${commissionPercentage}%):` : 'عمولة منتظرة:'}
                           </span>
-                          <span className="font-black text-emerald-600 dark:text-emerald-400">
+                          <span className="font-black text-emerald-600">
                             {paid > 0 ? `${comm} ج.م` : `⏳ ${fullComm} ج.م`}
                           </span>
                         </div>
                         {paid > 0 && (
                           <div>
-                            <span className="text-[9px] text-rose-600 dark:text-rose-400 block font-sans font-bold">
+                            <span className="text-[9px] text-rose-600 block font-sans font-bold">
                               {isCash ? 'للمنصة (عليك):' : 'للمنصة (مباشر):'}
                             </span>
-                            <span className="font-black text-rose-600 dark:text-rose-400">
+                            <span className="font-black text-rose-600">
                               {platShare} ج.م
                             </span>
                           </div>

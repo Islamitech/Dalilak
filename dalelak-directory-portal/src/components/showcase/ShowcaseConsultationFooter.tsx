@@ -62,7 +62,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
             {
               icon: <TrendingUp className="w-6 h-6" />,
               colorClass: 'amber',
-              badgeClass: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+              badgeClass: 'text-amber-600 bg-amber-500/10 border-amber-500/20',
               iconBg: 'bg-amber-500/15 text-amber-500',
               hoverBorder: 'hover:border-amber-500/40',
               title: 'تصدر نتائج البحث الجغرافي',
@@ -72,7 +72,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
             {
               icon: <Navigation className="w-6 h-6" />,
               colorClass: 'emerald',
-              badgeClass: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+              badgeClass: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
               iconBg: 'bg-emerald-500/15 text-emerald-500',
               hoverBorder: 'hover:border-emerald-500/40',
               title: 'توجيه GPS فوري وسهل',
@@ -82,7 +82,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
             {
               icon: <Sparkles className="w-6 h-6" />,
               colorClass: 'blue',
-              badgeClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20',
+              badgeClass: 'text-blue-600 bg-blue-500/10 border-blue-500/20',
               iconBg: 'bg-blue-500/15 text-blue-500',
               hoverBorder: 'hover:border-blue-500/40',
               title: 'تصوير فاخر بالذكاء الاصطناعي',
@@ -92,7 +92,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
             {
               icon: <ShieldCheck className="w-6 h-6" />,
               colorClass: 'purple',
-              badgeClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20',
+              badgeClass: 'text-purple-600 bg-purple-500/10 border-purple-500/20',
               iconBg: 'bg-purple-500/15 text-purple-500',
               hoverBorder: 'hover:border-purple-500/40',
               title: 'ثقة ومصداقية وفاتورة رسمية',
@@ -125,7 +125,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
       <section id="consultation" className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <div className="bg-gradient-to-br from-amber-500/15 via-[var(--bg-card)] to-yellow-500/15 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-9 space-y-6 shadow-xl text-center">
           <div className="space-y-2">
-            <span className="text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-wider bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-500/30 inline-block">
+            <span className="text-emerald-600 text-xs font-black uppercase tracking-wider bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-500/30 inline-block">
               الظهور مجاني 100% · والحملات الدعائية حسب الطلب
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
@@ -137,7 +137,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
           </div>
 
           {consultSuccess && (
-            <div className="bg-emerald-500/20 border border-emerald-500 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-2xl text-xs font-black animate-fade-in">
+            <div className="bg-emerald-500/20 border border-emerald-500 text-emerald-800 p-3.5 rounded-2xl text-xs font-black animate-fade-in">
               تم تجهيز طلبك وسيتم فتح تطبيق WhatsApp للتواصل المباشر مع فريق المنظومة
             </div>
           )}
@@ -212,7 +212,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
               <select
                 value={formSelectedPackage}
                 onChange={(e) => setFormSelectedPackage(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl p-3 focus:outline-none focus:border-amber-500 font-bold text-amber-600 dark:text-amber-400 text-xs shadow-xs cursor-pointer"
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl p-3 focus:outline-none focus:border-amber-500 font-bold text-amber-600 text-xs shadow-xs cursor-pointer"
               >
                 {PACKAGES.map((p) => (
                   <option key={p.id} value={p.title}>
@@ -253,7 +253,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
 
             {/* Col 2: Free Listing Notice */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-sm">
+              <div className="flex items-center gap-2 text-emerald-600 font-black text-sm">
                 <Gift className="w-4 h-4" />
                 <span>الظهور المجاني في الدليل</span>
               </div>
@@ -262,7 +262,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
               </p>
               <a
                 href="#free-listing"
-                className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-black hover:underline"
+                className="inline-flex items-center gap-1.5 text-emerald-600 font-black hover:underline"
               >
                 <span>اطلب الظهور مجاناً الآن ←</span>
               </a>
@@ -279,7 +279,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
               </p>
               <a
                 href="#packages"
-                className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black hover:underline"
+                className="inline-flex items-center gap-1.5 text-amber-600 font-black hover:underline"
               >
                 <span>استعراض مميزات الحملات ←</span>
               </a>
@@ -321,7 +321,7 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
                 href="https://wa.me/201143888355"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-emerald-600 dark:text-emerald-400 hover:underline dir-ltr font-mono font-bold"
+                className="text-emerald-600 hover:underline dir-ltr font-mono font-bold"
               >
                 +20 114 388 8355
               </a>

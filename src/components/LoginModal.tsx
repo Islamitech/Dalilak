@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Representative } from '../types';
 import { Logo } from './Logo';
-import { ThemeToggle } from './ThemeToggle';
 import {
   detectReferralCodeFromEnv,
   LoginForm,
@@ -184,8 +183,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 شروط الاستخدام
               </button>
             )}
-
-            <ThemeToggle />
           </div>
         </div>
 
@@ -246,7 +243,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto modal-overlay">
       {modalBox}
     </div>,
     document.body

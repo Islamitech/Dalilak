@@ -104,7 +104,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
       dir="rtl"
     >
       <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 text-xs text-[var(--text-primary)] shadow-2xl relative animate-fade-in my-auto max-h-[92vh] overflow-y-auto">
@@ -130,7 +130,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
               <div className="w-11 h-11 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
                 <Clock className="w-5 h-5" />
               </div>
-              <h4 className="font-black text-sm text-amber-800 dark:text-amber-300">
+              <h4 className="font-black text-sm text-amber-800">
                 جاري مراجعة وتأكيد عملية السداد ⏳
               </h4>
               <p className="text-xs text-[var(--text-muted)] font-medium">
@@ -144,7 +144,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
                 <span className="text-[var(--text-muted)] font-bold">
                   المبلغ المسدد قيد المراجعة:
                 </span>
-                <span className="font-mono font-black text-sm text-blue-600 dark:text-blue-400">
+                <span className="font-mono font-black text-sm text-blue-600">
                   {pendingRemittance.amount.toLocaleString()} ج.م
                 </span>
               </div>
@@ -166,7 +166,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
               {pendingRemittance.transactionRef && (
                 <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
                   <span className="text-[var(--text-muted)] font-bold">رقم العملية / الحوالة:</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="font-mono font-bold text-emerald-600">
                     {pendingRemittance.transactionRef}
                   </span>
                 </div>
@@ -210,7 +210,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
             <div className="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto animate-bounce">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h4 className="font-black text-base text-emerald-600 dark:text-emerald-400">
+            <h4 className="font-black text-base text-emerald-600">
               تم إرسال إشعار وإيصال السداد بنجاح!
             </h4>
             <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
@@ -220,10 +220,10 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmitRemittance} className="space-y-4">
-            <div className="bg-amber-500/15 border border-amber-500/30 p-3.5 rounded-2xl space-y-1 text-amber-900 dark:text-amber-200 font-medium">
+            <div className="bg-amber-500/15 border border-amber-500/30 p-3.5 rounded-2xl space-y-1 text-amber-900 font-medium">
               <div className="flex items-center justify-between font-black text-xs">
                 <span>المبلغ المستحق لتوريده للمنصة:</span>
-                <span className="text-base font-mono text-amber-600 dark:text-amber-400 font-black">
+                <span className="text-base font-mono text-amber-600 font-black">
                   {settlement.debtToPlatformAmount} ج.م
                 </span>
               </div>
@@ -240,7 +240,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
                   <span className="text-[10px] text-[var(--text-muted)] block font-bold">
                     معرف إنستاباي المعتمد (InstaPay):
                   </span>
-                  <span className="text-purple-600 dark:text-purple-300 font-mono font-black text-sm dir-ltr text-right inline-block">
+                  <span className="text-purple-600 font-mono font-black text-sm dir-ltr text-right inline-block">
                     @daz31181
                   </span>
                 </div>
@@ -262,7 +262,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
                   <span className="text-[10px] text-[var(--text-muted)] block font-bold">
                     محفظة فودافون كاش الرسمية:
                   </span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-mono font-black text-sm dir-ltr text-right inline-block">
+                  <span className="text-emerald-600 font-mono font-black text-sm dir-ltr text-right inline-block">
                     01143888355
                   </span>
                 </div>

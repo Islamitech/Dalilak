@@ -94,19 +94,19 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
           </div>
         </div>
 
-        <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20" dir="ltr">
+        <span className="text-xs font-mono font-black text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20" dir="ltr">
           {rawPhone || 'لا يوجد هاتف'}
         </span>
       </div>
 
       {/* ── 🚀 SMART 1-TAP DIRECT WHATSAPP CHAT BUTTON ── */}
       <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/30 rounded-2xl p-2.5 space-y-2 shadow-2xs">
-        <div className="flex items-center justify-between text-[11px] font-black text-emerald-800 dark:text-emerald-300">
+        <div className="flex items-center justify-between text-[11px] font-black text-emerald-800">
           <div className="flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
             <span>محادثة فورية مباشرة (ضغطة واحدة):</span>
           </div>
-          <span className="text-[9px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-md font-bold">
+          <span className="text-[9px] bg-emerald-500/20 text-emerald-800 px-2 py-0.5 rounded-md font-bold">
             محادثة مخصصة
           </span>
         </div>
@@ -230,7 +230,7 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
                         <span>{m.icon}</span>
                         <span className="truncate">{idx + 1}. {m.title}</span>
                       </div>
-                      <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                      <span className="text-[9px] bg-emerald-500/15 text-emerald-700 font-bold px-2 py-0.5 rounded-md shrink-0">
                         {m.badge}
                       </span>
                     </div>
@@ -288,7 +288,7 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
                   <QrCode className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   <span className="truncate">الحملة 1: 🎁 إشعار هدية باركود الخريطة والستاند الذهبي</span>
                 </div>
-                <span className="text-[9px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                <span className="text-[9px] bg-emerald-500/20 text-emerald-700 font-bold px-2 py-0.5 rounded-md shrink-0">
                   هدية مجانية
                 </span>
               </div>
@@ -338,7 +338,7 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
                   <TrendingUp className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span className="truncate">الحملة 2: 📊 أهمية الباركود لمضاعفة التقييمات والمبيعات</span>
                 </div>
-                <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                <span className="text-[9px] bg-amber-500/15 text-amber-700 font-bold px-2 py-0.5 rounded-md shrink-0">
                   توعية وتطوير
                 </span>
               </div>
@@ -388,7 +388,7 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
                   <Sparkles className="w-3.5 h-3.5 text-purple-500 shrink-0" />
                   <span className="truncate">الحملة 3: 🎨 استشارة مجانية لتحسين واجهة المحل والتصوير</span>
                 </div>
-                <span className="text-[9px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                <span className="text-[9px] bg-purple-500/15 text-purple-700 font-bold px-2 py-0.5 rounded-md shrink-0">
                   استشارة هوية
                 </span>
               </div>
@@ -438,7 +438,7 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
                   <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                   <span className="truncate">الحملة 4: ☕ فحص نبض النشاط وتحديث المواعيد</span>
                 </div>
-                <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-700 font-bold px-2 py-0.5 rounded-md shrink-0">
                   اطمئنان ودعم
                 </span>
               </div>
@@ -488,7 +488,7 @@ export const EditMarketingTab: React.FC<EditMarketingTabProps> = ({
                   <TrendingUp className="w-3.5 h-3.5 text-purple-500 shrink-0" />
                   <span className="truncate">الحملة 5: 📈 قصة نجاح وترقية باقة VIP 🚀</span>
                 </div>
-                <span className="text-[9px] bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md shrink-0">
+                <span className="text-[9px] bg-purple-500/15 text-purple-700 font-bold px-2 py-0.5 rounded-md shrink-0">
                   ترقية باقات
                 </span>
               </div>

@@ -83,29 +83,29 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
     switch (role) {
       case 'admin':
         return (
-          <span className="bg-purple-500/15 text-purple-900 dark:text-purple-300 border border-purple-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
-            <ShieldCheck className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+          <span className="bg-purple-500/15 text-purple-900 border border-purple-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <ShieldCheck className="w-3 h-3 text-purple-600 shrink-0" />
             <span className="truncate">{label}</span>
           </span>
         );
       case 'supervisor':
         return (
-          <span className="bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
-            <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+          <span className="bg-amber-500/15 text-amber-900 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <Crown className="w-3 h-3 text-amber-600 shrink-0" />
             <span className="truncate">{label}</span>
           </span>
         );
       case 'accountant':
         return (
-          <span className="bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
-            <Calculator className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span className="bg-emerald-500/15 text-emerald-900 border border-emerald-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <Calculator className="w-3 h-3 text-emerald-600 shrink-0" />
             <span className="truncate">{label}</span>
           </span>
         );
       default:
         return (
-          <span className="bg-blue-500/15 text-blue-900 dark:text-blue-300 border border-blue-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
-            <Briefcase className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+          <span className="bg-blue-500/15 text-blue-900 border border-blue-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs" title={label}>
+            <Briefcase className="w-3 h-3 text-blue-600 shrink-0" />
             <span className="truncate">{label}</span>
           </span>
         );
@@ -129,7 +129,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
           <button
             type="button"
             onClick={onShowPermissionsModal}
-            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold text-xs px-3.5 py-2.5 rounded-2xl border border-amber-500/30 flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 font-bold text-xs px-3.5 py-2.5 rounded-2xl border border-amber-500/30 flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer"
             title="استعراض مصفوفة ودليل الصلاحيات والرتب"
           >
             <ShieldCheck className="w-4 h-4 text-amber-500" />
@@ -184,7 +184,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
             <select
               value={accountStatusFilter}
               onChange={(e) => setAccountStatusFilter(e.target.value)}
-              className="bg-[var(--input-bg)] border border-amber-500/40 text-amber-700 dark:text-amber-300 font-extrabold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 shadow-xs"
+              className="bg-[var(--input-bg)] border border-amber-500/40 text-amber-700 font-extrabold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 shadow-xs"
             >
               <option value="all">كل حالات الحسابات</option>
               <option value="suspended">
@@ -260,12 +260,12 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                   <span
                     className={`text-[10px] font-black px-2.5 py-0.5 rounded-lg border shadow-xs ${
                       acc.avatarStatus === 'pending_approval'
-                        ? 'bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500/60 animate-pulse'
+                        ? 'bg-amber-500/25 text-amber-950 border-amber-500/60 animate-pulse'
                         : acc.avatarStatus === 'rejected'
-                        ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-500/50'
+                        ? 'bg-rose-500/20 text-rose-800 border-rose-500/50'
                         : isSuspended
-                        ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-500/50'
-                        : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-400 border-emerald-500/40'
+                        ? 'bg-amber-500/20 text-amber-900 border-amber-500/50'
+                        : 'bg-emerald-500/15 text-emerald-900 border-emerald-500/40'
                     }`}
                   >
                     {acc.avatarStatus === 'pending_approval'
@@ -304,17 +304,17 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                       <div className="flex items-center gap-2">
                         <span className="text-[var(--text-muted)] font-bold">أنشطة: <strong className="text-[var(--text-primary)]">{repBiz.length}</strong></span>
                         {repSettlement.totalCashInHand > 0 && (
-                          <span className="text-amber-600 dark:text-amber-400 font-bold">كاش بيده: {repSettlement.totalCashInHand} ج</span>
+                          <span className="text-amber-600 font-bold">كاش بيده: {repSettlement.totalCashInHand} ج</span>
                         )}
                       </div>
 
                       <div>
                         {repSettlement.isDebtToPlatform ? (
-                          <span className="bg-amber-500/20 text-amber-800 dark:text-amber-300 font-black px-2 py-0.5 rounded-md border border-amber-500/30">
+                          <span className="bg-amber-500/20 text-amber-800 font-black px-2 py-0.5 rounded-md border border-amber-500/30">
                             ⚠️ للمنصة: {repSettlement.debtToPlatformAmount} ج.م
                           </span>
                         ) : (
-                          <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-black px-2 py-0.5 rounded-md">
+                          <span className="bg-emerald-500/15 text-emerald-700 font-black px-2 py-0.5 rounded-md">
                             متاح سحب: {repSettlement.withdrawableBalance} ج.م
                           </span>
                         )}
@@ -335,9 +335,9 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                     <div className="bg-[var(--input-bg)] p-2 rounded-xl border border-[var(--border-color)] flex items-center justify-between text-[11px]">
                       <div className="flex items-center gap-1.5 font-mono font-bold">
                         <span className="text-[var(--text-muted)]">كود:</span>
-                        <span className="text-amber-700 dark:text-amber-300">{repRefCode}</span>
+                        <span className="text-amber-700">{repRefCode}</span>
                         {invitedCount > 0 && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">دعا {invitedCount}</span>
+                          <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">دعا {invitedCount}</span>
                         )}
                         {acc.referredByCode && (
                           <span className="text-[10px] text-[var(--text-muted)]">(دعاه: {acc.referredByCode})</span>
@@ -360,7 +360,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                                 });
                               }
                             }}
-                            className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
+                            className="text-[10px] font-bold text-amber-700 hover:underline cursor-pointer"
                             title="تجاوز مهام الإحالة وفتح/قفل الكود مباشرة"
                           >
                             {isRefUnlocked ? 'قفل' : 'تجاوز وتفعيل'}
@@ -402,7 +402,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                             onClick={() => {
                               if (onUpdateRepresentative) onUpdateRepresentative({ ...acc, status: 'suspended', avatarStatus: 'rejected' });
                             }}
-                            className="bg-rose-500/15 hover:bg-rose-500 text-rose-700 dark:text-rose-300 hover:text-white font-black px-2.5 py-2 rounded-xl border border-rose-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
+                            className="bg-rose-500/15 hover:bg-rose-500 text-rose-700 hover:text-white font-black px-2.5 py-2 rounded-xl border border-rose-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
                             title="رفض طلب تسجيل الحساب"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -410,7 +410,7 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                           </button>
                           <button
                             onClick={() => onOpenEditAccountModal(acc)}
-                            className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black px-2.5 py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
+                            className="bg-amber-500/15 hover:bg-amber-500 text-amber-900 hover:text-slate-950 font-black px-2.5 py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors cursor-pointer text-[11px]"
                             title="معاينة وفحص وثائق الهوية والبيانات"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -420,9 +420,9 @@ export const AdminRepsTab: React.FC<AdminRepsTabProps> = ({
                       ) : (
                         <button
                           onClick={() => onOpenEditAccountModal(acc)}
-                          className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 dark:text-amber-300 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-xs cursor-pointer"
+                          className="w-full bg-amber-500/15 hover:bg-amber-500 text-amber-900 hover:text-slate-950 font-black py-2 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1 transition-colors shadow-xs cursor-pointer"
                         >
-                          <Edit className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                          <Edit className="w-3.5 h-3.5 text-amber-700" />
                           <span>تعديل ومراجعة الوثائق 📝</span>
                         </button>
                       )}

@@ -186,7 +186,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-5 bg-slate-950/80 p-5 rounded-2xl border border-amber-500/30 shadow-inner">
+          <div className="flex flex-col sm:flex-row items-center gap-5 bg-slate-900/50 p-5 rounded-2xl border border-amber-500/30 shadow-inner">
             <img src={qrImageUrl} alt="QR Code" className="w-28 h-28 rounded-2xl border border-amber-500/50 bg-white p-2 shrink-0 shadow-lg" />
             <div className="space-y-1.5 text-center sm:text-right w-full">
               <p className="font-black text-amber-300 text-xl">{rep.name}</p>
@@ -211,7 +211,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
     <div className="max-w-4xl mx-auto space-y-5 pb-6 md:pb-10 tab-content-enter">
       {/* Success Notification Banner */}
       {updateSuccess && (
-        <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-300 p-4 rounded-2xl flex items-center justify-between text-xs font-bold shadow-lg animate-fade-in">
+        <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 p-4 rounded-2xl flex items-center justify-between text-xs font-bold shadow-lg animate-fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             <span>تم استيفاء الشروط والضوابط وتحديث بيانات المندوب بنجاح في المنظومة الرسمية!</span>
@@ -365,7 +365,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
           </div>
           <div>
             <p className="text-[10px] text-[var(--text-muted)] font-bold">إجمالي العمولات المكتسبة</p>
-            <p className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 leading-tight">
+            <p className="text-sm sm:text-base font-black text-emerald-600 leading-tight">
               {(settlement?.totalEarnedCommission || 0).toLocaleString()} <span className="text-[10px] font-normal">ج.م</span>
             </p>
           </div>
@@ -377,7 +377,7 @@ export const RepProfile: React.FC<RepProfileProps> = ({
           </div>
           <div>
             <p className="text-[10px] text-[var(--text-muted)] font-bold">تم صرفه وتحويله مسبقاً</p>
-            <p className="text-sm sm:text-base font-black text-purple-600 dark:text-purple-400 leading-tight">
+            <p className="text-sm sm:text-base font-black text-purple-600 leading-tight">
               {(settlement?.totalPaidOut || 0).toLocaleString()} <span className="text-[10px] font-normal">ج.م</span>
             </p>
           </div>

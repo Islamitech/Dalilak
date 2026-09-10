@@ -912,8 +912,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
       {/* 1. Sticky Navbar */}
       <ShowcaseNavbar
-        theme={theme}
-        toggleTheme={toggleTheme}
         onOpenPackagesModal={openPackagesModal}
         onReopenOnboarding={() => {
           setShowOnboarding(true);
@@ -964,7 +962,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       {/* 2.5. GPS Proximity Quick Action Notification Pill */}
       {userCoords && sortBy !== 'nearest' && !dismissGpsBanner && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-r from-blue-600/10 via-amber-500/10 to-emerald-600/10 border border-blue-500/30 dark:border-blue-500/20 rounded-2xl p-3 px-4 flex items-center justify-between gap-3 shadow-xs animate-fade-in">
+          <div className="bg-gradient-to-r from-blue-600/10 via-amber-500/10 to-emerald-600/10 border border-blue-500/30 rounded-2xl p-3 px-4 flex items-center justify-between gap-3 shadow-xs animate-fade-in">
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 animate-pulse" />
               <p className="text-xs font-black text-[var(--text-primary)] truncate">

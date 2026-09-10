@@ -287,7 +287,7 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       style={{ direction: 'rtl' }}
     >
       <div 
@@ -394,7 +394,7 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopy}
-                className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[11px] text-amber-600 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Copy className="w-3 h-3" />
                 <span>{copied ? 'تم النسخ بنجاح ✓' : 'نسخ النص'}</span>
@@ -407,7 +407,7 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
 
           {/* Phone verification check */}
           {!formattedPhone && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 text-xs font-bold flex items-center gap-2">
               <X className="w-4 h-4 shrink-0" />
               <span>تنبيه: لا يوجد رقم هاتف صالح مسجل لهذه المنشأة للإرسال المباشر. يمكنك نسخ الرسالة يدوياً.</span>
             </div>
@@ -419,7 +419,7 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
           <button
             type="button"
             onClick={handleCopy}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-primary)] font-black text-xs sm:text-sm border border-[var(--border-color)] flex items-center justify-center gap-2 transition-all cursor-pointer"
+            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-primary)] font-black text-xs sm:text-sm border border-[var(--border-color)] flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
             <Copy className="w-4 h-4" />
             <span>{copied ? 'تم نسخ الرسالة ✓' : 'نسخ نص العرض'}</span>

@@ -226,7 +226,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
   const isCallerAdmin = user.role === 'admin';
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-[10000] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
       <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto relative max-h-[94vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3 shrink-0">
@@ -237,7 +237,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
             <div>
               <h3 className="font-black text-base text-[var(--text-primary)] flex items-center gap-2">
                 <span>{isCallerAdmin ? 'تعديل الملفات والبيانات الإدارية' : 'تعديل الملف الشخصي والبيانات'}</span>
-                <span className="bg-amber-500/20 text-amber-600 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+                <span className="bg-amber-500/20 text-amber-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
                   {roleTitle || (role === 'admin' ? 'مدير النظام' : role === 'supervisor' ? 'مشرف إدارة' : role === 'accountant' ? 'محاسب مالي' : 'مندوب')}
                 </span>
               </h3>
@@ -260,14 +260,14 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
 
         {/* Feedback Alerts */}
         {successMsg && (
-          <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-3 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in shrink-0">
+          <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 p-3 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in shrink-0">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
         {errorMsg && (
-          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-300 p-3 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in shrink-0">
+          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-800 p-3 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in shrink-0">
             <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -375,7 +375,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
                   <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
                     تظهر صورتك الشخصية في الشريط العلوي، قائمة الحسابات الإدارية، وإشعارات النظام.
                   </p>
-                  <label className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/30 cursor-pointer transition-colors">
+                  <label className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/30 cursor-pointer transition-colors">
                     <Upload className="w-3.5 h-3.5" />
                     <span>{isCompressing && compressingTarget === 'avatar' ? 'جاري معالجة الصورة...' : 'رفع صورة بروفايل جديدة'}</span>
                     <input
@@ -428,7 +428,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
                     )}
                   </div>
 
-                  <label className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 py-1.5 px-2 rounded-xl font-black text-[11px] cursor-pointer block transition-colors">
+                  <label className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/30 py-1.5 px-2 rounded-xl font-black text-[11px] cursor-pointer block transition-colors">
                     <span>{isCompressing && compressingTarget === 'idFront' ? 'جاري الرفع...' : 'رفع وجه البطاقة'}</span>
                     <input
                       type="file"
@@ -477,7 +477,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
                     )}
                   </div>
 
-                  <label className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 py-1.5 px-2 rounded-xl font-black text-[11px] cursor-pointer block transition-colors">
+                  <label className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/30 py-1.5 px-2 rounded-xl font-black text-[11px] cursor-pointer block transition-colors">
                     <span>{isCompressing && compressingTarget === 'idBack' ? 'جاري الرفع...' : 'رفع ظهر البطاقة'}</span>
                     <input
                       type="file"
@@ -526,7 +526,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
                     )}
                   </div>
 
-                  <label className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 py-1.5 px-2 rounded-xl font-black text-[11px] cursor-pointer block transition-colors">
+                  <label className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/30 py-1.5 px-2 rounded-xl font-black text-[11px] cursor-pointer block transition-colors">
                     <span>{isCompressing && compressingTarget === 'facePhoto' ? 'جاري الرفع...' : 'رفع صورة إثبات الهوية'}</span>
                     <input
                       type="file"
@@ -658,7 +658,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
             <div className="space-y-3 animate-fade-in">
               {!isCallerAdmin ? (
                 <>
-                  <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-[11px] font-bold text-amber-800 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-amber-500 shrink-0" />
                     <span>
                       هذه الإعدادات والرتب والعمولات المالية محددة رسمياً ومعتمدة من قبل الإدارة المركزية لمنصة دليلك ولا يمكن تعديلها إلا عبر إدارة النظام.
@@ -668,7 +668,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
                       <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">الرتبة والمستوى المعتمد</span>
-                      <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <span className="text-xs font-black text-amber-600 flex items-center gap-1.5">
                         <Crown className="w-4 h-4" />
                         <span>
                           {role === 'supervisor'
@@ -692,7 +692,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
 
                     <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
                       <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">كود الإحالة المعتمد</span>
-                      <span className="text-xs font-black font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <span className="text-xs font-black font-mono text-amber-600 flex items-center gap-1.5">
                         <Award className="w-4 h-4" />
                         <span>{referralCode}</span>
                       </span>
@@ -700,7 +700,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
 
                     <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
                       <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">المستهدف الشهري</span>
-                      <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <span className="text-xs font-black font-mono text-emerald-600 flex items-center gap-1.5">
                         <TrendingUp className="w-4 h-4" />
                         <span>{targetMonth} نشاط شهرياً</span>
                       </span>
@@ -708,7 +708,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
 
                     <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
                       <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">نسبة العمولة والحافز</span>
-                      <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <span className="text-xs font-black font-mono text-emerald-600 flex items-center gap-1.5">
                         <Percent className="w-4 h-4" />
                         <span>{commissionRate}%</span>
                       </span>
@@ -716,7 +716,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
 
                     <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
                       <span className="text-[10px] text-[var(--text-muted)] font-bold block mb-1">حالة الحساب</span>
-                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <span className="text-xs font-black text-emerald-600 flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>{status === 'active' ? '🟢 نشط ومصرح له بالعمل' : '⏳ معلق وموقوف مؤقتاً'}</span>
                       </span>
@@ -818,7 +818,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
                         onClick={() => setStatus('active')}
                         className={`py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                           status === 'active'
-                            ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500 font-black shadow-xs'
+                            ? 'bg-emerald-500/20 text-emerald-700 border-emerald-500 font-black shadow-xs'
                             : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
                         }`}
                       >
@@ -831,7 +831,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
                         onClick={() => setStatus('suspended')}
                         className={`py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                           status === 'suspended'
-                            ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500 font-black shadow-xs'
+                            ? 'bg-rose-500/20 text-rose-700 border-rose-500 font-black shadow-xs'
                             : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
                         }`}
                       >
@@ -850,7 +850,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
           {/* ============================================================== */}
           {activeTab === 'security' && (
             <div className="space-y-3 animate-fade-in">
-              <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+              <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-[11px] font-bold text-amber-800 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
                 <span>
                   يمكنك تعيين كلمة مرور قوية للحساب لحماية النظام وتأمين صلاحيات الدخول ومراجعة البيانات.
@@ -909,7 +909,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold py-3 px-5 rounded-xl border border-[var(--border-color)] cursor-pointer text-xs"
+              className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-secondary)] font-bold py-3 px-5 rounded-xl border border-[var(--border-color)] cursor-pointer text-xs"
             >
               إلغاء
             </button>
@@ -919,7 +919,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
 
       {/* Zoomed Document Preview Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-[100100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 space-y-3 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
               <span className="font-black text-sm text-[var(--text-primary)]">{previewImage.title}</span>

@@ -158,7 +158,7 @@ export const DossierHeader: React.FC<DossierHeaderProps> = ({
             <span className="font-black text-base text-[var(--text-primary)] font-mono block">
               {repBusinessesCount} <span className="text-[10px]">نشاط</span>
             </span>
-            <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold block">
+            <span className="text-[9px] text-emerald-600 font-bold block">
               {verifiedCount} موثق • {exemptCount} معفى
             </span>
           </div>
@@ -166,7 +166,7 @@ export const DossierHeader: React.FC<DossierHeaderProps> = ({
           {/* 2. Total Collected Revenue */}
           <div className="bg-[var(--input-bg)] p-2.5 rounded-2xl border border-[var(--border-color)] space-y-0.5">
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي الإيراد المحصل</span>
-            <span className="font-black text-base text-emerald-600 dark:text-emerald-400 font-mono block">
+            <span className="font-black text-base text-emerald-600 font-mono block">
               {totalRevenue.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)] block">من فواتير الأنشطة</span>
@@ -175,7 +175,7 @@ export const DossierHeader: React.FC<DossierHeaderProps> = ({
           {/* 3. Physical Cash in Hand */}
           <div className="bg-[var(--input-bg)] p-2.5 rounded-2xl border border-[var(--border-color)] space-y-0.5">
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">كاش محصل باليد</span>
-            <span className="font-black text-base text-blue-600 dark:text-blue-400 font-mono block">
+            <span className="font-black text-base text-blue-600 font-mono block">
               {settlement.totalCashInHand.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)] block">مقبوضات نقدية في الشارع</span>
@@ -183,11 +183,11 @@ export const DossierHeader: React.FC<DossierHeaderProps> = ({
 
           {/* 4. Total Earned Commissions */}
           <div className="bg-amber-500/10 p-2.5 rounded-2xl border border-amber-500/30 space-y-0.5">
-            <span className="text-[10px] text-amber-800 dark:text-amber-300 font-black block">إجمالي العمولات المستحقة</span>
-            <span className="font-black text-base text-amber-600 dark:text-amber-400 font-mono block">
+            <span className="text-[10px] text-amber-800 font-black block">إجمالي العمولات المستحقة</span>
+            <span className="font-black text-base text-amber-600 font-mono block">
               {settlement.totalEarnedCommission.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
-            <span className="text-[9px] text-amber-700/80 dark:text-amber-300/80 font-bold block">
+            <span className="text-[9px] text-amber-700/80 font-bold block">
               {effectiveRate}% عمولة أساسية + إحالة
             </span>
           </div>
@@ -195,7 +195,7 @@ export const DossierHeader: React.FC<DossierHeaderProps> = ({
           {/* 5. Approved Payouts Paid Out */}
           <div className="bg-[var(--input-bg)] p-2.5 rounded-2xl border border-[var(--border-color)] space-y-0.5">
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">حوالات تم صرفها</span>
-            <span className="font-black text-base text-indigo-600 dark:text-indigo-400 font-mono block">
+            <span className="font-black text-base text-indigo-600 font-mono block">
               {settlement.totalPaidOut.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)] block">محافظ / إنستاباي / بنك</span>
@@ -205,8 +205,8 @@ export const DossierHeader: React.FC<DossierHeaderProps> = ({
           <div
             className={`p-2.5 rounded-2xl border space-y-0.5 ${
               settlement.isDebtToPlatform
-                ? 'bg-rose-500/15 border-rose-500/40 text-rose-700 dark:text-rose-300'
-                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                ? 'bg-rose-500/15 border-rose-500/40 text-rose-700'
+                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700'
             }`}
           >
             <span className="text-[10px] font-black block">

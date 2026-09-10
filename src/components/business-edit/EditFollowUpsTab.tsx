@@ -162,32 +162,32 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
   const getTypeInfo = (type: AdminFollowUpType) => {
     switch (type) {
       case 'call':
-        return { label: 'اتصال هاتفي', Icon: Phone, bg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+        return { label: 'اتصال هاتفي', Icon: Phone, bg: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' };
       case 'visit':
-        return { label: 'زيارة ميدانية', Icon: Navigation, bg: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
+        return { label: 'زيارة ميدانية', Icon: Navigation, bg: 'bg-purple-500/15 text-purple-700 border-purple-500/30' };
       case 'payment':
-        return { label: 'متابعة سداد', Icon: DollarSign, bg: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
+        return { label: 'متابعة سداد', Icon: DollarSign, bg: 'bg-amber-500/15 text-amber-700 border-amber-500/30' };
       case 'verification':
-        return { label: 'توثيق الخريطة', Icon: Globe, bg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
+        return { label: 'توثيق الخريطة', Icon: Globe, bg: 'bg-blue-500/15 text-blue-700 border-blue-500/30' };
       default:
-        return { label: 'ملاحظة عامة', Icon: FileText, bg: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
+        return { label: 'ملاحظة عامة', Icon: FileText, bg: 'bg-slate-500/15 text-slate-700 border-slate-500/30' };
     }
   };
 
   const getCategoryInfo = (cat?: AdminFollowUpCategory) => {
     switch (cat) {
       case 'directory':
-        return { label: 'الدليل', Icon: Store, cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+        return { label: 'الدليل', Icon: Store, cls: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' };
       case 'maps':
-        return { label: 'الخرائط', Icon: MapPin, cls: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30' };
+        return { label: 'الخرائط', Icon: MapPin, cls: 'bg-blue-500/15 text-blue-700 border-blue-500/30' };
       case 'finance':
-        return { label: 'المالية', Icon: DollarSign, cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
+        return { label: 'المالية', Icon: DollarSign, cls: 'bg-amber-500/15 text-amber-700 border-amber-500/30' };
       case 'media':
-        return { label: 'الوسائط', Icon: ImageIcon, cls: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30' };
+        return { label: 'الوسائط', Icon: ImageIcon, cls: 'bg-purple-500/15 text-purple-700 border-purple-500/30' };
       case 'info':
-        return { label: 'البيانات', Icon: Tag, cls: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30' };
+        return { label: 'البيانات', Icon: Tag, cls: 'bg-slate-500/15 text-slate-700 border-slate-500/30' };
       case 'whatsapp':
-        return { label: 'واتساب', Icon: MessageCircle, cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
+        return { label: 'واتساب', Icon: MessageCircle, cls: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' };
       default:
         return { label: 'عام', Icon: FileText, cls: 'bg-slate-500/10 text-slate-500 border-slate-500/20' };
     }
@@ -219,8 +219,8 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
               <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
                 سجل المتابعات الشامل (CRM)
               </h4>
-              <span className="text-[9px] bg-amber-500/20 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+              <span className="text-[9px] bg-amber-500/20 text-amber-900 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5 text-amber-600" />
                 <span>سري</span>
               </span>
             </div>
@@ -264,8 +264,8 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
             </span>
           </div>
           <div className="bg-amber-500/10 border border-amber-500/30 p-1.5 rounded-xl">
-            <span className="text-[9px] text-amber-600 dark:text-amber-300 block font-bold truncate">معلق</span>
-            <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">
+            <span className="text-[9px] text-amber-600 block font-bold truncate">معلق</span>
+            <span className="font-mono font-black text-xs text-amber-600">
               {allFollowUps.filter((f) => f.status === 'pending').length}
             </span>
           </div>
@@ -280,7 +280,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
             <span>إضافة متابعة / ملاحظة</span>
           </h5>
           <span className="text-[10px] text-[var(--text-secondary)] font-bold truncate max-w-[180px]">
-            <strong className="text-amber-600 dark:text-amber-400">
+            <strong className="text-amber-600">
               {currentUserName || currentRoleTitle || 'المسؤول'}
             </strong>
           </span>
@@ -328,16 +328,16 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
         {(newFollowUpText.trim().length > 0 || newFollowUpType !== null || newFollowUpStatus !== null) && (
           <div className="bg-[var(--bg-card)] border-2 border-amber-500/40 rounded-2xl p-3 sm:p-3.5 space-y-3 shadow-xs animate-fade-in">
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
-              <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+              <span className="text-xs font-black text-amber-700 flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                 <span>تحديد تصنيف وحالة هذا الإجراء (إلزامي للتذكير):</span>
               </span>
               {!newFollowUpType || !newFollowUpStatus ? (
-                <span className="text-[10px] bg-rose-500/15 text-rose-700 dark:text-rose-300 font-black px-2 py-0.5 rounded-md animate-pulse">
+                <span className="text-[10px] bg-rose-500/15 text-rose-700 font-black px-2 py-0.5 rounded-md animate-pulse">
                   * مطلوب الاختيار
                 </span>
               ) : (
-                <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[10px] bg-emerald-500/15 text-emerald-700 font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Check className="w-3 h-3 text-emerald-500" /> جاهز للحفظ
                 </span>
               )}
@@ -435,7 +435,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
 
         {/* Validation Error Message */}
         {followUpError && (
-          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
             <span>{followUpError}</span>
           </div>
@@ -599,7 +599,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                               : 'المشرف'}
                           </span>
 
-                          <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                          <span className="text-[9px] bg-amber-500/15 text-amber-700 font-bold px-1.5 py-0.2 rounded flex items-center gap-0.5">
                             <Lock className="w-2.5 h-2.5 text-amber-500" />
                             <span>رقابة عليا</span>
                           </span>
@@ -621,10 +621,10 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                         onClick={() => handleToggleFollowUpStatus(note.id)}
                         className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border cursor-pointer transition-transform active:scale-95 ${
                           isUrgent
-                            ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                            ? 'bg-rose-500/20 text-rose-700 border-rose-500/40'
                             : isPending
-                            ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/40'
-                            : 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-500/40'
+                            ? 'bg-amber-500/20 text-amber-800 border-amber-500/40'
+                            : 'bg-emerald-500/20 text-emerald-800 border-emerald-500/40'
                         }`}
                         title="انقر لتغيير الحالة بين مكتمل ومعلق"
                       >
@@ -655,7 +655,7 @@ export const EditFollowUpsTab: React.FC<EditFollowUpsTabProps> = ({
                   {/* Next Date Tag if present */}
                   {note.nextFollowUpDate && (
                     <div className="flex items-center gap-1.5 pt-1 text-[10.5px]">
-                      <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-lg font-bold inline-flex items-center gap-1">
+                      <span className="bg-amber-500/15 text-amber-700 border border-amber-500/30 px-2 py-0.5 rounded-lg font-bold inline-flex items-center gap-1">
                         <Calendar className="w-3 h-3 text-amber-500" />
                         <span>موعد المتابعة القادم: </span>
                         <strong className="font-mono font-black">{note.nextFollowUpDate}</strong>

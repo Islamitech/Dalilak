@@ -22,7 +22,7 @@ export const AppToastContainer: React.FC<AppToastContainerProps> = ({
     >
       {showSyncBadge && (
         <div
-          className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 dark:bg-emerald-950/90 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 backdrop-blur-xl text-xs font-black shadow-xl animate-fade-in transition-all"
+          className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-700 backdrop-blur-xl text-xs font-black shadow-xl animate-fade-in transition-all"
           style={{ direction: 'rtl' }}
         >
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />

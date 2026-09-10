@@ -171,13 +171,13 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         {/* Compact Hero Header (2 tight lines) */}
         <div className="text-center space-y-1.5 max-w-2xl mx-auto animate-fade-in-up">
-          <div className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[11px] font-black px-3 py-0.5 rounded-full">
+          <div className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 text-amber-600 text-[11px] font-black px-3 py-0.5 rounded-full">
             <Sparkles className="w-3 h-3 text-amber-500" />
             <span>الدليل الميداني المعتمد في مصر • {publicBusinesses.length}+ مكان موثق</span>
           </div>
 
           {tourStep === 'welcome' ? (
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-amber-500 dark:text-amber-400 leading-tight tracking-tight animate-fade-in">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-amber-500 leading-tight tracking-tight animate-fade-in">
               مرحباً بك في دليلك ✦
             </h1>
           ) : tourStep === 'typewriter' ? (
@@ -478,11 +478,11 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
               {/* Hadayek Zone Filter (if applicable) */}
               {cityFilter === 'حدائق الأهرام' && (
                 <div>
-                  <label className="block text-[10.5px] font-black text-amber-600 dark:text-amber-400 mb-1">قطاع حدائق الأهرام:</label>
+                  <label className="block text-[10.5px] font-black text-amber-600 mb-1">قطاع حدائق الأهرام:</label>
                   <select
                     value={hadayekZoneFilter}
                     onChange={(e) => setHadayekZoneFilter(e.target.value)}
-                    className="w-full bg-amber-500/10 border-2 border-amber-500/40 rounded-xl px-2.5 py-2 text-xs font-black text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500 cursor-pointer"
+                    className="w-full bg-amber-500/10 border-2 border-amber-500/40 rounded-xl px-2.5 py-2 text-xs font-black text-amber-600 focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
                     <option value="all">كل القطاعات ({HADAYEK_ALAHRAM_ZONES.length})</option>
                     {HADAYEK_ALAHRAM_ZONES.map((z) => (

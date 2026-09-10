@@ -203,7 +203,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             </button>
           </div>
         ) : (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-800">
             <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
             <span className="font-bold">كافة المنشآت المعتمدة تم ربطها أو رفعها للتوثيق بـ Google ولا توجد طلبات متأخرة.</span>
           </div>
@@ -280,12 +280,12 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             <span>إجمالي التحصيل المالي</span>
             <DollarSign className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+          <p className="text-xl sm:text-2xl font-black text-emerald-600">
             {totalRevenue.toLocaleString()} <span className="text-xs text-[var(--text-secondary)]">ج.م</span>
           </p>
           <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
             <span>نسبة التحصيل:</span>
-            <span className="font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">{collectionRate}%</span>
+            <span className="font-extrabold text-emerald-600 font-sans">{collectionRate}%</span>
           </div>
         </div>
 
@@ -310,13 +310,13 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             <span>موثقة بخرائط Google</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+          <p className="text-xl sm:text-2xl font-black text-emerald-600">
             {verifiedCount} <span className="text-xs text-[var(--text-secondary)]">منشأة ({verificationRate}%)</span>
           </p>
           <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
             <span>إجمالي المنشآت:</span>
             <span className="font-bold font-sans">
-              {realBusinesses.length} منشأة {exemptCount > 0 && <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">({exemptCount} رائج معفى)</span>}
+              {realBusinesses.length} منشأة {exemptCount > 0 && <span className="text-[10px] text-teal-600 font-bold">({exemptCount} رائج معفى)</span>}
             </span>
           </div>
         </div>
@@ -332,7 +332,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
           </p>
           <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
             <span>المحافظات المغطاة:</span>
-            <span className="font-bold font-sans text-amber-600 dark:text-amber-400">{governorateStats.length} محافظة</span>
+            <span className="font-bold font-sans text-amber-600">{governorateStats.length} محافظة</span>
           </div>
         </div>
       </div>
@@ -341,7 +341,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
       <div className="bg-gradient-to-br from-[var(--bg-card)] via-[var(--bg-surface)] to-[var(--bg-card)] border-2 border-amber-500/30 rounded-3xl p-5 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center font-bold">
               <Calculator className="w-5 h-5" />
             </div>
             <div>
@@ -355,7 +355,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+            <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
               صافي المنصة: {netPlatformRevenue.toLocaleString()} ج.م
             </span>
           </div>
@@ -365,7 +365,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-center text-xs">
           <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي المحصل الشامل</span>
-            <span className="font-black text-base text-emerald-600 dark:text-emerald-400 font-mono block">
+            <span className="font-black text-base text-emerald-600 font-mono block">
               {totalRevenue.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)]">كافة باقات المنظومة</span>
@@ -373,50 +373,50 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
 
           <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">كاش محصل بيد المناديب</span>
-            <span className="font-black text-base text-blue-600 dark:text-blue-400 font-mono block">
+            <span className="font-black text-base text-blue-600 font-mono block">
               {totalCashInRepsHands.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)]">مقبوضات نقدية ميدانية</span>
           </div>
 
           <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 space-y-1">
-            <span className="text-[10px] text-amber-800 dark:text-amber-300 font-black block">💵 عمولات استلمت نقداً</span>
-            <span className="font-black text-base text-amber-600 dark:text-amber-400 font-mono block">
+            <span className="text-[10px] text-amber-800 font-black block">💵 عمولات استلمت نقداً</span>
+            <span className="font-black text-base text-amber-600 font-mono block">
               {totalCommissionsRetainedInCash.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
-            <span className="text-[9px] text-amber-700/80 dark:text-amber-300/80 font-bold">استقطعها المندوب من الكاش</span>
+            <span className="text-[9px] text-amber-700/80 font-bold">استقطعها المندوب من الكاش</span>
           </div>
 
           <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">عمولات تم صرفها بحوالة</span>
-            <span className="font-black text-base text-emerald-600 dark:text-emerald-400 font-mono block">
+            <span className="font-black text-base text-emerald-600 font-mono block">
               {totalApprovedPayouts.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)]">إلكتروني / إنستاباي / فودافون</span>
           </div>
 
           <div className="bg-blue-500/10 p-3 rounded-2xl border border-blue-500/30 space-y-1">
-            <span className="text-[10px] text-blue-700 dark:text-blue-300 font-bold block">توريدات استلمتها المنصة</span>
-            <span className="font-black text-base text-blue-600 dark:text-blue-400 font-mono block">
+            <span className="text-[10px] text-blue-700 font-bold block">توريدات استلمتها المنصة</span>
+            <span className="font-black text-base text-blue-600 font-mono block">
               {totalRemittancesReceived.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
-            <span className="text-[9px] text-blue-600/80 dark:text-blue-300/80 font-bold">سداد محصل من المناديب</span>
+            <span className="text-[9px] text-blue-600/80 font-bold">سداد محصل من المناديب</span>
           </div>
 
           <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] space-y-1">
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">إجمالي عمولات المناديب</span>
-            <span className="font-black text-base text-indigo-600 dark:text-indigo-400 font-mono block">
+            <span className="font-black text-base text-indigo-600 font-mono block">
               {totalEarnedCommissions.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
             <span className="text-[9px] text-[var(--text-muted)]">كافة الاستحقاقات الشاملة</span>
           </div>
 
           <div className="bg-teal-500/10 p-3 rounded-2xl border border-teal-500/30 space-y-1">
-            <span className="text-[10px] text-teal-700 dark:text-teal-300 font-bold block">صافي أرباح المنظومة</span>
-            <span className="font-black text-base text-teal-600 dark:text-teal-400 font-mono block">
+            <span className="text-[10px] text-teal-700 font-bold block">صافي أرباح المنظومة</span>
+            <span className="font-black text-base text-teal-600 font-mono block">
               {netPlatformRevenue.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
-            <span className="text-[9px] text-teal-600/80 dark:text-teal-300/80 font-bold">بعد استقطاع كافة العمولات</span>
+            <span className="text-[9px] text-teal-600/80 font-bold">بعد استقطاع كافة العمولات</span>
           </div>
         </div>
       </div>
@@ -464,22 +464,22 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                     </div>
                   </td>
                   <td className="p-3 text-center font-mono font-bold">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{m.verifiedCount}</span>
+                    <span className="text-emerald-600 font-bold">{m.verifiedCount}</span>
                     <span className="text-[10px] text-[var(--text-muted)]"> / {m.totalBizCount}</span>
                   </td>
                   <td className="p-3 text-center font-mono font-black text-[var(--text-primary)]">
                     {m.grossRevenue.toLocaleString()} ج.م
                   </td>
-                  <td className="p-3 text-center font-mono font-bold text-amber-600 dark:text-amber-400">
+                  <td className="p-3 text-center font-mono font-bold text-amber-600">
                     {m.repCommissions.toLocaleString()} ج.م
                   </td>
-                  <td className="p-3 text-center font-mono font-bold text-blue-600 dark:text-blue-400">
+                  <td className="p-3 text-center font-mono font-bold text-blue-600">
                     {m.avgRepIncome.toLocaleString()} ج.م
                   </td>
-                  <td className="p-3 text-center font-mono font-black text-teal-600 dark:text-teal-400">
+                  <td className="p-3 text-center font-mono font-black text-teal-600">
                     {m.netPlatform.toLocaleString()} ج.م
                   </td>
-                  <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  <td className="p-3 text-center font-mono font-bold text-emerald-600">
                     <div>{(m.totalActualDisbursed ?? m.disbursedPayouts).toLocaleString()} ج.م</div>
                     {((m.cashRetainedCommissions || 0) > 0 || m.disbursedPayouts > 0) && (
                       <div className="text-[10px] text-[var(--text-muted)] font-normal mt-0.5">
@@ -493,11 +493,11 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                     {m.topRepEarnings > 0 ? (
                       <div className="inline-flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30 text-[10.5px]">
                         <Crown className="w-3 h-3 text-amber-500" />
-                        <span className="font-bold text-amber-800 dark:text-amber-300">{m.topRepName}</span>
+                        <span className="font-bold text-amber-800">{m.topRepName}</span>
                         <span className="font-mono font-bold text-amber-600">({m.topRepEarnings} ج)</span>
                       </div>
                     ) : m.topRepName && m.topRepName !== '-' ? (
-                      <span className="text-[10.5px] font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-lg">
+                      <span className="text-[10.5px] font-bold text-teal-700 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-lg">
                         {m.topRepName}
                       </span>
                     ) : (
@@ -516,13 +516,13 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
       <div className="bg-gradient-to-br from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border border-emerald-500/30 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <span>مؤشرات العملاء المحتملين والمراجعات الميدانية (CRM Leads)</span>
-                <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/25">
+                <span className="bg-emerald-500/15 text-emerald-700 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/25">
                   {leadStats.total} عميل مهتم
                 </span>
               </h3>
@@ -553,33 +553,33 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
           </div>
 
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center justify-between">
+            <div className="text-[11px] font-bold text-amber-600 flex items-center justify-between">
               <span>بانتظار المتابعة</span>
               <Clock className="w-3.5 h-3.5 text-amber-500" />
             </div>
-            <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 font-mono">
+            <div className="text-lg sm:text-xl font-black text-amber-600 font-mono">
               {leadStats.pendingFollowup}
             </div>
           </div>
 
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between">
+            <div className="text-[11px] font-bold text-blue-600 flex items-center justify-between">
               <span>تم التواصل معهم</span>
               <Phone className="w-3.5 h-3.5 text-blue-500" />
             </div>
-            <div className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400 font-mono">
+            <div className="text-lg sm:text-xl font-black text-blue-600 font-mono">
               {leadStats.contacted}
             </div>
           </div>
 
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+            <div className="text-[11px] font-bold text-emerald-600 flex items-center justify-between">
               <span>تحولوا لمشتركين فعليين</span>
               <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
             </div>
-            <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
+            <div className="text-lg sm:text-xl font-black text-emerald-600 font-mono flex items-center gap-1.5">
               <span>{leadStats.converted}</span>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
                 ({leadStats.conversionRate}%)
               </span>
             </div>
@@ -600,7 +600,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             {/* Verified */}
             <div className="space-y-1">
               <div className="flex justify-between font-extrabold">
-                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+                <span className="flex items-center gap-1.5 text-emerald-700">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>موثقة ومبثوثة رسمياً</span>
                 </span>
@@ -614,7 +614,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             {/* In Progress */}
             <div className="space-y-1">
               <div className="flex justify-between font-extrabold">
-                <span className="flex items-center gap-1.5 text-amber-800 dark:text-amber-400">
+                <span className="flex items-center gap-1.5 text-amber-800">
                   <Clock className="w-3.5 h-3.5" />
                   <span>أُرسلت وقيد مراجعة جوجل</span>
                 </span>
@@ -631,7 +631,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             {/* Not Submitted */}
             <div className="space-y-1">
               <div className="flex justify-between font-extrabold">
-                <span className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400">
+                <span className="flex items-center gap-1.5 text-rose-700">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   <span>لم تُرفع للتوثيق بعد</span>
                 </span>
@@ -660,7 +660,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                 <div className="flex justify-between items-center font-bold">
                   <span className="text-[var(--text-primary)]">{pkg.title}</span>
                   <div className="flex items-center gap-2 font-mono text-[11px]">
-                    <span className="text-amber-600 dark:text-amber-400 font-bold">{pkg.count} نشاط</span>
+                    <span className="text-amber-600 font-bold">{pkg.count} نشاط</span>
                     <span className="text-[var(--text-muted)]">({pkg.percentage}%)</span>
                   </div>
                 </div>
@@ -689,7 +689,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
                 <div key={gov.name} className="space-y-1 bg-[var(--bg-surface)] p-2 rounded-xl border border-[var(--border-color)]">
                   <div className="flex justify-between font-bold">
                     <span className="text-[var(--text-primary)]">{gov.name}</span>
-                    <span className="font-mono text-amber-600 dark:text-amber-400">{gov.count} نشاط ({pct}%)</span>
+                    <span className="font-mono text-amber-600">{gov.count} نشاط ({pct}%)</span>
                   </div>
                   <div className="w-full bg-[var(--input-bg)] h-1.5 rounded-full overflow-hidden">
                     <div className="bg-amber-500 h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
@@ -718,7 +718,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             </p>
           </div>
 
-          <span className="text-xs text-amber-600 dark:text-amber-400 font-black bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/30">
+          <span className="text-xs text-amber-600 font-black bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/30">
             إجمالي الأعضاء: {repPerformanceStats.length}
           </span>
         </div>
@@ -758,33 +758,33 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
 
                   <td className="p-3">
                     <p className="font-bold text-[var(--text-primary)]">{rep.governorate}</p>
-                    <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">{rep.roleTitle || (rep.role === 'admin' ? 'مدير' : rep.role === 'supervisor' ? 'مشرف' : 'مندوب')}</span>
+                    <span className="text-[10px] text-amber-700 font-bold">{rep.roleTitle || (rep.role === 'admin' ? 'مدير' : rep.role === 'supervisor' ? 'مشرف' : 'مندوب')}</span>
                   </td>
 
                   <td className="p-3 text-center font-mono">
                     <span className="font-black text-sm text-[var(--text-primary)]">{totalBiz}</span>
-                    <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">{verifiedBiz} موثق</p>
+                    <p className="text-[9px] text-emerald-600 font-bold">{verifiedBiz} موثق</p>
                   </td>
 
-                  <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  <td className="p-3 text-center font-mono font-bold text-emerald-600">
                     {collectedRevenue.toLocaleString()} ج
                   </td>
 
-                  <td className="p-3 text-center font-mono font-black text-blue-600 dark:text-blue-400">
+                  <td className="p-3 text-center font-mono font-black text-blue-600">
                     {cashInHand > 0 ? `${cashInHand.toLocaleString()} ج` : '0 ج'}
                   </td>
 
-                  <td className="p-3 text-center font-mono font-black text-amber-600 dark:text-amber-400">
+                  <td className="p-3 text-center font-mono font-black text-amber-600">
                     {earnedCommission > 0 ? `${earnedCommission.toLocaleString()} ج` : '0 ج'}
                   </td>
 
                   <td className="p-3 text-center">
                     {isDebt ? (
-                      <span className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xs inline-block whitespace-nowrap">
+                      <span className="bg-rose-500/15 text-rose-700 border border-rose-500/30 text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xs inline-block whitespace-nowrap">
                         ⚠️ عهدة: {debtToPlatform.toLocaleString()} ج
                       </span>
                     ) : withdrawableBalance > 0 ? (
-                      <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xs inline-block whitespace-nowrap">
+                      <span className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xs inline-block whitespace-nowrap">
                         🟢 متاح: {withdrawableBalance.toLocaleString()} ج
                       </span>
                     ) : (
@@ -796,7 +796,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
 
                   <td className="p-3 text-center">
                     {invitedCount > 0 ? (
-                      <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/30">
+                      <span className="bg-emerald-500/10 text-emerald-600 font-black text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/30">
                         👥 دعا {invitedCount}
                       </span>
                     ) : (
@@ -806,7 +806,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
 
                   <td className="p-3 text-center">
                     {isOnline ? (
-                      <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-black px-2.5 py-1 rounded-full shadow-xs inline-flex items-center gap-1.5">
+                      <span className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 text-[10px] font-black px-2.5 py-1 rounded-full shadow-xs inline-flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span>{lastActiveText}</span>
                       </span>

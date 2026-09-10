@@ -33,7 +33,7 @@ export const DossierReferralsTab: React.FC<DossierReferralsTabProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-amber-500/40 text-xs font-mono font-black text-amber-600 dark:text-amber-400">
+            <div className="bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-amber-500/40 text-xs font-mono font-black text-amber-600">
               كود: {referralSummary.referralCode}
             </div>
 
@@ -85,7 +85,7 @@ export const DossierReferralsTab: React.FC<DossierReferralsTabProps> = ({
           </div>
 
           <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/30 space-y-0.5 col-span-2 sm:col-span-1">
-            <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-black block">إجمالي أرباح الإحالة</span>
+            <span className="text-[10px] text-emerald-800 font-black block">إجمالي أرباح الإحالة</span>
             <span className="font-black text-base text-emerald-600 font-mono block">
               {referralSummary.totalNetEarnings.toLocaleString()} <span className="text-[10px]">ج</span>
             </span>
@@ -120,7 +120,7 @@ export const DossierReferralsTab: React.FC<DossierReferralsTabProps> = ({
                     <td className="p-2.5 text-[11px] text-[var(--text-muted)]">{inv.rep.governorate} • {inv.rep.phone}</td>
                     <td className="p-2.5 font-mono text-center">
                       <span className="font-bold">{inv.bizCount} مسجل</span>{' '}
-                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">({inv.verifiedBizCount || 0} موثق بجوجل)</span>
+                      <span className="text-[10px] text-blue-600 font-bold">({inv.verifiedBizCount || 0} موثق بجوجل)</span>
                     </td>
                     <td className="p-2.5 text-center">
                       {inv.isMission1Complete ? (
@@ -128,7 +128,7 @@ export const DossierReferralsTab: React.FC<DossierReferralsTabProps> = ({
                           تم الصرف (+250 ج)
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
                           متبقي {inv.remainingForMission1} موثق
                         </span>
                       )}

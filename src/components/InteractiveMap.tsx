@@ -464,7 +464,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {isExpanded && (
         <div
           onClick={() => setIsExpanded(false)}
-          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-40"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
         />
       )}
 

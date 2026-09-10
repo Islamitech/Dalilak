@@ -148,7 +148,7 @@ export const PermissionsHub: React.FC = () => {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow-md">
               <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <span className="bg-amber-500/20 text-amber-900 dark:text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
+            <span className="bg-amber-500/20 text-amber-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
               صلاحيات كاملة
             </span>
           </div>
@@ -160,7 +160,7 @@ export const PermissionsHub: React.FC = () => {
             </p>
           </div>
 
-          <span className="text-[11px] text-amber-600 dark:text-amber-400 font-black inline-flex items-center gap-1">
+          <span className="text-[11px] text-amber-600 font-black inline-flex items-center gap-1">
             <span>استعراض التفاصيل الكاملة</span>
             <span>←</span>
           </span>
@@ -180,7 +180,7 @@ export const PermissionsHub: React.FC = () => {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md">
               <Crown className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <span className="bg-purple-500/20 text-purple-900 dark:text-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-500/30">
+            <span className="bg-purple-500/20 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-500/30">
               مشرف الإدارة
             </span>
           </div>
@@ -192,7 +192,7 @@ export const PermissionsHub: React.FC = () => {
             </p>
           </div>
 
-          <span className="text-[11px] text-purple-600 dark:text-purple-400 font-black inline-flex items-center gap-1">
+          <span className="text-[11px] text-purple-600 font-black inline-flex items-center gap-1">
             <span>استعراض التفاصيل الكاملة</span>
             <span>←</span>
           </span>
@@ -212,7 +212,7 @@ export const PermissionsHub: React.FC = () => {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold shadow-md">
               <Calculator className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <span className="bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+            <span className="bg-emerald-500/20 text-emerald-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
               المسؤول المالي
             </span>
           </div>
@@ -224,7 +224,7 @@ export const PermissionsHub: React.FC = () => {
             </p>
           </div>
 
-          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-black inline-flex items-center gap-1">
+          <span className="text-[11px] text-emerald-600 font-black inline-flex items-center gap-1">
             <span>استعراض التفاصيل الكاملة</span>
             <span>←</span>
           </span>
@@ -244,7 +244,7 @@ export const PermissionsHub: React.FC = () => {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md">
               <Briefcase className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <span className="bg-blue-500/20 text-blue-900 dark:text-blue-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-blue-500/30">
+            <span className="bg-blue-500/20 text-blue-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-blue-500/30">
               المندوب الميداني
             </span>
           </div>
@@ -256,7 +256,7 @@ export const PermissionsHub: React.FC = () => {
             </p>
           </div>
 
-          <span className="text-[11px] text-blue-600 dark:text-blue-400 font-black inline-flex items-center gap-1">
+          <span className="text-[11px] text-blue-600 font-black inline-flex items-center gap-1">
             <span>استعراض التفاصيل الكاملة</span>
             <span>←</span>
           </span>
@@ -277,7 +277,7 @@ export const PermissionsHub: React.FC = () => {
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
                   رتبة: مدير النظام (System Administrator)
                 </h3>
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                <p className="text-xs text-amber-600 font-bold">
                   الصلاحية الإدارية والسيادية العليا لمنصة دليلك
                 </p>
               </div>
@@ -285,7 +285,7 @@ export const PermissionsHub: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-emerald-700 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح لمدير النظام:</span>
                 </h4>
@@ -300,7 +300,7 @@ export const PermissionsHub: React.FC = () => {
               </div>
 
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-amber-700 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
                   <span>الاستخدام والممارسات المعتمدة لهذه الرتبة:</span>
                 </h4>
@@ -325,7 +325,7 @@ export const PermissionsHub: React.FC = () => {
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
                   رتبة: مشرف الإدارة (Administrative Supervisor)
                 </h3>
-                <p className="text-xs text-purple-600 dark:text-purple-400 font-bold">
+                <p className="text-xs text-purple-600 font-bold">
                   كامل الصلاحيات الإدارية والميدانية المتقدمة (ما عدا حذف الحسابات)
                 </p>
               </div>
@@ -333,7 +333,7 @@ export const PermissionsHub: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-emerald-700 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح لمشرف الإدارة:</span>
                 </h4>
@@ -348,7 +348,7 @@ export const PermissionsHub: React.FC = () => {
               </div>
 
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-rose-700 flex items-center gap-1.5">
                   <Lock className="w-4 h-4" />
                   <span>القيد المحدد لمشرف الإدارة:</span>
                 </h4>
@@ -371,7 +371,7 @@ export const PermissionsHub: React.FC = () => {
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
                   رتبة: محاسب ومحصل (Financial Accountant)
                 </h3>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                <p className="text-xs text-emerald-600 font-bold">
                   لوحة الإدارة والإحصائيات والحسابات بالكامل + تسجيل الأنشطة والتحصيل المالي
                 </p>
               </div>
@@ -379,7 +379,7 @@ export const PermissionsHub: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-emerald-700 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح للمحاسب المالي:</span>
                 </h4>
@@ -394,7 +394,7 @@ export const PermissionsHub: React.FC = () => {
               </div>
 
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-amber-700 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
                   <span>الاستخدام والممارسات المعتمدة للمحاسب:</span>
                 </h4>
@@ -418,7 +418,7 @@ export const PermissionsHub: React.FC = () => {
                 <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
                   رتبة: المندوب المعتمد (Field Sales Representative)
                 </h3>
-                <p className="text-xs text-blue-600 dark:text-blue-400 font-bold">
+                <p className="text-xs text-blue-600 font-bold">
                   محرك المبيعات الميداني، تسجيل الأنشطة، وزيارة ومتابعة العملاء
                 </p>
               </div>
@@ -426,7 +426,7 @@ export const PermissionsHub: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-emerald-700 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>المتاح والمسموح للمندوب الميداني:</span>
                 </h4>
@@ -441,7 +441,7 @@ export const PermissionsHub: React.FC = () => {
               </div>
 
               <div className="space-y-2 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
-                <h4 className="font-black text-sm text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                <h4 className="font-black text-sm text-rose-700 flex items-center gap-1.5">
                   <Lock className="w-4 h-4" />
                   <span>القيود وضوابط حماية البيانات:</span>
                 </h4>
@@ -467,7 +467,7 @@ export const PermissionsHub: React.FC = () => {
               جدول المقارنة الشامل لكافة الصلاحيات
             </h3>
           </div>
-          <span className="text-xs text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+          <span className="text-xs text-amber-600 font-bold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
             تفعيل وتطبيق معتمد في النظام
           </span>
         </div>
@@ -477,10 +477,10 @@ export const PermissionsHub: React.FC = () => {
             <thead>
               <tr className="bg-[var(--input-bg)] text-[var(--text-primary)] border-b border-[var(--border-color)]">
                 <th className="p-3 font-black rounded-r-xl">الصلاحية / الوظيفة</th>
-                <th className="p-3 font-black text-center text-amber-600 dark:text-amber-400">مدير النظام</th>
-                <th className="p-3 font-black text-center text-purple-600 dark:text-purple-400">مشرف الإدارة</th>
-                <th className="p-3 font-black text-center text-emerald-600 dark:text-emerald-400">المسؤول المالي</th>
-                <th className="p-3 font-black text-center text-blue-600 dark:text-blue-400">المندوب الميداني</th>
+                <th className="p-3 font-black text-center text-amber-600">مدير النظام</th>
+                <th className="p-3 font-black text-center text-purple-600">مشرف الإدارة</th>
+                <th className="p-3 font-black text-center text-emerald-600">المسؤول المالي</th>
+                <th className="p-3 font-black text-center text-blue-600">المندوب الميداني</th>
                 <th className="p-3 font-black rounded-l-xl text-[var(--text-muted)]">ملاحظات التحقق</th>
               </tr>
             </thead>

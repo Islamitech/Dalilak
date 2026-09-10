@@ -123,7 +123,7 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10040] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
+    <div className="fixed inset-0 z-[10040] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto text-[var(--text-primary)] modal-content overflow-y-auto max-h-[94vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
@@ -150,14 +150,14 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
         </div>
 
         {/* Informative Platform Notice */}
-        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 p-3 rounded-2xl text-xs font-bold leading-relaxed flex items-center gap-2">
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 p-3 rounded-2xl text-xs font-bold leading-relaxed flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>تنبيه نظام: هذه الفاتورة تصدر رسمياً عن إدارة المنصة، ويتم تحصيلها إلكترونياً فقط لحسابات المنصة، وتُسجل فورياً ضمن التحصيل العام للتطبيق.</span>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-3 rounded-2xl text-xs font-bold">
+            <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 p-3 rounded-2xl text-xs font-bold">
               {error}
             </div>
           )}
@@ -225,7 +225,7 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
                 min="0"
                 value={amountPaid}
                 onChange={(e) => setAmountPaid(Number(e.target.value) || 0)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-600 dark:text-emerald-400 font-black text-sm rounded-2xl p-3 focus:outline-none focus:border-emerald-500 font-mono"
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-emerald-600 font-black text-sm rounded-2xl p-3 focus:outline-none focus:border-emerald-500 font-mono"
               />
             </div>
           </div>
@@ -235,14 +235,14 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
             <button
               type="button"
               onClick={() => setAmountPaid(numAmount)}
-              className="text-[11px] font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl cursor-pointer flex-1"
+              className="text-[11px] font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border border-emerald-500/30 px-3 py-1.5 rounded-xl cursor-pointer flex-1"
             >
               ✓ مسدد بالكامل ({numAmount} ج)
             </button>
             <button
               type="button"
               onClick={() => setAmountPaid(Math.round(numAmount / 2))}
-              className="text-[11px] font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl cursor-pointer flex-1"
+              className="text-[11px] font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border border-amber-500/30 px-3 py-1.5 rounded-xl cursor-pointer flex-1"
             >
               ⏳ نصف المبلغ ({Math.round(numAmount / 2)} ج)
             </button>

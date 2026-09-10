@@ -52,7 +52,7 @@ export const AdminPayoutActionModal: React.FC<AdminPayoutActionModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 relative max-h-[92vh] overflow-y-auto">
         <button
           onClick={onClose}
@@ -84,7 +84,7 @@ export const AdminPayoutActionModal: React.FC<AdminPayoutActionModalProps> = ({
                 : 'رفض طلب سحب العمولة ❌'}
             </h3>
             <p className="text-[11px] text-[var(--text-muted)] font-medium">
-              المندوب: <strong className="text-amber-700 dark:text-amber-300">{payout.repName}</strong>
+              المندوب: <strong className="text-amber-700">{payout.repName}</strong>
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export const AdminPayoutActionModal: React.FC<AdminPayoutActionModalProps> = ({
             </span>
             <span
               className={`font-mono font-black text-sm ${
-                isRemittance ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'
+                isRemittance ? 'text-blue-600' : 'text-emerald-600'
               }`}
             >
               {payout.amount.toLocaleString()} ج.م
@@ -113,7 +113,7 @@ export const AdminPayoutActionModal: React.FC<AdminPayoutActionModalProps> = ({
             <span className="text-[var(--text-muted)] font-bold">
               {isRemittance ? 'الحساب / المحفظة المحول منها:' : 'رقم الحساب / المحفظة:'}
             </span>
-            <span className="font-mono font-black text-amber-700 dark:text-amber-300">
+            <span className="font-mono font-black text-amber-700">
               {payout.accountDetails}
             </span>
           </div>
@@ -163,7 +163,7 @@ export const AdminPayoutActionModal: React.FC<AdminPayoutActionModalProps> = ({
             </div>
           ) : (
             <div>
-              <label className="block text-rose-600 dark:text-rose-400 font-bold mb-1">
+              <label className="block text-rose-600 font-bold mb-1">
                 سبب الرفض (سيصل للمندوب في الإشعار) *:
               </label>
               <input

@@ -46,7 +46,7 @@ export const IdentityUploadRow: React.FC<IdentityUploadRowProps> = ({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-black text-xs text-[var(--text-primary)] truncate">{label}</span>
-            <span className="text-[9px] bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded-md">
+            <span className="text-[9px] bg-amber-500/15 text-amber-800 font-bold px-1.5 py-0.2 rounded-md">
               {badgeText}
             </span>
           </div>
@@ -59,7 +59,7 @@ export const IdentityUploadRow: React.FC<IdentityUploadRowProps> = ({
           <button
             type="button"
             onClick={onPreviewHandler}
-            className="p-1.5 rounded-lg bg-[var(--input-bg)] text-blue-600 dark:text-blue-400 hover:bg-blue-500/15 cursor-pointer transition-colors"
+            className="p-1.5 rounded-lg bg-[var(--input-bg)] text-blue-600 hover:bg-blue-500/15 cursor-pointer transition-colors"
             title="معاينة"
           >
             <Eye className="w-3.5 h-3.5" />

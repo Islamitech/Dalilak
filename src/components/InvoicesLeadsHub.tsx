@@ -386,41 +386,41 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     switch (level) {
       case 'trending_free':
         return (
-          <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-xs">
+          <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 border border-amber-500/40 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-xs">
             <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
             <span>منشأة رائجة (إدراج مجاني) 🌟</span>
           </span>
         );
       case 'high':
         return (
-          <span className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
+          <span className="bg-rose-500/15 text-rose-700 border border-rose-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
             <Flame className="w-3 h-3 text-rose-500" />
             <span>مهتم جداً 🔥</span>
           </span>
         );
       case 'medium':
         return (
-          <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
+          <span className="bg-amber-500/15 text-amber-800 border border-amber-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
             <Clock className="w-3 h-3 text-amber-500" />
             <span>يحتاج متابعة ⏳</span>
           </span>
         );
       case 'low':
         return (
-          <span className="bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+          <span className="bg-slate-500/15 text-slate-700 border border-slate-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
             متردد / استفسار
           </span>
         );
       case 'intro_sent':
         return (
-          <span className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
+          <span className="bg-blue-500/15 text-blue-700 border border-blue-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
             <MessageSquare className="w-3 h-3 text-blue-500" />
             <span>أُرسلت رسالة 💬</span>
           </span>
         );
       case 'need_visit':
         return (
-          <span className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
+          <span className="bg-purple-500/15 text-purple-700 border border-purple-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1">
             <Calendar className="w-3 h-3 text-purple-500" />
             <span>طلب زيارة 📅</span>
           </span>
@@ -439,7 +439,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
         );
       case 'contacted':
         return (
-          <span className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1">
+          <span className="bg-blue-500/15 text-blue-800 border border-blue-500/30 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1">
             <MessageSquare className="w-3 h-3" />
             <span>تم التواصل</span>
           </span>
@@ -453,7 +453,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
         );
       case 'cancelled':
         return (
-          <span className="bg-slate-500/20 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-lg">
+          <span className="bg-slate-500/20 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-lg">
             ملغي / غير مهتم
           </span>
         );
@@ -476,7 +476,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                 <h2 className="text-lg sm:text-xl font-black text-[var(--text-primary)]">
                   سجل مراجعات العملاء المهتمين
                 </h2>
-                <span className="bg-amber-500/15 text-amber-800 dark:text-amber-300 text-xs font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                <span className="bg-amber-500/15 text-amber-800 text-xs font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
                   {scopedLeads.length} شخص مهتم
                 </span>
               </div>
@@ -537,8 +537,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                 : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40'
             }`}
           >
-            <span className="text-[11px] text-amber-700 dark:text-amber-400 font-bold block">بانتظار المتابعة</span>
-            <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{pendingLeadsCount}</span>
+            <span className="text-[11px] text-amber-700 font-bold block">بانتظار المتابعة</span>
+            <span className="text-lg font-black text-amber-600 font-mono">{pendingLeadsCount}</span>
           </button>
 
           <button
@@ -550,8 +550,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                 : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-blue-500/40'
             }`}
           >
-            <span className="text-[11px] text-blue-700 dark:text-blue-400 font-bold block">تم التواصل معهم</span>
-            <span className="text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{contactedLeadsCount}</span>
+            <span className="text-[11px] text-blue-700 font-bold block">تم التواصل معهم</span>
+            <span className="text-lg font-black text-blue-600 font-mono">{contactedLeadsCount}</span>
           </button>
 
           <button
@@ -563,8 +563,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                 : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/40'
             }`}
           >
-            <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold block">تحولوا لمشتركين</span>
-            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{convertedLeadsCount}</span>
+            <span className="text-[11px] text-emerald-700 font-bold block">تحولوا لمشتركين</span>
+            <span className="text-lg font-black text-emerald-600 font-mono">{convertedLeadsCount}</span>
           </button>
         </div>
 
@@ -601,7 +601,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
             </div>
 
             {formError && (
-              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl font-bold text-xs">
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 p-2.5 rounded-xl font-bold text-xs">
                 {formError}
               </div>
             )}
@@ -609,11 +609,11 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
             {/* Link-First Auto-Extraction */}
             <div className="bg-gradient-to-r from-blue-500/10 via-[var(--bg-card)] to-indigo-500/10 border border-blue-500/30 rounded-2xl p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-black text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                <label className="text-xs font-black text-blue-700 flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-blue-500" />
                   <span>استيراد فوري عبر رابط خرائط Google (اختياري)</span>
                 </label>
-                <span className="text-[10px] bg-blue-500/15 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full font-black">
+                <span className="text-[10px] bg-blue-500/15 text-blue-800 px-2 py-0.5 rounded-full font-black">
                   تعبئة تلقائية
                 </span>
               </div>
@@ -652,7 +652,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                 </button>
               </div>
               {inlineExtractNotice && (
-                <div className="text-[11px] font-bold p-2 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 flex items-center gap-2">
+                <div className="text-[11px] font-bold p-2 rounded-xl bg-blue-500/15 text-blue-900 border border-blue-500/30 flex items-center gap-2">
                   <span>{inlineExtractNotice}</span>
                 </div>
               )}
@@ -733,7 +733,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
                   />
                   {duplicateNewPhone && (
-                    <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
+                    <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
                       <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                       <span>
                         مسجل مسبقاً مع {duplicateNewPhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicateNewPhone.name}
@@ -746,7 +746,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
               {/* Category Selection (Always visible with warning if raw category was extracted) */}
               <div className="space-y-2 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
                 {rawImportedCategory && (
-                  <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-200 p-2 rounded-xl text-[11px] font-bold flex items-center gap-2">
+                  <div className="bg-amber-500/15 border border-amber-500/40 text-amber-800 p-2 rounded-xl text-[11px] font-bold flex items-center gap-2">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span>
                       تصنيف Google المستخرج: <strong>"{rawImportedCategory}"</strong> — يرجى تأكيد التصنيف المعتمد:
@@ -779,14 +779,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   <div>
                     <label className="block font-bold mb-1 text-[var(--text-primary)] flex items-center justify-between">
                       <span>نوع النشاط والتصنيف *</span>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
                         معتمد بدليلك
                       </span>
                     </label>
                     <select
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-emerald-700 dark:text-emerald-300 font-black rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-emerald-700 font-black rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
                     >
                       {newCategory && !(CATEGORY_GROUPS.find((g) => g.group === newGroup)?.items || []).includes(newCategory) && (
                         <option value={newCategory}>
@@ -986,7 +986,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           </h4>
 
                           {verifiedCat && (
-                            <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10.5px] px-2 py-0.5 rounded-md border border-amber-500/30">
+                            <span className="bg-amber-500/15 text-amber-700 font-bold text-[10.5px] px-2 py-0.5 rounded-md border border-amber-500/30">
                               {verifiedCat}
                             </span>
                           )}
@@ -998,7 +998,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
                           <a
                             href={`tel:${lead.phone}`}
-                            className="font-mono font-bold text-[11px] text-amber-700 dark:text-amber-300 dir-ltr hover:underline bg-[var(--input-bg)] px-1.5 py-0.5 rounded border border-[var(--border-color)]"
+                            className="font-mono font-bold text-[11px] text-amber-700 dir-ltr hover:underline bg-[var(--input-bg)] px-1.5 py-0.5 rounded border border-[var(--border-color)]"
                           >
                             {lead.phone}
                           </a>
@@ -1015,7 +1015,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     {/* Left Side: Badges + Quick WhatsApp + Accordion Toggle */}
                     <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap">
                       {(lead.isTrending || lead.interestLevel === 'trending_free') && (
-                        <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                        <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-900 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
                           <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
                           <span>رائجة</span>
                         </span>
@@ -1067,7 +1067,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                         className={`flex items-center gap-1 text-xs font-black px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
                           isExpanded
                             ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
-                            : 'bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] border-[var(--border-color)]'
+                            : 'bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-secondary)] border-[var(--border-color)]'
                         }`}
                         title={isExpanded ? 'طي التفاصيل' : 'عرض التفاصيل الكاملة'}
                       >
@@ -1111,12 +1111,12 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                       {((lead.lat && lead.lng) || lead.locationUrl) && (
                         <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/25 rounded-xl">
                           <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <span className="font-bold text-[11px] text-emerald-800 dark:text-emerald-300">نقطة الخريطة الجغرافية محددة:</span>
+                          <span className="font-bold text-[11px] text-emerald-800">نقطة الخريطة الجغرافية محددة:</span>
                           <a
                             href={sanitizeExternalUrl(lead.locationUrl || `https://www.google.com/maps?q=${lead.lat},${lead.lng}`)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold text-[11px] inline-flex items-center gap-1 mr-auto"
+                            className="text-emerald-600 hover:underline font-bold text-[11px] inline-flex items-center gap-1 mr-auto"
                           >
                             <span>فتح الرابط في خرائط Google</span>
                             <ExternalLink className="w-3 h-3" />
@@ -1127,7 +1127,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                       {/* Notes snippet & Map Link Button */}
                       {cleanText && (
                         <div className="bg-amber-500/5 border border-amber-500/20 p-2.5 rounded-xl text-xs text-[var(--text-secondary)] leading-relaxed break-words">
-                          <strong className="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mb-0.5">ملاحظات الزيارة الميدانية:</strong>
+                          <strong className="text-amber-600 font-bold block text-[10px] mb-0.5">ملاحظات الزيارة الميدانية:</strong>
                           {cleanText}
                         </div>
                       )}
@@ -1137,7 +1137,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           <button
                             type="button"
                             onClick={() => handleCopyLink(linkId, mapUrl)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 dark:text-blue-300 text-[11px] font-bold transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-700 text-[11px] font-bold transition-colors cursor-pointer"
                             title="نسخ رابط الخريطة"
                           >
                             {copiedLinkId === linkId ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
@@ -1147,7 +1147,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                             href={sanitizeExternalUrl(mapUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 dark:text-green-300 text-[11px] font-bold transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-700 text-[11px] font-bold transition-colors"
                           >
                             <MapPin className="w-3 h-3" />
                             <span>فتح الخريطة</span>
@@ -1157,8 +1157,8 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
                       {/* Admin Follow-ups */}
                       {lead.adminFollowUps && lead.adminFollowUps.length > 0 && (
-                        <div className="bg-purple-500/10 border border-purple-500/25 p-2.5 rounded-xl text-xs text-purple-950 dark:text-purple-200 space-y-1">
-                          <div className="flex items-center justify-between font-bold text-[10px] text-purple-700 dark:text-purple-300">
+                        <div className="bg-purple-500/10 border border-purple-500/25 p-2.5 rounded-xl text-xs text-purple-950 space-y-1">
+                          <div className="flex items-center justify-between font-bold text-[10px] text-purple-700">
                             <span className="flex items-center gap-1">
                               <span>آخر متابعة إدارية:</span>
                               <strong className="text-[var(--text-primary)]">{lead.adminFollowUps[0].authorName}</strong>
@@ -1175,7 +1175,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           {/* Call */}
                           <a
                             href={`tel:${lead.phone}`}
-                            className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-primary)] font-bold px-3 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1.5 transition-colors text-xs"
+                            className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-primary)] font-bold px-3 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1.5 transition-colors text-xs"
                           >
                             <Phone className="w-3.5 h-3.5 text-amber-500" />
                             <span>اتصال</span>
@@ -1185,7 +1185,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           <button
                             type="button"
                             onClick={() => setSelectedFollowUpLead(lead)}
-                            className="bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 font-black px-3 py-1.5 rounded-xl border border-purple-500/30 shadow-xs flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 text-xs"
+                            className="bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 font-black px-3 py-1.5 rounded-xl border border-purple-500/30 shadow-xs flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 text-xs"
                             title="عرض وتسجيل المتابعات والملاحظات الإدارية"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -1210,7 +1210,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                             <button
                               type="button"
                               onClick={() => onConvertToBusiness(lead)}
-                              className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 cursor-pointer transition-transform active:scale-95 text-xs"
+                              className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-secondary)] font-bold px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] flex items-center gap-1 cursor-pointer transition-transform active:scale-95 text-xs"
                               title="فتح نموذج التسجيل وتعبئة البيانات يدوياً خطوة بخطوة"
                             >
                               <FileText className="w-3 h-3 text-amber-500" />
@@ -1219,7 +1219,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           )}
 
                           {lead.status === 'converted' && (
-                            <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs px-2.5 py-1.5 rounded-xl border border-emerald-500/30 flex items-center gap-1">
+                            <span className="bg-emerald-500/15 text-emerald-700 font-bold text-xs px-2.5 py-1.5 rounded-xl border border-emerald-500/30 flex items-center gap-1">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               <span>تم التحويل لمشترك معتمد</span>
                             </span>
@@ -1231,7 +1231,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                           <button
                             type="button"
                             onClick={() => setEditingLead(lead)}
-                            className="p-1.5 rounded-lg bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg bg-[var(--input-bg)] hover:bg-amber-500/20 text-amber-700 transition-colors cursor-pointer"
                             title="تعديل بيانات العميل وحالة المتابعة"
                           >
                             <Edit className="w-4 h-4" />
@@ -1265,7 +1265,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
           ======================================================== */}
       {editingLead &&
         createPortal(
-          <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+          <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
             <div className="bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 space-y-4 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
                 <div className="flex items-center gap-2">
@@ -1320,7 +1320,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                       className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
                     />
                     {duplicateEditPhone && (
-                      <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-300 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
+                      <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">
                         <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                         <span>
                           ⛔ مسجل مسبقاً مع {duplicateEditPhone.type === 'business' ? 'نشاط' : 'مراجعة'}: {duplicateEditPhone.name} {duplicateEditPhone.location ? `(${duplicateEditPhone.location})` : ''}
@@ -1485,7 +1485,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   <button
                     type="button"
                     onClick={() => setEditingLead(null)}
-                    className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold py-2.5 px-4 rounded-xl border border-[var(--border-color)] cursor-pointer"
+                    className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-secondary)] font-bold py-2.5 px-4 rounded-xl border border-[var(--border-color)] cursor-pointer"
                   >
                     إلغاء
                   </button>
@@ -1501,7 +1501,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
           ======================================================== */}
       {whatsAppModalLead &&
         createPortal(
-          <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+          <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
             <div className="bg-[var(--bg-card)] border-2 border-emerald-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 space-y-4 text-xs text-[var(--text-primary)] shadow-2xl animate-fade-in-scale my-auto max-h-[92vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
                 <div className="flex items-center gap-2">
@@ -1533,7 +1533,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     onClick={() => setCustomMsgType('permission')}
                     className={`p-2 rounded-xl border text-[11px] font-bold text-center transition-all cursor-pointer ${
                       customMsgType === 'permission'
-                        ? 'bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border-amber-500 text-amber-700 dark:text-amber-300 shadow-sm'
+                        ? 'bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border-amber-500 text-amber-700 shadow-sm'
                         : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-amber-500/40'
                     }`}
                   >
@@ -1545,7 +1545,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     onClick={() => setCustomMsgType('intro')}
                     className={`p-2 rounded-xl border text-[11px] font-bold text-center transition-all cursor-pointer ${
                       customMsgType === 'intro'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-300 shadow-sm'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 shadow-sm'
                         : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
                     }`}
                   >
@@ -1557,7 +1557,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     onClick={() => setCustomMsgType('followup')}
                     className={`p-2 rounded-xl border text-[11px] font-bold text-center transition-all cursor-pointer ${
                       customMsgType === 'followup'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-300 shadow-sm'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 shadow-sm'
                         : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
                     }`}
                   >
@@ -1569,7 +1569,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                     onClick={() => setCustomMsgType('offer')}
                     className={`p-2 rounded-xl border text-[11px] font-bold text-center transition-all cursor-pointer ${
                       customMsgType === 'offer'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-300 shadow-sm'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 shadow-sm'
                         : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
                     }`}
                   >
@@ -1599,7 +1599,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                 <button
                   type="button"
                   onClick={() => setWhatsAppModalLead(null)}
-                  className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold py-3 px-4 rounded-xl border border-[var(--border-color)] cursor-pointer"
+                  className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-secondary)] font-bold py-3 px-4 rounded-xl border border-[var(--border-color)] cursor-pointer"
                 >
                   إلغاء
                 </button>

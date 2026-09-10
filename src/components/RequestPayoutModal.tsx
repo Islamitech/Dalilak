@@ -85,7 +85,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <div 
         className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl max-w-lg w-full shadow-2xl text-[var(--text-primary)] flex flex-col overflow-hidden relative animate-fade-in"
         style={{ maxHeight: '92vh' }}
@@ -123,7 +123,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
               <div>
-                <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 block">
+                <span className="text-xs font-black text-emerald-700 block">
                   الرصيد المتاح للسحب حالياً:
                 </span>
                 <span className="text-[10px] text-[var(--text-muted)] font-medium">
@@ -132,15 +132,15 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
               </div>
             </div>
             <div className="text-left shrink-0">
-              <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+              <span className="text-lg sm:text-xl font-black text-emerald-600 font-mono">
                 {availableBalance.toLocaleString()}
               </span>
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 mr-1">ج.م</span>
+              <span className="text-xs font-bold text-emerald-700 mr-1">ج.م</span>
             </div>
           </div>
 
           {errorMsg && (
-            <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-3 rounded-xl flex items-center gap-2 text-xs font-bold">
+            <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 p-3 rounded-xl flex items-center gap-2 text-xs font-bold">
               <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -155,7 +155,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
               <button
                 type="button"
                 onClick={() => setAmount(availableBalance)}
-                className="text-[11px] text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer"
+                className="text-[11px] text-amber-600 font-bold hover:underline cursor-pointer"
               >
                 سحب الرصيد كاملاً ({availableBalance} ج.م)
               </button>
@@ -199,7 +199,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
                       isCashAtHq ? 'sm:col-span-2 justify-center' : ''
                     } ${
                       isSelected
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/40 shadow-sm font-black'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-700 ring-2 ring-amber-500/40 shadow-sm font-black'
                         : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-primary)] hover:border-amber-500/40 hover:bg-amber-500/5'
                     }`}
                   >
@@ -272,7 +272,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-secondary)] font-bold px-4 py-2 rounded-xl cursor-pointer"
+              className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-secondary)] font-bold px-4 py-2 rounded-xl cursor-pointer"
             >
               إلغاء
             </button>

@@ -611,7 +611,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
+    <div className="fixed inset-0 z-[10000] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" dir="rtl">
       {/* ── FLOATING TOAST NOTIFICATION (ALWAYS VISIBLE IRRESPECTIVE OF SCROLL) ── */}
       {statusNotification && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100100] max-w-md w-[92%] bg-slate-900/95 text-white border border-emerald-500/50 px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-3 shadow-2xl backdrop-blur-md animate-fade-in pointer-events-auto">
@@ -721,7 +721,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           {cleanPhone && (
             <a
               href={`tel:${cleanPhone}`}
-              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
+              className="bg-[var(--bg-card)] hover:bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
             >
               <Phone className="w-3 h-3" />
               <span>اتصال</span>
@@ -744,7 +744,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               href={mapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
+              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-blue-600 border border-blue-500/30 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs"
               title="فتح موقع المكان الموثق على خرائط Google"
             >
               <ExternalLink className="w-3 h-3 text-blue-500" />
@@ -754,7 +754,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveSection('location')}
-              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-slate-500 dark:text-slate-400 border border-slate-700/40 text-[11px] font-medium px-2.5 py-1 rounded-xl flex items-center gap-1 shrink-0 cursor-pointer"
+              className="bg-[var(--bg-card)] hover:bg-blue-500/10 text-slate-500 border border-slate-700/40 text-[11px] font-medium px-2.5 py-1 rounded-xl flex items-center gap-1 shrink-0 cursor-pointer"
               title="انقر لإضافة وتوثيق رابط خرائط Google"
             >
               <MapPin className="w-3 h-3 text-amber-500" />
@@ -767,7 +767,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             <button
               type="button"
               onClick={() => handleOpenMasterDrawer('all')}
-              className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-black px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
+              className="bg-[var(--bg-card)] hover:bg-amber-500/10 text-amber-600 border border-amber-500/30 text-[11px] font-black px-2.5 py-1 rounded-xl transition-transform active:scale-95 flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
               title="فتح سجل المتابعات الشامل والجدول الزمني الكامل"
             >
               <ClipboardList className="w-3 h-3 text-amber-500" />
@@ -786,7 +786,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                   setActiveSection('payment');
                 }
               }}
-              className="relative flex items-center gap-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/50 text-[11px] font-black px-2.5 py-1 rounded-xl transition-all active:scale-95 shrink-0 cursor-pointer shadow-xs animate-pulse"
+              className="relative flex items-center gap-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 border border-rose-500/50 text-[11px] font-black px-2.5 py-1 rounded-xl transition-all active:scale-95 shrink-0 cursor-pointer shadow-xs animate-pulse"
               title={`تنبيه مالي: المكان موثق على Google وغير مسدد (متبقي ${remainingDebt} ج.م)`}
             >
               <span className="relative flex h-2 w-2">
@@ -833,7 +833,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               <span>{tab.label}</span>
               {tab.count !== undefined && tab.count > 0 && (
                 <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
-                  activeSection === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-300'
+                  activeSection === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-600'
                 }`}>
                   {tab.count}
                 </span>
@@ -846,7 +846,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3.5 overscroll-contain">
 
           {errorMsg && (
-            <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-400 p-3 rounded-2xl text-xs font-bold flex items-center gap-2">
+            <div className="bg-rose-500/15 border border-rose-500/30 text-rose-700 p-3 rounded-2xl text-xs font-bold flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -1041,7 +1041,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       {/* ── MASTER CRM TIMELINE DRAWER (SLIDE-OVER / MODAL) ── */}
       {isMasterDrawerOpen && (
         <div
-          className="fixed inset-0 z-[100200] bg-slate-950/85 backdrop-blur-sm flex justify-end animate-fade-in"
+          className="fixed inset-0 z-[100200] bg-slate-900/50 backdrop-blur-sm flex justify-end animate-fade-in"
           onClick={() => setIsMasterDrawerOpen(false)}
         >
           <div

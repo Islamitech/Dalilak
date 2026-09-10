@@ -140,7 +140,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
               2. رابط خرائط Google والاستيراد اللحظي التلقائي *
             </h3>
           </div>
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/30">
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 border border-blue-500/30">
             استيراد في 4 ثوانٍ ⚡
           </span>
         </div>
@@ -181,7 +181,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
         </div>
 
         {extractedNotice && (
-          <div className="bg-blue-500/15 border border-blue-500/40 text-blue-700 dark:text-blue-300 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+          <div className="bg-blue-500/15 border border-blue-500/40 text-blue-700 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
             <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
             <span>{extractedNotice}</span>
           </div>
@@ -190,7 +190,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
         {/* Coordinates pill */}
         <div className="flex items-center gap-2 pt-1 text-[11px] text-[var(--text-muted)]">
           <span>الإحداثيات المسحوبة:</span>
-          <span className="font-mono text-blue-600 dark:text-blue-400 dir-ltr font-bold text-xs bg-blue-500/10 px-2.5 py-0.5 rounded-md border border-blue-500/20">
+          <span className="font-mono text-blue-600 dir-ltr font-bold text-xs bg-blue-500/10 px-2.5 py-0.5 rounded-md border border-blue-500/20">
             {lat.toFixed(6)}, {lng.toFixed(6)}
           </span>
         </div>
@@ -257,7 +257,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
         <div className="flex items-center gap-2">
           <span className="text-[var(--text-muted)] text-[11px]">الإحداثيات المسجلة:</span>
-          <span className="font-mono text-amber-600 dark:text-amber-400 dir-ltr font-bold text-xs bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
+          <span className="font-mono text-amber-600 dir-ltr font-bold text-xs bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
             {lat.toFixed(6)}, {lng.toFixed(6)}
           </span>
         </div>
@@ -269,7 +269,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
       </div>
 
       {autoFillNotice && (
-        <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-300 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+        <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>{autoFillNotice}</span>
         </div>

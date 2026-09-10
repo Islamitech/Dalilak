@@ -34,7 +34,7 @@ export const RepIdCardTab: React.FC<RepIdCardTabProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4 bg-slate-950/80 p-3 sm:p-4 rounded-2xl border border-amber-500/30 shadow-inner">
+          <div className="flex items-center gap-3 sm:gap-4 bg-slate-900/50 p-3 sm:p-4 rounded-2xl border border-amber-500/30 shadow-inner">
             <img
               src={qrImageUrl}
               alt="QR Code"
@@ -69,7 +69,7 @@ export const RepIdCardTab: React.FC<RepIdCardTabProps> = ({
                 التصاريح والمستندات الميدانية
               </h3>
             </div>
-            <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
+            <span className="text-[10px] bg-blue-500/10 text-blue-600 font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
               جاهزة للطباعة
             </span>
           </div>

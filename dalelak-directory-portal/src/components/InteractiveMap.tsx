@@ -674,7 +674,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {isExpanded && (
         <div
           onClick={() => setIsExpanded(false)}
-          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-40"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
         />
       )}
 
@@ -735,7 +735,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <select
               value={selectedGovFilter}
               onChange={(e) => handleGovChange(e.target.value)}
-              className="bg-[var(--input-bg)] hover:bg-amber-500/10 border border-[var(--border-color)] text-amber-600 dark:text-amber-300 font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
+              className="bg-[var(--input-bg)] hover:bg-amber-500/10 border border-[var(--border-color)] text-amber-600 font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer"
               title="الانتقال المباشر للمحافظة"
             >
               <option value="all">كل المحافظات</option>

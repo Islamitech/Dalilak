@@ -26,7 +26,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto modal-overlay">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto">
         {/* Close Button */}
         <button
@@ -131,12 +131,12 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
 
           {/* Section 8: Official Contact & Legal Inquiries */}
           <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/30 space-y-2">
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-sm">
+            <div className="flex items-center gap-2 text-amber-600 font-black text-sm">
               <span>✉️</span>
               <h3>8. قنوات التواصل والاستفسارات القانونية والدعم</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
-              لأي استفسارات بخصوص شروط الاستخدام، أو طلبات الدعم والتعديل، يرجى التواصل عبر البريد الرسمي المعتمد: <a href="mailto:info@dalilaak.com" className="font-bold text-amber-600 dark:text-amber-400 underline font-mono">info@dalilaak.com</a> أو زيارة الموقع الرسمي: <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="font-bold text-amber-600 dark:text-amber-400 underline font-mono">https://www.dalilaak.com/</a>.
+              لأي استفسارات بخصوص شروط الاستخدام، أو طلبات الدعم والتعديل، يرجى التواصل عبر البريد الرسمي المعتمد: <a href="mailto:info@dalilaak.com" className="font-bold text-amber-600 underline font-mono">info@dalilaak.com</a> أو زيارة الموقع الرسمي: <a href="https://www.dalilaak.com/" target="_blank" rel="noopener noreferrer" className="font-bold text-amber-600 underline font-mono">https://www.dalilaak.com/</a>.
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onClose, onOpenAbout }) 
                 onClose();
                 onOpenAbout();
               }}
-              className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
+              className="text-xs text-amber-600 hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
             >
               <span>التعرف على منصة دليلك وخدماتنا (من نحن)</span>
               <ChevronLeft className="w-3.5 h-3.5" />

@@ -85,7 +85,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'pending_approval'
               ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-              : 'bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30'
+              : 'bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 border border-amber-500/30'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -97,7 +97,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'directory_approved'
               ? 'bg-emerald-600 text-white font-black shadow-xs'
-              : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30'
+              : 'bg-emerald-500/10 text-emerald-800 hover:bg-emerald-500/20 border border-emerald-500/30'
           }`}
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -109,7 +109,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'google_synced'
               ? 'bg-blue-600 text-white font-black shadow-xs'
-              : 'bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-500/20 border border-blue-500/30'
+              : 'bg-blue-500/10 text-blue-800 hover:bg-blue-500/20 border border-blue-500/30'
           }`}
         >
           <Globe className="w-3.5 h-3.5" />
@@ -121,7 +121,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'google_pending'
               ? 'bg-purple-600 text-white font-black shadow-xs'
-              : 'bg-purple-500/10 text-purple-800 dark:text-purple-300 hover:bg-purple-500/20 border border-purple-500/30'
+              : 'bg-purple-500/10 text-purple-800 hover:bg-purple-500/20 border border-purple-500/30'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -134,7 +134,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
             className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
               verificationFilter === 'overdue_followup'
                 ? 'bg-rose-600 text-white font-black shadow-xs'
-                : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
+                : 'bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 border border-rose-500/30'
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
@@ -202,7 +202,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-color)] text-xs">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[var(--text-secondary)]">
-            إجمالي المنشآت المطابقة: <strong className="font-mono font-black text-amber-600 dark:text-amber-400">{filteredBusinesses.length}</strong> منشأة
+            إجمالي المنشآت المطابقة: <strong className="font-mono font-black text-amber-600">{filteredBusinesses.length}</strong> منشأة
           </span>
           {(bizSearchQuery || governorateFilter !== 'all' || paymentFilter !== 'all' || verificationFilter !== 'all') && (
             <button
@@ -218,7 +218,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
                   setBizPage(1);
                 }
               }}
-              className="text-[11px] text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 font-bold flex items-center gap-1 px-2.5 py-1 rounded-xl transition-colors border border-rose-500/30 cursor-pointer"
+              className="text-[11px] text-rose-600 hover:bg-rose-500/10 font-bold flex items-center gap-1 px-2.5 py-1 rounded-xl transition-colors border border-rose-500/30 cursor-pointer"
               title="إلغاء وتصفير كافة الفلاتر والبحث"
             >
               <RotateCcw className="w-3 h-3" />

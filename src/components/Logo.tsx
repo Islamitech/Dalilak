@@ -186,7 +186,7 @@ export const Logo: React.FC<LogoProps> = ({
             <span className="font-black text-sm sm:text-base text-[var(--text-primary)] font-['Cairo'] leading-none">
               دليلك
             </span>
-            <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/30">
+            <span className="bg-emerald-500/15 text-emerald-600 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/30">
               منظومة معتمدة
             </span>
           </div>
@@ -218,13 +218,13 @@ export const Logo: React.FC<LogoProps> = ({
             className={`font-black ${titleSize} font-['Cairo'] tracking-tight leading-none transition-colors duration-300 ${
               lightText
                 ? 'text-white'
-                : 'text-amber-500 dark:text-amber-400'
+                : 'text-amber-500'
             }`}
           >
             دليلك
           </span>
 
-          <span className="hidden sm:inline-flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
+          <span className="hidden sm:inline-flex items-center gap-1 bg-amber-500/15 text-amber-600 text-[9px] font-black px-2 py-0.5 rounded-full border border-amber-500/30">
             المنظومة الشاملة 🇪🇬
           </span>
         </div>

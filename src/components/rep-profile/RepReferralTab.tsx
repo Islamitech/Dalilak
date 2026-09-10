@@ -23,7 +23,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 space-y-4 shadow-md transition-colors duration-300">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
               <Users className="w-5 h-5" />
             </div>
             <div>
@@ -50,11 +50,11 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
           <div className="bg-purple-500/10 border border-purple-500/30 p-4 rounded-2xl space-y-2.5 text-xs animate-fade-in">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-600 flex items-center justify-center font-black">
                   <UserCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold block">
+                  <span className="text-[10px] text-purple-700 font-bold block">
                     انضممت للمنظومة بدعوة من:
                   </span>
                   <span className="font-black text-[var(--text-primary)]">
@@ -62,7 +62,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                   </span>
                 </div>
               </div>
-              <span className="font-mono font-bold bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-purple-500/30 text-purple-700 dark:text-purple-300">
+              <span className="font-mono font-bold bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-purple-500/30 text-purple-700">
                 كود: {referralSummary.inviterInfo.code}
               </span>
             </div>
@@ -74,8 +74,8 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
               </span>
               <span className={`font-black px-2.5 py-1 rounded-lg shrink-0 ${
                 referralSummary.inviterInfo.isInviterGiftUnlocked
-                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                  : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                  ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-700 border border-amber-500/30'
               }`}>
                 {referralSummary.inviterInfo.isInviterGiftUnlocked
                   ? '🎁 تم صرف الـ 250 ج لداعيك بنجاح ✓'
@@ -89,16 +89,16 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
         <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/5 border border-amber-500/40 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] text-amber-700 dark:text-amber-300 font-extrabold block">
+              <span className="text-[10px] text-amber-700 font-extrabold block">
                 كود الدعوة المعتمد الخاص بك
               </span>
               {referralSummary.isUnlocked ? (
-                <span className="text-[9px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-600 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" />
                   مفعل للصرف والمشاركة
                 </span>
               ) : (
-                <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                <span className="text-[9px] bg-amber-500/20 text-amber-700 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
                   <Lock className="w-3 h-3" />
                   مقفل (مطلوب 25 نشاطاً مسجلاً)
                 </span>
@@ -109,7 +109,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                 {referralCode}
               </span>
             ) : (
-              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-mono font-black text-lg tracking-wider py-1">
+              <div className="flex items-center gap-2 text-amber-700 font-mono font-black text-lg tracking-wider py-1">
                 <Lock className="w-5 h-5 text-amber-500" />
                 <span>محجوب ومقفل (متبقي {Math.max(0, 25 - businessesCount)} نشاط للفتح)</span>
               </div>
@@ -167,7 +167,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                 <Lock className="w-4 h-4 text-amber-500" />
                 <span>مهمة فتح كود الإحالة وبناء الفريق:</span>
               </span>
-              <span className="font-black font-mono text-amber-700 dark:text-amber-400">
+              <span className="font-black font-mono text-amber-700">
                 {businessesCount} / 25 نشاط ({Math.min(100, Math.round((businessesCount / 25) * 100))}%)
               </span>
             </div>
@@ -200,7 +200,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">
               المؤهلين (10+ موثقة بجوجل)
             </span>
-            <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
+            <span className="font-black text-lg text-emerald-600">
               {referralSummary.qualifiedRepsCount}
             </span>
           </div>
@@ -209,7 +209,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">
               هدايا الدعوة (+250 ج)
             </span>
-            <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
+            <span className="font-black text-lg text-emerald-600">
               +{referralSummary.totalGiftsEarned.toLocaleString()} ج.م
             </span>
           </div>
@@ -218,16 +218,16 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
             <span className="text-[10px] text-[var(--text-muted)] font-bold block">
               عمولات الأنشطة (3%-7%)
             </span>
-            <span className="font-black text-lg text-amber-600 dark:text-amber-400">
+            <span className="font-black text-lg text-amber-600">
               +{referralSummary.totalReferralCommission.toLocaleString()} ج.م
             </span>
           </div>
 
           <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/30 col-span-2 sm:col-span-1">
-            <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-black block">
+            <span className="text-[10px] text-emerald-800 font-black block">
               إجمالي أرباح الإحالة
             </span>
-            <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
+            <span className="font-black text-lg text-emerald-600">
               +{referralSummary.totalNetEarnings.toLocaleString()} ج.م
             </span>
           </div>
@@ -241,7 +241,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
               <span>أعضاء الفريق المنضمين عبر كودك ({referralSummary.invitedRepsDetails.length}):</span>
             </h4>
             {referralSummary.invitedRepsDetails.length > 0 && (
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
                 {referralSummary.invitedRepsDetails.length} منضم نشط
               </span>
             )}
@@ -260,17 +260,17 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-black text-sm text-[var(--text-primary)]">{invRep.name}</p>
                           {invRep.status === 'suspended' ? (
-                            <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-md font-bold">
+                            <span className="text-[9px] bg-amber-500/20 text-amber-700 px-1.5 py-0.5 rounded-md font-bold">
                               ⏳ قيد المراجعة
                             </span>
                           ) : (
-                            <span className="text-[9px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md font-bold">
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-600 px-1.5 py-0.5 rounded-md font-bold">
                               🟢 مفعل
                             </span>
                           )}
                         </div>
                         <p className="text-[11px] text-[var(--text-muted)] mt-0.5 font-medium">
-                          {invRep.governorate} • {bizCount} نشاط مسجل • <strong className="text-blue-600 dark:text-blue-400 font-bold">{verifiedBizCount || 0}/10 موثق على Google</strong>
+                          {invRep.governorate} • {bizCount} نشاط مسجل • <strong className="text-blue-600 font-bold">{verifiedBizCount || 0}/10 موثق على Google</strong>
                         </p>
                       </div>
 
@@ -278,7 +278,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                         <span className="badge-warning text-[9px] font-black px-2 py-0.5 rounded-full inline-block">
                           عمولة {currentRate}%
                         </span>
-                        <p className="font-black text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        <p className="font-black text-xs text-emerald-600 mt-0.5">
                           +{commissionEarned} ج.م
                         </p>
                       </div>
@@ -287,7 +287,7 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                     {/* 🎁 250 EGP Google-Verification Gift Milestone Badge */}
                     <div className="pt-2 border-t border-[var(--border-color)]">
                       {isMission1Complete ? (
-                        <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 px-2.5 py-1.5 rounded-xl flex items-center justify-between text-[10px] font-black">
+                        <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 px-2.5 py-1.5 rounded-xl flex items-center justify-between text-[10px] font-black">
                           <span className="flex items-center gap-1">
                             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                             <span>مهمة التوثيق (10/10) مكتملة بنجاح</span>
@@ -297,12 +297,12 @@ export const RepReferralTab: React.FC<RepReferralTabProps> = ({
                           </span>
                         </div>
                       ) : (
-                        <div className="bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 px-2.5 py-1.5 rounded-xl flex items-center justify-between text-[10px] font-bold">
+                        <div className="bg-amber-500/10 border border-amber-500/25 text-amber-800 px-2.5 py-1.5 rounded-xl flex items-center justify-between text-[10px] font-bold">
                           <span className="flex items-center gap-1">
                             <Lock className="w-3.5 h-3.5 text-amber-500" />
                             <span>متبقي {remainingForMission1} أنشطة موثقة بـ Google</span>
                           </span>
-                          <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded">
+                          <span className="text-[9px] font-black text-amber-700 bg-amber-500/20 px-1.5 py-0.5 rounded">
                             لهدية الـ 250 ج
                           </span>
                         </div>

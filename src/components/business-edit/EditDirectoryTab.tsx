@@ -254,8 +254,8 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
           <div className="flex items-center gap-2">
             <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
               formData.customDirectoryUrl
-                ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30'
-                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                ? 'bg-purple-500/15 text-purple-600 border-purple-500/30'
+                : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
             }`}>
               {formData.customDirectoryUrl ? 'رابط يدوي مخصص' : 'رابط تلقائي معتمد'}
             </span>
@@ -267,7 +267,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
 
         {/* ── Effective Active Link Display with Quick Actions ── */}
         <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl p-2.5 flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1 flex items-center gap-2 text-xs font-mono text-amber-600 dark:text-amber-400 truncate dir-ltr">
+          <div className="min-w-0 flex-1 flex items-center gap-2 text-xs font-mono text-amber-600 truncate dir-ltr">
             <span className="truncate" title={displayDirectoryUrl}>{displayDirectoryUrl}</span>
           </div>
 
@@ -318,7 +318,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
                   setFormData((prev) => (prev ? { ...prev, customDirectoryUrl: undefined } : null));
                   onShowNotification?.('تمت استعادة الرابط التلقائي المعتمد للمكان');
                 }}
-                className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                className="text-[10px] text-amber-600 hover:underline flex items-center gap-1 font-bold cursor-pointer"
                 title="مسح الرابط المخصص والعودة للرابط التلقائي المعتمد"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -342,7 +342,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
 
           <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
             {formData.customDirectoryUrl ? (
-              <span className="text-purple-600 dark:text-purple-400 font-bold">
+              <span className="text-purple-600 font-bold">
                 ✓ تم تعيين رابط يدوي مخصص؛ يُعتمد مباشرة في المعاينة والمشاركة ورسائل الواتساب.
               </span>
             ) : (
@@ -380,7 +380,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
               <BarChart2 className="w-3 h-3 text-emerald-400" />
               التصنيف
             </span>
-            <span className="text-xs font-black text-amber-600 dark:text-amber-400 truncate block">
+            <span className="text-xs font-black text-amber-600 truncate block">
               {formData.category || 'عام'}
             </span>
           </div>
@@ -406,7 +406,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
               رسائل واتساب المخصصة لخدمات وتوثيق الدليل العام
             </h5>
           </div>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+          <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
             تواصل مباشر بنقرة واحدة
           </span>
         </div>
@@ -416,7 +416,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
           <button
             type="button"
             onClick={handleSendDirectoryPublishedWa}
-            className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/30 font-bold text-xs transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
           >
             <Share2 className="w-4 h-4 text-emerald-500" />
             <span className="font-black">إرسال رابط النشر بالدليل</span>
@@ -429,7 +429,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
           <button
             type="button"
             onClick={handleSendDirectoryReviewRequestWa}
-            className="p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold text-xs transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            className="p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-500/30 font-bold text-xs transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
           >
             <Sparkles className="w-4 h-4 text-amber-500" />
             <span className="font-black">طلب التقييمات على الدليل</span>
@@ -442,7 +442,7 @@ export const EditDirectoryTab: React.FC<EditDirectoryTabProps> = ({
           <button
             type="button"
             onClick={handleSendTrendingInvitationWa}
-            className="p-3 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-500/30 font-bold text-xs transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            className="p-3 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-800 border border-teal-500/30 font-bold text-xs transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
           >
             <Store className="w-4 h-4 text-teal-500" />
             <span className="font-black">دعوة الإدراج الشرفي (رائج)</span>

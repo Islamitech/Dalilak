@@ -115,7 +115,7 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
       </div>
 
       {pullNotice && (
-        <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-900 dark:text-blue-200 border border-blue-500/30 text-xs font-bold flex items-center gap-2 animate-fade-in">
+        <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-900 border border-blue-500/30 text-xs font-bold flex items-center gap-2 animate-fade-in">
           {isPullingGooglePhotos && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />}
           <span>{pullNotice}</span>
         </div>
@@ -131,7 +131,7 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
           </h4>
           <p className="text-xs text-[var(--text-secondary)] font-bold max-w-md mx-auto">
             اضغط على زر{' '}
-            <strong className="text-amber-600 dark:text-amber-400">
+            <strong className="text-amber-600">
               "التقاط بكاميرا الهاتف"
             </strong>{' '}
             لفتح كاميرا الجوال مباشرة وتصوير واجهة المحل أو اليافطة ميدانياً!

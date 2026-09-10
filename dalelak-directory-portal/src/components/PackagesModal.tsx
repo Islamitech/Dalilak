@@ -39,7 +39,7 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-[99999] bg-black/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-hidden modal-overlay animate-fade-in"
+      className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden modal-overlay animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -85,7 +85,7 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="bg-[var(--input-bg)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-primary)] font-black text-xs sm:text-sm px-6 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-sm"
+            className="bg-[var(--input-bg)] hover:bg-slate-200 text-[var(--text-primary)] font-black text-xs sm:text-sm px-6 py-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-sm"
           >
             إغلاق الدليل
           </button>
