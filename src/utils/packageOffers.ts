@@ -22,7 +22,8 @@ export function generateUpgradeOffersWhatsAppMessage(business: Business): string
     const isPro = pkg.id === 'pkg_pro';
     const icon = isVip ? '👑' : isPro ? '🚀' : '✨';
 
-    message += `${icon} *${pkg.title}* (${pkg.price} ج.م${isVip ? ' أول شهر' : ''})\n`;
+    const priceText = pkg.priceLabel ? pkg.priceLabel : `${pkg.price} ج.م${isVip ? ' أول شهر' : ''}`;
+    message += `${icon} *${pkg.title}* (${priceText})\n`;
     message += `📝 *نبذة:* ${pkg.description}\n`;
     message += `💎 *أهم المميزات:*\n`;
 

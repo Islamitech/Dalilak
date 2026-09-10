@@ -805,12 +805,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const getPackageWhatsAppUrl = (pkg: PackageOption) => {
     const defaultPhone = '201143888355';
     let text = '';
-    if (pkg.price === 0) {
+    if (pkg.id === 'pkg_free' || (pkg.price === 0 && pkg.id !== 'pkg_corporate')) {
       text = `مرحباً دليلك\nأرغب في طلب إدراج وظهور منشأتنا ومكاننا مجاناً في دليل منصة دليلك بدون أي رسوم (0 ج.م).\nيرجى تزويدي بالخطوات المطلوبة لإرسال بيانات المحل والظهور في الدليل.`;
-    } else if (pkg.price === 20000) {
-      text = `مرحباً دليلك\nأود الاستفسار والاشتراك في "باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م)" لمشروعنا ومكاننا (تحت التجهيز والإنشاء).\nأرغب في التكفل الشامل بالهوية والشعار واللافتة والتأسيس الرقمي وفيديو الافتتاح السينمائي وبناء نظام الزبون المنتظم.`;
+    } else if (pkg.id === 'pkg_corporate') {
+      text = `مرحباً دليلك\nأود الاستفسار وطلب دراسة وعرض سعر مخصص لـ "باقة الشركات والمشاريع الكبرى" لتجهيز وتطوير منظومة منشأتنا ومكاننا.\nنحتاج إلى جلسة استشارية وتحديد خطة العمل المتكاملة المناسبة لمشروعنا.`;
     } else {
-      text = `مرحباً دليلك\nأود الاستفسار والاشتراك في "${pkg.title}" بقيمة (${pkg.price} ج.م) كحملة دعائية لتطوير ومضاعفة مبيعات منشأتنا ومكاننا.`;
+      const priceText = pkg.priceLabel ? pkg.priceLabel : `${pkg.price} ج.م`;
+      text = `مرحباً دليلك\nأود الاستفسار والاشتراك في "${pkg.title}" بقيمة (${priceText}) لتطوير وتنمية مبيعات وظهور منشأتنا ومكاننا.`;
     }
     if (referralCode) {
       text += `\n(كود المندوب الإرشادي: ${referralCode})`;
@@ -828,13 +829,12 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     if (formSelectedPackage.includes('مجاني') || formSelectedPackage.includes('0')) {
       text += `طلب إدراج وظهور منشأة تجارية مجاناً في دليل دليلك (0 ج.م بدون أي رسوم):\n`;
     } else if (
-      formSelectedPackage.includes('20000') ||
-      formSelectedPackage.includes('الإنشاء') ||
-      formSelectedPackage.includes('الانطلاق')
+      formSelectedPackage.includes('الشركات') ||
+      formSelectedPackage.includes('المشاريع الكبرى')
     ) {
-      text += `طلب حجز باقة الانطلاق الكبرى والتأسيس من الصفر (20,000 ج.م) للمشاريع تحت التجهيز والإنشاء:\n`;
+      text += `طلب استشارة وتحديد عرض سعر لـ باقة الشركات والمشاريع الكبرى:\n`;
     } else {
-      text += `طلب استفسار وحجز حملة دعائية لتطوير منشأة ومكان تجاري:\n`;
+      text += `طلب استفسار وحجز باقة لتطوير منشأة ومكان تجاري:\n`;
     }
     text += `اسم المكان / المنشأة: ${formBizName.trim()}\n`;
     if (formOwnerName) text += `المسؤول: ${formOwnerName.trim()}\n`;

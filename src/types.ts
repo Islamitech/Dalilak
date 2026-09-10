@@ -154,6 +154,7 @@ export interface PackageOption {
   id: string;
   title: string;
   price: number; // in EGP
+  priceLabel?: string;
   description: string;
   features: string[];
   popular?: boolean;
