@@ -72,7 +72,7 @@ export const ShowcaseNavbar: React.FC<ShowcaseNavbarProps> = ({
           {/* Distinct Business Owner CTA: Clearly separate from seeker search */}
           <button
             type="button"
-            onClick={() => onOpenPackagesModal('pkg_free')}
+            onClick={() => onOpenPackagesModal('pkg_basic')}
             className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-md hover:shadow-amber-500/20 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0"
           >
             <Store className="w-3.5 h-3.5 stroke-[2.5]" />

@@ -30,7 +30,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { PACKAGES } from '../data/mockData';
+import { PACKAGES, FREE_DIRECTORY_SERVICE } from '../data/mockData';
 
 interface PackagesHubProps {
   initialPackageId?: string;
@@ -47,43 +47,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
   const [categoryTab, setCategoryTab] = useState<'all' | 'essential' | 'growth' | 'enterprise'>('all');
 
   const detailedPackages = [
-    {
-      id: 'pkg_free',
-      shortName: 'الظهور المجاني',
-      title: 'باقة الظهور والإدراج المجاني',
-      englishTitle: '100% Free Public Listing',
-      price: 0,
-      priceLabel: 'مجاناً 100%',
-      priceSubtext: 'بدون أي رسوم مدى الحياة',
-      badge: 'مجاني 100% 🎁',
-      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40',
-      cardBorder: 'hover:border-emerald-500/60',
-      activeBorder: 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/30',
-      icon: Gift,
-      iconBg: 'from-emerald-600 to-teal-500 text-white',
-      accentColor: 'text-emerald-500',
-      summary: 'إدراج منشأتكم بالكامل في دليل منصة دليلك مع بيانات التواصل والعنوان والخريطة وساعات العمل مجاناً.',
-      deliveryTime: 'خلال 24 ساعة عمل',
-      targetAudience: 'كافة المنشآت والمحلات التجارية والخدمية في مصر بدون استثناء - حق أصيل لكل صاحب عمل للظهور للزبائن مجاناً.',
-      highlights: [
-        'ظهور اسم المنشأة وتصنيفها في دليل المحافظة والمنطقة',
-        'عرض أرقام الهواتف وروابط الواتساب للتواصل المباشر',
-        'تثبيت العنوان وتحديد الموقع بدقة على الخريطة التفاعلية',
-        'عرض مواعيد وساعات العمل الرسمية طوال أيام الأسبوع',
-        'بدون أي رسوم تسجيل، وبدون أي اشتراكات خفية (مجاني 100%)'
-      ],
-      featuresIncluded: [
-        { name: 'إدراج كامل في دليل المحافظة والمنطقة', desc: 'يظهر مكانكم في نتائج البحث والتصنيفات للمواطنين في منطقتكم ومحافظتكم.' },
-        { name: 'أزرار الاتصال والمراسلة المباشرة', desc: 'إمكانية اتصال الزبون بك هاتفياً أو بدء محادثة واتساب بنقرة واحدة.' },
-        { name: 'عرض الموقع على الخريطة التفاعلية المباشرة', desc: 'تحديد موقع المحل مع زر توجيه عبر خرائط جوجل لسهولة الوصول.' },
-        { name: 'جدول مواعيد وساعات العمل الرسمية', desc: 'إبراز حالة المكان (مفتوح الآن / مغلق) وتوقيتات العمل الرسمية.' },
-        { name: 'إمكانية تحديث البيانات في أي وقت', desc: 'تعديل أرقام الهواتف أو المواعيد بكل سهولة عبر فريق خدمة العملاء.' }
-      ],
-      idealPractices: [
-        '💡 الممارسة المثالية: تزويدنا بأرقام هواتف نشطة بها واتساب لضمان وصول طلبات الزبائن مباشرة.',
-        '📍 نصيحة العنوان: كتابة أقرب علامة مميزة لتسهيل وصول الزبائن وسيارات التوصيل.'
-      ]
-    },
     {
       id: 'pkg_basic',
       shortName: 'التوثيق الأساسي (250 ج)',
@@ -396,7 +359,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
   const comparisonRows = [
     {
       feature: 'ظهور المنشأة في دليل المنصة والمحافظة',
-      free: true,
       basic: true,
       pro: true,
       vip: true,
@@ -404,7 +366,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'عرض أرقام التواصل وروابط الواتساب المباشرة',
-      free: true,
       basic: true,
       pro: true,
       vip: true,
@@ -412,7 +373,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'التفعيل والتوثيق المعتمد على خرائط Google',
-      free: false,
       basic: true,
       pro: true,
       vip: true,
@@ -420,7 +380,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'تثبيت إحداثيات الموقع بدقة GPS مع ساعات العمل',
-      free: 'أساسي',
       basic: true,
       pro: true,
       vip: true,
@@ -428,7 +387,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'ملصق باركود QR Code احترافي مخصص للمحل',
-      free: false,
       basic: true,
       pro: true,
       vip: true,
@@ -436,7 +394,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'تحسين محركات البحث والكلمات المفتاحية (SEO)',
-      free: false,
       basic: false,
       pro: true,
       vip: true,
@@ -444,7 +401,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'تأسيس صفحات المنصات الاجتماعية بهوية متناسقة',
-      free: false,
       basic: false,
       pro: true,
       vip: true,
@@ -452,7 +408,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'تصميم إعلانات وبوستات ترويجية احترافية',
-      free: false,
       basic: false,
       pro: true,
       vip: 'متجددة طوال الشهر',
@@ -460,7 +415,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'إدارة وتوجيه تقييمات ومراجعات العملاء',
-      free: false,
       basic: false,
       pro: false,
       vip: true,
@@ -468,7 +422,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'إعداد وضبط الحملات الإعلانية الممولة',
-      free: false,
       basic: false,
       pro: false,
       vip: 'إدارة واستهداف شهري',
@@ -476,7 +429,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'تصميم الشعار واللافتات والمطبوعات الميدانية',
-      free: false,
       basic: false,
       pro: false,
       vip: false,
@@ -484,7 +436,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'منظومة ولاء العملاء وتكرار الشراء الدائم',
-      free: false,
       basic: false,
       pro: false,
       vip: false,
@@ -492,7 +443,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'مدة المرافقة والدعم التسويقي المباشر',
-      free: 'دعم فني',
       basic: 'تسليم 48 ساعة',
       pro: 'متابعة 3 أيام',
       vip: 'دعم يومي شهر كامل',
@@ -500,7 +450,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     },
     {
       feature: 'الاستثمار / السعر الرسمي',
-      free: 'مجاني (0 ج.م)',
       basic: '250 ج.م',
       pro: '750 ج.م',
       vip: '2,000 ج.م',
@@ -512,11 +461,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
     if (pkg.id === 'pkg_corporate') {
       return encodeURIComponent(
         `مرحباً دليلك 👋 أود الاستفسار وطلب دراسة وعرض سعر مخصص لـ "باقة الشركات والمشاريع الكبرى" لتجهيز وتطوير منظومة منشأتنا ومكاننا.`
-      );
-    }
-    if (pkg.price === 0) {
-      return encodeURIComponent(
-        `مرحباً دليلك 👋 أود طلب إدراج وظهور منشأتنا ومكاننا في الدليل مجاناً 100% بدون أي رسوم.`
       );
     }
     const priceText = pkg.priceLabel ? pkg.priceLabel : `${pkg.price.toLocaleString('en-US')} جنيه مصري`;
@@ -535,7 +479,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
   };
 
   const filteredPackages = detailedPackages.filter((pkg) => {
-    if (categoryTab === 'essential') return ['pkg_free', 'pkg_basic', 'pkg_pro'].includes(pkg.id);
+    if (categoryTab === 'essential') return ['pkg_basic', 'pkg_pro'].includes(pkg.id);
     if (categoryTab === 'growth') return ['pkg_reputation', 'pkg_reels', 'pkg_vip'].includes(pkg.id);
     if (categoryTab === 'enterprise') return ['pkg_smart_menu', 'pkg_annual_partner', 'pkg_corporate'].includes(pkg.id);
     return true;
@@ -558,19 +502,72 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
             دليل وشرح باقات خدمات منصة دليلك في مصر 🚀
           </h2>
           <p className="text-xs sm:text-xs font-bold text-slate-900/90 leading-relaxed">
-            حلول رقمية وتسويقية متكاملة تبدأ من الإدراج والتوثيق المجاني، مروراً بباقات النمو والانتشار، وحتى حلول الشركات والمشاريع الكبرى. انقر على أي باقة لمعاينة تفاصيلها فوراً.
+            باقات وحملات تسويقية متكاملة تبدأ من التوثيق الأساسي وتصدر الخرائط، مروراً بباقات النمو والانتشار، وحتى حلول الشركات والمشاريع الكبرى. انقر على أي باقة لمعاينة تفاصيلها فوراً.
           </p>
         </div>
 
         <div className="relative z-10 shrink-0 self-end sm:self-center">
           <span className="bg-slate-950 text-amber-400 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-md inline-flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>9 باقات معتمدة</span>
+            <span>8 باقات معتمدة</span>
           </span>
         </div>
 
         <div className="absolute -left-4 -bottom-6 opacity-15 pointer-events-none">
           <Crown className="w-36 h-36" />
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 1.5. STANDALONE FREE DIRECTORY LISTING NOTICE (خدمة عامة مشروطة وليست باقة) */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-r from-emerald-500/10 via-[var(--bg-card)] to-teal-500/10 border-2 border-emerald-500/60 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>خدمة إدراج المنشأة مجاناً 100% (ليست ضمن الباقات التجارية)</span>
+          </div>
+          <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+            هل نشاطكم التجاري موثق بالفعل على خرائط Google؟
+          </h3>
+          <p className="text-xs text-[var(--text-secondary)] font-bold leading-relaxed">
+            {FREE_DIRECTORY_SERVICE.condition} نوفر لكم ظهوراً وإدراجاً كاملاً في دليل المحافظة مجاناً وبدون أي رسوم.
+          </p>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-xs text-amber-800 dark:text-amber-300 font-bold flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <span>
+              <strong>إذا لم يكن لمنشأتكم موقع موثق على الخريطة:</strong> نقترح عليكم البدء بـ{' '}
+              <button
+                type="button"
+                onClick={() => setSelectedPkgId('pkg_basic')}
+                className="underline font-black text-blue-600 dark:text-blue-400 cursor-pointer"
+              >
+                «باقة التوثيق الأساسي» (250 ج.م)
+              </button>{' '}
+              لتفعيل وتثبيت موقعكم رسمياً أولاً.
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0 w-full md:w-auto">
+          <a
+            href={`https://wa.me/201143888355?text=${encodeURIComponent('مرحباً دليلك 👋 نشاطنا موثق بالفعل على خرائط Google، ونود طلب إدراج وظهور المكان في الدليل مجاناً 100%.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>طلب الإدراج المجاني (للمواقع الموثقة)</span>
+          </a>
+
+          <button
+            type="button"
+            onClick={() => setSelectedPkgId('pkg_basic')}
+            className="px-4 py-2.5 rounded-xl bg-blue-600/10 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 border border-blue-500/30 font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>معاينة باقة التوثيق الأساسي (250 ج)</span>
+          </button>
         </div>
       </div>
 
@@ -594,7 +591,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
             >
-              <span>جميع الباقات (9)</span>
+              <span>جميع الباقات (8)</span>
             </button>
             <button
               type="button"
@@ -606,7 +603,7 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
               }`}
             >
               <MapPin className="w-3.5 h-3.5" />
-              <span>التوثيق والظهور الأساسي (3)</span>
+              <span>التوثيق والتأسيس الأساسي (2)</span>
             </button>
             <button
               type="button"
@@ -927,19 +924,16 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
               جدول المقارنة الشاملة بين باقات المنصة بالكامل 📊
             </h3>
             <p className="text-[11px] sm:text-xs text-[var(--text-muted)] font-bold mt-0.5">
-              مقارنة تفصيلية دقيقة بين جميع الخيارات من الظهور المجاني وحتى باقة الشركات والمشاريع الكبرى
+              مقارنة تفصيلية دقيقة بين الباقات المعتمدة من باقة التوثيق الأساسي وحتى باقة الشركات والمشاريع الكبرى
             </p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-right text-xs border-collapse min-w-[750px]">
+          <table className="w-full text-right text-xs border-collapse min-w-[700px]">
             <thead>
               <tr className="border-b border-[var(--border-color)] text-[var(--text-muted)]">
                 <th className="py-3 px-3 font-black text-xs text-[var(--text-primary)]">الخدمة / الميزة</th>
-                <th className="py-3 px-2 font-black text-xs text-center text-emerald-600 dark:text-emerald-400">
-                  الظهور المجاني (0 ج) 🎁
-                </th>
                 <th className="py-3 px-2 font-black text-xs text-center text-blue-600 dark:text-blue-400">
                   التوثيق الأساسي (250 ج) 📍
                 </th>
@@ -959,19 +953,6 @@ export const PackagesHub: React.FC<PackagesHubProps> = ({
                 <tr key={idx} className="hover:bg-[var(--bg-surface)] transition-colors">
                   <td className="py-2.5 px-3 font-bold text-[var(--text-primary)] text-xs">
                     {row.feature}
-                  </td>
-                  
-                  {/* Free */}
-                  <td className="py-2.5 px-2 text-center">
-                    {typeof row.free === 'boolean' ? (
-                      row.free ? (
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold text-xs">✓</span>
-                      ) : (
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-500/10 text-slate-400 font-bold text-xs">—</span>
-                      )
-                    ) : (
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">{row.free}</span>
-                    )}
                   </td>
 
                   {/* Basic */}
