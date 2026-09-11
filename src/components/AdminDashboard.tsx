@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, User, InterestedLead } from '../types';
 import { sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { matchesBusinessSearch } from '../utils/arabicSearch';
+import { matchesCategoryFilter } from '../utils/categoryMatcher';
 import { triggerHaptic } from '../utils/haptics';
 
 // Custom Hook for all financial and metric calculations
@@ -146,6 +147,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Search & Filter States
   const [bizSearchQuery, setBizSearchQuery] = useState<string>('');
   const [governorateFilter, setGovernorateFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [verificationFilter, setVerificationFilter] = useState<string>('all');
 
@@ -165,7 +167,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Reset pagination on filter changes
   useEffect(() => {
     setBizPage(1);
-  }, [bizSearchQuery, governorateFilter, paymentFilter, verificationFilter, bizPageSize]);
+  }, [bizSearchQuery, governorateFilter, categoryFilter, paymentFilter, verificationFilter, bizPageSize]);
 
   useEffect(() => {
     setAccountPage(1);
@@ -244,6 +246,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           if (governorateFilter !== 'all' && !(b.governorate || '').includes(governorateFilter)) {
             return false;
           }
+          if (
+            categoryFilter !== 'all' &&
+            (b.category || '').trim() !== categoryFilter &&
+            !matchesCategoryFilter(b, categoryFilter)
+          ) {
+            return false;
+          }
           if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
             return false;
           }
@@ -280,7 +289,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           return true;
         })
       ),
-    [metrics.realBusinesses, bizSearchQuery, governorateFilter, paymentFilter, verificationFilter, metrics.overdueReviewBusinesses, metrics.overdueFollowUpBusinesses, metrics.verifiedWithDebtBusinesses]
+    [metrics.realBusinesses, bizSearchQuery, governorateFilter, categoryFilter, paymentFilter, verificationFilter, metrics.overdueReviewBusinesses, metrics.overdueFollowUpBusinesses, metrics.verifiedWithDebtBusinesses]
   );
 
   // Paginated Businesses
@@ -623,6 +632,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setBizSearchQuery={setBizSearchQuery}
           governorateFilter={governorateFilter}
           setGovernorateFilter={setGovernorateFilter}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          categoryStats={metrics.categoryStats}
           paymentFilter={paymentFilter}
           setPaymentFilter={setPaymentFilter}
           verificationFilter={verificationFilter}
@@ -652,6 +664,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onResetFilters={() => {
             setBizSearchQuery('');
             setGovernorateFilter('all');
+            setCategoryFilter('all');
             setPaymentFilter('all');
             setVerificationFilter('all');
             setBizPage(1);

@@ -224,6 +224,20 @@ export const useAdminMetrics = ({
       .sort((a, b) => b.count - a.count);
   }, [businesses]);
 
+  // Activity Categories Breakdown & Live Counts (Sorted by most frequent first)
+  const categoryStats = useMemo(() => {
+    const catMap = new Map<string, number>();
+    realBusinesses.forEach((b) => {
+      const cat = (b.category || '').trim();
+      if (cat) {
+        catMap.set(cat, (catMap.get(cat) || 0) + 1);
+      }
+    });
+    return Array.from(catMap.entries())
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [realBusinesses]);
+
   // Package Share Breakdown
   const packageStats = useMemo(() => {
     const pkgMap = new Map<string, { count: number; revenue: number }>();
@@ -602,6 +616,7 @@ export const useAdminMetrics = ({
     verifiedWithDebtCount,
     verifiedWithDebtTotal,
     governorateStats,
+    categoryStats,
     packageStats,
     mergedAdminReps,
     repPerformanceStats,

@@ -19,6 +19,9 @@ export interface AdminBusinessesTabProps {
   setBizSearchQuery: (q: string) => void;
   governorateFilter: string;
   setGovernorateFilter: (g: string) => void;
+  categoryFilter: string;
+  setCategoryFilter: (cat: string) => void;
+  categoryStats: { category: string; count: number }[];
   paymentFilter: string;
   setPaymentFilter: (p: string) => void;
   verificationFilter: string;
@@ -56,6 +59,9 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
   setBizSearchQuery,
   governorateFilter,
   setGovernorateFilter,
+  categoryFilter,
+  setCategoryFilter,
+  categoryStats,
   paymentFilter,
   setPaymentFilter,
   verificationFilter,
@@ -102,6 +108,9 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
         setBizSearchQuery={setBizSearchQuery}
         governorateFilter={governorateFilter}
         setGovernorateFilter={setGovernorateFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        categoryStats={categoryStats}
         paymentFilter={paymentFilter}
         setPaymentFilter={setPaymentFilter}
         verificationFilter={verificationFilter}

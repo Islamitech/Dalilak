@@ -20,6 +20,9 @@ interface BusinessesFilterBarProps {
   setBizSearchQuery: (q: string) => void;
   governorateFilter: string;
   setGovernorateFilter: (g: string) => void;
+  categoryFilter: string;
+  setCategoryFilter: (cat: string) => void;
+  categoryStats: { category: string; count: number }[];
   paymentFilter: string;
   setPaymentFilter: (p: string) => void;
   verificationFilter: string;
@@ -46,6 +49,9 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
   setBizSearchQuery,
   governorateFilter,
   setGovernorateFilter,
+  categoryFilter,
+  setCategoryFilter,
+  categoryStats = [],
   paymentFilter,
   setPaymentFilter,
   verificationFilter,
@@ -144,7 +150,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
       </div>
 
       {/* Search and Dropdown Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
         <div className="relative">
           <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3" />
           <input
@@ -165,6 +171,20 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           {EGYPT_GOVERNORATES.map((g) => (
             <option key={g} value={g}>
               {g}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+          title="تصفية وفرز وتعداد المنشآت حسب نوع النشاط"
+        >
+          <option value="all">كل أنواع الأنشطة ({businesses.length})</option>
+          {categoryStats.map(({ category, count }) => (
+            <option key={category} value={category}>
+              {category} ({count})
             </option>
           ))}
         </select>
@@ -204,7 +224,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           <span className="font-bold text-[var(--text-secondary)]">
             إجمالي المنشآت المطابقة: <strong className="font-mono font-black text-amber-600">{filteredBusinesses.length}</strong> منشأة
           </span>
-          {(bizSearchQuery || governorateFilter !== 'all' || paymentFilter !== 'all' || verificationFilter !== 'all') && (
+          {(bizSearchQuery || governorateFilter !== 'all' || categoryFilter !== 'all' || paymentFilter !== 'all' || verificationFilter !== 'all') && (
             <button
               type="button"
               onClick={() => {
@@ -213,6 +233,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
                 } else {
                   setBizSearchQuery('');
                   setGovernorateFilter('all');
+                  setCategoryFilter('all');
                   setPaymentFilter('all');
                   setVerificationFilter('all');
                   setBizPage(1);
