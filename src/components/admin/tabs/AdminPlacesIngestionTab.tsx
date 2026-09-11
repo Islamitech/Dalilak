@@ -185,6 +185,60 @@ const CATEGORY_PRESETS: CategoryThreshold[] = [
     explanation: 'استشارات مهنية متخصصة بمراجعات عملاء رسمية',
   },
   {
+    label: 'محلات ملابس وأزياء وأحذية',
+    keyword: 'محلات ملابس وأزياء',
+    type: 'fashion',
+    icon: 'shirt',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 20,
+    explanation: 'متاجر أزياء وملابس وأحذية وإكسسوارات بمراجعات شرائية متوازنة',
+  },
+  {
+    label: 'هواتف وصيانة موبايل وإلكترونيات',
+    keyword: 'محلات هواتف وصيانة موبايل وإلكترونيات',
+    type: 'electronics',
+    icon: 'smartphone',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 20,
+    explanation: 'أجهزة ذكية وإلكترونيات وصيانة بمراجعات تقنية وموثوقية',
+  },
+  {
+    label: 'معارض أثاث وموبيليا وديكور منزلي',
+    keyword: 'معارض أثاث وموبيليا وديكور',
+    type: 'furniture',
+    icon: 'sofa',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 15,
+    explanation: 'معارض موبيليا ومفروشات وديكور وتشطيبات ومستلزمات منزلية',
+  },
+  {
+    label: 'مدارس وحضانات وسناتر تعليمية',
+    keyword: 'مدارس وحضانات وسناتر تعليمية وكورسات',
+    type: 'education',
+    icon: 'graduation-cap',
+    defaultMinRating: 4.3,
+    defaultMinReviews: 15,
+    explanation: 'مؤسسات تعليمية وتدريبية وأكاديميات كورسات ولغات',
+  },
+  {
+    label: 'مكتبات وأدوات مدرسية وخدمات طباعة',
+    keyword: 'مكتبات وأدوات مدرسية وتصوير مستندات',
+    type: 'stationery',
+    icon: 'book-open',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 15,
+    explanation: 'خدمات طلابية وقرطاسية وتصوير مستندات وطباعة',
+  },
+  {
+    label: 'فنادق وقاعات مناسبات وشركات سياحة',
+    keyword: 'فنادق وقاعات مناسبات وأفراح وشركات سياحة',
+    type: 'hospitality',
+    icon: 'hotel',
+    defaultMinRating: 4.2,
+    defaultMinReviews: 25,
+    explanation: 'خدمات ضيافة وحجوزات فندقية وقاعات احتفالات وتنظيم رحلات',
+  },
+  {
     label: 'جميع الأنشطة الرائجة المتنوعة',
     keyword: 'أنشطة وأماكن رائجة',
     type: 'general',
@@ -639,6 +693,41 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     }
   };
 
+  const getCategoryIconPrefix = (type: string) => {
+    switch (type) {
+      case 'restaurants':
+        return '🍔 ';
+      case 'cafes':
+        return '☕ ';
+      case 'fashion':
+        return '👗 ';
+      case 'electronics':
+        return '📱 ';
+      case 'furniture':
+        return '🛋️ ';
+      case 'craft':
+        return '🛠️ ';
+      case 'medical':
+        return '🩺 ';
+      case 'retail':
+        return '🛒 ';
+      case 'beauty':
+        return '💇 ';
+      case 'gym':
+        return '🏋️ ';
+      case 'corporate':
+        return '💼 ';
+      case 'education':
+        return '🎓 ';
+      case 'stationery':
+        return '📚 ';
+      case 'hospitality':
+        return '🏨 ';
+      default:
+        return '🏢 ';
+    }
+  };
+
   return (
     <div className="space-y-6 text-right pb-24 animate-fade-in" dir="rtl">
       {/* ── HEADER BANNER: SOVEREIGN IDENTITY & FINANCIAL GOVERNANCE ── */}
@@ -747,8 +836,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             >
               {CATEGORY_PRESETS.map((c, i) => (
                 <option key={i} value={i}>
-                  {c.type === 'craft' ? '🛠️ ' : c.type === 'medical' ? '🩺 ' : '🏢 '}
-                  {c.label}
+                  {getCategoryIconPrefix(c.type)}{c.label}
                 </option>
               ))}
             </select>
