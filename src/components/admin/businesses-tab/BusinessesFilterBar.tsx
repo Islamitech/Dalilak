@@ -179,9 +179,9 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
-          title="تصفية وفرز وتعداد المنشآت حسب نوع النشاط"
+          title="تصفية وفرز وتعداد المنشآت حسب التصنيفات الرئيسية"
         >
-          <option value="all">كل أنواع الأنشطة ({businesses.length})</option>
+          <option value="all">كل التصنيفات الرئيسية ({businesses.length})</option>
           {categoryStats.map(({ category, count }) => (
             <option key={category} value={category}>
               {category} ({count})

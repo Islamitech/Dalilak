@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, User, InterestedLead } from '../types';
 import { sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { matchesBusinessSearch } from '../utils/arabicSearch';
-import { matchesCategoryFilter } from '../utils/categoryMatcher';
+import { matchesCategoryFilter, getCategoryGroupFor } from '../utils/categoryMatcher';
 import { triggerHaptic } from '../utils/haptics';
 
 // Custom Hook for all financial and metric calculations
@@ -248,8 +248,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }
           if (
             categoryFilter !== 'all' &&
-            (b.category || '').trim() !== categoryFilter &&
-            !matchesCategoryFilter(b, categoryFilter)
+            getCategoryGroupFor(b.category, b.description) !== categoryFilter
           ) {
             return false;
           }

@@ -5,6 +5,7 @@ import { isReferredByInviter, getRepReferralSummary } from '../../../utils/refer
 import { safeParseJson } from '../../../utils/storage';
 import { getDeletedRepresentatives } from '../../../services/db/repDb';
 import { isBusinessFollowUpOverdue } from '../../../utils/followUpUtils';
+import { getCategoryGroupFor } from '../../../utils/categoryMatcher';
 
 interface UseAdminMetricsProps {
   currentUser?: User | null;
@@ -224,16 +225,17 @@ export const useAdminMetrics = ({
       .sort((a, b) => b.count - a.count);
   }, [businesses]);
 
-  // Activity Categories Breakdown & Live Counts (Sorted by most frequent first)
+  // Main Activity Category Groups Breakdown & Live Counts (Sorted by most frequent first)
   const categoryStats = useMemo(() => {
     const catMap = new Map<string, number>();
     realBusinesses.forEach((b) => {
-      const cat = (b.category || '').trim();
-      if (cat) {
-        catMap.set(cat, (catMap.get(cat) || 0) + 1);
+      const group = getCategoryGroupFor(b.category, b.description);
+      if (group) {
+        catMap.set(group, (catMap.get(group) || 0) + 1);
       }
     });
     return Array.from(catMap.entries())
+      .filter(([_, count]) => count > 0)
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count);
   }, [realBusinesses]);
