@@ -1096,7 +1096,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
       {/* Full Photo Lightbox */}
       {selectedPhotoPreview && (
-        <div className="fixed inset-0 z-[10050] bg-slate-950/92 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedPhotoPreview(null)}>
+        <div className="fixed inset-0 z-[100300] bg-slate-950/92 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedPhotoPreview(null)}>
           <div className="relative max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setSelectedPhotoPreview(null)} className="absolute -top-10 left-0 bg-white/15 hover:bg-white/30 text-white w-8 h-8 rounded-full flex items-center justify-center font-black cursor-pointer">
               ✕

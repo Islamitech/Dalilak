@@ -139,6 +139,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
       icon={<Smartphone className="w-5 h-5 text-emerald-500" />}
       footer={modalFooter}
       size="md"
+      zIndex={10040}
     >
       <div className="space-y-3.5 text-xs" dir="rtl">
         {/* Total remaining breakdown */}

@@ -45,7 +45,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   children,
   className = '',
   bodyClassName = '',
-  zIndex = 60,
+  zIndex = 10000,
 }) => {
   const touchStartY = useRef(0);
   const touchDeltaY = useRef(0);

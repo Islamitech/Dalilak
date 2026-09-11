@@ -11,6 +11,7 @@ export interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: 'danger' | 'warning' | 'info';
   loading?: boolean;
+  zIndex?: number;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -23,6 +24,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelLabel = 'إلغاء',
   variant = 'danger',
   loading = false,
+  zIndex = 200000,
   onConfirm,
   onCancel,
 }) => {
@@ -42,6 +44,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       size="sm"
       showCloseButton={!loading}
       preventBackdropClose={loading}
+      zIndex={zIndex}
     >
       <div className="flex items-start gap-4">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${iconColor}`}>

@@ -783,7 +783,7 @@ export const GoogleMapsSyncModal: React.FC<GoogleMapsSyncModalProps> = ({
           onClose={() => setPreviewPhoto(null)}
           title="معاينة الصورة"
           size="lg"
-          zIndex={80}
+          zIndex={10050}
         >
           <div className="space-y-3">
             <div className="max-h-[75vh] overflow-hidden rounded-2xl flex items-center justify-center bg-slate-950 p-2">

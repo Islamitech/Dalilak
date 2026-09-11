@@ -893,7 +893,7 @@ export const AdminProfileModal: React.FC<UnifiedProfileModalProps> = ({
           onClose={() => setPreviewImage(null)}
           title={previewImage.title}
           size="lg"
-          zIndex={80}
+          zIndex={10050}
         >
           <div className="max-h-[75vh] overflow-hidden rounded-2xl flex items-center justify-center bg-slate-950 p-2">
             <img src={previewImage.src} alt={previewImage.title} className="max-h-[70vh] w-auto object-contain rounded-lg" />

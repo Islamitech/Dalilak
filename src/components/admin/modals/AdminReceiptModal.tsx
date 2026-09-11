@@ -15,7 +15,7 @@ export const AdminReceiptModal: React.FC<AdminReceiptModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 cursor-pointer animate-fade-in"
+      className="fixed inset-0 z-[100300] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 cursor-pointer animate-fade-in"
       onClick={onClose}
     >
       <div
