@@ -22,7 +22,9 @@ export async function fetchPaymentConfigFromDb(): Promise<PaymentGatewayConfig |
   }
 
   try {
-    const localRes = await fetch('/api/payment-config');
+    const localRes = await fetch('/api/payment-config', {
+      headers: getApiAuthHeaders(),
+    });
     if (localRes.ok) {
       const localData = await localRes.json();
       if (localData && typeof localData === 'object') {

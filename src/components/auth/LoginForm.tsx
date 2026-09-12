@@ -174,16 +174,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       // Verify Password strictly (supports both SHA-256 and legacy formats)
       let storedPassword = (foundRep.password || '').trim();
 
-      // Failsafe 1: If password field is blank, extract from avatar JSON metadata bundle
-      if (!storedPassword && foundRep.avatar && typeof foundRep.avatar === 'string' && foundRep.avatar.trim().startsWith('{')) {
-        try {
-          const parsedMeta = JSON.parse(foundRep.avatar.trim());
-          if (parsedMeta && parsedMeta.password) {
-            storedPassword = String(parsedMeta.password).trim();
-            foundRep.password = storedPassword;
-          }
-        } catch {}
-      }
 
       // Failsafe 2: Check local custom and cached reps
       if (!storedPassword) {

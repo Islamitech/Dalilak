@@ -203,22 +203,25 @@ export function canUserManageFeeExemption(user: User | null | undefined): boolea
 }
 
 /**
- * 👑 SUPER ADMIN SUPREME IDENTITY
- * الحساب السيادي السري الأعلى لإدارة المنظومة وقاعدة البيانات بالكامل
+ * 👑 SUPER ADMIN IDENTITY
+ * 🛡️ SEC-005 FIX: Personal identity (email/phone) removed from client code.
+ * Super Admin checks MUST be performed server-side.
+ * Client-side uses role-based flags from the server response only.
  */
-export const SUPER_ADMIN_EMAIL = 'ahmedhufne@gmail.com';
-export const SUPER_ADMIN_PHONE = '01143888355';
 export const PRIMARY_WHATSAPP_SENDER_PHONE = '01556221141';
-export const SUPER_ADMIN_PHONES = ['01143888355', '01556221141'];
 
 /**
- * Checks whether a given user / rep is the designated Super Admin
+ * Checks whether a given user is the designated Super Admin.
+ * 🛡️ SEC-005: Uses server-assigned role/flag only — no personal data comparison in client.
+ * The server must set isSuperAdmin=true or role='superadmin' in the session/response.
  */
-export function isSuperAdmin(user?: { email?: string; phone?: string; id?: string; repData?: any } | null): boolean {
+export function isSuperAdmin(user?: { email?: string; phone?: string; id?: string; repData?: any; isSuperAdmin?: boolean; role?: string } | null): boolean {
   if (!user) return false;
-  const email = (user.email || user.repData?.email || '').toLowerCase().trim();
-  const phone = (user.phone || user.repData?.phone || '').trim();
-  return email === SUPER_ADMIN_EMAIL.toLowerCase() || phone === SUPER_ADMIN_PHONE || phone === PRIMARY_WHATSAPP_SENDER_PHONE;
+  // Trust server-assigned flag only
+  if ((user as any).isSuperAdmin === true) return true;
+  if (user.repData?.isSuperAdmin === true) return true;
+  // Fallback: admin role (for backward compatibility until server migration)
+  return (user.role || user.repData?.role) === 'admin';
 }
 
 /**

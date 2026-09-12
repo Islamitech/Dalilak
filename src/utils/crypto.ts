@@ -48,12 +48,6 @@ export async function verifyPassword(plainText: string, storedPassword?: string)
     const inputHash = await hashPassword(cleanPlain);
     if (inputHash.toLowerCase() === cleanStored.toLowerCase()) return true;
 
-    // Resilient fallback: if stored hash was for Aa132456 and user typed Aa123456, or vice-versa
-    const alt = cleanPlain.toLowerCase() === 'aa123456' ? 'Aa132456' : cleanPlain.toLowerCase() === 'aa132456' ? 'Aa123456' : null;
-    if (alt) {
-      const altHash = await hashPassword(alt);
-      if (altHash.toLowerCase() === cleanStored.toLowerCase()) return true;
-    }
     return false;
   }
 
@@ -64,16 +58,8 @@ export async function verifyPassword(plainText: string, storedPassword?: string)
     return rawInputHex.toLowerCase() === cleanStored.toLowerCase();
   }
 
-  // 3. Legacy fallback: direct plaintext equality (allows existing reps to log in seamlessly)
+  // 3. Legacy fallback: strict direct plaintext equality only
   if (cleanStored === cleanPlain) return true;
-
-  // 4. Case-insensitive comparison for plaintext (e.g. 'Aa123456' vs 'aa123456')
-  if (cleanStored.toLowerCase() === cleanPlain.toLowerCase()) return true;
-
-  // 5. Permutation fallback between default 'Aa123456', 'Aa132456', and '123456'
-  const isStoredDefault = ['aa123456', 'aa132456'].includes(cleanStored.toLowerCase());
-  const isPlainDefault = ['aa123456', 'aa132456', '123456'].includes(cleanPlain.toLowerCase());
-  if (isStoredDefault && isPlainDefault) return true;
 
   return false;
 }

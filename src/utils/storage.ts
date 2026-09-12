@@ -47,7 +47,7 @@ export function getSafeRepsForStorage(reps: Representative[]): Representative[] 
   if (!Array.isArray(reps)) return [];
   return reps.map((r) => ({
     ...r,
-    password: r.password, // 🔐 Preserve password hash for reliable client/offline authentication
+    password: undefined, // 🛡️ SEC-001 FIX: Never store password hashes in client localStorage
     nationalId: r.nationalId, // Keep national ID (clean 14-digit number)
     activeSessionId: undefined, // 🛡️ Strip session IDs from client localStorage to prevent stale sessions
     nationalIdCardPhoto: r.nationalIdCardPhoto && r.nationalIdCardPhoto.length > 250000 ? undefined : r.nationalIdCardPhoto,

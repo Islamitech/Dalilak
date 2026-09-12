@@ -25,26 +25,28 @@ app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self)');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; img-src 'self' https: data: blob:; media-src 'self' https: data: blob:; connect-src 'self' https: wss:;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://*.ggpht.com https://*.tile.openstreetmap.org https://unpkg.com https://dalilaak.com https://www.dalilaak.com; media-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://places.googleapis.com https://unpkg.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
   );
   // CORS: السماح من المصادر الموثوقة المعتمدة فقط
   const origin = _req.headers.origin || '';
-  const isVercelAllowedOrigin =
-    origin.endsWith('.vercel.app') &&
-    (origin.includes('dalelak') || origin.includes('dalilak') || origin.includes('islamitech'));
+  const isDev = process.env.NODE_ENV !== 'production';
+  const isLocalOrigin =
+    isDev &&
+    (origin === 'http://localhost:3001' ||
+      origin === 'http://localhost:5173' ||
+      origin === 'http://127.0.0.1:3001' ||
+      origin === 'http://127.0.0.1:5173');
   const isAllowedOrigin =
-    isVercelAllowedOrigin ||
-    origin === 'http://localhost:3001' ||
-    origin === 'http://localhost:5173' ||
-    origin === 'http://127.0.0.1:3001' ||
-    origin === 'http://127.0.0.1:5173' ||
+    isLocalOrigin ||
     origin === 'https://www.dalilaak.com' ||
     origin === 'https://dalilaak.com' ||
+    (origin.endsWith('.vercel.app') &&
+      (origin.includes('dalelak') || origin.includes('dalilak') || origin.includes('islamitech'))) ||
     (process.env.APP_URL && origin === process.env.APP_URL);
 
   if (isAllowedOrigin) {
@@ -103,12 +105,6 @@ function verifyPassword(password: string, storedHash?: string): boolean {
       if (computed.toLowerCase() === cleanStored.toLowerCase()) return true;
     }
 
-    // Resilient fallback: if stored hash was for Aa132456 and user typed Aa123456, or vice-versa
-    const alt = cleanPassword.toLowerCase() === 'aa123456' ? 'Aa132456' : cleanPassword.toLowerCase() === 'aa132456' ? 'Aa123456' : null;
-    if (alt) {
-      const altHash = `sha256:${crypto.createHash('sha256').update(alt).digest('hex')}`;
-      if (altHash.toLowerCase() === cleanStored.toLowerCase()) return true;
-    }
     return false;
   }
 
@@ -145,16 +141,8 @@ function verifyPassword(password: string, storedHash?: string): boolean {
     return hash.toLowerCase() === cleanStored.toLowerCase();
   }
 
-  // 4. Backward-compatible Plaintext Verification
+  // 4. Backward-compatible strict Plaintext Verification only
   if (cleanStored === cleanPassword) return true;
-
-  // 5. Case-insensitive comparison for plaintext (e.g. 'Aa123456' vs 'aa123456')
-  if (cleanStored.toLowerCase() === cleanPassword.toLowerCase()) return true;
-
-  // 6. Permutation fallback between default 'Aa123456', 'Aa132456', and '123456'
-  const isStoredDefault = ['aa123456', 'aa132456'].includes(cleanStored.toLowerCase());
-  const isPlainDefault = ['aa123456', 'aa132456', '123456'].includes(cleanPassword.toLowerCase());
-  if (isStoredDefault && isPlainDefault) return true;
 
   return false;
 }
@@ -922,9 +910,9 @@ const SUPER_ADMIN_PHONE = '01143888355';
 const PRIMARY_WHATSAPP_SENDER_PHONE = '01556221141';
 const SUPER_ADMIN_PHONES = ['01143888355', '01556221141'];
 const GOOGLE_PLACES_API_KEY =
-  process.env.GOOGLE_PLACES_API_KEY ||
+  (process.env.GOOGLE_PLACES_API_KEY ||
   process.env.VITE_GOOGLE_PLACES_API_KEY ||
-  'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
+  '').trim();
 
 function isRequestSuperAdmin(req: express.Request): boolean {
   const reqUser = getRequestUser(req);
@@ -1454,7 +1442,11 @@ app.post('/api/admin/whatsapp/broadcast-resume', async (req, res) => {
   }
 });
 
-app.get('/api/test-mode', (_req, res) => {
+app.get('/api/test-mode', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser || reqUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: استعلام وضع الاختبار مقتصر على مدير النظام حصراً' });
+  }
   businesses = loadStoredBusinesses();
   representatives = loadStoredReps();
   res.json({
@@ -1572,8 +1564,8 @@ app.post('/api/auth/login', async (req, res) => {
 
   // Cloud Supabase lookup if account not found in local file store
   if (!rep) {
-    const sUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
-    const sKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
+    const sUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
+    const sKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim();
     if (sUrl && sKey) {
       try {
         const queryUrl = `${sUrl.replace(/\/+$/, '')}/rest/v1/representatives?select=*&or=(email.ilike.${encodeURIComponent(cleanEmail)},phone.eq.${encodeURIComponent(cleanEmail)},id.eq.${encodeURIComponent(cleanEmail)})&limit=1`;
@@ -2150,7 +2142,11 @@ app.delete('/api/leads/:id', (req, res) => {
 });
 
 // 7. Payment config API
-app.get('/api/payment-config', (_req, res) => {
+app.get('/api/payment-config', (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser) {
+    return res.status(401).json({ error: 'غير مصرح: يرجى تسجيل الدخول للوصول إلى إعدادات الدفع' });
+  }
   res.json(paymentConfig);
 });
 
