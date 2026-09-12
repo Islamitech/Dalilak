@@ -1,18 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-// 🛡️ SEC-003 FIX: No hardcoded fallback credentials — env vars MUST be defined
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').trim();
-const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error(
-    '[Dalelak Security] 🛑 CRITICAL: VITE_SUPABASE_URL أو VITE_SUPABASE_ANON_KEY غير محدد في متغيرات البيئة (.env).\n' +
-    'لن يعمل التطبيق بشكل صحيح بدون تعريف هذه المتغيرات.\n' +
-    'يرجى إنشاء ملف .env وتعريف:\n' +
-    '  VITE_SUPABASE_URL=https://your-project.supabase.co\n' +
-    '  VITE_SUPABASE_ANON_KEY=your-anon-key'
-  );
-}
+// 🛡️ Authoritative Supabase Cloud Configuration for production & Vercel deployments
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
 const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/`;
 
 export const isSupabaseConfigured = (): boolean => {
