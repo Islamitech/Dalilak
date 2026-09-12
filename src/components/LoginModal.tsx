@@ -117,8 +117,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
-            ✅ تم تقديم طلب التسجيل بنجاح! الحساب قيد المراجعة، يرجى متابعة البريد المسجل لتلقي
-            إشعار حالة التفعيل.
+            ✅ تم إنشاء وتفعيل حسابك بنجاح! يمكنك الآن تسجيل الدخول مباشرة بالبريد أو رقم الهاتف وكلمة المرور.
           </span>
         </div>
       )}

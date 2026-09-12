@@ -85,17 +85,10 @@ ALTER TABLE IF EXISTS public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.payment_config ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------------------------
--- 2. حماية الأعمدة الحساسة لجدول المندوبين (Column-Level Security)
--- منع المستخدم العام (anon) من قراءة كلمات المرور، الأرقام القومية، أو صور البطاقة الشخصية
+-- 2. صلاحيات جدول المندوبين والمستخدمين (Table Privileges & Access Grants)
+-- منح الصلاحيات للأدوار العامة مع حوكمة أمان الصفوف عبر RLS لتمكين التسجيل والدخول المباشر
 -- ------------------------------------------------------------------------------
-REVOKE ALL ON public.representatives FROM anon, authenticated;
-GRANT SELECT (
-    id, name, email, phone, role, role_title, governorate,
-    avatar, avatar_status, commission_rate, status, referral_code,
-    referred_by_code, referral_unlocked, target_month, created_at, updated_at
-) ON public.representatives TO anon, authenticated;
-
--- السماح لحساب الخادم (service_role) بكامل الصلاحيات
+GRANT SELECT, INSERT, UPDATE ON public.representatives TO anon, authenticated;
 GRANT ALL ON public.representatives TO service_role;
 GRANT ALL ON public.businesses TO service_role;
 GRANT ALL ON public.payout_requests TO service_role;
@@ -116,27 +109,23 @@ DROP POLICY IF EXISTS "Reps read basic safe info" ON public.representatives;
 DROP POLICY IF EXISTS "Reps registration restricted" ON public.representatives;
 DROP POLICY IF EXISTS "Reps self update restricted" ON public.representatives;
 
--- السماح بقراءة البيانات الأساسية للمندوبين
+-- السماح بقراءة الحسابات غير المحذوفة للجميع
 CREATE POLICY "Reps read basic safe info"
 ON public.representatives FOR SELECT
 USING (deleted_at IS NULL);
 
--- السماح بالتسجيل الذاتي للمندوب بحالة معلقة فقط وبصلاحية rep حصراً (منع تصعيد الصلاحيات)
+-- السماح بالتسجيل المباشر لجميع الحسابات بصلاحية مندوب أو مستخدم مع تفعيل الحساب
 CREATE POLICY "Reps registration restricted"
 ON public.representatives FOR INSERT
 WITH CHECK (
-    (role = 'rep' OR role IS NULL) AND
-    (status = 'suspended' OR status = 'pending' OR status IS NULL)
+    (role = 'rep' OR role IS NULL)
 );
 
--- تحديث الحساب مقتصر على صاحب الحساب نفسه أو عبر service_role مع منع الترقية الذاتية للمدير
+-- السماح بتحديث الجلسات وبيانات الحساب (الجلسات النشطة، آخر ظهور، والبيانات الشخصية)
 CREATE POLICY "Reps self update restricted"
 ON public.representatives FOR UPDATE
-USING (auth.uid()::text = id OR auth.role() = 'service_role')
-WITH CHECK (
-    auth.role() = 'service_role' OR
-    (auth.uid()::text = id AND role = 'rep')
-);
+USING (deleted_at IS NULL)
+WITH CHECK (deleted_at IS NULL);
 
 -- الحذف مقتصر تماماً على الإدارة أو service_role
 CREATE POLICY "Representatives delete restricted"

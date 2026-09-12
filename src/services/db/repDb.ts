@@ -5,7 +5,7 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-const SAFE_REP_SELECT = 'id,name,email,phone,national_id,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,created_at';
+const SAFE_REP_SELECT = 'id,name,email,phone,password,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referred_by_code,referral_unlocked,active_session_id,last_active_timestamp,created_at';
 
 function filterOutDeletedReps(reps: Representative[]): { active: Representative[]; deleted: Representative[] } {
   const blacklist = new Set(

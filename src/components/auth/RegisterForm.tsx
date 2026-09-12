@@ -295,9 +295,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       governorate: regGovernorate,
       targetMonth: 25,
       avatar: '', // صورة التسجيل لا توضع كصورة للملف الشخصي
-      avatarStatus: 'none',
+      avatarStatus: 'approved',
       commissionRate: 42.86,
-      status: 'suspended', // New accounts are suspended until admin activates
+      status: 'active', // 🚀 تفعيل تلقائي فوري لتمكين الدخول المباشر
       password: await hashPassword(regPassword),
       referralCode: ownCode,
       referredByCode: resolvedReferredByCode,

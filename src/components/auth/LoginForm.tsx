@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Representative } from '../../types';
 import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../../lib/supabase';
-import { updateRepSessionInDb, saveRepToDb } from '../../services/db';
+import { updateRepSessionInDb, saveRepToDb, updateRepInDb } from '../../services/db';
 import { mapDbToRep } from '../../services/db/dbMappers';
 import { hashPassword, verifyPassword, isPasswordHashed } from '../../utils/crypto';
 import { safeSetLocalStorageItem, safeSetSessionItem, safeParseJson } from '../../utils/storage';
@@ -88,13 +88,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
       // Step 2: Supabase Cloud Authentication (Authoritative fallback for Vercel / serverless deployments)
       let foundRep: Representative | null = null;
+      const cleanPhoneDigits = cleanEmail.replace(/\D/g, '');
+      const AUTH_SELECT = 'id,name,email,phone,password,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referred_by_code,referral_unlocked,active_session_id,last_active_timestamp,created_at';
+
       if (isSupabaseConfigured()) {
         // A. Primary direct email lookup if contains @
         if (cleanEmail.includes('@')) {
           try {
             const { data, error } = await supabase
               .from('representatives')
-              .select('*')
+              .select(AUTH_SELECT)
               .ilike('email', cleanEmail)
               .limit(1);
 
@@ -102,32 +105,63 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               foundRep = mapDbToRep(data[0]);
             }
           } catch (sdkErr) {
-            console.warn('Supabase direct email lookup warning:', sdkErr);
+            console.warn('Supabase direct email lookup notice:', sdkErr);
           }
         }
 
-        // B. Combined lookup by email, phone, or ID
-        if (!foundRep) {
+        // B. Phone-based direct lookup if phone digits >= 8
+        if (!foundRep && cleanPhoneDigits.length >= 8) {
           try {
             const { data, error } = await supabase
               .from('representatives')
-              .select('*')
-              .or(`email.ilike.${cleanEmail},phone.eq.${cleanEmail},id.eq.${cleanEmail}`)
+              .select(AUTH_SELECT)
+              .or(`phone.eq.${cleanEmail},phone.ilike.%${cleanPhoneDigits}%,phone.eq.${cleanPhoneDigits}`)
               .limit(1);
 
             if (!error && data && data.length > 0) {
               foundRep = mapDbToRep(data[0]);
             }
           } catch (sdkErr) {
-            console.warn('Supabase SDK lookup failed:', sdkErr);
+            console.warn('Supabase direct phone lookup notice:', sdkErr);
           }
         }
 
-        // C. Direct REST API lookup fallback
+        // C. Combined lookup by email, phone, or ID
+        if (!foundRep) {
+          try {
+            const orQuery = cleanPhoneDigits.length >= 8
+              ? `email.ilike.${cleanEmail},phone.eq.${cleanEmail},phone.ilike.%${cleanPhoneDigits}%,id.eq.${cleanEmail}`
+              : `email.ilike.${cleanEmail},phone.eq.${cleanEmail},id.eq.${cleanEmail}`;
+
+            const { data, error } = await supabase
+              .from('representatives')
+              .select(AUTH_SELECT)
+              .or(orQuery)
+              .limit(1);
+
+            if (!error && data && data.length > 0) {
+              foundRep = mapDbToRep(data[0]);
+            } else {
+              // Fallback to select=* if column selection encounters schema mismatch
+              const fallback = await supabase
+                .from('representatives')
+                .select('*')
+                .or(orQuery)
+                .limit(1);
+              if (!fallback.error && fallback.data && fallback.data.length > 0) {
+                foundRep = mapDbToRep(fallback.data[0]);
+              }
+            }
+          } catch (sdkErr) {
+            console.warn('Supabase SDK lookup notice:', sdkErr);
+          }
+        }
+
+        // D. Direct REST API lookup fallback
         if (!foundRep) {
           try {
             const restRes = await supabaseRestFetch(
-              `representatives?select=*&or=(email.ilike.${encodeURIComponent(cleanEmail)},phone.eq.${encodeURIComponent(cleanEmail)},id.eq.${encodeURIComponent(cleanEmail)})&limit=1`
+              `representatives?select=${AUTH_SELECT}&or=(email.ilike.${encodeURIComponent(cleanEmail)},phone.eq.${encodeURIComponent(cleanEmail)},id.eq.${encodeURIComponent(cleanEmail)})&limit=1`
             );
             if (restRes.ok) {
               const restData = await restRes.json().catch(() => null);
@@ -136,23 +170,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               }
             }
           } catch (restErr) {
-            console.warn('Supabase REST lookup failed:', restErr);
+            console.warn('Supabase REST lookup notice:', restErr);
           }
         }
       }
 
-      // Fallback to local representatives list if still not found
+      // Fallback to local representatives list & cached reps if still not found
       if (!foundRep) {
-        const cleanPhone = cleanEmail.replace(/\D/g, '');
         const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
-        foundRep = representatives.find((r) => {
+        const allLocalSources: Representative[] = [
+          ...representatives,
+          ...(safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []) || []),
+          ...(safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []) || []),
+        ];
+
+        foundRep = allLocalSources.find((r) => {
           const rEmail = (r.email || '').trim().toLowerCase();
           const normR = rEmail.replace(/[^a-z0-9]/g, '');
           const rPhone = (r.phone || '').replace(/\D/g, '');
           return (
             rEmail === cleanEmail ||
             normR === normClean ||
-            (cleanPhone.length >= 8 && rPhone && (rPhone === cleanPhone || rPhone.endsWith(cleanPhone) || cleanPhone.endsWith(rPhone))) ||
+            (cleanPhoneDigits.length >= 8 && rPhone && (rPhone === cleanPhoneDigits || rPhone.endsWith(cleanPhoneDigits) || cleanPhoneDigits.endsWith(rPhone))) ||
             r.id.toLowerCase() === cleanEmail
           );
         }) || null;
@@ -173,7 +212,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
       // Verify Password strictly (supports both SHA-256 and legacy formats)
       let storedPassword = (foundRep.password || '').trim();
-
 
       // Failsafe 2: Check local custom and cached reps
       if (!storedPassword) {
@@ -199,16 +237,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         return;
       }
 
-      // Check account review / suspension status
-      if (foundRep.status !== 'active') {
-        if (foundRep.avatarStatus === 'rejected') {
-          const emailNotice = foundRep.email ? ` عبر البريد الإلكتروني (${foundRep.email})` : ' عبر البريد الإلكتروني';
-          onError(`❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`);
-        } else {
-          onError('⏳ الحساب قيد المراجعة، يرجى متابعة البريد المسجل لتلقي إشعار حالة التفعيل.');
-        }
+      // Check account rejection status (only block if officially rejected with reasons)
+      if (foundRep.avatarStatus === 'rejected') {
+        const emailNotice = foundRep.email ? ` عبر البريد الإلكتروني (${foundRep.email})` : ' عبر البريد الإلكتروني';
+        onError(`❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`);
         setIsLoading(false);
         return;
+      }
+
+      // 🚀 السماح لجميع الحسابات المسجلة بالدخول المباشر: تفعيل الحساب فورياً إذا كان قيد المراجعة أو معلقاً
+      if (foundRep.status !== 'active') {
+        foundRep.status = 'active';
+        updateRepInDb(foundRep.id, { status: 'active' }).catch(() => {});
       }
 
       // Auto-upgrade legacy plaintext passwords to SHA-256 upon successful login
