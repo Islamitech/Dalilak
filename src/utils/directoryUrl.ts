@@ -44,15 +44,22 @@ export interface DirectoryUrlOptions {
   preview?: boolean;
   /** Referral code to append */
   refCode?: string;
+  /**
+   * Whether to include Arabic text slug in URL path.
+   * Default: false (clean canonical ID only: https://www.dalilaak.com/biz/biz_123).
+   * Keeping it false eliminates BiDi text inversion, URL splitting/breaking in WhatsApp,
+   * and ugly %D8%A7... percent-encoding across all messaging and social channels.
+   */
+  includeSlug?: boolean;
 }
 
 /**
- * Generates the official, beautiful public directory link for any venue.
- * Combines the Arabic venue name with its unique entity ID for 100% collision-free
- * routing, maximum SEO power, and pristine appearance across WhatsApp and social media.
+ * Generates the official public directory link for any venue.
+ * By default, outputs the clean direct canonical URL:
+ *   "https://www.dalilaak.com/biz/biz_gplaces_1789090453513_6kvcw"
  * 
- * Output Example:
- *   "https://www.dalilaak.com/biz/مطعم-أبو-خالد-biz_1788118588424"
+ * Guarantees 100% collision-free routing, zero BiDi reversal in WhatsApp,
+ * and instant link preview resolution.
  */
 export function getPublicDirectoryUrl(
   business: { id: string; nameAr?: string; nameEn?: string; category?: string; customDirectoryUrl?: string },
@@ -73,8 +80,10 @@ export function getPublicDirectoryUrl(
     return `${domain}/biz/${encodeURIComponent(custom)}`;
   }
 
+  // 2. Canonical Clean Direct URL: https://www.dalilaak.com/biz/biz_123
+  // If includeSlug is explicitly requested, append slugified name:
   const rawName = business.nameAr || business.nameEn || '';
-  const slug = slugifyBusinessName(rawName);
+  const slug = options?.includeSlug ? slugifyBusinessName(rawName) : '';
   const identifier = slug ? `${slug}-${business.id}` : business.id;
 
   if (options?.format === 'query') {
@@ -86,8 +95,8 @@ export function getPublicDirectoryUrl(
     return `${domain}/?${params.toString()}`;
   }
 
-  // Modern clean path: https://www.dalilaak.com/biz/مطعم-أبو-خالد-biz_1788118588424
-  let pathUrl = `${domain}/biz/${encodeURIComponent(identifier)}`;
+  // Modern clean canonical path: https://www.dalilaak.com/biz/biz_1788118588424
+  let pathUrl = `${domain}/biz/${identifier}`;
   const searchParams = new URLSearchParams();
   if (options?.preview) searchParams.set('preview', 'true');
   if (options?.refCode) searchParams.set('ref', options.refCode);
@@ -110,14 +119,14 @@ export function getAutomaticDirectoryUrl(
   if (!business || !business.id) return domain;
 
   const rawName = business.nameAr || business.nameEn || '';
-  const slug = slugifyBusinessName(rawName);
+  const slug = options?.includeSlug ? slugifyBusinessName(rawName) : '';
   const identifier = slug ? `${slug}-${business.id}` : business.id;
-  return `${domain}/biz/${encodeURIComponent(identifier)}`;
+  return `${domain}/biz/${identifier}`;
 }
 
 /**
- * Returns a human-readable, unencoded display version of the URL for UI display and copying.
- * Shows the actual Arabic text without %D9%85... percent-encoding.
+ * Returns a clean, human-friendly canonical direct public directory link for display and messaging.
+ * Uses clean entity ID (e.g. https://www.dalilaak.com/biz/biz_123) for WhatsApp and copy actions.
  */
 export function getDisplayDirectoryUrl(
   business: { id: string; nameAr?: string; nameEn?: string; category?: string; customDirectoryUrl?: string },
