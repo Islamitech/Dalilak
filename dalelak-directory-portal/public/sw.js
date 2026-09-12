@@ -3,7 +3,7 @@
  * Strategy: Network-First with Institutional Offline Shell Fallback
  */
 
-const CACHE_NAME = 'dalilak-portal-shell-v1';
+const CACHE_NAME = 'dalilak-portal-shell-v2';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [
