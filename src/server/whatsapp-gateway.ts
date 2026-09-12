@@ -3,6 +3,7 @@ import makeWASocketImport, {
   DisconnectReason,
   WASocket,
   Browsers,
+  getUrlInfo,
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import qrcode from 'qrcode';
@@ -237,6 +238,7 @@ export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
       markOnlineOnConnect: true,
       connectTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
+      generateHighQualityLinkPreview: true,
     });
     sock = socketInstance;
 
@@ -465,7 +467,7 @@ async function getSharp() {
 async function getCompressedJpegThumbnail(url: string): Promise<Buffer | undefined> {
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2500);
+    const timer = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) return undefined;
@@ -473,11 +475,11 @@ async function getCompressedJpegThumbnail(url: string): Promise<Buffer | undefin
     const sharp = await getSharp();
     if (sharp) {
       return await sharp(rawBuf)
-        .resize(300, 200, { fit: 'cover', position: 'center' })
-        .jpeg({ quality: 80 })
+        .resize(500, 333, { fit: 'cover', position: 'center' })
+        .jpeg({ quality: 75, mozjpeg: true })
         .toBuffer();
     }
-    if (rawBuf.length <= 100 * 1024) return rawBuf;
+    if (rawBuf.length <= 64 * 1024) return rawBuf;
     return undefined;
   } catch {
     return undefined;
@@ -676,35 +678,41 @@ async function executeCampaignLoop(
         // Non-blocking
       }
 
-      // Generate embedded JPEG thumbnail for instant preview on all devices
-      let thumbBuffer: Buffer | undefined;
-      if (photoUrl) {
-        thumbBuffer = await getCompressedJpegThumbnail(photoUrl);
+      // 🌟 Native WhatsApp Authentic Directory Link Preview (Zero-Ad, 100% Native)
+      let nativeLinkPreview: any = undefined;
+      try {
+        nativeLinkPreview = await getUrlInfo(directoryUrl, {
+          thumbnailWidth: 500,
+          fetchOpts: { timeout: 8000 },
+          uploadImage: (sock as any)?.waUploadToServer,
+        });
+      } catch (previewErr) {
+        console.warn(`[Campaign] Native link preview generation notice for ${directoryUrl}:`, previewErr);
       }
 
-      // 🌟 Rich Interactive WhatsApp Business Card Payload
+      // Robust fallback if network crawler took too long: construct crisp native link preview directly
+      if (!nativeLinkPreview) {
+        let fallbackThumb: Buffer | undefined;
+        if (photoUrl) {
+          fallbackThumb = await getCompressedJpegThumbnail(photoUrl);
+        }
+        if (fallbackThumb) {
+          nativeLinkPreview = {
+            'matched-text': directoryUrl,
+            'canonical-url': directoryUrl,
+            title: `${venueName} | منصة دليلك المعتمدة`,
+            description: `منصة دليلك المعتمدة • ${location}`,
+            jpegThumbnail: fallbackThumb,
+          };
+        }
+      }
+
       const messagePayload: any = {
         text: messageBody,
-        matchedText: directoryUrl,
-        canonicalUrl: directoryUrl,
-        title: `${venueName} | منصة دليلك المعتمدة`,
-        description: `منصة دليلك المعتمدة • ${location}`,
-        contextInfo: {
-          externalAdReply: {
-            title: `${venueName} | منصة دليلك المعتمدة`,
-            body: `منصة دليلك المعتمدة • ${location}`,
-            mediaType: 1, // IMAGE
-            thumbnail: thumbBuffer,
-            thumbnailUrl: photoUrl,
-            sourceUrl: directoryUrl,
-            renderLargerThumbnail: true,
-            showAdAttribution: false,
-          },
-        },
       };
 
-      if (thumbBuffer) {
-        messagePayload.jpegThumbnail = thumbBuffer;
+      if (nativeLinkPreview) {
+        messagePayload.linkPreview = nativeLinkPreview;
       }
 
       await sock!.sendMessage(jid, messagePayload);
