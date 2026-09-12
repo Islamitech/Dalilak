@@ -4,8 +4,15 @@
 -- Supabase Dashboard -> SQL Editor -> New Query -> Run
 -- ==============================================================================
 
--- 0. 🛠️ خطوة تمهيدية إلزامية: التأكد من وجود كافة أعمدة الحذف الناعم والخصائص الميدانية
--- يمنع هذا المقطع أي انهيار عند إنشاء السياسات التي تعتمد على deleted_at أو الأعمدة المستحدثة
+-- 0. 🛠️ خطوة تمهيدية إلزامية: التأكد من وجود كافة الجداول والأعمدة والخصائص الميدانية
+-- يمنع هذا المقطع أي انهيار عند إنشاء السياسات أو منح الصلاحيات (Idempotent Schema Safety)
+CREATE TABLE IF NOT EXISTS public.businesses (id TEXT PRIMARY KEY, name_ar TEXT NOT NULL, phone TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS public.representatives (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS public.payout_requests (id TEXT PRIMARY KEY, rep_id TEXT NOT NULL, amount NUMERIC DEFAULT 0, method TEXT DEFAULT 'instapay', account_details TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS public.leads (id TEXT PRIMARY KEY, client_name TEXT NOT NULL, phone TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS public.payment_config (id TEXT PRIMARY KEY, is_active BOOLEAN DEFAULT true);
+
+-- أعمدة الأنشطة التجارية
 ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
 ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS deleted_by TEXT;
@@ -20,11 +27,36 @@ ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS google_reviews_
 ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0;
 ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS favorite_count INTEGER DEFAULT 0;
 
+-- أعمدة المندوبين
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'rep';
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS role_title TEXT DEFAULT 'مندوب مبيعات ميداني';
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS governorate TEXT DEFAULT 'القاهرة';
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS target_month INTEGER DEFAULT 25;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS avatar TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS avatar_status TEXT DEFAULT 'none';
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS commission_rate NUMERIC DEFAULT 42.86;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'suspended';
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS referral_code TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS referred_by_code TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS referral_unlocked BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS admin_bypass_referral BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS referral_reward_granted BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS active_session_id TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS last_active_timestamp BIGINT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS national_id TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS activation_face_photo TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS national_id_card_photo TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS national_id_card_back_photo TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS pending_phone TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS phone_status TEXT DEFAULT 'none';
 ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
 ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS deleted_by TEXT;
 ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS deleted_by_role TEXT;
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
+-- أعمدة العملاء المحتملين والمتابعات
 ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS street TEXT;
 ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
@@ -33,6 +65,17 @@ ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS admin_follow_ups JSO
 ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS is_trending BOOLEAN DEFAULT false;
 ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
 ALTER TABLE IF EXISTS public.leads ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+-- أعمدة طلبات الصرف
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS rep_name TEXT DEFAULT 'مندوب معتمد';
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS rep_phone TEXT;
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS request_date TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS processed_date TIMESTAMPTZ;
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS receipt_photo TEXT;
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS transaction_ref TEXT;
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS admin_notes TEXT;
+ALTER TABLE IF EXISTS public.payout_requests ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'payout';
 
 -- 1. تفعيل حماية الصفوف (RLS) على جميع الجداول الأساسية
 ALTER TABLE IF EXISTS public.businesses ENABLE ROW LEVEL SECURITY;
