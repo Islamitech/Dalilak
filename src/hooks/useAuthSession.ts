@@ -140,6 +140,13 @@ export function useAuthSession({
     safeRemoveLocalStorageItem('dalelak_session_expires_at');
     safeRemoveLocalStorageItem('dalelak_last_interaction');
     safeRemoveLocalStorageItem('dalelak_active_tab');
+    safeRemoveLocalStorageItem('dalelak_cached_businesses');
+    safeRemoveLocalStorageItem('dalelak_cached_reps');
+    safeRemoveLocalStorageItem('dalelak_custom_reps');
+    safeRemoveLocalStorageItem('dalelak_directory_cache');
+    safeRemoveLocalStorageItem('dalelak_payment_config');
+    safeRemoveLocalStorageItem('dalelak_cached_leads');
+    safeRemoveLocalStorageItem('dalelak_cached_payouts');
 
     const url = new URL(window.location.href);
     url.searchParams.delete('tab');

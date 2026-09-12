@@ -172,7 +172,13 @@ export function matchesCategoryFilter(
       return true;
     }
 
-    // 2b. Inferred group matches
+    // 2b. If category explicitly belongs to ANOTHER group, strictly reject!
+    const explicitOtherGroup = CATEGORY_GROUPS.find((g) => g.group !== categoryFilter && g.items.includes(rawCat));
+    if (explicitOtherGroup) {
+      return false;
+    }
+
+    // 2c. Inferred group matches
     const inferredGroup = getCategoryGroupFor(rawCat, entity.description || entity.notes);
     if (inferredGroup === categoryFilter) {
       return true;

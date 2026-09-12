@@ -9,3 +9,9 @@ coverage/
 data/baileys_auth_info/
 data/whatsapp_sent_log.json
 dist-directory/
+backups/
+data/*backup*
+data/*.backup*
+data/server_biz_store.backup*.json
+**/_backup_original/
+data/*registry.json

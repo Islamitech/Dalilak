@@ -188,7 +188,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Case D: External HTTP/HTTPS URL (e.g. Supabase Storage or CDN)
+      // 🛡️ WhatsApp & Social scrapers strictly drop images returning 302. We stream image bytes directly with 200 OK!
       if (photo.startsWith('http://') || photo.startsWith('https://')) {
+        try {
+          const imgRes = await fetch(photo);
+          if (imgRes.ok) {
+            const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+            const buffer = Buffer.from(await imgRes.arrayBuffer());
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Content-Length', buffer.length);
+            res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+            return res.status(200).send(buffer);
+          }
+        } catch (fetchErr) {
+          console.warn('Failed streaming external photo in biz-og, falling back to redirect:', fetchErr);
+        }
         return res.redirect(302, photo);
       }
     }

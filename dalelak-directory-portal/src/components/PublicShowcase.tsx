@@ -39,7 +39,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window === 'undefined') return '/';
     const path = window.location.pathname;
-    if (path.startsWith('/biz/')) return '/search';
+    if (path.startsWith('/biz/') || initialBizId) return '/search';
     return path || '/';
   });
 
@@ -164,6 +164,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   const handleOpenBusiness = (biz: Business) => {
     setSelectedBiz(biz);
+    if (biz.category && categoryFilter === 'all') {
+      setCategoryFilter(biz.category);
+    }
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('biz', biz.id);
@@ -172,19 +175,24 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   };
 
   const handleCloseBusiness = () => {
+    // 💡 Retain category context of the closed business so the background search view displays related businesses of the same type
+    if (selectedBiz?.category) {
+      setCategoryFilter(selectedBiz.category);
+    }
     setSelectedBiz(null);
+    setCurrentPath('/search');
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete('biz');
       url.searchParams.delete('b');
       url.searchParams.delete('id');
       url.searchParams.delete('preview');
-      const clean = url.pathname.startsWith('/biz') ? '/search' : url.pathname;
+      const clean = '/search';
       window.history.replaceState(null, '', clean + (url.search ? url.search : ''));
     } catch {}
   };
 
-  // Deep Link Auto-Select Business on load
+  // Deep Link Auto-Select Business on load & lock category context
   useEffect(() => {
     if (!initialBizId || businesses.length === 0) return;
     let raw = initialBizId.trim();
@@ -207,6 +215,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
     if (match) {
       setSelectedBiz(match);
+      if (match.category) {
+        setCategoryFilter(match.category);
+      }
+      setCurrentPath('/search');
     }
   }, [initialBizId, businesses]);
 

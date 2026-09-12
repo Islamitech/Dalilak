@@ -122,11 +122,11 @@ CREATE POLICY "Businesses rep insert"
 ON public.businesses FOR INSERT
 WITH CHECK (true);
 
--- السماح بتحديث النشاط التجاري
+-- السماح بتحديث النشاط التجاري (مقتصر على المستخدمين المصادقين أو حساب الخدمة)
 CREATE POLICY "Businesses rep update"
 ON public.businesses FOR UPDATE
-USING (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL)
-WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL);
+USING (auth.role() = 'service_role' OR auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
 -- منع الحذف المباشر بدون إذن إداري
 CREATE POLICY "Businesses delete restricted"
@@ -145,10 +145,10 @@ DROP POLICY IF EXISTS "Payout requests update" ON public.payout_requests;
 DROP POLICY IF EXISTS "Payouts insert restricted" ON public.payout_requests;
 DROP POLICY IF EXISTS "Payouts update restricted" ON public.payout_requests;
 
--- قراءة طلبات الصرف
+-- قراءة طلبات الصرف (مقتصرة على المناديب والإدارة المصادقين أو حساب الخدمة)
 CREATE POLICY "Payout requests read"
 ON public.payout_requests FOR SELECT
-USING (true);
+USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
 -- إضافة طلب سحب جديد فقط بحالة 'pending' (قيد المراجعة)
 CREATE POLICY "Payouts insert restricted"
@@ -195,11 +195,11 @@ CREATE POLICY "Leads insert access"
 ON public.leads FOR INSERT
 WITH CHECK (true);
 
--- السماح بتحديث بيانات المهتم والمتابعات
+-- السماح بتحديث بيانات المهتم والمتابعات (مقتصر على المستخدمين المصادقين أو حساب الخدمة)
 CREATE POLICY "Leads update access"
 ON public.leads FOR UPDATE
-USING (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL)
-WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated' OR deleted_at IS NULL);
+USING (auth.role() = 'service_role' OR auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
 -- حظر الحذف المباشر إلا للمصادقين أو الخادم
 CREATE POLICY "Leads delete access"
@@ -221,7 +221,7 @@ BEGIN
         FOR SELECT USING (bucket_id = 'business-media');
 
         CREATE POLICY "Allow uploads to business-media" ON storage.objects
-        FOR INSERT WITH CHECK (bucket_id = 'business-media');
+        FOR INSERT WITH CHECK (bucket_id = 'business-media' AND (auth.role() = 'authenticated' OR auth.role() = 'service_role'));
 
         -- منع الكتابة فوق الملفات الموجودة أو التعديل عليها إلا لحساب الخدمة
         CREATE POLICY "Allow updates to business-media" ON storage.objects

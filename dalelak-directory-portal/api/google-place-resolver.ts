@@ -301,6 +301,43 @@ async function fetchOfficialPlacesPhotos(
   }
 }
 
+// 🛡️ SSRF Guard: Validates that URL strictly targets official Google Maps domains and blocks private/loopback addresses
+function isValidGoogleMapsUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+
+    const host = parsed.hostname.toLowerCase();
+    // Block loopback, RFC1918 private subnets, link-local, cloud metadata
+    if (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '0.0.0.0' ||
+      host === '::1' ||
+      host.startsWith('10.') ||
+      host.startsWith('192.168.') ||
+      host.startsWith('169.254.') ||
+      host.endsWith('.internal') ||
+      host.endsWith('.local')
+    ) {
+      return false;
+    }
+
+    // Google Maps official domains
+    const isGoogleHost =
+      host === 'maps.app.goo.gl' ||
+      host === 'goo.gl' ||
+      host === 'google.com' ||
+      host === 'www.google.com' ||
+      host === 'maps.google.com' ||
+      /^[a-z0-9.-]+\.google\.[a-z.]+$/.test(host);
+
+    return isGoogleHost;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -317,6 +354,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const trimmedUrl = rawUrl.trim();
+    if (!isValidGoogleMapsUrl(trimmedUrl)) {
+      return res.status(400).json({ error: 'عذراً، الرابط المرسل ليس رابطاً معتمداً لخرائط Google' });
+    }
+
     let destinationUrl = trimmedUrl;
 
     const controller = new AbortController();
@@ -340,6 +381,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       destinationUrl = desktopResponse.url || trimmedUrl;
+      if (!isValidGoogleMapsUrl(destinationUrl)) {
+        return res.status(400).json({ error: 'عذراً، إعادة توجيه الرابط تقود إلى نطاق غير معتمد' });
+      }
       htmlContent = await desktopResponse.text();
 
       // Check if place has preload link for detailed hours & multi-photos

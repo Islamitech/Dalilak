@@ -114,8 +114,12 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
     .slice(0, 3);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fade-in">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fade-in"
+    >
       <div
+        onClick={(e) => e.stopPropagation()}
         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col text-right shadow-2xl overflow-hidden my-auto animate-fade-in-scale"
         style={{ direction: 'rtl' }}
       >

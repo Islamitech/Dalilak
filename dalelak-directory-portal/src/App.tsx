@@ -8,7 +8,6 @@ const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacp
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
 // VERIFIED columns that exist in Supabase (whatsapp, google_maps_url, google_place_id, google_sync_status do NOT exist).
 // google_maps_url, google_place_id, google_sync_status are stored in the 'notes' JSON field.
-// whatsapp is read from phone field as fallback in mapRawToBusiness.
 const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,created_at';
 const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
 const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
@@ -154,6 +153,7 @@ export default function App() {
       googleReviewsCount: metaGoogleReviewsCount !== undefined ? metaGoogleReviewsCount : undefined,
       createdAt: r.created_at || r.createdAt || new Date().toISOString(),
       createdDate: r.created_at || r.createdDate || new Date().toISOString(),
+      updatedAt: r.updated_at || r.updatedAt || undefined,
       amountPaid: 0,
       ownerName: '',
       ownerPhone: '',
@@ -213,16 +213,22 @@ export default function App() {
                 (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
               );
 
-              // 🛡️ Data Equality Check: Preserve reference if data hasn't changed to avoid unnecessary re-renders/reshuffles
+              // 🛡️ Comprehensive Data Equality Check: Ensures changes to category, phone, coverPhoto, etc. are immediately reflected
               if (
                 prev.length === updated.length &&
                 prev.every((b, i) => {
                   const u = updated[i];
                   return (
                     b.id === u?.id &&
-                    b.updatedAt === u?.updatedAt &&
                     b.nameAr === u?.nameAr &&
-                    b.verificationStatus === u?.verificationStatus
+                    b.category === u?.category &&
+                    b.phone === u?.phone &&
+                    b.secondaryPhone === u?.secondaryPhone &&
+                    b.workingHours === u?.workingHours &&
+                    b.coverPhoto === u?.coverPhoto &&
+                    b.verificationStatus === u?.verificationStatus &&
+                    b.governorate === u?.governorate &&
+                    b.city === u?.city
                   );
                 })
               ) {
@@ -343,7 +349,19 @@ export default function App() {
               setBusinesses((prev) => {
                 if (
                   prev.length === filtered.length &&
-                  prev.every((b, i) => b.id === filtered[i]?.id && b.updatedAt === filtered[i]?.updatedAt)
+                  prev.every((b, i) => {
+                    const f = filtered[i];
+                    return (
+                      b.id === f?.id &&
+                      b.nameAr === f?.nameAr &&
+                      b.category === f?.category &&
+                      b.phone === f?.phone &&
+                      b.secondaryPhone === f?.secondaryPhone &&
+                      b.workingHours === f?.workingHours &&
+                      b.coverPhoto === f?.coverPhoto &&
+                      b.verificationStatus === f?.verificationStatus
+                    );
+                  })
                 ) {
                   return prev;
                 }

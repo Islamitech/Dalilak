@@ -128,14 +128,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Google rating snippet
     let ratingPart = '';
-    let ratingTitlePart = '';
     if (googleRatingEnabled && googleRating) {
       const formattedRating = googleRating.toFixed(1);
       ratingPart = `⭐ تقييم Google: ${formattedRating}${googleReviewsCount ? ` (${googleReviewsCount} تقييم)` : ''}`;
-      ratingTitlePart = ` ⭐ ${formattedRating}`;
     }
 
-    const pageTitle = `نشاط ${nameAr}${ratingTitlePart} | منصة دليلك المعتمدة`;
+    const pageTitle = `${nameAr} | منصة دليلك المعتمدة`;
     const cleanPageTitle = pageTitle.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
 
     // Business Description from "وصف الأنشطة والخدمات"
@@ -160,8 +158,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const shareDesc = [ratingPart, descBody].filter(Boolean).join(' • ');
     const cleanShareDesc = shareDesc.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
-    const photoVer = Array.isArray(biz.photos) && biz.photos[0] ? biz.photos[0].length : (biz.created_at || '');
-    const ogImageUrl = `${origin}/api/biz-og?biz=${encodeURIComponent(biz.id)}${photoVer ? `&v=${encodeURIComponent(photoVer)}` : ''}`;
+
+    // 🛡️ Resolve direct high-speed photo for OpenGraph preview (Strictly Direct 200 OK CDN)
+    let coverPhoto: string | null = null;
+    if (typeof biz.notes === 'string' && biz.notes.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(biz.notes.trim());
+        if (parsed && typeof parsed === 'object' && parsed.coverPhoto) {
+          coverPhoto = parsed.coverPhoto;
+        }
+      } catch {}
+    }
+
+    let rawPhotos: string[] = [];
+    if (Array.isArray(biz.photos)) {
+      rawPhotos = biz.photos;
+    } else if (typeof biz.photos === 'string' && biz.photos.trim().length > 0) {
+      try {
+        const p = JSON.parse(biz.photos.trim());
+        if (Array.isArray(p)) rawPhotos = p;
+        else if (typeof p === 'string') rawPhotos = [p];
+      } catch {
+        if (biz.photos.startsWith('http') || biz.photos.startsWith('data:')) rawPhotos = [biz.photos];
+      }
+    }
+    const directPhoto = coverPhoto || (rawPhotos.length > 0 ? rawPhotos[0] : null);
+
+    // ⚡ WhatsApp, Facebook & iMessage strictly mandate direct 200 OK image URLs.
+    // If the venue has an enhanced Supabase/CDN photo URL, use it directly!
+    let ogImageUrl = '';
+    let ogImageType = 'image/jpeg';
+    if (typeof directPhoto === 'string' && (directPhoto.startsWith('https://') || directPhoto.startsWith('http://'))) {
+      ogImageUrl = directPhoto;
+      if (directPhoto.toLowerCase().includes('.png')) {
+        ogImageType = 'image/png';
+      } else if (directPhoto.toLowerCase().includes('.webp')) {
+        ogImageType = 'image/webp';
+      }
+    } else {
+      // Fallback: Dynamic branded card generator
+      const photoVer = directPhoto ? directPhoto.length : (biz.created_at || '');
+      ogImageUrl = `${origin}/api/biz-og?biz=${encodeURIComponent(biz.id)}${photoVer ? `&v=${encodeURIComponent(photoVer)}` : ''}`;
+      ogImageType = 'image/png';
+    }
     const pageUrl = `${origin}/?biz=${encodeURIComponent(biz.id)}`;
 
     let html = template;
@@ -183,9 +222,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <meta property="og:description" content="${escapeHtml(cleanShareDesc)}" />
     <meta property="og:image" content="${escapeHtml(ogImageUrl)}" />
     <meta property="og:image:secure_url" content="${escapeHtml(ogImageUrl)}" />
-    <meta property="og:image:type" content="image/jpeg" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="${ogImageType}" />
+    <meta property="og:image:alt" content="${escapeHtml(nameAr)}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(cleanPageTitle)}" />
     <meta name="twitter:description" content="${escapeHtml(cleanShareDesc)}" />
@@ -194,7 +232,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   </head>
   <body style="background:#020617;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
     <div style="text-align:center;">
-      <h2>جاري تحويلك إلى نشاط ${escapeHtml(nameAr)}...</h2>
+      <h2>جاري تحويلك إلى ${escapeHtml(nameAr)}...</h2>
       <script>window.location.replace('${pageUrl}');</script>
     </div>
   </body>
@@ -214,6 +252,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       html = html.replace(/<meta\s+property="og:url"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:url" content="${escapeHtml(pageUrl)}" />`);
       html = html.replace(/<meta\s+property="og:image"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:image" content="${escapeHtml(ogImageUrl)}" />`);
       html = html.replace(/<meta\s+property="og:image:secure_url"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:image:secure_url" content="${escapeHtml(ogImageUrl)}" />`);
+      html = html.replace(/<meta\s+property="og:image:type"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:image:type" content="${ogImageType}" />`);
+      html = html.replace(/<meta\s+property="og:image:alt"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:image:alt" content="${escapeHtml(nameAr)}" />`);
 
       // Twitter Tags
       html = html.replace(/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/gi, () => `<meta name="twitter:title" content="${escapeHtml(cleanPageTitle)}" />`);

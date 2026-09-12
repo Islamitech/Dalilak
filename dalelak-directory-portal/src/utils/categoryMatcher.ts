@@ -41,6 +41,13 @@ export const CATEGORY_ALIASES: Record<string, string> = {
   'سياحة وفنادق': 'السياحة والفنادق والمناسبات',
   'فنادق ومناسبات': 'السياحة والفنادق والمناسبات',
   'أنشطة عامة': 'أنشطة وخدمات عامة أخرى',
+  'متجر ملابس': 'الملابس والأزياء والإكسسوارات',
+  'محل ملابس': 'الملابس والأزياء والإكسسوارات',
+  'مكتبات': 'المكتبات والأدوات المدرسية والطباعة',
+  'مكتبة': 'المكتبات والأدوات المدرسية والطباعة',
+  'طباعة وتصوير': 'المكتبات والأدوات المدرسية والطباعة',
+  'موبايل وهواتف': 'الهواتف والإلكترونيات والكمبيوتر',
+  'صيانة موبايل': 'الهواتف والإلكترونيات والكمبيوتر',
 };
 
 /**
@@ -188,11 +195,16 @@ export function getCategoryGroupFor(category?: string | null, description?: stri
     }
   }
 
-  // 2. Keyword match in category
+  // 1b. Direct alias match
+  if (CATEGORY_ALIASES[cleanCat]) {
+    return CATEGORY_ALIASES[cleanCat];
+  }
+
+  // 2. Keyword match in category (strictly check if category contains full keyword, never the reverse)
   const normCat = normalizeArabicText(cleanCat);
   if (normCat) {
     for (const [groupName, keywords] of Object.entries(GROUP_KEYWORDS)) {
-      if (keywords.some((kw) => normCat.includes(kw) || kw.includes(normCat))) {
+      if (keywords.some((kw) => normCat.includes(kw))) {
         return groupName;
       }
     }
@@ -227,9 +239,8 @@ export interface BusinessOrLeadEntity {
  * ⚡ Multi-Layer Category Matching Engine
  * Matches a business or lead against a category filter:
  * 1. Resolves aliases ('مطاعم ومأكولات' -> 'المطاعم والأغذية والمشروبات')
- * 2. Exact or substring category match
- * 3. Group-level match (explicit items or inferred group)
- * 4. Deep lexical keywords match across category, name, and description
+ * 2. Exact or specific category match
+ * 3. Group-level match (respects explicit taxonomy boundaries)
  */
 export function matchesCategoryFilter(
   entity: BusinessOrLeadEntity,
@@ -243,12 +254,20 @@ export function matchesCategoryFilter(
   const normFilter = normalizeArabicText(categoryFilter);
   const normResolved = normalizeArabicText(resolvedGroup);
 
-  // 1. Direct exact or substring match in category field
+  // 1. Direct exact match in category field or resolved group
   if (
     rawCat === categoryFilter ||
     rawCat === resolvedGroup ||
-    (normCat && normFilter && (normCat.includes(normFilter) || normFilter.includes(normCat))) ||
-    (normCat && normResolved && (normCat.includes(normResolved) || normResolved.includes(normCat)))
+    normCat === normFilter ||
+    normCat === normResolved
+  ) {
+    return true;
+  }
+
+  // 1b. Direct canonical alias match
+  if (
+    CATEGORY_ALIASES[rawCat] &&
+    (CATEGORY_ALIASES[rawCat] === categoryFilter || CATEGORY_ALIASES[rawCat] === resolvedGroup)
   ) {
     return true;
   }
@@ -263,19 +282,25 @@ export function matchesCategoryFilter(
       return true;
     }
 
-    // 2b. Inferred group matches
+    // 2b. If the category explicitly belongs to ANOTHER group, strictly reject!
+    const explicitOtherGroup = CATEGORY_GROUPS.find((g) => g.group !== targetGroup && g.items.includes(rawCat));
+    if (explicitOtherGroup) {
+      return false;
+    }
+
+    // 2c. Inferred group matches
     const inferredGroup = getCategoryGroupFor(rawCat, entity.description || entity.notes);
     if (inferredGroup === targetGroup) {
       return true;
     }
 
-    // 2c. Deep keywords match in entity text (name, category, description)
+    // 2d. Deep keywords match in entity text (only if category isn't a known foreign entity)
     const keywords = GROUP_KEYWORDS[targetGroup] || [];
     const combinedEntityText = normalizeArabicText(
       `${rawCat} ${entity.nameAr || ''} ${entity.nameEn || ''} ${entity.businessName || ''} ${entity.description || ''} ${entity.notes || ''} ${(entity.services || []).join(' ')}`
     );
 
-    if (keywords.some((kw) => combinedEntityText.includes(kw))) {
+    if (keywords.some((kw) => kw.length >= 3 && combinedEntityText.includes(kw))) {
       return true;
     }
 
@@ -283,6 +308,14 @@ export function matchesCategoryFilter(
   }
 
   // 3. Specific Subcategory Matching
+  const targetGroupForSubcat = CATEGORY_GROUPS.find((g) => g.items.includes(categoryFilter))?.group;
+  if (targetGroupForSubcat) {
+    const explicitOtherGroup = CATEGORY_GROUPS.find((g) => g.group !== targetGroupForSubcat && g.items.includes(rawCat));
+    if (explicitOtherGroup) {
+      return false;
+    }
+  }
+
   // Check if entity mentions subcategory tokens
   const filterTokens = normFilter
     .split(/\s+/)

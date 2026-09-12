@@ -32,14 +32,17 @@ app.use((_req, res, next) => {
     'Content-Security-Policy',
     "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; img-src 'self' https: data: blob:; media-src 'self' https: data: blob:; connect-src 'self' https: wss:;"
   );
-  // CORS: السماح من المصادر الموثوقة ومنظومة Vercel وشبكة الحاسوب المحلية
+  // CORS: السماح من المصادر الموثوقة المعتمدة فقط
   const origin = _req.headers.origin || '';
-  const isVercelOrigin = origin.endsWith('.vercel.app') || origin.includes('vercel.app');
+  const isVercelAllowedOrigin =
+    origin.endsWith('.vercel.app') &&
+    (origin.includes('dalelak') || origin.includes('dalilak') || origin.includes('islamitech'));
   const isAllowedOrigin =
-    isVercelOrigin ||
+    isVercelAllowedOrigin ||
     origin === 'http://localhost:3001' ||
     origin === 'http://localhost:5173' ||
     origin === 'http://127.0.0.1:3001' ||
+    origin === 'http://127.0.0.1:5173' ||
     origin === 'https://www.dalilaak.com' ||
     origin === 'https://dalilaak.com' ||
     (process.env.APP_URL && origin === process.env.APP_URL);
@@ -47,16 +50,13 @@ app.use((_req, res, next) => {
   if (isAllowedOrigin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else if (!origin) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
   }
 
-  // دعم Private Network Access في المتصفحات الحديثة (Chrome/Edge)
-  res.setHeader('Access-Control-Allow-Private-Network', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-session-id, x-user-id, x-user-email, x-user-phone'
+    'Content-Type, Authorization, x-session-id'
   );
   if (_req.method === 'OPTIONS') {
     return res.status(204).end();
@@ -203,7 +203,6 @@ function getRequestUser(req: express.Request): ActiveSession | null {
   const authHeader = req.headers.authorization;
   const token = authHeader?.replace(/^Bearer\s+/i, '');
   const sessionId = (req.headers['x-session-id'] as string) || '';
-  const userId = (req.headers['x-user-id'] as string) || '';
 
   // 1. Direct active token lookup
   if (token && activeSessions.has(token)) {
@@ -225,20 +224,24 @@ function getRequestUser(req: express.Request): ActiveSession | null {
     }
   }
 
-  // 3. Resilient Session Fallback: If in-memory sessions were cleared on server restart, restore from stored reps
-  if (sessionId || userId) {
+  // 3. Resilient Session Fallback: If in-memory sessions were cleared on server restart, restore ONLY from cryptographically verified activeSessionId
+  if (sessionId) {
     const rep = representatives.find(
-      (r) => (sessionId && r.activeSessionId === sessionId) || (userId && r.id === userId)
+      (r) => r.activeSessionId && r.activeSessionId === sessionId
     );
     if (rep) {
-      const restoredSession: ActiveSession = {
-        userId: rep.id,
-        role: rep.role || 'rep',
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-      };
-      if (sessionId) activeSessions.set(sessionId, restoredSession);
-      if (token) activeSessions.set(token, restoredSession);
-      return restoredSession;
+      const lastActive = rep.lastActiveTimestamp || 0;
+      const isRecent = Date.now() - lastActive < 24 * 60 * 60 * 1000;
+      if (isRecent || !lastActive) {
+        const restoredSession: ActiveSession = {
+          userId: rep.id,
+          role: rep.role || 'rep',
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        };
+        activeSessions.set(sessionId, restoredSession);
+        if (token) activeSessions.set(token, restoredSession);
+        return restoredSession;
+      }
     }
   }
 
@@ -256,6 +259,22 @@ function sanitizeRep(rep: Representative, isPrivileged: boolean = false): Partia
     delete copy.nationalIdCardBackPhoto;
     delete copy.activationFacePhoto;
   }
+  return copy;
+}
+
+// 🛡️ Business Data Sanitization (Removes sensitive PII, payment receipts, KYC, and internal accounting details for non-privileged callers)
+function sanitizePublicBusiness(biz: Business, isPrivileged: boolean = false): Partial<Business> {
+  if (isPrivileged) return biz;
+  const copy: any = { ...biz };
+  delete copy.nationalId;
+  delete copy.nationalIdCardPhoto;
+  delete copy.nationalIdCardBackPhoto;
+  delete copy.paymentReceiptPhoto;
+  delete copy.adminFollowUps;
+  delete copy.cashCollectedByRep;
+  delete copy.repCommissionRate;
+  delete copy.repCommissionAmount;
+  delete copy.paymentDetails;
   return copy;
 }
 
@@ -394,6 +413,43 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// 🛡️ SSRF Guard: Validates that URL strictly targets official Google Maps domains and blocks private/loopback addresses
+function isValidGoogleMapsUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+
+    const host = parsed.hostname.toLowerCase();
+    // Block loopback, RFC1918 private subnets, link-local, cloud metadata
+    if (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '0.0.0.0' ||
+      host === '::1' ||
+      host.startsWith('10.') ||
+      host.startsWith('192.168.') ||
+      host.startsWith('169.254.') ||
+      host.endsWith('.internal') ||
+      host.endsWith('.local')
+    ) {
+      return false;
+    }
+
+    // Google Maps official domains
+    const isGoogleHost =
+      host === 'maps.app.goo.gl' ||
+      host === 'goo.gl' ||
+      host === 'google.com' ||
+      host === 'www.google.com' ||
+      host === 'maps.google.com' ||
+      /^[a-z0-9.-]+\.google\.[a-z.]+$/.test(host);
+
+    return isGoogleHost;
+  } catch {
+    return false;
+  }
+}
+
 // ⚡ Fast Google Place Resolver (Unfurls maps.app.goo.gl, extracts Place metadata, detailed working hours, and top 5 photos)
 app.get('/api/google-place-resolver', async (req, res) => {
   try {
@@ -403,6 +459,10 @@ app.get('/api/google-place-resolver', async (req, res) => {
     }
 
     const trimmedUrl = rawUrl.trim();
+    if (!isValidGoogleMapsUrl(trimmedUrl)) {
+      return res.status(400).json({ error: 'عذراً، الرابط المرسل ليس رابطاً معتمداً لخرائط Google' });
+    }
+
     let destinationUrl = trimmedUrl;
 
     const controller = new AbortController();
@@ -426,6 +486,9 @@ app.get('/api/google-place-resolver', async (req, res) => {
       });
 
       destinationUrl = desktopResponse.url || trimmedUrl;
+      if (!isValidGoogleMapsUrl(destinationUrl)) {
+        return res.status(400).json({ error: 'عذراً، إعادة توجيه الرابط تقود إلى نطاق غير معتمد' });
+      }
       htmlContent = await desktopResponse.text();
 
       // Check if place has preload link for detailed hours & multi-photos
@@ -864,21 +927,17 @@ const GOOGLE_PLACES_API_KEY =
   'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
 
 function isRequestSuperAdmin(req: express.Request): boolean {
-  const authHeaderEmail = ((req.headers['x-user-email'] as string) || '').toLowerCase().trim();
-  const authHeaderPhone = ((req.headers['x-user-phone'] as string) || '').trim();
-  const bodyEmail = (req.body?.userEmail || '').toLowerCase().trim();
-  const bodyPhone = (req.body?.userPhone || '').trim();
-
-  if (authHeaderEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(authHeaderPhone)) return true;
-  if (bodyEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(bodyPhone)) return true;
-
   const reqUser = getRequestUser(req);
-  if (reqUser) {
-    const rep = representatives.find((r) => r.id === reqUser.userId);
-    if (rep) {
-      const repEmail = (rep.email || '').toLowerCase().trim();
-      const repPhone = (rep.phone || '').trim();
-      if (repEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(repPhone)) return true;
+  if (!reqUser) return false;
+  if (reqUser.role !== 'admin') return false;
+
+  representatives = loadStoredReps();
+  const rep = representatives.find((r) => r.id === reqUser.userId);
+  if (rep) {
+    const repEmail = (rep.email || '').toLowerCase().trim();
+    const repPhone = (rep.phone || '').trim();
+    if (repEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(repPhone)) {
+      return true;
     }
   }
   return false;
@@ -1682,16 +1741,25 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // 3. Businesses API
-app.get('/api/businesses', (_req, res) => {
+app.get('/api/businesses', (req, res) => {
   businesses = loadStoredBusinesses();
-  res.json(businesses);
+  const reqUser = getRequestUser(req);
+  const isPrivileged = Boolean(reqUser && (reqUser.role === 'admin' || reqUser.role === 'manager'));
+  const sanitized = businesses.map((b) => {
+    const isOwner = Boolean(reqUser && reqUser.userId === b.repId);
+    return sanitizePublicBusiness(b, isPrivileged || isOwner);
+  });
+  res.json(sanitized);
 });
 
 app.get('/api/businesses/:id', (req, res) => {
   businesses = loadStoredBusinesses();
   const found = businesses.find((b) => b.id === req.params.id);
   if (found) {
-    res.json(found);
+    const reqUser = getRequestUser(req);
+    const isOwner = Boolean(reqUser && reqUser.userId === found.repId);
+    const isPrivileged = Boolean(reqUser && (reqUser.role === 'admin' || reqUser.role === 'manager'));
+    res.json(sanitizePublicBusiness(found, isPrivileged || isOwner));
   } else {
     res.status(404).json({ error: 'النشاط التجاري غير موجود' });
   }
@@ -1824,9 +1892,12 @@ app.delete('/api/businesses/:id', (req, res) => {
 
 // 4. Representatives API
 app.get('/api/representatives', (req, res) => {
-  representatives = loadStoredReps();
   const reqUser = getRequestUser(req);
-  const isPrivileged = reqUser?.role === 'admin' || reqUser?.role === 'supervisor';
+  if (!reqUser) {
+    return res.status(401).json({ error: 'غير مصرح: يرجى تسجيل الدخول للوصول إلى قائمة المناديب' });
+  }
+  representatives = loadStoredReps();
+  const isPrivileged = reqUser.role === 'admin' || reqUser.role === 'supervisor';
   res.json(representatives.map((r) => sanitizeRep(r, isPrivileged)));
 });
 

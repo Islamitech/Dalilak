@@ -1,0 +1,10 @@
+﻿# Robots.txt for Dalelak
+User-agent: *
+Disallow: /?view=
+Disallow: /?tab=
+Disallow: /api/
+Disallow: /admin
+Disallow: /rep
+Allow: /
+
+Sitemap: https://www.dalilaak.com/sitemap.xml

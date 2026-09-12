@@ -5,3 +5,5 @@ dist-directory/
 .DS_Store
 .env*
 !.env.example
+_backup_original/
+**/_backup_original/
