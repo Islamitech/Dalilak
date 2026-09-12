@@ -161,12 +161,12 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   // 5. Selected Business (Modal details)
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
+  const isDirectLinkOpenRef = React.useRef<boolean>(Boolean(initialBizId));
 
   const handleOpenBusiness = (biz: Business) => {
     setSelectedBiz(biz);
-    if (biz.category && categoryFilter === 'all') {
-      setCategoryFilter(biz.category);
-    }
+    // 🛡️ Normal browsing clicks preserve the user's active filter and do NOT hijack it
+    isDirectLinkOpenRef.current = false;
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('biz', biz.id);
@@ -175,10 +175,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   };
 
   const handleCloseBusiness = () => {
-    // 💡 Retain category context of the closed business so the background search view displays related businesses of the same type
-    if (selectedBiz?.category) {
+    // 💡 Only retain category context if the visitor came directly via an external shared link,
+    // so they discover related businesses in that category after viewing the shared card.
+    // For normal directory browsing or after filter reset, keep the user's filter untouched.
+    if (isDirectLinkOpenRef.current && selectedBiz?.category) {
       setCategoryFilter(selectedBiz.category);
     }
+    isDirectLinkOpenRef.current = false;
     setSelectedBiz(null);
     setCurrentPath('/search');
     try {
@@ -233,6 +236,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
   // Reset all filters handler
   const resetAllFilters = () => {
+    isDirectLinkOpenRef.current = false;
     setSearchQuery('');
     setGovFilter('all');
     setCityFilter('all');

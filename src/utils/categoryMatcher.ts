@@ -15,7 +15,7 @@ const GROUP_KEYWORDS: Record<string, string[]> = {
   ],
   'العيادات والرعاية الصحية والطبية': [
     'عيادة', 'طبيب', 'دكتور', 'مركز طبي', 'صحي', 'اسنان', 'عيون', 'بصريات',
-    'نظارات', 'جلدية', 'تجميل', 'ليزر', 'اطفال', 'ولادة', 'نساء', 'باطنة',
+    'نظارات', 'جلدية', 'جراحة تجميل', 'عيادة تجميل', 'تجميل ليزر', 'ليزر', 'اطفال', 'ولادة', 'نساء', 'باطنة',
     'تغذية', 'عظام', 'مفاصل', 'علاج طبيعي', 'صيدلية', 'دواء', 'ادوية', 'معمل',
     'تحاليل', 'اشعة', 'مستشفى', 'مجمع طبي', 'بيطري', 'حيوانات', 'clinic', 'hospital', 'pharmacy', 'doctor'
   ],
@@ -168,29 +168,35 @@ export function matchesCategoryFilter(
   const matchedGroup = CATEGORY_GROUPS.find((g) => g.group === categoryFilter);
   if (matchedGroup) {
     // 2a. Does the category explicitly belong to this group's items?
-    if (matchedGroup.items.includes(rawCat)) {
+    if (matchedGroup.items.some((item) => item === rawCat || item.includes(rawCat) || rawCat.includes(item))) {
       return true;
     }
 
     // 2b. If category explicitly belongs to ANOTHER group, strictly reject!
-    const explicitOtherGroup = CATEGORY_GROUPS.find((g) => g.group !== categoryFilter && g.items.includes(rawCat));
+    const explicitOtherGroup = CATEGORY_GROUPS.find(
+      (g) => g.group !== categoryFilter && g.items.some((item) => item === rawCat || item.includes(rawCat) || rawCat.includes(item))
+    );
     if (explicitOtherGroup) {
       return false;
     }
 
-    // 2c. Inferred group matches
+    // 2c. Inferred group check
     const inferredGroup = getCategoryGroupFor(rawCat, entity.description || entity.notes);
     if (inferredGroup === categoryFilter) {
       return true;
     }
+    // 🛡️ Strict Negative Boundary: If inferred group is a specific other taxonomy group, reject!
+    if (inferredGroup && inferredGroup !== 'أنشطة وخدمات عامة أخرى' && inferredGroup !== categoryFilter) {
+      return false;
+    }
 
-    // 2c. Check if entity description, notes, or name has group keywords
+    // 2d. Check if category or services text has group keywords (NEVER in nameAr)
     const keywords = GROUP_KEYWORDS[categoryFilter] || [];
-    const combinedEntityText = normalizeArabicText(
-      `${rawCat} ${entity.nameAr || ''} ${entity.businessName || ''} ${entity.description || ''} ${entity.notes || ''} ${(entity.services || []).join(' ')}`
+    const categoryAndServicesText = normalizeArabicText(
+      `${rawCat} ${(entity.services || []).join(' ')} ${entity.description || ''} ${entity.notes || ''}`
     );
 
-    if (keywords.some((kw) => combinedEntityText.includes(kw))) {
+    if (keywords.some((kw) => categoryAndServicesText.includes(kw))) {
       return true;
     }
 

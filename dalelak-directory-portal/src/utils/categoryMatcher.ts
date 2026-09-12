@@ -19,6 +19,14 @@ export const CATEGORY_ALIASES: Record<string, string> = {
   'صيانة سيارات': 'السيارات والمركبات والصيانة',
   'تجميل وعناية': 'التجميل والعناية الشخصية واللياقة',
   'حلاقة وكوافير': 'التجميل والعناية الشخصية واللياقة',
+  'صالون حلاقة': 'التجميل والعناية الشخصية واللياقة',
+  'صالون حلاقة رجالي': 'التجميل والعناية الشخصية واللياقة',
+  'حلاقة': 'التجميل والعناية الشخصية واللياقة',
+  'كوافير': 'التجميل والعناية الشخصية واللياقة',
+  'كوافير حريمي': 'التجميل والعناية الشخصية واللياقة',
+  'بيوتي سنتر': 'التجميل والعناية الشخصية واللياقة',
+  'مركز تجميل': 'التجميل والعناية الشخصية واللياقة',
+  'صالون': 'التجميل والعناية الشخصية واللياقة',
   'جيم ولياقة': 'التجميل والعناية الشخصية واللياقة',
   'ملابس وأزياء': 'الملابس والأزياء والإكسسوارات',
   'أزياء وموضة': 'الملابس والأزياء والإكسسوارات',
@@ -67,7 +75,7 @@ export const GROUP_KEYWORDS: Record<string, string[]> = {
   ],
   'العيادات والرعاية الصحية والطبية': [
     'عيادة', 'طبيب', 'دكتور', 'مركز طبي', 'صحي', 'صحة', 'اسنان', 'عيون', 'بصريات',
-    'نظارات', 'جلدية', 'تجميل', 'ليزر', 'اطفال', 'ولادة', 'نساء', 'باطنة', 'قلب',
+    'نظارات', 'جلدية', 'جراحة تجميل', 'عيادة تجميل', 'تجميل ليزر', 'ليزر', 'اطفال', 'ولادة', 'نساء', 'باطنة', 'قلب',
     'صدر', 'انف واذن', 'تغذية', 'عظام', 'مفاصل', 'علاج طبيعي', 'صيدلية', 'صيدليات',
     'دواء', 'ادوية', 'معمل', 'تحاليل', 'اشعة', 'مستشفى', 'مستشفيات', 'مجمع طبي',
     'بيطري', 'حيوانات', 'علاج', 'تمريض', 'اسعاف', 'حضانة اطفال مبتسرين', 'clinic',
@@ -278,29 +286,35 @@ export function matchesCategoryFilter(
 
   if (matchedGroup) {
     // 2a. Does the category explicitly belong to this group's items?
-    if (matchedGroup.items.includes(rawCat)) {
+    if (matchedGroup.items.some((item) => item === rawCat || item.includes(rawCat) || rawCat.includes(item))) {
       return true;
     }
 
     // 2b. If the category explicitly belongs to ANOTHER group, strictly reject!
-    const explicitOtherGroup = CATEGORY_GROUPS.find((g) => g.group !== targetGroup && g.items.includes(rawCat));
+    const explicitOtherGroup = CATEGORY_GROUPS.find(
+      (g) => g.group !== targetGroup && g.items.some((item) => item === rawCat || item.includes(rawCat) || rawCat.includes(item))
+    );
     if (explicitOtherGroup) {
       return false;
     }
 
-    // 2c. Inferred group matches
+    // 2c. Inferred group check
     const inferredGroup = getCategoryGroupFor(rawCat, entity.description || entity.notes);
     if (inferredGroup === targetGroup) {
       return true;
     }
+    // 🛡️ Strict Negative Boundary: If inferred group is a specific other taxonomy group, reject!
+    if (inferredGroup && inferredGroup !== 'أنشطة وخدمات عامة أخرى' && inferredGroup !== targetGroup) {
+      return false;
+    }
 
-    // 2d. Deep keywords match in entity text (only if category isn't a known foreign entity)
+    // 2d. Keywords match in category or services (NEVER in business title/nameAr to prevent marketing names from hijacking category filters!)
     const keywords = GROUP_KEYWORDS[targetGroup] || [];
-    const combinedEntityText = normalizeArabicText(
-      `${rawCat} ${entity.nameAr || ''} ${entity.nameEn || ''} ${entity.businessName || ''} ${entity.description || ''} ${entity.notes || ''} ${(entity.services || []).join(' ')}`
+    const categoryAndServicesText = normalizeArabicText(
+      `${rawCat} ${(entity.services || []).join(' ')} ${entity.description || ''} ${entity.notes || ''}`
     );
 
-    if (keywords.some((kw) => kw.length >= 3 && combinedEntityText.includes(kw))) {
+    if (keywords.some((kw) => kw.length >= 3 && categoryAndServicesText.includes(kw))) {
       return true;
     }
 
@@ -310,23 +324,25 @@ export function matchesCategoryFilter(
   // 3. Specific Subcategory Matching
   const targetGroupForSubcat = CATEGORY_GROUPS.find((g) => g.items.includes(categoryFilter))?.group;
   if (targetGroupForSubcat) {
-    const explicitOtherGroup = CATEGORY_GROUPS.find((g) => g.group !== targetGroupForSubcat && g.items.includes(rawCat));
+    const explicitOtherGroup = CATEGORY_GROUPS.find(
+      (g) => g.group !== targetGroupForSubcat && g.items.some((item) => item === rawCat || item.includes(rawCat) || rawCat.includes(item))
+    );
     if (explicitOtherGroup) {
       return false;
     }
   }
 
-  // Check if entity mentions subcategory tokens
+  // Check if entity category or description mentions subcategory tokens (NEVER match nameAr!)
   const filterTokens = normFilter
     .split(/\s+/)
     .filter((tok) => tok.length >= 3 && !['محل', 'متجر', 'مركز', 'خدمات', 'بيع', 'شراء', 'عامة'].includes(tok));
 
   if (filterTokens.length > 0) {
-    const combinedEntityText = normalizeArabicText(
-      `${rawCat} ${entity.nameAr || ''} ${entity.description || ''} ${entity.notes || ''}`
+    const combinedCategoryText = normalizeArabicText(
+      `${rawCat} ${(entity.services || []).join(' ')} ${entity.description || ''} ${entity.notes || ''}`
     );
 
-    const matchingTokensCount = filterTokens.filter((tok) => combinedEntityText.includes(tok)).length;
+    const matchingTokensCount = filterTokens.filter((tok) => combinedCategoryText.includes(tok)).length;
     if (matchingTokensCount >= Math.min(filterTokens.length, 2)) {
       return true;
     }
