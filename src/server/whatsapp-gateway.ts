@@ -685,11 +685,11 @@ async function executeCampaignLoop(
         text: messageBody,
         matchedText: directoryUrl,
         canonicalUrl: directoryUrl,
-        title: `نشاط ${venueName} | منصة دليلك المعتمدة`,
+        title: `${venueName} | منصة دليلك المعتمدة`,
         description: `منصة دليلك المعتمدة • ${location}`,
         contextInfo: {
           externalAdReply: {
-            title: `نشاط ${venueName}`,
+            title: `${venueName} | منصة دليلك المعتمدة`,
             body: `منصة دليلك المعتمدة • ${location}`,
             mediaType: 1, // IMAGE
             thumbnail: thumbBuffer,
