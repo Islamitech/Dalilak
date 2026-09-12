@@ -28,6 +28,7 @@ ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS views_count INT
 ALTER TABLE IF EXISTS public.businesses ADD COLUMN IF NOT EXISTS favorite_count INTEGER DEFAULT 0;
 
 -- أعمدة المندوبين
+ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS password TEXT;
 ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'rep';
 ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS role_title TEXT DEFAULT 'مندوب مبيعات ميداني';
 ALTER TABLE IF EXISTS public.representatives ADD COLUMN IF NOT EXISTS governorate TEXT DEFAULT 'القاهرة';

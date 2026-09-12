@@ -5,7 +5,50 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-const SAFE_REP_SELECT = 'id,name,email,phone,password,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referred_by_code,referral_unlocked,active_session_id,last_active_timestamp,created_at';
+export const SAFE_REP_SELECT = 'id,name,email,phone,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
+
+export function enrichRepsWithFallback(reps: Representative[]): Representative[] {
+  const byEmail = new Map<string, Representative>();
+  const byId = new Map<string, Representative>();
+  const byPhone = new Map<string, Representative>();
+
+  MOCK_REPRESENTATIVES.forEach((mr) => {
+    if (mr.email) byEmail.set(mr.email.trim().toLowerCase(), mr);
+    if (mr.id) byId.set(mr.id, mr);
+    if (mr.phone) byPhone.set(mr.phone.replace(/\D/g, ''), mr);
+  });
+
+  const enriched = reps.map((r) => {
+    const rEmail = (r.email || '').trim().toLowerCase();
+    const rPhone = (r.phone || '').replace(/\D/g, '');
+    const mockMatch = byEmail.get(rEmail) || byId.get(r.id) || (rPhone ? byPhone.get(rPhone) : undefined);
+    if (mockMatch) {
+      return {
+        ...r,
+        password: r.password || mockMatch.password,
+        referralCode: r.referralCode || mockMatch.referralCode,
+        adminBypassReferral: r.adminBypassReferral ?? mockMatch.adminBypassReferral,
+        role: (r.role || mockMatch.role) as any,
+        roleTitle: r.roleTitle || mockMatch.roleTitle,
+        status: (r.status || mockMatch.status) as any,
+        avatarStatus: (r.avatarStatus || mockMatch.avatarStatus) as any,
+      };
+    }
+    return r;
+  });
+
+  const existingIds = new Set(enriched.map((r) => r.id));
+  const existingEmails = new Set(enriched.map((r) => (r.email || '').trim().toLowerCase()).filter(Boolean));
+
+  MOCK_REPRESENTATIVES.forEach((mr) => {
+    const mrEmail = (mr.email || '').trim().toLowerCase();
+    if (!existingIds.has(mr.id) && (!mrEmail || !existingEmails.has(mrEmail))) {
+      enriched.push(mr);
+    }
+  });
+
+  return enriched;
+}
 
 function filterOutDeletedReps(reps: Representative[]): { active: Representative[]; deleted: Representative[] } {
   const blacklist = new Set(
@@ -75,7 +118,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData) && restData.length > 0) {
-          const freshList = restData.map(mapDbToRep);
+          const freshList = enrichRepsWithFallback(restData.map(mapDbToRep));
           const { active, deleted } = filterOutDeletedReps(freshList);
           syncSoftDeletedFromDb(deleted);
 
@@ -84,22 +127,6 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
           } catch {}
           return active;
         }
-      } else {
-        // Fallback to select=* if column selection encounters schema mismatch
-        const fallbackRes = await supabaseRestFetch('representatives?select=*&order=created_at.desc');
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json();
-          if (Array.isArray(fallbackData) && fallbackData.length > 0) {
-            const freshList = fallbackData.map(mapDbToRep);
-            const { active, deleted } = filterOutDeletedReps(freshList);
-            syncSoftDeletedFromDb(deleted);
-
-            try {
-              safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
-            } catch {}
-            return active;
-          }
-        }
       }
     } catch (err) {
       console.warn('Supabase fetch reps REST error:', err);
@@ -107,13 +134,8 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
 
     try {
       let { data, error } = await supabase.from('representatives').select(SAFE_REP_SELECT).order('created_at', { ascending: false });
-      if (error || !data || data.length === 0) {
-        const fallback = await supabase.from('representatives').select('*').order('created_at', { ascending: false });
-        data = fallback.data;
-        error = fallback.error;
-      }
       if (!error && data && Array.isArray(data) && data.length > 0) {
-        const freshList = data.map(mapDbToRep);
+        const freshList = enrichRepsWithFallback(data.map(mapDbToRep));
         const { active, deleted } = filterOutDeletedReps(freshList);
         syncSoftDeletedFromDb(deleted);
 
