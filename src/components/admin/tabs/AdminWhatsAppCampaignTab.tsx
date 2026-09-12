@@ -727,7 +727,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
             registrationType: (b as any).registrationType,
             photos: b.photos,
             coverPhoto: (b as any).coverPhoto,
-            logo: b.logo,
+            logo: (b as any).logo,
           })),
           skipRecentlyContacted,
           minDelaySeconds,

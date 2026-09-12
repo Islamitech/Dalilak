@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Business, User } from '../../types';
 import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../../data/mockData';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../../utils/dateFormatters';
@@ -202,6 +202,21 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       })
     );
   }, [displayableBusinesses, searchQuery, govFilter, categoryFilter, verificationFilter]);
+
+  // ── PROGRESSIVE WINDOWING & BATCH LOADING (ANTI-CRASH ON LOW-END DEVICES) ──
+  const PAGE_SIZE = 24;
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+
+  // Reset visible items whenever search or filtering conditions change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, govFilter, categoryFilter, verificationFilter, displayableBusinesses.length]);
+
+  const renderedBusinesses = useMemo(() => {
+    return filteredBusinesses.slice(0, visibleCount);
+  }, [filteredBusinesses, visibleCount]);
+
+  const hasMore = visibleCount < filteredBusinesses.length;
 
   return (
     <div className="space-y-4">
@@ -594,7 +609,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       {/* ── 3. GRID MODE ── */}
       {(!isLoadingData || businesses.length > 0) && viewMode === 'grid' && filteredBusinesses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-          {filteredBusinesses.map((biz) => {
+          {renderedBusinesses.map((biz) => {
             const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
             const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
             const isVerified = biz.verificationStatus === 'verified';
@@ -849,7 +864,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         <div className="space-y-3">
           {/* MOBILE VIEW (< md) */}
           <div className="md:hidden space-y-2.5">
-            {filteredBusinesses.map((biz) => {
+            {renderedBusinesses.map((biz) => {
               const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
               const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
               const isVerified = biz.verificationStatus === 'verified';
@@ -1028,7 +1043,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]/60">
-                  {filteredBusinesses.map((biz) => {
+                  {renderedBusinesses.map((biz) => {
                     const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
                     const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
                     const isVerified = biz.verificationStatus === 'verified';
@@ -1222,6 +1237,42 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── 4.5. PROGRESSIVE PAGINATION CONTROLLER (ANTI-CRASH & BATCH LOADING) ── */}
+      {(!isLoadingData || businesses.length > 0) && (viewMode === 'grid' || viewMode === 'list') && filteredBusinesses.length > 0 && (
+        <div className="pt-2 pb-6 flex flex-col items-center justify-center gap-3 animate-fade-in">
+          <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-color)] px-4 py-1.5 rounded-full shadow-2xs">
+            <span>عرض {renderedBusinesses.length} من أصل {filteredBusinesses.length} نشاطاً</span>
+            {filteredBusinesses.length > renderedBusinesses.length && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </div>
+
+          {hasMore && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                className="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-2xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>تحميل المزيد (+{Math.min(PAGE_SIZE, filteredBusinesses.length - renderedBusinesses.length)} نشاط)</span>
+              </button>
+
+              {filteredBusinesses.length > PAGE_SIZE * 2 && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount(filteredBusinesses.length)}
+                  className="bg-[var(--bg-card)] hover:bg-[var(--input-bg)] active:scale-95 text-[var(--text-primary)] font-bold text-xs px-4 py-2.5 rounded-2xl border border-[var(--border-color)] transition-all cursor-pointer"
+                  title="عرض جميع الأنشطة المفلترة في الصفحة دفعة واحدة"
+                >
+                  <span>عرض الكل ({filteredBusinesses.length})</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
