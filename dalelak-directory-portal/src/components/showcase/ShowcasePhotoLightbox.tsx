@@ -47,17 +47,32 @@ export const ShowcasePhotoLightbox: React.FC<ShowcasePhotoLightboxProps> = ({
         <ChevronLeft className="w-5 h-5" />
       </button>
 
-      <div className="relative inline-block max-w-full max-h-[85vh]">
+      <div 
+        className="relative inline-block max-w-full max-h-[85vh] select-none"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <img
           src={photos[previewPhotoIndex]}
-          alt={`صورة ${previewPhotoIndex + 1}`}
-          className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain animate-fade-in-scale"
+          alt=""
+          role="presentation"
+          aria-hidden="true"
+          data-reader-skip="true"
+          data-readability-ignore="true"
+          draggable={false}
+          className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain animate-fade-in-scale pointer-events-none select-none"
           onClick={(e) => e.stopPropagation()}
+        />
+        {/* Anti-Extraction Transparent Protection Shield */}
+        <div 
+          className="absolute inset-0 z-10 select-none pointer-events-auto cursor-default"
+          onClick={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+          onDragStart={(e) => e.preventDefault()}
         />
         <PhotoWatermarkBadge
           position="bottom-right"
           size="xl"
-          className="!bottom-4 !right-4 sm:!bottom-6 sm:!right-6 shadow-2xl"
+          className="!bottom-4 !right-4 sm:!bottom-6 sm:!right-6 shadow-2xl z-20"
         />
       </div>
 

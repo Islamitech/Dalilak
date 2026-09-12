@@ -620,17 +620,28 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
             return (
               <div
                 key={biz.id}
-                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between group"
+                onContextMenu={(e) => e.preventDefault()}
+                data-readability-ignore="true"
+                data-reader-skip="true"
+                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between group protected-asset-shield"
               >
-                {/* Visual Header / Cover */}
-                <div className="relative aspect-[16/8.5] bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-slate-900/10 overflow-hidden">
+                {/* Visual Header / Cover with Anti-Extraction Shield */}
+                <div 
+                  className="relative aspect-[16/8.5] bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-slate-900/10 overflow-hidden select-none"
+                  onContextMenu={(e) => e.preventDefault()}
+                >
                   {coverPhoto ? (
                     <img
                       src={coverPhoto}
-                      alt={biz.nameAr}
+                      alt=""
+                      role="presentation"
+                      aria-hidden="true"
+                      data-reader-skip="true"
+                      data-readability-ignore="true"
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      draggable={false}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-amber-500/60 bg-[var(--bg-surface)]">
@@ -639,7 +650,13 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+                  {/* Anti-Extraction Transparent Protection Shield */}
+                  <div 
+                    className="absolute inset-0 z-[5] select-none pointer-events-auto"
+                    onContextMenu={(e) => e.preventDefault()}
+                    onDragStart={(e) => e.preventDefault()}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />
 
                   {/* Center Play Button Overlay for Videos */}
                   {hasVideos && (

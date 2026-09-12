@@ -536,3 +536,30 @@ button, a, input, select, textarea {
   }
 }
 
+/* ============================================
+   🛡️ Anti-Extraction & Reader-Mode Asset Protection
+   ============================================ */
+img, picture, video {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+[data-readability-ignore="true"],
+[data-reader-skip="true"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Protection class for card and image wrappers */
+.protected-asset-shield {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+

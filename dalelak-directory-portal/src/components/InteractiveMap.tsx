@@ -48,7 +48,7 @@ declare global {
   }
 }
 
-export type MapTileLayerType = 'google-hybrid' | 'google-streets' | 'cartodb';
+export type MapTileLayerType = 'dalelak-clean' | 'google-streets' | 'google-hybrid';
 
 function escapeHtml(str?: string | null): string {
   if (!str) return '';
@@ -119,8 +119,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // High precision controls & Layer switcher (Default: Official Google Streets)
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
+  // High precision controls & Layer switcher (Default: Dalilak Clean Silent Base Map)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-clean');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -158,13 +158,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
           attribution: 'Map data © Google',
         };
-      case 'cartodb':
+      case 'dalelak-clean':
       default:
         return {
-          url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
           maxZoom: 19,
           subdomains: 'abcd',
-          attribution: '© CartoDB / OpenStreetMap',
+          attribution: '© خريطة دليلك الميدانية / OpenStreetMap',
         };
     }
   };
@@ -707,15 +707,27 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div className="flex items-center bg-[var(--input-bg)] p-0.5 rounded-xl border border-[var(--border-color)] text-[11px] font-bold">
               <button
                 type="button"
+                onClick={() => switchTileLayer('dalelak-clean')}
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                  tileLayer === 'dalelak-clean'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+                title="عرض خريطة دليلك الميدانية الصماء (خالية من معالم ومتاجر جوجل)"
+              >
+                <span>🗺️ خريطة دليلك</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => switchTileLayer('google-streets')}
                 className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                   tileLayer === 'google-streets'
                     ? 'bg-amber-500 text-slate-950 font-black shadow'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
-                title="عرض خريطة شوارع جوجل الرسمية (Google Streets)"
+                title="عرض خريطة شوارع جوجل العامة (Google Streets)"
               >
-                <span>🗺️ شوارع جوجل</span>
+                <span>📍 شوارع جوجل</span>
               </button>
               <button
                 type="button"

@@ -209,7 +209,8 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                   onOpenPhotoPreview(0);
                 }
               }}
-              className="group relative h-56 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 shadow-md border border-[var(--border-color)] cursor-pointer"
+              onContextMenu={(e) => e.preventDefault()}
+              className="group relative h-56 sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 shadow-md border border-[var(--border-color)] cursor-pointer select-none protected-asset-shield"
               title="انقر لتكبير الصور"
             >
               <img
@@ -221,10 +222,21 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                         selectedBiz.createdDate || selectedBiz.createdAt || ''
                       )}`)
                 }
-                alt={selectedBiz.nameAr}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt=""
+                role="presentation"
+                aria-hidden="true"
+                data-reader-skip="true"
+                data-readability-ignore="true"
+                draggable={false}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
+              {/* Anti-Extraction Transparent Protection Shield */}
+              <div 
+                className="absolute inset-0 z-[5] select-none pointer-events-auto"
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent pointer-events-none" />
 
               {/* Photos Async Loading Indicator */}
               {photosLoading && (

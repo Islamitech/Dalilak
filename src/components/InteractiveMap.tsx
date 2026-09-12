@@ -42,8 +42,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // High precision controls & Layer switcher (Default: Official Google Streets)
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
+  // High precision controls & Layer switcher (Default: Dalilak Clean Silent Base Map)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-clean');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
 

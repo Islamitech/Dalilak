@@ -1,7 +1,7 @@
 import { Business } from '../../types';
 import { LocationAddressData } from '../../utils/geocoding';
 
-export type MapTileLayerType = 'google-hybrid' | 'google-streets' | 'cartodb';
+export type MapTileLayerType = 'dalelak-clean' | 'google-streets' | 'google-hybrid';
 
 export interface InteractiveMapProps {
   mode?: 'picker' | 'view';
@@ -63,20 +63,20 @@ export const getTileLayerConfig = (type: MapTileLayerType) => {
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         attribution: 'Imagery © Google',
       };
-    case 'cartodb':
-      return {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        maxZoom: 19,
-        subdomains: 'abcd',
-        attribution: '© CartoDB / OpenStreetMap',
-      };
     case 'google-streets':
-    default:
       return {
         url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         attribution: 'Map data © Google',
+      };
+    case 'dalelak-clean':
+    default:
+      return {
+        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '© خريطة دليلك الميدانية / OpenStreetMap',
       };
   }
 };

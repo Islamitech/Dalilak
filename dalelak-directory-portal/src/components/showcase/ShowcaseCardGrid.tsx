@@ -275,19 +275,34 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                 return (
                   <div
                     key={biz.id}
-                    className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-400/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between hover:-translate-y-0.5"
+                    onContextMenu={(e) => e.preventDefault()}
+                    data-readability-ignore="true"
+                    data-reader-skip="true"
+                    className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-400/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between hover:-translate-y-0.5 protected-asset-shield"
                   >
-                    {/* Layer 1: Pure 4:3 Image with strict max 3 overlays */}
+                    {/* Layer 1: Pure 4:3 Image with strict overlays, protection shield & watermark */}
                     <div
-                      className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden cursor-pointer"
+                      className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden cursor-pointer select-none"
                       onClick={() => handleOpenBusiness(biz)}
+                      onContextMenu={(e) => e.preventDefault()}
                     >
                       <img
                         src={mainPhoto}
-                        alt={biz.nameAr}
+                        alt=""
+                        role="presentation"
+                        aria-hidden="true"
+                        data-reader-skip="true"
+                        data-readability-ignore="true"
                         loading="lazy"
                         decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        draggable={false}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 pointer-events-none select-none"
+                      />
+                      {/* Anti-Extraction Transparent Protection Shield */}
+                      <div 
+                        className="absolute inset-0 z-[5] select-none pointer-events-auto"
+                        onContextMenu={(e) => e.preventDefault()}
+                        onDragStart={(e) => e.preventDefault()}
                       />
                       {/* Soft bottom gradient only */}
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-transparent pointer-events-none" />
@@ -335,15 +350,16 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                         <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
                       </button>
 
-                      {/* Bottom-Left (Inside Photo): GPS Distance if available */}
-                      {distanceKm !== null && (
-                        <div className="absolute bottom-3 left-3 z-10">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-900/50 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
+                      {/* Bottom-Left (Inside Photo): GPS Distance & Daleelak Official Watermark */}
+                      <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5">
+                        {distanceKm !== null && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-900/70 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
                             <Compass className="w-3 h-3 text-amber-400 shrink-0" />
                             <span>{formatDistanceString(distanceKm)}</span>
                           </span>
-                        </div>
-                      )}
+                        )}
+                        <PhotoWatermarkBadge position="bottom-left" size="sm" className="!relative !bottom-auto !left-auto" />
+                      </div>
                     </div>
 
                     {/* Layer 2: Business Decision Summary (Below photo) */}

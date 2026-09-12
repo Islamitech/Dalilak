@@ -7,6 +7,7 @@ import {
   getBusinessMapDetails,
   getSmartWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
+import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   ShieldCheck,
   Heart,
@@ -51,16 +52,33 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
   return (
     <div
       onClick={() => onOpenBusiness(business)}
-      className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-400/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between hover:-translate-y-0.5 cursor-pointer"
+      onContextMenu={(e) => e.preventDefault()}
+      data-readability-ignore="true"
+      data-reader-skip="true"
+      className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-400/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between hover:-translate-y-0.5 cursor-pointer protected-asset-shield"
     >
-      {/* 1. Visual Anchor: 4:3 Photo with restrained overlays */}
-      <div className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden">
+      {/* 1. Visual Anchor: 4:3 Photo with anti-extraction shield and brand watermark */}
+      <div 
+        className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden select-none"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <img
           src={mainPhoto}
-          alt={business.nameAr}
+          alt=""
+          role="presentation"
+          aria-hidden="true"
+          data-reader-skip="true"
+          data-readability-ignore="true"
           loading="lazy"
           decoding="async"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          draggable={false}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
+        />
+        {/* Anti-Extraction Transparent Protection Shield */}
+        <div 
+          className="absolute inset-0 z-[5] select-none pointer-events-auto"
+          onContextMenu={(e) => e.preventDefault()}
+          onDragStart={(e) => e.preventDefault()}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
 
@@ -129,14 +147,15 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           </div>
         )}
 
-        {/* Bottom-Left (Inside Photo): Distance indicator */}
-        <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5">
+        {/* Bottom-Left (Inside Photo): Distance indicator & Daleelak Official Watermark */}
+        <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5">
           {distanceKm !== null && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-900/60 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
+            <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-900/70 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-xs">
               <Compass className="w-3 h-3 text-amber-400 shrink-0" />
               <span>{formatDistanceString(distanceKm)}</span>
             </span>
           )}
+          <PhotoWatermarkBadge position="bottom-left" size="sm" className="!relative !bottom-auto !left-auto" />
         </div>
       </div>
 

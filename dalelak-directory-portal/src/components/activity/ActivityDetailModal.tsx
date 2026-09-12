@@ -6,6 +6,7 @@ import {
   getSmartWhatsAppUrl,
   downloadBusinessVCard,
 } from '../../utils/directoryEnhancements';
+import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   X,
   ShieldCheck,
@@ -181,19 +182,34 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
               onClick={() => {
                 if (photos.length > 0) setPreviewPhotoIndex(0);
               }}
-              className="relative h-56 sm:h-64 rounded-2xl overflow-hidden bg-slate-950 shadow-md group cursor-pointer"
+              onContextMenu={(e) => e.preventDefault()}
+              className="relative h-56 sm:h-64 rounded-2xl overflow-hidden bg-slate-950 shadow-md group cursor-pointer select-none protected-asset-shield"
             >
               <img
                 src={photos[0] || `/api/biz-og?biz=${business.id}`}
-                alt={business.nameAr}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt=""
+                role="presentation"
+                aria-hidden="true"
+                data-reader-skip="true"
+                data-readability-ignore="true"
+                draggable={false}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+              {/* Anti-Extraction Transparent Protection Shield */}
+              <div 
+                className="absolute inset-0 z-[5] select-none pointer-events-auto"
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
 
               <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
-                <span className="bg-slate-900/60 backdrop-blur-md text-amber-300 text-[11px] font-black px-3 py-1 rounded-full border border-amber-400/30">
-                  {business.category}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-slate-900/60 backdrop-blur-md text-amber-300 text-[11px] font-black px-3 py-1 rounded-full border border-amber-400/30">
+                    {business.category}
+                  </span>
+                  <PhotoWatermarkBadge position="top-right" size="sm" className="!relative !top-auto !right-auto" />
+                </div>
 
                 {business.videos && business.videos.length > 0 && onOpenVideoModal && (
                   <button
@@ -210,7 +226,7 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                 )}
               </div>
 
-              <div className="absolute bottom-3.5 right-4 left-4 text-white space-y-1">
+              <div className="absolute bottom-3.5 right-4 left-4 text-white space-y-1 z-10">
                 <h2 className="text-xl sm:text-2xl font-black leading-tight drop-shadow-md">
                   {business.nameAr}
                 </h2>
@@ -241,9 +257,17 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => setPreviewPhotoIndex(idx)}
-                    className="relative h-16 rounded-xl overflow-hidden bg-slate-950 border border-slate-200 hover:border-amber-500 transition-all cursor-pointer group"
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="relative h-16 rounded-xl overflow-hidden bg-slate-950 border border-slate-200 hover:border-amber-500 transition-all cursor-pointer group select-none"
                   >
-                    <img src={ph} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                    <img 
+                      src={ph} 
+                      alt="" 
+                      role="presentation"
+                      aria-hidden="true"
+                      draggable={false}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform pointer-events-none select-none" 
+                    />
                   </button>
                 ))}
               </div>
