@@ -35,12 +35,14 @@ import {
   Laptop,
   Terminal,
   Copy,
+  Download,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin, PRIMARY_WHATSAPP_SENDER_PHONE } from '../../../utils/permissions';
 import { getDisplayDirectoryUrl } from '../../../utils/directoryUrl';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { triggerHaptic } from '../../../utils/haptics';
+import { ExportContactsModal } from './ExportContactsModal';
 
 export { PRIMARY_WHATSAPP_SENDER_PHONE };
 
@@ -413,6 +415,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [isAbortingCampaign, setIsAbortingCampaign] = useState(false);
   const [isResumingCampaign, setIsResumingCampaign] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showExportContactsModal, setShowExportContactsModal] = useState(false);
   const [hasCopiedCommand, setHasCopiedCommand] = useState(false);
   const [skipRecentlyContacted, setSkipRecentlyContacted] = useState(true);
 
@@ -874,6 +877,17 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-center">
+            <button
+              type="button"
+              onClick={() => setShowExportContactsModal(true)}
+              className="p-2.5 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer flex items-center gap-2 text-xs font-bold shadow-xs"
+              title="تصدير جهات الاتصال إلى Google Contacts لمزامنة الأسماء على WhatsApp"
+            >
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">تصدير جهات اتصال Google (VCF)</span>
+              <span className="sm:hidden">تصدير VCF</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowServerSettings(!showServerSettings)}
@@ -1690,9 +1704,20 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 <h3 className="font-black text-sm sm:text-base">1. تحديد الشريحة المستهدفة</h3>
               </div>
 
-              <span className="text-xs font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                {targetBusinesses.length} منشأة مطابقة
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExportContactsModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer"
+                  title="تصدير الشريحة المختارة أو كافة جهات الاتصال لحساب Google"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>تصدير جهات الاتصال (VCF)</span>
+                </button>
+                <span className="text-xs font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                  {targetBusinesses.length} منشأة مطابقة
+                </span>
+              </div>
             </div>
 
             {/* Filter Pills */}
@@ -2102,6 +2127,15 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           </div>
         </div>
       )}
+
+      {/* ── GOOGLE CONTACTS VCF 3.0 EXPORT MODAL ── */}
+      <ExportContactsModal
+        isOpen={showExportContactsModal}
+        onClose={() => setShowExportContactsModal(false)}
+        allBusinesses={businesses}
+        filteredBusinesses={targetBusinesses}
+        onShowNotification={onShowNotification}
+      />
     </div>
   );
 };
