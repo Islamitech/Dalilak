@@ -429,6 +429,59 @@ let cachedCampaignOptions: {
   skipRecentlyContacted?: boolean;
 } | null = null;
 
+let cachedImageRegistry: Record<string, any> | null = null;
+function getEnhancedPhotoUrl(bizId: string): string | null {
+  try {
+    if (!cachedImageRegistry) {
+      const regPath = path.join(process.cwd(), 'data', 'image_enhancement_registry.json');
+      if (fs.existsSync(regPath)) {
+        cachedImageRegistry = JSON.parse(fs.readFileSync(regPath, 'utf8'));
+      } else {
+        cachedImageRegistry = {};
+      }
+    }
+    const item = cachedImageRegistry?.[`biz_${bizId}`] || cachedImageRegistry?.[bizId];
+    if (item && item.new_url) {
+      return item.new_url;
+    }
+  } catch {}
+  return null;
+}
+
+let sharpInstance: any = null;
+async function getSharp() {
+  if (sharpInstance !== null) return sharpInstance;
+  try {
+    const s = await import('sharp');
+    sharpInstance = s.default || s;
+  } catch {
+    sharpInstance = false;
+  }
+  return sharpInstance;
+}
+
+async function getCompressedJpegThumbnail(url: string): Promise<Buffer | undefined> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return undefined;
+    const rawBuf = Buffer.from(await res.arrayBuffer());
+    const sharp = await getSharp();
+    if (sharp) {
+      return await sharp(rawBuf)
+        .resize(300, 200, { fit: 'cover', position: 'center' })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    }
+    if (rawBuf.length <= 100 * 1024) return rawBuf;
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * 🔄 Executes Campaign Dispatch Loop with Human Presence & Anti-Ban Protection
  */
@@ -591,7 +644,22 @@ async function executeCampaignLoop(
       console.warn(`[Campaign] Notice during onWhatsApp verification for ${rawPhone}:`, waErr?.message);
     }
 
+    const rawName = biz.nameAr || biz.name || 'المنشأة الكريمة';
+    const venueName = rawName.replace(/[\r\n\t]+/g, ' ').trim();
+    const location = [biz.governorate, biz.city].filter(Boolean).join(' - ') || 'مصر';
+    const directoryUrl = getDisplayDirectoryUrl(biz);
     const messageBody = compileBroadcastMessage(options.templateType, biz, options.customText);
+
+    // Resolve optimal photo URL for the interactive business preview card
+    let photoUrl = (biz as any).coverPhoto || (Array.isArray((biz as any).photos) && (biz as any).photos[0]) || '';
+    if (!photoUrl || typeof photoUrl !== 'string' || !photoUrl.startsWith('http')) {
+      const regPhoto = getEnhancedPhotoUrl(biz.id);
+      if (regPhoto) {
+        photoUrl = regPhoto;
+      } else {
+        photoUrl = `https://www.dalilaak.com/api/biz-og?biz=${encodeURIComponent(biz.id)}`;
+      }
+    }
 
     try {
       // 🛡️ 4. HUMAN PRESENCE & TYPING SIMULATION (Emulates human writing behavior)
@@ -606,7 +674,38 @@ async function executeCampaignLoop(
         // Non-blocking
       }
 
-      await sock!.sendMessage(jid, { text: messageBody });
+      // Generate embedded JPEG thumbnail for instant preview on all devices
+      let thumbBuffer: Buffer | undefined;
+      if (photoUrl) {
+        thumbBuffer = await getCompressedJpegThumbnail(photoUrl);
+      }
+
+      // 🌟 Rich Interactive WhatsApp Business Card Payload
+      const messagePayload: any = {
+        text: messageBody,
+        matchedText: directoryUrl,
+        canonicalUrl: directoryUrl,
+        title: `نشاط ${venueName} | منصة دليلك المعتمدة`,
+        description: `منصة دليلك المعتمدة • ${location}`,
+        contextInfo: {
+          externalAdReply: {
+            title: `نشاط ${venueName}`,
+            body: `منصة دليلك المعتمدة • ${location}`,
+            mediaType: 1, // IMAGE
+            thumbnail: thumbBuffer,
+            thumbnailUrl: photoUrl,
+            sourceUrl: directoryUrl,
+            renderLargerThumbnail: true,
+            showAdAttribution: false,
+          },
+        },
+      };
+
+      if (thumbBuffer) {
+        messagePayload.jpegThumbnail = thumbBuffer;
+      }
+
+      await sock!.sendMessage(jid, messagePayload);
       recordSentTarget(rawPhone!, biz.id);
 
       if (activeCampaign) {
