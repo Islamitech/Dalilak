@@ -697,11 +697,26 @@ async function executeCampaignLoop(
           fallbackThumb = await getCompressedJpegThumbnail(photoUrl);
         }
         if (fallbackThumb) {
+          let ratingSnippet = '';
+          try {
+            let parsedNotes: any = null;
+            if (typeof (biz as any).notes === 'string' && (biz as any).notes.trim().startsWith('{')) {
+              parsedNotes = JSON.parse((biz as any).notes.trim());
+            } else if (typeof (biz as any).notes === 'object') {
+              parsedNotes = (biz as any).notes;
+            }
+            const gRating = (biz as any).googleRating || parsedNotes?.googleRating;
+            const gReviews = (biz as any).googleReviewsCount || parsedNotes?.googleReviewsCount;
+            if (gRating) {
+              ratingSnippet = `⭐ تقييم Google: ${Number(gRating).toFixed(1)}${gReviews ? ` (${gReviews} تقييم)` : ''} • `;
+            }
+          } catch {}
+
           nativeLinkPreview = {
             'matched-text': directoryUrl,
             'canonical-url': directoryUrl,
             title: `${venueName} | منصة دليلك المعتمدة`,
-            description: `منصة دليلك المعتمدة • ${location}`,
+            description: `${ratingSnippet}منصة دليلك المعتمدة • ${location}`,
             jpegThumbnail: fallbackThumb,
           };
         }
