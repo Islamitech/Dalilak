@@ -389,7 +389,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     setErrorMsg('');
 
     if (!nameAr.trim() && !nameEn.trim()) {
-      setErrorMsg('⚠️ يرجى إدخال اسم النشاط التجاري');
+      setErrorMsg('يرجى إدخال اسم النشاط التجاري');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -398,28 +398,28 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     const finalPhone = ownerPhone.trim() || phone.trim();
 
     if (!finalPhone) {
-      setErrorMsg('⚠️ يرجى إدخال رقم هاتف الواتساب أو هاتف المحل للتواصل وإصدار الفاتورة الترحيبية');
+      setErrorMsg('يرجى إدخال رقم هاتف الواتساب أو هاتف المحل للتواصل وإصدار الفاتورة الترحيبية');
       window.scrollTo({ top: 250, behavior: 'smooth' });
       return;
     }
 
     if (!alreadyGoogleMapsUrl.trim()) {
-      setErrorMsg('⚠️ يرجى إدخال الرابط الدقيق للنشاط الظاهر على خرائط Google');
+      setErrorMsg('يرجى إدخال الرابط الدقيق للنشاط الظاهر على خرائط Google');
       window.scrollTo({ top: 250, behavior: 'smooth' });
       return;
     }
 
-    // 🛡️ Duplicate Phone Check
+    // Duplicate Phone Check
     if (duplicatePhoneMatch) {
       const entityTypeStr = duplicatePhoneMatch.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
-      setErrorMsg(`⛔ رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
+      setErrorMsg(`رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
       window.scrollTo({ top: 250, behavior: 'smooth' });
       return;
     }
 
-    // 🛡️ Security Check: Block submission if user or currentRep is deleted/blacklisted
+    // Security Check: Block submission if user or currentRep is deleted/blacklisted
     if (isRepAccountDeleted(currentUser) || isRepAccountDeleted(currentRep)) {
-      setErrorMsg('⛔ هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة، ولا يمكنه رفع أو تسجيل أنشطة تجارية.');
+      setErrorMsg('هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة، ولا يمكنه رفع أو تسجيل أنشطة تجارية.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -484,9 +484,9 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     e.preventDefault();
     setErrorMsg('');
 
-    // 🛡️ Security Check: Block submission if user or currentRep is deleted/blacklisted
+    // Security Check: Block submission if user or currentRep is deleted/blacklisted
     if (isRepAccountDeleted(currentUser) || isRepAccountDeleted(currentRep)) {
-      setErrorMsg('⛔ هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة، ولا يمكنه رفع أو تسجيل أنشطة تجارية.');
+      setErrorMsg('هذا الحساب تم حذفه أو تعطيله من قِبل إدارة المنظومة، ولا يمكنه رفع أو تسجيل أنشطة تجارية.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -497,7 +497,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     }
 
     if (!nameAr.trim() && !nameEn.trim()) {
-      setErrorMsg('⚠️ يرجى إدخال اسم النشاط التجاري (باللغة العربية أو باللغة الإنجليزية)');
+      setErrorMsg('يرجى إدخال اسم النشاط التجاري (باللغة العربية أو باللغة الإنجليزية)');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -506,15 +506,15 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
     const finalPhone = ownerPhone.trim() || phone.trim();
 
     if (!finalPhone) {
-      setErrorMsg('⚠️ يرجى إدخال رقم هاتف الواتساب أو هاتف المحل للتواصل وإصدار الفاتورة');
+      setErrorMsg('يرجى إدخال رقم هاتف الواتساب أو هاتف المحل للتواصل وإصدار الفاتورة');
       window.scrollTo({ top: 250, behavior: 'smooth' });
       return;
     }
 
-    // 🛡️ Duplicate Phone Check
+    // Duplicate Phone Check
     if (duplicatePhoneMatch) {
       const entityTypeStr = duplicatePhoneMatch.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
-      setErrorMsg(`⛔ رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
+      setErrorMsg(`رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
       window.scrollTo({ top: 250, behavior: 'smooth' });
       return;
     }
@@ -540,10 +540,10 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
   };
 
   const handleFinalConfirmPayment = () => {
-    // 🛡️ Extra Defensive Duplicate Phone Check
+    // Extra Defensive Duplicate Phone Check
     if (duplicatePhoneMatch) {
       const entityTypeStr = duplicatePhoneMatch.type === 'business' ? 'نشاط تجاري مسجل مسبقاً' : 'عميل مهتم / مراجعة مسجلة';
-      setErrorMsg(`⛔ رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}.`);
+      setErrorMsg(`رقم الهاتف (${duplicatePhoneMatch.phone}) مستخدم بالفعل مع ${entityTypeStr}: "${duplicatePhoneMatch.name}" ${duplicatePhoneMatch.location ? `(${duplicatePhoneMatch.location})` : ''}.`);
       setShowPaymentModal(false);
       window.scrollTo({ top: 250, behavior: 'smooth' });
       return;

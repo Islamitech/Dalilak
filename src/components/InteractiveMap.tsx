@@ -42,8 +42,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // High precision controls & Layer switcher (Default: Dalilak Clean Silent Base Map)
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-clean');
+  // High precision controls & Layer switcher (Default: Google Streets Vibrant Map)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
 
@@ -157,6 +157,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         if (mode !== 'picker') return;
         updateSelectedPosition(e.latlng.lat, e.latlng.lng, false);
       });
+
+      // Ensure canvas bounds are fully calculated and tiles fetched immediately
+      setTimeout(() => {
+        if (map && isSubscribed) {
+          map.invalidateSize({ pan: false });
+        }
+      }, 100);
+      setTimeout(() => {
+        if (map && isSubscribed) {
+          map.invalidateSize({ pan: false });
+        }
+      }, 300);
     };
 
     if (window.L) {
@@ -207,13 +219,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     markersGroup.clearLayers();
 
     if (mode === 'picker') {
-      // 🌟 Precision Needle Pin (Direct Anchor at the tip of the needle: [18, 46])
+      // Precision Needle Pin with calibrated anchor
       const pickerIcon = window.L.divIcon({
         className: 'custom-picker-pin',
         html: `
-          <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: grab; user-select: none;">
-            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #020617; font-weight: 900; font-size: 11px; padding: 3px 10px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); white-space: nowrap; border: 1.5px solid #fef08a; margin-bottom: 2px;">
-              📍 موقع النشاط المحدد
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: grab; user-select: none; width: 160px; font-family: Cairo, -apple-system, sans-serif;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #020617; font-weight: 900; font-size: 11px; padding: 3px 10px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); max-width: 155px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1.5px solid #fef08a; margin-bottom: 2px;">
+              موقع النشاط المحدد
             </div>
             <div style="position: relative; width: 36px; height: 46px; display: flex; justify-content: center;">
               <svg width="36" height="46" viewBox="0 0 36 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));">
@@ -226,8 +238,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             </div>
           </div>
         `,
-        iconSize: [36, 68],
-        iconAnchor: [18, 68],
+        iconSize: [160, 72],
+        iconAnchor: [80, 72],
       });
 
       const marker = window.L.marker([currentLat, currentLng], {
@@ -316,17 +328,17 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const showFullPill = zoomLevel >= 15;
           const htmlContent = showFullPill
             ? `
-              <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none;">
-                <div style="background: ${isSelected ? '#f59e0b' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 9px; border-radius: 9999px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 5px; transition: transform 0.2s; font-family: Cairo, sans-serif;">
-                  <span style="font-size: 13px;">${categoryIcon}</span>
-                  <span>${safeName}</span>
+              <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; width: 180px; font-family: Cairo, -apple-system, sans-serif;">
+                <div style="background: ${isSelected ? '#f59e0b' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 10px; border-radius: 9999px; font-weight: 800; font-size: 11px; max-width: 175px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 5px; transition: transform 0.2s;">
+                  <span style="font-size: 13px; flex-shrink: 0; line-height: 1;">${categoryIcon}</span>
+                  <span style="max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; line-height: 1.2;">${safeName}</span>
                 </div>
                 <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${isSelected ? '#f59e0b' : color}; margin-top: -1px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));"></div>
                 <div style="width: 4px; height: 4px; border-radius: 9999px; background: ${isSelected ? '#ffffff' : color}; margin-top: -2px;"></div>
               </div>
             `
             : `
-              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
+              <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                 <div style="background: ${isSelected ? '#f59e0b' : color}; width: 28px; height: 28px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 3px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">
                   ${categoryIcon}
                 </div>
@@ -336,8 +348,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const bizIcon = window.L.divIcon({
             className: 'custom-biz-pin',
             html: htmlContent,
-            iconSize: showFullPill ? [140, 38] : [28, 28],
-            iconAnchor: showFullPill ? [70, 38] : [14, 14],
+            iconSize: showFullPill ? [180, 42] : [28, 28],
+            iconAnchor: showFullPill ? [90, 42] : [14, 14],
           });
 
           const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
@@ -388,7 +400,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   useEffect(() => {
     const handleResize = () => {
       if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize();
+        leafletMapRef.current.invalidateSize({ pan: false });
       }
     };
 
@@ -403,13 +415,20 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       resizeObserver.observe(containerRef.current);
     }
 
-    const timer = setTimeout(handleResize, 200);
+    // Sequence invalidations to guarantee tile coverage after modal transitions
+    const t1 = setTimeout(handleResize, 50);
+    const t2 = setTimeout(handleResize, 150);
+    const t3 = setTimeout(handleResize, 300);
+    const t4 = setTimeout(handleResize, 500);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [isExpanded]);
 
@@ -528,10 +547,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   };
 
   const containerClasses = isExpanded
-    ? 'fixed inset-2 sm:inset-5 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
+    ? 'fixed inset-2 sm:inset-5 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in'
     : 'bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
 
-  const mapHeight = isExpanded ? 'flex-1 h-full min-h-[480px]' : heightClass;
+  const mapHeight = isExpanded ? 'flex-1 h-full min-h-[400px]' : heightClass;
 
   const filteredBusinessesCount = businesses.filter((b) => {
     if (typeof b.lat !== 'number' || typeof b.lng !== 'number' || isNaN(b.lat) || isNaN(b.lng)) return false;
@@ -576,7 +595,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         )}
 
         {/* High-Performance Canvas Container */}
-        <div className="relative w-full overflow-hidden flex-1">
+        <div className="relative w-full flex-1 flex flex-col min-h-0 overflow-hidden">
           <div
             ref={containerRef}
             className={`w-full ${mapHeight} z-10 cursor-crosshair`}

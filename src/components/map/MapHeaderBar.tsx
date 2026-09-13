@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Sparkles, Loader2, Navigation, Maximize2, Minimize2 } from 'lucide-react';
+import { MapPin, Sparkles, Loader2, Navigation, Maximize2, Minimize2, Layers, Globe } from 'lucide-react';
 import { MapTileLayerType, GOVERNORATE_COORDS } from './mapTypes';
 
 interface MapHeaderBarProps {
@@ -55,27 +55,29 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
         <div className="flex items-center bg-[var(--input-bg)] p-0.5 rounded-xl border border-[var(--border-color)] text-[11px] font-bold">
           <button
             type="button"
-            onClick={() => onSwitchTileLayer('dalelak-clean')}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-              tileLayer === 'dalelak-clean'
-                ? 'bg-amber-500 text-slate-950 font-black shadow'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-            title="عرض خريطة دليلك الميدانية الصماء (خالية من معالم ومتاجر جوجل)"
-          >
-            <span>🗺️ خريطة دليلك</span>
-          </button>
-          <button
-            type="button"
             onClick={() => onSwitchTileLayer('google-streets')}
             className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
               tileLayer === 'google-streets'
                 ? 'bg-amber-500 text-slate-950 font-black shadow'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
-            title="عرض خريطة شوارع جوجل العامة (Google Streets)"
+            title="عرض خريطة شوارع وتضاريس جوجل المعيارية (Google Streets)"
           >
-            <span>📍 شوارع جوجل</span>
+            <MapPin className="w-3 h-3 stroke-[2.5]" />
+            <span>شوارع جوجل</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onSwitchTileLayer('dalelak-clean')}
+            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+              tileLayer === 'dalelak-clean'
+                ? 'bg-amber-500 text-slate-950 font-black shadow'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+            title="عرض خريطة دليلك الميدانية الملونة الصافية"
+          >
+            <Layers className="w-3 h-3" />
+            <span>خريطة دليلك</span>
           </button>
           <button
             type="button"
@@ -87,7 +89,8 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
             }`}
             title="عرض القمر الصناعي المباشر من جوجل (Satellite + Labels)"
           >
-            <span>🛰️ قمر صناعي</span>
+            <Globe className="w-3 h-3" />
+            <span>قمر صناعي</span>
           </button>
         </div>
 
@@ -101,7 +104,7 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
           <option value="all">كل المحافظات</option>
           {Object.keys(GOVERNORATE_COORDS).map((g) => (
             <option key={g} value={g}>
-              📍 {g}
+              {g}
             </option>
           ))}
         </select>

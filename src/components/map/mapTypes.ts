@@ -63,20 +63,21 @@ export const getTileLayerConfig = (type: MapTileLayerType) => {
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         attribution: 'Imagery © Google',
       };
+    case 'dalelak-clean':
+      return {
+        // CARTO Voyager: vibrant, modern, colorful streets, parks, water, and terrain with zero ad clutter
+        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '© خريطة دليلك الميدانية / CARTO / OpenStreetMap',
+      };
     case 'google-streets':
+    default:
       return {
         url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         attribution: 'Map data © Google',
-      };
-    case 'dalelak-clean':
-    default:
-      return {
-        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        maxZoom: 19,
-        subdomains: 'abcd',
-        attribution: '© خريطة دليلك الميدانية / OpenStreetMap',
       };
   }
 };

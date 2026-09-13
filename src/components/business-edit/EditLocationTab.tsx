@@ -20,8 +20,12 @@ import {
   Star,
   Zap,
   Loader2,
+  Map as MapIcon,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { extractGooglePlaceData } from '../../utils/googlePlaceExtractor';
+import { InteractiveMap } from '../InteractiveMap';
 import {
   generateGoogleVerificationOtpWhatsAppMessage,
   getGoogleVerificationOtpWhatsAppUrl,
@@ -72,6 +76,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
   const [expandedMapWaPreview, setExpandedMapWaPreview] = useState<string | null>(null);
   const [isSyncingFromGoogle, setIsSyncingFromGoogle] = useState<boolean>(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [showInteractiveMap, setShowInteractiveMap] = useState<boolean>(false);
 
   const handleSyncFromGoogleUrl = async () => {
     const url = formData.googleMapsUrl?.trim();
@@ -108,17 +113,17 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
         const photoNotice = (data.photos && data.photos.length > 0) ? ` وسحب ${Math.min(data.photos.length, 5)} صور` : (data.photo ? ' وسحب صورة الغلاف' : '');
         const hoursNotice = data.workingHours ? ' وتحديث مواعيد وساعات العمل' : '';
         const catNotice = data.category ? ` وتصنيفها (${data.category})` : '';
-        const msg = `✅ تم تحديث بيانات المنشأة ومطابقة الإحداثيات${catNotice}${hoursNotice}${photoNotice} بنجاح من خرائط Google!`;
+        const msg = `تم تحديث بيانات المنشأة ومطابقة الإحداثيات${catNotice}${hoursNotice}${photoNotice} بنجاح من خرائط Google`;
         setSyncNotice(msg);
         if (onShowNotification) onShowNotification(msg);
         setTimeout(() => setSyncNotice(null), 6000);
       } else {
-        const msg = '⚠️ تعذر استخراج تفاصيل إضافية من الرابط.';
+        const msg = 'تعذر استخراج تفاصيل إضافية من الرابط';
         setSyncNotice(msg);
         setTimeout(() => setSyncNotice(null), 4000);
       }
     } catch {
-      const msg = '⚠️ فشل الاتصال بمحرك استخراج خرائط Google.';
+      const msg = 'فشل الاتصال بمحرك استخراج خرائط Google';
       setSyncNotice(msg);
       setTimeout(() => setSyncNotice(null), 4000);
     } finally {
@@ -157,7 +162,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
             className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs p-2.5 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             {copiedField === 'google_details' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-blue-400" />}
-            <span>{copiedField === 'google_details' ? 'تم نسخ البيانات كاملة!' : 'نسخ بيانات المنشأة لخرائط Google 📋'}</span>
+            <span>{copiedField === 'google_details' ? 'تم نسخ البيانات كاملة!' : 'نسخ بيانات المنشأة لخرائط Google'}</span>
           </button>
 
           <button
@@ -307,9 +312,40 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                     placeholder="https://maps.google.com/?q=lat,lng"
                   />
                 </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowInteractiveMap(!showInteractiveMap)}
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 transition-colors cursor-pointer"
+                  >
+                    <MapIcon className="w-3.5 h-3.5" />
+                    <span>{showInteractiveMap ? 'إخفاء الخريطة التفاعلية' : 'معاينة وضبط الموقع على الخريطة التفاعلية'}</span>
+                    {showInteractiveMap ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {showInteractiveMap && (
+                    <div className="mt-2.5 animate-fade-in">
+                      <InteractiveMap
+                        mode="picker"
+                        lat={formData.lat || 29.9753}
+                        lng={formData.lng || 31.1120}
+                        onLocationSelect={(newLat, newLng) => {
+                          setFormData({
+                            ...formData,
+                            lat: newLat,
+                            lng: newLng,
+                            repLocationUrl: `https://www.google.com/maps?q=${newLat},${newLng}`,
+                          });
+                        }}
+                        heightClass="h-[300px]"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <a
                     href={sanitizeExternalUrl(formData.repLocationUrl || (formData.lat && formData.lng ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '#'))}
@@ -318,15 +354,39 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
                     className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-transform active:scale-95"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>🗺️ فتح موقع المعاينة الميدانية للإدارة (غير موثق)</span>
+                    <span>فتح موقع المعاينة الميدانية للإدارة (غير موثق)</span>
                   </a>
                   <span className="font-mono text-[10px] text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-1 rounded-lg border border-[var(--border-color)]">
                     {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
                   </span>
                 </div>
                 <p className="text-[10px] text-[var(--text-muted)] font-medium leading-relaxed">
-                  📍 إحداثيات موقع المندوب الميدانية (GPS): تُفعّل زر الخريطة والتوجيه للنشاط في الدليل لتسهيل التحصيل الفوري، ولا تمنح النشاط حالة "موثق" ولا تقييمات حتى اعتماد الرابط الرسمي.
+                  إحداثيات موقع المندوب الميدانية (GPS): تُفعّل زر الخريطة والتوجيه للنشاط في الدليل لتسهيل التحصيل الفوري، ولا تمنح النشاط حالة "موثق" ولا تقييمات حتى اعتماد الرابط الرسمي.
                 </p>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowInteractiveMap(!showInteractiveMap)}
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 transition-colors cursor-pointer"
+                  >
+                    <MapIcon className="w-3.5 h-3.5" />
+                    <span>{showInteractiveMap ? 'إخفاء الخريطة التفاعلية' : 'معاينة الموقع الميداني على الخريطة التفاعلية'}</span>
+                    {showInteractiveMap ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {showInteractiveMap && (
+                    <div className="mt-2.5 animate-fade-in">
+                      <InteractiveMap
+                        mode="view"
+                        lat={formData.lat || 29.9753}
+                        lng={formData.lng || 31.1120}
+                        businesses={formData.lat && formData.lng ? [formData] : []}
+                        heightClass="h-[300px]"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

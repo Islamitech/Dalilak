@@ -29,7 +29,11 @@ import {
   Eye,
   Star,
   X,
+  CheckCircle2,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface PublicBusinessDirectoryProps {
   businesses: Business[];
@@ -94,7 +98,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [verificationFilter, setVerificationFilter] = useState<'all' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('needs_followup');
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('trending');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list' | 'map') || 'list');
 
   const isRep = currentUser?.role === 'rep';
@@ -154,6 +158,26 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       return !(isDocumented && isPaid && isApproved);
     }).length;
 
+    const isTrendingBiz = (b: Business) => {
+      // 1. أنشطة مضافة بدون تحصيل (معفاة، إدراج مجاني/شرفي، بدون رسوم)
+      const isFreeOrExempt = Boolean(
+        b.isFeeExempt ||
+        b.packageId === 'pkg_free_directory' ||
+        b.packageId === 'free_directory_listing' ||
+        (b.packagePrice === 0) ||
+        ((b.amountPaid === 0 || !b.amountPaid) && b.verificationStatus === 'verified') ||
+        b.notes?.includes('trending_free') ||
+        b.notes?.includes('نشاط رائج') ||
+        b.notes?.includes('مكان رائج')
+      );
+      // 2. أنشطة مسجلة بالباقات وفاتورة مدفوعة
+      const isPaid = b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250) || ((b.amountPaid || 0) > 0 && Boolean(b.invoiceNumber));
+      const isFeatured = Boolean(b.isFeatured || (b.packageId && b.packageId !== 'pkg_free' && b.packageId !== 'pkg_interested_lead'));
+      const isCompleteVerified = b.verificationStatus === 'verified' && Boolean(b.phone) && Boolean(b.googleMapsUrl || (b.lat && b.lng));
+      return isFreeOrExempt || isPaid || isFeatured || isCompleteVerified;
+    };
+    const trending = displayableBusinesses.filter(isTrendingBiz).length;
+
     return {
       totalRegistered,
       directoryApproved,
@@ -163,6 +187,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       fullyPaid,
       exempt,
       needsFollowup,
+      trending,
       total: totalRegistered,
     };
   }, [displayableBusinesses]);
@@ -179,7 +204,22 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         if (categoryFilter !== 'all' && !matchesCategoryFilter(b, categoryFilter)) {
           return false;
         }
-        if (verificationFilter === 'fully_paid') {
+        if (verificationFilter === 'trending') {
+          const isFreeOrExempt = Boolean(
+            b.isFeeExempt ||
+            b.packageId === 'pkg_free_directory' ||
+            b.packageId === 'free_directory_listing' ||
+            (b.packagePrice === 0) ||
+            ((b.amountPaid === 0 || !b.amountPaid) && b.verificationStatus === 'verified') ||
+            b.notes?.includes('trending_free') ||
+            b.notes?.includes('نشاط رائج') ||
+            b.notes?.includes('مكان رائج')
+          );
+          const isPaid = b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250) || ((b.amountPaid || 0) > 0 && Boolean(b.invoiceNumber));
+          const isFeatured = Boolean(b.isFeatured || (b.packageId && b.packageId !== 'pkg_free' && b.packageId !== 'pkg_interested_lead'));
+          const isCompleteVerified = b.verificationStatus === 'verified' && Boolean(b.phone) && Boolean(b.googleMapsUrl || (b.lat && b.lng));
+          if (!(isFreeOrExempt || isPaid || isFeatured || isCompleteVerified)) return false;
+        } else if (verificationFilter === 'fully_paid') {
           if (!b.isFeeExempt && b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
         } else if (verificationFilter === 'unpaid') {
           if (b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)) return false;
@@ -419,7 +459,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
               onChange={(e) => setGovFilter(e.target.value)}
               className="flex-1 sm:flex-initial bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-2xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
             >
-              <option value="all">📍 كل المحافظات</option>
+              <option value="all">كل المحافظات</option>
               {EGYPT_GOVERNORATES.map((gov) => (
                 <option key={gov} value={gov}>
                   {gov}
@@ -467,62 +507,93 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           </div>
         </div>
 
-        {/* Row 2: Status Quick Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
-          {[
-            { key: 'needs_followup', label: '🔔 يحتاج متابعة', count: homeStats.needsFollowup },
-            { key: 'all', label: '⭐ جميع الأنشطة', count: homeStats.total },
-            { key: 'verified', label: '✅ موثقة ومعتمدة', count: homeStats.directoryApproved },
-            ...(homeStats.pendingDirectory > 0 ? [{ key: 'in_progress', label: '⏳ قيد المراجعة', count: homeStats.pendingDirectory }] : []),
-            { key: 'fully_paid', label: '💳 مسددة بالكامل', count: homeStats.fullyPaid },
-            { key: 'unpaid', label: '⚠️ بانتظار السداد', count: Math.max(0, homeStats.total - homeStats.fullyPaid) },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setVerificationFilter(tab.key as any)}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 border ${
-                verificationFilter === tab.key
-                  ? (tab.key === 'needs_followup' ? 'bg-rose-500 text-slate-950 border-rose-600 shadow-xs font-black' : 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black')
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40'
-              }`}
-            >
-              <span>{tab.label}</span>
-              {isLoadingData && businesses.length === 0 ? (
-                <span className="w-3.5 h-3 bg-slate-300 animate-pulse rounded-full" />
-              ) : (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
-                  verificationFilter === tab.key ? 'bg-slate-950 text-amber-400' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
+        {/* Row 2: Status Quick Filter Tabs (Responsive & Compact for Mobile PWA) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] sm:text-xs font-bold">
+          {(isRep || isManagerial
+            ? [
+                { key: 'trending', label: 'الأنشطة الرائجة', count: homeStats.trending, Icon: Sparkles },
+                { key: 'all', label: 'الكل', count: homeStats.total, Icon: Store },
+                { key: 'verified', label: 'المعتمدة', count: homeStats.directoryApproved, Icon: CheckCircle2 },
+                ...(homeStats.pendingDirectory > 0 ? [{ key: 'in_progress', label: 'قيد التدقيق', count: homeStats.pendingDirectory, Icon: Clock }] : []),
+                { key: 'needs_followup', label: 'متابعات مطلوبة', count: homeStats.needsFollowup, Icon: AlertCircle },
+                { key: 'fully_paid', label: 'مسددة', count: homeStats.fullyPaid, Icon: CheckCircle2 },
+                { key: 'unpaid', label: 'بانتظار السداد', count: Math.max(0, homeStats.total - homeStats.fullyPaid), Icon: Clock },
+              ]
+            : [
+                { key: 'trending', label: 'الأنشطة الرائجة', count: homeStats.trending, Icon: Sparkles },
+                { key: 'all', label: 'جميع الأنشطة', count: homeStats.total, Icon: Store },
+                { key: 'verified', label: 'موثقة ومعتمدة', count: homeStats.directoryApproved, Icon: CheckCircle2 },
+                ...(homeStats.pendingDirectory > 0 ? [{ key: 'in_progress', label: 'قيد المراجعة', count: homeStats.pendingDirectory, Icon: Clock }] : []),
+              ]
+          ).map((tab) => {
+            const Icon = tab.Icon;
+            const isSelected = verificationFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setVerificationFilter(tab.key as any);
+                }}
+                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 border ${
+                  isSelected
+                    ? (tab.key === 'needs_followup'
+                        ? 'bg-rose-500 text-slate-950 border-rose-600 shadow-xs font-black'
+                        : 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black')
+                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40 hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950' : 'text-amber-500'}`} />
+                <span>{tab.label}</span>
+                {isLoadingData && businesses.length === 0 ? (
+                  <span className="w-3.5 h-3 bg-slate-300 animate-pulse rounded-full" />
+                ) : (
+                  <span
+                    className={`text-[9.5px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-mono font-black ${
+                      isSelected
+                        ? 'bg-slate-950 text-amber-400'
+                        : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)]'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Row 3: Category Quick Chips Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-bold border-t border-[var(--border-color)]/50 pt-2.5">
+        {/* Row 3: Category Quick Chips Bar (Mobile Compact Scroll) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[10.5px] sm:text-[11px] font-bold border-t border-[var(--border-color)]/50 pt-2">
           <button
-            onClick={() => setCategoryFilter('all')}
-            className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            type="button"
+            onClick={() => {
+              triggerHaptic('selection');
+              setCategoryFilter('all');
+            }}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               categoryFilter === 'all'
-                ? 'bg-amber-500/20 text-amber-700 font-black border border-amber-500/40'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
             }`}
           >
-            ⭐ جميع التصنيفات
+            كل الأقسام
           </button>
           {CATEGORY_GROUPS.map((grp) => (
             <button
               key={grp.group}
-              onClick={() => setCategoryFilter(grp.group === categoryFilter ? 'all' : grp.group)}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                setCategoryFilter(grp.group === categoryFilter ? 'all' : grp.group);
+              }}
+              className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
                 categoryFilter === grp.group
-                  ? 'bg-amber-500/20 text-amber-700 font-black border border-amber-500/40 shadow-2xs'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
             >
-              <span>{grp.icon}</span>
               <span>{grp.group}</span>
             </button>
           ))}

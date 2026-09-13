@@ -2,79 +2,193 @@ import { CATEGORY_GROUPS } from '../data/mockData';
 import { normalizeArabicText } from './arabicSearch';
 
 /**
- * 🏷️ Keywords mapping for each main category group in Dalelak
+ * 🏷️ Canonical Category Aliases mapping common button labels/shorthand to exact CATEGORY_GROUPS
  */
-const GROUP_KEYWORDS: Record<string, string[]> = {
+export const CATEGORY_ALIASES: Record<string, string> = {
+  'الكل': 'all',
+  'مطاعم': 'المطاعم والأغذية والمشروبات',
+  'مطاعم ومأكولات': 'المطاعم والأغذية والمشروبات',
+  'مطاعم وكافيهات': 'المطاعم والأغذية والمشروبات',
+  'أغذية ومشروبات': 'المطاعم والأغذية والمشروبات',
+  'سوبرماركت': 'المطاعم والأغذية والمشروبات',
+  'سوبر ماركت': 'المطاعم والأغذية والمشروبات',
+  'بقالة': 'المطاعم والأغذية والمشروبات',
+  'مقهى': 'المطاعم والأغذية والمشروبات',
+  'كافيه': 'المطاعم والأغذية والمشروبات',
+
+  'طبي وصيدلي': 'العيادات والرعاية الصحية والطبية',
+  'رعاية صحية': 'العيادات والرعاية الصحية والطبية',
+  'أطباء وعيادات': 'العيادات والرعاية الصحية والطبية',
+  'صيدليات': 'العيادات والرعاية الصحية والطبية',
+  'صيدلية': 'العيادات والرعاية الصحية والطبية',
+  'عيادة طبية': 'العيادات والرعاية الصحية والطبية',
+  'مركز طبي': 'العيادات والرعاية الصحية والطبية',
+
+  'سيارات وصيانة': 'السيارات والمركبات والصيانة',
+  'سيارات': 'السيارات والمركبات والصيانة',
+  'صيانة سيارات': 'السيارات والمركبات والصيانة',
+  'تصليح سيارات': 'السيارات والمركبات والصيانة',
+  'معرض سيارات': 'السيارات والمركبات والصيانة',
+  'معرض سيارات / صيانة': 'السيارات والمركبات والصيانة',
+  'غسيل سيارات': 'السيارات والمركبات والصيانة',
+
+  'تجميل وعناية': 'التجميل والعناية الشخصية واللياقة',
+  'حلاقة وكوافير': 'التجميل والعناية الشخصية واللياقة',
+  'صالون حلاقة': 'التجميل والعناية الشخصية واللياقة',
+  'صالون حلاقة رجالي': 'التجميل والعناية الشخصية واللياقة',
+  'صالون تجميل': 'التجميل والعناية الشخصية واللياقة',
+  'حلاقة': 'التجميل والعناية الشخصية واللياقة',
+  'كوافير': 'التجميل والعناية الشخصية واللياقة',
+  'بيوتي سنتر': 'التجميل والعناية الشخصية واللياقة',
+  'جيم ولياقة': 'التجميل والعناية الشخصية واللياقة',
+  'صالة رياضة': 'التجميل والعناية الشخصية واللياقة',
+  'غرفة لياقة': 'التجميل والعناية الشخصية واللياقة',
+  'عناية بالشعر': 'التجميل والعناية الشخصية واللياقة',
+
+  'ملابس وأزياء': 'الملابس والأزياء والإكسسوارات',
+  'متجر ملابس': 'الملابس والأزياء والإكسسوارات',
+  'محل ملابس': 'الملابس والأزياء والإكسسوارات',
+  'متجر ملابس حريمي': 'الملابس والأزياء والإكسسوارات',
+  'أزياء وموضة': 'الملابس والأزياء والإكسسوارات',
+  'أحذية وجلود': 'الملابس والأزياء والإكسسوارات',
+
+  'إلكترونيات وهواتف': 'الهواتف والإلكترونيات والكمبيوتر',
+  'هواتف وموبايل': 'الهواتف والإلكترونيات والكمبيوتر',
+  'موبايل وهواتف': 'الهواتف والإلكترونيات والكمبيوتر',
+  'متجر هواتف جوالة': 'الهواتف والإلكترونيات والكمبيوتر',
+  'صيانة موبايل': 'الهواتف والإلكترونيات والكمبيوتر',
+  'كمبيوتر ولابتوب': 'الهواتف والإلكترونيات والكمبيوتر',
+
+  'أثاث وديكور': 'الأثاث والديكور والمنزل',
+  'متجر أثاث': 'الأثاث والديكور والمنزل',
+  'أدوات منزلية': 'الأثاث والديكور والمنزل',
+
+  'خدمات ومكاتب': 'الشركات والخدمات والمكاتب المهنية',
+  'شركات ومقاولات': 'الشركات والخدمات والمكاتب المهنية',
+  'خدمات مهنية': 'الشركات والخدمات والمكاتب المهنية',
+  'مكتب حكومي': 'الشركات والخدمات والمكاتب المهنية',
+
+  'مكتبات وطباعة': 'المكتبات والأدوات المدرسية والطباعة',
+  'مكتبة': 'المكتبات والأدوات المدرسية والطباعة',
+  'متجر كتب': 'المكتبات والأدوات المدرسية والطباعة',
+
+  'تعليم وتدريب': 'التعليم والتدريب وتنمية المهارات',
+  'مدارس وحضانات': 'التعليم والتدريب وتنمية المهارات',
+  'رياض أطفال': 'التعليم والتدريب وتنمية المهارات',
+  'مدرسة': 'التعليم والتدريب وتنمية المهارات',
+
+  'حرف وصيانة فنية': 'الحرف والورش والصيانة الفنية',
+  'خدمات منزلية': 'الحرف والورش والصيانة الفنية',
+
+  'سياحة وفنادق': 'السياحة والفنادق والمناسبات',
+  'فنادق ومناسبات': 'السياحة والفنادق والمناسبات',
+  'فندق': 'السياحة والفنادق والمناسبات',
+  'قاعة زفاف': 'السياحة والفنادق والمناسبات',
+
+  'أنشطة عامة': 'أنشطة وخدمات عامة أخرى',
+};
+
+/**
+ * Specific core taxonomy keywords strictly for matching CATEGORY and SERVICES (never notes or address)
+ */
+export const GROUP_KEYWORDS: Record<string, string[]> = {
   'المطاعم والأغذية والمشروبات': [
-    'مطعم', 'اكل', 'ماكولات', 'مشويات', 'شاورما', 'كافيه', 'مقهى', 'كوفي',
-    'مخبز', 'حلواني', 'حلويات', 'معجنات', 'سوبر ماركت', 'ماركت', 'هايبر',
-    'بقالة', 'عصائر', 'ايس كريم', 'جيلاتي', 'جزارة', 'لحوم', 'دواجن', 'فراخ',
-    'اسماك', 'سمك', 'فسخاني', 'عطارة', 'بهارات', 'توابل', 'خضار', 'فواكه',
-    'محمص', 'مكسرات', 'تسالي', 'بن', 'قهوة', 'فول', 'طعمية', 'كشري', 'بيتزا',
-    'برجر', 'فطير', 'restaurant', 'cafe', 'bakery', 'supermarket', 'market', 'grocery', 'food'
+    'مطعم', 'اكل', 'ماكولات', 'مشويات', 'شاورما', 'كافيه', 'مقهى', 'كوفي', 'قهوة',
+    'مخبز', 'حلواني', 'حلويات', 'معجنات', 'سوبر ماركت', 'سوبرماركت', 'ماركت', 'هايبر', 'بقالة',
+    'عصائر', 'عصير', 'ايس كريم', 'جيلاتي', 'جزارة', 'لحوم', 'لحمة', 'دواجن', 'فراخ',
+    'اسماك', 'سمك', 'فسخاني', 'عطارة', 'بهارات', 'توابل', 'خضار', 'فواكه', 'فاكهة',
+    'محمص', 'مكسرات', 'تسالي', 'بن', 'فول', 'طعمية', 'كشري', 'بيتزا', 'برجر', 'فطير'
   ],
   'العيادات والرعاية الصحية والطبية': [
-    'عيادة', 'طبيب', 'دكتور', 'مركز طبي', 'صحي', 'اسنان', 'عيون', 'بصريات',
-    'نظارات', 'جلدية', 'جراحة تجميل', 'عيادة تجميل', 'تجميل ليزر', 'ليزر', 'اطفال', 'ولادة', 'نساء', 'باطنة',
-    'تغذية', 'عظام', 'مفاصل', 'علاج طبيعي', 'صيدلية', 'دواء', 'ادوية', 'معمل',
-    'تحاليل', 'اشعة', 'مستشفى', 'مجمع طبي', 'بيطري', 'حيوانات', 'clinic', 'hospital', 'pharmacy', 'doctor'
+    'عيادة', 'طبيب', 'دكتور', 'مركز طبي', 'صحي', 'صحة', 'اسنان', 'عيون', 'بصريات',
+    'نظارات', 'جلدية', 'اطفال', 'ولادة', 'نساء', 'باطنة', 'قلب', 'صدر', 'انف واذن',
+    'تغذية', 'عظام', 'مفاصل', 'علاج طبيعي', 'صيدلية', 'صيدليات', 'دواء', 'ادوية',
+    'معمل', 'تحاليل', 'اشعة', 'مستشفى', 'مستشفيات', 'مجمع طبي', 'بيطري'
   ],
   'الملابس والأزياء والإكسسوارات': [
-    'ملابس', 'ازياء', 'موضة', 'متجر ملابس', 'محل ملابس', 'رجالي', 'بدل',
-    'حريمي', 'عبايات', 'اطفال', 'مواليد', 'احذية', 'جزم', 'شنط', 'حقائب',
-    'جلود', 'مجوهرات', 'ذهب', 'فضة', 'صاغة', 'ساعات', 'نظارات شمسية',
-    'مستحضرات تجميل', 'ميكب', 'مكياج', 'عطور', 'برفيوم', 'بخور', 'لانجري',
-    'طرح', 'ايشاربات', 'clothing', 'clothes', 'fashion', 'shoes', 'jewelry', 'perfume'
+    'ملابس', 'ازياء', 'موضة', 'متجر ملابس', 'محل ملابس', 'رجالي', 'بدل', 'قميص',
+    'بنطلون', 'حريمي', 'فساتين', 'فستان', 'عبايات', 'عباية', 'اطفال', 'مواليد',
+    'احذية', 'حذاء', 'جزم', 'كوتشي', 'شنط', 'شنطة', 'حقائب', 'جلود', 'مجوهرات',
+    'ذهب', 'فضة', 'ساعات', 'عطور', 'برفيوم'
   ],
   'الهواتف والإلكترونيات والكمبيوتر': [
-    'هاتف', 'هواتف', 'موبايل', 'جوال', 'صيانة موبايل', 'اكسسوارات', 'كمبيوتر',
-    'لابتوب', 'حاسب', 'شبكات', 'طابعات', 'اجهزة كهربائية', 'منزلية', 'دش',
-    'ستالايت', 'كاميرات مراقبة', 'امن', 'شاشات', 'تلفزيون', 'الكترونيات',
-    'phone', 'mobile', 'computer', 'laptop', 'electronics'
+    'هاتف', 'هواتف', 'موبايل', 'موبايلات', 'جوال', 'تليفون', 'صيانة موبايل', 'اكسسوارات موبايل',
+    'كمبيوتر', 'حاسوب', 'لابتوب', 'شبكات', 'طابعات', 'اجهزة كهربائية', 'كاميرات مراقبة', 'شاشات'
   ],
   'السيارات والمركبات والصيانة': [
-    'سيارات', 'سيارة', 'معرض سيارات', 'ميكانيكا', 'ميكانيكي', 'صيانة سيارات',
-    'كهرباء سيارات', 'تكييف سيارات', 'مغسلة سيارات', 'ديتيلينج', 'تلميع',
-    'كاوتش', 'اطارات', 'بطاريات', 'ضبط زوايا', 'قطع غيار', 'زيوت', 'شحوم',
-    'موتوسيكلات', 'سكوتر', 'سمكري', 'دوكو', 'عفشة', 'شكمان', 'car', 'auto', 'mechanic', 'motors'
+    'سيارات', 'سيارة', 'عربيات', 'عربية', 'معرض سيارات', 'ميكانيكا', 'ميكانيكي',
+    'صيانة سيارات', 'تصليح سيارات', 'كهرباء سيارات', 'تكييف سيارات', 'مغسلة سيارات',
+    'كار ووش', 'ديتيلينج', 'تلميع سيارات', 'كاوتش', 'اطارات', 'بطاريات', 'قطع غيار سيارات', 'تغيير زيت', 'موتوسيكلات'
   ],
   'التجميل والعناية الشخصية واللياقة': [
-    'حلاقة', 'صالون', 'كوافير', 'بيوتي سنتر', 'عناية بالبشرة', 'سبا', 'جاكوزي',
-    'حمام مغربي', 'جيم', 'صالة لياقة', 'فتنس', 'fitness', 'رياضة', 'ملاعب',
-    'اكاديمية رياضية', 'مساج', 'تخسيس', 'salon', 'barber', 'spa', 'gym'
+    'حلاقة', 'حلاق', 'صالون', 'صالونات', 'كوافير', 'بيوتي سنتر', 'عناية بالبشرة',
+    'عناية بالشعر', 'سبا', 'جاكوزي', 'جيم', 'صالة لياقة', 'فتنس', 'رياضة', 'ملاعب', 'تخسيس'
   ],
   'الأثاث والديكور والمنزل': [
-    'اثاث', 'موبيليا', 'مفروشات', 'ستائر', 'سجاد', 'ادوات منزلية', 'مطبخ',
-    'مطابخ', 'دهانات', 'بويات', 'ديكور', 'ورق حائط', 'اضاءة', 'نجف',
-    'ادوات صحية', 'سيراميك', 'بورسلين', 'رخام', 'دريسنج روم', 'furniture', 'decor', 'kitchen'
+    'اثاث', 'موبيليا', 'غرف نوم', 'سفرة', 'انتريه', 'مفروشات', 'ستائر', 'سجاد',
+    'ادوات منزلية', 'مطبخ', 'مطابخ', 'دهانات', 'بويات', 'ديكور', 'ورق حائط', 'اضاءة', 'نجف', 'سيراميك'
   ],
   'الشركات والخدمات والمكاتب المهنية': [
-    'شركة', 'تجارة', 'محاماة', 'استشارات قانونية', 'محاسبة', 'ضرائب',
-    'مقاولات', 'تشطيبات', 'بناء', 'تسويق', 'دعاية', 'اعلان', 'ترجمة',
-    'فيزا', 'عقارات', 'تسويق عقاري', 'شحن', 'نقل عفش', 'ستوديو', 'تصوير', 'فوتوجرافي'
+    'شركة', 'شركات', 'مكتب', 'محاماة', 'محامي', 'محاسبة', 'ضرائب', 'مقاولات',
+    'تشطيبات', 'تسويق', 'دعاية', 'اعلان', 'ترجمة', 'عقارات', 'سمسار', 'شحن', 'ستوديو تصوير'
   ],
   'المكتبات والأدوات المدرسية والطباعة': [
-    'مكتبة', 'ادوات مدرسية', 'قرطاسية', 'تصوير مستندات', 'طباعة', 'كتب',
-    'روايات', 'ادوات هندسية', 'رسم', 'العاب اطفال', 'هدايا', 'تغليف',
-    'مستلزمات مناسبات', 'خدمات طالب', 'ملازم', 'bookstore', 'stationery', 'printing'
+    'مكتبة', 'مكتبات', 'ادوات مدرسية', 'قرطاسية', 'تصوير مستندات', 'طباعة', 'كتب', 'روايات'
   ],
   'التعليم والتدريب وتنمية المهارات': [
-    'حضانة', 'روضة', 'مدرسة', 'تعليم', 'دروس', 'سنتر تعليمي', 'كورسات',
-    'لغات', 'برمجة', 'تدريب', 'اكاديمية', 'school', 'academy', 'training', 'education'
+    'حضانة', 'روضة', 'مدرسة', 'مدارس', 'تعليم', 'دروس', 'سنتر تعليمي', 'كورسات', 'لغات', 'برمجة', 'تدريب'
   ],
   'الحرف والورش والصيانة الفنية': [
-    'حدادة', 'كريتال', 'نجارة', 'خشب', 'الوميتال', 'زجاج', 'صيانة تكييف',
-    'تبريد', 'سباك', 'كهربائي', 'مغسلة ملابس', 'دراي كلين', 'مكوجي', 'workshop', 'laundry'
+    'حدادة', 'نجارة', 'الوميتال', 'زجاج', 'صيانة تكييف', 'سباك', 'سباكة', 'كهربائي', 'كهرباء منازل', 'مغسلة ملابس', 'دراي كلين', 'مكوجي'
   ],
   'السياحة والفنادق والمناسبات': [
-    'فندق', 'شقق فندقية', 'منتجع', 'قاعة مناسبات', 'افراح', 'حفلات',
-    'مؤتمرات', 'حجز رحلات', 'سياحة', 'hotel', 'resort', 'tourism'
+    'فندق', 'فنادق', 'شقق فندقية', 'منتجع', 'قاعة مناسبات', 'قاعة افراح', 'سياحة', 'طيران'
   ],
   'أنشطة وخدمات عامة أخرى': [
-    'مشتل', 'زهور', 'نباتات', 'محطة وقود', 'بنزينة', 'غاز', 'خيرية',
-    'مؤسسة اهلية', 'خدمات عامة'
+    'مشتل', 'زهور', 'محطة وقود', 'بنزينة', 'غاز', 'خيرية', 'خدمات عامة'
   ],
 };
+
+/**
+ * Resolves any raw filter input (alias, subcategory, or group name) to its canonical group
+ */
+export function resolveCanonicalCategoryGroup(categoryInput: string): string {
+  const trimmed = (categoryInput || '').trim();
+  if (!trimmed || trimmed === 'all') return 'all';
+
+  // 1. Direct match in CATEGORY_ALIASES
+  if (CATEGORY_ALIASES[trimmed]) {
+    return CATEGORY_ALIASES[trimmed];
+  }
+
+  // 2. Exact match in CATEGORY_GROUPS
+  const exactGroup = CATEGORY_GROUPS.find((g) => g.group === trimmed);
+  if (exactGroup) return exactGroup.group;
+
+  // 3. Subcategory item match
+  for (const groupObj of CATEGORY_GROUPS) {
+    if (groupObj.items.some((item) => item === trimmed || item.includes(trimmed) || trimmed.includes(item))) {
+      return groupObj.group;
+    }
+  }
+
+  // 4. Normalized alias match
+  const normInput = normalizeArabicText(trimmed);
+  for (const [alias, group] of Object.entries(CATEGORY_ALIASES)) {
+    if (normalizeArabicText(alias) === normInput) {
+      return group;
+    }
+  }
+
+  // 5. Keyword search in groups
+  for (const [groupName, keywords] of Object.entries(GROUP_KEYWORDS)) {
+    if (keywords.some((kw) => normInput.includes(kw) || kw.includes(normInput))) {
+      return groupName;
+    }
+  }
+
+  return trimmed;
+}
 
 /**
  * Broad umbrella categories that naturally encompass multiple specific subcategories.
@@ -82,22 +196,35 @@ const GROUP_KEYWORDS: Record<string, string[]> = {
  */
 const UMBRELLA_CATEGORIES: Record<string, string[]> = {
   // Umbrella: "متجر ملابس" encompasses men, women, and kids clothes
-  'متجر ملابس': ['محل ملابس رجالي وبدل', 'محل ملابس حريمي وعبايات', 'محل ملابس أطفال ومواليد'],
-  'محل ملابس': ['محل ملابس رجالي وبدل', 'محل ملابس حريمي وعبايات', 'محل ملابس أطفال ومواليد'],
+  'متجر ملابس': ['محل ملابس رجالي وبدل', 'محل ملابس حريمي وعبايات', 'محل ملابس أطفال ومواليد', 'محل أحذية وشنط وجلود'],
+  'محل ملابس': ['محل ملابس رجالي وبدل', 'محل ملابس حريمي وعبايات', 'محل ملابس أطفال ومواليد', 'محل أحذية وشنط وجلود'],
   'ملابس': ['محل ملابس رجالي وبدل', 'محل ملابس حريمي وعبايات', 'محل ملابس أطفال ومواليد'],
   'clothing store': ['محل ملابس رجالي وبدل', 'محل ملابس حريمي وعبايات', 'محل ملابس أطفال ومواليد'],
   'مركز تسوق': ['محل ملابس رجالي وبدل', 'محل ملابس حريمي وعبايات', 'محل ملابس أطفال ومواليد', 'محل أحذية وشنط وجلود', 'سوبر ماركت / هايبر وبقالة'],
   'سوبر ماركت': ['سوبر ماركت / هايبر وبقالة', 'خضروات وفواكه طازجة', 'عطارة وتوابل / أعشاب طبيعية', 'جزارة / لحوم ودواجن وأسماك'],
+  'سوبرماركت': ['سوبر ماركت / هايبر وبقالة', 'خضروات وفواكه طازجة', 'عطارة وتوابل / أعشاب طبيعية', 'جزارة / لحوم ودواجن وأسماك'],
   'هايبر ماركت': ['سوبر ماركت / هايبر وبقالة', 'خضروات وفواكه طازجة', 'أدوات منزلية ومطبخ', 'أجهزة كهربائية ومنزلية'],
   'مطعم': ['مطعم / مأكولات ومشويات'],
+  'كافيه': ['كافيه / مقهى وكوفي شوب'],
+  'مقهى': ['كافيه / مقهى وكوفي شوب'],
   'عيادة': ['عيادة طبية / مركز تخصصي'],
+  'صالون حلاقة': ['صالون حلاقة رجالي وعناية'],
+  'صالون تجميل': ['بيوتي سنتر وكوافير حريمي'],
+  'فندق': ['فندق وشقق فندقية ومنتجعات'],
+  'رياض أطفال': ['حضانة أطفال ورعاية نهارية'],
+  'متجر أثاث': ['معرض أثاث وموبيليات منزلية'],
+  'صالة رياضة': ['جيم وصالة لياقة بدنية (Fitness)'],
+  'متجر هواتف جوالة': ['محل هواتف وصيانة موبايل وإكسسوارات'],
+  'صيانة سيارات': ['مركز صيانة سيارات وميكانيكا'],
+  'ميكانيكا': ['مركز صيانة سيارات وميكانيكا'],
 };
 
 /**
- * 🔍 Infer the parent Category Group for any given category string or description
+ * 🔍 Infer the parent Category Group for any given category string
+ * Note: Accepts optional services array or string (for backwards compatibility), strictly isolating from address landmarks.
  */
-export function getCategoryGroupFor(category?: string | null, description?: string | null): string {
-  if (!category && !description) return 'أنشطة وخدمات عامة أخرى';
+export function getCategoryGroupFor(category?: string | null, servicesOrDesc?: string[] | string | null): string {
+  if (!category && (!servicesOrDesc || (Array.isArray(servicesOrDesc) && servicesOrDesc.length === 0))) return 'أنشطة وخدمات عامة أخرى';
 
   const cleanCat = (category || '').trim();
 
@@ -118,12 +245,14 @@ export function getCategoryGroupFor(category?: string | null, description?: stri
     }
   }
 
-  // 3. Keyword match in description
-  const normDesc = normalizeArabicText(description);
-  if (normDesc) {
-    for (const [groupName, keywords] of Object.entries(GROUP_KEYWORDS)) {
-      if (keywords.some((kw) => normDesc.includes(kw))) {
-        return groupName;
+  // 3. Keyword match in dedicated services tags (if array passed)
+  if (Array.isArray(servicesOrDesc) && servicesOrDesc.length > 0) {
+    const normServices = normalizeArabicText(servicesOrDesc.join(' '));
+    if (normServices) {
+      for (const [groupName, keywords] of Object.entries(GROUP_KEYWORDS)) {
+        if (keywords.some((kw) => normServices.includes(kw))) {
+          return groupName;
+        }
       }
     }
   }
@@ -142,12 +271,13 @@ export interface BusinessOrLeadEntity {
 }
 
 /**
- * ⚡ Multi-Layer Category Matching Engine
+ * ⚡ Multi-Layer Precise Category Matching Engine
  * Matches a business or lead against a category filter:
- * 1. Exact string match
+ * 1. Exact string or normalized substring match on category field
  * 2. Group-level match (when filter is a group name)
  * 3. Umbrella category match (e.g. "متجر ملابس" matches "ملابس رجالي")
- * 4. Semantic match in description, notes, services, or business name
+ * 4. Dedicated services tags match
+ * (Addresses, landmarks, descriptions, and notes are strictly excluded to avoid false positives)
  */
 export function matchesCategoryFilter(
   entity: BusinessOrLeadEntity,
@@ -160,7 +290,7 @@ export function matchesCategoryFilter(
   const normFilter = normalizeArabicText(categoryFilter);
 
   // 1. Direct exact or substring match in category field
-  if (rawCat === categoryFilter || (normCat && normFilter && normCat.includes(normFilter))) {
+  if (rawCat === categoryFilter || (normCat && normFilter && (normCat.includes(normFilter) || normFilter.includes(normCat)))) {
     return true;
   }
 
@@ -180,20 +310,20 @@ export function matchesCategoryFilter(
       return false;
     }
 
-    // 2c. Inferred group check
-    const inferredGroup = getCategoryGroupFor(rawCat, entity.description || entity.notes);
+    // 2c. Inferred group check on category and services
+    const inferredGroup = getCategoryGroupFor(rawCat, entity.services);
     if (inferredGroup === categoryFilter) {
       return true;
     }
-    // 🛡️ Strict Negative Boundary: If inferred group is a specific other taxonomy group, reject!
+    // Strict Negative Boundary: If inferred group is a specific other taxonomy group, reject!
     if (inferredGroup && inferredGroup !== 'أنشطة وخدمات عامة أخرى' && inferredGroup !== categoryFilter) {
       return false;
     }
 
-    // 2d. Check if category or services text has group keywords (NEVER in nameAr)
+    // 2d. Check keywords in category or dedicated services
     const keywords = GROUP_KEYWORDS[categoryFilter] || [];
     const categoryAndServicesText = normalizeArabicText(
-      `${rawCat} ${(entity.services || []).join(' ')} ${entity.description || ''} ${entity.notes || ''}`
+      `${rawCat} ${(entity.services || []).join(' ')}`
     );
 
     if (keywords.some((kw) => categoryAndServicesText.includes(kw))) {
@@ -214,21 +344,10 @@ export function matchesCategoryFilter(
     }
   }
 
-  // 3b. Semantic description check:
-  // If the entity's description or notes explicitly mentions the subcategory's core tokens
-  // (e.g. if filter is "محل ملابس رجالي وبدل", check if text contains "رجالي" or "بدل")
-  const filterTokens = normFilter
-    .split(/\s+/)
-    .filter((tok) => tok.length >= 3 && !['محل', 'متجر', 'مركز', 'خدمات', 'بيع', 'شراء'].includes(tok));
-
-  if (filterTokens.length > 0) {
-    const combinedEntityText = normalizeArabicText(
-      `${rawCat} ${entity.nameAr || ''} ${entity.businessName || ''} ${entity.description || ''} ${entity.notes || ''}`
-    );
-
-    // If all significant tokens or at least 2 match
-    const matchingTokensCount = filterTokens.filter((tok) => combinedEntityText.includes(tok)).length;
-    if (matchingTokensCount >= Math.min(filterTokens.length, 2)) {
+  // 3b. Dedicated services tags check
+  if (entity.services && entity.services.length > 0) {
+    const normServices = normalizeArabicText(entity.services.join(' '));
+    if (normServices.includes(normFilter)) {
       return true;
     }
   }
