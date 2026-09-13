@@ -75,18 +75,23 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, []);
 
-  const desktopTabs = [
-    { id: 'home', label: 'الرئيسية', icon: Home, title: 'عرض الأنشطة المسجلة والبحث الميداني' },
-    { id: 'map', label: 'الخريطة', icon: Map, title: 'استكشاف الأنشطة على الخريطة التفاعلية' },
-    { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true, title: 'إضافة نشاط تجاري جديد وتوثيقه' },
-    { id: 'invoices', label: 'المراجعات', icon: UserCheck, title: 'كشف الحساب والمراجعات المالية والتحصيلات' },
-    {
-      id: isAdmin ? 'admin' : 'profile',
-      label: isAdmin ? 'لوحة الإدارة' : 'ملفي الشخصي',
-      icon: isAdmin ? Shield : ShieldCheck,
-      title: isAdmin ? 'لوحة تحكم إدارة النظام' : 'الملف الشخصي وحساب العمولات',
-    },
-  ];
+  const isManagerial = ['admin', 'supervisor', 'accountant'].includes(user?.role || '');
+
+  const desktopTabs = isManagerial
+    ? [
+        { id: 'admin', label: 'لوحة العمليات', icon: Shield, title: 'لوحة العمليات والتحكم المركزي' },
+        { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true, title: 'إضافة نشاط تجاري جديد وتوثيقه' },
+        { id: 'home', label: 'استعراض الدليل', icon: Home, title: 'معاينة الدليل العام للأنشطة' },
+      ]
+    : user?.role === 'rep'
+    ? [
+        { id: 'home', label: 'بوابتي الميدانية', icon: Home, title: 'بوابة المندوب الميدانية الشاملة' },
+        { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true, title: 'إضافة نشاط تجاري جديد وتوثيقه' },
+        { id: 'profile', label: 'الهوية والملف', icon: ShieldCheck, title: 'بطاقة الهوية والملف الشخصي' },
+      ]
+    : [
+        { id: 'home', label: 'الرئيسية والدليل', icon: Home, title: 'استعراض الدليل العام' },
+      ];
 
   return (
     <header className="sticky top-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-b border-[var(--border-color)] text-[var(--text-primary)] shadow-md transition-colors duration-300">

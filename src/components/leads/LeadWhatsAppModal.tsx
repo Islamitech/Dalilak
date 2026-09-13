@@ -1,198 +1,163 @@
 import React, { useState } from 'react';
+import { MessageSquare, X, Copy, Check, Send } from 'lucide-react';
 import { InterestedLead } from '../../types';
-import { BaseModal, Button } from '../ui';
-import { useWhatsAppAction } from '../../hooks/useWhatsAppAction';
-import {
-  MessageSquare,
-  Sparkles,
-  Send,
-  Calendar,
-  Gift,
-  HelpCircle,
-} from 'lucide-react';
-import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsapp';
 
 interface LeadWhatsAppModalProps {
   lead: InterestedLead | null;
   onClose: () => void;
-  onUpdateLead: (lead: InterestedLead) => void;
+  onUpdateLead?: (lead: InterestedLead) => void;
 }
 
-export type WhatsAppMsgType = 'intro' | 'followup' | 'offer' | 'permission';
-
-export const LeadWhatsAppModal: React.FC<LeadWhatsAppModalProps> = ({
-  lead,
-  onClose,
-  onUpdateLead,
-}) => {
-  const [msgType, setMsgType] = useState<WhatsAppMsgType>('intro');
-  const { send } = useWhatsAppAction();
+export const LeadWhatsAppModal: React.FC<LeadWhatsAppModalProps> = ({ lead, onClose, onUpdateLead }) => {
+  const [pitchType, setPitchType] = useState<'intro' | 'proposal' | 'trending'>('intro');
+  const [copied, setCopied] = useState(false);
 
   if (!lead) return null;
 
-  const bizTitle = lead.businessName
-    ? `مكانكم الموقر "${lead.businessName}"`
-    : 'منشأتكم الكريمة';
-  const clientName = lead.clientName || 'عزيزنا العميل';
+  const getMessageText = () => {
+    const biz = lead.businessName || 'نشاطكم التجاري';
+    const client = lead.clientName || 'عزيزي العميل';
+    const gov = lead.governorate ? `بمحافظة ${lead.governorate}` : 'بمصر';
 
-  const generateMessage = (type: WhatsAppMsgType) => {
-    if (type === 'permission') {
-      return (
-        `السلام عليكم ورحمة الله،\n` +
-        `أهلاً بحضرتك أستاذ ${clientName}، مع حضرتك فريق عمل منصة دليلك الشاملة لرقمنة وتنمية الأعمال بمصر.\n\n` +
-        `نظراً لأن منشأتكم الكريمة "${lead.businessName || 'الموقرة'}" تعد من الأماكن الرائجة والمميزة بالمنطقة، نود إعلامكم بإدراج النشاط ضمن دليل الأنشطة المعتمدة في ${lead.governorate} مجاناً وبدون أي تكلفة تقديراً لمكانتكم.\n\n` +
-        `يسعدنا تأكيد موافقتكم الكريمة لنشر الموقع وإتاحته للجمهور.`
-      );
+    if (pitchType === 'intro') {
+      return `السلام عليكم ورحمة الله وبركاته،\nأهلاً بحضرتك أستاذ ${client}،\nمعك ممثل منصة دليلك الميدانية.\nيسعدنا توثيق وإبراز «${biz}» ${gov} على خرائط Google وتطبيق الدليل الموحد لزيادة ظهورك أمام آلاف العملاء بالمنطقة.\n\nيسرنا تزويدكم بكافة التفاصيل والخدمات المتاحة.`;
     }
 
-    if (type === 'intro') {
-      return (
-        `السلام عليكم ورحمة الله،\n` +
-        `أهلاً بحضرتك أستاذ ${clientName}، بخصوص ${bizTitle}:\n\n` +
-        `قام مندوبنا بزيارة المنطقة المتواجد بها مكانكم وقام بعرض باقة التوثيق على سيادتكم.\n\n` +
-        `الباقة تشمل تثبيت وتوثيق الموقع الجغرافي للمنشأة بدقة على خرائط Google، وإضافة أرقام التواصل ومواعيد العمل والصور الرسمية، برسوم 250 جنيه (سداد لمرة واحدة بدون اشتراكات، ويمكن السداد بعد إتمام التوثيق والظهور على الخريطة).\n\n` +
-        `في حال رغبتكم في استكمال التوثيق أو وجود أي استفسار، يسعدنا تواصلكم معنا عبر هذه المحادثة.`
-      );
+    if (pitchType === 'proposal') {
+      return `السلام عليكم أستاذ ${client}،\nبخصوص انضمام «${biz}» إلى منصة دليلك:\nنوفر لحضرتكم:\n1. توثيق رسمي معتمد وتثبيت دبابيس الموقع على خرائط Google\n2. صفحة إلكترونية رسمية مع رابط ذكي مخصص للنشاط\n3. دعم فني ميداني متواصل وربط فوري بأرقام واتساب النشاط\n\nالباقة السنوية المعتمدة شاملة كافة الميزات بقيمة رمزية واشتراك سنوي. يسعدنا تأكيد التوثيق اليوم.`;
     }
 
-    if (type === 'followup') {
-      return (
-        `السلام عليكم ورحمة الله،\n` +
-        `متابعة مع حضرتك بخصوص توثيق ${bizTitle} على خرائط Google.\n` +
-        `هل نحدد موعداً مناسباً لزيارة المندوب والبدء في تسجيل ورفع البيانات؟ (مع العلم أن السداد يمكن أن يتم بعد التوثيق والظهور).`
-      );
-    }
+    return `السلام عليكم أستاذ ${client}،\nنظراً للسمعة الطيبة والإقبال الملحوظ على «${biz}» ${gov}، يسر إدارة منصة دليلك ترشيح منشأتكم ضمن قائمة الأنشطة الرائجة والشرفية بالمنطقة.\n\nنرجو تأكيد رغبتكم في اعتماد الإدراج المجاني ليتم توثيق بياناتكم بالدليل العام فوراً.`;
+  };
 
-    return (
-      `السلام عليكم ورحمة الله،\n` +
-      `توضيح لخدمات التوثيق المتاحة لـ ${bizTitle}:\n\n` +
-      `1. باقة التوثيق الأساسي (250 ج): تثبيت وتوثيق المنشأة على خرائط Google مع إضافة بيانات الاتصال ومواعيد العمل والصور (ويمكن السداد بعد إتمام التوثيق والظهور على الخريطة).\n` +
-      `2. باقة التأسيس والربط (750 ج): توثيق الخريطة + تأسيس وتنسيق الصفحات وتصميم الإعلان ومتابعة مستمرة.\n\n` +
-      `متاحين لأي استفسار أو لترتيب موعد الزيارة والتنفيذ.`
-    );
+  const messageText = getMessageText();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(messageText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSend = () => {
-    if (msgType === 'permission') {
-      const url = getTrendingVenuePermissionWhatsAppUrl(lead.phone, {
-        clientName: lead.clientName,
-        businessName: lead.businessName,
-      });
-      if (url) window.open(url, '_blank');
-    } else {
-      const msg = generateMessage(msgType);
-      send(lead.phone, msg);
+    let clean = (lead.phone || '').replace(/\D/g, '');
+    if (clean.startsWith('0')) {
+      clean = '2' + clean;
+    } else if (!clean.startsWith('20') && clean.length === 10) {
+      clean = '20' + clean;
     }
-
-    onUpdateLead({
-      ...lead,
-      lastContactedDate: new Date().toISOString(),
-      status: lead.status === 'pending_followup' ? 'contacted' : lead.status,
-    });
-    onClose();
+    const url = `https://wa.me/${clean}?text=${encodeURIComponent(messageText)}`;
+    window.open(url, '_blank');
   };
 
-  const currentText = generateMessage(msgType);
-
-  const modalFooter = (
-    <div className="w-full flex gap-2">
-      <Button
-        variant="success"
-        size="md"
-        onClick={handleSend}
-        icon={<Send className="w-4 h-4" />}
-        className="flex-1 font-black"
-      >
-        فتح واتساب والإرسال فوراً
-      </Button>
-
-      <Button
-        variant="secondary"
-        size="md"
-        onClick={onClose}
-      >
-        إلغاء
-      </Button>
-    </div>
-  );
-
   return (
-    <BaseModal
-      isOpen={true}
-      onClose={onClose}
-      title="إرسال رسالة واتساب للشخص المهتم"
-      subtitle={`إلى: ${lead.clientName} (${lead.phone})`}
-      icon={<MessageSquare className="w-5 h-5 text-emerald-500" />}
-      footer={modalFooter}
-      size="md"
-    >
-      <div className="space-y-3.5 text-xs" dir="rtl">
-        {/* Template Selector */}
-        <div className="space-y-2">
-          <label className="block font-bold text-[var(--text-primary)]">اختر نموذج الرسالة الجاهزة:</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button
-              type="button"
-              onClick={() => setMsgType('permission')}
-              className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                msgType === 'permission'
-                  ? 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-400 font-black shadow-xs'
-                  : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-amber-500/40'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>طلب سماح (مجاني)</span>
-            </button>
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs font-['Cairo',sans-serif]">
+      <div className="bg-[var(--bg-card)] rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-[var(--border-color)] animate-fade-in flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-[var(--border-color)]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-[var(--text-primary)]">مراسلة العميل عبر واتساب</h3>
+              <p className="text-xs text-[var(--text-muted)] font-medium">
+                {lead.clientName} {lead.businessName ? `( ${lead.businessName} )` : ''} • {lead.phone}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
+        {/* Content */}
+        <div className="py-4 space-y-4 overflow-y-auto flex-1">
+          {/* Pitch Type Selector */}
+          <div className="flex items-center gap-1.5 bg-[var(--bg-secondary)] p-1 rounded-2xl border border-[var(--border-color)]">
             <button
               type="button"
-              onClick={() => setMsgType('intro')}
-              className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                msgType === 'intro'
-                  ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-black shadow-xs'
-                  : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
+              onClick={() => setPitchType('intro')}
+              className={`flex-1 py-2 px-2 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                pitchType === 'intro'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <HelpCircle className="w-4 h-4 text-emerald-500" />
-              <span>تعريف بالخدمة</span>
+              رسالة التعريف
             </button>
+            <button
+              type="button"
+              onClick={() => setPitchType('proposal')}
+              className={`flex-1 py-2 px-2 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                pitchType === 'proposal'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              عرض التوثيق
+            </button>
+            <button
+              type="button"
+              onClick={() => setPitchType('trending')}
+              className={`flex-1 py-2 px-2 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                pitchType === 'trending'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              إدراج رائج (مجاني)
+            </button>
+          </div>
 
-            <button
-              type="button"
-              onClick={() => setMsgType('followup')}
-              className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                msgType === 'followup'
-                  ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-black shadow-xs'
-                  : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
-              }`}
-            >
-              <Calendar className="w-4 h-4 text-blue-500" />
-              <span>متابعة وتذكير</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMsgType('offer')}
-              className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                msgType === 'offer'
-                  ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-black shadow-xs'
-                  : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
-              }`}
-            >
-              <Gift className="w-4 h-4 text-purple-500" />
-              <span>عرض خاص وتأسيس</span>
-            </button>
+          {/* Message Preview */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-[var(--text-secondary)]">معاينة نص الرسالة الرسمي:</span>
+              <span className="text-[11px] text-[var(--text-muted)]">معايير مؤسسية راقية</span>
+            </div>
+            <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] p-4 text-xs leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap font-sans select-all min-h-[140px]">
+              {messageText}
+            </div>
           </div>
         </div>
 
-        {/* Message Preview Box */}
-        <div className="space-y-1">
-          <label className="block font-bold text-[var(--text-muted)] text-[11px]">معاينة نص الرسالة:</label>
-          <div className="bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)] text-xs text-[var(--text-secondary)] whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto font-sans">
-            {currentText}
+        {/* Modal Actions */}
+        <div className="flex items-center justify-between pt-4 border-t border-[var(--border-color)] gap-2">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={`py-2 px-3 sm:px-4 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border cursor-pointer ${
+              copied
+                ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500'
+                : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            }`}
+          >
+            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? 'تم النسخ' : 'نسخ النص'}</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="py-2 px-3 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] font-bold text-xs transition-colors cursor-pointer border border-[var(--border-color)]"
+            >
+              إلغاء
+            </button>
+            <button
+              type="button"
+              onClick={handleSend}
+              className="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all active:scale-95 flex items-center gap-1.5 shadow-md cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              <span>إرسال عبر واتساب</span>
+            </button>
           </div>
         </div>
       </div>
-    </BaseModal>
+    </div>
   );
 };

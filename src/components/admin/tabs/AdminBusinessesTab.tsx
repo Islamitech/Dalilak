@@ -10,6 +10,10 @@ import {
   BusinessesDesktopRow,
   BusinessesPagination,
 } from '../businesses-tab';
+import { LayoutGrid, List, Map as MapIcon } from 'lucide-react';
+import { UniversalListingCard } from '../../design-system/UniversalListingCard';
+import { BusinessDetailsDrawer } from '../../BusinessDetailsDrawer';
+import { InteractiveMap } from '../../InteractiveMap';
 
 export interface AdminBusinessesTabProps {
   businesses: Business[];
@@ -101,6 +105,9 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
   const [selectedPackageBiz, setSelectedPackageBiz] = useState<Business | null>(null);
   // State for Packages Hub modal (reference view)
   const [showPackagesHubModal, setShowPackagesHubModal] = useState<boolean>(false);
+  // View Mode: Table / Cards / Map
+  const [viewMode, setViewMode] = useState<'table' | 'cards' | 'map'>('table');
+  const [selectedDrawerBiz, setSelectedDrawerBiz] = useState<Business | null>(null);
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 space-y-4 shadow-sm animate-fade-in transition-colors duration-300">
@@ -136,65 +143,134 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
         onOpenPackagesHub={() => setShowPackagesHubModal(true)}
       />
 
-      {/* Businesses Data: Mobile Cards (< md) + Desktop Table (>= md) */}
-      <div className="space-y-3">
-        {pagedBusinesses.length === 0 ? (
+      {/* View Mode Bar */}
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-color)]">
+        <span className="text-xs font-bold text-[var(--text-muted)]">
+          عرض النتائج ({filteredBusinesses.length} منشأة):
+        </span>
+        <div className="flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl border border-[var(--border-color)]">
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`flex items-center gap-1 py-1 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'table' ? 'bg-[var(--bg-card)] text-amber-500 shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <List className="w-3.5 h-3.5" />
+            <span>جدول</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('cards')}
+            className={`flex items-center gap-1 py-1 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'cards' ? 'bg-[var(--bg-card)] text-amber-500 shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>بطاقات</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('map')}
+            className={`flex items-center gap-1 py-1 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'map' ? 'bg-[var(--bg-card)] text-amber-500 shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <MapIcon className="w-3.5 h-3.5" />
+            <span>الخريطة</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Businesses Data: Map View, Cards View, or Table View */}
+      {viewMode === 'map' ? (
+        <div className="rounded-2xl overflow-hidden border border-[var(--border-color)]">
+          <InteractiveMap
+            mode="view"
+            businesses={filteredBusinesses}
+            onSelectBusiness={(b) => setSelectedDrawerBiz(b)}
+            onEditBusiness={(b) => onSetEditingBusiness(b)}
+            heightClass="h-[520px]"
+          />
+        </div>
+      ) : viewMode === 'cards' ? (
+        filteredBusinesses.length === 0 ? (
           <div className="p-8 text-center text-[var(--text-muted)] font-bold bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)]">
             لا توجد منشآت مطابقة للبحث أو التصفية الحالية.
           </div>
         ) : (
-          <>
-            {/* 1. Mobile Cards View (Hidden on md and larger) */}
-            <div className="block md:hidden space-y-3">
-              {pagedBusinesses.map((biz) => (
-                <BusinessesMobileCard
-                  key={biz.id}
-                  biz={biz}
-                  onCollectPayment={onCollectPayment}
-                  onSetSyncModalBiz={onSetSyncModalBiz}
-                  onSetEditingBusiness={onSetEditingBusiness}
-                  onSetEditingBusinessInitialTab={onSetEditingBusinessInitialTab}
-                  onShowInvoice={onShowInvoice}
-                  onSelectFollowUpBiz={setSelectedFollowUpBiz}
-                  onSendPackageBiz={setSelectedPackageBiz}
-                  onConfirmDelete={setConfirmDelete}
-                />
-              ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pagedBusinesses.map((biz) => (
+              <UniversalListingCard
+                key={biz.id}
+                business={biz}
+                variant="grid"
+                onClick={(b) => setSelectedDrawerBiz(b)}
+                showAdminMetrics={true}
+              />
+            ))}
+          </div>
+        )
+      ) : (
+        <div className="space-y-3">
+          {pagedBusinesses.length === 0 ? (
+            <div className="p-8 text-center text-[var(--text-muted)] font-bold bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)]">
+              لا توجد منشآت مطابقة للبحث أو التصفية الحالية.
             </div>
+          ) : (
+            <>
+              {/* 1. Mobile Cards View (Hidden on md and larger) */}
+              <div className="block md:hidden space-y-3">
+                {pagedBusinesses.map((biz) => (
+                  <BusinessesMobileCard
+                    key={biz.id}
+                    biz={biz}
+                    onCollectPayment={onCollectPayment}
+                    onSetSyncModalBiz={onSetSyncModalBiz}
+                    onSetEditingBusiness={onSetEditingBusiness}
+                    onSetEditingBusinessInitialTab={onSetEditingBusinessInitialTab}
+                    onShowInvoice={onShowInvoice}
+                    onSelectFollowUpBiz={setSelectedFollowUpBiz}
+                    onSendPackageBiz={setSelectedPackageBiz}
+                    onConfirmDelete={setConfirmDelete}
+                  />
+                ))}
+              </div>
 
-            {/* 2. Desktop Table View (>= md) */}
-            <div className="hidden md:block overflow-x-auto rounded-2xl border border-[var(--border-color)]">
-              <table className="w-full text-xs text-right border-collapse min-w-[950px]">
-                <thead>
-                  <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold text-[11px]">
-                    <th className="p-3">الاسم والتصنيف</th>
-                    <th className="p-3">المسؤول والموقع</th>
-                    <th className="p-3">المندوب وتاريخ التسجيل</th>
-                    <th className="p-3">الباقة والموقف المالي</th>
-                    <th className="p-3">الاعتماد والتوثيق</th>
-                    <th className="p-3 text-center">الإجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-color)]">
-                  {pagedBusinesses.map((biz) => (
-                    <BusinessesDesktopRow
-                      key={biz.id}
-                      biz={biz}
-                      onCollectPayment={onCollectPayment}
-                      onSetSyncModalBiz={onSetSyncModalBiz}
-                      onSetEditingBusiness={onSetEditingBusiness}
-                      onSetEditingBusinessInitialTab={onSetEditingBusinessInitialTab}
-                      onShowInvoice={onShowInvoice}
-                      onSelectFollowUpBiz={setSelectedFollowUpBiz}
-                      onSendPackageBiz={setSelectedPackageBiz}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </div>
+              {/* 2. Desktop Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto rounded-2xl border border-[var(--border-color)]">
+                <table className="w-full text-xs text-right border-collapse min-w-[950px]">
+                  <thead>
+                    <tr className="bg-[var(--input-bg)] text-[var(--text-secondary)] border-b border-[var(--border-color)] font-bold text-[11px]">
+                      <th className="p-3">الاسم والتصنيف</th>
+                      <th className="p-3">المسؤول والموقع</th>
+                      <th className="p-3">المندوب وتاريخ التسجيل</th>
+                      <th className="p-3">الباقة والموقف المالي</th>
+                      <th className="p-3">الاعتماد والتوثيق</th>
+                      <th className="p-3 text-center">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-color)]">
+                    {pagedBusinesses.map((biz) => (
+                      <BusinessesDesktopRow
+                        key={biz.id}
+                        biz={biz}
+                        onCollectPayment={onCollectPayment}
+                        onSetSyncModalBiz={onSetSyncModalBiz}
+                        onSetEditingBusiness={onSetEditingBusiness}
+                        onSetEditingBusinessInitialTab={onSetEditingBusinessInitialTab}
+                        onShowInvoice={onShowInvoice}
+                        onSelectFollowUpBiz={setSelectedFollowUpBiz}
+                        onSendPackageBiz={setSelectedPackageBiz}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Pagination Controls */}
       <BusinessesPagination
@@ -269,6 +345,18 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
           setConfirmDelete(null);
         }}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      {/* Sovereign Business Details Drawer */}
+      <BusinessDetailsDrawer
+        business={selectedDrawerBiz}
+        isOpen={Boolean(selectedDrawerBiz)}
+        onClose={() => setSelectedDrawerBiz(null)}
+        onShowInvoice={onShowInvoice}
+        onCollectPayment={onCollectPayment}
+        onEditBusiness={onSetEditingBusiness}
+        onUpdateBusiness={onUpdateBusiness}
+        currentUser={currentUser}
       />
     </div>
   );

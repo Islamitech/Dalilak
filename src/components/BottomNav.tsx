@@ -9,13 +9,17 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, isAdmin }) => {
-  const tabs = [
-    { id: 'home', label: 'الرئيسية', icon: Home },
-    { id: 'map', label: 'الخريطة', icon: Map },
-    { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
-    { id: 'invoices', label: 'المراجعات', icon: UserCheck },
-    { id: isAdmin ? 'admin' : 'profile', label: isAdmin ? 'الإدارة' : 'ملفي', icon: isAdmin ? Shield : ShieldCheck },
-  ];
+  const tabs = isAdmin
+    ? [
+        { id: 'admin', label: 'العمليات', icon: Shield },
+        { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
+        { id: 'home', label: 'الدليل', icon: Home },
+      ]
+    : [
+        { id: 'home', label: 'بوابتي الميدانية', icon: Home },
+        { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
+        { id: 'profile', label: 'ملفي وهويتي', icon: ShieldCheck },
+      ];
 
   return (
     /* hidden on md+ screens — desktop/tablet users navigate via top Navbar */

@@ -30,6 +30,7 @@ import { ShieldCheck } from 'lucide-react';
 const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const BusinessForm = lazyWithRetry(() => import('./components/BusinessForm').then(m => ({ default: m.BusinessForm })));
 const RepProfile = lazyWithRetry(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
+const RepresentativePortal = lazyWithRetry(() => import('./components/RepresentativePortal').then(m => ({ default: m.RepresentativePortal })));
 
 export default function App() {
   // 1. App Routing & Deep Linking
@@ -426,28 +427,56 @@ export default function App() {
           onOpenSyncModal={() => setShowOfflineSyncModal(true)}
         />
 
-        {/* TAB 1: HOME FEED */}
+        {/* TAB 1: SOVEREIGN SURFACE OR PUBLIC DIRECTORY */}
         {activeTab === 'home' && (
-          <HomeFeedView
-            user={user}
-            currentRep={currentRep}
-            businesses={businesses}
-            scopedBusinesses={scopedBusinesses}
-            myBusinesses={myBusinesses}
-            representatives={representatives}
-            payoutRequests={payoutRequests}
-            isLoadingData={isLoadingData}
-            hasInitialCloudSynced={hasInitialCloudSynced}
-            repViewScope={repViewScope}
-            onToggleRepScope={setRepViewScope}
-            onAddNewClick={() => setActiveTab('add')}
-            onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
-            onEditBusiness={(b) => setEditingBusiness(b)}
-            onSelectVideoBiz={(b) => setSelectedVideoBiz(b)}
-            onRequestPayout={handleCreatePayoutRequest}
-            onNavigateToProfile={handleNavigateToProfile}
-            addNotification={addNotification}
-          />
+          user?.role === 'rep' ? (
+            <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-10 h-10 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
+              <RepresentativePortal
+                user={user}
+                rep={currentRep}
+                businesses={businesses}
+                representatives={representatives}
+                leads={leads}
+                payoutRequests={payoutRequests}
+                onAddNewClick={() => setActiveTab('add')}
+                onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+                onCollectPayment={(b) => setSelectedPayBiz(b)}
+                onEditBusiness={(b) => setEditingBusiness(b)}
+                onRequestPayout={handleCreatePayoutRequest}
+                onLogout={handleLogout}
+                onUpdateRep={handleUpdateRepresentative}
+                onCreateLead={handleCreateLead}
+                onUpdateLead={handleUpdateLead}
+                onDeleteLead={handleDeleteLead}
+                onConvertToBusiness={handleConvertToBusiness}
+                onDirectConvertLead={handleDirectConvertLeadToBusiness}
+                onUpdateBusiness={handleUpdateBusiness}
+                onOpenProfile={() => setActiveTab('profile')}
+                onOpenAdminView={canUserAccessAdminPanel(user) ? () => setActiveTab('admin') : undefined}
+              />
+            </Suspense>
+          ) : (
+            <HomeFeedView
+              user={user}
+              currentRep={currentRep}
+              businesses={businesses}
+              scopedBusinesses={scopedBusinesses}
+              myBusinesses={myBusinesses}
+              representatives={representatives}
+              payoutRequests={payoutRequests}
+              isLoadingData={isLoadingData}
+              hasInitialCloudSynced={hasInitialCloudSynced}
+              repViewScope={repViewScope}
+              onToggleRepScope={setRepViewScope}
+              onAddNewClick={() => setActiveTab('add')}
+              onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+              onEditBusiness={(b) => setEditingBusiness(b)}
+              onSelectVideoBiz={(b) => setSelectedVideoBiz(b)}
+              onRequestPayout={handleCreatePayoutRequest}
+              onNavigateToProfile={handleNavigateToProfile}
+              addNotification={addNotification}
+            />
+          )
         )}
 
         {/* TAB 2: INTERACTIVE MAP OVERVIEW */}
