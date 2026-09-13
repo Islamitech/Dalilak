@@ -86,6 +86,14 @@ export function healCategoryMismatch(rawCategory?: string | null, name: string =
     }
   }
 
+  // 2. Specific Misclassifications & Foreign Spelling:
+  if (cat.includes('سوپر')) {
+    return 'سوبر ماركت / هايبر وبقالة';
+  }
+  if (text.includes('الاقصى للتوكيلات') || text.includes('توكيلات تجارية')) {
+    return 'معرض سيارات / بيع وشراء';
+  }
+
   // 2. Fallback if empty or generic
   if (!cat || cat === 'عميل مهتم' || cat === 'عملاء مهتمون' || cat === 'عام') {
     if (text.includes('مندي') || text.includes('مطعم') || text.includes('مشويات') || text.includes('كافيه') || text.includes('حلواني') || text.includes('شاورما') || text.includes('مخبز') || text.includes('أسماك') || text.includes('أغذية')) {
@@ -266,12 +274,18 @@ export function mapDbToBusiness(item: any): Business {
     item.description || ''
   );
 
+  const rawLoc = `${item.city || ''} ${item.street || ''} ${item.name_ar || item.nameAr || ''}`.toLowerCase();
+  let resolvedGov = item.governorate || 'القاهرة';
+  if (rawLoc.includes('زهراء المعادي') || rawLoc.includes('المعادي') || rawLoc.includes('مدينة نصر') || rawLoc.includes('التجمع')) {
+    resolvedGov = 'القاهرة';
+  }
+
   return {
     id: item.id || `biz_${Date.now()}`,
     nameAr: stripBiDiControls(item.name_ar || item.nameAr || 'المكان'),
     nameEn: item.name_en ? stripBiDiControls(item.name_en) : (item.nameEn ? stripBiDiControls(item.nameEn) : undefined),
     category: cleanCategory,
-    governorate: item.governorate || 'القاهرة',
+    governorate: resolvedGov,
     city: item.city || 'القاهرة',
     street: item.street || '',
     landmark: item.landmark,

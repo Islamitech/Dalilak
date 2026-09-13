@@ -354,3 +354,48 @@ export function matchesCategoryFilter(
 
   return false;
 }
+
+/**
+ * 🌟 الأنشطة الرائجة: المنشآت التي تم تسجيلها بشكل مجاني / بدون تحصيل رسوم
+ */
+export const isTrendingFreeActivity = (b: {
+  isFeeExempt?: boolean;
+  packageId?: string;
+  packagePrice?: number;
+  paymentStatus?: string;
+  amountPaid?: number;
+  notes?: string;
+}): boolean => {
+  return Boolean(
+    b.isFeeExempt ||
+    b.packageId === 'pkg_free_directory' ||
+    b.packageId === 'free_directory_listing' ||
+    (b.packagePrice === 0) ||
+    b.paymentStatus === 'exempt' ||
+    b.paymentStatus === 'free' ||
+    ((!b.amountPaid || b.amountPaid === 0) && (b.isFeeExempt || b.packagePrice === 0 || !b.paymentStatus || b.paymentStatus === 'unpaid')) ||
+    b.notes?.includes('trending_free') ||
+    b.notes?.includes('نشاط رائج') ||
+    b.notes?.includes('مكان رائج') ||
+    b.notes?.includes('مجاني')
+  );
+};
+
+/**
+ * 💳 الأنشطة ذات الفواتير المحصلة: المنشآت المسددة باقات مدفوعة
+ */
+export const isCollectedInvoiceActivity = (b: {
+  paymentStatus?: string;
+  amountPaid?: number;
+  packagePrice?: number;
+  invoiceNumber?: string;
+  isFeeExempt?: boolean;
+}): boolean => {
+  if (b.isFeeExempt || (b.packagePrice || 0) === 0) return false;
+  return Boolean(
+    b.paymentStatus === 'fully_paid' ||
+    ((b.amountPaid || 0) >= (b.packagePrice || 250) && (b.amountPaid || 0) > 0) ||
+    ((b.amountPaid || 0) > 0 && Boolean(b.invoiceNumber))
+  );
+};
+

@@ -39,6 +39,8 @@ interface BusinessesFilterBarProps {
   verifiedWithDebtCount: number;
   directoryApprovedCount: number;
   pendingApprovalCount?: number;
+  trendingFreeCount?: number;
+  collectedInvoicesCount?: number;
   onResetFilters?: () => void;
   onOpenPackagesHub?: () => void;
 }
