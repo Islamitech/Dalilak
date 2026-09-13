@@ -16,6 +16,7 @@ export interface ActiveFilterChipsProps {
   onClearSort: () => void;
   onResetAll: () => void;
   hasActiveFilters: boolean;
+  hideResetButton?: boolean;
 }
 
 export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
@@ -33,6 +34,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
   onClearSort,
   onResetAll,
   hasActiveFilters,
+  hideResetButton = false,
 }) => {
   if (!hasActiveFilters) return null;
 
@@ -135,14 +137,16 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
         </span>
       )}
 
-      <button
-        type="button"
-        onClick={onResetAll}
-        className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer mr-auto"
-      >
-        <RotateCcw className="w-3 h-3" />
-        <span>إعادة ضبط الكل</span>
-      </button>
+      {!hideResetButton && (
+        <button
+          type="button"
+          onClick={onResetAll}
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+        >
+          <RotateCcw className="w-3 h-3" />
+          <span>إعادة ضبط الكل</span>
+        </button>
+      )}
     </div>
   );
 };

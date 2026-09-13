@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { Business } from '../../types';
 import { SmartSearchBar } from '../search/SmartSearchBar';
 import { FilterBar } from '../search/FilterBar';
@@ -75,21 +76,18 @@ export const SearchView: React.FC<SearchViewProps> = ({
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const activeFiltersCount = [
+  // Only count advanced drawer filters (location & rating) to avoid triggering the drawer badge when standard category tabs are clicked
+  const advancedFiltersCount = [
     selectedGov !== 'all',
     selectedCity !== 'all',
     selectedZone !== 'all',
-    categoryFilter !== 'all',
-    openNowOnly,
     hasRatingOnly,
-    hasVideoOnly,
-    sortBy !== 'default',
   ].filter(Boolean).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-20">
       {/* 1. Search Bar */}
-      <div className="bg-slate-50 border border-slate-200 rounded-3xl p-3 sm:p-4 shadow-xs">
+      <div className="w-full">
         <SmartSearchBar
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
@@ -117,36 +115,57 @@ export const SearchView: React.FC<SearchViewProps> = ({
         hasVideoOnly={hasVideoOnly}
         onToggleHasVideo={onToggleHasVideo}
         onOpenFilterDrawer={() => setDrawerOpen(true)}
-        activeFiltersCount={activeFiltersCount}
+        activeFiltersCount={advancedFiltersCount}
         showViewToggle={true}
         onViewChange={(view) => {
           if (view === 'map') onNavigate('/map');
         }}
       />
 
-      {/* 3. Active Chips */}
-      <ActiveFilterChips
-        categoryFilter={categoryFilter}
-        onClearCategory={() => onCategoryChange('all')}
-        selectedGov={selectedGov}
-        onClearGov={() => onGovChange('all')}
-        selectedCity={selectedCity}
-        onClearCity={() => onCityChange('all')}
-        openNowOnly={openNowOnly}
-        onClearOpenNow={onToggleOpenNow}
-        hasVideoOnly={hasVideoOnly}
-        onClearHasVideo={onToggleHasVideo}
-        sortBy={sortBy}
-        onClearSort={() => onSortChange('default')}
-        onResetAll={onResetAllFilters}
-        hasActiveFilters={hasActiveFilters}
-      />
+      {/* 3. Results Header & Active Filter Chips Bar */}
+      <div className="space-y-2.5 pt-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm font-black text-slate-800">
+              نتائج البحث:
+            </span>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100/90 text-amber-900 border border-amber-300 font-mono shadow-2xs">
+              {filteredBusinesses.length} نشاطاً
+            </span>
+          </div>
 
-      {/* 4. Results Header */}
-      <div className="flex items-center justify-between pt-1">
-        <p className="text-xs sm:text-sm font-black text-slate-800">
-          نتائج البحث: <span className="text-amber-700 font-mono">({filteredBusinesses.length})</span> نشاطاً
-        </p>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={onResetAllFilters}
+              className="inline-flex items-center gap-1.5 text-xs font-black text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>إعادة ضبط الكل</span>
+            </button>
+          )}
+        </div>
+
+        {/* Active Chips */}
+        {hasActiveFilters && (
+          <ActiveFilterChips
+            categoryFilter={categoryFilter}
+            onClearCategory={() => onCategoryChange('all')}
+            selectedGov={selectedGov}
+            onClearGov={() => onGovChange('all')}
+            selectedCity={selectedCity}
+            onClearCity={() => onCityChange('all')}
+            openNowOnly={openNowOnly}
+            onClearOpenNow={onToggleOpenNow}
+            hasVideoOnly={hasVideoOnly}
+            onClearHasVideo={onToggleHasVideo}
+            sortBy={sortBy}
+            onClearSort={() => onSortChange('default')}
+            onResetAll={onResetAllFilters}
+            hasActiveFilters={hasActiveFilters}
+            hideResetButton={true}
+          />
+        )}
       </div>
 
       {/* 5. Results Grid */}

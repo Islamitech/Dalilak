@@ -55,6 +55,7 @@ export interface Business {
   invoiceDate: string;
   repCommissionRate?: number;
   isFeeExempt?: boolean; // مكان رائج بالمنطقة معفى من الرسوم والتحصيل المالي (إدراج مجاني)
+  isConditionalVerification?: boolean; // معتمد بمتأخرات مالية (اعتماد مشروط)
   isFeatured?: boolean;  // نشاط مميز أو رائج في الدليل
   feeExemptionReason?: string; // سبب الإعفاء
   registrationType?: 'new_verification' | 'already_on_google' | 'interested_lead'; // أسلوب التسجيل

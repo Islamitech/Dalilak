@@ -57,9 +57,9 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
       data-reader-skip="true"
       className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-amber-400/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between hover:-translate-y-0.5 cursor-pointer protected-asset-shield"
     >
-      {/* 1. Visual Anchor: 4:3 Photo with anti-extraction shield and brand watermark */}
+      {/* 1. Visual Anchor: 16:10 Photo with anti-extraction shield and brand watermark */}
       <div 
-        className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden select-none"
+        className="relative aspect-[16/10] w-full bg-slate-950 overflow-hidden select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
         <img
@@ -93,14 +93,18 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           </span>
         </div>
 
-        {/* Top-Left: Open / Closed Status Badge */}
+        {/* Top-Left: Open / Closed Status Badge with crisp contrast */}
         <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
           <span
-            className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md border shadow-xs ${openStatus.statusClass}`}
+            className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md border shadow-sm ${
+              openStatus.isOpen
+                ? 'bg-slate-950/85 text-emerald-400 border-emerald-500/50'
+                : 'bg-slate-950/85 text-rose-400 border-rose-500/50'
+            }`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${openStatus.dotColor} ${
-                openStatus.isOpen ? 'animate-ping' : ''
+              className={`w-1.5 h-1.5 rounded-full ${
+                openStatus.isOpen ? 'bg-emerald-400 animate-ping' : 'bg-rose-400'
               }`}
             />
             <span>{openStatus.isOpen ? 'مفتوح الآن' : 'مغلق حالياً'}</span>
@@ -185,12 +189,14 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           <div className="flex items-center justify-between gap-2 pt-1 text-[11px] font-bold">
             <div className="flex items-center gap-1.5 text-[var(--text-muted)] min-w-0">
               <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="truncate">
-                {business.workingHours
-                  ? business.workingHours
-                  : openStatus.isOpen
-                  ? 'مفتوح لاستقبال الزوار'
-                  : 'مغلق حالياً'}
+              <span className="truncate" dir="auto">
+                <bdi>
+                  {business.workingHours
+                    ? business.workingHours
+                    : openStatus.isOpen
+                    ? 'مفتوح لاستقبال الزوار'
+                    : 'مغلق حالياً'}
+                </bdi>
               </span>
             </div>
 
@@ -207,7 +213,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
         </div>
 
         {/* 3. Action Trio (اتجاهات | واتساب | اتصال) */}
-        <div className="pt-3 border-t border-[var(--border-color)] grid grid-cols-3 gap-1.5">
+        <div className="pt-3 border-t border-[var(--border-color)] grid grid-cols-3 gap-2">
           {/* Directions */}
           {effectiveUrl ? (
             <a
@@ -215,10 +221,10 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-200"
+              className="py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 bg-blue-50/80 hover:bg-blue-100 text-blue-800 border border-blue-200/90"
               title={isOfficial ? 'فتح خرائط Google' : 'الموقع على الخريطة'}
             >
-              <Navigation className="w-3.5 h-3.5 text-blue-600" />
+              <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span>اتجاهات</span>
             </a>
           ) : (
@@ -228,9 +234,9 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
                 e.stopPropagation();
                 onOpenBusiness(business);
               }}
-              className="py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1 bg-slate-50 text-[var(--text-muted)] border border-slate-200"
+              className="py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-slate-50 text-[var(--text-muted)] border border-slate-200"
             >
-              <MapPin className="w-3.5 h-3.5" />
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
               <span>الموقع</span>
             </button>
           )}
@@ -242,19 +248,19 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="py-2 px-1 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+              className="py-2.5 px-2 rounded-xl text-xs font-black bg-emerald-50/80 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/90 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
               title="محادثة واتساب مباشرة"
             >
-              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>واتساب</span>
             </a>
           ) : (
             <button
               type="button"
               disabled
-              className="py-2 px-1 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+              className="py-2.5 px-2 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
             >
-              <MessageCircle className="w-3.5 h-3.5" />
+              <MessageCircle className="w-3.5 h-3.5 shrink-0" />
               <span>واتساب</span>
             </button>
           )}
@@ -264,19 +270,19 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
             <a
               href={`tel:${business.phone}`}
               onClick={(e) => e.stopPropagation()}
-              className="py-2 px-1 rounded-xl text-xs font-bold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 hover:border-amber-200 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+              className="py-2.5 px-2 rounded-xl text-xs font-black bg-slate-50 hover:bg-amber-50 text-slate-800 hover:text-amber-900 border border-slate-200 hover:border-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
               title="اتصال هاتفي فوري"
             >
-              <Phone className="w-3.5 h-3.5 text-slate-600" />
+              <Phone className="w-3.5 h-3.5 text-slate-700 shrink-0" />
               <span>اتصال</span>
             </a>
           ) : (
             <button
               type="button"
               disabled
-              className="py-2 px-1 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+              className="py-2.5 px-2 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
             >
-              <Phone className="w-3.5 h-3.5" />
+              <Phone className="w-3.5 h-3.5 shrink-0" />
               <span>اتصال</span>
             </button>
           )}
