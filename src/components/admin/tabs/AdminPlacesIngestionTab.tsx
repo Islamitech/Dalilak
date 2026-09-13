@@ -249,6 +249,94 @@ const CATEGORY_PRESETS: CategoryThreshold[] = [
   },
 ];
 
+/**
+ * 🗺️ محرك الكشف الجغرافي الذكي للمحافظات المصرية:
+ * يفحص العنوان الفعلي والنطاق المكتوب يدوياً لتحديد المحافظة بدقة مطلقة
+ * ويمنع إجبار المحافظة على الجيزة افتراضياً
+ */
+export const detectEgyptianGovernorate = (address?: string, customText?: string): string => {
+  const fullText = `${address || ''} ${customText || ''}`.toLowerCase();
+
+  // 1. القاهرة الكبرى ومناطقها
+  if (
+    fullText.includes('القاهرة') || fullText.includes('cairo') ||
+    fullText.includes('المعادي') || fullText.includes('زهراء المعادي') ||
+    fullText.includes('مدينة نصر') || fullText.includes('مصر الجديدة') ||
+    fullText.includes('التجمع') || fullText.includes('القاهرة الجديدة') ||
+    fullText.includes('الشروق') || fullText.includes('بدر') ||
+    fullText.includes('العبور') || fullText.includes('عين شمس') ||
+    fullText.includes('شبرا') || fullText.includes('حلوان') ||
+    fullText.includes('المقطم') || fullText.includes('الزمالك') ||
+    fullText.includes('وسط البلد') || fullText.includes('طرة') ||
+    fullText.includes('البساتين') || fullText.includes('الوايلي') ||
+    fullText.includes('المنيل') || fullText.includes('جاردن سيتي') ||
+    fullText.includes('الأزبكية') || fullText.includes('باب الشعرية')
+  ) {
+    return 'القاهرة';
+  }
+
+  // 2. الجيزة ومناطقها
+  if (
+    fullText.includes('الجيزة') || fullText.includes('giza') ||
+    fullText.includes('أكتوبر') || fullText.includes('october') ||
+    fullText.includes('الشيخ زايد') || fullText.includes('zayed') ||
+    fullText.includes('الهرم') || fullText.includes('فيصل') ||
+    fullText.includes('الدقي') || fullText.includes('المهندسين') ||
+    fullText.includes('العجوزة') || fullText.includes('حدائق الأهرام') ||
+    fullText.includes('الرماية') || fullText.includes('العمرانية') ||
+    fullText.includes('بولاق الدكرور') || fullText.includes('الوراق') ||
+    fullText.includes('إمبابة') || fullText.includes('الحوامدية') ||
+    fullText.includes('البدرشين') || fullText.includes('أوسيم')
+  ) {
+    return 'الجيزة';
+  }
+
+  // 3. الإسكندرية
+  if (
+    fullText.includes('الإسكندرية') || fullText.includes('اسكندرية') || fullText.includes('alexandria') ||
+    fullText.includes('سموحة') || fullText.includes('سيدي جابر') ||
+    fullText.includes('ميامي') || fullText.includes('المنتزه') ||
+    fullText.includes('محرم بك') || fullText.includes('العجمي') ||
+    fullText.includes('الساحل الشمالي') || fullText.includes('برج العرب')
+  ) {
+    return 'الإسكندرية';
+  }
+
+  // 4. باقي المحافظات المصرية
+  const govMap: Record<string, string[]> = {
+    'القليوبية': ['القليوبية', 'بنها', 'شبرا الخيمة', 'قليوب', 'طوخ', 'الخانكة', 'قها'],
+    'الشرقية': ['الشرقية', 'الزقازيق', 'العاشر من رمضان', 'بلبيس', 'فاقوس', 'أبو حماد', 'منيا القمح', 'العاشر'],
+    'الغربية': ['الغربية', 'طنطا', 'المحلة الكبرى', 'المحلة', 'كفر الزيات', 'زفتى', 'سمنود'],
+    'الدقهلية': ['الدقهلية', 'المنصورة', 'طلخا', 'ميت غمر', 'دكرنس', 'بلقاس', 'شربين'],
+    'المنوفية': ['المنوفية', 'شبين الكوم', 'قويسنا', 'أشمون', 'منوف', 'السادات', 'بركة السبع'],
+    'البحيرة': ['البحيرة', 'دمنهور', 'كفر الدوار', 'إيتاي البارود', 'كوم حمادة', 'رشيد'],
+    'دمياط': ['دمياط', 'رأس البر', 'دمياط الجديدة'],
+    'بورسعيد': ['بورسعيد', 'بورفؤاد'],
+    'الإسماعيلية': ['الإسماعيلية', 'فايد', 'القنطرة'],
+    'السويس': ['السويس', 'العين السخنة'],
+    'البحر الأحمر': ['الغردقة', 'الجونة', 'سفاجا', 'مرسى علم', 'القصير'],
+    'جنوب سيناء': ['شرم الشيخ', 'دهب', 'نويبع', 'طابا', 'طور سيناء'],
+    'بني سويف': ['بني سويف', 'الواسطى', 'ببا', 'الفشن'],
+    'الفيوم': ['الفيوم', 'إبشواي', 'سنورس', 'طامية', 'يوسف الصديق'],
+    'المنيا': ['المنيا', 'ملوي', 'مغاغة', 'بني مزار', 'سمالوط', 'أبو قرقاص'],
+    'أسيوط': ['أسيوط', 'ديروط', 'منفلوط', 'أبنوب', 'القوصية'],
+    'سوهاج': ['سوهاج', 'طهطا', 'جرجا', 'أخميم', 'المراغة'],
+    'قنا': ['قنا', 'نجع حمادي', 'قوص', 'دشنا', 'أبو تشت'],
+    'الأقصر': ['الأقصر', 'إسنا', 'أرمنت', 'طيبة'],
+    'أسوان': ['أسوان', 'كوم أمبو', 'إدفو', 'نصر النوبة'],
+    'مطروح': ['مطروح', 'مرسى مطروح', 'العلمين', 'الضبعة', 'سيوة'],
+    'كفر الشيخ': ['كفر الشيخ', 'دسوق', 'فوه', 'بلطيم', 'سيدي سالم'],
+  };
+
+  for (const [gov, keywords] of Object.entries(govMap)) {
+    if (keywords.some((k) => fullText.includes(k.toLowerCase()))) {
+      return gov;
+    }
+  }
+
+  return 'القاهرة';
+};
+
 export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = ({
   currentUser,
   businesses,
@@ -317,7 +405,13 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   };
 
   const currentHub = isCustomHub
-    ? { label: customHubName || 'نطاق مخصص', gov: 'الجيزة', city: customHubName || 'مصر', lat: undefined, lng: undefined }
+    ? {
+        label: customHubName || 'نطاق مخصص',
+        gov: detectEgyptianGovernorate('', customHubName),
+        city: customHubName || 'مصر',
+        lat: undefined,
+        lng: undefined,
+      }
     : EGYPTIAN_HUBS[selectedHubIndex];
 
   const currentCat = CATEGORY_PRESETS[selectedCategoryIndex];
@@ -624,13 +718,16 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         const p = placesToIngest[i];
         setIngestProgress({ current: i + 1, total: placesToIngest.length });
 
+        const resolvedGov = detectEgyptianGovernorate(p.formattedAddress, currentHub?.gov || customHubName);
+        const resolvedCity = isCustomHub && customHubName ? customHubName.trim() : (currentHub?.city || 'مصر');
+
         const newBiz: Business = {
           id: `biz_gplaces_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           nameAr: p.displayName,
           category: p.category || currentCat.label,
-          governorate: currentHub?.gov || 'الجيزة',
-          city: currentHub?.city || 'حدائق الأهرام',
-          street: p.formattedAddress || currentHub?.city || '',
+          governorate: resolvedGov,
+          city: resolvedCity,
+          street: p.formattedAddress || resolvedCity || '',
           landmark: 'منشأة معتمدة بالمنطقة',
           phone: p.phone || '',
           workingHours: p.workingHours || 'يومياً: 09:00 ص - 11:00 م',
