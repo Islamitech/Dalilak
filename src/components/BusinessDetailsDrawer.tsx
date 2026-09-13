@@ -18,6 +18,8 @@ import { QuickActionBar } from './business-drawer/QuickActionBar';
 import { DrawerInfoTab } from './business-drawer/DrawerInfoTab';
 import { DrawerAdminTab } from './business-drawer/DrawerAdminTab';
 import { DrawerNotesTab } from './business-drawer/DrawerNotesTab';
+import { DrawerDirectoryTab } from './business-drawer/DrawerDirectoryTab';
+import { DrawerWhatsAppTab } from './business-drawer/DrawerWhatsAppTab';
 import { ConditionalVerificationAlert } from './business-drawer/ConditionalVerificationAlert';
 import { AddServiceInvoiceModal } from './business-drawer/AddServiceInvoiceModal';
 import { DocumentViewerModal } from './DocumentViewerModal';
@@ -49,7 +51,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
   onDeleteBusiness,
   currentUser,
 }) => {
-  const [activeTab, setActiveTab] = useState<'info' | 'admin' | 'notes'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'admin' | 'notes' | 'directory' | 'whatsapp'>('info');
   const [newNoteText, setNewNoteText] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -248,6 +250,32 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
         title={business.nameAr}
         subtitle={`${business.category} • ${business.governorate} - ${business.city}`}
         width="xl"
+        headerActions={
+          canEdit ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="py-1 px-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200 shadow-2xs cursor-pointer whitespace-nowrap active:scale-95"
+                title="تعديل وتحديث بيانات المنشأة"
+              >
+                <Pencil className="w-3.5 h-3.5 text-indigo-600" />
+                <span>تعديل البيانات</span>
+              </button>
+
+              {onDeleteBusiness && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors cursor-pointer active:scale-95"
+                  title="حذف المنشأة"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : null
+        }
       >
             {/* 1. Panoramic Hero Header with Watermark Badge & Status Pill */}
             <DrawerHeroHeader
@@ -263,14 +291,14 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             {/* 2. Quick Action Bar (Call / WhatsApp / Directions / Share) */}
             <QuickActionBar business={business} compact={false} />
 
-            {/* 3. Internal Navigation Tabs & Quick Edit / Delete Buttons */}
+            {/* 3. Internal Navigation Tabs */}
             {!isGuest && (
-              <div className="flex items-center justify-between border-b border-slate-200 text-sm font-medium">
+              <div className="flex items-center border-b border-slate-200 text-sm font-medium overflow-x-auto scrollbar-thin">
                 <div className="flex">
                   <button
                     type="button"
                     onClick={() => setActiveTab('info')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold ${
+                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
                       activeTab === 'info'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -282,7 +310,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTab('admin')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold ${
+                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
                       activeTab === 'admin'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -294,7 +322,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTab('notes')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold ${
+                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
                       activeTab === 'notes'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -302,31 +330,34 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
                   >
                     المتابعات ({business.adminFollowUps?.length || 0})
                   </button>
-                </div>
 
-                <div className="flex items-center gap-1.5 ml-2">
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditModalOpen(true)}
-                      className="py-1 px-2.5 my-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200 shadow-2xs cursor-pointer whitespace-nowrap"
-                      title="تعديل وتحديث بيانات المنشأة"
-                    >
-                      <Pencil className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>تعديل البيانات</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('directory')}
+                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${
+                      activeTab === 'directory'
+                        ? 'border-indigo-600 text-indigo-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <span>الدليل</span>
+                    {business.verificationStatus === 'verified' && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                    )}
+                  </button>
 
-                  {onDeleteBusiness && canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="p-1.5 my-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors cursor-pointer"
-                      title="حذف المنشأة"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('whatsapp')}
+                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${
+                      activeTab === 'whatsapp'
+                        ? 'border-indigo-600 text-indigo-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <span>الواتس اب</span>
+                    <span className="text-[10px] py-0.5 px-1.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">تسويق</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -398,6 +429,27 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
                 newNoteText={newNoteText}
                 setNewNoteText={setNewNoteText}
                 onAddNoteSubmit={handleAddNoteSubmit}
+              />
+            )}
+
+            {/* TAB 4: Public Directory Management */}
+            {!isGuest && activeTab === 'directory' && (
+              <DrawerDirectoryTab
+                business={business}
+                canEdit={canEdit}
+                onUpdateStatus={(newStatus) => handleStatusClick(newStatus)}
+                onUpdateCustomUrl={(customUrl) => {
+                  addAutoFollowUpNote('general', `[تخصيص رابط الدليل]: تم تعيين رابط مخصص (${customUrl}) بواسطة ${userName}.`, {
+                    customDirectoryUrl: customUrl,
+                  });
+                }}
+              />
+            )}
+
+            {/* TAB 5: WhatsApp Marketing & Communications Hub */}
+            {!isGuest && activeTab === 'whatsapp' && (
+              <DrawerWhatsAppTab
+                business={business}
               />
             )}
       </Drawer>

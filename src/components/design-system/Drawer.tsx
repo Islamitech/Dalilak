@@ -8,6 +8,7 @@ interface DrawerProps {
   subtitle?: string;
   children: React.ReactNode;
   width?: 'md' | 'lg' | 'xl' | '2xl';
+  headerActions?: React.ReactNode;
 }
 
 export const Drawer: React.FC<DrawerProps> = ({
@@ -17,6 +18,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   subtitle,
   children,
   width = 'xl',
+  headerActions,
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -54,18 +56,21 @@ export const Drawer: React.FC<DrawerProps> = ({
           className={`w-screen ${widthClass} bg-[var(--bg-card)] shadow-2xl flex flex-col border-r border-[var(--border-color)] animate-in slide-in-from-left duration-200`}
         >
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-[var(--border-color)] flex items-start justify-between bg-[var(--bg-secondary)]">
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)]">{title}</h2>
-              {subtitle && <p className="text-xs text-[var(--text-muted)] mt-0.5 font-medium">{subtitle}</p>}
+          <div className="p-4 sm:p-5 border-b border-[var(--border-color)] flex items-center justify-between bg-[var(--bg-secondary)] gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-lg font-black text-[var(--text-primary)] truncate">{title}</h2>
+              {subtitle && <p className="text-xs text-[var(--text-muted)] mt-0.5 font-medium truncate">{subtitle}</p>}
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors cursor-pointer"
-              title="إغلاق"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {headerActions}
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors cursor-pointer"
+                title="إغلاق"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Content Body */}
