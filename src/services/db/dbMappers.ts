@@ -87,7 +87,13 @@ export function healCategoryMismatch(rawCategory?: string | null, name: string =
   }
 
   // 2. Specific Misclassifications & Foreign Spelling:
-  if (cat.includes('سوپر')) {
+  const normCat = cat.trim().toLowerCase();
+  if (
+    normCat.includes('سوپر') ||
+    normCat === 'سوبرماركت' ||
+    normCat === 'سوبر ماركت' ||
+    normCat.includes('هايبر ماركت')
+  ) {
     return 'سوبر ماركت / هايبر وبقالة';
   }
   if (text.includes('الاقصى للتوكيلات') || text.includes('توكيلات تجارية')) {

@@ -134,7 +134,13 @@ export default function App() {
 
     // 🏷️ Category Self-Healing: تصحيح وتوحيد الفئات الشاذة
     let cleanCategory = r.category || 'خدمات عامة';
-    if (cleanCategory.includes('سوپر')) {
+    const normCategory = cleanCategory.trim().toLowerCase();
+    if (
+      normCategory.includes('سوپر') ||
+      normCategory === 'سوبرماركت' ||
+      normCategory === 'سوبر ماركت' ||
+      normCategory.includes('هايبر ماركت')
+    ) {
       cleanCategory = 'سوبر ماركت / هايبر وبقالة';
     } else if (fullLocText.includes('الاقصى للتوكيلات') || fullLocText.includes('توكيلات تجارية')) {
       cleanCategory = 'معرض سيارات / بيع وشراء';

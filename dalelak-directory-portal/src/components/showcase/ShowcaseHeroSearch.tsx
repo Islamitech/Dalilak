@@ -26,6 +26,8 @@ import {
   Scissors,
   GraduationCap,
   ShoppingBag,
+  ShoppingCart,
+  Shirt,
   Layers,
   Map as MapIcon,
 } from 'lucide-react';
@@ -74,10 +76,12 @@ export interface ShowcaseHeroSearchProps {
 
 const POPULAR_CATEGORIES = [
   { label: 'الكل', value: 'all', icon: Sparkles },
-  { label: 'مطاعم ومأكولات', value: 'مطاعم ومأكولات', icon: UtensilsCrossed },
+  { label: 'مطاعم', value: 'مطاعم ومأكولات', icon: UtensilsCrossed },
+  { label: 'سوبر ماركت وبقالة', value: 'سوبر ماركت وبقالة', icon: ShoppingCart },
   { label: 'طبي وصيدلي', value: 'طبي وصيدلي', icon: ShieldCheck },
   { label: 'سيارات وصيانة', value: 'سيارات وصيانة', icon: Wrench },
   { label: 'تجميل وعناية', value: 'تجميل وعناية', icon: Scissors },
+  { label: 'ملابس وأزياء', value: 'ملابس وأزياء', icon: Shirt },
   { label: 'خدمات منزلية', value: 'خدمات منزلية', icon: ShoppingBag },
   { label: 'تعليم وتدريب', value: 'تعليم وتدريب', icon: GraduationCap },
 ];

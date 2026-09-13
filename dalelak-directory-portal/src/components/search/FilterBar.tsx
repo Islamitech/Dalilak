@@ -5,23 +5,24 @@ import {
   ShieldCheck,
   Wrench,
   Scissors,
-  Shirt,
   ShoppingBag,
+  ShoppingCart,
   GraduationCap,
+  Shirt,
   SlidersHorizontal,
   Clock,
+  Star,
   Compass,
-  Video,
   Layers,
   Map as MapIcon,
-  ArrowDownUp,
+  Video,
 } from 'lucide-react';
 
 export interface FilterBarProps {
   categoryFilter: string;
-  onCategoryChange: (category: string) => void;
+  onCategoryChange: (cat: string) => void;
   sortBy: 'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha';
-  onSortChange: (sort: any) => void;
+  onSortChange: (sort: 'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha') => void;
   openNowOnly: boolean;
   onToggleOpenNow: () => void;
   hasVideoOnly?: boolean;
@@ -35,7 +36,8 @@ export interface FilterBarProps {
 
 export const POPULAR_CATEGORY_CHIPS = [
   { label: 'الكل', value: 'all', icon: Sparkles },
-  { label: 'مطاعم', value: 'مطاعم ومأكولات', icon: UtensilsCrossed },
+  { label: 'مطاعم ومأكولات', value: 'مطاعم ومأكولات', icon: UtensilsCrossed },
+  { label: 'سوبر ماركت وبقالة', value: 'سوبر ماركت وبقالة', icon: ShoppingCart },
   { label: 'طبي وصيدلي', value: 'طبي وصيدلي', icon: ShieldCheck },
   { label: 'سيارات وصيانة', value: 'سيارات وصيانة', icon: Wrench },
   { label: 'تجميل وعناية', value: 'تجميل وعناية', icon: Scissors },
@@ -60,9 +62,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   showViewToggle = false,
 }) => {
   return (
-    <div className="w-full space-y-2">
-      {/* 1. Category Chips Carousel: Smooth, compact horizontal scroll */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar -mx-1 px-1">
+    <div className="w-full space-y-2.5">
+      {/* Category Chips Carousel / Row */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none no-scrollbar">
         {POPULAR_CATEGORY_CHIPS.map((cat) => {
           const Icon = cat.icon;
           const isSelected = categoryFilter === cat.value;
@@ -71,10 +73,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               key={cat.value}
               type="button"
               onClick={() => onCategoryChange(cat.value)}
-              className={`h-8 px-3 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 isSelected
-                  ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black'
-                  : 'bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border-slate-200 shadow-2xs'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200'
               }`}
             >
               <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950' : 'text-amber-600'}`} />
@@ -84,23 +86,22 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         })}
       </div>
 
-      {/* 2. Action Controls Bar: Sleek, responsive, single-row on mobile */}
-      <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-[var(--border-color)] overflow-x-auto pb-0.5 scrollbar-none no-scrollbar">
-        {/* Quick Toggles Group */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Friendly Filter Button: Simple Arabic 'تصفية' instead of daunting 'فلترة متقدمة' */}
+      {/* Second Row: Quick Filters & Actions Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]">
+        {/* Left: Quick Toggles */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Advanced Filters Button */}
           <button
             type="button"
             onClick={onOpenFilterDrawer}
-            className={`h-8 px-2.5 sm:px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
               activeFiltersCount > 0
-                ? 'bg-amber-500/15 border-amber-500/60 text-amber-900 font-black'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                ? 'bg-amber-500/15 border-amber-500/50 text-amber-800'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
-            title="خيارات التصفية التفصيلية"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span>تصفية</span>
+            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
+            <span>فلترة متقدمة</span>
             {activeFiltersCount > 0 && (
               <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-mono flex items-center justify-center font-bold">
                 {activeFiltersCount}
@@ -112,13 +113,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <button
             type="button"
             onClick={onToggleOpenNow}
-            className={`h-8 px-2.5 sm:px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
               openNowOnly
-                ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-800 font-black'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-800'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <Clock className={`w-3.5 h-3.5 ${openNowOnly ? 'text-emerald-600' : 'text-slate-400'} shrink-0`} />
+            <Clock className={`w-3.5 h-3.5 ${openNowOnly ? 'text-emerald-600' : 'text-slate-400'}`} />
             <span>مفتوح الآن</span>
           </button>
 
@@ -126,14 +127,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <button
             type="button"
             onClick={() => onSortChange(sortBy === 'nearest' ? 'default' : 'nearest')}
-            className={`h-8 px-2.5 sm:px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
               sortBy === 'nearest'
-                ? 'bg-blue-500/15 border-blue-500/50 text-blue-800 font-black'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                ? 'bg-blue-500/15 border-blue-500/40 text-blue-800'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <Compass className={`w-3.5 h-3.5 ${sortBy === 'nearest' ? 'text-blue-600' : 'text-slate-400'} shrink-0`} />
-            <span>الأقرب إلي</span>
+            <Compass className={`w-3.5 h-3.5 ${sortBy === 'nearest' ? 'text-blue-600' : 'text-slate-400'}`} />
+            <span>الأقرب أولاً</span>
           </button>
 
           {/* Quick Toggle: Has Video */}
@@ -141,63 +142,58 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={onToggleHasVideo}
-              className={`h-8 px-2.5 sm:px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
                 hasVideoOnly
-                  ? 'bg-purple-500/15 border-purple-500/50 text-purple-800 font-black'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-800'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
               title="عرض الأنشطة التي تحتوي على فيديو تعريفي فقط"
             >
-              <Video className={`w-3.5 h-3.5 ${hasVideoOnly ? 'text-purple-600' : 'text-slate-400'} shrink-0`} />
+              <Video className={`w-3.5 h-3.5 ${hasVideoOnly ? 'text-purple-600' : 'text-slate-400'}`} />
               <span>فيديو</span>
             </button>
           )}
         </div>
 
-        {/* Sort Dropdown & View Mode Switcher */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="relative flex items-center">
-            <div className="h-8 flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-2 text-xs font-bold text-slate-800 shadow-2xs">
-              <ArrowDownUp className="w-3 h-3 text-slate-400 shrink-0" />
-              <select
-                value={sortBy}
-                onChange={(e) => onSortChange(e.target.value as any)}
-                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer py-1 pe-1"
-                aria-label="ترتيب النتائج"
-              >
-                <option value="default">الأفضل مطابقة</option>
-                                <option value="nearest">الأقرب أولاً</option>
-                <option value="newest">الأحدث تسجيلاً</option>
-                <option value="open_now">المفتوح أولاً</option>
-                <option value="alpha">أبجدياً (أ-ي)</option>
-              </select>
-            </div>
+        {/* Right: Sort Dropdown & View Mode Switcher */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
+            <span className="hidden sm:inline">ترتيب:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => onSortChange(e.target.value as any)}
+              className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+            >
+              <option value="default">الأفضل مطابقة</option>
+              <option value="nearest">الأقرب جغرافياً</option>
+              <option value="newest">الأحدث انضماماً</option>
+              <option value="open_now">المفتوح أولاً</option>
+              <option value="alpha">أبجدياً (أ-ي)</option>
+            </select>
           </div>
 
-          {/* View Mode Switcher (Grid vs Map) */}
+          {/* View Mode Switcher (if enabled) */}
           {showViewToggle && onViewChange && (
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
                 type="button"
                 onClick={() => onViewChange('grid')}
-                className={`h-7 px-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                   activeView === 'grid' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="عرض البطاقات"
-                aria-label="عرض البطاقات"
               >
-                <Layers className="w-3.5 h-3.5" />
+                <Layers className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => onViewChange('map')}
-                className={`h-7 px-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                   activeView === 'map' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="عرض الخريطة الحية"
-                aria-label="عرض الخريطة الحية"
               >
-                <MapIcon className="w-3.5 h-3.5" />
+                <MapIcon className="w-4 h-4" />
               </button>
             </div>
           )}
