@@ -70,6 +70,8 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
   verifiedWithDebtCount,
   directoryApprovedCount,
   pendingApprovalCount,
+  trendingFreeCount = 0,
+  collectedInvoicesCount = 0,
   onResetFilters,
   onOpenPackagesHub,
 }) => {
@@ -90,6 +92,38 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           }`}
         >
           الكل ({businesses.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter(verificationFilter === 'trending_free' ? 'all' : 'trending_free');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+            verificationFilter === 'trending_free'
+              ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+              : 'bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 border border-amber-500/30'
+          }`}
+          title="الأنشطة المسجلة بشكل مجاني وبدون تحصيل رسوم"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>الأنشطة الرائجة (المجانية) ({trendingFreeCount})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter(verificationFilter === 'collected_invoices' ? 'all' : 'collected_invoices');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+            verificationFilter === 'collected_invoices'
+              ? 'bg-emerald-600 text-white font-black shadow-xs'
+              : 'bg-emerald-500/10 text-emerald-800 hover:bg-emerald-500/20 border border-emerald-500/30'
+          }`}
+          title="الأنشطة المسددة باقات بفاتورة محصلة"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>فواتير محصلة ({collectedInvoicesCount})</span>
         </button>
         <button
           type="button"
@@ -225,7 +259,8 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer text-xs"
         >
           <option value="all">كل حالات السداد</option>
-          <option value="fully_paid">مسددة بالكامل</option>
+          <option value="trending_free">الأنشطة الرائجة (تسجيل مجاني)</option>
+          <option value="fully_paid">مسددة بالكامل (فواتير محصلة)</option>
           <option value="partially_paid">مسدد جزء منها</option>
           <option value="unpaid">بانتظار السداد</option>
         </select>
@@ -239,6 +274,8 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           className="col-span-2 lg:col-span-1 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer text-xs"
         >
           <option value="all">كل حالات التوثيق ({businesses.length})</option>
+          <option value="trending_free">الأنشطة الرائجة (المجانية) ({trendingFreeCount})</option>
+          <option value="collected_invoices">فواتير محصلة ({collectedInvoicesCount})</option>
           <option value="pending_approval">بانتظار الاعتماد ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</option>
           <option value="directory_approved">معتمدة بالدليل ({directoryApprovedCount})</option>
           <option value="google_synced">موثقة بـ Google ({verifiedCount})</option>

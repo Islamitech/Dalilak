@@ -38,9 +38,6 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
   userCoords,
   onOpenVideoModal,
 }) => {
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  const [imageError, setImageError] = React.useState(false);
-
   const mainPhoto =
     business.coverPhoto ||
     (business.photos && business.photos.length > 0
@@ -62,16 +59,9 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
     >
       {/* 1. Visual Anchor: 4:3 Photo with anti-extraction shield and brand watermark */}
       <div 
-        className="relative aspect-[4/3] w-full bg-slate-900 overflow-hidden select-none"
+        className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
-        {/* Skeleton Shimmer Loading Placeholder */}
-        {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 bg-slate-800/80 animate-pulse flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-2 border-amber-500/30 border-t-amber-500 animate-spin" />
-          </div>
-        )}
-
         <img
           src={mainPhoto}
           alt=""
@@ -82,14 +72,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           loading="lazy"
           decoding="async"
           draggable={false}
-          onLoad={() => setImageLoaded(true)}
-          onError={() => {
-            setImageError(true);
-            setImageLoaded(true);
-          }}
-          className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 pointer-events-none select-none ${
-            imageLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
         />
         {/* Anti-Extraction Transparent Protection Shield */}
         <div 
@@ -185,7 +168,11 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
               {business.category}
             </span>
             <span className="truncate text-[11px] font-medium text-slate-500">
-              {[business.city || business.street, business.governorate].filter(Boolean).join(' • ') || 'مصر'}
+              {(() => {
+                const cleanCity = business.city || (business.street ? business.street.split('،')[0].trim() : '');
+                const cleanGov = (cleanCity && (cleanCity.includes('المعادي') || cleanCity.includes('زهراء'))) ? 'القاهرة' : business.governorate;
+                return Array.from(new Set([cleanCity, cleanGov].filter(Boolean))).join(' • ') || 'مصر';
+              })()}
             </span>
           </div>
 

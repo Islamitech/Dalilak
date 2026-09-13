@@ -3,7 +3,7 @@ import { Business, User } from '../../types';
 import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../../data/mockData';
 import { formatActivityDateTime, sortBusinessesNewestFirst } from '../../utils/dateFormatters';
 import { matchesBusinessSearch } from '../../utils/arabicSearch';
-import { matchesCategoryFilter } from '../../utils/categoryMatcher';
+import { matchesCategoryFilter, isTrendingFreeActivity, isCollectedInvoiceActivity } from '../../utils/categoryMatcher';
 import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsapp';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
@@ -147,36 +147,18 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     }).length;
 
     const govs = new Set(displayableBusinesses.map((b) => b.governorate).filter(Boolean)).size;
-    const fullyPaid = displayableBusinesses.filter((b) => b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)).length;
-    const exempt = displayableBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length;
+    const fullyPaid = displayableBusinesses.filter(isCollectedInvoiceActivity).length;
+    const exempt = displayableBusinesses.filter(isTrendingFreeActivity).length;
 
     // حساب الأنشطة التي تحتاج متابعة: غير موثقة على Google Maps، أو غير مسددة، أو غير معتمدة بالدليل
     const needsFollowup = displayableBusinesses.filter((b) => {
       const isDocumented = b.googleMapsUrl && hasRealGoogleMapsUrl(b.googleMapsUrl);
-      const isPaid = b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250);
+      const isPaid = isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b);
       const isApproved = b.verificationStatus === 'verified';
       return !(isDocumented && isPaid && isApproved);
     }).length;
 
-    const isTrendingBiz = (b: Business) => {
-      // 1. أنشطة مضافة بدون تحصيل (معفاة، إدراج مجاني/شرفي، بدون رسوم)
-      const isFreeOrExempt = Boolean(
-        b.isFeeExempt ||
-        b.packageId === 'pkg_free_directory' ||
-        b.packageId === 'free_directory_listing' ||
-        (b.packagePrice === 0) ||
-        ((b.amountPaid === 0 || !b.amountPaid) && b.verificationStatus === 'verified') ||
-        b.notes?.includes('trending_free') ||
-        b.notes?.includes('نشاط رائج') ||
-        b.notes?.includes('مكان رائج')
-      );
-      // 2. أنشطة مسجلة بالباقات وفاتورة مدفوعة
-      const isPaid = b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250) || ((b.amountPaid || 0) > 0 && Boolean(b.invoiceNumber));
-      const isFeatured = Boolean(b.isFeatured || (b.packageId && b.packageId !== 'pkg_free' && b.packageId !== 'pkg_interested_lead'));
-      const isCompleteVerified = b.verificationStatus === 'verified' && Boolean(b.phone) && Boolean(b.googleMapsUrl || (b.lat && b.lng));
-      return isFreeOrExempt || isPaid || isFeatured || isCompleteVerified;
-    };
-    const trending = displayableBusinesses.filter(isTrendingBiz).length;
+    const trending = displayableBusinesses.filter(isTrendingFreeActivity).length;
 
     return {
       totalRegistered,
@@ -205,29 +187,17 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           return false;
         }
         if (verificationFilter === 'trending') {
-          const isFreeOrExempt = Boolean(
-            b.isFeeExempt ||
-            b.packageId === 'pkg_free_directory' ||
-            b.packageId === 'free_directory_listing' ||
-            (b.packagePrice === 0) ||
-            ((b.amountPaid === 0 || !b.amountPaid) && b.verificationStatus === 'verified') ||
-            b.notes?.includes('trending_free') ||
-            b.notes?.includes('نشاط رائج') ||
-            b.notes?.includes('مكان رائج')
-          );
-          const isPaid = b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250) || ((b.amountPaid || 0) > 0 && Boolean(b.invoiceNumber));
-          const isFeatured = Boolean(b.isFeatured || (b.packageId && b.packageId !== 'pkg_free' && b.packageId !== 'pkg_interested_lead'));
-          const isCompleteVerified = b.verificationStatus === 'verified' && Boolean(b.phone) && Boolean(b.googleMapsUrl || (b.lat && b.lng));
-          if (!(isFreeOrExempt || isPaid || isFeatured || isCompleteVerified)) return false;
+          if (!isTrendingFreeActivity(b)) return false;
         } else if (verificationFilter === 'fully_paid') {
-          if (!b.isFeeExempt && b.paymentStatus !== 'fully_paid' && (b.amountPaid || 0) < (b.packagePrice || 250)) return false;
+          if (!isCollectedInvoiceActivity(b)) return false;
         } else if (verificationFilter === 'unpaid') {
-          if (b.isFeeExempt || b.paymentStatus === 'fully_paid' || (b.amountPaid || 0) >= (b.packagePrice || 250)) return false;
+          if (isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b)) return false;
         } else if (verificationFilter === 'verified') {
           if (b.verificationStatus !== 'verified') return false;
         } else if (verificationFilter === 'in_progress') {
           if (b.verificationStatus === 'verified') return false;
-        } else if (verificationFilter === 'needs_followup') {
+        }
+ else if (verificationFilter === 'needs_followup') {
           const hasRealGoogleMapsUrl = (url: string) =>
             url.startsWith('http') &&
             !url.includes('search/?api=1&query=') &&
