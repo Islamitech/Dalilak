@@ -35,12 +35,14 @@ export interface BroadcastProgress {
   successful: number;
   failed: number;
   skipped: number;
-  status: 'idle' | 'running' | 'paused' | 'aborted' | 'completed';
+  status: 'idle' | 'running' | 'paused' | 'aborted' | 'completed' | 'cooldown';
   currentBusinessName?: string;
   startedAt: string;
   finishedAt?: string;
   logs: BroadcastLogItem[];
   lastIndex?: number;
+  cooldownRemainingSeconds?: number;
+  cooldownBatchCount?: number;
 }
 
 export interface WhatsAppSessionStatus {
@@ -377,6 +379,9 @@ export function compileBroadcastMessage(
       `${directoryUrl}\n\n` +
       `💡 *لمحة عن خدماتنا لشركاء النجاح:*\n` +
       `بجانب تواجدكم المجاني التام في الدليل، يقدم فريق «دليلك» خدمات احترافية لدعم نمو أعمالكم (التسويق الإعلاني الموجه، تصوير ومونتاج الفيديوهات Reels، وتعزيز الظهور الرقمي على Google والمنصات) — ننفذها *بأعلى معايير الجودة وبأسعار رمزية ومنخفضة جداً*.\n\n` +
+      `📞 *للتواصل مع خدمة العملاء:*\n` +
+      `لتحسين وتحديث بطاقة النشاط في الدليل، إرسال صور أو معلومات دقيقة، أو إبداء أي تعليق؛ يرجى التواصل مباشرة عبر واتساب مع الرقم الرسمي لخدمة العملاء:\n` +
+      `📲 01556221141 (https://wa.me/201556221141)\n\n` +
       `يسعدنا دائماً تواجدكم معنا كشريك نجاح متميز.\n` +
       `إدارة منصة دليلك المعتمدة`
     );
@@ -388,6 +393,9 @@ export function compileBroadcastMessage(
       `يسعدنا إحاطتكم علماً بأن صفحة منشأتكم المعتمدة منشورة ومتاحة الآن على منصة دليلك بكافة التفاصيل والموقع الدقيق للجمهور.\n\n` +
       `🔗 *رابط المعاينة المباشر لصفحتكم بالدليل العام:*\n` +
       `${directoryUrl}\n\n` +
+      `📞 *للتواصل مع خدمة العملاء:*\n` +
+      `لتحسين بطاقة النشاط في الدليل، إرسال صور أو معلومات دقيقة أو إبداء أي تعليق؛ يسعدنا تواصلكم عبر واتساب خدمة العملاء:\n` +
+      `📲 01556221141 (https://wa.me/201556221141)\n\n` +
       `مع تمنياتنا لكم بدوام التوفيق والازدهار،\n` +
       `فريق توثيق المنظومة — منصة دليلك`
     );
@@ -406,6 +414,9 @@ export function compileBroadcastMessage(
       `• *حالة التوثيق:* معتمد ومفعل بالدليل ✓\n\n` +
       `🔗 *رابط المعاينة والتوثيق بالدليل العام:*\n` +
       `${directoryUrl}\n\n` +
+      `📞 *للتواصل مع خدمة العملاء:*\n` +
+      `لتحسين بطاقة النشاط في الدليل، أو إرسال صور أو معلومات دقيقة أو إبداء أي تعليق؛ يرجى التواصل عبر واتساب خدمة العملاء:\n` +
+      `📲 01556221141 (https://wa.me/201556221141)\n\n` +
       `شاكرين حسن تعاونكم،\n` +
       `الإدارة العامة — منصة دليلك`
     );
@@ -763,8 +774,45 @@ async function executeCampaignLoop(
       }
     }
 
-    // 🛡️ 5. ANTI-BAN RANDOM JITTER THROTTLING (If not last item and not aborted)
-    if (i < businesses.length - 1 && !abortRequested) {
+    // 🛡️ 5. PRECAUTIONARY 10-MINUTE BATCH COOLDOWN (Every 20 successful messages)
+    if (
+      activeCampaign &&
+      activeCampaign.successful > 0 &&
+      activeCampaign.successful % 20 === 0 &&
+      i < businesses.length - 1 &&
+      !abortRequested
+    ) {
+      const cooldownSeconds = 10 * 60; // 10 minutes = 600 seconds
+      const batchNum = Math.floor(activeCampaign.successful / 20);
+      console.log(
+        `🧊 [Anti-Ban Cooldown] Successfully dispatched 20 messages (Total: ${activeCampaign.successful}, Batch #${batchNum}). Resting for 10 minutes to protect number against algorithmic bans...`
+      );
+
+      activeCampaign.status = 'cooldown';
+      activeCampaign.cooldownBatchCount = batchNum;
+      activeCampaign.cooldownRemainingSeconds = cooldownSeconds;
+      activeCampaign.logs.unshift({
+        businessId: 'cooldown',
+        businessName: 'صمام الأمان والتهدئة التلقائية',
+        phone: PRIMARY_WHATSAPP_SENDER_PHONE,
+        status: 'skipped',
+        reason: `🧊 فترة تهدئة احترازية لمدة 10 دقائق بعد إرسال ${activeCampaign.successful} رسالة (دفعة #${batchNum}) لحماية الرقم من الحظر 🛡️`,
+        timestamp: new Date().toISOString(),
+      });
+
+      for (let c = cooldownSeconds; c > 0; c--) {
+        if (abortRequested) break;
+        activeCampaign.cooldownRemainingSeconds = c;
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+
+      activeCampaign.cooldownRemainingSeconds = undefined;
+      if (!abortRequested) {
+        activeCampaign.status = 'running';
+        console.log(`▶️ [Anti-Ban Cooldown] 10-minute cooldown completed. Resuming automated broadcast...`);
+      }
+    } else if (i < businesses.length - 1 && !abortRequested) {
+      // 🛡️ 6. ANTI-BAN RANDOM JITTER THROTTLING (Between individual messages)
       const jitterSeconds = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
       console.log(`⏳ Anti-Ban pacing: Waiting ${jitterSeconds} seconds before next dispatch...`);
 

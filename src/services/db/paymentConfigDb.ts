@@ -21,17 +21,11 @@ export async function fetchPaymentConfigFromDb(): Promise<PaymentGatewayConfig |
     }
   }
 
-  try {
-    const localRes = await fetch('/api/payment-config', {
-      headers: getApiAuthHeaders(),
-    });
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (localData && typeof localData === 'object') {
-        return localData;
-      }
-    }
-  } catch {}
+  const cached = safeGetLocalStorageItem('dalelak_payment_config');
+  if (cached) {
+    const parsed = safeParseJson<PaymentGatewayConfig>(cached, null as any);
+    if (parsed) return parsed;
+  }
 
   return null;
 }
@@ -47,6 +41,10 @@ export async function savePaymentConfigToDb(config: PaymentGatewayConfig): Promi
     updated_at: new Date().toISOString(),
   };
 
+  try {
+    safeSetLocalStorageItem('dalelak_payment_config', JSON.stringify(config));
+  } catch {}
+
   if (isSupabaseConfigured()) {
     try {
       const { error } = await supabase.from('payment_config').upsert([dbRecord]);
@@ -60,12 +58,4 @@ export async function savePaymentConfigToDb(config: PaymentGatewayConfig): Promi
       console.error('Supabase save payment config error:', err);
     }
   }
-
-  try {
-    await fetch('/api/payment-config', {
-      method: 'POST',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    });
-  } catch {}
 }

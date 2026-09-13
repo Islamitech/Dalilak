@@ -271,15 +271,6 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
     }
   }
 
-  // 3. Save to Local Server
-  try {
-    await fetch('/api/leads', {
-      method: 'POST',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(lead),
-    });
-  } catch {}
-
   return lead;
 }
 
@@ -346,15 +337,6 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
     } catch {}
   }
 
-  // 4. Update in Local Server
-  try {
-    await fetch(`/api/leads/${encodeURIComponent(lead.id)}`, {
-      method: 'PUT',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(lead),
-    });
-  } catch {}
-
   return lead;
 }
 
@@ -387,12 +369,4 @@ export async function deleteLeadFromDb(id: string): Promise<void> {
       await supabase.from('businesses').delete().eq('id', id);
     } catch {}
   }
-
-  // 3. Delete from Local Server
-  try {
-    await fetch(`/api/leads/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: getApiAuthHeaders(),
-    });
-  } catch {}
 }

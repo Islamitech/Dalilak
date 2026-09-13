@@ -64,23 +64,9 @@ export async function fetchPayoutRequestsFromDb(repId?: string): Promise<PayoutR
     }
   }
 
-  // Fallback: Merge LocalStorage cache with Express Local Server API
-  let fallbackList: PayoutRequest[] = cached;
-  try {
-    const localRes = await fetch('/api/payouts');
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (Array.isArray(localData) && localData.length > 0) {
-        const map = new Map<string, PayoutRequest>();
-        fallbackList.forEach((p) => map.set(p.id, p));
-        localData.forEach((p: any) => map.set(p.id, mapDbToPayout(p)));
-        fallbackList = Array.from(map.values());
-      }
-    }
-  } catch {}
-
-  if (fallbackList.length > 0) {
-    return repId ? fallbackList.filter((p) => p.repId === repId) : fallbackList;
+  // Fallback: LocalStorage cache
+  if (cached && cached.length > 0) {
+    return repId ? cached.filter((p) => p.repId === repId) : cached;
   }
 
   return [];
@@ -113,14 +99,6 @@ export async function createPayoutRequestInDb(payout: PayoutRequest): Promise<Pa
     }
   }
 
-  try {
-    await fetch('/api/payouts', {
-      method: 'POST',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(payout),
-    });
-  } catch {}
-
   return payout;
 }
 
@@ -152,14 +130,6 @@ export async function updatePayoutRequestInDb(payout: PayoutRequest): Promise<Pa
     }
   }
 
-  try {
-    await fetch(`/api/payouts/${encodeURIComponent(payout.id)}`, {
-      method: 'PUT',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(payout),
-    });
-  } catch {}
-
   return payout;
 }
 
@@ -190,13 +160,5 @@ export async function deletePayoutRequestFromDb(id: string): Promise<void> {
       console.error('Supabase delete payout request error:', err);
     }
   }
-
-  // 3. Local server API
-  try {
-    await fetch(`/api/payouts/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: getApiAuthHeaders(),
-    });
-  } catch {}
 }
 

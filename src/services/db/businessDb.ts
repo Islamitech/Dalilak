@@ -111,23 +111,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     }
   }
 
-  // 2. Local Server API fetch fallback (runs if Supabase is offline or restricted)
-  if (resultList.length === 0) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const localRes = await fetch('/api/businesses', { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (localRes.ok) {
-        const localData = await localRes.json();
-        if (Array.isArray(localData) && localData.length > 0) {
-          resultList = localData.map(mapDbToBusiness);
-        }
-      }
-    } catch {}
-  }
-
-  // 3. LocalStorage cache merge & fallback
+  // 2. LocalStorage cache merge & fallback
   if (resultList.length === 0 && cached.length > 0) {
     resultList = cached;
   } else if (cached.length > 0) {
@@ -203,15 +187,7 @@ export async function fetchBusinessPhotosOnDemand(businessId: string): Promise<s
     }
   }
 
-  // 2. Local Server API fetch fallback
-  try {
-    const localRes = await fetch(`/api/businesses/${encodeURIComponent(businessId)}`);
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      const photos = parsePhotosArray(localData);
-      if (photos.length > 0) return photos;
-    }
-  } catch {}
+
 
   // 3. IndexedDB Offline store fallback
   try {
@@ -508,15 +484,6 @@ export async function saveBusinessToDb(biz: Business): Promise<{ success: boolea
     await saveOfflineBusiness(cleanBiz);
   }
 
-  // 4. Local Server API fetch fallback
-  try {
-    await fetch('/api/businesses', {
-      method: 'POST',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(cleanBiz),
-    });
-  } catch {}
-
   return { success: true, cloudSaved: savedToCloud, error: cloudError };
 }
 
@@ -616,15 +583,6 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
     // If synced to cloud, remove any old offline sync entry
     await removeOfflineBusiness(id).catch(() => {});
   }
-
-  // 4. Sync to local server API
-  try {
-    await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(mergedObj),
-    });
-  } catch {}
 }
 
 export function getDeletedBusinesses(): Business[] {
@@ -732,14 +690,6 @@ export async function hardDeleteBusinessFromDb(id: string): Promise<void> {
       console.error('Supabase delete business error:', err);
     }
   }
-
-  // 3. Delete from local server
-  try {
-    await fetch(`/api/businesses/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: getApiAuthHeaders(),
-    });
-  } catch {}
 }
 
 export const deleteBusinessFromDb = hardDeleteBusinessFromDb;

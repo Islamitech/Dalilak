@@ -729,14 +729,7 @@ export async function syncAllPendingOfflineData(
           } catch {}
         }
 
-        // Also sync to local server
-        try {
-          await fetch('/api/payouts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payout),
-          });
-        } catch {}
+
 
         if (payoutSaved) {
           await removeOfflinePayout(payout.id);

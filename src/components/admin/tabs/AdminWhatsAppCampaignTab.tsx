@@ -63,12 +63,14 @@ export interface BroadcastProgress {
   successful: number;
   failed: number;
   skipped: number;
-  status: 'idle' | 'running' | 'paused' | 'aborted' | 'completed';
+  status: 'idle' | 'running' | 'paused' | 'aborted' | 'completed' | 'cooldown';
   currentBusinessName?: string;
   startedAt: string;
   finishedAt?: string;
   logs: BroadcastLogItem[];
   lastIndex?: number;
+  cooldownRemainingSeconds?: number;
+  cooldownBatchCount?: number;
 }
 
 export interface WhatsAppSessionStatus {
@@ -162,7 +164,7 @@ function formatPhoneForWaLink(rawPhone?: string | null): string | null {
   return digits;
 }
 
-// 🛡️ SAFE API FETCH HELPER (With Smart Localhost Auto-Probe & Vercel Fallback)
+// 🛡️ SAFE API FETCH HELPER (With Dual Localhost & 127.0.0.1 Auto-Probe + Auth Headers Injection)
 async function safeFetchGatewayApi(
   endpoint: string,
   options?: RequestInit,
@@ -171,71 +173,71 @@ async function safeFetchGatewayApi(
   try {
     const rawBase = (customBaseUrl || localStorage.getItem('dalelak_whatsapp_gateway_url') || '').trim();
     const baseUrl = rawBase ? rawBase.replace(/\/$/, '') : '';
-    const url = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
 
-    let res: Response;
-    let rawText = '';
+    // Merge auth headers into every gateway request
+    const authHeaders = getApiAuthHeaders();
+    const mergedHeaders = {
+      ...authHeaders,
+      ...((options?.headers as Record<string, string>) || {}),
+    };
+    const reqOptions: RequestInit = {
+      ...options,
+      headers: mergedHeaders,
+    };
 
-    try {
-      res = await fetch(url, options);
-      rawText = await res.text();
-    } catch (fetchErr: any) {
-      // If primary relative request failed to connect and no customBaseUrl was set,
-      // automatically attempt to probe local PC server at http://localhost:3001
-      if (!baseUrl) {
+    const probeLocalCandidates = async (): Promise<{ success: boolean; data?: any; error?: string } | null> => {
+      const candidates = ['http://localhost:3001', 'http://127.0.0.1:3001'];
+      for (const base of candidates) {
         try {
-          const localUrl = `http://localhost:3001${endpoint}`;
-          const localRes = await fetch(localUrl, options);
+          const localUrl = `${base}${endpoint}`;
+          const localRes = await fetch(localUrl, reqOptions);
           const localText = await localRes.text();
           if (localText && !localText.trim().startsWith('<!doctype') && !localText.trim().startsWith('<html')) {
             const parsed = JSON.parse(localText);
-            localStorage.setItem('dalelak_whatsapp_gateway_url', 'http://localhost:3001');
+            localStorage.setItem('dalelak_whatsapp_gateway_url', base);
             return {
               success: localRes.ok && parsed.success !== false,
               data: parsed,
               error: parsed.error,
             };
           }
-        } catch {
-          // Localhost not active
-        }
+        } catch {}
       }
+      return null;
+    };
+
+    const url = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
+
+    let res: Response;
+    let rawText = '';
+
+    try {
+      res = await fetch(url, reqOptions);
+      rawText = await res.text();
+    } catch (fetchErr: any) {
+      // If direct request failed and no customBaseUrl was set, probe local PC server
+      const localResult = await probeLocalCandidates();
+      if (localResult) return localResult;
       throw fetchErr;
     }
 
-    // If request returned empty or static HTML (e.g. Vercel SPA) and no customBaseUrl was set,
-    // probe local PC server at http://localhost:3001 before failing
+    // If request returned empty or static HTML (e.g. Vercel SPA)
     if (
-      !baseUrl &&
-      (!rawText ||
-        rawText.trim().length === 0 ||
-        res.status === 405 ||
-        res.status === 404 ||
-        rawText.trim().startsWith('<!doctype') ||
-        rawText.trim().startsWith('<html'))
+      !rawText ||
+      rawText.trim().length === 0 ||
+      res.status === 405 ||
+      res.status === 404 ||
+      rawText.trim().startsWith('<!doctype') ||
+      rawText.trim().startsWith('<html')
     ) {
-      try {
-        const localUrl = `http://localhost:3001${endpoint}`;
-        const localRes = await fetch(localUrl, options);
-        const localText = await localRes.text();
-        if (localText && !localText.trim().startsWith('<!doctype') && !localText.trim().startsWith('<html')) {
-          const parsed = JSON.parse(localText);
-          localStorage.setItem('dalelak_whatsapp_gateway_url', 'http://localhost:3001');
-          return {
-            success: localRes.ok && parsed.success !== false,
-            data: parsed,
-            error: parsed.error,
-          };
-        }
-      } catch {
-        // Localhost not active
-      }
+      const localResult = await probeLocalCandidates();
+      if (localResult) return localResult;
 
       return {
         success: false,
         isVercelStatic: true,
         error:
-          'سيرفر Baileys الآلي يتطلب تشغيل خادم المنصة محلياً على هذا الحاسوب (عبر npm run dev أو الرابط المحلي http://localhost:3001). يمكنك استخدام «الوضع المباشر للكمبيوتر عبر WhatsApp Web» فوراً بنقرة واحدة.',
+          'سيرفر Baileys الآلي يتطلب تشغيل خادم المنصة محلياً على هذا الحاسوب (عبر الأمر npm run dev أو تشغيل_سيرفر_الواتساب.bat). يمكنك استخدام «الوضع المباشر للكمبيوتر عبر WhatsApp Web» فوراً بنقرة واحدة.',
       };
     }
 
@@ -305,8 +307,11 @@ const TEMPLATE_DEFINITIONS = [
 💡 *لمحة عن خدماتنا لشركاء النجاح:*
 بجانب التواجد المجاني التام في الدليل، يقدم فريق «دليلك» خدمات احترافية داعمة لنمو أعمالكم تشمل (التسويق الإعلاني الموجه، تصوير ومونتاج الفيديوهات Reels، وتعزيز الظهور الرقمي على Google والمنصات) — ننفذها لكم *بأعلى معايير الجودة وبأسعار رمزية ومنخفضة جداً*.
 
-لأي استفسار أو تحديث لبيانات العمل، يسعدنا تواصلكم المباشر.
-مع خالص التحية،
+📞 *للتواصل المباشر مع خدمة العملاء:*
+لتحسين وتحديث بطاقة النشاط في الدليل، إرسال صور أو معلومات دقيقة، أو إبداء أي تعليق؛ يرجى التواصل مباشرة عبر واتساب مع الرقم الرسمي لخدمة العملاء:
+📲 01556221141 (https://wa.me/201556221141)
+
+مع خالص التحية والتقدير،
 *فريق إدارة منصة دليلك المعتمد*`,
   },
   {
@@ -325,6 +330,11 @@ const TEMPLATE_DEFINITIONS = [
 {url}
 
 يمكنكم مشاركة الرابط مع عملائكم واستقبال الاتصالات وطلبات الاتجاهات مباشرة.
+
+📞 *للتواصل مع خدمة العملاء:*
+لتحسين بطاقة النشاط في الدليل، إرسال صور أو معلومات دقيقة أو إبداء أي تعليق؛ يسعدنا تواصلكم عبر واتساب خدمة العملاء:
+📲 01556221141 (https://wa.me/201556221141)
+
 نتمنى لكم دوام التوفيق والنجاح!
 *منصة دليلك*`,
   },
@@ -342,8 +352,12 @@ const TEMPLATE_DEFINITIONS = [
 - الموقع: {location}
 - نوع الاعتماد: إدراج شرفي معتمد (مجاني 0.00 ج.م)
 
-🔗 رابط المعاينة والتحقق:
+🔗 *رابط المعاينة والتحقق:
 {url}
+
+📞 *للتواصل مع خدمة العملاء:*
+لتحسين بطاقة النشاط في الدليل، أو إرسال صور أو معلومات دقيقة أو إبداء أي تعليق؛ يرجى التواصل عبر واتساب خدمة العملاء:
+📲 01556221141 (https://wa.me/201556221141)
 
 نشكر ثقتكم ونتطلع دائماً لخدمتكم بأفضل معايير الجودة.
 *إدارة الشؤون الإدارية - دليلك*`,
@@ -499,7 +513,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     fetchStatus();
 
     const intervalMs =
-      sessionStatus.activeCampaign?.status === 'running' || sessionStatus.activeCampaign?.status === 'paused'
+      sessionStatus.activeCampaign?.status === 'running' ||
+      sessionStatus.activeCampaign?.status === 'cooldown' ||
+      sessionStatus.activeCampaign?.status === 'paused'
         ? 1500
         : sessionStatus.state === 'qr_ready' || sessionStatus.state === 'connecting'
         ? 2500
@@ -850,6 +866,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
 
   const isCampaignRunning = sessionStatus.activeCampaign?.status === 'running';
   const isCampaignPaused = sessionStatus.activeCampaign?.status === 'paused';
+  const isCampaignCooldown = sessionStatus.activeCampaign?.status === 'cooldown';
   const campaign = sessionStatus.activeCampaign;
   const progressPercent = campaign && campaign.total > 0 ? Math.round((campaign.current / campaign.total) * 100) : 0;
 
@@ -1499,11 +1516,14 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
 
               <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 flex items-start gap-2.5">
                 <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <p className="leading-relaxed">
-                  <strong>كيف يعمل صمام الحماية؟</strong> يُرسل المحرك كل رسالة ثم يختار فاصلاً زمنياً عشوائياً مختلفاً (مثلاً:
-                  14.2 ث ثم 18.7 ث ثم 11.1 ث). خوارزميات مكافحة السبام في واتساب تعتبر هذا النمط تصرّفاً بشرياً أصيلاً فلا تحظر
-                  الرقم.
-                </p>
+                <div className="leading-relaxed space-y-1">
+                  <p>
+                    <strong>كيف يعمل صمام الحماية والتهدئة التلقائية؟</strong> يُرسل المحرك كل رسالة بفاصل زمني عشوائي بشري (مثلاً: 12-25 ثانية).
+                  </p>
+                  <p className="text-cyan-300 font-bold">
+                    🧊 صمام التهدئة الاحترازي (Anti-Ban Cooldown): يتوقف الإرسال تلقائياً لمدة 10 دقائق بعد كل 20 رسالة بنجاح لمنع تصنيف الرقم كروبوت سبام من Meta، ثم يستأنف ذاتياً.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1522,6 +1542,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500" />
                     </>
+                  ) : isCampaignCooldown ? (
+                    <>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500" />
+                    </>
                   ) : isCampaignPaused ? (
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400" />
                   ) : (
@@ -1531,6 +1556,8 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 <h3 className="font-black text-lg text-white">
                   {isCampaignRunning ? (
                     'حملة إرسال نشطة قيد التنفيذ الآن...'
+                  ) : isCampaignCooldown ? (
+                    <span className="text-cyan-400">🧊 فترة تهدئة احترازية (استراحة 10 دقائق بعد 20 رسالة)</span>
                   ) : isCampaignPaused ? (
                     <span className="text-amber-400">الحملة متوقفة مؤقتاً (جاهزة للاستئناف) ⏸️</span>
                   ) : (
@@ -1543,6 +1570,34 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 <p className="text-xs text-amber-400">
                   جارٍ معالجة الآن: <strong>{campaign.currentBusinessName}</strong>
                 </p>
+              )}
+              {isCampaignCooldown && (
+                <div className="p-3 bg-cyan-950/60 border border-cyan-500/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2">
+                  <div className="text-xs text-cyan-200 space-y-0.5">
+                    <p className="font-bold flex items-center gap-1.5 text-cyan-300">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                      <span>صمام الأمان النشط: تم إرسال {campaign.successful} رسالة بنجاح حتى الآن</span>
+                    </p>
+                    <p className="text-[11px] text-cyan-300/80">
+                      المحرك يستريح تلقائياً لمدة 10 دقائق لحماية رقم هاتفك من فلاتر Meta، وسيستأنف الإرسال ذاتياً بعد انتهاء العد.
+                    </p>
+                  </div>
+                  {campaign.cooldownRemainingSeconds !== undefined && (
+                    <div className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-black text-sm flex items-center gap-2 shrink-0 self-start sm:self-center shadow-xs">
+                      <Clock className="w-4 h-4 text-cyan-400 animate-spin" />
+                      <span>
+                        {Math.floor(campaign.cooldownRemainingSeconds / 60)
+                          .toString()
+                          .padStart(2, '0')}
+                        :
+                        {(campaign.cooldownRemainingSeconds % 60)
+                          .toString()
+                          .padStart(2, '0')}{' '}
+                        متبقية
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
               {isCampaignPaused && (
                 <p className="text-xs text-amber-300">
@@ -1572,7 +1627,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               )}
 
               {/* Emergency Abort Switch */}
-              {(isCampaignRunning || isCampaignPaused) && (
+              {(isCampaignRunning || isCampaignCooldown || isCampaignPaused) && (
                 <button
                   type="button"
                   onClick={handleAbortCampaign}

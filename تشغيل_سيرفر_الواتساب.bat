@@ -1,34 +1,51 @@
 @echo off
-chcp 65001 > nul
-title دليلك - تشغيل سيرفر WhatsApp وخادم المنصة المحلي
+setlocal
+cd /d "%~dp0"
+title Dalelak - Local WhatsApp Baileys Gateway (Port 3001)
 
 echo ====================================================================
-echo           منصة دليلك - سيرفر واتساب Baileys المحلي
+echo           Dalelak Platform - WhatsApp Local Gateway
 echo ====================================================================
 echo.
-echo  [1] جاري التحقق من بيئة التشغيل Node.js...
+
+:: Try launching via PowerShell script (supports UTF-8, port auto-clean, rich output)
+where powershell >nul 2>nul
+if %errorlevel% equ 0 (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-whatsapp-server.ps1"
+    if %errorlevel% equ 0 exit /b 0
+)
+
+:: Fallback if PowerShell is unavailable
+echo [1] Checking Node.js runtime...
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo [خطأ]: Node.js غير مثبت على جهازك!
-    echo يرجى تحميل وتثبيت Node.js من https://nodejs.org
+    echo [ERROR]: Node.js is not installed on this computer!
+    echo Please install Node.js from https://nodejs.org
     pause
     exit /b 1
 )
 
-echo  [2] فحص التبعيات والحزم (node_modules)...
+echo [2] Freeing port 3001 if occupied...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3001 ^| findstr LISTENING') do (
+    taskkill /f /pid %%a >nul 2>nul
+)
+
+echo [3] Checking dependencies...
 if not exist node_modules (
-    echo [ملاحظة]: جاري تثبيت الحزم المطلوبة لأول مرة...
+    echo Installing required packages...
     call npm install
 )
 
 echo.
-echo  [3] جاري بدء تشغيل السيرفر المحلي (الواجهة والسيرفر على المنفذ 3001)...
-echo  [✓] يمكنك الآن العودة لمتصفحك (Vercel أو Localhost) واستخدام بوابة الواتساب.
-echo  [!] لا تغلق هذه النافذة طالما أنك تستخدم سيرفر الواتساب الآلي.
-echo.
+echo [4] Starting local server via npx tsx server.ts...
+echo Server URL: http://localhost:3001
 echo ====================================================================
 echo.
 
-call npm run dev
+call npx tsx server.ts
 
-pause
+if %errorlevel% neq 0 (
+    echo.
+    echo Server process stopped with error code %errorlevel%.
+    pause
+)

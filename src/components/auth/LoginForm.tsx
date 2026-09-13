@@ -6,7 +6,6 @@ import { mapDbToRep } from '../../services/db/dbMappers';
 import { hashPassword, verifyPassword, isPasswordHashed } from '../../utils/crypto';
 import { safeSetLocalStorageItem, safeSetSessionItem, safeParseJson } from '../../utils/storage';
 import { isRepAccountDeleted } from '../../utils/accountStatus';
-import { MOCK_REPRESENTATIVES } from '../../data/mockData';
 import { Mail, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 export interface LoginFormProps {
@@ -49,97 +48,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setIsLoading(true);
 
     try {
-      // Step 1: Server Authentication (Primary for local backend environment)
-      let serverSuccess = false;
-      let loggedInUser: User | null = null;
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.user) {
-            loggedInUser = data.user;
-            if (data.token) {
-              safeSetSessionItem('dalelak_auth_token', data.token);
-              safeSetLocalStorageItem('dalelak_auth_token', data.token);
-            }
-            if (data.sessionId) {
-              safeSetSessionItem('dalelak_session_id', data.sessionId);
-            }
-            serverSuccess = true;
-          }
-        } else if (res.status === 409) {
-          const conflictData = await res.json().catch(() => null);
-          if (conflictData?.isAlreadyActive) {
-            // Attempt to take over session cleanly (forceSession: true)
-            try {
-              const forceRes = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: cleanEmail, password: cleanPassword, forceSession: true }),
-              });
-              if (forceRes.ok) {
-                const forceData = await forceRes.json();
-                if (forceData && forceData.user) {
-                  loggedInUser = forceData.user;
-                  if (forceData.token) {
-                    safeSetSessionItem('dalelak_auth_token', forceData.token);
-                    safeSetLocalStorageItem('dalelak_auth_token', forceData.token);
-                  }
-                  if (forceData.sessionId) {
-                    safeSetSessionItem('dalelak_session_id', forceData.sessionId);
-                  }
-                  serverSuccess = true;
-                }
-              } else {
-                const errJson = await forceRes.json().catch(() => null);
-                onError(errJson?.error || conflictData.error || '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً.');
-                setIsLoading(false);
-                return;
-              }
-            } catch {}
-          }
-        } else if (res.status === 403) {
-          const forbiddenData = await res.json().catch(() => null);
-          if (forbiddenData?.error) {
-            onError(forbiddenData.error);
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch {
-        // Local server unreachable or running in serverless cloud (Vercel) - proceed seamlessly to Cloud/DB
-      }
-
-      if (serverSuccess && loggedInUser) {
-        if (isRepAccountDeleted(loggedInUser)) {
-          onError('⛔ هذا الحساب تم حذفه وإلغاء تنشيطه نهائياً من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به.');
-          setIsLoading(false);
-          return;
-        }
-        await updateRepSessionInDb(loggedInUser.id, loggedInUser.activeSessionId, loggedInUser.lastActiveTimestamp);
-        onLoginSuccess(loggedInUser);
-        if (onClose) onClose();
-        setIsLoading(false);
-        return;
-      }
-
-      // Step 2: Supabase Cloud Authentication (Authoritative fallback for Vercel / serverless deployments)
+      // 🛡️ AUTHORITATIVE CLOUD AUTHENTICATION (Supabase Cloud = Single Source of Truth)
       let foundRep: Representative | null = null;
       const cleanPhoneDigits = cleanEmail.replace(/\D/g, '');
       const AUTH_SELECT = 'id,name,email,phone,password,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
 
       if (isSupabaseConfigured()) {
-        // A. Primary direct email lookup if contains @
+        // A. Direct email lookup
         if (cleanEmail.includes('@')) {
           try {
             const { data, error } = await supabase
@@ -156,7 +71,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           }
         }
 
-        // B. Phone-based direct lookup if phone digits >= 8
+        // B. Phone-based lookup if phone digits >= 8
         if (!foundRep && cleanPhoneDigits.length >= 8) {
           try {
             const { data, error } = await supabase
@@ -188,16 +103,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
             if (!error && data && data.length > 0) {
               foundRep = mapDbToRep(data[0]);
-            } else {
-              // Fallback to select=* if column selection encounters schema mismatch
-              const fallback = await supabase
-                .from('representatives')
-                .select('*')
-                .or(orQuery)
-                .limit(1);
-              if (!fallback.error && fallback.data && fallback.data.length > 0) {
-                foundRep = mapDbToRep(fallback.data[0]);
-              }
             }
           } catch (sdkErr) {
             console.warn('Supabase SDK lookup notice:', sdkErr);
@@ -222,17 +127,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         }
       }
 
-      // Fallback to local representatives list, bundled MOCK_REPRESENTATIVES, & cached reps if still not found
+      // Check current in-memory representatives if cloud query had schema column restriction
       if (!foundRep) {
         const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
-        const allLocalSources: Representative[] = [
-          ...representatives,
-          ...MOCK_REPRESENTATIVES,
-          ...(safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []) || []),
-          ...(safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []) || []),
-        ];
-
-        foundRep = allLocalSources.find((r) => {
+        foundRep = representatives.find((r) => {
           const rEmail = (r.email || '').trim().toLowerCase();
           const normR = rEmail.replace(/[^a-z0-9]/g, '');
           const rPhone = (r.phone || '').replace(/\D/g, '');
@@ -246,7 +144,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       }
 
       if (!foundRep) {
-        onError(`⚠️ البريد الإلكتروني أو رقم الهاتف (${cleanEmail}) غير مسجل في قاعدة البيانات.`);
+        onError(`⚠️ الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات السحابية.`);
         setIsLoading(false);
         return;
       }
@@ -258,39 +156,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         return;
       }
 
-      // Verify Password strictly (supports SHA-256, scrypt, and master credentials)
+      // Verify Password strictly
       let storedPassword = (foundRep.password || '').trim();
-
-      // Failsafe 1: Check bundled MOCK_REPRESENTATIVES if password was not returned by Supabase column restriction
-      if (!storedPassword) {
-        const normEmail = cleanEmail.toLowerCase();
-        const mockMatch = MOCK_REPRESENTATIVES.find(
-          (mr) =>
-            mr.id === foundRep!.id ||
-            (mr.email && mr.email.trim().toLowerCase() === normEmail) ||
-            (cleanPhoneDigits.length >= 8 && mr.phone && mr.phone.replace(/\D/g, '') === cleanPhoneDigits)
-        );
-        if (mockMatch?.password) {
-          storedPassword = mockMatch.password.trim();
-          foundRep.password = storedPassword;
-        }
-      }
-
-      // Failsafe 2: Check local custom and cached reps
-      if (!storedPassword) {
-        try {
-          const localCustom = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []);
-          const matchCustom = localCustom.find((cr) => cr.id === foundRep!.id || (cr.email && cr.email.toLowerCase() === cleanEmail));
-          if (matchCustom?.password) {
-            storedPassword = matchCustom.password.trim();
-            foundRep.password = storedPassword;
-          }
-        } catch {}
-      }
-
       let isPassValid = false;
 
-      // Special master password verification for Super Admin (ahmedhufne@gmail.com / info@dalilaak.com / 01143888355)
+      // Special master password verification for Super Admin
       const isSuperAdminAccount =
         cleanEmail === 'ahmedhufne@gmail.com' ||
         cleanEmail === 'info@dalilaak.com' ||

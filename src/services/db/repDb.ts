@@ -8,46 +8,12 @@ import { mapDbToRep, mapRepToDb } from './dbMappers';
 export const SAFE_REP_SELECT = 'id,name,email,phone,password,national_id,activation_face_photo,national_id_card_photo,national_id_card_back_photo,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
 
 export function enrichRepsWithFallback(reps: Representative[]): Representative[] {
-  const byEmail = new Map<string, Representative>();
-  const byId = new Map<string, Representative>();
-  const byPhone = new Map<string, Representative>();
-
-  MOCK_REPRESENTATIVES.forEach((mr) => {
-    if (mr.email) byEmail.set(mr.email.trim().toLowerCase(), mr);
-    if (mr.id) byId.set(mr.id, mr);
-    if (mr.phone) byPhone.set(mr.phone.replace(/\D/g, ''), mr);
-  });
-
-  const enriched = reps.map((r) => {
-    const rEmail = (r.email || '').trim().toLowerCase();
-    const rPhone = (r.phone || '').replace(/\D/g, '');
-    const mockMatch = byEmail.get(rEmail) || byId.get(r.id) || (rPhone ? byPhone.get(rPhone) : undefined);
-    if (mockMatch) {
-      return {
-        ...r,
-        password: r.password || mockMatch.password,
-        referralCode: r.referralCode || mockMatch.referralCode,
-        adminBypassReferral: r.adminBypassReferral ?? mockMatch.adminBypassReferral,
-        role: (r.role || mockMatch.role) as any,
-        roleTitle: r.roleTitle || mockMatch.roleTitle,
-        status: (r.status || mockMatch.status) as any,
-        avatarStatus: (r.avatarStatus || mockMatch.avatarStatus) as any,
-      };
-    }
-    return r;
-  });
-
-  const existingIds = new Set(enriched.map((r) => r.id));
-  const existingEmails = new Set(enriched.map((r) => (r.email || '').trim().toLowerCase()).filter(Boolean));
-
-  MOCK_REPRESENTATIVES.forEach((mr) => {
-    const mrEmail = (mr.email || '').trim().toLowerCase();
-    if (!existingIds.has(mr.id) && (!mrEmail || !existingEmails.has(mrEmail))) {
-      enriched.push(mr);
-    }
-  });
-
-  return enriched;
+  // Never inject fake mock representatives into real database records.
+  // Real accounts (including Admin accounts) are stored directly in Supabase Cloud.
+  if (reps && reps.length > 0) {
+    return reps;
+  }
+  return [...MOCK_REPRESENTATIVES];
 }
 
 function filterOutDeletedReps(reps: Representative[]): { active: Representative[]; deleted: Representative[] } {
@@ -149,29 +115,7 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
     }
   }
 
-  // 2. Local Server API fetch fallback (runs if Supabase is restricted or offline)
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const localRes = await fetch('/api/representatives', {
-      headers: getApiAuthHeaders(),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (Array.isArray(localData) && localData.length > 0) {
-        const mapped = localData.map(mapDbToRep);
-        const { active } = filterOutDeletedReps(mapped);
-        try {
-          safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
-        } catch {}
-        return active;
-      }
-    }
-  } catch {}
-
-  // 3. Offline fallback from local cache (merging cached and custom reps)
+  // 2. Offline fallback from local cache (merging cached and custom reps)
   try {
     const cached = safeParseJson<Representative[]>(localStorage.getItem('dalelak_cached_reps'), []) || [];
     const custom = safeParseJson<Representative[]>(localStorage.getItem('dalelak_custom_reps'), []) || [];
@@ -419,53 +363,11 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
     console.warn('LocalStorage cache update notice:', cacheErr);
   }
 
-  // 3. Always sync to local server
-  try {
-    const isNewReg = Boolean(rep.id && typeof rep.id === 'string' && rep.id.startsWith('rep_') && !isNaN(Number(rep.id.replace('rep_', ''))) && Date.now() - Number(rep.id.replace('rep_', '')) < 300000);
-    if (rep.id && !isNewReg) {
-      const putRes = await fetch(`/api/representatives/${encodeURIComponent(rep.id)}`, {
-        method: 'PUT',
-        headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(savedRep),
-      });
-      if (!putRes.ok) {
-        await fetch('/api/representatives', {
-          method: 'POST',
-          headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify(savedRep),
-        });
-      }
-    } else {
-      await fetch('/api/representatives', {
-        method: 'POST',
-        headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(savedRep),
-      });
-    }
-  } catch {}
-
-  // 4. Return result with graceful degradation for PostgreSQL 42501 / RLS permission restrictions
+  // 3. Return result strictly based on Cloud persistence when online
   if (isSupabaseConfigured() && !cloudSuccess) {
-    const isPerm =
-      isPermissionDenied ||
-      (cloudErrorMsg && (
-        cloudErrorMsg.includes('42501') ||
-        cloudErrorMsg.toLowerCase().includes('permission denied') ||
-        cloudErrorMsg.toLowerCase().includes('violates row-level security') ||
-        cloudErrorMsg.toLowerCase().includes('row-level security') ||
-        cloudErrorMsg.toLowerCase().includes('rls') ||
-        cloudErrorMsg.toLowerCase().includes('access denied') ||
-        cloudErrorMsg.toLowerCase().includes('not allowed') ||
-        cloudErrorMsg.toLowerCase().includes('unauthorized')
-      ));
-
-    if (isPerm) {
-      console.warn(
-        '⚠️ [repDb] Database permission denied (PostgreSQL 42501 / RLS) on "representatives" table.\n' +
-        'Supabase table privileges (GRANT SELECT, INSERT, UPDATE) or RLS policies need to be executed.\n' +
-        'Gracefully falling back to local storage cache ("dalelak_custom_reps" & "dalelak_cached_reps") so representative registration succeeds seamlessly without blocking the user.',
-        cloudErrorMsg
-      );
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    if (isOffline) {
+      console.warn('⚠️ [repDb] Device is currently offline. Rep data saved to local storage cache temporarily.');
       return {
         success: true,
         rep: savedRep,
@@ -475,7 +377,7 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
 
     return {
       success: false,
-      error: cloudErrorMsg || 'عذراً، تعذر حفظ بيانات الحساب في السيرفر السحابي. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.',
+      error: cloudErrorMsg || 'عذراً، تعذر حفظ بيانات الحساب في السيرفر السحابي. يرجى التحقق من صلاحيات قاعدة البيانات أو اتصال الإنترنت.',
     };
   }
 
@@ -514,14 +416,7 @@ export async function updateRepInDb(id: string, updates: Partial<Representative>
     }
   }
 
-  // 3. Always sync to local server
-  try {
-    await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
-  } catch {}
+
 }
 
 export function getDeletedRepresentatives(): Representative[] {
@@ -632,14 +527,7 @@ export async function softDeleteRepInDb(
     }
   }
 
-  // 3. Sync to local server
-  try {
-    await fetch(`/api/representatives/${encodeURIComponent(rep.id)}`, {
-      method: 'PUT',
-      headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(dbRecord),
-    });
-  } catch {}
+
 }
 
 /**
@@ -772,24 +660,11 @@ export async function hardDeleteRepFromDb(id: string): Promise<void> {
     }
   }
 
-  // 6. Delete from Local Server
-  try {
-    await fetch(`/api/representatives/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: getApiAuthHeaders(),
-    });
-    if (targetEmail) {
-      await fetch(`/api/representatives/${encodeURIComponent(targetEmail)}`, {
-        method: 'DELETE',
-        headers: getApiAuthHeaders(),
-      });
-    }
-  } catch {}
 }
 
 export const deleteRepFromDb = hardDeleteRepFromDb;
 
-export async function updateRepSessionInDb(id: string, sessionId?: string, timestamp?: number): Promise<void> {
+export async function updateRepSessionInDb(id: string, sessionId?: string | null, timestamp?: number): Promise<void> {
   const now = timestamp || Date.now();
 
   // 1. Real-time active session synchronization to LocalStorage
@@ -798,7 +673,7 @@ export async function updateRepSessionInDb(id: string, sessionId?: string, times
     if (Array.isArray(cached)) {
       const updated = cached.map((r: Representative) =>
         r.id === id || r.phone === id
-          ? { ...r, activeSessionId: sessionId !== undefined ? sessionId : r.activeSessionId, lastActiveTimestamp: now }
+          ? { ...r, activeSessionId: sessionId ? sessionId : undefined, lastActiveTimestamp: now }
           : r
       );
       safeSetLocalStorageItem('dalelak_custom_reps', JSON.stringify(updated));
@@ -806,16 +681,12 @@ export async function updateRepSessionInDb(id: string, sessionId?: string, times
   } catch {}
 
   // 2. Real-time active session synchronization to Supabase Cloud via dedicated columns
-  // 🔐 BUG-04 FIX: استخدام عمودي active_session_id و last_active_timestamp مباشرة
-  // بدلاً من تخزين بيانات الجلسة داخل حقل avatar (كان يُسبب تلف صور المندوبين في DB)
   if (isSupabaseConfigured()) {
     try {
       const sessionUpdates: Record<string, any> = {
         last_active_timestamp: now,
+        active_session_id: sessionId || null,
       };
-      if (sessionId !== undefined) {
-        sessionUpdates.active_session_id = sessionId;
-      }
 
       await supabaseRestFetch(`representatives?id=eq.${encodeURIComponent(id)}`, {
         method: 'PATCH',
@@ -825,13 +696,4 @@ export async function updateRepSessionInDb(id: string, sessionId?: string, times
       console.warn('Supabase session sync warning:', err);
     }
   }
-
-  // 3. Real-time active session synchronization to local Express backend if present
-  try {
-    await fetch('/api/auth/heartbeat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: id, sessionId, timestamp: now }),
-    });
-  } catch {}
 }

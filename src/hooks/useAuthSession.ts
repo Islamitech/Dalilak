@@ -10,6 +10,7 @@ import {
   getSafeUserForStorage,
 } from '../utils/storage';
 import { updateRepSessionInDb, fetchBusinessesFromDb } from '../services/db';
+import { supabaseRestFetch } from '../lib/supabase';
 import { isRepAccountDeleted } from '../utils/accountStatus';
 
 const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
@@ -111,12 +112,6 @@ export function useAuthSession({
 
     if (user?.id) {
       updateRepSessionInDb(user.id, undefined, undefined);
-
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
-      }).catch(() => {});
 
       setRepresentatives((prev) =>
         prev.map((r) =>
@@ -251,21 +246,33 @@ export function useAuthSession({
 
       updateRepSessionInDb(user.id, user.activeSessionId, now);
 
-      fetch('/api/auth/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, sessionId: user.activeSessionId }),
-      })
-        .then((res) => {
-          if (res.status === 409) {
-            handleLogout();
-            onNotify('⚠️ تم تسجيل الدخول لهذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.', 'warning');
-          } else if (res.status === 403) {
-            handleLogout();
-            onNotify('⛔ تم إنهاء الجلسة وإغلاق الحساب لعدم وجود صلاحية نشطة.', 'error');
+      // Cloud Single-Session & Status Verification
+      try {
+        supabaseRestFetch(
+          `representatives?id=eq.${encodeURIComponent(user.id)}&select=active_session_id,status,is_deleted`
+        ).then(async (res) => {
+          if (res.ok) {
+            const data = await res.json().catch(() => null);
+            if (Array.isArray(data) && data.length > 0) {
+              const cloudRep = data[0];
+              if (cloudRep.is_deleted || cloudRep.status === 'suspended') {
+                handleLogout();
+                onNotify('⛔ تم إنهاء الجلسة وإغلاق الحساب لعدم وجود صلاحية نشطة أو تعليق الحساب.', 'error');
+                return;
+              }
+              if (
+                user.activeSessionId &&
+                cloudRep.active_session_id &&
+                cloudRep.active_session_id !== user.activeSessionId
+              ) {
+                handleLogout();
+                onNotify('⚠️ تم تسجيل الدخول لهذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.', 'warning');
+                return;
+              }
+            }
           }
-        })
-        .catch(() => {});
+        }).catch(() => {});
+      } catch {}
     }, 15000);
 
     if (channel) {
@@ -293,11 +300,6 @@ export function useAuthSession({
     const handleUnload = () => {
       if (user?.id && user.activeSessionId) {
         updateRepSessionInDb(user.id, undefined, undefined);
-        try {
-          const payload = JSON.stringify({ userId: user.id, sessionId: user.activeSessionId });
-          const blob = new Blob([payload], { type: 'application/json' });
-          navigator.sendBeacon('/api/auth/logout', blob);
-        } catch {}
       }
     };
     window.addEventListener('beforeunload', handleUnload);
