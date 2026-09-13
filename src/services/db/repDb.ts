@@ -185,11 +185,30 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
   return active;
 }
 
-export async function saveRepToDb(rep: Representative): Promise<{ success: boolean; error?: string; rep?: Representative }> {
+export async function saveRepToDb(rep: Representative): Promise<{ success: boolean; error?: string; rep?: Representative; isOfflineFallback?: boolean }> {
   const dbRecord = mapRepToDb(rep);
   let savedRep: Representative = rep;
   let cloudSuccess = false;
   let cloudErrorMsg: string | undefined = undefined;
+  let isPermissionDenied = false;
+
+  const isPermissionError = (err: any): boolean => {
+    if (!err) return false;
+    const code = String(err.code || err.statusCode || err.status || '');
+    const msg = String(err.message || err.details || err.hint || err.error_description || '').toLowerCase();
+    return (
+      code === '42501' ||
+      code === '401' ||
+      code === '403' ||
+      msg.includes('permission denied') ||
+      msg.includes('violates row-level security') ||
+      msg.includes('row-level security') ||
+      msg.includes('rls') ||
+      msg.includes('access denied') ||
+      msg.includes('not allowed') ||
+      msg.includes('unauthorized')
+    );
+  };
 
   // 1. Direct Supabase Cloud Save
   if (isSupabaseConfigured()) {
@@ -219,10 +238,16 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
               error: '⚠️ البريد الإلكتروني أو رقم الهاتف مسجل بالفعل لحساب آخر في المنظومة.',
             };
           }
+          if (isPermissionError(error)) {
+            isPermissionDenied = true;
+          }
           cloudErrorMsg = error.message;
         }
       } catch (updateErr: any) {
         console.warn('Supabase SDK update exception:', updateErr);
+        if (isPermissionError(updateErr)) {
+          isPermissionDenied = true;
+        }
         cloudErrorMsg = updateErr?.message;
       }
 
@@ -243,9 +268,20 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
               savedRep = mapDbToRep(patchData[0]);
               cloudSuccess = true;
             }
+          } else {
+            if (patchRes.status === 401 || patchRes.status === 403) {
+              isPermissionDenied = true;
+            }
+            const patchErr = await patchRes.json().catch(() => null);
+            if (isPermissionError(patchErr)) {
+              isPermissionDenied = true;
+            }
           }
         } catch (patchErr) {
           console.warn('Supabase REST PATCH exception:', patchErr);
+          if (isPermissionError(patchErr)) {
+            isPermissionDenied = true;
+          }
         }
       }
     }
@@ -276,10 +312,16 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
               };
             }
           }
+          if (isPermissionError(error)) {
+            isPermissionDenied = true;
+          }
           cloudErrorMsg = error.message;
         }
       } catch (sdkErr: any) {
         console.warn('Supabase SDK insert exception:', sdkErr);
+        if (isPermissionError(sdkErr)) {
+          isPermissionDenied = true;
+        }
         cloudErrorMsg = sdkErr?.message;
       }
 
@@ -302,10 +344,16 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
                 error: '⚠️ البريد الإلكتروني أو رقم الهاتف مسجل مسبقاً في المنظومة.',
               };
             }
+            if (isPermissionError(error)) {
+              isPermissionDenied = true;
+            }
             cloudErrorMsg = error.message;
           }
         } catch (upsertErr: any) {
           console.warn('Supabase SDK upsert exception:', upsertErr);
+          if (isPermissionError(upsertErr)) {
+            isPermissionDenied = true;
+          }
         }
       }
 
@@ -323,9 +371,21 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
               savedRep = mapDbToRep(restData[0]);
             }
             cloudSuccess = true;
+          } else {
+            if (insertRes.status === 401 || insertRes.status === 403) {
+              isPermissionDenied = true;
+            }
+            const restErr = await insertRes.json().catch(() => null);
+            if (isPermissionError(restErr)) {
+              isPermissionDenied = true;
+              cloudErrorMsg = restErr?.message || restErr?.hint || `HTTP ${insertRes.status} permission denied`;
+            }
           }
         } catch (restErr: any) {
           console.warn('Supabase REST fallback exception:', restErr);
+          if (isPermissionError(restErr)) {
+            isPermissionDenied = true;
+          }
         }
       }
     }
@@ -351,7 +411,9 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
 
     updateCache('dalelak_cached_reps');
     updateCache('dalelak_custom_reps');
-  } catch {}
+  } catch (cacheErr) {
+    console.warn('LocalStorage cache update notice:', cacheErr);
+  }
 
   // 3. Always sync to local server
   try {
@@ -377,7 +439,35 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
     }
   } catch {}
 
+  // 4. Return result with graceful degradation for PostgreSQL 42501 / RLS permission restrictions
   if (isSupabaseConfigured() && !cloudSuccess) {
+    const isPerm =
+      isPermissionDenied ||
+      (cloudErrorMsg && (
+        cloudErrorMsg.includes('42501') ||
+        cloudErrorMsg.toLowerCase().includes('permission denied') ||
+        cloudErrorMsg.toLowerCase().includes('violates row-level security') ||
+        cloudErrorMsg.toLowerCase().includes('row-level security') ||
+        cloudErrorMsg.toLowerCase().includes('rls') ||
+        cloudErrorMsg.toLowerCase().includes('access denied') ||
+        cloudErrorMsg.toLowerCase().includes('not allowed') ||
+        cloudErrorMsg.toLowerCase().includes('unauthorized')
+      ));
+
+    if (isPerm) {
+      console.warn(
+        '⚠️ [repDb] Database permission denied (PostgreSQL 42501 / RLS) on "representatives" table.\n' +
+        'Supabase table privileges (GRANT SELECT, INSERT, UPDATE) or RLS policies need to be executed.\n' +
+        'Gracefully falling back to local storage cache ("dalelak_custom_reps" & "dalelak_cached_reps") so representative registration succeeds seamlessly without blocking the user.',
+        cloudErrorMsg
+      );
+      return {
+        success: true,
+        rep: savedRep,
+        isOfflineFallback: true,
+      };
+    }
+
     return {
       success: false,
       error: cloudErrorMsg || 'عذراً، تعذر حفظ بيانات الحساب في السيرفر السحابي. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.',

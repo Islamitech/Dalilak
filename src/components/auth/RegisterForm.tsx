@@ -182,13 +182,28 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     // 2. Supabase DB Async Query check (Duplicate email or phone)
     try {
-      const { data: dbCheck } = await supabase
+      const { data: dbCheck, error: checkError } = await supabase
         .from('representatives')
         .select('id, email, phone')
         .or(`email.ilike.${cleanRegEmail},phone.eq.${regPhone}`)
         .limit(1);
 
-      if (dbCheck && dbCheck.length > 0) {
+      if (checkError) {
+        if (
+          checkError.code === '42501' ||
+          checkError.message?.toLowerCase().includes('permission denied') ||
+          checkError.message?.toLowerCase().includes('violates row-level security') ||
+          checkError.message?.toLowerCase().includes('row-level security')
+        ) {
+          console.warn(
+            '⚠️ Supabase duplicate check encountered 42501 permission denied on representatives table. ' +
+            'Continuing registration gracefully with local deduplication check.',
+            checkError
+          );
+        } else {
+          console.warn('Supabase duplicate check notice:', checkError);
+        }
+      } else if (dbCheck && dbCheck.length > 0) {
         const found = dbCheck[0];
         if (found.email && found.email.toLowerCase() === cleanRegEmail) {
           onError(
@@ -200,8 +215,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         setIsLoading(false);
         return;
       }
-    } catch (dbErr) {
-      console.log('Supabase duplicate check notice:', dbErr);
+    } catch (dbErr: any) {
+      if (
+        dbErr?.code === '42501' ||
+        dbErr?.message?.toLowerCase().includes('permission denied')
+      ) {
+        console.warn('Supabase duplicate check 42501 exception caught gracefully:', dbErr);
+      } else {
+        console.log('Supabase duplicate check notice:', dbErr);
+      }
     }
 
     const timestamp = Date.now();

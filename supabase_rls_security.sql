@@ -89,12 +89,19 @@ ALTER TABLE IF EXISTS public.payment_config ENABLE ROW LEVEL SECURITY;
 -- 2. صلاحيات جدول المندوبين والمستخدمين (Table Privileges & Access Grants)
 -- منح الصلاحيات للأدوار العامة مع حوكمة أمان الصفوف عبر RLS لتمكين التسجيل والدخول المباشر
 -- ------------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON SCHEMA public TO postgres, service_role;
+
 GRANT SELECT, INSERT, UPDATE ON public.representatives TO anon, authenticated;
-GRANT ALL ON public.representatives TO service_role;
-GRANT ALL ON public.businesses TO service_role;
-GRANT ALL ON public.payout_requests TO service_role;
-GRANT ALL ON public.leads TO service_role;
-GRANT ALL ON public.payment_config TO service_role;
+GRANT ALL ON public.representatives TO service_role, postgres;
+GRANT ALL ON public.businesses TO service_role, postgres;
+GRANT ALL ON public.payout_requests TO service_role, postgres;
+GRANT ALL ON public.leads TO service_role, postgres;
+GRANT ALL ON public.payment_config TO service_role, postgres;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role, postgres;
 
 -- ------------------------------------------------------------------------------
 -- 3. سياسات جدول المندوبين (representatives)
@@ -109,29 +116,53 @@ DROP POLICY IF EXISTS "Representatives delete restricted" ON public.representati
 DROP POLICY IF EXISTS "Reps read basic safe info" ON public.representatives;
 DROP POLICY IF EXISTS "Reps registration restricted" ON public.representatives;
 DROP POLICY IF EXISTS "Reps self update restricted" ON public.representatives;
+DROP POLICY IF EXISTS "Allow anon and auth insert reps" ON public.representatives;
+DROP POLICY IF EXISTS "Allow select non-deleted reps" ON public.representatives;
+DROP POLICY IF EXISTS "Allow reps update own account" ON public.representatives;
+DROP POLICY IF EXISTS "Service role full access on reps" ON public.representatives;
 
 -- السماح بقراءة الحسابات غير المحذوفة للجميع
 CREATE POLICY "Reps read basic safe info"
 ON public.representatives FOR SELECT
-USING (deleted_at IS NULL);
+TO anon, authenticated
+USING (
+    deleted_at IS NULL AND
+    (is_deleted IS NULL OR is_deleted = false)
+);
 
 -- السماح بالتسجيل المباشر لجميع الحسابات بصلاحية مندوب أو مستخدم مع تفعيل الحساب
 CREATE POLICY "Reps registration restricted"
 ON public.representatives FOR INSERT
+TO anon, authenticated
 WITH CHECK (
-    (role = 'rep' OR role IS NULL)
+    (role = 'rep' OR role IS NULL) AND
+    (status IN ('active', 'pending', 'suspended') OR status IS NULL)
 );
 
 -- السماح بتحديث الجلسات وبيانات الحساب (الجلسات النشطة، آخر ظهور، والبيانات الشخصية)
 CREATE POLICY "Reps self update restricted"
 ON public.representatives FOR UPDATE
-USING (deleted_at IS NULL)
-WITH CHECK (deleted_at IS NULL);
+TO anon, authenticated
+USING (
+    deleted_at IS NULL AND
+    (is_deleted IS NULL OR is_deleted = false)
+)
+WITH CHECK (
+    deleted_at IS NULL AND
+    (is_deleted IS NULL OR is_deleted = false)
+);
 
 -- الحذف مقتصر تماماً على الإدارة أو service_role
 CREATE POLICY "Representatives delete restricted"
 ON public.representatives FOR DELETE
-USING (auth.role() = 'service_role');
+TO service_role
+USING (true);
+
+CREATE POLICY "Service role full access on reps"
+ON public.representatives FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
 
 -- ------------------------------------------------------------------------------
 -- 4. سياسات جدول الأنشطة التجارية (businesses)
