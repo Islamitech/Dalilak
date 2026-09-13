@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Business } from '../types';
 import { fetchLocationAddress } from '../utils/geocoding';
-import { getCategoryIcon } from '../utils/directoryEnhancements';
 import { triggerHaptic } from '../utils/haptics';
 import {
   MapTileLayerType,
@@ -14,6 +13,8 @@ import {
   MapFloatingControls,
   MapSelectedBusinessDrawer,
   MapFooterBar,
+  createLightweightBadgeHtml,
+  createLightweightClusterHtml,
 } from './map';
 
 export type { MapTileLayerType, InteractiveMapProps };
@@ -318,38 +319,20 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       clusters.forEach((cluster) => {
         if (cluster.items.length === 1) {
           const biz = cluster.items[0];
-          const isVerified = biz.verificationStatus === 'verified';
           const isSelected = selectedBiz?.id === biz.id;
-          const color = isVerified ? '#10b981' : '#f59e0b';
-          const bg = isVerified ? '#064e3b' : '#78350f';
-          const safeName = escapeHtml(biz.nameAr || 'منشأة معتمدة');
-          const categoryIcon = getCategoryIcon(biz.category);
-
           const showFullPill = zoomLevel >= 15;
-          const htmlContent = showFullPill
-            ? `
-              <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; width: 180px; font-family: Cairo, -apple-system, sans-serif;">
-                <div style="background: ${isSelected ? '#f59e0b' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 10px; border-radius: 9999px; font-weight: 800; font-size: 11px; max-width: 175px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 5px; transition: transform 0.2s;">
-                  <span style="font-size: 13px; flex-shrink: 0; line-height: 1;">${categoryIcon}</span>
-                  <span style="max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; line-height: 1.2;">${safeName}</span>
-                </div>
-                <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${isSelected ? '#f59e0b' : color}; margin-top: -1px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));"></div>
-                <div style="width: 4px; height: 4px; border-radius: 9999px; background: ${isSelected ? '#ffffff' : color}; margin-top: -2px;"></div>
-              </div>
-            `
-            : `
-              <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                <div style="background: ${isSelected ? '#f59e0b' : color}; width: 28px; height: 28px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 3px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">
-                  ${categoryIcon}
-                </div>
-              </div>
-            `;
+
+          const { html, iconSize, iconAnchor } = createLightweightBadgeHtml(
+            biz,
+            isSelected,
+            showFullPill
+          );
 
           const bizIcon = window.L.divIcon({
             className: 'custom-biz-pin',
-            html: htmlContent,
-            iconSize: showFullPill ? [180, 42] : [28, 28],
-            iconAnchor: showFullPill ? [90, 42] : [14, 14],
+            html,
+            iconSize,
+            iconAnchor,
           });
 
           const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
@@ -363,18 +346,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           markersGroup.addLayer(marker);
         } else {
           // Cluster pin
+          const { html, iconSize, iconAnchor } = createLightweightClusterHtml(cluster.items.length);
           const clusterIcon = window.L.divIcon({
             className: 'custom-cluster-pin',
-            html: `
-              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
-                <div style="background: linear-gradient(135deg, #d97706, #b45309); border: 2.5px solid #fef08a; color: #ffffff; width: 44px; height: 44px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(217, 119, 6, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; font-family: Cairo, sans-serif;">
-                  <span style="font-size: 13px; font-weight: 900; line-height: 1;">${cluster.items.length}</span>
-                  <span style="font-size: 8px; font-weight: 800; color: #fef08a; line-height: 1;">أماكن</span>
-                </div>
-              </div>
-            `,
-            iconSize: [44, 44],
-            iconAnchor: [22, 22],
+            html,
+            iconSize,
+            iconAnchor,
           });
 
           const clusterMarker = window.L.marker([cluster.centerLat, cluster.centerLng], { icon: clusterIcon });
