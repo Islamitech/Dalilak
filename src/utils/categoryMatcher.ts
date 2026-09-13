@@ -5,13 +5,18 @@ import { normalizeArabicText } from './arabicSearch';
  * 🏷️ Keywords mapping for each main category group in Dalelak
  */
 const GROUP_KEYWORDS: Record<string, string[]> = {
-  'المطاعم والأغذية والمشروبات': [
+  'المطاعم والكافيهات والمأكولات': [
     'مطعم', 'اكل', 'ماكولات', 'مشويات', 'شاورما', 'كافيه', 'مقهى', 'كوفي',
-    'مخبز', 'حلواني', 'حلويات', 'معجنات', 'سوبر ماركت', 'ماركت', 'هايبر',
-    'بقالة', 'عصائر', 'ايس كريم', 'جيلاتي', 'جزارة', 'لحوم', 'دواجن', 'فراخ',
+    'مخبز', 'حلواني', 'حلويات', 'معجنات',
+    'عصائر', 'ايس كريم', 'جيلاتي', 'فول', 'طعمية', 'كشري', 'بيتزا',
+    'برجر', 'فطير', 'restaurant', 'cafe', 'bakery', 'pizza', 'burger'
+  ],
+  'السوبر ماركت والبقالة والتموين': [
+    'سوبر ماركت', 'سوبرماركت', 'ماركت', 'هايبر', 'هايبر ماركت',
+    'بقالة', 'ميني ماركت', 'جزارة', 'لحوم', 'دواجن', 'فراخ',
     'اسماك', 'سمك', 'فسخاني', 'عطارة', 'بهارات', 'توابل', 'خضار', 'فواكه',
-    'محمص', 'مكسرات', 'تسالي', 'بن', 'قهوة', 'فول', 'طعمية', 'كشري', 'بيتزا',
-    'برجر', 'فطير', 'restaurant', 'cafe', 'bakery', 'supermarket', 'market', 'grocery', 'food'
+    'محمص', 'مكسرات', 'تسالي', 'بن', 'قهوة', 'تموين',
+    'supermarket', 'market', 'grocery', 'butcher'
   ],
   'العيادات والرعاية الصحية والطبية': [
     'عيادة', 'طبيب', 'دكتور', 'مركز طبي', 'صحي', 'اسنان', 'عيون', 'بصريات',
@@ -159,6 +164,40 @@ export function matchesCategoryFilter(
   const normCat = normalizeArabicText(rawCat);
   const normFilter = normalizeArabicText(categoryFilter);
 
+  // 🛡️ CRITICAL TAXONOMY GUARD: Strict Mutual Exclusion between Restaurants & Supermarkets
+  const isRestaurantFilter =
+    categoryFilter === 'المطاعم والكافيهات والمأكولات' ||
+    categoryFilter === 'المطاعم والأغذية والمشروبات' ||
+    categoryFilter.includes('مطاعم') ||
+    categoryFilter.includes('مطعم') ||
+    categoryFilter.includes('مأكولات') ||
+    categoryFilter.includes('كافيه');
+
+  const isSupermarketFilter =
+    categoryFilter === 'السوبر ماركت والبقالة والتموين' ||
+    categoryFilter.includes('سوبر') ||
+    categoryFilter.includes('ماركت') ||
+    categoryFilter.includes('بقالة');
+
+  const rawCombined = `${rawCat} ${entity.nameAr || ''} ${entity.businessName || ''}`.toLowerCase();
+  const isSupermarketEntity =
+    rawCat === 'سوبر ماركت / هايبر وبقالة' ||
+    rawCat === 'سوبرماركت' ||
+    rawCat === 'سوبر ماركت' ||
+    rawCat === 'خضروات وفواكه طازجة' ||
+    rawCat === 'جزارة / لحوم ودواجن وأسماك' ||
+    rawCat === 'عطارة وتوابل / أعشاب طبيعية' ||
+    rawCombined.includes('سوبر ماركت') ||
+    rawCombined.includes('سوبرماركت') ||
+    rawCombined.includes('ماركت') ||
+    rawCombined.includes('هايبر') ||
+    rawCombined.includes('بقالة');
+
+  // If filtering by restaurants/cafes, NEVER return supermarkets/groceries!
+  if (isRestaurantFilter && isSupermarketEntity) {
+    return false;
+  }
+
   // 1. Direct exact or substring match in category field
   if (rawCat === categoryFilter || (normCat && normFilter && normCat.includes(normFilter))) {
     return true;
@@ -214,24 +253,57 @@ export function matchesCategoryFilter(
     }
   }
 
-  // 3b. Semantic description check:
-  // If the entity's description or notes explicitly mentions the subcategory's core tokens
-  // (e.g. if filter is "محل ملابس رجالي وبدل", check if text contains "رجالي" or "بدل")
-  const filterTokens = normFilter
-    .split(/\s+/)
-    .filter((tok) => tok.length >= 3 && !['محل', 'متجر', 'مركز', 'خدمات', 'بيع', 'شراء'].includes(tok));
-
-  if (filterTokens.length > 0) {
-    const combinedEntityText = normalizeArabicText(
-      `${rawCat} ${entity.nameAr || ''} ${entity.businessName || ''} ${entity.description || ''} ${entity.notes || ''}`
-    );
-
-    // If all significant tokens or at least 2 match
-    const matchingTokensCount = filterTokens.filter((tok) => combinedEntityText.includes(tok)).length;
-    if (matchingTokensCount >= Math.min(filterTokens.length, 2)) {
+  // 3b. Dedicated services tags check (strictly excluding address, landmarks, description, and notes)
+  if (entity.services && entity.services.length > 0) {
+    const normServices = normalizeArabicText(entity.services.join(' '));
+    if (normServices.includes(normFilter)) {
       return true;
     }
   }
 
   return false;
 }
+
+/**
+ * 🌟 الأنشطة الرائجة: المنشآت التي تم تسجيلها بشكل مجاني / بدون تحصيل رسوم
+ */
+export const isTrendingFreeActivity = (b: {
+  isFeeExempt?: boolean;
+  packageId?: string;
+  packagePrice?: number;
+  paymentStatus?: string;
+  amountPaid?: number;
+  notes?: string;
+}): boolean => {
+  return Boolean(
+    b.isFeeExempt ||
+    b.packageId === 'pkg_free_directory' ||
+    b.packageId === 'free_directory_listing' ||
+    (b.packagePrice === 0) ||
+    b.paymentStatus === 'exempt' ||
+    b.paymentStatus === 'free' ||
+    ((!b.amountPaid || b.amountPaid === 0) && (b.isFeeExempt || b.packagePrice === 0 || !b.paymentStatus || b.paymentStatus === 'unpaid')) ||
+    b.notes?.includes('trending_free') ||
+    b.notes?.includes('نشاط رائج') ||
+    b.notes?.includes('مكان رائج') ||
+    b.notes?.includes('مجاني')
+  );
+};
+
+/**
+ * 💳 الأنشطة ذات الفواتير المحصلة: المنشآت المسددة باقات مدفوعة
+ */
+export const isCollectedInvoiceActivity = (b: {
+  paymentStatus?: string;
+  amountPaid?: number;
+  packagePrice?: number;
+  invoiceNumber?: string;
+  isFeeExempt?: boolean;
+}): boolean => {
+  if (b.isFeeExempt || (b.packagePrice || 0) === 0) return false;
+  return Boolean(
+    b.paymentStatus === 'fully_paid' ||
+    ((b.amountPaid || 0) >= (b.packagePrice || 250) && (b.amountPaid || 0) > 0) ||
+    ((b.amountPaid || 0) > 0 && Boolean(b.invoiceNumber))
+  );
+};

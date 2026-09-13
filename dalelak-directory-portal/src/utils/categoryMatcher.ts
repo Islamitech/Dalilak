@@ -6,10 +6,19 @@ import { normalizeArabicText } from './arabicSearch';
  */
 export const CATEGORY_ALIASES: Record<string, string> = {
   'الكل': 'all',
-  'مطاعم': 'المطاعم والأغذية والمشروبات',
-  'مطاعم ومأكولات': 'المطاعم والأغذية والمشروبات',
-  'مطاعم وكافيهات': 'المطاعم والأغذية والمشروبات',
-  'أغذية ومشروبات': 'المطاعم والأغذية والمشروبات',
+  'مطاعم': 'المطاعم والكافيهات والمأكولات',
+  'مطاعم ومأكولات': 'المطاعم والكافيهات والمأكولات',
+  'مطاعم وكافيهات': 'المطاعم والكافيهات والمأكولات',
+  'كافيهات': 'المطاعم والكافيهات والمأكولات',
+  'أغذية ومشروبات': 'المطاعم والكافيهات والمأكولات',
+  'المطاعم والأغذية والمشروبات': 'المطاعم والكافيهات والمأكولات',
+  'سوبر ماركت': 'السوبر ماركت والبقالة والتموين',
+  'سوبرماركت': 'السوبر ماركت والبقالة والتموين',
+  'سوبر ماركت وبقالة': 'السوبر ماركت والبقالة والتموين',
+  'بقالة وتموين': 'السوبر ماركت والبقالة والتموين',
+  'هايبر ماركت': 'السوبر ماركت والبقالة والتموين',
+  'ماركت': 'السوبر ماركت والبقالة والتموين',
+  'بقالة': 'السوبر ماركت والبقالة والتموين',
   'طبي وصيدلي': 'العيادات والرعاية الصحية والطبية',
   'رعاية صحية': 'العيادات والرعاية الصحية والطبية',
   'أطباء وعيادات': 'العيادات والرعاية الصحية والطبية',
@@ -63,15 +72,21 @@ export const CATEGORY_ALIASES: Record<string, string> = {
  * Includes Arabic roots, common spellings, Egyptian colloquialisms, and English equivalents.
  */
 export const GROUP_KEYWORDS: Record<string, string[]> = {
-  'المطاعم والأغذية والمشروبات': [
+  'المطاعم والكافيهات والمأكولات': [
     'مطعم', 'اكل', 'ماكولات', 'مشويات', 'شاورما', 'كافيه', 'مقهى', 'كوفي', 'قهوة',
-    'مخبز', 'حلواني', 'حلويات', 'معجنات', 'سوبر ماركت', 'ماركت', 'هايبر', 'بقالة',
-    'عصائر', 'عصير', 'ايس كريم', 'جيلاتي', 'جزارة', 'لحوم', 'لحمة', 'دواجن', 'فراخ',
-    'اسماك', 'سمك', 'فسخاني', 'عطارة', 'بهارات', 'توابل', 'خضار', 'فواكه', 'فاكهة',
-    'محمص', 'مكسرات', 'تسالي', 'بن', 'فول', 'طعمية', 'كشري', 'بيتزا', 'برجر', 'فطير',
-    'وجبات', 'سندوتشات', 'سندوتش', 'تيك اواي', 'دليفري', 'شاي', 'نسكافيه', 'مطابخ',
-    'شوكولاتة', 'كيك', 'تورتة', 'شاي بلبن', 'مطاعم', 'اغذية', 'مشروبات', 'food',
-    'restaurant', 'cafe', 'coffee', 'bakery', 'supermarket', 'market', 'grocery', 'pizza', 'burger'
+    'مخبز', 'حلواني', 'حلويات', 'معجنات',
+    'عصائر', 'عصير', 'ايس كريم', 'جيلاتي',
+    'فول', 'طعمية', 'كشري', 'بيتزا', 'برجر', 'فطير',
+    'وجبات', 'سندوتشات', 'سندوتش', 'تيك اواي', 'دليفري', 'شاي', 'نسكافيه',
+    'شوكولاتة', 'كيك', 'تورتة', 'شاي بلبن', 'مطاعم',
+    'restaurant', 'cafe', 'coffee', 'bakery', 'pizza', 'burger'
+  ],
+  'السوبر ماركت والبقالة والتموين': [
+    'سوبر ماركت', 'سوبرماركت', 'ماركت', 'هايبر', 'هايبر ماركت', 'بقالة', 'ميني ماركت',
+    'جزارة', 'لحوم', 'لحمة', 'دواجن', 'فراخ', 'اسماك', 'سمك', 'فسخاني',
+    'عطارة', 'بهارات', 'توابل', 'خضار', 'خضروات', 'فواكه', 'فاكهة',
+    'محمص', 'مكسرات', 'تسالي', 'بن', 'تموين', 'سوبر ماركت / هايبر وبقالة',
+    'supermarket', 'market', 'grocery', 'butcher', 'hypermarket'
   ],
   'العيادات والرعاية الصحية والطبية': [
     'عيادة', 'طبيب', 'دكتور', 'مركز طبي', 'صحي', 'صحة', 'اسنان', 'عيون', 'بصريات',
@@ -261,6 +276,39 @@ export function matchesCategoryFilter(
   const normCat = normalizeArabicText(rawCat);
   const normFilter = normalizeArabicText(categoryFilter);
   const normResolved = normalizeArabicText(resolvedGroup);
+
+  // 🛡️ CRITICAL TAXONOMY GUARD: Strict Mutual Exclusion between Restaurants & Supermarkets
+  const isRestaurantFilter =
+    resolvedGroup === 'المطاعم والكافيهات والمأكولات' ||
+    categoryFilter.includes('مطاعم') ||
+    categoryFilter.includes('مطعم') ||
+    categoryFilter.includes('مأكولات') ||
+    categoryFilter.includes('كافيه');
+
+  const isSupermarketFilter =
+    resolvedGroup === 'السوبر ماركت والبقالة والتموين' ||
+    categoryFilter.includes('سوبر') ||
+    categoryFilter.includes('ماركت') ||
+    categoryFilter.includes('بقالة');
+
+  const rawCombined = `${rawCat} ${entity.nameAr || ''} ${entity.nameEn || ''}`.toLowerCase();
+  const isSupermarketEntity =
+    rawCat === 'سوبر ماركت / هايبر وبقالة' ||
+    rawCat === 'سوبرماركت' ||
+    rawCat === 'سوبر ماركت' ||
+    rawCat === 'خضروات وفواكه طازجة' ||
+    rawCat === 'جزارة / لحوم ودواجن وأسماك' ||
+    rawCat === 'عطارة وتوابل / أعشاب طبيعية' ||
+    rawCombined.includes('سوبر ماركت') ||
+    rawCombined.includes('سوبرماركت') ||
+    rawCombined.includes('ماركت') ||
+    rawCombined.includes('هايبر') ||
+    rawCombined.includes('بقالة');
+
+  // If filtering by restaurants/cafes, NEVER return supermarkets/groceries!
+  if (isRestaurantFilter && isSupermarketEntity) {
+    return false;
+  }
 
   // 1. Direct exact match in category field or resolved group
   if (

@@ -17,11 +17,15 @@ export function normalizeArabicText(text?: string | null): string {
     .replace(/[أإآٱ]/g, 'ا')
     // 3. Normalize Teh Marbuta and Heh (ة -> ه)
     .replace(/ة/g, 'ه')
-    // 4. Normalize Alef Maksura and Yeh (ى -> ي)
-    .replace(/ى/g, 'ي')
-    // 5. Remove Tatweel / Kashida (ـ)
+    // 4. Normalize Alef Maksura and Yeh (ى, ی -> ي)
+    .replace(/[ىی]/g, 'ي')
+    // 5. Normalize Persian / Urdu letters (پ -> ب, ڤ -> ف, ک -> ك)
+    .replace(/پ/g, 'ب')
+    .replace(/ڤ/g, 'ف')
+    .replace(/ک/g, 'ك')
+    // 6. Remove Tatweel / Kashida (ـ)
     .replace(/ـ/g, '')
-    // 6. Clean extra spaces
+    // 7. Clean extra spaces
     .replace(/\s+/g, ' ');
 }
 

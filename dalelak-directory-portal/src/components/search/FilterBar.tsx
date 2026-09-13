@@ -6,6 +6,7 @@ import {
   Wrench,
   Scissors,
   ShoppingBag,
+  ShoppingCart,
   GraduationCap,
   Shirt,
   SlidersHorizontal,
@@ -36,6 +37,7 @@ export interface FilterBarProps {
 export const POPULAR_CATEGORY_CHIPS = [
   { label: 'الكل', value: 'all', icon: Sparkles },
   { label: 'مطاعم ومأكولات', value: 'مطاعم ومأكولات', icon: UtensilsCrossed },
+  { label: 'سوبر ماركت وبقالة', value: 'سوبر ماركت وبقالة', icon: ShoppingCart },
   { label: 'طبي وصيدلي', value: 'طبي وصيدلي', icon: ShieldCheck },
   { label: 'سيارات وصيانة', value: 'سيارات وصيانة', icon: Wrench },
   { label: 'تجميل وعناية', value: 'تجميل وعناية', icon: Scissors },

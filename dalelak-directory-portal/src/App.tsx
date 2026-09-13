@@ -121,14 +121,39 @@ export default function App() {
       ? rawGoogleMapsUrl
       : undefined;
 
+    const rawName = (r.name_ar || r.nameAr || '').replace(BIDI_CONTROL_REGEX, '').trim();
+    const rawCity = (r.city || '').trim();
+    const rawStreet = (r.street || '').trim();
+    const fullLocText = `${rawCity} ${rawStreet} ${rawName}`.toLowerCase();
+
+    // 🗺️ Dynamic Self-Healing: المعادي وزهراء المعادي تتبع محافظة القاهرة دائماً
+    let resolvedGov = r.governorate || 'القاهرة';
+    if (fullLocText.includes('زهراء المعادي') || fullLocText.includes('المعادي') || fullLocText.includes('مدينة نصر') || fullLocText.includes('التجمع')) {
+      resolvedGov = 'القاهرة';
+    }
+
+    // 🏷️ Category Self-Healing: تصحيح وتوحيد الفئات الشاذة
+    let cleanCategory = r.category || 'خدمات عامة';
+    const normCategory = cleanCategory.trim().toLowerCase();
+    if (
+      normCategory.includes('سوپر') ||
+      normCategory === 'سوبرماركت' ||
+      normCategory === 'سوبر ماركت' ||
+      normCategory.includes('هايبر ماركت')
+    ) {
+      cleanCategory = 'سوبر ماركت / هايبر وبقالة';
+    } else if (fullLocText.includes('الاقصى للتوكيلات') || fullLocText.includes('توكيلات تجارية')) {
+      cleanCategory = 'معرض سيارات / بيع وشراء';
+    }
+
     return {
       id: r.id,
-      nameAr: (r.name_ar || r.nameAr || '').replace(BIDI_CONTROL_REGEX, '').trim(),
+      nameAr: rawName,
       nameEn: (r.name_en || r.nameEn || '').replace(BIDI_CONTROL_REGEX, '').trim(),
-      category: r.category || 'خدمات عامة',
-      governorate: r.governorate || 'الجيزة',
-      city: r.city || '',
-      street: r.street || '',
+      category: cleanCategory,
+      governorate: resolvedGov,
+      city: rawCity,
+      street: rawStreet,
       landmark: r.landmark || '',
       lat,
       lng,

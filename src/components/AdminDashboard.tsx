@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, User, InterestedLead } from '../types';
 import { sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { matchesBusinessSearch } from '../utils/arabicSearch';
-import { matchesCategoryFilter, getCategoryGroupFor } from '../utils/categoryMatcher';
+import { matchesCategoryFilter, getCategoryGroupFor, isTrendingFreeActivity, isCollectedInvoiceActivity } from '../utils/categoryMatcher';
 import { triggerHaptic } from '../utils/haptics';
 
 // Custom Hook for all financial and metric calculations
@@ -252,7 +252,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           ) {
             return false;
           }
-          if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
+          if (paymentFilter === 'trending_free') {
+            if (!isTrendingFreeActivity(b)) return false;
+          } else if (paymentFilter === 'fully_paid') {
+            if (!isCollectedInvoiceActivity(b)) return false;
+          } else if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
             return false;
           }
           const hasGoogleMap = Boolean(
@@ -262,7 +266,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               !b.googleMapsUrl.includes('search/?api=1&query=')
           );
 
-          if (verificationFilter === 'not_submitted' || verificationFilter === 'google_not_submitted') {
+          if (verificationFilter === 'trending_free') {
+            if (!isTrendingFreeActivity(b)) return false;
+          } else if (verificationFilter === 'collected_invoices') {
+            if (!isCollectedInvoiceActivity(b)) return false;
+          } else if (verificationFilter === 'not_submitted' || verificationFilter === 'google_not_submitted') {
             const isNotSubmitted = b.verificationStatus === 'verified' && !hasGoogleMap && b.googleSyncStatus !== 'in_progress';
             if (!isNotSubmitted) return false;
           } else if (verificationFilter === 'in_progress' || verificationFilter === 'google_pending') {
@@ -652,6 +660,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           verifiedWithDebtCount={metrics.verifiedWithDebtCount}
           directoryApprovedCount={metrics.directoryApprovedCount}
           pendingApprovalCount={metrics.pendingApprovalCount}
+          trendingFreeCount={metrics.trendingFreeCount}
+          collectedInvoicesCount={metrics.collectedInvoicesCount}
           onCollectPayment={onCollectPayment}
           onSetSyncModalBiz={setSyncModalBiz}
           onSetEditingBusiness={setEditingBusiness}

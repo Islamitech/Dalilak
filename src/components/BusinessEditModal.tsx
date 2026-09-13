@@ -224,12 +224,16 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     try {
       onSave(updatedFormData);
       setIsEditMode(false);
-      setStatusNotification('تم حفظ وتحديث بيانات المكان في قاعدة البيانات بنجاح ✅');
+      triggerHaptic('success');
+      setStatusNotification('تم حفظ وتحديث بيانات المكان في قاعدة البيانات بنجاح');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'تعذر حفظ البيانات، يرجى المحاولة مرة أخرى');
+      triggerHaptic('warning');
     } finally {
       setTimeout(() => {
         setIsSaving(false);
       }, 400);
-      setTimeout(() => setStatusNotification(null), 4000);
+      setTimeout(() => setStatusNotification(null), 3500);
     }
   };
 
@@ -263,7 +267,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     }
     setFormData(updated);
     onSave(updated);
-    setStatusNotification(exempt ? 'تم إعفاء المكان وتصفير الرسوم وتحديث قاعدة البيانات بنجاح ✅' : 'تم تحويل المكان إلى منشأة تجارية عادية وتحديث قاعدة البيانات بنجاح ✅');
+    setStatusNotification(exempt ? 'تم إعفاء المكان وتصفير الرسوم وتحديث قاعدة البيانات بنجاح' : 'تم تحويل المكان إلى منشأة تجارية عادية وتحديث قاعدة البيانات بنجاح');
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
@@ -278,13 +282,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     onSave(updated);
 
     const labels: Record<VerificationStatus, string> = {
-      verified: 'تم اعتماد ونشر المكان بالدليل العام بنجاح 🟢',
-      in_progress: 'تم تعيين حالة المكان بالدليل: قيد المراجعة ⏳',
-      pending: 'تم تعيين حالة المكان بالدليل: بانتظار المراجعة 📋',
-      rejected: 'تم رفض إدراج المكان في الدليل 🔴',
-      needs_action: 'تم تعيين حالة المكان بالدليل: يتطلب إجراء ⚠️',
+      verified: 'تم اعتماد ونشر المكان بالدليل العام بنجاح',
+      in_progress: 'تم تعيين حالة المكان بالدليل: قيد المراجعة',
+      pending: 'تم تعيين حالة المكان بالدليل: بانتظار المراجعة',
+      rejected: 'تم رفض إدراج المكان في الدليل',
+      needs_action: 'تم تعيين حالة المكان بالدليل: يتطلب إجراء',
     };
-    setStatusNotification(labels[newStatus] || 'تم تحديث حالة الدليل بنجاح ✅');
+    setStatusNotification(labels[newStatus] || 'تم تحديث حالة الدليل بنجاح');
     setTimeout(() => setStatusNotification(null), 3000);
   };
 
@@ -297,7 +301,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     };
     setFormData(updated);
     onSave(updated);
-    setStatusNotification('تم إصدار وحفظ الفاتورة الإضافية في قاعدة البيانات بنجاح ✅');
+    setStatusNotification('تم إصدار وحفظ الفاتورة الإضافية في قاعدة البيانات بنجاح');
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
@@ -305,7 +309,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     const existing = formData.additionalInvoices || [];
     const target = existing.find((inv) => inv.id === invId);
     if (target && (target.paymentStatus === 'fully_paid' || (target.amountPaid || 0) > 0)) {
-      setStatusNotification('⚠️ لا يمكن حذف فاتورة تم تحصيلها أو سدادها حفاظاً على النزاهة المحاسبية');
+      setStatusNotification('لا يمكن حذف فاتورة تم تحصيلها أو سدادها حفاظاً على النزاهة المحاسبية');
       setTimeout(() => setStatusNotification(null), 3500);
       return;
     }
@@ -316,7 +320,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     };
     setFormData(updated);
     onSave(updated);
-    setStatusNotification('تم حذف الفاتورة الإضافية وتحديث قاعدة البيانات بنجاح ✅');
+    setStatusNotification('تم حذف الفاتورة الإضافية وتحديث قاعدة البيانات بنجاح');
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
@@ -339,7 +343,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     };
     setFormData(updated);
     onSave(updated);
-    setStatusNotification('تم تسجيل سداد الفاتورة الإضافية بنجاح وخصمها من المديونية 🟢');
+    setStatusNotification('تم تسجيل سداد الفاتورة الإضافية بنجاح وخصمها من المديونية');
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
@@ -436,7 +440,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     if (window.navigator?.vibrate) {
       try { window.navigator.vibrate([15, 30, 15]); } catch (_) {}
     }
-    setStatusNotification('تم تعيين الصورة كغلاف رئيسي للنشاط في الدليل وتحديث قاعدة البيانات بنجاح 🌟');
+    triggerHaptic('success');
+    setStatusNotification('تم تعيين الصورة كغلاف رئيسي للنشاط في الدليل وتحديث قاعدة البيانات بنجاح');
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
@@ -460,7 +465,8 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     setFormData(updated);
     onSave(updated);
 
-    setStatusNotification('تم تحديث ترتيب الصور وحفظ التغييرات بنجاح 🔄');
+    triggerHaptic('selection');
+    setStatusNotification('تم تحديث ترتيب الصور وحفظ التغييرات بنجاح');
     setTimeout(() => setStatusNotification(null), 2500);
   };
 

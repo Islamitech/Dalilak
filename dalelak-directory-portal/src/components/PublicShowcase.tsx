@@ -9,6 +9,7 @@ import { matchesCategoryFilter } from '../utils/categoryMatcher';
 import { matchesBusinessSearch, normalizeArabicText } from '../utils/arabicSearch';
 import { AppNavbar } from './layout/AppNavbar';
 import { AppFooter } from './layout/AppFooter';
+import { MobileBottomNav } from './layout/MobileBottomNav';
 import { HomeView } from './views/HomeView';
 import { SearchView } from './views/SearchView';
 import { MapView } from './views/MapView';
@@ -560,7 +561,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       />
 
       {/* 2. Main Dispatched View */}
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         {renderActiveView()}
       </main>
 
@@ -595,11 +596,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       {/* 6. Subtle Floating WhatsApp Action */}
       <a
         href={`https://wa.me/201143888355?text=${encodeURIComponent(
-          'مرحباً دليلك 👋 أود الاستفسار عن خدمة في الدليل' + (referralCode ? ` (كود: ${referralCode})` : '')
+          'مرحباً دليلك، أود الاستفسار عن خدمة في الدليل' + (referralCode ? ` (كود: ${referralCode})` : '')
         )}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 z-30 w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+        className="fixed bottom-20 md:bottom-6 left-6 z-30 w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
         title="تواصل معنا عبر واتساب"
         aria-label="WhatsApp"
       >
@@ -607,6 +608,13 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       </a>
 
       {/* 7. Subtle Toast Notification */}
+      {/* 8. Mobile PWA Sticky Bottom Navigation */}
+      <MobileBottomNav
+        currentPath={currentPath}
+        onNavigate={handleNavigate}
+        favoritesCount={favorites.length}
+      />
+
       {toastMessage && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 text-white text-xs font-black shadow-2xl border border-amber-500/30 animate-fade-in">
           <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />

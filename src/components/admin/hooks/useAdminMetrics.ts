@@ -5,7 +5,7 @@ import { isReferredByInviter, getRepReferralSummary } from '../../../utils/refer
 import { safeParseJson } from '../../../utils/storage';
 import { getDeletedRepresentatives } from '../../../services/db/repDb';
 import { isBusinessFollowUpOverdue } from '../../../utils/followUpUtils';
-import { getCategoryGroupFor } from '../../../utils/categoryMatcher';
+import { getCategoryGroupFor, isTrendingFreeActivity, isCollectedInvoiceActivity } from '../../../utils/categoryMatcher';
 
 interface UseAdminMetricsProps {
   currentUser?: User | null;
@@ -107,6 +107,18 @@ export const useAdminMetrics = ({
   const verificationRate = useMemo(
     () => realBusinesses.length > 0 ? ((verifiedCount / realBusinesses.length) * 100).toFixed(1) : '0',
     [verifiedCount, realBusinesses.length]
+  );
+
+  // 🌟 الأنشطة الرائجة (المسجلة بشكل مجاني بدون تحصيل)
+  const trendingFreeCount = useMemo(
+    () => realBusinesses.filter(isTrendingFreeActivity).length,
+    [realBusinesses]
+  );
+
+  // 💳 الأنشطة ذات الفواتير المحصلة (المسددة بالكامل أو دفعات فعلية)
+  const collectedInvoicesCount = useMemo(
+    () => realBusinesses.filter(isCollectedInvoiceActivity).length,
+    [realBusinesses]
   );
 
   // CRM Leads Stats
@@ -608,6 +620,8 @@ export const useAdminMetrics = ({
     notSubmittedCount,
     directoryApprovedCount,
     pendingApprovalCount,
+    trendingFreeCount,
+    collectedInvoicesCount,
     verificationRate,
     leadStats,
     overdueReviewBusinesses,

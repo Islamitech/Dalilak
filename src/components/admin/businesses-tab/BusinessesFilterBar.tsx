@@ -12,6 +12,7 @@ import {
   Globe,
   Sparkles,
 } from 'lucide-react';
+import { triggerHaptic } from '../../../utils/haptics';
 
 interface BusinessesFilterBarProps {
   businesses: Business[];
@@ -38,6 +39,8 @@ interface BusinessesFilterBarProps {
   verifiedWithDebtCount: number;
   directoryApprovedCount: number;
   pendingApprovalCount?: number;
+  trendingFreeCount?: number;
+  collectedInvoicesCount?: number;
   onResetFilters?: () => void;
   onOpenPackagesHub?: () => void;
 }
@@ -67,17 +70,22 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
   verifiedWithDebtCount,
   directoryApprovedCount,
   pendingApprovalCount,
+  trendingFreeCount = 0,
+  collectedInvoicesCount = 0,
   onResetFilters,
   onOpenPackagesHub,
 }) => {
   return (
     <>
       {/* Quick Filter Pill Chips */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] sm:text-xs">
         <button
           type="button"
-          onClick={() => setVerificationFilter('all')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter('all');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
             verificationFilter === 'all'
               ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
               : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
@@ -87,20 +95,58 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => setVerificationFilter('pending_approval')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter(verificationFilter === 'trending_free' ? 'all' : 'trending_free');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+            verificationFilter === 'trending_free'
+              ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+              : 'bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 border border-amber-500/30'
+          }`}
+          title="الأنشطة المسجلة بشكل مجاني وبدون تحصيل رسوم"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>الأنشطة الرائجة (المجانية) ({trendingFreeCount})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter(verificationFilter === 'collected_invoices' ? 'all' : 'collected_invoices');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+            verificationFilter === 'collected_invoices'
+              ? 'bg-emerald-600 text-white font-black shadow-xs'
+              : 'bg-emerald-500/10 text-emerald-800 hover:bg-emerald-500/20 border border-emerald-500/30'
+          }`}
+          title="الأنشطة المسددة باقات بفاتورة محصلة"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>فواتير محصلة ({collectedInvoicesCount})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter('pending_approval');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'pending_approval'
               ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
               : 'bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 border border-amber-500/30'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>قيد مراجعة المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</span>
+          <span>مراجعة المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</span>
         </button>
         <button
           type="button"
-          onClick={() => setVerificationFilter('directory_approved')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter('directory_approved');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'directory_approved'
               ? 'bg-emerald-600 text-white font-black shadow-xs'
               : 'bg-emerald-500/10 text-emerald-800 hover:bg-emerald-500/20 border border-emerald-500/30'
@@ -111,8 +157,11 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => setVerificationFilter('google_synced')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter('google_synced');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'google_synced'
               ? 'bg-blue-600 text-white font-black shadow-xs'
               : 'bg-blue-500/10 text-blue-800 hover:bg-blue-500/20 border border-blue-500/30'
@@ -123,21 +172,27 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => setVerificationFilter('google_pending')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+          onClick={() => {
+            triggerHaptic('selection');
+            setVerificationFilter('google_pending');
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
             verificationFilter === 'google_pending'
               ? 'bg-purple-600 text-white font-black shadow-xs'
               : 'bg-purple-500/10 text-purple-800 hover:bg-purple-500/20 border border-purple-500/30'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>قيد توثيق Google ({inProgressCount})</span>
+          <span>قيد Google ({inProgressCount})</span>
         </button>
         {overdueFollowUpCount !== undefined && overdueFollowUpCount > 0 && (
           <button
             type="button"
-            onClick={() => setVerificationFilter(verificationFilter === 'overdue_followup' ? 'all' : 'overdue_followup')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+            onClick={() => {
+              triggerHaptic('selection');
+              setVerificationFilter(verificationFilter === 'overdue_followup' ? 'all' : 'overdue_followup');
+            }}
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
               verificationFilter === 'overdue_followup'
                 ? 'bg-rose-600 text-white font-black shadow-xs'
                 : 'bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 border border-rose-500/30'
@@ -149,23 +204,26 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
         )}
       </div>
 
-      {/* Search and Dropdown Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
-        <div className="relative">
-          <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-3" />
+      {/* Search and Dropdown Filters (2-column on mobile, 5-column on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-1.5 sm:gap-2 text-xs">
+        <div className="col-span-2 lg:col-span-1 relative">
+          <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-2.5" />
           <input
             type="text"
             placeholder="بحث بالاسم، العميل أو الهاتف..."
             value={bizSearchQuery}
             onChange={(e) => setBizSearchQuery(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2 focus:outline-none focus:border-amber-500 shadow-xs text-xs"
           />
         </div>
 
         <select
           value={governorateFilter}
-          onChange={(e) => setGovernorateFilter(e.target.value)}
-          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+          onChange={(e) => {
+            triggerHaptic('selection');
+            setGovernorateFilter(e.target.value);
+          }}
+          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer text-xs"
         >
           <option value="all">كل المحافظات</option>
           {EGYPT_GOVERNORATES.map((g) => (
@@ -177,11 +235,14 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
 
         <select
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+          onChange={(e) => {
+            triggerHaptic('selection');
+            setCategoryFilter(e.target.value);
+          }}
+          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer text-xs"
           title="تصفية وفرز وتعداد المنشآت حسب التصنيفات الرئيسية"
         >
-          <option value="all">كل التصنيفات الرئيسية ({businesses.length})</option>
+          <option value="all">كل الأقسام ({businesses.length})</option>
           {categoryStats.map(({ category, count }) => (
             <option key={category} value={category}>
               {category} ({count})
@@ -191,29 +252,38 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
 
         <select
           value={paymentFilter}
-          onChange={(e) => setPaymentFilter(e.target.value)}
-          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+          onChange={(e) => {
+            triggerHaptic('selection');
+            setPaymentFilter(e.target.value);
+          }}
+          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer text-xs"
         >
           <option value="all">كل حالات السداد</option>
-          <option value="fully_paid">مدفوعة بالكامل</option>
-          <option value="partially_paid">مدفوع جزء منها</option>
-          <option value="unpaid">لم يتم الدفع نهائياً</option>
+          <option value="trending_free">الأنشطة الرائجة (تسجيل مجاني)</option>
+          <option value="fully_paid">مسددة بالكامل (فواتير محصلة)</option>
+          <option value="partially_paid">مسدد جزء منها</option>
+          <option value="unpaid">بانتظار السداد</option>
         </select>
 
         <select
           value={verificationFilter}
-          onChange={(e) => setVerificationFilter(e.target.value)}
-          className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+          onChange={(e) => {
+            triggerHaptic('selection');
+            setVerificationFilter(e.target.value);
+          }}
+          className="col-span-2 lg:col-span-1 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer text-xs"
         >
-          <option value="all">كل حالات التوثيق والاعتماد ({businesses.length})</option>
-          <option value="pending_approval">بانتظار اعتماد المنصة ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</option>
-          <option value="directory_approved">معتمدة بالدليل العام ({directoryApprovedCount})</option>
-          <option value="google_synced">موثقة بخرائط Google ({verifiedCount})</option>
-          <option value="google_pending">قيد توثيق خرائط Google ({inProgressCount})</option>
-          <option value="google_not_submitted">لم تُرسل لجوجل بعد ({notSubmittedCount})</option>
-          <option value="overdue">تجاوزت مدة المراجعة ({overdueReviewCount})</option>
+          <option value="all">كل حالات التوثيق ({businesses.length})</option>
+          <option value="trending_free">الأنشطة الرائجة (المجانية) ({trendingFreeCount})</option>
+          <option value="collected_invoices">فواتير محصلة ({collectedInvoicesCount})</option>
+          <option value="pending_approval">بانتظار الاعتماد ({pendingApprovalCount ?? businesses.filter(b => b.verificationStatus !== 'verified').length})</option>
+          <option value="directory_approved">معتمدة بالدليل ({directoryApprovedCount})</option>
+          <option value="google_synced">موثقة بـ Google ({verifiedCount})</option>
+          <option value="google_pending">قيد Google ({inProgressCount})</option>
+          <option value="google_not_submitted">لم تُرسل لجوجل ({notSubmittedCount})</option>
+          <option value="overdue">تجاوزت المراجعة ({overdueReviewCount})</option>
           <option value="overdue_followup">متابعات متأخرة ({overdueFollowUpCount || 0})</option>
-          <option value="verified_debt">موثقة ولها متبقي سداد ({verifiedWithDebtCount})</option>
+          <option value="verified_debt">موثقة ومتبقي سداد ({verifiedWithDebtCount})</option>
           <option value="rejected">مرفوضة بالدليل</option>
         </select>
       </div>

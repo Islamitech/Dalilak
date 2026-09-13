@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, Map, PlusCircle, UserCheck, Shield, ShieldCheck } from 'lucide-react';
+import { triggerHaptic } from '../utils/haptics';
 
 interface BottomNavProps {
   activeTab: string;
@@ -29,6 +30,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
               <button
                 key={tab.id}
                 onClick={() => {
+                  triggerHaptic('medium');
                   if (activeTab === 'add') {
                     window.dispatchEvent(new CustomEvent('dalelak_submit_business_form'));
                   } else {
@@ -55,7 +57,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                triggerHaptic('selection');
+                setActiveTab(tab.id);
+              }}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center justify-center py-2 px-3 rounded-xl transition-all duration-200 min-w-[48px] min-h-[48px] cursor-pointer ${

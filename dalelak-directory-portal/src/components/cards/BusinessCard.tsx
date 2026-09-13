@@ -168,7 +168,11 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
               {business.category}
             </span>
             <span className="truncate text-[11px] font-medium text-slate-500">
-              {[business.city || business.street, business.governorate].filter(Boolean).join(' • ') || 'مصر'}
+              {(() => {
+                const cleanCity = business.city || (business.street ? business.street.split('،')[0].trim() : '');
+                const cleanGov = (cleanCity && (cleanCity.includes('المعادي') || cleanCity.includes('زهراء'))) ? 'القاهرة' : business.governorate;
+                return Array.from(new Set([cleanCity, cleanGov].filter(Boolean))).join(' • ') || 'مصر';
+              })()}
             </span>
           </div>
 
