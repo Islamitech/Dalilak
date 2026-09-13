@@ -4,3 +4,4 @@ export * from './MapSearchBox';
 export * from './MapFloatingControls';
 export * from './MapSelectedBusinessDrawer';
 export * from './MapFooterBar';
+export * from './markerStyles';
