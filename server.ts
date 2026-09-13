@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -1672,6 +1673,7 @@ app.post('/api/auth/login', async (req, res) => {
   const sanitizedRepData = sanitizeRep(rep, rep.role === 'admin' || rep.role === 'supervisor');
 
   return res.json({
+    success: true,
     user: {
       id: rep.id,
       name: rep.name,
@@ -1926,7 +1928,7 @@ app.post('/api/representatives', (req, res) => {
     governorate: repData.governorate || 'القاهرة',
     targetMonth: Number(repData.targetMonth) || 25,
     avatar: repData.avatar || '',
-    avatarStatus: repData.avatarStatus || 'none',
+    avatarStatus: repData.avatarStatus || 'pending_approval',
     commissionRate: assignedCommission,
     status: assignedStatus,
     password: securePassword,

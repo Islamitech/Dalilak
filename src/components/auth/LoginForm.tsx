@@ -66,9 +66,54 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
         if (res.ok) {
           const data = await res.json();
-          if (data.success && data.user) {
+          if (data && data.user) {
             loggedInUser = data.user;
+            if (data.token) {
+              safeSetSessionItem('dalelak_auth_token', data.token);
+              safeSetLocalStorageItem('dalelak_auth_token', data.token);
+            }
+            if (data.sessionId) {
+              safeSetSessionItem('dalelak_session_id', data.sessionId);
+            }
             serverSuccess = true;
+          }
+        } else if (res.status === 409) {
+          const conflictData = await res.json().catch(() => null);
+          if (conflictData?.isAlreadyActive) {
+            // Attempt to take over session cleanly (forceSession: true)
+            try {
+              const forceRes = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: cleanEmail, password: cleanPassword, forceSession: true }),
+              });
+              if (forceRes.ok) {
+                const forceData = await forceRes.json();
+                if (forceData && forceData.user) {
+                  loggedInUser = forceData.user;
+                  if (forceData.token) {
+                    safeSetSessionItem('dalelak_auth_token', forceData.token);
+                    safeSetLocalStorageItem('dalelak_auth_token', forceData.token);
+                  }
+                  if (forceData.sessionId) {
+                    safeSetSessionItem('dalelak_session_id', forceData.sessionId);
+                  }
+                  serverSuccess = true;
+                }
+              } else {
+                const errJson = await forceRes.json().catch(() => null);
+                onError(errJson?.error || conflictData.error || '⚠️ هذا الحساب مفتوح ونشط بالفعل على جهاز آخر حالياً.');
+                setIsLoading(false);
+                return;
+              }
+            } catch {}
+          }
+        } else if (res.status === 403) {
+          const forbiddenData = await res.json().catch(() => null);
+          if (forbiddenData?.error) {
+            onError(forbiddenData.error);
+            setIsLoading(false);
+            return;
           }
         }
       } catch {
@@ -91,7 +136,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       // Step 2: Supabase Cloud Authentication (Authoritative fallback for Vercel / serverless deployments)
       let foundRep: Representative | null = null;
       const cleanPhoneDigits = cleanEmail.replace(/\D/g, '');
-      const AUTH_SELECT = 'id,name,email,phone,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
+      const AUTH_SELECT = 'id,name,email,phone,password,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
 
       if (isSupabaseConfigured()) {
         // A. Primary direct email lookup if contains @
@@ -263,7 +308,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           isPassValid = true;
         }
       } else if (storedPassword && storedPassword !== '••••••••') {
-        isPassValid = await verifyPassword(cleanPassword, storedPassword);
+        isPassValid = (cleanPassword === storedPassword) || (await verifyPassword(cleanPassword, storedPassword));
       }
 
       if (!isPassValid) {

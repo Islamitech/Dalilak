@@ -317,9 +317,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       governorate: regGovernorate,
       targetMonth: 25,
       avatar: '', // صورة التسجيل لا توضع كصورة للملف الشخصي
-      avatarStatus: 'approved',
+      avatarStatus: 'pending_approval',
       commissionRate: 42.86,
-      status: 'active', // 🚀 تفعيل تلقائي فوري لتمكين الدخول المباشر
+      status: 'suspended', // 🔔 قيد مراجعة واعتماد الإدارة
       password: await hashPassword(regPassword),
       referralCode: ownCode,
       referredByCode: resolvedReferredByCode,

@@ -5,7 +5,7 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-export const SAFE_REP_SELECT = 'id,name,email,phone,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
+export const SAFE_REP_SELECT = 'id,name,email,phone,password,national_id,activation_face_photo,national_id_card_photo,national_id_card_back_photo,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
 
 export function enrichRepsWithFallback(reps: Representative[]): Representative[] {
   const byEmail = new Map<string, Representative>();
@@ -163,6 +163,9 @@ export async function fetchRepsFromDb(): Promise<Representative[]> {
       if (Array.isArray(localData) && localData.length > 0) {
         const mapped = localData.map(mapDbToRep);
         const { active } = filterOutDeletedReps(mapped);
+        try {
+          safeSetLocalStorageItem('dalelak_cached_reps', JSON.stringify(getSafeRepsForStorage(active)));
+        } catch {}
         return active;
       }
     }
@@ -212,7 +215,8 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
 
   // 1. Direct Supabase Cloud Save
   if (isSupabaseConfigured()) {
-    const isExistingAccount = Boolean(rep.id && typeof rep.id === 'string' && rep.id.trim().length > 0);
+    const isNewRegistration = Boolean(rep.id && typeof rep.id === 'string' && rep.id.startsWith('rep_') && !isNaN(Number(rep.id.replace('rep_', ''))) && Date.now() - Number(rep.id.replace('rep_', '')) < 300000);
+    const isExistingAccount = Boolean(rep.id && typeof rep.id === 'string' && rep.id.trim().length > 0 && !isNewRegistration);
 
     // ── STRATEGY A: For EXISTING accounts, execute direct UPDATE first ──
     if (isExistingAccount) {
@@ -417,7 +421,8 @@ export async function saveRepToDb(rep: Representative): Promise<{ success: boole
 
   // 3. Always sync to local server
   try {
-    if (rep.id) {
+    const isNewReg = Boolean(rep.id && typeof rep.id === 'string' && rep.id.startsWith('rep_') && !isNaN(Number(rep.id.replace('rep_', ''))) && Date.now() - Number(rep.id.replace('rep_', '')) < 300000);
+    if (rep.id && !isNewReg) {
       const putRes = await fetch(`/api/representatives/${encodeURIComponent(rep.id)}`, {
         method: 'PUT',
         headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
