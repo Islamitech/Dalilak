@@ -108,24 +108,58 @@ export const DrawerInfoTab: React.FC<DrawerInfoTabProps> = ({
             <span>الموقع والعنوان</span>
           </h4>
           <div className="flex items-center gap-1.5">
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${business.lat},${business.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-1 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] transition-colors flex items-center gap-1 border border-emerald-200"
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>الملاحة والمسار</span>
-            </a>
-            {!isGuest && onOpenGmapsModal && (
+            {/* الأخضر: رابط المندوب */}
+            {business.repLocationUrl ? (
+              <a
+                href={business.repLocationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-1 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] transition-colors flex items-center gap-1 border border-emerald-200 cursor-pointer shadow-2xs"
+                title="فتح موقع المندوب الميداني"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>الملاحة والمسار</span>
+              </a>
+            ) : (
+              <span
+                className="py-1 px-2.5 rounded-lg bg-slate-100 text-slate-400 font-bold text-[11px] flex items-center gap-1 border border-slate-200 cursor-not-allowed select-none"
+                title="لا يوجد رابط موقع مسجل من المندوب"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>الملاحة والمسار</span>
+              </span>
+            )}
+
+            {/* الأزرق: رابط خرائط Google */}
+            {business.googleMapsUrl ? (
+              <a
+                href={business.googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-1 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] transition-colors flex items-center gap-1 border border-blue-200 cursor-pointer shadow-2xs"
+                title="فتح المنشأة على خرائط Google المعتمدة"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>مزامنة خرائط Google</span>
+              </a>
+            ) : !isGuest && onOpenGmapsModal ? (
               <button
                 type="button"
                 onClick={onOpenGmapsModal}
-                className="py-1 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] transition-colors flex items-center gap-1 border border-indigo-200 cursor-pointer"
+                className="py-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 font-bold text-[11px] transition-colors flex items-center gap-1 border border-slate-200 cursor-pointer"
+                title="لم يتم الربط بخرائط Google - اضغط للمزامنة والربط"
               >
                 <Compass className="w-3.5 h-3.5" />
                 <span>مزامنة خرائط Google</span>
               </button>
+            ) : (
+              <span
+                className="py-1 px-2.5 rounded-lg bg-slate-100 text-slate-400 font-bold text-[11px] flex items-center gap-1 border border-slate-200 cursor-not-allowed select-none"
+                title="لا يوجد رابط خرائط Google موثق"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>مزامنة خرائط Google</span>
+              </span>
             )}
           </div>
         </div>

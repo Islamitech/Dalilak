@@ -39,7 +39,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   onSave
 }) => {
   const [formData, setFormData] = useState<Partial<Business>>({});
-  const [activeTab, setActiveTab] = useState<'basic' | 'location' | 'contact' | 'owner' | 'media' | 'finance'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'location' | 'media' | 'finance'>('basic');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
 
@@ -72,7 +72,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     }
     if (!formData.phone?.trim()) {
       setErrorMsg('يرجى إدخال رقم هاتف المنشأة الأساسي');
-      setActiveTab('contact');
+      setActiveTab('basic');
       return;
     }
 
@@ -135,13 +135,11 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
           </button>
         </div>
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs (Combined 4 Smart Tabs) */}
         <div className="flex items-center gap-1 px-4 py-2 border-b border-slate-200 bg-white overflow-x-auto text-xs font-bold">
           {[
             { id: 'basic', label: 'البيانات الأساسية', icon: <Building2 className="w-3.5 h-3.5" /> },
             { id: 'location', label: 'العنوان والموقع', icon: <MapPin className="w-3.5 h-3.5" /> },
-            { id: 'contact', label: 'التواصل وساعات العمل', icon: <Phone className="w-3.5 h-3.5" /> },
-            { id: 'owner', label: 'بيانات المالك', icon: <UserIcon className="w-3.5 h-3.5" /> },
             { id: 'media', label: 'الوسائط والفيديو', icon: <ImageIcon className="w-3.5 h-3.5" /> },
             { id: 'finance', label: 'المالية والباقة', icon: <CreditCard className="w-3.5 h-3.5" /> }
           ].map((tab) => (
@@ -149,7 +147,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-3 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              className={`py-2 px-3.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-100'
@@ -179,82 +177,193 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
-          {/* TAB 1: BASIC INFO */}
+          {/* TAB 1: BASIC INFO (Merged: Basic Data + Contacts & Hours + Owner Data) */}
           {activeTab === 'basic' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    اسم المنشأة بالعربية *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.nameAr || ''}
-                    onChange={(e) => handleChange('nameAr', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
-                  />
+              {/* 1. Basic Info & Taxonomy */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 text-slate-800 font-bold text-xs">
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  <span>البيانات الأساسية والتصنيف</span>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      اسم المنشأة بالعربية *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.nameAr || ''}
+                      onChange={(e) => handleChange('nameAr', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      الاسم بالإنجليزية (اختياري)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.nameEn || ''}
+                      onChange={(e) => handleChange('nameEn', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      التصنيف التجاري الأساسي
+                    </label>
+                    <select
+                      value={formData.category || BUSINESS_CATEGORIES[0]}
+                      onChange={(e) => handleChange('category', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {BUSINESS_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      التصنيف الفرعي الدقيق
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: أسماك ومأكولات بحرية، ملابس نسائية..."
+                      value={formData.subCategory || ''}
+                      onChange={(e) => handleChange('subCategory', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    الاسم بالإنجليزية (اختياري)
+                    عن المنشأة والوصف التعريفي
                   </label>
-                  <input
-                    type="text"
-                    value={formData.nameEn || ''}
-                    onChange={(e) => handleChange('nameEn', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                  <textarea
+                    rows={3}
+                    placeholder="اكتب نبذة تسويقية وتعريفية شاملة عن النشاط وأبرز الخدمات..."
+                    value={formData.description || ''}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 leading-relaxed"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    التصنيف التجاري الأساسي
-                  </label>
-                  <select
-                    value={formData.category || BUSINESS_CATEGORIES[0]}
-                    onChange={(e) => handleChange('category', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {BUSINESS_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+              {/* 2. Contact & Working Hours */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 text-slate-800 font-bold text-xs">
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  <span>التواصل وساعات ومواعيد العمل</span>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      رقم الهاتف الأساسي (واتساب) *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone || ''}
+                      onChange={(e) => handleChange('phone', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      رقم هاتف بديل / أرضي (اختياري)
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.secondaryPhone || ''}
+                      onChange={(e) => handleChange('secondaryPhone', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    التصنيف الفرعي الدقيق
-                  </label>
+                  <label className="block text-slate-700 font-bold mb-1">ساعات ومواعيد العمل</label>
                   <input
                     type="text"
-                    placeholder="مثال: أسماك ومأكولات بحرية، ملابس نسائية..."
-                    value={formData.subCategory || ''}
-                    onChange={(e) => handleChange('subCategory', e.target.value)}
+                    placeholder="مثال: يومياً من 10:00 ص حتى 11:00 م، أو 24 ساعة..."
+                    value={formData.workingHours || ''}
+                    onChange={(e) => handleChange('workingHours', e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">
-                  عن المنشأة والوصف التعريفي
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="اكتب نبذة تسويقية وتعريفية شاملة عن النشاط وأبرز الخدمات..."
-                  value={formData.description || ''}
-                  onChange={(e) => handleChange('description', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 leading-relaxed"
-                />
+              {/* 3. Owner & Authorized Representative Info */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 text-slate-800 font-bold text-xs">
+                  <UserIcon className="w-4 h-4 text-indigo-600" />
+                  <span>بيانات المالك والمسؤول المعتمد</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      اسم المالك أو المسؤول المعتمد
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.ownerName || ''}
+                      onChange={(e) => handleChange('ownerName', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      هاتف المالك المباشر
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.ownerPhone || ''}
+                      onChange={(e) => handleChange('ownerPhone', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      البريد الإلكتروني للمالك
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.ownerEmail || ''}
+                      onChange={(e) => handleChange('ownerEmail', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      الرقم القومي للمالك / السجل
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.nationalId || ''}
+                      onChange={(e) => handleChange('nationalId', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: LOCATION */}
+          {/* TAB 2: LOCATION (Address + Rep Link + Google Maps Link - No Lat/Lng inputs) */}
           {activeTab === 'location' && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -304,34 +413,28 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">خط العرض (Latitude)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.lat || ''}
-                    onChange={(e) => handleChange('lat', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">خط الطول (Longitude)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.lng || ''}
-                    onChange={(e) => handleChange('lng', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
-                  />
-                </div>
-              </div>
-
+              {/* Rep Location Link */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">رابط خرائط Google المباشر</label>
+                <label className="block text-slate-700 font-bold mb-1">
+                  رابط موقع النقطة من المندوب (الموقع الميداني)
+                </label>
                 <input
                   type="url"
-                  placeholder="https://maps.google.com/?q=..."
+                  placeholder="https://maps.google.com/?q=... أو رابط الموقع المسجل من المندوب"
+                  value={formData.repLocationUrl || ''}
+                  onChange={(e) => handleChange('repLocationUrl', e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+                />
+              </div>
+
+              {/* Official Google Maps Direct Link */}
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  رابط خرائط Google المباشر (المعتمد)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://maps.google.com/?q=... أو رابط المنشأة المعتمد على Google Maps"
                   value={formData.googleMapsUrl || ''}
                   onChange={(e) => handleChange('googleMapsUrl', e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
@@ -340,104 +443,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: CONTACT & HOURS */}
-          {activeTab === 'contact' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    رقم الهاتف الأساسي (واتساب) *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone || ''}
-                    onChange={(e) => handleChange('phone', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    رقم هاتف بديل / أرضي (اختياري)
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.secondaryPhone || ''}
-                    onChange={(e) => handleChange('secondaryPhone', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">ساعات ومواعيد العمل</label>
-                <input
-                  type="text"
-                  placeholder="مثال: يومياً من 10:00 ص حتى 11:00 م، أو 24 ساعة..."
-                  value={formData.workingHours || ''}
-                  onChange={(e) => handleChange('workingHours', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: OWNER INFO */}
-          {activeTab === 'owner' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    اسم المالك أو المسؤول المعتمد
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.ownerName || ''}
-                    onChange={(e) => handleChange('ownerName', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    هاتف المالك المباشر
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.ownerPhone || ''}
-                    onChange={(e) => handleChange('ownerPhone', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    البريد الإلكتروني للمالك
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.ownerEmail || ''}
-                    onChange={(e) => handleChange('ownerEmail', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    الرقم القومي للمالك / السجل
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nationalId || ''}
-                    onChange={(e) => handleChange('nationalId', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: MEDIA & VIDEO */}
+          {/* TAB 3: MEDIA & VIDEO */}
           {activeTab === 'media' && (
             <div className="space-y-4">
               <div>
@@ -454,7 +460,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
               <div>
                 <label className="block text-slate-700 font-bold mb-1">
-                  رابط جولة الفيديو الميدانية المعتمدة (Video URL / YouTube / MP4)
+                  رابط جولة الفيديو الميدانية المعتمدة (Video Tour URL / YouTube / MP4)
                 </label>
                 <input
                   type="url"
@@ -481,7 +487,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
             </div>
           )}
 
-          {/* TAB 6: FINANCE & PACKAGE */}
+          {/* TAB 4: FINANCE & PACKAGE */}
           {activeTab === 'finance' && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

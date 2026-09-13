@@ -28,6 +28,8 @@ export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compac
   const handleLocation = () => {
     if (business.googleMapsUrl) {
       window.open(business.googleMapsUrl, '_blank');
+    } else if (business.repLocationUrl) {
+      window.open(business.repLocationUrl, '_blank');
     } else if (business.lat && business.lng) {
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${business.lat},${business.lng}`, '_blank');
     }
