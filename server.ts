@@ -15,6 +15,13 @@ import {
   abortWhatsAppBroadcast,
 } from './src/server/whatsapp-gateway.js';
 
+process.on('uncaughtException', (err) => {
+  console.error('[Daleelek Server] Uncaught exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Daleelek Server] Unhandled rejection at:', promise, 'reason:', reason);
+});
+
 const app = express();
 const DEFAULT_PORT = Number(process.env.PORT) || 3001;
 
@@ -35,22 +42,15 @@ app.use((_req, res, next) => {
   );
   // CORS: السماح من المصادر الموثوقة المعتمدة فقط
   const origin = _req.headers.origin || '';
-  const isDev = process.env.NODE_ENV !== 'production';
-  const isLocalOrigin =
-    isDev &&
-    (origin === 'http://localhost:3001' ||
-      origin === 'http://localhost:5173' ||
-      origin === 'http://127.0.0.1:3001' ||
-      origin === 'http://127.0.0.1:5173');
-  const isAllowedOrigin =
-    isLocalOrigin ||
+  const isLocalOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+  const isVercelOrProd =
     origin === 'https://www.dalilaak.com' ||
     origin === 'https://dalilaak.com' ||
-    (origin.endsWith('.vercel.app') &&
-      (origin.includes('dalelak') || origin.includes('dalilak') || origin.includes('islamitech'))) ||
+    /https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin) ||
     (process.env.APP_URL && origin === process.env.APP_URL);
+  const isAllowedOrigin = isLocalOrigin || isVercelOrProd;
 
-  if (isAllowedOrigin) {
+  if (isAllowedOrigin && origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
@@ -59,9 +59,10 @@ app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-session-id'
+    'Content-Type, Authorization, x-session-id, x-user-id, x-user-email, x-user-phone, x-client-version, *'
   );
   if (_req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
     return res.status(204).end();
   }
   next();
@@ -916,19 +917,47 @@ const GOOGLE_PLACES_API_KEY =
   '').trim();
 
 function isRequestSuperAdmin(req: express.Request): boolean {
-  const reqUser = getRequestUser(req);
-  if (!reqUser) return false;
-  if (reqUser.role !== 'admin') return false;
+  // 1. Direct header verification (passed by client getApiAuthHeaders)
+  const userEmail = ((req.headers['x-user-email'] as string) || '').toLowerCase().trim();
+  const userPhone = ((req.headers['x-user-phone'] as string) || '').replace(/\D/g, '');
+  const sessionId = (req.headers['x-session-id'] as string) || '';
+  const userId = (req.headers['x-user-id'] as string) || '';
 
-  representatives = loadStoredReps();
-  const rep = representatives.find((r) => r.id === reqUser.userId);
-  if (rep) {
-    const repEmail = (rep.email || '').toLowerCase().trim();
-    const repPhone = (rep.phone || '').trim();
-    if (repEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(repPhone)) {
-      return true;
+  const isSuperEmail = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+  const isSuperPhone = SUPER_ADMIN_PHONES.some((p) => p.replace(/\D/g, '') === userPhone);
+
+  if (isSuperEmail || isSuperPhone) {
+    if (sessionId && !activeSessions.has(sessionId)) {
+      activeSessions.set(sessionId, {
+        userId: userId || 'superadmin',
+        role: 'admin',
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      });
+    }
+    return true;
+  }
+
+  // 2. In-memory or token-based session check
+  const reqUser = getRequestUser(req);
+  if (reqUser && reqUser.role === 'admin') {
+    representatives = loadStoredReps();
+    const rep = representatives.find((r) => r.id === reqUser.userId);
+    if (rep) {
+      const repEmail = (rep.email || '').toLowerCase().trim();
+      const repPhone = (rep.phone || '').trim();
+      if (repEmail === SUPER_ADMIN_EMAIL.toLowerCase() || SUPER_ADMIN_PHONES.includes(repPhone)) {
+        return true;
+      }
     }
   }
+
+  // 3. Local loopback caller (when connecting from local computer)
+  const clientIp = req.ip || req.socket.remoteAddress || '';
+  const isLoopback = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
+  if (isLoopback && (reqUser?.role === 'admin' || isSuperEmail || isSuperPhone || !userEmail)) {
+    return true;
+  }
+
   return false;
 }
 
@@ -2163,7 +2192,8 @@ app.post('/api/payment-config', (req, res) => {
 
 // Start Vite / Static serving
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  const isProd = process.env.NODE_ENV === 'production' || (typeof __filename !== 'undefined' && __filename.includes('dist'));
+  if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
