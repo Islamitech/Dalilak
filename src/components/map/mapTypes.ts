@@ -1,7 +1,7 @@
 import { Business } from '../../types';
 import { LocationAddressData } from '../../utils/geocoding';
 
-export type MapTileLayerType = 'dalelak-osm' | 'google-streets' | 'google-hybrid' | 'dalelak-clean';
+export type MapTileLayerType = 'dalelak-clean' | 'google-streets' | 'google-hybrid';
 
 export interface InteractiveMapProps {
   mode?: 'picker' | 'view';
@@ -53,23 +53,9 @@ export const GOVERNORATE_COORDS: Record<string, { lat: number; lng: number }> = 
   'جنوب سيناء (شرم الشيخ)': { lat: 27.9158, lng: 34.3299 },
 };
 
-// Tile layer URL resolver (OpenStreetMap is the official default layer)
+// Tile layer URL resolver
 export const getTileLayerConfig = (type: MapTileLayerType) => {
   switch (type) {
-    case 'dalelak-osm':
-      return {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        maxZoom: 19,
-        subdomains: ['a', 'b', 'c'],
-        attribution: '© خريطة دليلك الميدانية الرسمية | OpenStreetMap contributors',
-      };
-    case 'google-streets':
-      return {
-        url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: 'Map data © Google',
-      };
     case 'google-hybrid':
       return {
         url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
@@ -79,18 +65,19 @@ export const getTileLayerConfig = (type: MapTileLayerType) => {
       };
     case 'dalelak-clean':
       return {
-        // CARTO Voyager: vibrant, modern, colorful streets, parks, water
+        // CARTO Voyager: vibrant, modern, colorful streets, parks, water, and terrain with zero ad clutter
         url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
         maxZoom: 19,
         subdomains: 'abcd',
         attribution: '© خريطة دليلك الميدانية / CARTO / OpenStreetMap',
       };
+    case 'google-streets':
     default:
       return {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        maxZoom: 19,
-        subdomains: ['a', 'b', 'c'],
-        attribution: '© خريطة دليلك الميدانية الرسمية | OpenStreetMap contributors',
+        url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Map data © Google',
       };
   }
 };

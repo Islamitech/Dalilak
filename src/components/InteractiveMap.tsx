@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Business } from '../types';
 import { fetchLocationAddress } from '../utils/geocoding';
+import { getCategoryIcon } from '../utils/directoryEnhancements';
 import { triggerHaptic } from '../utils/haptics';
 import {
   MapTileLayerType,
@@ -13,9 +14,6 @@ import {
   MapFloatingControls,
   MapSelectedBusinessDrawer,
   MapFooterBar,
-  createBusinessMarkerHtml,
-  createPickerMarkerHtml,
-  createClusterMarkerHtml,
 } from './map';
 
 export type { MapTileLayerType, InteractiveMapProps };
@@ -44,8 +42,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // Official Dalelak OpenStreetMap layer is the default
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-osm');
+  // High precision controls & Layer switcher (Default: Google Streets Vibrant Map)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
 
@@ -222,12 +220,26 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     if (mode === 'picker') {
       // Precision Needle Pin with calibrated anchor
-      const { html, iconSize, iconAnchor } = createPickerMarkerHtml();
       const pickerIcon = window.L.divIcon({
         className: 'custom-picker-pin',
-        html,
-        iconSize,
-        iconAnchor,
+        html: `
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: grab; user-select: none; width: 160px; font-family: Cairo, -apple-system, sans-serif;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #020617; font-weight: 900; font-size: 11px; padding: 3px 10px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); max-width: 155px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1.5px solid #fef08a; margin-bottom: 2px;">
+              موقع النشاط المحدد
+            </div>
+            <div style="position: relative; width: 36px; height: 46px; display: flex; justify-content: center;">
+              <svg width="36" height="46" viewBox="0 0 36 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));">
+                <path d="M18 0C8.05887 0 0 8.05887 0 18C0 30.5 18 46 18 46C18 46 36 30.5 36 18C36 8.05887 27.9411 0 18 0Z" fill="#F59E0B"/>
+                <path d="M18 2C9.16344 2 2 9.16344 2 18C2 29.2 18 43.5 18 43.5C18 43.5 34 29.2 34 18C34 9.16344 26.8366 2 18 2Z" stroke="#FEF08A" stroke-width="1.5"/>
+                <circle cx="18" cy="18" r="8" fill="#0F172A"/>
+                <circle cx="18" cy="18" r="4" fill="#F59E0B"/>
+                <circle cx="18" cy="18" r="1.5" fill="#FFFFFF"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        iconSize: [160, 72],
+        iconAnchor: [80, 72],
       });
 
       const marker = window.L.marker([currentLat, currentLng], {
@@ -306,20 +318,38 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       clusters.forEach((cluster) => {
         if (cluster.items.length === 1) {
           const biz = cluster.items[0];
+          const isVerified = biz.verificationStatus === 'verified';
           const isSelected = selectedBiz?.id === biz.id;
-          const showFullPill = zoomLevel >= 15;
+          const color = isVerified ? '#10b981' : '#f59e0b';
+          const bg = isVerified ? '#064e3b' : '#78350f';
+          const safeName = escapeHtml(biz.nameAr || 'منشأة معتمدة');
+          const categoryIcon = getCategoryIcon(biz.category);
 
-          const { html, iconSize, iconAnchor } = createBusinessMarkerHtml(
-            biz,
-            isSelected,
-            showFullPill
-          );
+          const showFullPill = zoomLevel >= 15;
+          const htmlContent = showFullPill
+            ? `
+              <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; width: 180px; font-family: Cairo, -apple-system, sans-serif;">
+                <div style="background: ${isSelected ? '#f59e0b' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 10px; border-radius: 9999px; font-weight: 800; font-size: 11px; max-width: 175px; box-shadow: 0 4px 16px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 5px; transition: transform 0.2s;">
+                  <span style="font-size: 13px; flex-shrink: 0; line-height: 1;">${categoryIcon}</span>
+                  <span style="max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; line-height: 1.2;">${safeName}</span>
+                </div>
+                <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${isSelected ? '#f59e0b' : color}; margin-top: -1px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));"></div>
+                <div style="width: 4px; height: 4px; border-radius: 9999px; background: ${isSelected ? '#ffffff' : color}; margin-top: -2px;"></div>
+              </div>
+            `
+            : `
+              <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <div style="background: ${isSelected ? '#f59e0b' : color}; width: 28px; height: 28px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 3px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">
+                  ${categoryIcon}
+                </div>
+              </div>
+            `;
 
           const bizIcon = window.L.divIcon({
             className: 'custom-biz-pin',
-            html,
-            iconSize,
-            iconAnchor,
+            html: htmlContent,
+            iconSize: showFullPill ? [180, 42] : [28, 28],
+            iconAnchor: showFullPill ? [90, 42] : [14, 14],
           });
 
           const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
@@ -333,12 +363,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           markersGroup.addLayer(marker);
         } else {
           // Cluster pin
-          const { html, iconSize, iconAnchor } = createClusterMarkerHtml(cluster.items.length);
           const clusterIcon = window.L.divIcon({
             className: 'custom-cluster-pin',
-            html,
-            iconSize,
-            iconAnchor,
+            html: `
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
+                <div style="background: linear-gradient(135deg, #d97706, #b45309); border: 2.5px solid #fef08a; color: #ffffff; width: 44px; height: 44px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(217, 119, 6, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; font-family: Cairo, sans-serif;">
+                  <span style="font-size: 13px; font-weight: 900; line-height: 1;">${cluster.items.length}</span>
+                  <span style="font-size: 8px; font-weight: 800; color: #fef08a; line-height: 1;">أماكن</span>
+                </div>
+              </div>
+            `,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
           });
 
           const clusterMarker = window.L.marker([cluster.centerLat, cluster.centerLng], { icon: clusterIcon });

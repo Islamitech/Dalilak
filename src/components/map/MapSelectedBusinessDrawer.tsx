@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  MapPin,
-  Star,
-  ShieldCheck,
-  X,
-  ExternalLink,
-  Navigation,
-  MessageCircle,
-  Phone,
-} from 'lucide-react';
+import { Phone, Eye, ExternalLink, Navigation, MessageCircle } from 'lucide-react';
 import { Business } from '../../types';
 import {
   getBusinessMapDetails,
@@ -45,128 +36,148 @@ export const MapSelectedBusinessDrawer: React.FC<MapSelectedBusinessDrawerProps>
     }
   };
 
-  const isVerified = business.verificationStatus === 'verified';
-  const rating = business.googleRating || (isVerified ? 4.8 : null);
-
   return (
-    <div className="absolute bottom-3 right-3 left-3 sm:left-auto sm:w-[390px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 space-y-3 animate-fade-in font-['Tajawal',sans-serif]">
-      {/* Top Header: Photo, Name, Category & Close */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+    <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3 bg-slate-950/95 border-2 border-amber-500/50 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-xl z-30 flex flex-col gap-2.5 animate-fade-in-scale">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
           {photoUrl ? (
             <img
               src={photoUrl}
               alt={business.nameAr}
-              className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
+              className="w-12 h-12 rounded-xl object-cover border border-amber-500/30 shrink-0"
             />
           ) : (
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-slate-800 dark:to-slate-700 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xl shrink-0 shadow-2xs">
+            <div className="w-12 h-12 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center text-xl shrink-0">
               🏢
             </div>
           )}
-          <div className="min-w-0 flex-1">
-            <h4 className="font-extrabold text-slate-900 dark:text-white text-sm truncate">
-              {business.nameAr}
-            </h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
-              {business.category}
-            </p>
-            <div className="flex items-center gap-1 mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">
-              <MapPin className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <span className="truncate">
-                {business.governorate} - {business.city}
-                {business.street ? ` (${business.street})` : ''}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/40">
+                {business.category}
+              </span>
+              <span
+                className={`text-[9.5px] font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                  business.verificationStatus === 'verified'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${openStatus.dotColor}`} />
+                <span>{openStatus.isOpen ? 'مفتوح' : 'مغلق'}</span>
+              </span>
+              <span
+                className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded-full border ${
+                  business.verificationStatus === 'verified'
+                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }`}
+              >
+                {business.verificationStatus === 'verified' ? 'معتمد 🟢' : 'قيد المراجعة ⏳'}
               </span>
             </div>
+            <h3 className="text-sm sm:text-base font-black text-white truncate mt-0.5">
+              {business.nameAr}
+            </h3>
+            <p className="text-[11px] text-slate-300 font-medium truncate">
+              {business.governorate} • {business.city} {business.street ? `(${business.street})` : ''}
+            </p>
           </div>
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+          className="text-slate-400 hover:text-white text-xs font-black w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer transition-colors shrink-0"
           aria-label="إغلاق البطاقة"
         >
-          <X className="w-4 h-4" />
+          ✕
         </button>
       </div>
 
-      {/* Middle Badges Row: Verified Pill + Rating + Open Status */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {isVerified && (
-            <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60 font-bold text-[11px]">
-              <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              <span>موثق ومعتمد</span>
-            </span>
-          )}
-
-          {rating && (
-            <span className="flex items-center gap-1 text-slate-700 dark:text-slate-200 font-bold text-[11px] bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
-              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-              <span>{typeof rating === 'number' ? rating.toFixed(1) : rating}</span>
-            </span>
-          )}
-
-          <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium px-1.5 py-0.5 rounded bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-            <span className={`w-1.5 h-1.5 rounded-full ${openStatus.dotColor}`} />
-            <span>{openStatus.isOpen ? 'مفتوح' : 'مغلق'}</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Bottom Action Buttons: Image 2 Full Details Button + Quick Actions */}
-      <div className="flex items-center gap-1.5 pt-1">
-        {/* Main CTA: "عرض التفاصيل الكاملة" */}
-        <button
-          type="button"
-          onClick={handleOpenDetails}
-          className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
-        >
-          <span>عرض التفاصيل الكاملة</span>
-          <ExternalLink className="w-3 h-3" />
-        </button>
-
-        {/* Quick Directions */}
-        {effectiveUrl && (
+      {/* Direct 4-Action Button Grid */}
+      <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-800 text-xs font-black">
+        {/* 1. Directions */}
+        {effectiveUrl ? (
           <a
             href={effectiveUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`p-2 rounded-xl border text-center flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95 ${
+            className={`py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 ${
               isOfficial
-                ? 'bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
-                : 'bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                ? 'bg-blue-500/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30'
+                : 'bg-emerald-500/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30'
             }`}
-            title="الملاحة والمسار على خرائط Google"
+            title="فتح الاتجاهات على خرائط Google"
           >
             <Navigation className="w-3.5 h-3.5" />
+            <span className="text-[11px]">اتجاهات</span>
           </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="py-2 px-1 rounded-xl bg-slate-900 text-slate-500 text-center flex items-center justify-center gap-1 opacity-50"
+          >
+            <Navigation className="w-3.5 h-3.5" />
+            <span className="text-[11px]">اتجاهات</span>
+          </button>
         )}
 
-        {/* Quick WhatsApp */}
-        {smartWhatsAppUrl && (
+        {/* 2. WhatsApp */}
+        {smartWhatsAppUrl ? (
           <a
             href={smartWhatsAppUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 transition-colors active:scale-95 cursor-pointer shadow-2xs"
+            className="py-2 px-1 rounded-xl bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 text-center flex items-center justify-center gap-1 transition-colors active:scale-95 cursor-pointer"
             title="محادثة واتساب مباشرة"
           >
             <MessageCircle className="w-3.5 h-3.5" />
+            <span className="text-[11px]">واتساب</span>
           </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="py-2 px-1 rounded-xl bg-slate-900 text-slate-500 text-center flex items-center justify-center gap-1 opacity-50"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span className="text-[11px]">واتساب</span>
+          </button>
         )}
 
-        {/* Quick Call */}
-        {phone && (
+        {/* 3. Phone Call */}
+        {phone ? (
           <a
             href={`tel:${phone}`}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors active:scale-95 cursor-pointer shadow-2xs"
+            className="py-2 px-1 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 text-center flex items-center justify-center gap-1 transition-colors active:scale-95 cursor-pointer"
             title="اتصال هاتفي مباشر"
           >
             <Phone className="w-3.5 h-3.5" />
+            <span className="text-[11px]">اتصال</span>
           </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="py-2 px-1 rounded-xl bg-slate-900 text-slate-500 text-center flex items-center justify-center gap-1 opacity-50"
+          >
+            <Phone className="w-3.5 h-3.5" />
+            <span className="text-[11px]">اتصال</span>
+          </button>
         )}
+
+        {/* 4. Full Details / Edit Modal */}
+        <button
+          type="button"
+          onClick={handleOpenDetails}
+          className="py-2 px-1 rounded-xl bg-amber-500 hover:bg-yellow-400 text-slate-950 text-center flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow"
+          title="عرض كامل التفاصيل في نافذة مخصصة"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span className="text-[11px]">تفاصيل</span>
+        </button>
       </div>
     </div>
   );

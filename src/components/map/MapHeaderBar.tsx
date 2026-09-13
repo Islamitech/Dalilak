@@ -55,19 +55,6 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
         <div className="flex items-center bg-[var(--input-bg)] p-0.5 rounded-xl border border-[var(--border-color)] text-[11px] font-bold">
           <button
             type="button"
-            onClick={() => onSwitchTileLayer('dalelak-osm')}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-              tileLayer === 'dalelak-osm'
-                ? 'bg-amber-500 text-slate-950 font-black shadow'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-            title="عرض خريطة دليلك الميدانية الرسمية (OpenStreetMap)"
-          >
-            <Layers className="w-3 h-3" />
-            <span>خريطة دليلك الرسمية</span>
-          </button>
-          <button
-            type="button"
             onClick={() => onSwitchTileLayer('google-streets')}
             className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
               tileLayer === 'google-streets'
@@ -78,6 +65,19 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
           >
             <MapPin className="w-3 h-3 stroke-[2.5]" />
             <span>شوارع جوجل</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onSwitchTileLayer('dalelak-clean')}
+            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+              tileLayer === 'dalelak-clean'
+                ? 'bg-amber-500 text-slate-950 font-black shadow'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+            title="عرض خريطة دليلك الميدانية الملونة الصافية"
+          >
+            <Layers className="w-3 h-3" />
+            <span>خريطة دليلك</span>
           </button>
           <button
             type="button"
