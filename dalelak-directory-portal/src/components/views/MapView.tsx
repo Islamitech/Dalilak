@@ -3,6 +3,7 @@ import { Business } from '../../types';
 import { InteractiveMap } from '../InteractiveMap';
 import { BusinessCard } from '../cards/BusinessCard';
 import { FilterBar } from '../search/FilterBar';
+import { getBusinessMapDetails } from '../../utils/directoryEnhancements';
 import { Layers, MapPin, X, Navigation, Phone, MessageCircle } from 'lucide-react';
 
 export interface MapViewProps {
@@ -69,53 +70,81 @@ export const MapView: React.FC<MapViewProps> = ({
         />
 
         {/* Selected Business Floating Card Overlay on Pin Click */}
-        {selectedMapBiz && (
-          <div className="absolute bottom-4 right-4 left-4 sm:left-auto sm:w-96 z-[1000] animate-slide-up">
-            <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-4 shadow-2xl space-y-3 text-right">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                    {selectedMapBiz.category}
-                  </span>
-                  <h4 className="font-black text-sm text-slate-900 mt-1 truncate">
-                    {selectedMapBiz.nameAr}
-                  </h4>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {[selectedMapBiz.street, selectedMapBiz.city].filter(Boolean).join('، ')}
-                  </p>
+        {selectedMapBiz && (() => {
+          const { effectiveUrl, isOfficial } = getBusinessMapDetails(selectedMapBiz);
+          return (
+            <div className="absolute bottom-4 right-4 left-4 sm:left-auto sm:w-96 z-[1000] animate-slide-up">
+              <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-4 shadow-2xl space-y-3 text-right">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                      {selectedMapBiz.category}
+                    </span>
+                    <h4 className="font-black text-sm text-slate-900 mt-1 truncate">
+                      {selectedMapBiz.nameAr}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 truncate">
+                      {[selectedMapBiz.street, selectedMapBiz.city, selectedMapBiz.governorate].filter(Boolean).join('، ')}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMapBiz(null)}
+                    className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                    title="إغلاق"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedMapBiz(null)}
-                  className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors shrink-0"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => onOpenBusiness(selectedMapBiz)}
-                  className="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs text-center cursor-pointer transition-colors"
-                >
-                  التفاصيل الكاملة
-                </button>
-
-                {selectedMapBiz.phone && (
-                  <a
-                    href={`tel:${selectedMapBiz.phone}`}
-                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => onOpenBusiness(selectedMapBiz)}
+                    className="py-2 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs text-center cursor-pointer transition-colors flex items-center justify-center gap-1 shadow-xs"
                   >
-                    <Phone className="w-3.5 h-3.5 text-slate-600" />
-                    <span>اتصال</span>
-                  </a>
-                )}
+                    <span>التفاصيل</span>
+                  </button>
+
+                  {effectiveUrl ? (
+                    <a
+                      href={effectiveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-xs"
+                      title={isOfficial ? 'فتح خرائط Google' : 'الموقع والملاحة'}
+                    >
+                      <Navigation className="w-3.5 h-3.5 text-blue-600" />
+                      <span>اتجاهات</span>
+                    </a>
+                  ) : (
+                    <div className="py-2 px-2 rounded-xl bg-slate-50 text-slate-400 font-bold text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed border border-slate-100">
+                      <Navigation className="w-3.5 h-3.5 text-slate-400" />
+                      <span>اتجاهات</span>
+                    </div>
+                  )}
+
+                  {selectedMapBiz.phone ? (
+                    <a
+                      href={`tel:${selectedMapBiz.phone}`}
+                      className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-xs"
+                      title="اتصال هاتفي"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-slate-600" />
+                      <span>اتصال</span>
+                    </a>
+                  ) : (
+                    <div className="py-2 px-2 rounded-xl bg-slate-50 text-slate-400 font-bold text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed border border-slate-100">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <span>اتصال</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Synchronized Compact Places List below map */}

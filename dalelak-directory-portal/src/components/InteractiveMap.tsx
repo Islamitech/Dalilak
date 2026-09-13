@@ -119,8 +119,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
 
-  // High precision controls & Layer switcher (Default: Dalilak Clean Silent Base Map)
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-clean');
+  // High precision controls & Layer switcher (Default: Google Streets for rich colors and topography)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -300,8 +300,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         className: 'custom-picker-pin',
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: grab; user-select: none;">
-            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #020617; font-weight: 900; font-size: 11px; padding: 3px 10px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); white-space: nowrap; border: 1.5px solid #fef08a; margin-bottom: 2px;">
-              📍 موقع المنشأة المحدد
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #020617; font-weight: 900; font-size: 11px; padding: 3px 10px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); white-space: nowrap; border: 1.5px solid #fef08a; margin-bottom: 2px; display: inline-flex; align-items: center; gap: 4px; font-family: Cairo, sans-serif;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#020617" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>موقع المنشأة المحدد</span>
             </div>
             <div style="position: relative; width: 36px; height: 46px; display: flex; justify-content: center;">
               <svg width="36" height="46" viewBox="0 0 36 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));">
@@ -397,23 +398,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const isVerified = biz.verificationStatus === 'verified';
           const isSelected = selectedBiz?.id === biz.id;
           const color = isVerified ? '#10b981' : '#f59e0b';
-          const bg = isVerified ? '#064e3b' : '#78350f';
+          const bg = isVerified ? 'linear-gradient(135deg, #064e3b, #047857)' : 'linear-gradient(135deg, #1e293b, #0f172a)';
           const safeName = escapeHtml(biz.nameAr || 'منشأة معتمدة');
 
           const showFullPill = zoomLevel >= 15;
           const htmlContent = showFullPill
             ? `
-              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
-                <div style="background: ${isSelected ? '#f59e0b' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 8px; border-radius: 12px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 4px; transition: transform 0.2s;">
-                  <span style="color: ${isSelected ? '#020617' : color}; font-size: 12px;">📍</span>
-                  <span>${safeName}</span>
+              <div style="position: relative; transform: translate(-50%, -100%); cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center;">
+                <div style="background: ${isSelected ? 'linear-gradient(135deg, #f59e0b, #d97706)' : bg}; border: 1.5px solid ${isSelected ? '#ffffff' : color}; color: ${isSelected ? '#020617' : '#ffffff'}; padding: 4px 10px; border-radius: 9999px; font-family: Cairo, sans-serif; font-weight: 800; font-size: 11px; box-shadow: 0 4px 14px rgba(0,0,0,0.5); display: inline-flex; align-items: center; gap: 5px; max-width: 170px; transition: transform 0.2s;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? '#020617' : color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; direction: rtl; display: inline-block;">${safeName}</span>
                 </div>
+                <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${isSelected ? '#d97706' : (isVerified ? '#047857' : '#0f172a')}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));"></div>
               </div>
             `
             : `
-              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
-                <div style="background: ${color}; width: 28px; height: 28px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 3px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">
-                  📍
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer; user-select: none;">
+                <div style="background: ${isVerified ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #f59e0b, #d97706)'}; width: 22px; height: 22px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 3px 10px rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center;">
+                  <div style="width: 6px; height: 6px; background: #ffffff; border-radius: 9999px;"></div>
                 </div>
               </div>
             `;
@@ -421,8 +423,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const bizIcon = window.L.divIcon({
             className: 'custom-biz-pin',
             html: htmlContent,
-            iconSize: showFullPill ? [120, 32] : [28, 28],
-            iconAnchor: showFullPill ? [60, 16] : [14, 14],
+            iconSize: showFullPill ? [170, 36] : [22, 22],
+            iconAnchor: showFullPill ? [85, 36] : [11, 11],
           });
 
           const marker = window.L.marker([biz.lat, biz.lng], { icon: bizIcon });
@@ -439,15 +441,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const clusterIcon = window.L.divIcon({
             className: 'custom-cluster-pin',
             html: `
-              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer;">
-                <div style="background: linear-gradient(135deg, #d97706, #b45309); border: 2.5px solid #fef08a; color: #ffffff; width: 44px; height: 44px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(217, 119, 6, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; font-family: Cairo, sans-serif;">
+              <div style="position: relative; transform: translate(-50%, -50%); cursor: pointer; user-select: none;">
+                <div style="background: linear-gradient(135deg, #d97706, #b45309); border: 2px solid #fef08a; color: #ffffff; min-width: 42px; height: 42px; padding: 0 8px; border-radius: 9999px; box-shadow: 0 4px 16px rgba(217, 119, 6, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Cairo, sans-serif;">
                   <span style="font-size: 13px; font-weight: 900; line-height: 1;">${cluster.items.length}</span>
-                  <span style="font-size: 8px; font-weight: 800; color: #fef08a; line-height: 1;">أماكن</span>
+                  <span style="font-size: 8px; font-weight: 800; color: #fef08a; line-height: 1; margin-top: 1px;">أنشطة</span>
                 </div>
               </div>
             `,
-            iconSize: [44, 44],
-            iconAnchor: [22, 22],
+            iconSize: [42, 42],
+            iconAnchor: [21, 21],
           });
 
           const clusterMarker = window.L.marker([cluster.centerLat, cluster.centerLng], { icon: clusterIcon });
@@ -473,7 +475,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   useEffect(() => {
     const handleResize = () => {
       if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize();
+        leafletMapRef.current.invalidateSize({ animate: false });
       }
     };
 
@@ -488,13 +490,20 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       resizeObserver.observe(containerRef.current);
     }
 
-    const timer = setTimeout(handleResize, 200);
+    // Multi-interval refresh during modal/drawer CSS animations to ensure zero blank tiles
+    const t1 = setTimeout(handleResize, 50);
+    const t2 = setTimeout(handleResize, 150);
+    const t3 = setTimeout(handleResize, 350);
+    const t4 = setTimeout(handleResize, 600);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [isExpanded]);
 
