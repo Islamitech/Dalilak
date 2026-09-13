@@ -293,48 +293,48 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
 
             {/* 3. Internal Navigation Tabs */}
             {!isGuest && (
-              <div className="flex items-center border-b border-slate-200 text-sm font-medium overflow-x-auto scrollbar-thin">
-                <div className="flex">
+              <div className="flex items-center border-b border-slate-200 text-sm font-medium overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex w-full justify-between sm:justify-start sm:gap-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab('info')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
+                    className={`py-2.5 px-2.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
                       activeTab === 'info'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    بيانات المنشأة
+                    البيانات
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveTab('admin')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
+                    className={`py-2.5 px-2.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
                       activeTab === 'admin'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    العمليات والتوثيق المالي
+                    مالي
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveTab('notes')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
+                    className={`py-2.5 px-2.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap ${
                       activeTab === 'notes'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    المتابعات ({business.adminFollowUps?.length || 0})
+                    متابعات ({business.adminFollowUps?.length || 0})
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveTab('directory')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`py-2.5 px-2.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${
                       activeTab === 'directory'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -349,14 +349,13 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTab('whatsapp')}
-                    className={`py-2.5 px-3 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`py-2.5 px-2.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs sm:text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${
                       activeTab === 'whatsapp'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    <span>الواتس اب</span>
-                    <span className="text-[10px] py-0.5 px-1.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">تسويق</span>
+                    الواتس اب
                   </button>
                 </div>
               </div>
