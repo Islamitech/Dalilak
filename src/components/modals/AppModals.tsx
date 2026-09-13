@@ -11,7 +11,7 @@ import { canUserEditBusiness, canUserDeleteBusiness } from '../../utils/permissi
 import { fetchBusinessesFromDb } from '../../services/db';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
 
-const BusinessEditModal = lazyWithRetry(() => import('../BusinessEditModal').then((m) => ({ default: m.BusinessEditModal })));
+const BusinessDetailsDrawer = lazyWithRetry(() => import('../BusinessDetailsDrawer').then((m) => ({ default: m.BusinessDetailsDrawer })));
 const PaymentGatewayModal = lazyWithRetry(() => import('../PaymentGatewayModal').then((m) => ({ default: m.PaymentGatewayModal })));
 const AdminProfileModal = lazyWithRetry(() => import('../AdminProfileModal').then((m) => ({ default: m.AdminProfileModal })));
 const VideoPlayerModal = lazyWithRetry(() => import('../VideoPlayerModal').then((m) => ({ default: m.VideoPlayerModal })));
@@ -127,22 +127,19 @@ export const AppModals: React.FC<AppModalsProps> = ({
         />
       )}
 
-      {/* MODAL: FULL BUSINESS DATA VIEW & EDITING */}
+      {/* DRAWER: FULL BUSINESS DATA VIEW & EDITING */}
       {editingBusiness && user && (
         <Suspense fallback={null}>
-          <BusinessEditModal
+          <BusinessDetailsDrawer
             business={editingBusiness}
+            isOpen={Boolean(editingBusiness)}
             onClose={() => setEditingBusiness(null)}
-            onSave={(updatedBiz) => {
+            onUpdateBusiness={(updatedBiz) => {
               onUpdateBusiness(updatedBiz);
               setEditingBusiness(updatedBiz);
             }}
-            userRole={user?.role}
-            currentRoleTitle={user?.repData?.roleTitle || user?.roleTitle}
-            currentUserName={user?.name}
-            currentUserId={user?.id}
-            canEdit={canUserEditBusiness(user, editingBusiness)}
-            onShowInvoice={(b, additionalInvId) => {
+            currentUser={user}
+            onShowInvoice={(b: Business, additionalInvId?: string) => {
               setSelectedAdditionalInvoiceId(additionalInvId);
               setSelectedInvoiceBiz(b);
             }}
@@ -151,7 +148,6 @@ export const AppModals: React.FC<AppModalsProps> = ({
                 ? (b) => setSelectedPayBiz(b)
                 : undefined
             }
-            businesses={businesses}
             onDeleteBusiness={
               canUserDeleteBusiness(user, editingBusiness) ? onDeleteBusiness : undefined
             }

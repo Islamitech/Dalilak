@@ -24,12 +24,13 @@ import { DocumentViewerModal } from './DocumentViewerModal';
 import { InvoiceModal } from './InvoiceModal';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { VideoPlayerModal } from './VideoPlayerModal';
+import { BusinessEditModal } from './BusinessEditModal';
 
 export interface BusinessDetailsDrawerProps {
   business: Business | null;
   isOpen: boolean;
   onClose: () => void;
-  onShowInvoice?: (biz: Business) => void;
+  onShowInvoice?: (biz: Business, additionalInvoiceId?: string) => void;
   onCollectPayment?: (biz: Business) => void;
   onEditBusiness?: (biz: Business) => void;
   onUpdateBusiness?: (biz: Business) => void;
@@ -50,10 +51,8 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'admin' | 'notes'>('info');
   const [newNoteText, setNewNoteText] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editFormData, setEditFormData] = useState<Partial<Business>>({});
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Modals state
   const [showVerificationAlert, setShowVerificationAlert] = useState(false);
@@ -68,8 +67,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
 
   useEffect(() => {
     if (business) {
-      setEditFormData({ ...business });
-      setIsEditing(false);
+      setIsEditModalOpen(false);
     }
   }, [business, isOpen]);
 
@@ -229,25 +227,17 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
     setIsAddServiceInvoiceModalOpen(false);
   };
 
-  // Handler for saving edited fields
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!onUpdateBusiness) return;
-    setIsSaving(true);
-
-    const updatedBiz: Business = {
-      ...business,
-      ...editFormData,
-    };
-
+  // Handler for saving edited fields from modal
+  const handleSaveModal = (updatedBiz: Business) => {
     addAutoFollowUpNote(
       'general',
       `[تعديل بيانات]: تم تحديث بيانات المنشأة رسمياً بواسطة ${userName}.`,
-      editFormData
+      updatedBiz
     );
-
-    setIsSaving(false);
-    setIsEditing(false);
+    if (onUpdateBusiness) {
+      onUpdateBusiness(updatedBiz);
+    }
+    setIsEditModalOpen(false);
   };
 
   return (
@@ -259,236 +249,6 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
         subtitle={`${business.category} • ${business.governorate} - ${business.city}`}
         width="xl"
       >
-        {isEditing ? (
-          /* ===================== EDIT MODE ===================== */
-          <form onSubmit={handleSaveEdit} className="space-y-4 text-xs font-medium">
-            <div className="p-3.5 bg-gradient-to-r from-amber-500/15 via-slate-100 to-indigo-500/15 rounded-2xl border border-amber-500/30 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-amber-600" />
-                <span className="font-black text-slate-900 text-sm">تعديل وتحديث بيانات المنشأة</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="py-1.5 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold transition-colors cursor-pointer"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="py-1.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>{isSaving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Basic Info */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-              <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-indigo-600" />
-                <span>البيانات الأساسية والتصنيف</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">اسم المنشأة (بالعربية) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editFormData.nameAr || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, nameAr: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">الاسم بالإنجليزية (اختياري)</label>
-                  <input
-                    type="text"
-                    value={editFormData.nameEn || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, nameEn: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dir-ltr text-right"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">التصنيف التجاري</label>
-                  <select
-                    value={editFormData.category || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  >
-                    {BUSINESS_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">التصنيف الفرعي / المهنة</label>
-                  <input
-                    type="text"
-                    value={(editFormData as any).subCategory || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, subCategory: e.target.value } as any)}
-                    placeholder="مثال: هايبر وبقالة، مأكولات بحرية..."
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Address & Working Hours */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-              <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-indigo-600" />
-                <span>الموقع وساعات العمل</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">المحافظة</label>
-                  <select
-                    value={editFormData.governorate || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, governorate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  >
-                    {EGYPT_GOVERNORATES.map((gov) => (
-                      <option key={gov} value={gov}>{gov}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">المدينة / الحي</label>
-                  <input
-                    type="text"
-                    value={editFormData.city || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">الشارع والمنطقة</label>
-                  <input
-                    type="text"
-                    value={editFormData.street || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, street: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">علامة مميزة (اختياري)</label>
-                  <input
-                    type="text"
-                    value={editFormData.landmark || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, landmark: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-slate-600 font-bold mb-1">ساعات ومواعيد العمل</label>
-                  <input
-                    type="text"
-                    value={editFormData.workingHours || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, workingHours: e.target.value })}
-                    placeholder="مثال: يومياً من 8:00 ص - 10:00 م"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Contacts & Owner */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-              <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Phone className="w-4 h-4 text-emerald-600" />
-                <span>أرقام التواصل والمسؤولين</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">الهاتف الأساسي *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={editFormData.phone || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">هاتف بديل (اختياري)</label>
-                  <input
-                    type="tel"
-                    value={editFormData.secondaryPhone || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, secondaryPhone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">اسم المالك / المسؤول الميداني</label>
-                  <input
-                    type="text"
-                    value={editFormData.ownerName || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, ownerName: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">هاتف المالك الشخصي</label>
-                  <input
-                    type="tel"
-                    value={editFormData.ownerPhone || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, ownerPhone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <label className="block text-slate-600 font-bold mb-1">الوصف التعريفي والخدمات</label>
-              <textarea
-                rows={3}
-                value={editFormData.description || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 leading-relaxed"
-              />
-            </div>
-
-            {/* Bottom Controls */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-              {onDeleteBusiness && (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="py-2 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-rose-200"
-                >
-                  <Trash2 className="w-4 h-4 text-rose-600" />
-                  <span>حذف المنشأة</span>
-                </button>
-              )}
-
-              <div className="flex items-center gap-2 mr-auto">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="py-2 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="py-2 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>{isSaving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}</span>
-                </button>
-              </div>
-            </div>
-          </form>
-        ) : (
-          /* ===================== VIEW MODE (100% PROTOTYPE UX/UI) ===================== */
-          <>
             {/* 1. Panoramic Hero Header with Watermark Badge & Status Pill */}
             <DrawerHeroHeader
               business={business}
@@ -548,7 +308,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
                   {canEdit && (
                     <button
                       type="button"
-                      onClick={() => setIsEditing(true)}
+                      onClick={() => setIsEditModalOpen(true)}
                       className="py-1 px-2.5 my-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200 shadow-2xs cursor-pointer whitespace-nowrap"
                       title="تعديل وتحديث بيانات المنشأة"
                     >
@@ -640,9 +400,15 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
                 onAddNoteSubmit={handleAddNoteSubmit}
               />
             )}
-          </>
-        )}
       </Drawer>
+
+      {/* Business Full Interactive Edit Modal (matches prototype & media_1789316245753.png) */}
+      <BusinessEditModal
+        business={business}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleSaveModal}
+      />
 
       {/* KYC Document Viewer Modal */}
       <DocumentViewerModal

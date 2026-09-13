@@ -23,7 +23,7 @@ import { AdminPaymentConfigModal } from './admin/modals/AdminPaymentConfigModal'
 import { AdminReceiptModal } from './admin/modals/AdminReceiptModal';
 import { AdminAvatarModal } from './admin/modals/AdminAvatarModal';
 import { DocViewerModal } from './DocViewerModal';
-import { BusinessEditModal } from './BusinessEditModal';
+import { BusinessDetailsDrawer } from './BusinessDetailsDrawer';
 import { GoogleMapsSyncModal } from './GoogleMapsSyncModal';
 import { PermissionsModal } from './PermissionsModal';
 import { RepAccountDossierModal } from './RepAccountDossierModal';
@@ -799,38 +799,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         />
       )}
 
-      {/* SHARED MODAL: Business Data View & Editing */}
-      <BusinessEditModal
+      {/* SHARED DRAWER: Business Data View & Editing */}
+      <BusinessDetailsDrawer
         business={editingBusiness}
+        isOpen={Boolean(editingBusiness)}
         currentUser={currentUser}
         onClose={() => {
           setEditingBusiness(null);
           setEditingBusinessInitialTab(undefined);
         }}
-        onSave={(updated) => {
+        onUpdateBusiness={(updated) => {
           onUpdateBusiness(updated);
           setEditingBusiness(updated);
         }}
-        userRole={currentUser?.role || 'admin'}
-        currentRoleTitle={
-          currentUser?.repData?.roleTitle ||
-          currentUser?.roleTitle ||
-          (currentUser?.role === 'admin'
-            ? 'مدير النظام'
-            : currentUser?.role === 'supervisor'
-            ? 'مشرف إدارة'
-            : currentUser?.role === 'accountant'
-            ? 'محاسب'
-            : 'مندوب')
-        }
-        currentUserName={currentUser?.name || 'مدير النظام'}
-        currentUserId={currentUser?.id || 'admin_1'}
-        initialTab={editingBusinessInitialTab}
-        canEdit={true}
         onShowInvoice={onShowInvoice}
         onCollectPayment={onCollectPayment}
         onDeleteBusiness={onDeleteBusiness}
-        businesses={businesses}
       />
 
       {/* MODAL: USER ACCOUNT CREATION / EDITING POP-UP */}

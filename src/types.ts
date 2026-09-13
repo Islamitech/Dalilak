@@ -9,6 +9,7 @@ export interface Business {
   name?: string;
   updatedAt?: string;
   category: string;
+  subCategory?: string;
   governorate: string;
   city: string;
   street: string;
@@ -25,6 +26,7 @@ export interface Business {
   nationalId?: string;
   photos: string[];
   videos?: string[];
+  videoTourUrl?: string;
   coverPhoto?: string; // رابط الصورة المحددة كغلاف رئيسي للمكان في الدليل
   repId: string;
   repName: string;
