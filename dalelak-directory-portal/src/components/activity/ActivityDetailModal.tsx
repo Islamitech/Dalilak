@@ -354,6 +354,46 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
             </div>
           </div>
 
+          {/* In-App Interactive Mini Map (Matching prototype standard) */}
+          {business.lat && business.lng ? (
+            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 space-y-2.5 p-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <MapPin className="w-4 h-4 text-indigo-600" />
+                  <span>موقع المنشأة على الخريطة التفاعلية</span>
+                </div>
+                {effectiveUrl && (
+                  <a
+                    href={effectiveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-1 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] transition-colors flex items-center gap-1 border border-emerald-200"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>الملاحة والمسار</span>
+                  </a>
+                )}
+              </div>
+              <div className="relative h-44 w-full rounded-xl overflow-hidden border border-slate-200 shadow-inner bg-slate-100">
+                <iframe
+                  title="موقع المنشأة التفاعلي"
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  scrolling="no"
+                  marginHeight={0}
+                  marginWidth={0}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${business.lng - 0.008}%2C${business.lat - 0.006}%2C${business.lng + 0.008}%2C${business.lat + 0.006}&layer=mapnik&marker=${business.lat}%2C${business.lng}`}
+                  className="w-full h-full"
+                />
+                <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-lg text-[10px] font-mono text-slate-700 shadow-sm border border-slate-200 flex items-center gap-1 pointer-events-none">
+                  <MapPin className="w-3 h-3 text-rose-500" />
+                  <span>{business.lat.toFixed(4)}, {business.lng.toFixed(4)}</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {/* Description */}
           {business.description && (
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
