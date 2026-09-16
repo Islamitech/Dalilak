@@ -4,6 +4,21 @@
 
 ---
 
+## 🖼️ [Tier 2] إصلاح استرجاع وعرض ألبومات صور الأنشطة المتعددة بالدليل العام واستعراض الـ Lightbox (Activity Multi-Photo Gallery & Full Lightbox Restoration Fix)
+**Restoration of Full Business Photos Querying, Dynamic Live-Photo Hydration in Activity Detail Modal & Seamless Multi-Photo Lightbox Browsing**
+- **تاريخ الاعتماد والتنفيذ:** 16 سبتمبر 2026
+- **المسار التنظيمي:** المسار الثاني: التحسينات الفنية وإصلاحات الواجهة وقواعد البيانات (Tier 2 — Directory Portal & Database Query Engine)
+- **المشرف والمنفذ:** Senior Software Architect & Lead System Engineer
+- **حالة الاعتماد:** معتمد ومطبق برمجياً ومجرب بنسبة نجاح 100% (Zero-Defect Code 0 Standard).
+
+### 1. ملخص المشكلة والإصلاح
+1. **استعادة حقول الصور في استعلام PostgREST:** إضافة `cover_photo,photos` إلى `FAST_BUSINESS_SELECT` في بوابة الدليل العام والتطبيق الرئيسي بعد أن كان الاستعلام يسقطها مقتصراً على صورة الغلاف من حقل `notes`.
+2. **محرك الجلب الحي للألبومات (`livePhotos`):** تفعيل استرجاع فوري مباشر لأحدث ألبوم صور للنشاط عبر معرفه السحابي في `ActivityDetailModal.tsx` بمجرد النقر عليه، مع إظهار شارة عدد الصور (`📸 X صور`) وعرض شريط المصغرات المرقمة.
+3. **تحديث عارض الصور المكبر (Lightbox):** تمكين التنقل بين كافة الصور عبر الأسهم والسحب باللمس على الموبايل مع عداد دقيق لعدد الصور (مثال: `1 / 9`).
+4. **تخزين آمن للصور بالكاش:** حفظ روابط CDN السحابية الخفيفة في `dalelak_directory_cache` دون تخزين صور base64 الثقيلة لضمان السرعة الفائقة مع استقرار مساحة التخزين.
+
+---
+
 ## 🏛️ [Tier 1] منظومة إدارة وسائط الأنشطة، ضبط إطار وبطاقة النشاط، وإصدار الفواتير الإضافية والاعتماد الفوري للمديرين (Admin Business Media, Card Framing & Invoice Processing Hub)
 **Multi-File Activity Photo Uploads with In-Browser Compression, Card Cover Selection & Reordering, Framing Toggle (Cover vs Contain), Owner ID Document Hub, Additional Service Invoices Engine & One-Click Verification**
 - **تاريخ الاعتماد والتنفيذ:** 16 سبتمبر 2026

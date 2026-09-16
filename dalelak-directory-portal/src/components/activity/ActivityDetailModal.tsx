@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Business } from '../../types';
 import {
   getBusinessMapDetails,
@@ -94,11 +94,91 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
   const giftBarcodeUrl = getGiftBarcodeWhatsAppUrl(business);
   const openStatus = getBusinessOpenStatus(business.workingHours);
 
-  const photos = business.photos && business.photos.length > 0
-    ? business.photos
-    : business.coverPhoto
-    ? [business.coverPhoto]
-    : [];
+  // 🖼️ Multi-photo live resilience: syncs all gallery photos on demand
+  const [livePhotos, setLivePhotos] = useState<string[]>(() => {
+    return Array.isArray(business.photos) ? business.photos : [];
+  });
+
+  useEffect(() => {
+    if (!business?.id) {
+      setLivePhotos([]);
+      return;
+    }
+    if (Array.isArray(business.photos) && business.photos.length > 0) {
+      setLivePhotos(business.photos);
+    }
+
+    let isMounted = true;
+    async function fetchPhotosForBiz() {
+      try {
+        const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
+        const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
+        const res = await fetch(
+          `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?id=eq.${encodeURIComponent(business.id)}&select=id,photos,cover_photo`,
+          {
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          }
+        );
+        if (res.ok) {
+          const rows = await res.json();
+          if (Array.isArray(rows) && rows.length > 0 && isMounted) {
+            const row = rows[0];
+            let fetchedPhotos: string[] = [];
+            if (Array.isArray(row.photos)) {
+              fetchedPhotos = row.photos.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
+            } else if (typeof row.photos === 'string' && row.photos.trim().length > 0) {
+              try {
+                const parsed = JSON.parse(row.photos.trim());
+                if (Array.isArray(parsed)) fetchedPhotos = parsed.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
+                else if (typeof parsed === 'string') fetchedPhotos = [parsed.trim()];
+              } catch {
+                if (row.photos.startsWith('http') || row.photos.startsWith('data:') || row.photos.startsWith('/')) {
+                  fetchedPhotos = [row.photos.trim()];
+                }
+              }
+            }
+            if (fetchedPhotos.length > 0 && isMounted) {
+              setLivePhotos(fetchedPhotos);
+            }
+          }
+        }
+      } catch {}
+    }
+    fetchPhotosForBiz();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [business?.id]);
+
+  const photos = useMemo(() => {
+    const list: string[] = [];
+    const sourcePhotos = livePhotos && livePhotos.length > 0 ? livePhotos : (business.photos || []);
+
+    if (Array.isArray(sourcePhotos) && sourcePhotos.length > 0) {
+      sourcePhotos.forEach((p) => {
+        if (p && typeof p === 'string' && p.trim() && !list.includes(p.trim())) {
+          list.push(p.trim());
+        }
+      });
+      // If coverPhoto is an external hosted URL and not already in photos, ensure it's at index 0
+      if (
+        business.coverPhoto &&
+        typeof business.coverPhoto === 'string' &&
+        business.coverPhoto.trim() &&
+        !business.coverPhoto.startsWith('data:') &&
+        !list.includes(business.coverPhoto.trim())
+      ) {
+        list.unshift(business.coverPhoto.trim());
+      }
+    } else if (business.coverPhoto && typeof business.coverPhoto === 'string' && business.coverPhoto.trim()) {
+      list.push(business.coverPhoto.trim());
+    }
+    return list;
+  }, [business.coverPhoto, business.photos, livePhotos]);
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -216,6 +296,12 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                     {business.category}
                   </span>
                   <PhotoWatermarkBadge position="top-right" size="sm" className="!relative !top-auto !right-auto" />
+                  {photos.length > 1 && (
+                    <span className="bg-slate-900/70 backdrop-blur-md text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1 shadow-sm">
+                      <span>📸</span>
+                      <span>{photos.length} صور</span>
+                    </span>
+                  )}
                 </div>
 
                 {business.videos && business.videos.length > 0 && onOpenVideoModal && (
@@ -265,7 +351,10 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                     type="button"
                     onClick={() => setPreviewPhotoIndex(idx)}
                     onContextMenu={(e) => e.preventDefault()}
-                    className="relative h-16 rounded-xl overflow-hidden bg-slate-950 border border-slate-200 hover:border-amber-500 transition-all cursor-pointer group select-none"
+                    className={`relative h-16 rounded-xl overflow-hidden bg-slate-950 border transition-all cursor-pointer group select-none ${
+                      previewPhotoIndex === idx ? 'border-amber-500 ring-2 ring-amber-500/50' : 'border-slate-200 hover:border-amber-500'
+                    }`}
+                    title={`عرض صورة ${idx + 1} من ${photos.length}`}
                   >
                     <img 
                       src={ph} 
@@ -275,6 +364,9 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                       draggable={false}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform pointer-events-none select-none" 
                     />
+                    <span className="absolute bottom-1 right-1 text-[8.5px] font-mono font-black text-white/90 bg-black/60 px-1 rounded backdrop-blur-xs">
+                      {idx + 1}
+                    </span>
                   </button>
                 ))}
               </div>

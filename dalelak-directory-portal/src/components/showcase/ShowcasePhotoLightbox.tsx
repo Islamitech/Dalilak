@@ -35,17 +35,19 @@ export const ShowcasePhotoLightbox: React.FC<ShowcasePhotoLightboxProps> = ({
         setTouchStartX(null);
       }}
     >
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handlePrevPhoto();
-        }}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-xl"
-        title="الصورة السابقة"
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
+      {photos.length > 1 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePrevPhoto();
+          }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-xl active:scale-95"
+          title="الصورة السابقة"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
 
       <div 
         className="relative inline-block max-w-full max-h-[85vh] select-none"
@@ -76,42 +78,46 @@ export const ShowcasePhotoLightbox: React.FC<ShowcasePhotoLightboxProps> = ({
         />
       </div>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleNextPhoto();
-        }}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-xl"
-        title="الصورة التالية"
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
+      {photos.length > 1 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleNextPhoto();
+          }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-xl active:scale-95"
+          title="الصورة التالية"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
 
       <button
         type="button"
         onClick={() => setPreviewPhotoIndex(null)}
-        className="absolute top-4 left-4 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-rose-600 text-white flex items-center justify-center cursor-pointer transition-all"
+        className="absolute top-4 left-4 w-10 h-10 rounded-full bg-slate-800/80 hover:bg-rose-600 text-white flex items-center justify-center cursor-pointer transition-all active:scale-95"
         title="إغلاق"
       >
         <X className="w-5 h-5" />
       </button>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-        {photos.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPreviewPhotoIndex(i);
-            }}
-            className={`rounded-full transition-all cursor-pointer ${
-              i === previewPhotoIndex ? 'w-6 h-2 bg-amber-500' : 'w-2 h-2 bg-white/40 hover:bg-white/70'
-            }`}
-          />
-        ))}
-      </div>
+      {photos.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 max-w-[80vw] overflow-x-auto py-1 px-2 scrollbar-none">
+          {photos.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewPhotoIndex(i);
+              }}
+              className={`rounded-full transition-all cursor-pointer shrink-0 ${
+                i === previewPhotoIndex ? 'w-6 h-2 bg-amber-500' : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       <span className="absolute bottom-4 right-4 text-white/70 text-xs font-bold">
         {previewPhotoIndex + 1} / {photos.length}

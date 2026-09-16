@@ -8,12 +8,21 @@ const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacp
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
 // VERIFIED columns that exist in Supabase (whatsapp, google_maps_url, google_place_id, google_sync_status do NOT exist).
 // google_maps_url, google_place_id, google_sync_status are stored in the 'notes' JSON field.
-const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,created_at';
+const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,created_at,cover_photo,photos';
 const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
 const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
 
 // 🛡️ BiDi Control Characters Regex (strips \u202E, \u202B, \u200E, etc.)
 const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
+function getSafeCacheList(list: Business[]): any[] {
+  return list.map((b) => ({
+    ...b,
+    photos: Array.isArray(b.photos)
+      ? b.photos.filter((p: string) => typeof p === 'string' && (p.startsWith('http://') || p.startsWith('https://'))).slice(0, 10)
+      : (b.coverPhoto && !b.coverPhoto.startsWith('data:') ? [b.coverPhoto] : []),
+  }));
+}
 
 export default function App() {
   const [businesses, setBusinesses] = useState<Business[]>(() => {
@@ -29,7 +38,7 @@ export default function App() {
               ...b,
               nameAr: typeof b.nameAr === 'string' ? b.nameAr.replace(BIDI_CONTROL_REGEX, '').trim() : b.nameAr,
               nameEn: typeof b.nameEn === 'string' ? b.nameEn.replace(BIDI_CONTROL_REGEX, '').trim() : b.nameEn,
-              photos: []
+              photos: Array.isArray(b.photos) && b.photos.length > 0 ? b.photos : (b.coverPhoto ? [b.coverPhoto] : [])
             }));
         }
       }
@@ -266,7 +275,7 @@ export default function App() {
                 (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
               );
 
-              // 🛡️ Comprehensive Data Equality Check: Ensures changes to category, phone, coverPhoto, etc. are immediately reflected
+              // 🛡️ Comprehensive Data Equality Check: Ensures changes to category, phone, coverPhoto, photos count etc. are immediately reflected
               if (
                 prev.length === updated.length &&
                 prev.every((b, i) => {
@@ -279,6 +288,7 @@ export default function App() {
                     b.secondaryPhone === u?.secondaryPhone &&
                     b.workingHours === u?.workingHours &&
                     b.coverPhoto === u?.coverPhoto &&
+                    (b.photos?.length || 0) === (u?.photos?.length || 0) &&
                     b.verificationStatus === u?.verificationStatus &&
                     b.governorate === u?.governorate &&
                     b.city === u?.city
@@ -289,12 +299,8 @@ export default function App() {
               }
 
               try {
-                // Keep cache lightweight (metadata only, zero base64) so localStorage quota is never exceeded and loads in 0ms
-                const cacheable = updated.map((b) => ({
-                  ...b,
-                  photos: [],
-                }));
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(cacheable));
+                // Keep cache lightweight (metadata + hosted URLs only, zero base64) so localStorage quota is never exceeded and loads in 0ms
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(updated)));
                 localStorage.setItem('dalelak_directory_last_sync', new Date().toISOString());
               } catch {}
 
@@ -311,6 +317,47 @@ export default function App() {
         } catch {}
         if (isMounted) setLoading(false);
       }
+
+      // Background photo hydration for complete multi-photo coverage
+      try {
+        const pRes = await fetch(SUPABASE_PHOTOS_URL, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (Array.isArray(pData) && pData.length > 0 && isMounted) {
+            const photoMap = new Map<string, string[]>();
+            pData.forEach((item: any) => {
+              if (item.id && Array.isArray(item.photos) && item.photos.length > 0) {
+                photoMap.set(item.id, item.photos.filter((p: any) => typeof p === 'string' && p.trim().length > 0));
+              }
+            });
+            if (photoMap.size > 0) {
+              setBusinesses((prev) => {
+                let hasChanges = false;
+                const next = prev.map((b) => {
+                  const p = photoMap.get(b.id);
+                  if (p && p.length > (b.photos?.length || 0)) {
+                    hasChanges = true;
+                    return { ...b, photos: p };
+                  }
+                  return b;
+                });
+                if (hasChanges) {
+                  try {
+                    localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(next)));
+                  } catch {}
+                  return next;
+                }
+                return prev;
+              });
+            }
+          }
+        }
+      } catch {}
     }
 
     // 1. Initial Load
@@ -331,7 +378,7 @@ export default function App() {
                 const filtered = prev.filter((b) => b.id !== newBiz.id);
                 const updated = [newBiz, ...filtered];
                 try {
-                  localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
+                  localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(updated)));
                 } catch {}
                 return updated;
               });
@@ -345,7 +392,7 @@ export default function App() {
                 ? prev.map((b) => (b.id === updatedBiz.id ? updatedBiz : b))
                 : prev.filter((b) => b.id !== updatedBiz.id);
               try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(updated)));
               } catch {}
               return updated;
             });
@@ -356,7 +403,7 @@ export default function App() {
             setBusinesses((prev) => {
               const updated = prev.filter((b) => b.id !== payload.old.id);
               try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(updated)));
               } catch {}
               return updated;
             });
@@ -381,7 +428,7 @@ export default function App() {
               const filtered = prev.filter((b) => b.id !== event.data.newBusiness.id);
               const updated = [event.data.newBusiness, ...filtered];
               try {
-                localStorage.setItem('dalelak_directory_cache', JSON.stringify(updated.map((b) => ({ ...b, photos: [] }))));
+                localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(updated)));
               } catch {}
               return updated;
             });
