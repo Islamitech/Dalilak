@@ -12,15 +12,17 @@ import { AppNavbar } from './layout/AppNavbar';
 import { AppFooter } from './layout/AppFooter';
 import { MobileBottomNav } from './layout/MobileBottomNav';
 import { HomeView } from './views/HomeView';
-import { SearchView } from './views/SearchView';
-import { MapView } from './views/MapView';
-import { FavoritesView } from './views/FavoritesView';
-import { ForBusinessView } from './views/ForBusinessView';
-import { BusinessPricingView } from './views/BusinessPricingView';
-import { AboutView } from './views/AboutView';
-import { ActivityDetailModal } from './activity/ActivityDetailModal';
-import { VideoPlayerModal } from './VideoPlayerModal';
 import { MessageCircle } from 'lucide-react';
+
+// Code-splitting via React.lazy to reduce initial JS payload for mobile Lighthouse performance
+const SearchView = React.lazy(() => import('./views/SearchView').then(m => ({ default: m.SearchView })));
+const MapView = React.lazy(() => import('./views/MapView').then(m => ({ default: m.MapView })));
+const FavoritesView = React.lazy(() => import('./views/FavoritesView').then(m => ({ default: m.FavoritesView })));
+const ForBusinessView = React.lazy(() => import('./views/ForBusinessView').then(m => ({ default: m.ForBusinessView })));
+const BusinessPricingView = React.lazy(() => import('./views/BusinessPricingView').then(m => ({ default: m.BusinessPricingView })));
+const AboutView = React.lazy(() => import('./views/AboutView').then(m => ({ default: m.AboutView })));
+const ActivityDetailModal = React.lazy(() => import('./activity/ActivityDetailModal').then(m => ({ default: m.ActivityDetailModal })));
+const VideoPlayerModal = React.lazy(() => import('./VideoPlayerModal').then(m => ({ default: m.VideoPlayerModal })));
 
 export interface PublicShowcaseProps {
   businesses: Business[];
@@ -546,7 +548,14 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
       {/* 2. Main Dispatched View */}
       <main className="flex-1 pb-16 md:pb-0">
-        {renderActiveView()}
+        <React.Suspense fallback={
+          <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3 p-8">
+            <div className="w-8 h-8 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
+            <span className="text-xs font-bold text-slate-400">جاري التحميل...</span>
+          </div>
+        }>
+          {renderActiveView()}
+        </React.Suspense>
       </main>
 
       {/* 3. Unified Institutional Footer */}
@@ -554,27 +563,31 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
       {/* 4. Activity Details Modal */}
       {selectedBiz && (
-        <ActivityDetailModal
-          business={selectedBiz}
-          onClose={handleCloseBusiness}
-          isFavorite={favorites.includes(selectedBiz.id)}
-          onToggleFavorite={toggleFavorite}
-          onOpenVideoModal={(b) => setSelectedVideoBiz(b)}
-          allBusinesses={publicBusinesses}
-          onSelectBusiness={(b) => setSelectedBiz(b)}
-          onNavigateToBusinessClaim={(b) => {
-            handleCloseBusiness();
-            handleNavigate('/for-business');
-          }}
-        />
+        <React.Suspense fallback={null}>
+          <ActivityDetailModal
+            business={selectedBiz}
+            onClose={handleCloseBusiness}
+            isFavorite={favorites.includes(selectedBiz.id)}
+            onToggleFavorite={toggleFavorite}
+            onOpenVideoModal={(b) => setSelectedVideoBiz(b)}
+            allBusinesses={publicBusinesses}
+            onSelectBusiness={(b) => setSelectedBiz(b)}
+            onNavigateToBusinessClaim={(b) => {
+              handleCloseBusiness();
+              handleNavigate('/for-business');
+            }}
+          />
+        </React.Suspense>
       )}
 
       {/* 5. Video Player Modal */}
       {selectedVideoBiz && (
-        <VideoPlayerModal
-          business={selectedVideoBiz}
-          onClose={() => setSelectedVideoBiz(null)}
-        />
+        <React.Suspense fallback={null}>
+          <VideoPlayerModal
+            business={selectedVideoBiz}
+            onClose={() => setSelectedVideoBiz(null)}
+          />
+        </React.Suspense>
       )}
 
       {/* 6. Subtle Floating WhatsApp Action */}

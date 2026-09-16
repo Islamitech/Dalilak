@@ -1,4 +1,4 @@
-﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const SUPABASE_URL = 'https://xdqpbajymacpdccorjcj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x';
@@ -94,9 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const nameSlug = slugify(rawName) || 'نشاط';
       const citySlug = biz.city ? slugify(biz.city) : '';
       const locPart = citySlug && !nameSlug.includes(citySlug) ? `-${citySlug}` : '';
-      const cleanSlug = customSlug ? slugify(customSlug) : `${nameSlug}${locPart}-${biz.id}`;
-
-      const locUrl = `${origin}/biz/${encodeURIComponent(cleanSlug)}`;
+      const locUrl = `${origin}/biz/${biz.id}`;
       const lastMod = (biz.updated_at || biz.created_at || todayStr).slice(0, 10);
 
       urls.push(`  <url>

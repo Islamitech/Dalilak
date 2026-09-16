@@ -136,8 +136,9 @@ export function getPublicDirectoryUrl(
     }
   }
 
-  // 2. Resolve clean SEO slug (Default: true)
-  const shouldIncludeSlug = options?.includeSlug !== false;
+  // 2. Resolve clean modern identifier without Arabic text (Default: business.id)
+  // Guarantees clean ASCII links without percent-encoding (%D9%...) on WhatsApp and browsers.
+  const shouldIncludeSlug = options?.includeSlug === true;
   const identifier = shouldIncludeSlug ? getBusinessSlug(business) : business.id;
 
   if (options?.format === 'query') {
@@ -152,8 +153,8 @@ export function getPublicDirectoryUrl(
     return `${domain}/?${params.toString()}`;
   }
 
-  // Clean canonical SEO path: https://www.dalilaak.com/biz/...
-  const safeIdentifier = options?.encode ? encodeURIComponent(identifier) : identifier;
+  // Clean canonical modern path: https://www.dalilaak.com/biz/biz_...
+  const safeIdentifier = options?.encode && shouldIncludeSlug ? encodeURIComponent(identifier) : identifier;
   let pathUrl = `${domain}/biz/${safeIdentifier}`;
 
   const searchParams = new URLSearchParams();
@@ -168,13 +169,12 @@ export function getPublicDirectoryUrl(
 }
 
 /**
- * Generates the relative internal path for a business (e.g., "/biz/مطعم-ابو-خالد-biz_123")
+ * Generates the relative internal path for a business (e.g., "/biz/biz_gplaces_...")
  * for in-app navigation, anchor href attributes, and history.pushState.
  */
 export function getDirectoryPath(business: BusinessUrlInput): string {
   if (!business || !business.id) return '/search';
-  const slug = getBusinessSlug(business);
-  return `/biz/${slug}`;
+  return `/biz/${business.id}`;
 }
 
 /**
@@ -191,7 +191,7 @@ export function getAutomaticDirectoryUrl(
   const nameSlug = slugifyBusinessName(rawName) || 'نشاط';
   const citySlug = business.city ? slugifyBusinessName(business.city) : '';
   const locationPart = citySlug && !nameSlug.includes(citySlug) ? `-${citySlug}` : '';
-  const identifier = options?.includeSlug === false ? business.id : `${nameSlug}${locationPart}-${business.id}`;
+  const identifier = options?.includeSlug === true ? `${nameSlug}${locationPart}-${business.id}` : business.id;
   return `${domain}/biz/${identifier}`;
 }
 

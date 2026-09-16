@@ -258,6 +258,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
     };
 
+    // Ensure Leaflet CSS is injected dynamically on demand
+    if (!document.querySelector('link[href*="leaflet.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.crossOrigin = '';
+      document.head.appendChild(link);
+    }
+
     if (window.L) {
       initMap();
     } else {

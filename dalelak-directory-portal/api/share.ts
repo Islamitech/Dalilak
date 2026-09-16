@@ -232,8 +232,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const nameSlug = slugify(nameAr) || 'نشاط';
     const citySlug = biz.city ? slugify(biz.city) : '';
     const locPart = citySlug && !nameSlug.includes(citySlug) ? `-${citySlug}` : '';
-    const cleanSlug = customSlug ? slugify(customSlug) : `${nameSlug}${locPart}-${biz.id}`;
-    const canonicalPageUrl = `${origin}/biz/${cleanSlug}`;
+    const canonicalPageUrl = `${origin}/biz/${biz.id}`;
     const pageUrl = canonicalPageUrl;
 
     const jsonLdData = {
