@@ -842,11 +842,15 @@ async function executeCampaignLoop(
   let stealthModeActive = enableStealthRandomMode || Boolean(activeCampaign?.stealthModeActive);
   let currentSlotSentCount = activeCampaign?.currentSlotSentCount || 0;
 
-  // Choose starting slot based on connectivity and alternating count
-  let currentSlot: SlotId = activeCampaign?.currentSlot || (slot1SentCount <= slot2SentCount ? '1' : '2');
-  if (slotSessions[currentSlot].connectionState !== 'connected') {
+  // Starting slot: Always start with Phone 1 on fresh campaign, or restore nextSlotTarget / currentSlot if resuming
+  let currentSlot: SlotId =
+    startIndex === 0 || !activeCampaign?.currentSlot
+      ? '1'
+      : (activeCampaign.nextSlotTarget as SlotId) || activeCampaign.currentSlot || '1';
+
+  if (slotSessions[currentSlot].sock === null || slotSessions[currentSlot].connectionState !== 'connected') {
     const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
-    if (slotSessions[otherSlot].connectionState === 'connected') {
+    if (slotSessions[otherSlot].sock !== null && slotSessions[otherSlot].connectionState === 'connected') {
       currentSlot = otherSlot;
     }
   }
@@ -945,21 +949,25 @@ async function executeCampaignLoop(
       continue;
     }
 
-    // 🎯 Select target slot for this message (Direct alternating rotation between Phone 1 & Phone 2)
+    // 🎯 Select target slot for this message (Strict alternating sequence: 1 -> wait -> 2 -> wait -> 1 -> wait -> 2)
     if (enableStealthRandomMode) {
       stealthModeActive = true;
       if (activeCampaign && !activeCampaign.stealthModeActive) {
         activeCampaign.stealthModeActive = true;
       }
-      const is1Ok = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
-      const is2Ok = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
-      if (is1Ok && is2Ok) {
-        // Balanced alternating rotation: phone with fewer messages sends next
-        currentSlot = slot1SentCount <= slot2SentCount ? '1' : '2';
-      } else if (is1Ok) {
-        currentSlot = '1';
-      } else if (is2Ok) {
-        currentSlot = '2';
+      // Ensure currentSlot is valid; if disconnected, auto-failover to the connected slot
+      const isCurrentConnected =
+        slotSessions[currentSlot].sock !== null && slotSessions[currentSlot].connectionState === 'connected';
+      if (!isCurrentConnected) {
+        const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+        if (slotSessions[otherSlot].sock !== null && slotSessions[otherSlot].connectionState === 'connected') {
+          console.log(`🔄 [Auto-Failover] Slot ${currentSlot} unavailable. Switching to connected Slot ${otherSlot}.`);
+          currentSlot = otherSlot;
+          if (activeCampaign) {
+            activeCampaign.currentSlot = otherSlot;
+            activeCampaign.currentSenderSlot = otherSlot;
+          }
+        }
       }
     }
 
@@ -1299,17 +1307,27 @@ async function executeCampaignLoop(
 
         const is1Ok = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
         const is2Ok = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
-        const predictedNextSlot: SlotId =
-          is1Ok && is2Ok ? (currentSlot === '1' ? '2' : '1') : is1Ok ? '1' : '2';
+        const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+        const nextSlot: SlotId =
+          (otherSlot === '1' && is1Ok) || (otherSlot === '2' && is2Ok)
+            ? otherSlot
+            : (currentSlot === '1' && is1Ok) || (currentSlot === '2' && is2Ok)
+            ? currentSlot
+            : otherSlot;
+
+        // Explicitly switch currentSlot to the other phone for the upcoming message
+        currentSlot = nextSlot;
 
         if (activeCampaign) {
-          activeCampaign.nextSlotTarget = predictedNextSlot;
+          activeCampaign.nextSlotTarget = nextSlot;
+          activeCampaign.currentSlot = nextSlot;
+          activeCampaign.currentSenderSlot = nextSlot;
           activeCampaign.nextDispatchInSeconds = delayTotalSeconds;
           saveCampaignProgress(activeCampaign);
         }
 
         console.log(
-          `🌿 [Organic Alternating Mode] Delay: waiting ${delayTotalSeconds}s (~${(delayTotalSeconds / 60).toFixed(1)}m) before next message on Slot ${predictedNextSlot}...`
+          `🌿 [Organic Alternating Mode] Transitioned to Slot ${nextSlot}. Waiting ${delayTotalSeconds}s (~${(delayTotalSeconds / 60).toFixed(1)}m) before sending next message...`
         );
         const delayStart = Date.now();
         const targetMs = delayTotalSeconds * 1000;
