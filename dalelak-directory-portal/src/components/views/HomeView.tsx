@@ -2,6 +2,7 @@ import React from 'react';
 import { Business } from '../../types';
 import { SmartSearchBar } from '../search/SmartSearchBar';
 import { BusinessCard } from '../cards/BusinessCard';
+import { shuffleBusinessesWithSeed } from '../../utils/directoryEnhancements';
 import {
   Sparkles,
   UtensilsCrossed,
@@ -35,6 +36,7 @@ export interface HomeViewProps {
   favorites: string[];
   onNavigate: (path: string) => void;
   onOpenVideoModal?: (biz: Business) => void;
+  shuffleSeed?: number;
 }
 
 const POPULAR_CATEGORIES = [
@@ -64,13 +66,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
   favorites,
   onNavigate,
   onOpenVideoModal,
+  shuffleSeed = 1,
 }) => {
-  // Curated Featured businesses (verified with photo and ratings)
+  // 🔀 Curated Featured businesses (verified, shuffled dynamically on each page load)
   const featuredBusinesses = React.useMemo(() => {
-    return businesses
-      .filter((b) => b.verificationStatus === 'verified' && (b.photos?.length || b.coverPhoto))
-      .slice(0, 6);
-  }, [businesses]);
+    const verified = businesses.filter((b) => b.verificationStatus === 'verified');
+    const withMedia = verified.filter((b) => (b.photos && b.photos.length > 0) || b.coverPhoto);
+    const candidates = withMedia.length >= 6 ? withMedia : verified;
+    const shuffled = shuffleBusinessesWithSeed(candidates, shuffleSeed);
+    return shuffled.slice(0, 6);
+  }, [businesses, shuffleSeed]);
 
   return (
     <div className="space-y-12 pb-16">

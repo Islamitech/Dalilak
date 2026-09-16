@@ -341,3 +341,22 @@ export function getGiftBarcodeWhatsAppUrl(biz: Business): string {
 
   return `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * 🔀 Fast, deterministic pseudo-random shuffle (Mulberry32 PRNG)
+ * Ensures fair, randomized distribution across all businesses
+ * while maintaining strict UI stability during a browsing session.
+ */
+export function shuffleBusinessesWithSeed(list: Business[], seed: number): Business[] {
+  const result = [...list];
+  let currentSeed = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    currentSeed = (currentSeed + 0x6d2b79f5) | 0;
+    let t = Math.imul(currentSeed ^ (currentSeed >>> 15), 1 | currentSeed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    const rand = ((t >>> 0) / 4294967296);
+    const j = Math.floor(rand * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}

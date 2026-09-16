@@ -4,6 +4,7 @@ import {
   calculateDistanceKm,
   getBusinessOpenStatus,
   injectBusinessSchemaLd,
+  shuffleBusinessesWithSeed,
 } from '../utils/directoryEnhancements';
 import { getDirectoryPath } from '../utils/directoryUrl';
 import { matchesCategoryFilter } from '../utils/categoryMatcher';
@@ -93,6 +94,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [hasRatingOnly, setHasRatingOnly] = useState<boolean>(false);
   const [hasVideoOnly, setHasVideoOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha'>('default');
+  // 🔀 Dynamic session seed generated fresh on every page load/reload
+  const [shuffleSeed, setShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000) + 1);
 
   // 3. User Geolocation Coordinates
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -105,6 +108,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       setToastMessage((c) => (c === msg ? null : c));
     }, 3500);
   };
+
+  const handleReshuffle = useCallback(() => {
+    setShuffleSeed(Date.now() ^ Math.floor(Math.random() * 1000000));
+    showToast('تمت إعادة خلط وترتيب الأنشطة عشوائياً 🔀');
+  }, []);
 
   // Request GPS User Location for Proximity Sorting
   const handleRequestLocation = () => {
@@ -354,7 +362,23 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       return [...list].sort((a, b) => (a.nameAr || '').localeCompare(b.nameAr || '', 'ar'));
     }
 
-    // Default Sorting ('default'): Unbiased, randomized natural showcase (not ordered by join date)
+    // Default Sorting ('default'):
+    // 1. If user has NOT applied any filter: Unbiased, dynamic per-load random shuffle (breaks static patterns)
+    const hasUserFilters =
+      searchQuery.trim() !== '' ||
+      govFilter !== 'all' ||
+      cityFilter !== 'all' ||
+      hadayekZoneFilter !== 'all' ||
+      categoryFilter !== 'all' ||
+      openNowOnly ||
+      hasRatingOnly ||
+      hasVideoOnly;
+
+    if (!hasUserFilters) {
+      return shuffleBusinessesWithSeed(list, shuffleSeed);
+    }
+
+    // 2. If user HAS applied a filter or search: Show most relevant and complete entries first
     return [...list].sort((a, b) => {
       const aFeatured = a.isFeatured || a.partnerStatus === 'certified' ? 1 : 0;
       const bFeatured = b.isFeatured || b.partnerStatus === 'certified' ? 1 : 0;
@@ -364,10 +388,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       const bHasPhoto = (b.photos?.length || 0) > 0 || !!b.coverPhoto ? 1 : 0;
       if (bHasPhoto !== aHasPhoto) return bHasPhoto - aHasPhoto;
 
-      // Stable pseudo-random hash distribution across businesses
-      const hashA = ((a.id || '').split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) | 0, 0) >>> 0);
-      const hashB = ((b.id || '').split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) | 0, 0) >>> 0);
-      if (hashA !== hashB) return hashA - hashB;
+      const timeA = new Date(a.createdDate || 0).getTime();
+      const timeB = new Date(b.createdDate || 0).getTime();
+      if (timeA !== timeB) return timeB - timeA;
 
       return (a.id || '').localeCompare(b.id || '');
     });
@@ -383,6 +406,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     hasVideoOnly,
     sortBy,
     userCoords,
+    shuffleSeed,
   ]);
 
   // Route Dispatcher View
@@ -409,6 +433,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             favorites={favorites}
             onNavigate={handleNavigate}
             onOpenVideoModal={(b) => setSelectedVideoBiz(b)}
+            shuffleSeed={shuffleSeed}
           />
         );
 
@@ -446,6 +471,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             hasActiveFilters={hasActiveFilters}
             onOpenVideoModal={(b) => setSelectedVideoBiz(b)}
             onNavigate={handleNavigate}
+            onReshuffle={handleReshuffle}
           />
         );
 

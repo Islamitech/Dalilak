@@ -16,6 +16,7 @@ import {
   Layers,
   Map as MapIcon,
   Video,
+  Shuffle,
 } from 'lucide-react';
 
 export interface FilterBarProps {
@@ -32,6 +33,7 @@ export interface FilterBarProps {
   activeView?: 'grid' | 'map';
   onViewChange?: (view: 'grid' | 'map') => void;
   showViewToggle?: boolean;
+  onReshuffle?: () => void;
 }
 
 export const POPULAR_CATEGORY_CHIPS = [
@@ -60,6 +62,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   activeView = 'grid',
   onViewChange,
   showViewToggle = false,
+  onReshuffle,
 }) => {
   return (
     <div className="w-full space-y-2.5">
@@ -164,12 +167,24 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               onChange={(e) => onSortChange(e.target.value as any)}
               className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
             >
-              <option value="default">الأفضل مطابقة</option>
-              <option value="nearest">الأقرب جغرافياً</option>
-              <option value="newest">الأحدث انضماماً</option>
-              <option value="open_now">المفتوح أولاً</option>
-              <option value="alpha">أبجدياً (أ-ي)</option>
+              <option value="default">عشوائي متجدد 🔀</option>
+              <option value="nearest">الأقرب جغرافياً 📍</option>
+              <option value="newest">الأحدث انضماماً ⏱️</option>
+              <option value="open_now">المفتوح أولاً 🟢</option>
+              <option value="alpha">أبجدياً (أ-ي) 🔤</option>
             </select>
+
+            {sortBy === 'default' && onReshuffle && (
+              <button
+                type="button"
+                onClick={onReshuffle}
+                className="p-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 transition-all cursor-pointer flex items-center gap-1 border border-amber-500/30"
+                title="إعادة خلط وترتيب الأنشطة عشوائياً"
+              >
+                <Shuffle className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-[10px] font-black hidden xl:inline">خلط جديد</span>
+              </button>
+            )}
           </div>
 
           {/* View Mode Switcher (if enabled) */}

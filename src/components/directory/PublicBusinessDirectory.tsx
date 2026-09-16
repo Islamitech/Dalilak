@@ -303,6 +303,15 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     });
 
     if (sortBy === 'random') {
+      const hasFilter = Boolean(
+        (debouncedSearchQuery && debouncedSearchQuery.trim().length > 0) ||
+        govFilter !== 'all' ||
+        categoryFilter !== 'all' ||
+        verificationFilter !== 'all'
+      );
+      if (hasFilter) {
+        return sortBusinessesNewestFirst(list);
+      }
       return shuffleBusinessesWithSeed(list, shuffleSeed);
     }
     if (sortBy === 'newest') {

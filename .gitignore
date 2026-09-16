@@ -17,3 +17,4 @@ data/*.backup*
 data/server_biz_store.backup*.json
 **/_backup_original/
 data/*registry.json
+data/whatsapp_campaign_progress.json

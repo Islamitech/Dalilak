@@ -39,6 +39,7 @@ export interface SearchViewProps {
   hasActiveFilters: boolean;
   onOpenVideoModal?: (biz: Business) => void;
   onNavigate: (path: string) => void;
+  onReshuffle?: () => void;
 }
 
 export const SearchView: React.FC<SearchViewProps> = ({
@@ -73,6 +74,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   hasActiveFilters,
   onOpenVideoModal,
   onNavigate,
+  onReshuffle,
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -120,6 +122,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         onViewChange={(view) => {
           if (view === 'map') onNavigate('/map');
         }}
+        onReshuffle={onReshuffle}
       />
 
       {/* 3. Results Header & Active Filter Chips Bar */}
