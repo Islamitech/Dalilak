@@ -336,7 +336,13 @@ export default function App() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          try {
+            supabase.removeChannel(realtimeChannel);
+          } catch {}
+        }
+      });
 
     // 3. Real-Time Cross-Tab Instant Sync Listener via BroadcastChannel
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('dalelak_data_sync_channel') : null;

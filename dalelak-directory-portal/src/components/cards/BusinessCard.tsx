@@ -7,6 +7,8 @@ import {
   getBusinessMapDetails,
   getSmartWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
+import { getDirectoryPath } from '../../utils/directoryUrl';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   ShieldCheck,
@@ -63,8 +65,8 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       >
         <img
-          src={mainPhoto}
-          alt=""
+          src={getOptimizedImageUrl(mainPhoto, 600)}
+          alt={business.nameAr || 'صورة المنشأة'}
           role="presentation"
           aria-hidden="true"
           data-reader-skip="true"
@@ -182,7 +184,16 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
 
           {/* Business Name */}
           <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)] leading-snug line-clamp-2 group-hover:text-amber-600 transition-colors">
-            {business.nameAr}
+            <a
+              href={getDirectoryPath(business)}
+              onClick={(e) => {
+                e.preventDefault();
+                onOpenBusiness(business);
+              }}
+              className="hover:underline focus:outline-hidden"
+            >
+              {business.nameAr}
+            </a>
           </h3>
 
           {/* Hours & Rating */}

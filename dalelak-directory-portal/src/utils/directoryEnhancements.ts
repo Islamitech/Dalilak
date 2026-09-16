@@ -1,4 +1,5 @@
 import { Business } from '../types';
+import { getPublicDirectoryUrl } from './directoryUrl';
 
 /**
  * Calculates real geographical distance between two GPS coordinates using Haversine formula
@@ -326,9 +327,7 @@ export function getGiftBarcodeWhatsAppUrl(biz: Business): string {
   const adminPhone = '201556221141';
   const cleanName = biz.nameAr || biz.name || biz.nameEn || 'المنشأة';
   const location = [biz.city, biz.governorate].filter(Boolean).join(' - ') || 'مصر';
-  const venueUrl = typeof window !== 'undefined' && window.location.origin 
-    ? `${window.location.origin}/biz/${biz.id}` 
-    : `https://www.dalilaak.com/biz/${biz.id}`;
+  const venueUrl = getPublicDirectoryUrl(biz);
 
   const message =
     `السلام عليكم ورحمة الله وبركاته 👋\n` +

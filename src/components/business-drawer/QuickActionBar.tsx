@@ -1,6 +1,7 @@
 import React from 'react';
 import { Phone, MessageCircle, MapPin, Share2 } from 'lucide-react';
 import { Business } from '../../types';
+import { getPublicDirectoryUrl } from '../../utils/directoryUrl';
 
 interface QuickActionBarProps {
   business: Business;
@@ -36,7 +37,7 @@ export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compac
   };
 
   const handleShare = async () => {
-    const shareUrl = business.customDirectoryUrl || (typeof window !== 'undefined' ? window.location.href : '');
+    const shareUrl = getPublicDirectoryUrl(business);
     const shareData = {
       title: business.nameAr,
       text: `${business.nameAr} • ${business.category} على منصة دليلك`,

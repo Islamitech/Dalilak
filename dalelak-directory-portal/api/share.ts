@@ -18,6 +18,25 @@ function escapeHtml(str: string): string {
   });
 }
 
+function slugify(name?: string): string {
+  if (!name || typeof name !== 'string') return '';
+  return name
+    .trim()
+    .replace(/[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[«»"'""''\(\)\[\]{}#@!$%^&*+=\\\/|:;<>?,.~`،؛؟٪_]/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .split('-')
+    .filter(Boolean)
+    .slice(0, 7)
+    .join('-');
+}
+
 let cachedTemplate = '';
 
 function getBaseTemplate(): string {
@@ -201,7 +220,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ogImageUrl = `${origin}/api/biz-og?biz=${encodeURIComponent(biz.id)}${photoVer ? `&v=${encodeURIComponent(photoVer)}` : ''}`;
       ogImageType = 'image/png';
     }
-    const pageUrl = `${origin}/?biz=${encodeURIComponent(biz.id)}`;
+
+    // Resolve clean semantic SEO slug
+    let customSlug = '';
+    if (typeof biz.notes === 'string' && biz.notes.includes('customDirectoryUrl')) {
+      try {
+        const parsed = JSON.parse(biz.notes);
+        if (parsed.customDirectoryUrl) customSlug = parsed.customDirectoryUrl;
+      } catch {}
+    }
+    const nameSlug = slugify(nameAr) || 'نشاط';
+    const citySlug = biz.city ? slugify(biz.city) : '';
+    const locPart = citySlug && !nameSlug.includes(citySlug) ? `-${citySlug}` : '';
+    const cleanSlug = customSlug ? slugify(customSlug) : `${nameSlug}${locPart}-${biz.id}`;
+    const canonicalPageUrl = `${origin}/biz/${cleanSlug}`;
+    const pageUrl = canonicalPageUrl;
+
+    const jsonLdData = {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: nameAr,
+      description: cleanShareDesc,
+      url: canonicalPageUrl,
+      telephone: phone || undefined,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: biz.city || undefined,
+        addressRegion: biz.governorate || undefined,
+        streetAddress: biz.street || undefined,
+        addressCountry: 'EG',
+      },
+      image: ogImageUrl || undefined,
+    };
+    const jsonLdTag = `<script type="application/ld+json">${JSON.stringify(jsonLdData)}</script>`;
 
     let html = template;
 
@@ -217,7 +268,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <meta name="description" content="${escapeHtml(cleanShareDesc)}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="منصة دليلك - Dalelak" />
-    <meta property="og:url" content="${escapeHtml(pageUrl)}" />
+    <meta property="og:url" content="${escapeHtml(canonicalPageUrl)}" />
     <meta property="og:title" content="${escapeHtml(cleanPageTitle)}" />
     <meta property="og:description" content="${escapeHtml(cleanShareDesc)}" />
     <meta property="og:image" content="${escapeHtml(ogImageUrl)}" />
@@ -228,6 +279,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <meta name="twitter:title" content="${escapeHtml(cleanPageTitle)}" />
     <meta name="twitter:description" content="${escapeHtml(cleanShareDesc)}" />
     <meta name="twitter:image" content="${escapeHtml(ogImageUrl)}" />
+    <link rel="canonical" href="${escapeHtml(canonicalPageUrl)}" />
+    ${jsonLdTag}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body style="background:#020617;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
@@ -249,7 +302,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Open Graph Tags
       html = html.replace(/<meta\s+property="og:title"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:title" content="${escapeHtml(cleanPageTitle)}" />`);
       html = html.replace(/<meta\s+property="og:description"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:description" content="${escapeHtml(cleanShareDesc)}" />`);
-      html = html.replace(/<meta\s+property="og:url"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:url" content="${escapeHtml(pageUrl)}" />`);
+      html = html.replace(/<meta\s+property="og:url"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:url" content="${escapeHtml(canonicalPageUrl)}" />`);
       html = html.replace(/<meta\s+property="og:image"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:image" content="${escapeHtml(ogImageUrl)}" />`);
       html = html.replace(/<meta\s+property="og:image:secure_url"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:image:secure_url" content="${escapeHtml(ogImageUrl)}" />`);
       html = html.replace(/<meta\s+property="og:image:type"\s+content=".*?"\s*\/?>/gi, () => `<meta property="og:image:type" content="${ogImageType}" />`);
@@ -259,10 +312,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       html = html.replace(/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/gi, () => `<meta name="twitter:title" content="${escapeHtml(cleanPageTitle)}" />`);
       html = html.replace(/<meta\s+name="twitter:description"\s+content=".*?"\s*\/?>/gi, () => `<meta name="twitter:description" content="${escapeHtml(cleanShareDesc)}" />`);
       html = html.replace(/<meta\s+name="twitter:image"\s+content=".*?"\s*\/?>/gi, () => `<meta name="twitter:image" content="${escapeHtml(ogImageUrl)}" />`);
-      html = html.replace(/<meta\s+name="twitter:url"\s+content=".*?"\s*\/?>/gi, () => `<meta name="twitter:url" content="${escapeHtml(pageUrl)}" />`);
+      html = html.replace(/<meta\s+name="twitter:url"\s+content=".*?"\s*\/?>/gi, () => `<meta name="twitter:url" content="${escapeHtml(canonicalPageUrl)}" />`);
 
       // Canonical URL
-      html = html.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/gi, () => `<link rel="canonical" href="${escapeHtml(pageUrl)}" />`);
+      html = html.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/gi, () => `<link rel="canonical" href="${escapeHtml(canonicalPageUrl)}" />`);
+
+      // Inject Schema.org structured data before closing head
+      if (html.includes('</head>')) {
+        html = html.replace('</head>', `  ${jsonLdTag}\n</head>`);
+      }
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');

@@ -80,6 +80,10 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
       "source": "/biz/(.*)",
       "destination": "/api/share?biz=$1"
     },

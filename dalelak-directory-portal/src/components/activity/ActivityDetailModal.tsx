@@ -7,6 +7,7 @@ import {
   downloadBusinessVCard,
   getGiftBarcodeWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
+import { getPublicDirectoryUrl } from '../../utils/directoryUrl';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   X,
@@ -99,7 +100,7 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}/biz/${business.id}`;
+    const shareUrl = getPublicDirectoryUrl(business);
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);

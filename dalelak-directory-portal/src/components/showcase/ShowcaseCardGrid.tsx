@@ -10,6 +10,7 @@ import {
   getBusinessMapDetails,
   getSmartWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 import {
   Layers,
   Map as MapIcon,
@@ -287,13 +288,14 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                       onContextMenu={(e) => e.preventDefault()}
                     >
                       <img
-                        src={mainPhoto}
-                        alt=""
+                        src={getOptimizedImageUrl(mainPhoto, 600)}
+                        alt={biz.nameAr || 'صورة المنشأة'}
                         role="presentation"
                         aria-hidden="true"
                         data-reader-skip="true"
                         data-readability-ignore="true"
-                        loading="lazy"
+                        loading={idx === 0 ? 'eager' : 'lazy'}
+                        fetchPriority={idx === 0 ? 'high' : 'auto'}
                         decoding="async"
                         draggable={false}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 pointer-events-none select-none"
@@ -369,24 +371,24 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                         onClick={() => handleOpenBusiness(biz)}
                       >
                         {/* Category & Region */}
-                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--text-muted)]">
-                          <span className="text-amber-600 font-extrabold truncate">
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+                          <span className="text-amber-700 dark:text-amber-400 font-extrabold truncate">
                             {biz.category}
                           </span>
-                          <span className="truncate text-[11px] font-medium text-[var(--text-muted)]">
+                          <span className="truncate text-[11px] font-medium text-slate-600 dark:text-slate-400">
                             {[biz.city || biz.street, biz.governorate].filter(Boolean).join(' • ') || 'مصر'}
                           </span>
                         </div>
 
                         {/* Business Name */}
-                        <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)] leading-snug line-clamp-2 hover:text-amber-500 transition-colors">
+                        <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)] leading-snug line-clamp-2 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
                           {biz.nameAr}
                         </h3>
 
                         {/* Hours & Rating */}
                         <div className="flex items-center justify-between gap-2 pt-1 text-[11px] font-bold">
-                          <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                             <span className="truncate">
                               {biz.workingHours
                                 ? biz.workingHours
@@ -397,11 +399,11 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                           </div>
 
                           {biz.googleRatingEnabled && biz.googleRating && biz.googleRating > 0 && (
-                            <span className="inline-flex items-center gap-1 font-mono text-amber-500 font-black shrink-0 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            <span className="inline-flex items-center gap-1 font-mono text-amber-700 dark:text-amber-400 font-black shrink-0 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                               <span>{biz.googleRating.toFixed(1)}</span>
                               {biz.googleReviewsCount !== undefined && (
-                                <span className="text-[10px] text-[var(--text-muted)] font-normal">({biz.googleReviewsCount})</span>
+                                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">({biz.googleReviewsCount})</span>
                               )}
                             </span>
                           )}

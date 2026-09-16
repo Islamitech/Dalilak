@@ -565,7 +565,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 <button
                   type="button"
                   onClick={() => {
-                    triggerHaptic('impactLight');
+                    triggerHaptic('light');
                     setShuffleSeed(Date.now());
                   }}
                   className="p-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 transition-all cursor-pointer flex items-center gap-1"
@@ -931,7 +931,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     <div className="flex items-center justify-between text-[10.5px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
                       <span className="truncate max-w-[140px] text-[var(--text-secondary)]">
                         {(() => {
-                          const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt, packageId: biz.packageId });
+                          const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: isExempt, packageId: biz.packageId });
                           return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : `👤 ${info.displayName}`;
                         })()}
                       </span>
@@ -1144,7 +1144,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     </span>
                     <span className="text-[10px] text-[var(--text-muted)] font-mono">
                       {(() => {
-                        const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt, packageId: biz.packageId });
+                        const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: isExempt, packageId: biz.packageId });
                         return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
                       })()}
                     </span>
@@ -1349,7 +1349,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                         <td className="py-3 px-3">
                           <div className="font-bold text-[var(--text-secondary)] truncate max-w-[130px]">
                             {(() => {
-                              const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt, packageId: biz.packageId });
+                              const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: isExempt, packageId: biz.packageId });
                               return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
                             })()}
                           </div>

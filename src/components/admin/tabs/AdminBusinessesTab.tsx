@@ -10,10 +10,11 @@ import {
   BusinessesDesktopRow,
   BusinessesPagination,
 } from '../businesses-tab';
-import { LayoutGrid, List, Map as MapIcon } from 'lucide-react';
+import { LayoutGrid, List, Map as MapIcon, Globe } from 'lucide-react';
 import { UniversalListingCard } from '../../design-system/UniversalListingCard';
 import { BusinessDetailsDrawer } from '../../BusinessDetailsDrawer';
 import { InteractiveMap } from '../../InteractiveMap';
+import { ExportDirectoryLinksModal } from './ExportDirectoryLinksModal';
 
 export interface AdminBusinessesTabProps {
   businesses: Business[];
@@ -107,6 +108,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
   const [selectedPackageBiz, setSelectedPackageBiz] = useState<Business | null>(null);
   // State for Packages Hub modal (reference view)
   const [showPackagesHubModal, setShowPackagesHubModal] = useState<boolean>(false);
+  const [showExportLinksModal, setShowExportLinksModal] = useState<boolean>(false);
   // View Mode: Table / Cards / Map
   const [viewMode, setViewMode] = useState<'table' | 'cards' | 'map'>('table');
   const [selectedDrawerBiz, setSelectedDrawerBiz] = useState<Business | null>(null);
@@ -148,9 +150,20 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
 
       {/* View Mode Bar */}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-color)]">
-        <span className="text-xs font-bold text-[var(--text-muted)]">
-          عرض النتائج ({filteredBusinesses.length} منشأة):
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[var(--text-muted)]">
+            عرض النتائج ({filteredBusinesses.length} منشأة):
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowExportLinksModal(true)}
+            className="py-1 px-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 border border-indigo-500/20 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="استخراج روابط الدليل النظيفة (SEO)"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>استخراج روابط الدليل (SEO)</span>
+          </button>
+        </div>
         <div className="flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl border border-[var(--border-color)]">
           <button
             type="button"
@@ -360,6 +373,14 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
         onEditBusiness={onSetEditingBusiness}
         onUpdateBusiness={onUpdateBusiness}
         currentUser={currentUser}
+      />
+
+      {/* SEO Links Extractor Modal */}
+      <ExportDirectoryLinksModal
+        isOpen={showExportLinksModal}
+        onClose={() => setShowExportLinksModal(false)}
+        allBusinesses={businesses}
+        filteredBusinesses={filteredBusinesses}
       />
     </div>
   );
