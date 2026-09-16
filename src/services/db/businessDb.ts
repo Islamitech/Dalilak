@@ -10,13 +10,73 @@ import {
 import { mapDbToBusiness, mapBusinessToDb, mapPartialBusinessToDb, parsePhotosArray, parseVideosArray, BIDI_CONTROL_REGEX, stripBiDiControls } from './dbMappers';
 import { sanitizeRepName } from '../../utils/repDisplay';
 
+export function getDeletedBusinesses(): Business[] {
+  const raw = safeGetLocalStorageItem('dalelak_soft_deleted_businesses');
+  return safeParseJson<Business[]>(raw, []);
+}
+
+export function getDeletedBusinessIds(): Set<string> {
+  const raw = safeGetLocalStorageItem('dalelak_deleted_biz_ids');
+  const arr = safeParseJson<string[]>(raw, []) || [];
+  const softDeleted = getDeletedBusinesses();
+  const set = new Set<string>(arr.map((id) => String(id).toLowerCase().trim()));
+  softDeleted.forEach((b) => {
+    if (b && b.id) set.add(String(b.id).toLowerCase().trim());
+  });
+  return set;
+}
+
+export function recordDeletedBusinessId(id: string): void {
+  try {
+    const raw = safeGetLocalStorageItem('dalelak_deleted_biz_ids');
+    const list = safeParseJson<string[]>(raw, []) || [];
+    const cleanId = String(id).trim();
+    if (cleanId && !list.includes(cleanId)) {
+      list.push(cleanId);
+      safeSetLocalStorageItem('dalelak_deleted_biz_ids', JSON.stringify(list));
+    }
+  } catch {}
+}
+
+export function removeDeletedBusinessId(id: string): void {
+  try {
+    const raw = safeGetLocalStorageItem('dalelak_deleted_biz_ids');
+    const list = safeParseJson<string[]>(raw, []) || [];
+    const cleanId = String(id).trim().toLowerCase();
+    const filtered = list.filter((x) => String(x).trim().toLowerCase() !== cleanId);
+    safeSetLocalStorageItem('dalelak_deleted_biz_ids', JSON.stringify(filtered));
+  } catch {}
+}
+
+const localBusinessModifications = new Map<string, number>();
+
+export function recordBusinessLocalModification(id: string): void {
+  const cleanId = String(id).trim();
+  localBusinessModifications.set(cleanId, Date.now());
+  try {
+    sessionStorage.setItem(`dalelak_biz_mod_${cleanId}`, String(Date.now()));
+  } catch {}
+}
+
+export function isBusinessRecentlyModifiedLocally(id: string, graceMs: number = 45000): boolean {
+  const cleanId = String(id).trim();
+  const inMem = localBusinessModifications.get(cleanId);
+  if (inMem && Date.now() - inMem < graceMs) return true;
+  try {
+    const inSession = sessionStorage.getItem(`dalelak_biz_mod_${cleanId}`);
+    if (inSession && Date.now() - Number(inSession) < graceMs) return true;
+  } catch {}
+  return false;
+}
+
 export function getCachedBusinesses(): Business[] {
   const raw = safeGetLocalStorageItem('dalelak_cached_businesses') || safeGetLocalStorageItem('dalelak_directory_cache');
   const cached = safeParseJson<Business[]>(raw, []);
+  const deletedIds = getDeletedBusinessIds();
   if (Array.isArray(cached) && cached.length > 0) {
     return cached
       .filter(
-        (b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
+        (b) => b && !b.isDeleted && !deletedIds.has(String(b.id).toLowerCase().trim()) && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
       )
       .map((b) => {
         const cleanNameAr = b.nameAr ? stripBiDiControls(b.nameAr) : b.nameAr;
@@ -36,8 +96,9 @@ export function getCachedBusinesses(): Business[] {
   return [];
 }
 export function getVerifiedBusinessesForDirectory(businesses: Business[]): Business[] {
+  const deletedIds = getDeletedBusinessIds();
   return businesses.filter(
-    (b) => b && !b.isDeleted && b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted'
+    (b) => b && !b.isDeleted && !deletedIds.has(String(b.id).toLowerCase().trim()) && b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted'
   );
 }
 
@@ -149,8 +210,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
     }
   } catch {}
 
+  const deletedIds = getDeletedBusinessIds();
   return resultList.filter(
-    (b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
+    (b) => b && !b.isDeleted && !deletedIds.has(String(b.id).toLowerCase().trim()) && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_')
   );
 }
 
@@ -287,9 +349,10 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     const res = await supabaseRestFetch(query);
 
     // Also prune deleted records & detect missing records: lightweight fetch of active IDs
+    const deletedIds = getDeletedBusinessIds();
     let activeIds: Set<string> | null = null;
     try {
-      const idsRes = await supabaseRestFetch('businesses?select=id&package_id=neq.pkg_interested_lead');
+      const idsRes = await supabaseRestFetch('businesses?select=id&package_id=neq.pkg_interested_lead&is_deleted=neq.true');
       if (idsRes.ok) {
         const idsData = await idsRes.json();
         if (Array.isArray(idsData)) {
@@ -302,8 +365,13 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     let freshDeltaCount = 0;
     const map = new Map<string, Business>();
 
-    // If activeIds is available, prune any cached business deleted on the server
+    // If activeIds is available, prune any cached business deleted on the server or in deletedIds
     cached.forEach((b) => {
+      const cleanId = String(b.id).toLowerCase().trim();
+      if (deletedIds.has(cleanId)) {
+        hasChanges = true; // Prune deleted business
+        return;
+      }
       if (!activeIds || activeIds.has(b.id) || b.id.startsWith('offline_')) {
         map.set(b.id, b);
       } else {
@@ -316,10 +384,16 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
       if (Array.isArray(deltaData) && deltaData.length > 0) {
         const freshDeltaList = deltaData
           .map(mapDbToBusiness)
-          .filter((b) => b && !b.isDeleted && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
+          .filter((b) => b && !b.isDeleted && !deletedIds.has(String(b.id).toLowerCase().trim()) && b.packageId !== 'pkg_interested_lead' && (b as any).verificationStatus !== 'lead' && !b.id.startsWith('lead_'));
         
         freshDeltaList.forEach((b) => {
+          const cleanId = String(b.id).toLowerCase().trim();
+          if (deletedIds.has(cleanId)) return;
           const existing = map.get(b.id);
+          // Protect recent local updates from stale cloud delta overwrite
+          if (isBusinessRecentlyModifiedLocally(b.id) && existing) {
+            return;
+          }
           if ((!b.photos || b.photos.length === 0) && existing && existing.photos && existing.photos.length > 0) {
             b.photos = existing.photos;
           }
@@ -334,7 +408,9 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     if (activeIds && activeIds.size > 0) {
       const missingIds: string[] = [];
       activeIds.forEach((id) => {
-        if (!map.has(id)) {
+        const cleanId = String(id).toLowerCase().trim();
+        // CRITICAL FIX: NEVER resurrect a business that is deleted locally
+        if (!map.has(id) && !deletedIds.has(cleanId)) {
           missingIds.push(id);
         }
       });
@@ -347,8 +423,12 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
             const missingData = await missingRes.json();
             if (Array.isArray(missingData) && missingData.length > 0) {
               missingData.map(mapDbToBusiness).forEach((b) => {
-                if (b && !b.isDeleted && b.packageId !== 'pkg_interested_lead') {
+                const cleanId = String(b.id).toLowerCase().trim();
+                if (b && !b.isDeleted && !deletedIds.has(cleanId) && b.packageId !== 'pkg_interested_lead') {
                   const existing = map.get(b.id);
+                  if (isBusinessRecentlyModifiedLocally(b.id) && existing) {
+                    return;
+                  }
                   if ((!b.photos || b.photos.length === 0) && existing && existing.photos && existing.photos.length > 0) {
                     b.photos = existing.photos;
                   }
@@ -488,7 +568,10 @@ export async function saveBusinessToDb(biz: Business): Promise<{ success: boolea
 }
 
 export async function updateBusinessInDb(id: string, updates: Partial<Business>): Promise<void> {
-  // 1. Immediately update LocalStorage cache
+  // 1. Immediately record local modification timestamp so sync doesn't overwrite
+  recordBusinessLocalModification(id);
+
+  // 2. Immediately update LocalStorage cache
   let mergedObj: Business = { id } as Business;
   try {
     const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);
@@ -585,11 +668,6 @@ export async function updateBusinessInDb(id: string, updates: Partial<Business>)
   }
 }
 
-export function getDeletedBusinesses(): Business[] {
-  const raw = safeGetLocalStorageItem('dalelak_soft_deleted_businesses');
-  return safeParseJson<Business[]>(raw, []);
-}
-
 /**
  * 📦 Soft Delete Business (الأثر على السيرفر):
  * Marks the business as deleted so it disappears from normal users/admins,
@@ -601,6 +679,9 @@ export async function softDeleteBusinessInDb(
   deletedByRole?: string,
   deletedReason?: string
 ): Promise<void> {
+  // CRITICAL: Permanently blacklist ID locally so delta sync and self-healing never resurrect it
+  recordDeletedBusinessId(biz.id);
+
   const updatedBiz: Business = {
     ...biz,
     isDeleted: true,
@@ -632,6 +713,9 @@ export async function softDeleteBusinessInDb(
  * 🟢 Restores a soft-deleted business back to active state
  */
 export async function restoreBusinessInDb(biz: Business): Promise<Business> {
+  // Remove from blacklist so it can be synced normally
+  removeDeletedBusinessId(biz.id);
+
   const restored: Business = {
     ...biz,
     isDeleted: false,
@@ -660,6 +744,9 @@ export async function restoreBusinessInDb(biz: Business): Promise<Business> {
  * Completely deletes the business record from Supabase, local server, and all local storage.
  */
 export async function hardDeleteBusinessFromDb(id: string): Promise<void> {
+  // CRITICAL: Blacklist ID immediately so sync never resurrects it
+  recordDeletedBusinessId(id);
+
   // 1. Purge from all caches & registries
   try {
     const cached = safeParseJson<Business[]>(localStorage.getItem('dalelak_cached_businesses'), []);

@@ -1,10 +1,10 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title Dalelak - Local WhatsApp Baileys Gateway (Port 3001)
+title Dalelak - Local WhatsApp Standalone Gateway (Port 3005)
 
 echo ====================================================================
-echo           Dalelak Platform - WhatsApp Local Gateway
+echo           Dalelak Platform - Standalone WhatsApp Gateway
 echo ====================================================================
 echo.
 
@@ -25,8 +25,8 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [2] Freeing port 3001 if occupied...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3001 ^| findstr LISTENING') do (
+echo [2] Freeing port 3005 if occupied...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3005 ^| findstr LISTENING') do (
     taskkill /f /pid %%a >nul 2>nul
 )
 
@@ -37,12 +37,12 @@ if not exist node_modules (
 )
 
 echo.
-echo [4] Starting local server via npx tsx server.ts...
-echo Server URL: http://localhost:3001
+echo [4] Starting dedicated WhatsApp server on port 3005...
+echo Server URL: http://localhost:3005
 echo ====================================================================
 echo.
 
-call npx tsx server.ts
+call npx tsx src/server/whatsapp-server.ts
 
 if %errorlevel% neq 0 (
     echo.

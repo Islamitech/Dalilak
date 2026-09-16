@@ -186,7 +186,12 @@ async function safeFetchGatewayApi(
     };
 
     const probeLocalCandidates = async (): Promise<{ success: boolean; data?: any; error?: string } | null> => {
-      const candidates = ['http://localhost:3001', 'http://127.0.0.1:3001'];
+      const candidates = [
+        'http://localhost:3005',
+        'http://127.0.0.1:3005',
+        'http://localhost:3001',
+        'http://127.0.0.1:3001',
+      ];
       for (const base of candidates) {
         try {
           const localUrl = `${base}${endpoint}`;
@@ -237,7 +242,7 @@ async function safeFetchGatewayApi(
         success: false,
         isVercelStatic: true,
         error:
-          'سيرفر Baileys الآلي يتطلب تشغيل خادم المنصة محلياً على هذا الحاسوب (عبر الأمر npm run dev أو تشغيل_سيرفر_الواتساب.bat). يمكنك استخدام «الوضع المباشر للكمبيوتر عبر WhatsApp Web» فوراً بنقرة واحدة.',
+          'سيرفر الواتساب المستقل يتطلب تشغيله محلياً عبر تشغيل_سيرفر_الواتساب.bat أو الأمر npm run whatsapp (المنفذ 3005). يمكنك أيضاً استخدام «الوضع المباشر للكمبيوتر عبر WhatsApp Web» فوراً بنقرة واحدة.',
       };
     }
 
@@ -1219,14 +1224,14 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       <span>المسار الثاني (تشغيل السيرفر الآلي على جهازك):</span>
                     </div>
                     <p className="text-[11px] text-slate-300 leading-relaxed">
-                      إذا كنت على جهاز الكمبيوتر وتريد الإرسال الجماعي الآلي بالخلفية: اضغط مرتين على ملف <span className="font-mono text-amber-300 font-bold">تشغيل_سيرفر_الواتساب.bat</span> في مجلد المشروع، أو نفّذ الأمر التالي:
+                      إذا كنت على جهاز الكمبيوتر وتريد الإرسال الجماعي الآلي بالخلفية: اضغط مرتين على ملف <span className="font-mono text-amber-300 font-bold">تشغيل_سيرفر_الواتساب.bat</span> (المنفذ 3005) في مجلد المشروع، أو نفّذ الأمر التالي:
                     </p>
                     <div className="flex items-center justify-between gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 font-mono text-emerald-400 text-xs">
-                      <span>npm run dev</span>
+                      <span>npm run whatsapp</span>
                       <button
                         type="button"
                         onClick={() => {
-                          navigator.clipboard.writeText('npm run dev');
+                          navigator.clipboard.writeText('npm run whatsapp');
                           setHasCopiedCommand(true);
                           setTimeout(() => setHasCopiedCommand(false), 2000);
                         }}

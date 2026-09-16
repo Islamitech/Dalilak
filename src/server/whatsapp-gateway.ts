@@ -121,9 +121,145 @@ let lastActive: string | null = null;
 let isInitializing = false;
 let isExplicitDisconnect = false;
 
-// Active Broadcast State
+// Active Broadcast State & Local Persistence
 let activeCampaign: BroadcastProgress | null = null;
 let abortRequested = false;
+
+// Campaign In-Memory & File Persistence for Pause, Resume & Crash Recovery
+let cachedCampaignBusinesses: Business[] = [];
+let cachedCampaignOptions: {
+  templateType: string;
+  customText?: string;
+  minDelaySeconds?: number;
+  maxDelaySeconds?: number;
+  skipRecentlyContacted?: boolean;
+} | null = null;
+
+// Persistent Campaign Progress and History Files
+const CAMPAIGN_PROGRESS_FILE = path.resolve(process.cwd(), 'data/whatsapp_campaign_progress.json');
+const CAMPAIGN_HISTORY_FILE = path.resolve(process.cwd(), 'data/whatsapp_campaigns_history.json');
+
+export interface StoredCampaignData {
+  campaign: BroadcastProgress;
+  businesses: Business[];
+  options: {
+    templateType: string;
+    customText?: string;
+    minDelaySeconds?: number;
+    maxDelaySeconds?: number;
+    skipRecentlyContacted?: boolean;
+  };
+  updatedAt: string;
+}
+
+export function saveCampaignProgress(
+  campaign: BroadcastProgress,
+  businesses?: Business[],
+  options?: any
+) {
+  try {
+    let existingBusinesses = cachedCampaignBusinesses;
+    let existingOptions = cachedCampaignOptions;
+
+    if ((!existingBusinesses || existingBusinesses.length === 0) && fs.existsSync(CAMPAIGN_PROGRESS_FILE)) {
+      try {
+        const prev = JSON.parse(fs.readFileSync(CAMPAIGN_PROGRESS_FILE, 'utf-8'));
+        if (Array.isArray(prev.businesses) && prev.businesses.length > 0) {
+          existingBusinesses = prev.businesses;
+        }
+        if (prev.options) {
+          existingOptions = prev.options;
+        }
+      } catch {}
+    }
+
+    const dataToSave: StoredCampaignData = {
+      campaign,
+      businesses: businesses || existingBusinesses || [],
+      options: options || existingOptions || { templateType: campaign.templateType },
+      updatedAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(CAMPAIGN_PROGRESS_FILE, JSON.stringify(dataToSave, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[WhatsApp Gateway] Failed to persist campaign progress:', err);
+  }
+}
+
+export function archiveCampaignHistory(campaign: BroadcastProgress): void {
+  try {
+    let history: BroadcastProgress[] = [];
+    if (fs.existsSync(CAMPAIGN_HISTORY_FILE)) {
+      try {
+        history = JSON.parse(fs.readFileSync(CAMPAIGN_HISTORY_FILE, 'utf-8'));
+      } catch {}
+    }
+    const existingIndex = history.findIndex((h) => h.id === campaign.id);
+    if (existingIndex >= 0) {
+      history[existingIndex] = campaign;
+    } else {
+      history.unshift(campaign);
+    }
+    if (history.length > 100) {
+      history = history.slice(0, 100);
+    }
+    fs.writeFileSync(CAMPAIGN_HISTORY_FILE, JSON.stringify(history, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[WhatsApp Gateway] Failed to archive campaign history:', err);
+  }
+}
+
+export function loadSavedCampaignProgress(): BroadcastProgress | null {
+  try {
+    if (fs.existsSync(CAMPAIGN_PROGRESS_FILE)) {
+      const raw = fs.readFileSync(CAMPAIGN_PROGRESS_FILE, 'utf-8');
+      const data: StoredCampaignData = JSON.parse(raw);
+      if (data && data.campaign) {
+        // If it was left running or in cooldown when the server stopped/crashed, mark as paused
+        if (data.campaign.status === 'running' || data.campaign.status === 'cooldown') {
+          data.campaign.status = 'paused';
+          data.campaign.cooldownRemainingSeconds = undefined;
+        }
+        cachedCampaignBusinesses = Array.isArray(data.businesses) ? data.businesses : [];
+        cachedCampaignOptions = data.options || null;
+        activeCampaign = data.campaign;
+        return activeCampaign;
+      }
+    }
+  } catch (err) {
+    console.warn('[WhatsApp Gateway] Failed to load saved campaign progress:', err);
+  }
+  return null;
+}
+
+export function clearSavedCampaignProgress(): void {
+  try {
+    if (fs.existsSync(CAMPAIGN_PROGRESS_FILE)) {
+      if (activeCampaign) {
+        archiveCampaignHistory(activeCampaign);
+      }
+      fs.unlinkSync(CAMPAIGN_PROGRESS_FILE);
+    }
+    activeCampaign = null;
+    cachedCampaignBusinesses = [];
+    cachedCampaignOptions = null;
+  } catch (err) {
+    console.warn('[WhatsApp Gateway] Failed to clear campaign progress:', err);
+  }
+}
+
+export function getCampaignHistory(): BroadcastProgress[] {
+  try {
+    if (fs.existsSync(CAMPAIGN_HISTORY_FILE)) {
+      return JSON.parse(fs.readFileSync(CAMPAIGN_HISTORY_FILE, 'utf-8'));
+    }
+  } catch {}
+  return [];
+}
+
+// Automatically load any saved progress on module start
+try {
+  loadSavedCampaignProgress();
+} catch {}
 
 /**
  * ☎️ Identifies Egyptian Landline Area Codes and Short Hotlines
@@ -434,15 +570,7 @@ export function compileBroadcastMessage(
 /**
  * ⚡ Starts Automated Throttled WhatsApp Broadcast with Anti-Ban Protection
  */
-// Campaign In-Memory Persistence for Pause & Resume
-let cachedCampaignBusinesses: Business[] = [];
-let cachedCampaignOptions: {
-  templateType: string;
-  customText?: string;
-  minDelaySeconds?: number;
-  maxDelaySeconds?: number;
-  skipRecentlyContacted?: boolean;
-} | null = null;
+
 
 let cachedImageRegistry: Record<string, any> | null = null;
 function getEnhancedPhotoUrl(bizId: string): string | null {
@@ -523,6 +651,8 @@ async function executeCampaignLoop(
       if (activeCampaign) {
         activeCampaign.status = 'aborted';
         activeCampaign.finishedAt = new Date().toISOString();
+        saveCampaignProgress(activeCampaign);
+        archiveCampaignHistory(activeCampaign);
       }
       break;
     }
@@ -551,6 +681,7 @@ async function executeCampaignLoop(
         if (activeCampaign.logs.length > 200) {
           activeCampaign.logs = activeCampaign.logs.slice(0, 200);
         }
+        saveCampaignProgress(activeCampaign);
       }
       console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped landline: ${biz.nameAr} (${rawPhone})`);
       // Gentle micro-delay (120ms) to prevent network traffic spikes
@@ -574,6 +705,7 @@ async function executeCampaignLoop(
         if (activeCampaign.logs.length > 200) {
           activeCampaign.logs = activeCampaign.logs.slice(0, 200);
         }
+        saveCampaignProgress(activeCampaign);
       }
       await new Promise((r) => setTimeout(r, 120));
       continue;
@@ -594,6 +726,7 @@ async function executeCampaignLoop(
         if (activeCampaign.logs.length > 200) {
           activeCampaign.logs = activeCampaign.logs.slice(0, 200);
         }
+        saveCampaignProgress(activeCampaign);
       }
       console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped duplicate: ${biz.nameAr} (${rawPhone})`);
       await new Promise((r) => setTimeout(r, 120));
@@ -625,6 +758,7 @@ async function executeCampaignLoop(
             reason: 'تم تجميد الحملة مؤقتاً بسبب انقطاع الاتصال (يمكن استئنافها بعد إعادة الاتصال) ⏸️',
             timestamp: new Date().toISOString(),
           });
+          saveCampaignProgress(activeCampaign);
         }
         break;
       }
@@ -650,6 +784,7 @@ async function executeCampaignLoop(
           if (activeCampaign.logs.length > 200) {
             activeCampaign.logs = activeCampaign.logs.slice(0, 200);
           }
+          saveCampaignProgress(activeCampaign);
         }
         console.log(`[Campaign ${i + 1}/${businesses.length}] Skipped non-WhatsApp account: ${biz.nameAr} (${rawPhone})`);
         await new Promise((r) => setTimeout(r, 200));
@@ -757,6 +892,7 @@ async function executeCampaignLoop(
         if (activeCampaign.logs.length > 200) {
           activeCampaign.logs = activeCampaign.logs.slice(0, 200);
         }
+        saveCampaignProgress(activeCampaign);
       }
       console.log(`[Campaign ${i + 1}/${businesses.length}] Sent to ${biz.nameAr} (${rawPhone})`);
     } catch (sendErr: any) {
@@ -771,6 +907,7 @@ async function executeCampaignLoop(
           reason: sendErr?.message || 'فشل إرسال الرسالة عبر المقبس',
           timestamp: new Date().toISOString(),
         });
+        saveCampaignProgress(activeCampaign);
       }
     }
 
@@ -799,6 +936,7 @@ async function executeCampaignLoop(
         reason: `🧊 فترة تهدئة احترازية لمدة 10 دقائق بعد إرسال ${activeCampaign.successful} رسالة (دفعة #${batchNum}) لحماية الرقم من الحظر 🛡️`,
         timestamp: new Date().toISOString(),
       });
+      saveCampaignProgress(activeCampaign);
 
       for (let c = cooldownSeconds; c > 0; c--) {
         if (abortRequested) break;
@@ -809,6 +947,7 @@ async function executeCampaignLoop(
       activeCampaign.cooldownRemainingSeconds = undefined;
       if (!abortRequested) {
         activeCampaign.status = 'running';
+        saveCampaignProgress(activeCampaign);
         console.log(`▶️ [Anti-Ban Cooldown] 10-minute cooldown completed. Resuming automated broadcast...`);
       }
     } else if (i < businesses.length - 1 && !abortRequested) {
@@ -827,6 +966,8 @@ async function executeCampaignLoop(
   if (activeCampaign && activeCampaign.status === 'running') {
     activeCampaign.status = 'completed';
     activeCampaign.finishedAt = new Date().toISOString();
+    saveCampaignProgress(activeCampaign);
+    archiveCampaignHistory(activeCampaign);
     console.log(`🎉 Broadcast Campaign completed successfully!`);
   }
 }
@@ -876,12 +1017,16 @@ export async function startWhatsAppBroadcast(
     lastIndex: 0,
   };
 
+  saveCampaignProgress(activeCampaign, businesses, options);
+
   // Launch background worker
   executeCampaignLoop(businesses, options, 0).catch((err) => {
     console.error('Fatal error in broadcast campaign worker:', err);
     if (activeCampaign) {
       activeCampaign.status = 'aborted';
       activeCampaign.finishedAt = new Date().toISOString();
+      saveCampaignProgress(activeCampaign);
+      archiveCampaignHistory(activeCampaign);
     }
   });
 
@@ -903,6 +1048,10 @@ export async function resumeWhatsAppBroadcast(): Promise<{ success: boolean; mes
     };
   }
 
+  if (!activeCampaign) {
+    loadSavedCampaignProgress();
+  }
+
   if (!activeCampaign || activeCampaign.status !== 'paused') {
     return {
       success: false,
@@ -913,7 +1062,7 @@ export async function resumeWhatsAppBroadcast(): Promise<{ success: boolean; mes
   if (!cachedCampaignBusinesses || cachedCampaignBusinesses.length === 0 || !cachedCampaignOptions) {
     return {
       success: false,
-      message: 'بيانات الحملة السابقة غير متوفرة في الذاكرة.',
+      message: 'بيانات الحملة السابقة غير متوفرة في الذاكرة أو الملف المحلي.',
     };
   }
 
@@ -921,6 +1070,8 @@ export async function resumeWhatsAppBroadcast(): Promise<{ success: boolean; mes
   if (resumeIndex >= cachedCampaignBusinesses.length) {
     activeCampaign.status = 'completed';
     activeCampaign.finishedAt = new Date().toISOString();
+    saveCampaignProgress(activeCampaign);
+    archiveCampaignHistory(activeCampaign);
     return {
       success: true,
       message: 'الحملة مكتملة بالفعل.',
@@ -928,12 +1079,15 @@ export async function resumeWhatsAppBroadcast(): Promise<{ success: boolean; mes
   }
 
   activeCampaign.status = 'running';
+  saveCampaignProgress(activeCampaign);
 
   executeCampaignLoop(cachedCampaignBusinesses, cachedCampaignOptions, resumeIndex).catch((err) => {
     console.error('Fatal error in resumed campaign worker:', err);
     if (activeCampaign) {
       activeCampaign.status = 'aborted';
       activeCampaign.finishedAt = new Date().toISOString();
+      saveCampaignProgress(activeCampaign);
+      archiveCampaignHistory(activeCampaign);
     }
   });
 
@@ -954,6 +1108,15 @@ export function abortWhatsAppBroadcast(): { success: boolean; message: string } 
   abortRequested = true;
   activeCampaign.status = 'aborted';
   activeCampaign.finishedAt = new Date().toISOString();
+  saveCampaignProgress(activeCampaign);
+  archiveCampaignHistory(activeCampaign);
   return { success: true, message: 'تم تفعيل زر الطوارئ وإلغاء الحملة فوراً بنجاح.' };
+}
+
+/**
+ * 📊 Retrieves Current or Saved Campaign Progress
+ */
+export function getCampaignProgress(): BroadcastProgress | null {
+  return activeCampaign || loadSavedCampaignProgress();
 }
 

@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # منصة دليلك - مشغل سيرفر واتساب الآلي (Baileys Gateway)
 # ==============================================================================
 
@@ -14,10 +14,10 @@ Write-Host "            منصة دليلك - خادم واتساب الآلي �
 Write-Host "====================================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. تنظيف المنفذ 3001 إذا كان قيد الاستخدام من عملية قديمة
-Write-Host " [1/3] فحص المنفذ 3001 وتحريره من أي عمليات سابقة..." -ForegroundColor Yellow
+# 1. تنظيف المنفذ 3005 إذا كان قيد الاستخدام من عملية قديمة
+Write-Host " [1/3] فحص المنفذ 3005 وتحريره من أي عمليات سابقة..." -ForegroundColor Yellow
 try {
-    $connections = Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue
+    $connections = Get-NetTCPConnection -LocalPort 3005 -ErrorAction SilentlyContinue
     if ($connections) {
         $pids = $connections | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -gt 0 -and $_ -ne $PID }
         foreach ($procId in $pids) {
@@ -31,7 +31,7 @@ try {
         }
         Start-Sleep -Milliseconds 500
     }
-    Write-Host "       [v] المنفذ 3001 جاهز وخالي تماما." -ForegroundColor Green
+    Write-Host "       [v] المنفذ 3005 جاهز وخالي تماماً." -ForegroundColor Green
 } catch {
     Write-Host "       [!] تخطي فحص المنفذ." -ForegroundColor DarkGray
 }
@@ -53,13 +53,13 @@ if (-not (Test-Path "node_modules")) {
 }
 
 # 3. إطلاق السيرفر
-Write-Host " [3/3] تشغيل خادم المنصة وبوابة الواتساب..." -ForegroundColor Yellow
+Write-Host " [3/3] تشغيل خادم واتساب المستقل وحفظ التقدم المحلي..." -ForegroundColor Yellow
 Write-Host ""
-Write-Host " [v] السيرفر يعمل الآن على: http://localhost:3001" -ForegroundColor Green
-Write-Host " [v] متوافق مع لوحة التحكم السحابية (Vercel) واللوكال مباشرة." -ForegroundColor Cyan
+Write-Host " [v] سيرفر الواتساب يعمل الآن على: http://localhost:3005" -ForegroundColor Green
+Write-Host " [v] حفظ وتسجيل تقدم الإرسال مفعل محلياً في مجلد data." -ForegroundColor Cyan
 Write-Host " [!] لا تغلق هذه النافذة طالما ترغب باستخدام سيرفر الواتساب الآلي." -ForegroundColor Magenta
 Write-Host "====================================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# تشغيل npx tsx server.ts مباشرة
-npx tsx server.ts
+# تشغيل خادم الواتساب المستقل مباشرة
+npx tsx src/server/whatsapp-server.ts
