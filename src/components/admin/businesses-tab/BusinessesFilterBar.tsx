@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Business } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { exportBusinessesToCsv } from '../../../utils/exportCsv';
@@ -77,6 +77,22 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
   onResetFilters,
   onOpenPackagesHub,
 }) => {
+  // Local debounced search to keep keyboard typing at 60fps with zero lag
+  const [localSearch, setLocalSearch] = useState<string>(bizSearchQuery);
+
+  useEffect(() => {
+    setLocalSearch(bizSearchQuery);
+  }, [bizSearchQuery]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== bizSearchQuery) {
+        setBizSearchQuery(localSearch);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [localSearch, bizSearchQuery, setBizSearchQuery]);
+
   return (
     <>
       {/* Quick Filter Pill Chips */}
@@ -213,8 +229,8 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           <input
             type="text"
             placeholder="بحث بالاسم، العميل أو الهاتف..."
-            value={bizSearchQuery}
-            onChange={(e) => setBizSearchQuery(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-9 pl-3 py-2 focus:outline-none focus:border-amber-500 shadow-xs text-xs"
           />
         </div>

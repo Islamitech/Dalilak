@@ -42,6 +42,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
+  const [viewBoundsVersion, setViewBoundsVersion] = useState<number>(0);
 
   // High precision controls & Layer switcher (Default: Google Streets Vibrant Map)
   const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
@@ -147,11 +148,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         } catch {}
       }
 
-      // Update zoom state on user zoom
-      map.on('zoomend', () => {
+      // Update zoom and bounds state on user zoom and pan
+      const handleViewChange = () => {
         if (!isSubscribed) return;
         setZoomLevel(map.getZoom());
-      });
+        setViewBoundsVersion((v) => v + 1);
+      };
+      map.on('zoomend', handleViewChange);
+      map.on('moveend', handleViewChange);
 
       // Handle map click in picker mode (places pin directly on clicked pixel)
       map.on('click', (e: any) => {
@@ -275,9 +279,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       }
     } else {
       // View Mode: Render Businesses with Smart Screen-Space Marker Clustering
+      // 🚀 Viewport Bounding Box Culling: only project and cluster businesses visible in the viewport (+ margin)
+      const mapBounds = (map && typeof map.getBounds === 'function') ? map.getBounds().pad(0.15) : null;
+
       const filteredBusinesses = businesses.filter((b) => {
         if (typeof b.lat !== 'number' || typeof b.lng !== 'number' || isNaN(b.lat) || isNaN(b.lng)) return false;
         if (selectedGovFilter !== 'all' && !(b.governorate || '').includes(selectedGovFilter)) {
+          return false;
+        }
+        if (mapBounds && !mapBounds.contains([b.lat, b.lng])) {
           return false;
         }
         return true;
@@ -371,7 +381,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         }
       });
     }
-  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy, zoomLevel, selectedBiz]);
+  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy, zoomLevel, selectedBiz, viewBoundsVersion]);
 
   // Handle Resize & Fullscreen Invalidation
   useEffect(() => {

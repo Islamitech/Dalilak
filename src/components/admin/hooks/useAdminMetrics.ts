@@ -28,258 +28,273 @@ export const useAdminMetrics = ({
     [businesses]
   );
 
-  // Financial KPI totals (excluding fee-exempt popular area activities, including platform additional invoices)
-  const totalRevenue = useMemo(
-    () => realBusinesses.reduce((acc, b) => {
-      const basePaid = (b.isFeeExempt || b.packagePrice === 0) ? 0 : (b.amountPaid || 0);
-      const addInvsPaid = (b.additionalInvoices || []).reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
-      return acc + basePaid + addInvsPaid;
-    }, 0),
-    [realBusinesses]
-  );
+  // 🚀 HIGH SPEED SINGLE-PASS METRICS COMPUTATION (1 loop instead of 18 loops across 1300+ items)
+  const {
+    totalRevenue,
+    totalContractValue,
+    totalDebt,
+    collectionRate,
+    exemptCount,
+    verifiedCount,
+    inProgressCount,
+    notSubmittedCount,
+    directoryApprovedCount,
+    pendingApprovalCount,
+    trendingFreeCount,
+    collectedInvoicesCount,
+    unpaidBusinessesCount,
+    verificationRate,
+    overdueReviewBusinesses,
+    overdueReviewCount,
+    overdueReviewIds,
+    overdueFollowUpBusinesses,
+    overdueFollowUpCount,
+    overdueFollowUpIds,
+    verifiedWithDebtBusinesses,
+    verifiedWithDebtCount,
+    verifiedWithDebtTotal,
+    verifiedWithDebtIds,
+    categoryStats,
+  } = useMemo(() => {
+    let rev = 0;
+    let contractVal = 0;
+    let debt = 0;
+    let exempt = 0;
+    let verified = 0;
+    let inProgress = 0;
+    let notSubmitted = 0;
+    let dirApproved = 0;
+    let pendingAppr = 0;
+    let trendingFree = 0;
+    let collectedInvs = 0;
+    let unpaidCount = 0;
 
-  const totalContractValue = useMemo(
-    () => realBusinesses.reduce((acc, b) => {
-      const basePrice = (b.isFeeExempt || b.packagePrice === 0) ? 0 : (b.packagePrice || 0);
-      const addInvsTotal = (b.additionalInvoices || []).reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
-      return acc + basePrice + addInvsTotal;
-    }, 0),
-    [realBusinesses]
-  );
+    const overdueRevBiz: Business[] = [];
+    const overdueRevIds = new Set<string>();
 
-  const totalDebt = useMemo(
-    () => realBusinesses.reduce((acc, b) => {
-      const baseDebt = (b.isFeeExempt || b.packagePrice === 0) ? 0 : Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
-      const addInvsDebt = (b.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
-      return acc + baseDebt + addInvsDebt;
-    }, 0),
-    [realBusinesses]
-  );
+    const overdueFollowBiz: Business[] = [];
+    const overdueFollowIds = new Set<string>();
 
-  const collectionRate = useMemo(
-    () => totalContractValue > 0 ? ((totalRevenue / totalContractValue) * 100).toFixed(1) : '0',
-    [totalRevenue, totalContractValue]
-  );
+    const verWithDebtBiz: Business[] = [];
+    const verWithDebtIds = new Set<string>();
+    let verWithDebtSum = 0;
 
-  const exemptCount = useMemo(
-    () => realBusinesses.filter((b) => b.isFeeExempt || b.packagePrice === 0).length,
-    [realBusinesses]
-  );
+    const catMap = new Map<string, number>();
 
-  // Google Maps Verification Pipeline Metrics
-  const verifiedCount = useMemo(
-    () => realBusinesses.filter((b) => {
-      const url = (b.googleMapsUrl || '').trim();
-      return url.startsWith('http') && !url.includes('search/?api=1&query=');
-    }).length,
-    [realBusinesses]
-  );
-
-  const inProgressCount = useMemo(
-    () => realBusinesses.filter((b) => {
-      const url = (b.googleMapsUrl || '').trim();
-      const hasMap = url.startsWith('http') && !url.includes('search/?api=1&query=');
-      return !hasMap && b.googleSyncStatus === 'in_progress';
-    }).length,
-    [realBusinesses]
-  );
-
-  const notSubmittedCount = useMemo(
-    () => realBusinesses.filter((b) => {
-      const url = (b.googleMapsUrl || '').trim();
-      const hasMap = url.startsWith('http') && !url.includes('search/?api=1&query=');
-      // Strict Filter: Only approved directory businesses that haven't been submitted to Google yet
-      return b.verificationStatus === 'verified' && !hasMap && b.googleSyncStatus !== 'in_progress';
-    }).length,
-    [realBusinesses]
-  );
-
-  const directoryApprovedCount = useMemo(
-    () => realBusinesses.filter((b) => b.verificationStatus === 'verified').length,
-    [realBusinesses]
-  );
-
-  const pendingApprovalCount = useMemo(
-    () => realBusinesses.filter((b) => b.verificationStatus !== 'verified').length,
-    [realBusinesses]
-  );
-
-  const verificationRate = useMemo(
-    () => realBusinesses.length > 0 ? ((verifiedCount / realBusinesses.length) * 100).toFixed(1) : '0',
-    [verifiedCount, realBusinesses.length]
-  );
-
-  // 🌟 الأنشطة الرائجة (المسجلة بشكل مجاني بدون تحصيل)
-  const trendingFreeCount = useMemo(
-    () => realBusinesses.filter(isTrendingFreeActivity).length,
-    [realBusinesses]
-  );
-
-  // 💳 الأنشطة ذات الفواتير المحصلة (المسددة بالكامل أو دفعات فعلية)
-  const collectedInvoicesCount = useMemo(
-    () => realBusinesses.filter(isCollectedInvoiceActivity).length,
-    [realBusinesses]
-  );
-
-  // ⏳ الأنشطة بانتظار السداد (باقات مدفوعة لم تُسدد رسومها بالكامل)
-  const unpaidBusinessesCount = useMemo(
-    () => realBusinesses.filter(isUnpaidActivity).length,
-    [realBusinesses]
-  );
-
-  // CRM Leads Stats
-  const leadStats = useMemo(() => {
-    const total = leads.length;
-    const pendingFollowup = leads.filter((l) => l.status === 'pending_followup').length;
-    const contacted = leads.filter((l) => l.status === 'contacted').length;
-    const converted = leads.filter((l) => l.status === 'converted').length;
-    const highInterest = leads.filter((l) => l.interestLevel === 'high').length;
-    const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
-    return { total, pendingFollowup, contacted, converted, highInterest, conversionRate };
-  }, [leads]);
-
-  // Overdue Google Verification Detection (> 48 hours in progress and not verified)
-  const overdueReviewBusinesses = useMemo(() => {
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const now = Date.now();
-    return realBusinesses.filter((b) => {
-      const hasGoogleMap = Boolean(
-        b.googleMapsUrl &&
-        typeof b.googleMapsUrl === 'string' &&
-        b.googleMapsUrl.trim().startsWith('http') &&
-        !b.googleMapsUrl.includes('search/?api=1&query=')
-      );
-      if (hasGoogleMap) return false;
 
-      const isInProgress = b.googleSyncStatus === 'in_progress';
-      if (!isInProgress) return false;
+    for (let i = 0; i < realBusinesses.length; i++) {
+      const b = realBusinesses[i];
 
-      const submitTime = b.googleSyncDate
-        ? new Date(b.googleSyncDate).getTime()
-        : b.createdDate
-        ? new Date(b.createdDate).getTime()
-        : 0;
+      // 1. Financial totals
+      const isFeeExempt = b.isFeeExempt || b.packagePrice === 0;
+      const basePaid = isFeeExempt ? 0 : (b.amountPaid || 0);
+      const basePrice = isFeeExempt ? 0 : (b.packagePrice || 0);
+      const baseDebt = isFeeExempt ? 0 : Math.max(0, basePrice - basePaid);
 
-      return submitTime > 0 && (now - submitTime > TWO_DAYS_MS);
-    });
-  }, [realBusinesses]);
+      let addInvsPaid = 0;
+      let addInvsTotal = 0;
+      let addInvsDebt = 0;
+      if (b.additionalInvoices && b.additionalInvoices.length > 0) {
+        for (let j = 0; j < b.additionalInvoices.length; j++) {
+          const inv = b.additionalInvoices[j];
+          const aPaid = Number(inv.amountPaid) || 0;
+          const aTotal = Number(inv.amount) || 0;
+          addInvsPaid += aPaid;
+          addInvsTotal += aTotal;
+          addInvsDebt += Math.max(0, aTotal - aPaid);
+        }
+      }
 
-  const overdueReviewCount = overdueReviewBusinesses.length;
+      rev += basePaid + addInvsPaid;
+      contractVal += basePrice + addInvsTotal;
+      debt += baseDebt + addInvsDebt;
 
-  // Overdue CRM Follow-ups
-  const overdueFollowUpBusinesses = useMemo(() => {
-    return realBusinesses.filter(isBusinessFollowUpOverdue);
-  }, [realBusinesses]);
+      if (isFeeExempt) {
+        exempt++;
+      }
 
-  const overdueFollowUpCount = overdueFollowUpBusinesses.length;
+      // 2. Maps & Directory verification
+      const url = (b.googleMapsUrl || '').trim();
+      const hasMap = url.startsWith('http') && !url.includes('search/?api=1&query=');
+      if (hasMap) {
+        verified++;
+      } else if (b.googleSyncStatus === 'in_progress') {
+        inProgress++;
+      }
 
-  // Activities with Google Maps placed & Unpaid / Remaining Balance
-  const verifiedWithDebtBusinesses = useMemo(() => {
-    return businesses.filter((b) => {
-      const isExempt = Boolean(
+      if (b.verificationStatus === 'verified') {
+        dirApproved++;
+        if (!hasMap && b.googleSyncStatus !== 'in_progress') {
+          notSubmitted++;
+        }
+      } else {
+        pendingAppr++;
+      }
+
+      // 3. Category & trending filters
+      if (isTrendingFreeActivity(b)) {
+        trendingFree++;
+      }
+      if (isCollectedInvoiceActivity(b)) {
+        collectedInvs++;
+      }
+      if (isUnpaidActivity(b)) {
+        unpaidCount++;
+      }
+
+      // 4. Overdue review (> 48h in progress and no map)
+      if (!hasMap && b.googleSyncStatus === 'in_progress') {
+        const submitTime = b.googleSyncDate
+          ? new Date(b.googleSyncDate).getTime()
+          : b.createdDate
+          ? new Date(b.createdDate).getTime()
+          : 0;
+        if (submitTime > 0 && (now - submitTime > TWO_DAYS_MS)) {
+          overdueRevBiz.push(b);
+          overdueRevIds.add(b.id);
+        }
+      }
+
+      // 5. Overdue CRM follow-up
+      if (isBusinessFollowUpOverdue(b)) {
+        overdueFollowBiz.push(b);
+        overdueFollowIds.add(b.id);
+      }
+
+      // 6. Verified with debt
+      const isExemptDebt = Boolean(
         b.isFeeExempt ||
         (b.packagePrice || 0) === 0 ||
         b.packageId === 'pkg_exempt' ||
         b.packageId === 'pkg_already_on_google' ||
         b.registrationType === 'already_on_google'
       );
-      if (isExempt) return false;
-
-      const hasGoogleMap = Boolean(
-        b.googleMapsUrl &&
-        typeof b.googleMapsUrl === 'string' &&
-        b.googleMapsUrl.trim().startsWith('http') &&
-        !b.googleMapsUrl.includes('search/?api=1&query=')
-      );
-      if (!hasGoogleMap) return false;
-
-      const pkgDebt = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
-      const addDebt = (b.additionalInvoices || []).reduce(
-        (sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)),
-        0
-      );
-      const totalRemaining = pkgDebt + addDebt;
-      return totalRemaining > 0;
-    });
-  }, [businesses]);
-
-  const verifiedWithDebtCount = verifiedWithDebtBusinesses.length;
-  const verifiedWithDebtTotal = useMemo(
-    () => verifiedWithDebtBusinesses.reduce(
-      (sum, b) => {
+      if (!isExemptDebt && hasMap) {
         const pkgDebt = Math.max(0, (b.packagePrice || 0) - (b.amountPaid || 0));
-        const addDebt = (b.additionalInvoices || []).reduce(
-          (s, inv) => s + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)),
-          0
-        );
-        return sum + pkgDebt + addDebt;
-      },
-      0
-    ),
-    [verifiedWithDebtBusinesses]
-  );
-
-  // Governorate Breakdown
-  const governorateStats = useMemo(() => {
-    const govMap = new Map<string, { count: number; revenue: number; verified: number; exempt: number }>();
-    businesses.forEach((b) => {
-      const gov = b.governorate || 'القاهرة';
-      const existing = govMap.get(gov) || { count: 0, revenue: 0, verified: 0, exempt: 0 };
-      existing.count += 1;
-      if (!b.isFeeExempt && (b.packagePrice || 0) > 0) {
-        existing.revenue += (b.amountPaid || 0);
-      } else {
-        existing.exempt += 1;
+        const totalRemaining = pkgDebt + addInvsDebt;
+        if (totalRemaining > 0) {
+          verWithDebtBiz.push(b);
+          verWithDebtIds.add(b.id);
+          verWithDebtSum += totalRemaining;
+        }
       }
-      const addInvsPaid = (b.additionalInvoices || []).reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
-      existing.revenue += addInvsPaid;
-      if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') {
-        existing.verified += 1;
-      }
-      govMap.set(gov, existing);
-    });
-    return Array.from(govMap.entries())
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.count - a.count);
-  }, [businesses]);
 
-  // Main Activity Category Groups Breakdown & Live Counts (Sorted by most frequent first)
-  const categoryStats = useMemo(() => {
-    const catMap = new Map<string, number>();
-    realBusinesses.forEach((b) => {
+      // 7. Category group stats
       const group = getCategoryGroupFor(b.category, b.description);
       if (group) {
         catMap.set(group, (catMap.get(group) || 0) + 1);
       }
-    });
-    return Array.from(catMap.entries())
+    }
+
+    const collRate = contractVal > 0 ? ((rev / contractVal) * 100).toFixed(1) : '0';
+    const verRate = realBusinesses.length > 0 ? ((verified / realBusinesses.length) * 100).toFixed(1) : '0';
+
+    const catStats = Array.from(catMap.entries())
       .filter(([_, count]) => count > 0)
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count);
+
+    return {
+      totalRevenue: rev,
+      totalContractValue: contractVal,
+      totalDebt: debt,
+      collectionRate: collRate,
+      exemptCount: exempt,
+      verifiedCount: verified,
+      inProgressCount: inProgress,
+      notSubmittedCount: notSubmitted,
+      directoryApprovedCount: dirApproved,
+      pendingApprovalCount: pendingAppr,
+      trendingFreeCount: trendingFree,
+      collectedInvoicesCount: collectedInvs,
+      unpaidBusinessesCount: unpaidCount,
+      verificationRate: verRate,
+      overdueReviewBusinesses: overdueRevBiz,
+      overdueReviewCount: overdueRevBiz.length,
+      overdueReviewIds: overdueRevIds,
+      overdueFollowUpBusinesses: overdueFollowBiz,
+      overdueFollowUpCount: overdueFollowBiz.length,
+      overdueFollowUpIds: overdueFollowIds,
+      verifiedWithDebtBusinesses: verWithDebtBiz,
+      verifiedWithDebtCount: verWithDebtBiz.length,
+      verifiedWithDebtTotal: verWithDebtSum,
+      verifiedWithDebtIds: verWithDebtIds,
+      categoryStats: catStats,
+    };
   }, [realBusinesses]);
 
-  // Package Share Breakdown
-  const packageStats = useMemo(() => {
+  // CRM Leads Stats
+  const leadStats = useMemo(() => {
+    const total = leads.length;
+    let pendingFollowup = 0;
+    let contacted = 0;
+    let converted = 0;
+    let highInterest = 0;
+
+    for (let i = 0; i < leads.length; i++) {
+      const l = leads[i];
+      if (l.status === 'pending_followup') pendingFollowup++;
+      if (l.status === 'contacted') contacted++;
+      if (l.status === 'converted') converted++;
+      if (l.interestLevel === 'high') highInterest++;
+    }
+
+    const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
+    return { total, pendingFollowup, contacted, converted, highInterest, conversionRate };
+  }, [leads]);
+
+  // Combined Governorate Breakdown & Package Share Breakdown in a single pass
+  const { governorateStats, packageStats } = useMemo(() => {
+    const govMap = new Map<string, { count: number; revenue: number; verified: number; exempt: number }>();
     const pkgMap = new Map<string, { count: number; revenue: number }>();
-    businesses.forEach((b) => {
+
+    for (let i = 0; i < businesses.length; i++) {
+      const b = businesses[i];
+      if (!b) continue;
+
+      // Governorate stats
+      const gov = b.governorate || 'القاهرة';
+      const existingGov = govMap.get(gov) || { count: 0, revenue: 0, verified: 0, exempt: 0 };
+      existingGov.count += 1;
+      if (!b.isFeeExempt && (b.packagePrice || 0) > 0) {
+        existingGov.revenue += (b.amountPaid || 0);
+      } else {
+        existingGov.exempt += 1;
+      }
+      const addInvsPaid = (b.additionalInvoices || []).reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
+      existingGov.revenue += addInvsPaid;
+      if (b.verificationStatus === 'verified' || b.googleSyncStatus === 'synced') {
+        existingGov.verified += 1;
+      }
+      govMap.set(gov, existingGov);
+
+      // Package stats
       const isExempt = b.isFeeExempt || b.packagePrice === 0;
       const pkgTitle = isExempt ? 'أنشطة رائجة بالمنطقة (إدراج مجاني بدون رسوم)' : (b.packageTitle || b.packageName || 'الباقة الأساسية');
-      const existing = pkgMap.get(pkgTitle) || { count: 0, revenue: 0 };
-      existing.count += 1;
-      existing.revenue += isExempt ? 0 : (b.packagePrice || 0);
-      pkgMap.set(pkgTitle, existing);
+      const existingPkg = pkgMap.get(pkgTitle) || { count: 0, revenue: 0 };
+      existingPkg.count += 1;
+      existingPkg.revenue += isExempt ? 0 : (b.packagePrice || 0);
+      pkgMap.set(pkgTitle, existingPkg);
 
       if (b.additionalInvoices && b.additionalInvoices.length > 0) {
-        b.additionalInvoices.forEach((inv) => {
+        for (let j = 0; j < b.additionalInvoices.length; j++) {
+          const inv = b.additionalInvoices[j];
           const invTitle = 'فواتير خدمات إضافية للمنصة';
           const existingInv = pkgMap.get(invTitle) || { count: 0, revenue: 0 };
           existingInv.count += 1;
           existingInv.revenue += Number(inv.amount) || 0;
           pkgMap.set(invTitle, existingInv);
-        });
+        }
       }
-    });
-    return Array.from(pkgMap.entries())
+    }
+
+    const sortedGov = Array.from(govMap.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.count - a.count);
+
+    const sortedPkg = Array.from(pkgMap.entries())
       .map(([title, data]) => ({
         title,
         count: data.count,
@@ -287,6 +302,8 @@ export const useAdminMetrics = ({
         percentage: businesses.length > 0 ? ((data.count / businesses.length) * 100).toFixed(1) : '0',
       }))
       .sort((a, b) => b.count - a.count);
+
+    return { governorateStats: sortedGov, packageStats: sortedPkg };
   }, [businesses]);
 
   // Merged & Strictly Deduplicated Representatives List (Excluding deleted records)
@@ -633,11 +650,14 @@ export const useAdminMetrics = ({
     leadStats,
     overdueReviewBusinesses,
     overdueReviewCount,
+    overdueReviewIds,
     overdueFollowUpBusinesses,
     overdueFollowUpCount,
+    overdueFollowUpIds,
     verifiedWithDebtBusinesses,
     verifiedWithDebtCount,
     verifiedWithDebtTotal,
+    verifiedWithDebtIds,
     governorateStats,
     categoryStats,
     packageStats,

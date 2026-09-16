@@ -373,8 +373,9 @@ export const isBusinessGoogleVerified = (b: {
   isAlreadyOnGoogle?: boolean;
   packageId?: string;
   googleSyncStatus?: string;
+  registrationType?: string;
 }): boolean => {
-  if (b.isAlreadyOnGoogle || b.packageId === 'pkg_already_on_google') return true;
+  if (b.isAlreadyOnGoogle || b.packageId === 'pkg_already_on_google' || b.registrationType === 'already_on_google') return true;
   if (b.googleSyncStatus === 'synced') return true;
   const url = (b.googleMapsUrl || '').trim();
   if (!url || !url.startsWith('http')) return false;

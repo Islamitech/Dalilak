@@ -135,9 +135,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
             return b;
           });
           try {
-            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
+            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList, 400));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList)));
+            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList), 400));
             safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
             safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
@@ -159,9 +159,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
             return b;
           });
           try {
-            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList));
+            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList, 400));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList)));
+            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList), 400));
             safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
             safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
@@ -300,20 +300,29 @@ export async function hydrateBusinessesPhotosInBackground(
         });
 
         if (photoMap.size > 0) {
+          let hasAnyNewPhotos = false;
           const updated = businesses.map((b) => {
             const photos = photoMap.get(b.id);
             if (photos && photos.length > 0) {
-              return { ...b, photos };
+              const currentPhotos = Array.isArray(b.photos) ? b.photos : [];
+              if (currentPhotos.length !== photos.length || (photos[0] && currentPhotos[0] !== photos[0])) {
+                hasAnyNewPhotos = true;
+                return { ...b, photos };
+              }
             }
             return b;
           });
-          onUpdate(updated);
 
-          // Update cache with safe limits
-          try {
-            safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(getSafeBusinessesForStorage(updated)));
-            safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(updated))));
-          } catch {}
+          // Only trigger state re-render if photos actually changed!
+          if (hasAnyNewPhotos) {
+            onUpdate(updated);
+
+            // Update cache with safe limits
+            try {
+              safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(getSafeBusinessesForStorage(updated, 400)));
+              safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(updated), 400)));
+            } catch {}
+          }
         }
       }
     }
@@ -457,9 +466,9 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
       );
 
       try {
-        const safePayload = JSON.stringify(getSafeBusinessesForStorage(merged));
+        const safePayload = JSON.stringify(getSafeBusinessesForStorage(merged, 400));
         safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-        const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(merged)));
+        const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(merged), 400));
         safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
         safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
       } catch {}
@@ -508,8 +517,8 @@ export async function saveBusinessToDb(biz: Business): Promise<{ success: boolea
         if (!map.has(b.id)) map.set(b.id, b);
       });
     }
-    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(Array.from(map.values())));
-    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(Array.from(map.values())))));
+    safeSetLocalStorageItem('dalelak_cached_businesses', JSON.stringify(getSafeBusinessesForStorage(Array.from(map.values()), 400)));
+    safeSetLocalStorageItem('dalelak_directory_cache', JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(Array.from(map.values())), 400)));
   } catch {}
 
   let savedToCloud = false;

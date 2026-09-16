@@ -321,6 +321,36 @@ async function safeFetchGatewayApi(
 // 📋 Pre-configured high-conversion official message templates
 const TEMPLATE_DEFINITIONS = [
   {
+    id: 'hadayek_invitation',
+    name: 'دعوة مجتمع حدائق الأهرام (تخصيص + طلب صور وتواصل)',
+    badge: 'موصى به لحملة حدائق الأهرام 🌟',
+    badgeColor: 'bg-amber-500/20 text-amber-500 border-amber-500/30',
+    description: 'دعوة مخصصة لسكان وعاملي حدائق الأهرام تتضمن اسم المنشأة، رابط المعاينة المباشر، طلب صور ورقم تواصل، والتنبيه المهذب للحفاظ على الإدراج.',
+    defaultText: `أهلاً بحضرتك في *دليلك* 💐
+
+لأنك من سكان أو العاملين الكرام بـ *حدائق الأهرام*، تم إدراج نشاطك:
+🌟 *({name})*
+كـ *إدراج شرفي مجاني مدى الحياة (0.00 ج.م)* على منصة «دليلك» — التطبيق الجغرافي الذكي اللي بيوصل عيادتك، محلك، أو حرفتك لكل اللي بيدوروا على خدماتك في نطاقك الجغرافي.
+
+🔗 *رابط كارت نشاطك ومعاينته واستلام هديتك الترويجية:*
+{url}
+
+📸 *علشان نفعل بطاقتك وتظهر للجمهور بأعلى جودة:*
+لو مهتم، ابعتلنا هنا مباشرة:
+1. نوع وتفاصيل النشاط بدقة.
+2. رقم التليفون اللي عليه واتساب للتواصل المباشر مع الزوار والعملاء.
+3. كام صورة مميزة للمكان علشان تنزل في الكارت التعريفي بتاعك.
+
+❓ *حابب تعرف أكتر أو تسأل إحنا مين ونطاق تغطيتنا؟*
+تفضل اسأل وإحنا هنجاوبك على أي استفسار بكل ترحيب 🤝
+
+🚫 *غير مهتم؟*
+شرفتنا ونعتذر جداً للإزعاج، لا داعي للتفاعل مع الرسالة *(ملاحظة: قد يتم إزالة النشاط إذا لم يثبت وسيلة تواصل فعلية)*.
+
+مع خالص التقدير والتمنيات بالتوفيق 💐
+*فريق إدارة منصة دليلك*`,
+  },
+  {
     id: 'honorary_invitation',
     name: 'دعوة إدراج شرفي رسمي مجاني (0.00$)',
     badge: 'موصى به للمستوردين من Google',
@@ -487,7 +517,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [hadayekRadiusFilter, setHadayekRadiusFilter] = useState<boolean>(false);
 
   // Template state
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('honorary_invitation');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('hadayek_invitation');
   const [customText, setCustomText] = useState<string>(TEMPLATE_DEFINITIONS[0].defaultText);
   const [previewBizIndex, setPreviewBizIndex] = useState<number>(0);
 
@@ -815,7 +845,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         },
         body: JSON.stringify({
           templateType: selectedTemplate,
-          customText: selectedTemplate === 'custom' ? customText : undefined,
+          customText: customText || undefined,
           targetBusinessIds: targetBusinesses.map((b) => b.id),
           targetBusinesses: targetBusinesses.map((b) => ({
             id: b.id,

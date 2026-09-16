@@ -314,10 +314,15 @@ export function useAppDataSync({
       }
     }
 
-    // 3. Tab Visibility Change Listener: catch up instantly when returning to app
+    // 3. Tab Visibility Change Listener: catch up smoothly when returning to app (with 45s cooldown)
+    let lastVisibilitySync = Date.now();
     const handleVisibilityChange = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        refreshLiveData(true);
+        const now = Date.now();
+        if (now - lastVisibilitySync >= 45000) {
+          lastVisibilitySync = now;
+          refreshLiveData(true);
+        }
       }
     };
     if (typeof document !== 'undefined') {

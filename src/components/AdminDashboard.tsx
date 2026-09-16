@@ -281,11 +281,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const isInProgress = !hasGoogleMap && b.googleSyncStatus === 'in_progress';
             if (!isInProgress) return false;
           } else if (verificationFilter === 'overdue') {
-            return metrics.overdueReviewBusinesses.some((ov) => ov.id === b.id);
+            return metrics.overdueReviewIds.has(b.id);
           } else if (verificationFilter === 'overdue_followup') {
-            return metrics.overdueFollowUpBusinesses.some((of) => of.id === b.id);
+            return metrics.overdueFollowUpIds.has(b.id);
           } else if (verificationFilter === 'verified_debt') {
-            return metrics.verifiedWithDebtBusinesses.some((vd) => vd.id === b.id);
+            return metrics.verifiedWithDebtIds.has(b.id);
           } else if (verificationFilter === 'verified' || verificationFilter === 'google_synced') {
             if (!hasGoogleMap) return false;
           } else if (verificationFilter === 'directory_verified' || verificationFilter === 'directory_approved') {
@@ -300,7 +300,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           return true;
         })
       ),
-    [metrics.realBusinesses, bizSearchQuery, governorateFilter, categoryFilter, paymentFilter, verificationFilter, metrics.overdueReviewBusinesses, metrics.overdueFollowUpBusinesses, metrics.verifiedWithDebtBusinesses]
+    [metrics.realBusinesses, bizSearchQuery, governorateFilter, categoryFilter, paymentFilter, verificationFilter, metrics.overdueReviewIds, metrics.overdueFollowUpIds, metrics.verifiedWithDebtIds]
   );
 
   // Paginated Businesses

@@ -57,29 +57,54 @@ export function getSafeRepsForStorage(reps: Representative[]): Representative[] 
   }));
 }
 
-export function getSafeBusinessesForStorage(businesses: any[]): any[] {
+export function getSafeBusinessesForStorage(businesses: any[], maxCount?: number): any[] {
   if (!Array.isArray(businesses)) return [];
-  return businesses.map((b) => {
+
+  // Limit cached items in localStorage to maxCount (default 400) to keep localStorage lightweight (< 1MB)
+  const listToStore = (typeof maxCount === 'number' && businesses.length > maxCount)
+    ? businesses.slice(0, maxCount)
+    : businesses;
+
+  return listToStore.map((b) => {
+    if (!b || typeof b !== 'object') return b;
+
     const cleanPhotos = Array.isArray(b.photos)
       ? b.photos
           .map((p: string, idx: number) => {
             if (typeof p !== 'string') return '';
             // Always keep hosted web URLs (clean, lightweight ~80 bytes)
             if (p.startsWith('http://') || p.startsWith('https://')) return p;
-            // For data/blob URLs: preserve cover photos (up to 250KB each) so business media does not disappear
-            if ((p.startsWith('data:') || p.startsWith('blob:')) && idx < 2 && p.length < 250000) return p;
+            // For data/blob URLs: only preserve small preview thumbnail (< 35KB) for first photo
+            if ((p.startsWith('data:') || p.startsWith('blob:')) && idx === 0 && p.length < 35000) return p;
             return '';
           })
           .filter(Boolean)
-          .slice(0, 10)
+          .slice(0, 3)
       : [];
 
+    const cleanVideos = Array.isArray(b.videos) 
+      ? b.videos.filter((v: string) => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))).slice(0, 2) 
+      : [];
+
+    // Omit bloated/transient secondary fields to prevent localStorage QuotaExceededError
+    const {
+      auditHistory,
+      verificationNotesHistory,
+      rawPayload,
+      heavyLogs,
+      ...safeFields
+    } = b;
+
     return {
-      ...b,
+      ...safeFields,
+      description: typeof b.description === 'string' && b.description.length > 500
+        ? b.description.slice(0, 500)
+        : b.description,
+      notes: typeof b.notes === 'string' && b.notes.length > 500
+        ? b.notes.slice(0, 500)
+        : b.notes,
       photos: cleanPhotos,
-      videos: Array.isArray(b.videos) 
-        ? b.videos.filter((v: string) => typeof v === 'string' && (v.startsWith('http') || v.startsWith('data:') || v.startsWith('blob:'))).slice(0, 5) 
-        : [],
+      videos: cleanVideos,
     };
   });
 }

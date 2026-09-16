@@ -9,6 +9,8 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/st
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import { getRepDisplayInfo } from '../../utils/repDisplay';
 import { getGiftBarcodeWhatsAppUrl } from '../../utils/directoryEnhancements';
+import { getDeletedBusinessIds } from '../../services/db/businessDb';
+import { formatWhatsAppPhone } from '../../utils/whatsapp/phoneFormatter';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import { InteractiveMap } from '../InteractiveMap';
 import {
@@ -83,6 +85,35 @@ const getBusinessMapDetails = (biz: Business) => {
   };
 };
 
+const getVerificationBadge = (status?: string) => {
+  if (status === 'verified') {
+    return {
+      text: 'معتمد 🟢',
+      className: 'bg-emerald-500/90 text-white border-emerald-400/40',
+      badgeClass: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+    };
+  }
+  if (status === 'rejected') {
+    return {
+      text: 'مرفوض ❌',
+      className: 'bg-rose-500/90 text-white border-rose-400/40',
+      badgeClass: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
+    };
+  }
+  if (status === 'needs_action') {
+    return {
+      text: 'يتطلب إجراء ⚠️',
+      className: 'bg-orange-500/90 text-white border-orange-400/40',
+      badgeClass: 'bg-orange-500/10 text-orange-600 border-orange-500/30',
+    };
+  }
+  return {
+    text: 'قيد المراجعة ⏳',
+    className: 'bg-amber-500/90 text-slate-950 border-amber-400/40',
+    badgeClass: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+  };
+};
+
 export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = ({
   businesses,
   isLoadingData,
@@ -99,6 +130,15 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 }) => {
   // Local Directory Filters & View Mode
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [verificationFilter, setVerificationFilter] = useState<'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('trending');
@@ -108,56 +148,95 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const isManagerial = ['admin', 'supervisor', 'accountant'].includes(currentUser?.role || '');
 
   // Scope filter:
-  // - Admin & supervisors: see all businesses (including managing rejected)
-  // - Rep with 'my' scope: see own submissions (including own rejected)
-  // - Rep with 'all' scope: see all cloud businesses across the network (strictly excluding rejected)
-  // - Public unauthenticated visitors: see only verified non-rejected businesses
+  // - Admin & supervisors: see all businesses (strictly excluding deleted & CRM leads)
+  // - Rep with 'my' scope: see own submissions (strictly excluding deleted & CRM leads)
+  // - Rep with 'all' scope: see all cloud businesses across the network (strictly excluding rejected, unlisted & deleted)
+  // - Public unauthenticated visitors: see only verified published businesses
   const displayableBusinesses = useMemo(() => {
+    const deletedIds = getDeletedBusinessIds();
+    const cleanList = businesses.filter(
+      (b) =>
+        b &&
+        !b.isDeleted &&
+        !deletedIds.has(String(b.id).toLowerCase().trim()) &&
+        b.packageId !== 'pkg_interested_lead' &&
+        (b as any).verificationStatus !== 'lead' &&
+        !b.id.startsWith('lead_')
+    );
+
     if (isManagerial) {
-      return businesses;
+      return cleanList;
     }
     if (isRep && repScope === 'my') {
       const myId = (currentUser?.id || '').toLowerCase().trim();
-      return businesses.filter((b) => {
+      return cleanList.filter((b) => {
         const bRepId = (b.repId || '').toLowerCase().trim();
         return Boolean(myId && bRepId === myId);
       });
     }
     if (isRep && repScope === 'all') {
-      return businesses.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+      return cleanList.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
     }
     // Public unauthenticated visitors: see only verified published businesses
-    return businesses.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+    return cleanList.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
   }, [businesses, isRep, isManagerial, repScope, currentUser]);
 
   const hasRegisteredBiz = displayableBusinesses.length > 0;
 
+  // 🚀 Single-pass O(N) calculation for all directory metrics
   const homeStats = useMemo(() => {
     const totalRegistered = displayableBusinesses.length;
-    const directoryApproved = displayableBusinesses.filter((b) => b.verificationStatus === 'verified').length;
-    const pendingDirectory = displayableBusinesses.filter((b) => b.verificationStatus !== 'verified').length;
+    let directoryApproved = 0;
+    let pendingDirectory = 0;
+    let googleMapsVerified = 0;
+    let fullyPaid = 0;
+    let trending = 0;
+    let unpaid = 0;
+    let needsFollowup = 0;
+    const govSet = new Set<string>();
 
-    const googleMapsVerified = displayableBusinesses.filter(isBusinessGoogleVerified).length;
+    for (let i = 0; i < displayableBusinesses.length; i++) {
+      const b = displayableBusinesses[i];
+      if (b.governorate) govSet.add(b.governorate);
 
-    const govs = new Set(displayableBusinesses.map((b) => b.governorate).filter(Boolean)).size;
-    const fullyPaid = displayableBusinesses.filter(isCollectedInvoiceActivity).length;
-    const trending = displayableBusinesses.filter(isTrendingFreeActivity).length;
-    const unpaid = displayableBusinesses.filter(isUnpaidActivity).length;
-
-    // حساب الأنشطة التي تحتاج متابعة: غير موثقة على Google Maps، أو غير مسددة (إن كانت مدفوعة)، أو غير معتمدة بالدليل
-    const needsFollowup = displayableBusinesses.filter((b) => {
-      const isDocumented = isBusinessGoogleVerified(b);
-      const isPaid = isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b);
       const isApproved = b.verificationStatus === 'verified';
-      return !(isDocumented && isPaid && isApproved);
-    }).length;
+      if (isApproved) {
+        directoryApproved++;
+      } else if (b.verificationStatus !== 'rejected') {
+        pendingDirectory++;
+      }
+
+      const isDocumented = isBusinessGoogleVerified(b);
+      if (isDocumented) {
+        googleMapsVerified++;
+      }
+
+      const isTrending = isTrendingFreeActivity(b);
+      if (isTrending) {
+        trending++;
+      }
+
+      const isCollected = isCollectedInvoiceActivity(b);
+      if (isCollected) {
+        fullyPaid++;
+      }
+
+      if (isUnpaidActivity(b)) {
+        unpaid++;
+      }
+
+      const isPaid = isTrending || isCollected;
+      if (!(isDocumented && isPaid && isApproved)) {
+        needsFollowup++;
+      }
+    }
 
     return {
       totalRegistered,
       directoryApproved,
       googleMapsVerified,
       pendingDirectory,
-      govs,
+      govs: govSet.size,
       fullyPaid,
       exempt: trending,
       unpaid,
@@ -170,7 +249,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   const filteredBusinesses = useMemo(() => {
     return sortBusinessesNewestFirst(
       displayableBusinesses.filter((b) => {
-        if (searchQuery && !matchesBusinessSearch(b, searchQuery)) {
+        if (debouncedSearchQuery && !matchesBusinessSearch(b, debouncedSearchQuery)) {
           return false;
         }
         if (govFilter !== 'all' && !(b.governorate || '').includes(govFilter)) {
@@ -188,7 +267,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         } else if (verificationFilter === 'verified') {
           if (b.verificationStatus !== 'verified') return false;
         } else if (verificationFilter === 'in_progress') {
-          if (b.verificationStatus === 'verified') return false;
+          if (b.verificationStatus === 'verified' || b.verificationStatus === 'rejected') return false;
         } else if (verificationFilter === 'needs_followup') {
           const isDocumented = isBusinessGoogleVerified(b);
           const isPaid = isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b);
@@ -198,7 +277,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         return true;
       })
     );
-  }, [displayableBusinesses, searchQuery, govFilter, categoryFilter, verificationFilter]);
+  }, [displayableBusinesses, debouncedSearchQuery, govFilter, categoryFilter, verificationFilter]);
 
   // ── PROGRESSIVE WINDOWING & BATCH LOADING (ANTI-CRASH ON LOW-END DEVICES) ──
   const PAGE_SIZE = 24;
@@ -207,7 +286,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   // Reset visible items whenever search or filtering conditions change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, govFilter, categoryFilter, verificationFilter, displayableBusinesses.length]);
+  }, [debouncedSearchQuery, govFilter, categoryFilter, verificationFilter, displayableBusinesses.length]);
 
   const renderedBusinesses = useMemo(() => {
     return filteredBusinesses.slice(0, visibleCount);
@@ -638,9 +717,12 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       {(!isLoadingData || businesses.length > 0) && viewMode === 'grid' && filteredBusinesses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {renderedBusinesses.map((biz) => {
-            const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-            const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+            const isExempt = isTrendingFreeActivity(biz);
+            const pkgDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+            const addDebt = (biz.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
+            const remaining = pkgDebt + addDebt;
             const isVerified = biz.verificationStatus === 'verified';
+            const vBadge = getVerificationBadge(biz.verificationStatus);
             const hasPhotos = biz.photos && biz.photos.length > 0;
             const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
             const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
@@ -704,13 +786,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                   {/* Floating Verified & Video Badges */}
                   <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
                     <span
-                      className={`text-[9.5px] font-black px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm border ${
-                        isVerified
-                          ? 'bg-emerald-500/90 text-white border-emerald-400/40'
-                          : 'bg-amber-500/90 text-slate-950 border-amber-400/40'
-                      }`}
+                      className={`text-[9.5px] font-black px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm border ${vBadge.className}`}
                     >
-                      {isVerified ? 'معتمد 🟢' : 'قيد المراجعة ⏳'}
+                      {vBadge.text}
                     </span>
 
                     {hasVideos && (
@@ -779,7 +857,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     <div className="flex items-center justify-between text-[10.5px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
                       <span className="truncate max-w-[140px] text-[var(--text-secondary)]">
                         {(() => {
-                          const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: Boolean(biz.isFeeExempt || biz.packagePrice === 0), packageId: biz.packageId });
+                          const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt, packageId: biz.packageId });
                           return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : `👤 ${info.displayName}`;
                         })()}
                       </span>
@@ -910,9 +988,12 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
           {/* MOBILE VIEW (< md) */}
           <div className="md:hidden space-y-2.5">
             {renderedBusinesses.map((biz) => {
-              const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-              const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+              const isExempt = isTrendingFreeActivity(biz);
+              const pkgDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+              const addDebt = (biz.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
+              const remaining = pkgDebt + addDebt;
               const isVerified = biz.verificationStatus === 'verified';
+              const vBadge = getVerificationBadge(biz.verificationStatus);
               const ownerPhone = biz.ownerPhone || biz.phone || '';
 
               const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
@@ -971,13 +1052,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span
-                        className={`text-[9.5px] font-black px-2 py-0.5 rounded-full border ${
-                          isVerified
-                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
-                            : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
-                        }`}
+                        className={`text-[9.5px] font-black px-2 py-0.5 rounded-full border ${vBadge.badgeClass}`}
                       >
-                        {isVerified ? 'معتمد ✓' : 'مراجعة ⏳'}
+                        {vBadge.text}
                       </span>
                     </div>
                   </div>
@@ -993,7 +1070,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     </span>
                     <span className="text-[10px] text-[var(--text-muted)] font-mono">
                       {(() => {
-                        const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: Boolean(biz.isFeeExempt || biz.packagePrice === 0), packageId: biz.packageId });
+                        const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt, packageId: biz.packageId });
                         return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
                       })()}
                     </span>
@@ -1047,7 +1124,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                     {ownerPhone && (
                       <a
-                        href={`https://wa.me/2${ownerPhone.replace(/\D/g, '')}`}
+                        href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
                         target="_blank"
                         rel="noreferrer"
                         className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 border border-emerald-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
@@ -1089,9 +1166,12 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]/60">
                   {renderedBusinesses.map((biz) => {
-                    const isExempt = Boolean(biz.isFeeExempt || biz.packagePrice === 0);
-                    const remaining = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                    const isExempt = isTrendingFreeActivity(biz);
+                    const pkgDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
+                    const addDebt = (biz.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
+                    const remaining = pkgDebt + addDebt;
                     const isVerified = biz.verificationStatus === 'verified';
+                    const vBadge = getVerificationBadge(biz.verificationStatus);
                     const ownerPhone = biz.ownerPhone || biz.phone || '';
 
                     const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
@@ -1165,13 +1245,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                         <td className="py-3 px-3">
                           <span
-                            className={`inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-full border ${
-                              isVerified
-                                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
-                                : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
-                            }`}
+                            className={`inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-full border ${vBadge.badgeClass}`}
                           >
-                            <span>{isVerified ? 'معتمد 🟢' : 'قيد المراجعة ⏳'}</span>
+                            <span>{vBadge.text}</span>
                           </span>
                         </td>
 
@@ -1199,7 +1275,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                         <td className="py-3 px-3">
                           <div className="font-bold text-[var(--text-secondary)] truncate max-w-[130px]">
                             {(() => {
-                              const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: Boolean(biz.isFeeExempt || biz.packagePrice === 0), packageId: biz.packageId });
+                              const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt, packageId: biz.packageId });
                               return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
                             })()}
                           </div>
@@ -1255,7 +1331,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                             </button>
                             {ownerPhone && (
                               <a
-                                href={`https://wa.me/2${ownerPhone.replace(/\D/g, '')}`}
+                                href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors"
