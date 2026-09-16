@@ -6,7 +6,6 @@ import {
   getBusinessOpenStatus,
   getBusinessMapDetails,
   getSmartWhatsAppUrl,
-  getGiftBarcodeWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
@@ -20,8 +19,6 @@ import {
   Phone,
   MapPin,
   Play,
-  Gift,
-  QrCode,
 } from 'lucide-react';
 
 export interface BusinessCardProps {
@@ -51,7 +48,6 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
   const distanceKm = userCoords ? calculateDistanceKm(userCoords.lat, userCoords.lng, business.lat, business.lng) : null;
   const { effectiveUrl, isOfficial } = getBusinessMapDetails(business);
   const smartWhatsAppUrl = getSmartWhatsAppUrl(business);
-  const giftBarcodeUrl = getGiftBarcodeWhatsAppUrl(business);
 
   return (
     <div
@@ -216,25 +212,8 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           </div>
         </div>
 
-        {/* 🎁 زر تحفيز أصحاب المنشآت والعملاء: استلام هدية تصميم باركود مجاني */}
-        {/* الغرض التسويقي الفني: تحفيز العميل على فتح الرابط والضغط على الزر للتواصل المباشر مع إدارة المنصة واستلام الباركود المجاني */}
-        <div className="pt-2">
-          <a
-            href={giftBarcodeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full py-2 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 border border-amber-400/60 group/gift"
-            title="استلم هديتك تصميم بار كود مجاني"
-          >
-            <Gift className="w-3.5 h-3.5 text-slate-950 shrink-0 group-hover/gift:scale-110 transition-transform" />
-            <span className="truncate">استلم هديتك تصميم بار كود مجاني</span>
-            <QrCode className="w-3.5 h-3.5 text-slate-900/80 shrink-0" />
-          </a>
-        </div>
-
         {/* 3. Action Trio (اتجاهات | واتساب | اتصال) */}
-        <div className="pt-2.5 border-t border-[var(--border-color)] grid grid-cols-3 gap-2">
+        <div className="pt-3 border-t border-[var(--border-color)] grid grid-cols-3 gap-2">
           {/* Directions */}
           {effectiveUrl ? (
             <a
