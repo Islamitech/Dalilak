@@ -83,6 +83,16 @@ export interface BroadcastProgress {
   rotationBatchSize?: number;
   currentSenderSlot?: SlotId;
   rotationBatchCount?: number;
+  // 🌿 Organic Stealth Mode
+  stealthModeActive?: boolean;
+  nextDispatchInSeconds?: number;
+  nextSlotTarget?: SlotId;
+  slot1SentCount?: number;
+  slot2SentCount?: number;
+  enableStealthRandomMode?: boolean;
+  stealthMinMinutes?: number;
+  stealthMaxMinutes?: number;
+  stealthInitialBurstPerSlot?: number;
 }
 
 export interface WhatsAppSlotStatus {
@@ -510,6 +520,12 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [minDelaySeconds, setMinDelaySeconds] = useState<number>(10);
   const [maxDelaySeconds, setMaxDelaySeconds] = useState<number>(20);
 
+  // 🌿 Organic Stealth Random Mode (15 then 15 then full random 20-60m)
+  const [enableStealthRandomMode, setEnableStealthRandomMode] = useState<boolean>(true);
+  const [stealthMinMinutes, setStealthMinMinutes] = useState<number>(20);
+  const [stealthMaxMinutes, setStealthMaxMinutes] = useState<number>(60);
+  const [isSkippingDelay, setIsSkippingDelay] = useState<boolean>(false);
+
   // Audience Targeting state
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'honorary' | 'verified'>('all');
   const [governorateFilter, setGovernorateFilter] = useState<string>('all');
@@ -872,6 +888,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           maxDelaySeconds,
           rotationBatchSize,
           enableRotation,
+          enableStealthRandomMode,
+          stealthMinMinutes,
+          stealthMaxMinutes,
+          stealthInitialBurstPerSlot: 15,
         }),
       });
 
@@ -885,6 +905,32 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       onShowNotification?.(err?.message || 'خطأ أثناء بدء الحملة', 'error');
     } finally {
       setIsStartingCampaign(false);
+    }
+  };
+
+  // Skip Delay (Instant dispatch next message override)
+  const handleSkipDelay = async () => {
+    triggerHaptic();
+    setIsSkippingDelay(true);
+    try {
+      const res = await safeFetchGatewayApi('/api/admin/whatsapp/broadcast-skip-delay', {
+        method: 'POST',
+        headers: {
+          ...getApiAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (res.success) {
+        onShowNotification?.(res.data?.message || 'تم تخطي فترة الانتظار بنجاح! سيتم إرسال الرسالة فوراً ⚡', 'success');
+        fetchStatus();
+      } else {
+        onShowNotification?.(res.error || 'تعذر تخطي فترة الانتظار', 'error');
+      }
+    } catch (err: any) {
+      onShowNotification?.(err?.message || 'خطأ أثناء طلب تخطي فترة الانتظار', 'error');
+    } finally {
+      setIsSkippingDelay(false);
     }
   };
 
@@ -1892,8 +1938,109 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <p className="text-cyan-300 font-bold">
                     🧊 صمام التهدئة الاحترازي (Anti-Ban Cooldown): يتوقف الإرسال تلقائياً لمدة 10 دقائق بعد كل 20 رسالة ناجحة لمنع تصنيف الأرقام كروبوت، ثم يستأنف ذاتياً.
                   </p>
-                </div>
               </div>
+            </div>
+          </div>
+
+          {/* CARD 3: FULL ORGANIC STEALTH RANDOM MODE (15 -> 15 -> FULL RANDOM 20-60 MIN) */}
+            <div
+              className={`p-6 rounded-3xl border transition-all space-y-4 ${
+                enableStealthRandomMode
+                  ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-slate-950 border-emerald-500/40 shadow-lg'
+                  : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)]'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0 ${
+                      enableStealthRandomMode
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : 'bg-white/5 text-slate-400 border-white/10'
+                    }`}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-black text-sm sm:text-base text-white">
+                        وضع الإرسال الشبح البشري العشوائي (Stealth Organic Mode)
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black">
+                        15 ثم 15 ثم عشوائي كامل
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-0.5">
+                      يبدأ بـ 15 رسالة من هاتف (1)، ثم 15 رسالة من هاتف (2)، ثم يتحول تلقائياً إلى نظام عشوائي كامل (رسالة كل 20 إلى 60 دقيقة من أيٍّ من الهاتفين عشوائياً).
+                    </p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={enableStealthRandomMode}
+                    onChange={(e) => setEnableStealthRandomMode(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              {enableStealthRandomMode && (
+                <div className="space-y-3 pt-2 border-t border-white/10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-300">الحد الأدنى للفاصل العشوائي:</span>
+                        <span className="font-mono font-black text-emerald-400">{stealthMinMinutes} دقيقة</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="60"
+                        step="5"
+                        value={stealthMinMinutes}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setStealthMinMinutes(val);
+                          if (stealthMaxMinutes < val + 5) setStealthMaxMinutes(val + 10);
+                        }}
+                        className="w-full accent-emerald-500 cursor-pointer"
+                      />
+                      <p className="text-[10px] text-[var(--text-secondary)]">
+                        (الافتراضي: 20 دقيقة = حوالي ثلث ساعة)
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-300">الحد الأقصى للفاصل العشوائي:</span>
+                        <span className="font-mono font-black text-emerald-400">{stealthMaxMinutes} دقيقة</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={stealthMinMinutes + 5}
+                        max="120"
+                        step="5"
+                        value={stealthMaxMinutes}
+                        onChange={(e) => setStealthMaxMinutes(Number(e.target.value))}
+                        className="w-full accent-emerald-500 cursor-pointer"
+                      />
+                      <p className="text-[10px] text-[var(--text-secondary)]">
+                        (الافتراضي: 60 دقيقة = ساعة كاملة بين الرسائل)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/20 rounded-2xl text-[11px] text-emerald-200 leading-relaxed flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>أعلى حماية وأمان ممكن:</strong> يبدأ بدفعة سريعة منتظمة (15 من الرقم 1 ثم 15 من الرقم 2)، ثم يتباعد الإرسال بالكامل ليصبح كاستخدام إنسان حقيقي يتراوح بين ثلث ساعة وساعة بين كل رسالة والأخرى ومن أرقام متبادلة، مما يمنع الحظر بنسبة 100%.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -1953,6 +2100,49 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   </span>
                 </div>
               )}
+              {campaign.stealthModeActive && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold mt-1 mr-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>
+                    🌿 <strong>وضع الشبح البشري (Stealth Organic):</strong> هاتف 1: ({campaign.slot1SentCount || 0}) • هاتف 2: ({campaign.slot2SentCount || 0})
+                  </span>
+                </div>
+              )}
+              {isCampaignRunning && campaign.nextDispatchInSeconds !== undefined && campaign.nextDispatchInSeconds > 0 && (
+                <div className="p-3.5 bg-gradient-to-r from-emerald-950/70 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2 shadow-xl">
+                  <div className="text-xs text-slate-200 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                      </span>
+                      <p className="font-black text-emerald-300 flex items-center gap-1.5 text-sm">
+                        <Clock className="w-4 h-4 text-emerald-400 animate-spin" />
+                        <span>فاصل زمني بشري عشوائي:</span>
+                        <span className="font-mono text-white text-base font-black px-2 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                          {Math.floor(campaign.nextDispatchInSeconds / 60)}:
+                          {(campaign.nextDispatchInSeconds % 60).toString().padStart(2, '0')} دقيقة
+                        </span>
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-slate-300/80">
+                      {campaign.nextSlotTarget
+                        ? `الرسالة القادمة ستُرسل عبر: هاتف (${campaign.nextSlotTarget === '1' ? '1 الأساسي' : '2 المساند'}).`
+                        : 'يتم الإرسال بفواصل إنسانية واسعة لمحاكاة النشاط الطبيعي وحماية الحسابات.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSkipDelay}
+                    disabled={isSkippingDelay}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 shrink-0 self-start sm:self-center"
+                    title="تخطي فترة الانتظار وإرسال الرسالة القادمة فوراً دون انتظار"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-current" />
+                    <span>{isSkippingDelay ? 'جارٍ التخطي...' : '⚡ إرسال الرسالة القادمة فوراً (تخطي)'}</span>
+                  </button>
+                </div>
+              )}
               {isCampaignCooldown && (
                 <div className="p-3 bg-cyan-950/60 border border-cyan-500/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2">
                   <div className="text-xs text-cyan-200 space-y-0.5">
@@ -1964,21 +2154,33 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       المحرك يستريح تلقائياً لمدة 10 دقائق لحماية رقم هاتفك من فلاتر Meta، وسيستأنف الإرسال ذاتياً بعد انتهاء العد.
                     </p>
                   </div>
-                  {campaign.cooldownRemainingSeconds !== undefined && (
-                    <div className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-black text-sm flex items-center gap-2 shrink-0 self-start sm:self-center shadow-xs">
-                      <Clock className="w-4 h-4 text-cyan-400 animate-spin" />
-                      <span>
-                        {Math.floor(campaign.cooldownRemainingSeconds / 60)
-                          .toString()
-                          .padStart(2, '0')}
-                        :
-                        {(campaign.cooldownRemainingSeconds % 60)
-                          .toString()
-                          .padStart(2, '0')}{' '}
-                        متبقية
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {campaign.cooldownRemainingSeconds !== undefined && (
+                      <div className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-black text-sm flex items-center gap-2 shrink-0 self-start sm:self-center shadow-xs">
+                        <Clock className="w-4 h-4 text-cyan-400 animate-spin" />
+                        <span>
+                          {Math.floor(campaign.cooldownRemainingSeconds / 60)
+                            .toString()
+                            .padStart(2, '0')}
+                          :
+                          {(campaign.cooldownRemainingSeconds % 60)
+                            .toString()
+                            .padStart(2, '0')}{' '}
+                          متبقية
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSkipDelay}
+                      disabled={isSkippingDelay}
+                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-xs border border-cyan-400/40 transition-all flex items-center gap-1 cursor-pointer"
+                      title="تخطي فترة التهدئة واستئناف الإرسال فوراً"
+                    >
+                      <Zap className="w-3 h-3 fill-current" />
+                      <span>{isSkippingDelay ? 'جارٍ...' : 'تخطي ⚡'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
               {isCampaignPaused && (
@@ -2603,8 +2805,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[var(--text-secondary)]">نظام الإرسال:</span>
-                  <span className="font-bold text-white text-xs">
-                    {enableRotation && isBothConnected
+                  <span className="font-bold text-white text-xs text-left max-w-[280px]">
+                    {enableStealthRandomMode
+                      ? `🌿 وضع الشبح البشري (15 ثم 15 ثم عشوائي كامل ${stealthMinMinutes}-${stealthMaxMinutes} د)`
+                      : enableRotation && isBothConnected
                       ? `🔄 تناوب دوري بين الهاتفين (كل ${rotationBatchSize} رسالة)`
                       : slot1.state === 'connected'
                       ? `هاتف 1 (${slot1.connectedUser?.phone || PRIMARY_WHATSAPP_SENDER_PHONE})`

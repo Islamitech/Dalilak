@@ -12,6 +12,7 @@ import {
   getCampaignProgress,
   clearSavedCampaignProgress,
   getCampaignHistory,
+  skipCurrentWaitDelay,
   PRIMARY_WHATSAPP_SENDER_PHONE,
   SlotId,
 } from './whatsapp-gateway.js';
@@ -216,6 +217,10 @@ app.post(['/api/whatsapp/broadcast', '/api/admin/whatsapp/broadcast'], async (re
       skipRecentlyContacted = true,
       rotationBatchSize = 15,
       enableRotation = true,
+      enableStealthRandomMode = true,
+      stealthMinMinutes = 20,
+      stealthMaxMinutes = 60,
+      stealthInitialBurstPerSlot = 15,
     } = req.body;
 
     const targetList: Business[] = Array.isArray(targetBusinesses) ? targetBusinesses : [];
@@ -235,6 +240,10 @@ app.post(['/api/whatsapp/broadcast', '/api/admin/whatsapp/broadcast'], async (re
       skipRecentlyContacted: Boolean(skipRecentlyContacted),
       rotationBatchSize: Number(rotationBatchSize) || 15,
       enableRotation: Boolean(enableRotation),
+      enableStealthRandomMode: Boolean(enableStealthRandomMode),
+      stealthMinMinutes: Number(stealthMinMinutes) || 20,
+      stealthMaxMinutes: Number(stealthMaxMinutes) || 60,
+      stealthInitialBurstPerSlot: Number(stealthInitialBurstPerSlot) || 15,
     });
 
     return res.json(result);
@@ -278,6 +287,23 @@ app.post(['/api/whatsapp/broadcast-resume', '/api/admin/whatsapp/broadcast-resum
   } catch (err: any) {
     console.error('[WhatsApp Server] Resume error:', err);
     return res.status(500).json({ success: false, error: err?.message || 'فشل استئناف الحملة' });
+  }
+});
+
+// 7. Skip Delay (Instant Dispatch Next Message Override)
+app.post(['/api/whatsapp/broadcast-skip-delay', '/api/admin/whatsapp/broadcast-skip-delay'], (req, res) => {
+  try {
+    if (!isRequestSuperAdmin(req)) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: تخطي الانتظار محصور بالسوبر أدمن حصراً (403 Forbidden)',
+      });
+    }
+    const result = skipCurrentWaitDelay();
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[WhatsApp Server] Skip delay error:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'فشل تخطي فترة الانتظار' });
   }
 });
 
