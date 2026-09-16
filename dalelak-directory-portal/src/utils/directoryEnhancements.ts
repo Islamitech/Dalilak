@@ -313,3 +313,29 @@ export function getBusinessMapDetails(biz: Business): {
     hasLocation: Boolean(effectiveUrl),
   };
 }
+
+/**
+ * 🎁 دالة توليد رابط استلام هدية تصميم باركود QR المجاني للمنشأة
+ * 
+ * 💡 الغرض التسويقي والتحفيزي (مخفي برمجياً للفهم والتطوير):
+ * تحفيز أصحاب المنشآت والعملاء عند فتح رابط المنشأة بالدليل العام على الضغط على الزر
+ * لطلب واستلام تصميم الباركود المجاني، مما يفتح محادثة WhatsApp مباشرة وموثقة مع إدارة المنصة
+ * (01556221141) لتعزيز ولاء العميل، توطيد العلاقة، وفتح قنوات تقديم الخدمات النوعية لمنظومة دليلك.
+ */
+export function getGiftBarcodeWhatsAppUrl(biz: Business): string {
+  const adminPhone = '201556221141';
+  const cleanName = biz.nameAr || biz.name || biz.nameEn || 'المنشأة';
+  const location = [biz.city, biz.governorate].filter(Boolean).join(' - ') || 'مصر';
+  const venueUrl = typeof window !== 'undefined' && window.location.origin 
+    ? `${window.location.origin}/biz/${biz.id}` 
+    : `https://www.dalilaak.com/biz/${biz.id}`;
+
+  const message =
+    `السلام عليكم ورحمة الله وبركاته 👋\n` +
+    `أنا صاحب / إدارة «${cleanName}» (${location}).\n\n` +
+    `🎁 أود استلام هديتي المعتمدة من منصة دليلك:\n` +
+    `*تصميم باركود QR مخصص لمنشأتنا مجاناً (0.00 ج)* جاهز للطباعة والتعليق في المقر لسهولة مسحه وتقييم المكان.\n\n` +
+    `🔗 رابط صفحة منشأتنا بالدليل العام:\n${venueUrl}`;
+
+  return `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+}

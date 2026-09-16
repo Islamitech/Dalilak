@@ -26,11 +26,17 @@ import {
   Utensils,
   Coffee,
   Info,
+  Smartphone,
+  Compass,
+  Lock,
+  Ban,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { saveBusinessToDb } from '../../../services/db';
+import { classifyPhoneNumber, isPhoneAllowedByFilter, PhoneClassificationType } from '../../../utils/phoneClassifier';
+import { evaluatePlaceGeoBoundary, calculateHaversineDistanceKm, formatLocalizedDistance } from '../../../utils/geoBoundaryGuard';
 
 interface CandidatePlace {
   id: string;
@@ -42,8 +48,14 @@ interface CandidatePlace {
   lat?: number;
   lng?: number;
   phone?: string;
+  phoneClassification?: PhoneClassificationType;
+  phoneLabel?: string;
+  phoneBadgeClass?: string;
+  distanceKm?: number;
+  distanceText?: string;
   rating?: number;
   userRatingCount?: number;
+  isZeroRated?: boolean;
   workingHours?: string;
   googleMapsUri?: string;
   coverPhoto?: string;
@@ -58,6 +70,8 @@ interface BatchSearchMetrics {
   totalFound: number;
   duplicatesCount: number;
   qualifiedCount: number;
+  outOfBoundsCount?: number;
+  phoneExcludedCount?: number;
   estimatedCost: string;
 }
 
@@ -369,6 +383,17 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   // ⭐ معايير الجودة الطبيعية القابلة للتحكم
   const [minRating, setMinRating] = useState<number>(CATEGORY_PRESETS[0].defaultMinRating);
   const [minReviews, setMinReviews] = useState<number>(CATEGORY_PRESETS[0].defaultMinReviews);
+  const [allowUnrated, setAllowUnrated] = useState<boolean>(true); // قبول المنشآت غير المقيمة (0 تقييم / جديدة)
+
+  // 🔒 الحصر الجغرافي الصارم والسياج الرقمي
+  const [strictBoundary, setStrictBoundary] = useState<boolean>(true);
+  const [maxRadiusKm, setMaxRadiusKm] = useState<number>(8); // نصف القطر الأقصى بالكيلومتر
+
+  // 📞 منظومة فلترة أرقام الهواتف والتواصل
+  const [excludeNoPhone, setExcludeNoPhone] = useState<boolean>(false);
+  const [excludeLandline, setExcludeLandline] = useState<boolean>(false);
+  const [excludeShortCodes, setExcludeShortCodes] = useState<boolean>(false);
+  const [onlyMobile, setOnlyMobile] = useState<boolean>(false); // هواتف محمولة فقط
 
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [candidatePlaces, setCandidatePlaces] = useState<CandidatePlace[]>([]);
@@ -432,7 +457,16 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     queryText: string,
     targetCount: number,
     thresholdRating: number,
-    thresholdReviews: number
+    thresholdReviews: number,
+    filterOpts: {
+      allowUnrated: boolean;
+      strictBoundary: boolean;
+      maxRadiusKm: number;
+      excludeNoPhone: boolean;
+      excludeLandline: boolean;
+      excludeShortCodes: boolean;
+      onlyMobile: boolean;
+    }
   ): Promise<{ places: CandidatePlace[]; metrics: BatchSearchMetrics }> => {
     const searchBody: Record<string, unknown> = {
       textQuery: queryText,
@@ -440,13 +474,26 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       maxResultCount: Math.min(20, Math.max(1, targetCount)),
     };
 
+    const parsedRadiusMeters = Math.min(50000, Math.max(1000, filterOpts.maxRadiusKm * 1000));
+
     if (currentHub?.lat && currentHub?.lng) {
-      searchBody.locationBias = {
-        circle: {
-          center: { latitude: currentHub.lat, longitude: currentHub.lng },
-          radius: 6000.0,
-        },
-      };
+      const centerCoords = { latitude: currentHub.lat, longitude: currentHub.lng };
+      if (filterOpts.strictBoundary) {
+        // 🔒 حصر جغرافي صارم يمنع Google من الخروج عن النطاق
+        searchBody.locationRestriction = {
+          circle: {
+            center: centerCoords,
+            radius: parsedRadiusMeters,
+          },
+        };
+      } else {
+        searchBody.locationBias = {
+          circle: {
+            center: centerCoords,
+            radius: parsedRadiusMeters,
+          },
+        };
+      }
     }
 
     const fieldMask = [
@@ -496,87 +543,139 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
 
     let duplicatesCount = 0;
     let qualifiedCount = 0;
+    let outOfBoundsCount = 0;
+    let phoneExcludedCount = 0;
 
-    const candidateList: CandidatePlace[] = await Promise.all(
-      rawPlaces.map(async (p: any) => {
-        const placeId = p.id || '';
-        const name = p.displayName?.text || '';
-        const cleanName = name.trim();
-        const primaryType = p.primaryType || '';
-        const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
-        const rating = typeof p.rating === 'number' ? p.rating : 0;
-        const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
-        const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
-        const formattedAddress = p.formattedAddress || '';
-        const lat = p.location?.latitude;
-        const lng = p.location?.longitude;
-        const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
+    const candidateList: CandidatePlace[] = [];
 
-        // Deduplication check
-        const isDuplicate = existingIds.has(placeId) || (cleanName.length > 3 && existingNames.has(cleanName.toLowerCase()));
-        if (isDuplicate) duplicatesCount++;
+    for (const p of rawPlaces) {
+      const placeId = p.id || '';
+      const name = p.displayName?.text || '';
+      const cleanName = name.trim();
+      const primaryType = p.primaryType || '';
+      const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
+      const rating = typeof p.rating === 'number' ? p.rating : 0;
+      const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
+      const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
+      const formattedAddress = p.formattedAddress || '';
+      const lat = p.location?.latitude;
+      const lng = p.location?.longitude;
+      const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
 
-        // Adaptive Quality check based on Natural Category Thresholds
-        const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, cleanName) || currentCat.type === 'craft';
-        const isQualityApproved = rating >= thresholdRating && userRatingCount >= thresholdReviews;
+      // 1. فحص الحصر الجغرافي الصارم (Strict Geo Boundary Guard)
+      const geoCheck = evaluatePlaceGeoBoundary(
+        { lat, lng },
+        formattedAddress,
+        {
+          strictBoundary: filterOpts.strictBoundary,
+          maxRadiusKm: filterOpts.maxRadiusKm,
+          hubLocation: currentHub?.lat && currentHub?.lng ? { lat: currentHub.lat, lng: currentHub.lng } : undefined,
+          hubName: currentHub?.label || customHubName,
+          hubGov: currentHub?.gov,
+        }
+      );
 
-        let qualityBadgeText = '';
-        if (isQualityApproved) {
+      if (filterOpts.strictBoundary && !geoCheck.withinBoundary) {
+        outOfBoundsCount++;
+        continue;
+      }
+
+      // 2. فحص فلترة أرقام الهواتف (Phone Filtering Engine)
+      const phoneCheck = isPhoneAllowedByFilter(phone, {
+        excludeNoPhone: filterOpts.excludeNoPhone,
+        excludeLandline: filterOpts.excludeLandline,
+        excludeShortCodes: filterOpts.excludeShortCodes,
+        onlyMobile: filterOpts.onlyMobile,
+      });
+
+      if (!phoneCheck.allowed) {
+        phoneExcludedCount++;
+        continue;
+      }
+
+      // 3. فحص التكرار المحلي
+      const isDuplicate = existingIds.has(placeId) || (cleanName.length > 3 && existingNames.has(cleanName.toLowerCase()));
+      if (isDuplicate) duplicatesCount++;
+
+      // 4. فحص الجودة التكيفية ودعم منشآت 0 تقييم
+      const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, cleanName) || currentCat.type === 'craft';
+      const isZeroRated = rating === 0 || userRatingCount === 0;
+      let isQualityApproved = false;
+      let qualityBadgeText = '';
+
+      if (isZeroRated && (filterOpts.allowUnrated || thresholdRating === 0)) {
+        isQualityApproved = true;
+        qualityBadgeText = 'منشأة جديدة معتمدة ⭐ (0 تقييم)';
+      } else if (thresholdRating === 0) {
+        isQualityApproved = true;
+        qualityBadgeText = `معتمد ⭐ ${rating} (${userRatingCount} مقيّم)`;
+      } else {
+        if (rating >= thresholdRating && userRatingCount >= thresholdReviews) {
+          isQualityApproved = true;
           qualityBadgeText = `${isCraft ? 'حرفي معتمد' : 'رائج معتمد'} ⭐ ${rating} (${userRatingCount} مقيّم)`;
-          if (!isDuplicate) qualifiedCount++;
         } else {
           qualityBadgeText = `دون المعايير الطبيعية (المطلوب: ${thresholdRating}★ و ${thresholdReviews} مقيّم) حالياً: ${rating}★ (${userRatingCount})`;
         }
+      }
 
-        // 🛡️ توحيد سحب الصور الصارم: سحب صورة الغلاف الأولى فقط للمنشأة المؤهلة
-        let coverPhoto: string | undefined = undefined;
-        if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
-          const firstPhotoName = p.photos[0].name;
-          if (firstPhotoName) {
-            try {
-              const mediaUrl = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`;
-              const mediaRes = await fetch(mediaUrl);
-              if (mediaRes.ok) {
-                const mediaData = await mediaRes.json();
-                if (mediaData && mediaData.photoUri) {
-                  coverPhoto = mediaData.photoUri;
-                }
+      if (isQualityApproved && !isDuplicate) {
+        qualifiedCount++;
+      }
+
+      // 5. توحيد سحب الصور الصارم: سحب صورة الغلاف الأولى فقط للمنشأة المؤهلة
+      let coverPhoto: string | undefined = undefined;
+      if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
+        const firstPhotoName = p.photos[0].name;
+        if (firstPhotoName) {
+          try {
+            const mediaUrl = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`;
+            const mediaRes = await fetch(mediaUrl);
+            if (mediaRes.ok) {
+              const mediaData = await mediaRes.json();
+              if (mediaData && mediaData.photoUri) {
+                coverPhoto = mediaData.photoUri;
               }
-            } catch {}
-          }
+            }
+          } catch {}
         }
+      }
 
-        let workingHours: string | undefined = undefined;
-        if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
-          const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
-          if (todayDesc) {
-            workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
-          }
+      let workingHours: string | undefined = undefined;
+      if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
+        const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
+        if (todayDesc) {
+          workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
         }
+      }
 
-        return {
-          id: placeId,
-          displayName: cleanName,
-          category: primaryTypeDisplayName || currentCat.label,
-          primaryType,
-          primaryTypeDisplayName,
-          formattedAddress,
-          lat,
-          lng,
-          phone,
-          rating,
-          userRatingCount,
-          workingHours,
-          googleMapsUri,
-          coverPhoto,
-          photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
-          isDuplicate,
-          isQualityApproved,
-          qualityBadgeText,
-          isCraft,
-        };
-      })
-    );
+      candidateList.push({
+        id: placeId,
+        displayName: cleanName,
+        category: primaryTypeDisplayName || currentCat.label,
+        primaryType,
+        primaryTypeDisplayName,
+        formattedAddress,
+        lat,
+        lng,
+        phone,
+        phoneClassification: phoneCheck.classification.type,
+        phoneLabel: phoneCheck.classification.labelAr,
+        phoneBadgeClass: phoneCheck.classification.badgeClass,
+        distanceKm: geoCheck.distanceKm,
+        distanceText: geoCheck.distanceText,
+        rating,
+        userRatingCount,
+        isZeroRated,
+        workingHours,
+        googleMapsUri,
+        coverPhoto,
+        photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
+        isDuplicate,
+        isQualityApproved,
+        qualityBadgeText,
+        isCraft,
+      });
+    }
 
     const textSearchCost = 0.032;
     const photoFetchCost = qualifiedCount * 0.007;
@@ -588,6 +687,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         totalFound: rawPlaces.length,
         duplicatesCount,
         qualifiedCount,
+        outOfBoundsCount,
+        phoneExcludedCount,
         estimatedCost: `$${totalEstCost}`,
       },
     };
@@ -605,6 +706,16 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     setCandidatePlaces([]);
     setSelectedPlaceIds(new Set());
     setIngestionMessage(null);
+
+    const filterOptions = {
+      allowUnrated,
+      strictBoundary,
+      maxRadiusKm,
+      excludeNoPhone,
+      excludeLandline,
+      excludeShortCodes,
+      onlyMobile,
+    };
 
     try {
       let data: { places: CandidatePlace[]; metrics: BatchSearchMetrics } | null = null;
@@ -626,6 +737,15 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             pullCount: pullCount,
             minRating: minRating,
             minReviews: minReviews,
+            allowUnrated,
+            strictBoundary,
+            maxRadiusKm,
+            excludeNoPhone,
+            excludeLandline,
+            excludeShortCodes,
+            onlyMobile,
+            hubName: currentHub?.label || customHubName,
+            hubGov: currentHub?.gov,
             existingPlaceIds,
           }),
         });
@@ -646,9 +766,15 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         console.warn('[Places Ingestion] Backend server unreachable. Falling back to direct client engine...', serverErr);
       }
 
-      // 2. إذا كان السيرفر غير متاح أو في بيئة Vercel Static (التي تسبب خطأ 405) -> تشغيل المحرك المباشر فوراً!
+      // 2. إذا كان السيرفر غير متاح أو في بيئة Vercel Static -> تشغيل المحرك المباشر فوراً!
       if (!data) {
-        data = await executeDirectClientPlacesSearch(searchQuery.trim(), pullCount, minRating, minReviews);
+        data = await executeDirectClientPlacesSearch(
+          searchQuery.trim(),
+          pullCount,
+          minRating,
+          minReviews,
+          filterOptions
+        );
       }
 
       if (data && Array.isArray(data.places)) {
@@ -974,18 +1100,41 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           </div>
         </div>
 
-        {/* Row 2: فرض التقييمات الطبيعية للفئة الحالية (طلب المستخدم) */}
+        {/* Row 2: معايير التقييم وسحب المنشآت غير المقيمة (0 تقييم) */}
         <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Sliders className="w-4 h-4 text-amber-500" />
               <span className="text-xs font-black text-[var(--text-primary)]">
-                معايير الفرز الذكية الطبيعية لفئة: <strong className="text-amber-500">{currentCat.label}</strong>
+                معايير التقييم والجودة لفئة: <strong className="text-amber-500">{currentCat.label}</strong>
               </span>
             </div>
-            <div className="text-[11px] text-[var(--text-muted)] font-medium flex items-center gap-1">
-              <Info className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span>{currentCat.explanation}</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMinRating(0);
+                  setMinReviews(0);
+                  setAllowUnrated(true);
+                }}
+                className={`text-[10.5px] font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer border ${
+                  minRating === 0
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs'
+                    : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border-color)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                ⭐ سحب 0 تقييم (الكل)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMinRating(currentCat.defaultMinRating);
+                  setMinReviews(currentCat.defaultMinReviews);
+                }}
+                className="text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
+              >
+                🔄 استعادة معايير الفئة
+              </button>
             </div>
           </div>
 
@@ -998,17 +1147,17 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                   <span>الحد الأدنى للتقييم المطلوب</span>
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  الطبيعي للفئة: ⭐ {currentCat.defaultMinRating}
+                  {minRating === 0 ? 'مقبول حتى 0 تقييم بدون تقييد' : `الطبيعي للفئة: ⭐ ${currentCat.defaultMinRating}`}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   step="0.1"
-                  min={3.0}
+                  min={0.0}
                   max={5.0}
                   value={minRating}
-                  onChange={(e) => setMinRating(parseFloat(e.target.value) || 4.0)}
+                  onChange={(e) => setMinRating(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-20 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-2 rounded-xl text-center font-mono focus:border-amber-500 focus:outline-hidden"
                 />
               </div>
@@ -1022,23 +1171,184 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                   <span>الحد الأدنى لعدد المقيمين</span>
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  الطبيعي للفئة: {currentCat.defaultMinReviews} مقيّم
+                  {minReviews === 0 ? 'مقبول بدون مراجعات سابقة' : `الطبيعي للفئة: ${currentCat.defaultMinReviews} مقيّم`}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   step="1"
-                  min={1}
+                  min={0}
                   max={1000}
                   value={minReviews}
-                  onChange={(e) => setMinReviews(parseInt(e.target.value, 10) || 10)}
+                  onChange={(e) => setMinReviews(Math.max(0, parseInt(e.target.value, 10) || 0))}
                   className="w-20 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-2 rounded-xl text-center font-mono focus:border-amber-500 focus:outline-hidden"
                 />
               </div>
             </div>
           </div>
+
+          {/* Toggle Allow Unrated (0 reviews / 0 rating) */}
+          <div className="pt-1">
+            <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={allowUnrated}
+                onChange={(e) => setAllowUnrated(e.target.checked)}
+                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer"
+              />
+              <div className="text-xs">
+                <span className="font-black text-[var(--text-primary)]">
+                  السماح بسحب وقبول المنشآت غير المقيمة (0 تقييم / منشآت جديدة لم يقم أحد بتقييمها)
+                </span>
+                <span className="text-[10.5px] text-[var(--text-muted)] block mt-0.5">
+                  تعتمد وتدرج في الدليل كمنشآت شرفية جديدة مع حفظ بياناتها دون استبعادها.
+                </span>
+              </div>
+            </label>
+          </div>
         </div>
+
+        {/* Row 3: 🔒 الحصر الجغرافي الصارم والسياج الرقمي (Strict Geofence Lock) */}
+        <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Compass className="w-4 h-4 text-amber-500" />
+              <span className="text-xs font-black text-[var(--text-primary)]">
+                الحصر الجغرافي الصارم (عدم الخروج عن النطاق نهائياً)
+              </span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={strictBoundary}
+                onChange={(e) => setStrictBoundary(e.target.checked)}
+                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-amber-600">
+                {strictBoundary ? '🔒 مفعّل (حظر الخروج)' : '🔓 حظر معطل'}
+              </span>
+            </label>
+          </div>
+
+          <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
+            يفرض حظر استيراد أي منشأة خارج المركز المحدد، ويمنع Google تماماً عبر <code className="font-mono text-amber-600 bg-[var(--bg-card)] px-1 rounded-sm">locationRestriction</code> وفلترة هافرسين الجغرافية من جلب أماكن من مناطق أو محافظات أخرى.
+          </p>
+
+          {strictBoundary && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[var(--border-color)]">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[var(--text-muted)]">نصف القطر الأقصى:</span>
+                {[3, 5, 8, 12, 15, 20].map((km) => (
+                  <button
+                    key={km}
+                    type="button"
+                    onClick={() => setMaxRadiusKm(km)}
+                    className={`px-2 py-1 rounded-lg text-[10.5px] font-black transition-all cursor-pointer ${
+                      maxRadiusKm === km
+                        ? 'bg-amber-500 text-slate-950 shadow-xs'
+                        : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {km} كم
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+                <span>تخصيص:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={maxRadiusKm}
+                  onChange={(e) => setMaxRadiusKm(Math.min(50, Math.max(1, Number(e.target.value) || 5)))}
+                  className="w-16 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-1.5 rounded-lg text-center font-mono focus:border-amber-500 focus:outline-hidden"
+                />
+                <span>كم</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Row 4: 📞 منظومة فلترة أرقام الهواتف والتواصل */}
+        <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-black text-[var(--text-primary)]">
+                منظومة فلترة أرقام الهواتف والتواصل
+              </span>
+            </div>
+
+            {/* Quick 1-click Mobile-Only button */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !onlyMobile;
+                setOnlyMobile(next);
+                if (next) {
+                  setExcludeNoPhone(true);
+                  setExcludeLandline(true);
+                  setExcludeShortCodes(true);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer border ${
+                onlyMobile
+                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-500/30'
+                  : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border-color)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>📱 هواتف محمولة فقط (موبايل / واتساب)</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+            {/* Rule 1: Exclude No Phone */}
+            <label className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={excludeNoPhone || onlyMobile}
+                disabled={onlyMobile}
+                onChange={(e) => setExcludeNoPhone(e.target.checked)}
+                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer disabled:opacity-60"
+              />
+              <span className="text-xs font-bold text-[var(--text-primary)]">
+                🚫 حجب المنشآت بدون رقم هاتف
+              </span>
+            </label>
+
+            {/* Rule 2: Exclude Landline */}
+            <label className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={excludeLandline || onlyMobile}
+                disabled={onlyMobile}
+                onChange={(e) => setExcludeLandline(e.target.checked)}
+                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer disabled:opacity-60"
+              />
+              <span className="text-xs font-bold text-[var(--text-primary)]">
+                ☎️ حجب الأرقام الأرضية الثابتة
+              </span>
+            </label>
+
+            {/* Rule 3: Exclude Short Codes */}
+            <label className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={excludeShortCodes || onlyMobile}
+                disabled={onlyMobile}
+                onChange={(e) => setExcludeShortCodes(e.target.checked)}
+                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer disabled:opacity-60"
+              />
+              <span className="text-xs font-bold text-[var(--text-primary)]">
+                ⚡ حجب الأرقام المختصرة والخط الساخن
+              </span>
+            </label>
+          </div>
+        </div>
+
 
         {/* Row 3: Search Query Input & Trigger */}
         <div className="space-y-1.5">
@@ -1140,6 +1450,24 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             </div>
             <div className="text-[10px] text-amber-600 font-bold mt-0.5">تخصم من رصيد $200 المجاني</div>
           </div>
+        </div>
+      )}
+
+      {/* Exclusion Summary Pill if any places were filtered by boundary or phone */}
+      {metrics && ((metrics.outOfBoundsCount || 0) > 0 || (metrics.phoneExcludedCount || 0) > 0) && (
+        <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-bold text-amber-700 animate-fade-in">
+          <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>حماية الفلترة الصارمة:</span>
+          {(metrics.outOfBoundsCount || 0) > 0 && (
+            <span className="bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-amber-500/20 font-mono">
+              🚫 {metrics.outOfBoundsCount} خارج النطاق الجغرافي
+            </span>
+          )}
+          {(metrics.phoneExcludedCount || 0) > 0 && (
+            <span className="bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-amber-500/20 font-mono">
+              📵 {metrics.phoneExcludedCount} مستبعد بشروط الهاتف
+            </span>
+          )}
         </div>
       )}
 
@@ -1259,7 +1587,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                       ) : place.isQualityApproved ? (
                         <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-md shadow-xs backdrop-blur-md flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
-                          <span>مؤهل للجودة الطبيعية</span>
+                          <span>{place.isZeroRated ? 'منشأة جديدة معتمدة (0★)' : 'مؤهل للجودة الطبيعية'}</span>
                         </span>
                       ) : (
                         <span className="bg-rose-900/90 text-rose-200 text-[9.5px] font-black px-2 py-0.5 rounded-md backdrop-blur-md">
@@ -1279,8 +1607,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                     <div className="absolute bottom-2 right-2 left-2 z-10 flex items-center justify-between text-white text-xs">
                       <span className="font-mono font-black text-amber-300 flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-md backdrop-blur-md">
                         <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        <span>{place.rating ? place.rating.toFixed(1) : 'غير مقيم'}</span>
-                        {place.userRatingCount !== undefined && (
+                        <span>{place.isZeroRated || !place.rating ? '0.0 (غير مقيم)' : place.rating.toFixed(1)}</span>
+                        {!place.isZeroRated && place.userRatingCount !== undefined && (
                           <span className="text-[10px] text-slate-300">({place.userRatingCount})</span>
                         )}
                       </span>
@@ -1298,6 +1626,12 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                     <div>
                       <div className="flex items-center justify-between gap-1 text-[11px] text-[var(--text-muted)] font-bold mb-1">
                         <span className="text-amber-600 truncate">{place.category}</span>
+                        {place.distanceText && (
+                          <span className="text-[10px] text-amber-600 font-mono font-bold flex items-center gap-0.5">
+                            <Compass className="w-3 h-3 text-amber-500" />
+                            <span>{place.distanceText}</span>
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-sm font-black text-[var(--text-primary)] line-clamp-1">
                         {place.displayName}
@@ -1307,13 +1641,24 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-[var(--border-color)] space-y-1 text-[10.5px] text-[var(--text-muted)]">
-                      {place.phone && (
-                        <div className="flex items-center gap-1.5 font-mono">
-                          <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>{place.phone}</span>
-                        </div>
-                      )}
+                    <div className="pt-2 border-t border-[var(--border-color)] space-y-1.5 text-[10.5px] text-[var(--text-muted)]">
+                      <div className="flex items-center justify-between gap-2">
+                        {place.phone ? (
+                          <div className="flex items-center gap-1.5 font-mono text-[var(--text-primary)] font-bold">
+                            <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span dir="ltr">{place.phone}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">بدون رقم هاتف</span>
+                        )}
+
+                        {place.phoneLabel && (
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${place.phoneBadgeClass || ''}`}>
+                            {place.phoneLabel}
+                          </span>
+                        )}
+                      </div>
+
                       {place.workingHours && (
                         <div className="flex items-center gap-1.5 truncate">
                           <Clock className="w-3 h-3 text-amber-500 shrink-0" />

@@ -5,6 +5,7 @@ import {
   getBusinessMapDetails,
   getBusinessOpenStatus,
   getSmartWhatsAppUrl,
+  getGiftBarcodeWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
 import {
   X,
@@ -24,6 +25,8 @@ import {
   Phone,
   UserPlus,
   MessageCircle,
+  Gift,
+  QrCode,
 } from 'lucide-react';
 
 export interface ShowcaseBusinessDetailModalProps {
@@ -317,6 +320,34 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                 ))}
               </div>
             )}
+          </div>
+
+          {/* 🎁 زر وكارت تحفيزي لأصحاب المنشآت: استلام هدية تصميم باركود مجاني */}
+          {/* الغرض التسويقي الفني: تحفيز العميل عند زيارة رابط منشأته على النقر وطلب هديته المجانية لفتح قناة تواصل مباشرة مع المنظومة */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-xs">
+                <Gift className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 text-right">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-xs sm:text-sm text-slate-900 truncate">هدية حصرية لمنشأتكم</span>
+                  <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-full bg-emerald-600 text-white shrink-0">مجاناً 100%</span>
+                </div>
+                <p className="text-[11px] text-slate-600 font-medium truncate">تصميم ملصق باركود QR مخصص للمنشأة جاهز للطباعة والتعليق</p>
+              </div>
+            </div>
+            <a
+              href={getGiftBarcodeWhatsAppUrl(selectedBiz)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto py-2.5 px-3.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 shrink-0"
+              title="استلم هديتك تصميم بار كود مجاني"
+            >
+              <Gift className="w-3.5 h-3.5 text-slate-950" />
+              <span className="whitespace-nowrap">استلم هديتك تصميم بار كود مجاني</span>
+              <QrCode className="w-3.5 h-3.5 text-slate-900/80" />
+            </a>
           </div>
 
           {/* 🚀 The Big Action Trio (ثلاثي الإجراءات السريعة في صدارة ملف النشاط) */}

@@ -8,6 +8,7 @@ import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsapp';
 import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import { getRepDisplayInfo } from '../../utils/repDisplay';
+import { getGiftBarcodeWhatsAppUrl } from '../../utils/directoryEnhancements';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import { InteractiveMap } from '../InteractiveMap';
 import {
@@ -32,6 +33,8 @@ import {
   CheckCircle2,
   Sparkles,
   AlertCircle,
+  Gift,
+  QrCode,
 } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
 
@@ -834,6 +837,23 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                     </div>
                   </div>
 
+                  {/* 🎁 زر تحفيز أصحاب المنشآت والعملاء: استلام هدية تصميم باركود مجاني */}
+                  {/* الغرض التسويقي الفني: تحفيز العميل على فتح الرابط والضغط على الزر للتواصل المباشر مع إدارة المنصة واستلام الباركود المجاني */}
+                  <div className="pt-2">
+                    <a
+                      href={sanitizeExternalUrl(getGiftBarcodeWhatsAppUrl(biz), '#')}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full py-2 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 border border-amber-400/60 group/gift"
+                      title="استلم هديتك تصميم بار كود مجاني"
+                    >
+                      <Gift className="w-3.5 h-3.5 text-slate-950 shrink-0 group-hover/gift:scale-110 transition-transform" />
+                      <span className="truncate">استلم هديتك تصميم بار كود مجاني</span>
+                      <QrCode className="w-3.5 h-3.5 text-slate-900/80 shrink-0" />
+                    </a>
+                  </div>
+
                   {/* Quick Interactive Actions */}
                   <div className="pt-2 border-t border-[var(--border-color)]/60 space-y-2">
                     <div className="grid grid-cols-4 gap-1.5 text-center">
@@ -1010,6 +1030,23 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                         return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
                       })()}
                     </span>
+                  </div>
+
+                  {/* 🎁 زر تحفيز أصحاب المنشآت والعملاء: استلام هدية تصميم باركود مجاني */}
+                  {/* الغرض التسويقي الفني: تحفيز العميل على فتح الرابط والضغط على الزر للتواصل المباشر مع إدارة المنصة واستلام الباركود المجاني */}
+                  <div className="pt-1">
+                    <a
+                      href={sanitizeExternalUrl(getGiftBarcodeWhatsAppUrl(biz), '#')}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full py-1.5 px-2.5 rounded-xl text-[10.5px] font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95 border border-amber-400/60 group/gift"
+                      title="استلم هديتك تصميم بار كود مجاني"
+                    >
+                      <Gift className="w-3.5 h-3.5 text-slate-950 shrink-0 group-hover/gift:scale-110 transition-transform" />
+                      <span className="truncate">استلم هديتك تصميم بار كود مجاني</span>
+                      <QrCode className="w-3 h-3 text-slate-900/80 shrink-0" />
+                    </a>
                   </div>
 
                   {/* Row 3: Fast Quick Actions */}
@@ -1223,6 +1260,19 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center gap-1.5">
+                            {/* 🎁 زر تحفيز أصحاب المنشآت: استلام هدية تصميم باركود مجاني */}
+                            <a
+                              href={sanitizeExternalUrl(getGiftBarcodeWhatsAppUrl(biz), '#')}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs transition-transform active:scale-95 cursor-pointer flex items-center gap-1 shadow-2xs"
+                              title="استلم هديتك تصميم بار كود مجاني"
+                            >
+                              <Gift className="w-3.5 h-3.5" />
+                              <span className="hidden xl:inline">هدية باركود</span>
+                            </a>
+
                             <button
                               onClick={() => onEditBusiness(biz)}
                               className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-colors cursor-pointer flex items-center gap-1"

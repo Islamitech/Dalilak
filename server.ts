@@ -6,6 +6,8 @@ import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG, BUSINESS_CATEGORIES } from './src/data/mockData.js';
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from './src/types.js';
+import { classifyPhoneNumber, isPhoneAllowedByFilter } from './src/utils/phoneClassifier.js';
+import { calculateHaversineDistanceKm, evaluatePlaceGeoBoundary, formatLocalizedDistance } from './src/utils/geoBoundaryGuard.js';
 
 
 process.on('uncaughtException', (err) => {
@@ -975,27 +977,59 @@ app.post('/api/admin/places-batch-search', async (req, res) => {
       });
     }
 
-    const { query, category, lat, lng, existingPlaceIds = [] } = req.body;
+    const {
+      query,
+      category,
+      lat,
+      lng,
+      pullCount = 10,
+      minRating = 0,
+      minReviews = 0,
+      allowUnrated = true,
+      strictBoundary = true,
+      maxRadiusKm = 8,
+      excludeNoPhone = false,
+      excludeLandline = false,
+      excludeShortCodes = false,
+      onlyMobile = false,
+      hubName = '',
+      hubGov = '',
+      existingPlaceIds = []
+    } = req.body;
+
     if (!query || typeof query !== 'string' || !query.trim()) {
       return res.status(400).json({ success: false, error: 'يرجى تقديم استعلام بحث صالح' });
     }
 
     const trimmedQuery = query.trim();
+    const parsedPullCount = Math.min(20, Math.max(1, Number(pullCount) || 10));
+    const parsedRadiusMeters = Math.min(50000, Math.max(1000, Number(maxRadiusKm) * 1000 || 8000));
 
     // استعلام Google Places Text Search (New)
     const searchBody: Record<string, unknown> = {
       textQuery: trimmedQuery,
       languageCode: 'ar',
-      maxResultCount: 20,
+      maxResultCount: parsedPullCount,
     };
 
     if (lat && lng && !isNaN(Number(lat)) && !isNaN(Number(lng))) {
-      searchBody.locationBias = {
-        circle: {
-          center: { latitude: Number(lat), longitude: Number(lng) },
-          radius: 5000.0,
-        },
-      };
+      const centerCoords = { latitude: Number(lat), longitude: Number(lng) };
+      if (strictBoundary) {
+        // 🔒 حصر جغرافي صارم يمنع Google من الخروج عن النطاق نهائياً
+        searchBody.locationRestriction = {
+          circle: {
+            center: centerCoords,
+            radius: parsedRadiusMeters,
+          },
+        };
+      } else {
+        searchBody.locationBias = {
+          circle: {
+            center: centerCoords,
+            radius: parsedRadiusMeters,
+          },
+        };
+      }
     }
 
     const fieldMask = [
@@ -1055,104 +1089,146 @@ app.post('/api/admin/places-batch-search', async (req, res) => {
 
     let duplicatesCount = 0;
     let qualifiedCount = 0;
+    let outOfBoundsCount = 0;
+    let phoneExcludedCount = 0;
 
-    const candidatePlaces = await Promise.all(
-      rawPlaces.map(async (p: any) => {
-        const placeId = p.id || '';
-        const name = p.displayName?.text || '';
-        const cleanName = name.trim();
-        const primaryType = p.primaryType || '';
-        const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
-        const rating = typeof p.rating === 'number' ? p.rating : 0;
-        const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
-        const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
-        const formattedAddress = p.formattedAddress || '';
-        const pLat = p.location?.latitude;
-        const pLng = p.location?.longitude;
-        const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
+    const candidatePlaces: any[] = [];
 
-        // فحص التكرار
-        const isDuplicate = existingIds.has(placeId) || (cleanName.length > 3 && existingNames.has(cleanName.toLowerCase()));
-        if (isDuplicate) {
-          duplicatesCount++;
+    for (const p of rawPlaces) {
+      const placeId = p.id || '';
+      const name = p.displayName?.text || '';
+      const cleanName = name.trim();
+      const primaryType = p.primaryType || '';
+      const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
+      const rating = typeof p.rating === 'number' ? p.rating : 0;
+      const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
+      const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
+      const formattedAddress = p.formattedAddress || '';
+      const pLat = p.location?.latitude;
+      const pLng = p.location?.longitude;
+      const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
+
+      // 1. فحص الحصر الجغرافي الصارم (Strict Geo Boundary Guard)
+      const geoCheck = evaluatePlaceGeoBoundary(
+        { lat: pLat, lng: pLng },
+        formattedAddress,
+        {
+          strictBoundary: Boolean(strictBoundary),
+          maxRadiusKm: Number(maxRadiusKm) || 8,
+          hubLocation: lat && lng ? { lat: Number(lat), lng: Number(lng) } : undefined,
+          hubName,
+          hubGov,
         }
+      );
 
-        // فحص الجودة التكيفية
-        const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, cleanName);
-        let isQualityApproved = false;
-        let qualityBadgeText = '';
+      if (strictBoundary && !geoCheck.withinBoundary) {
+        outOfBoundsCount++;
+        continue; // استبعاد المنشأة تماماً لعدم انطباق النطاق الجغرافي
+      }
 
-        if (isCraft) {
-          if (rating >= 4.3 && userRatingCount >= 15) {
-            isQualityApproved = true;
-            qualityBadgeText = `حرفي معتمد ⭐ ${rating} (${userRatingCount} مقيّم)`;
-          } else {
-            qualityBadgeText = `دون حد الحرفيين (مطلوب: 4.3★ و 15 مقيم) حالياً: ${rating}★ (${userRatingCount})`;
-          }
+      // 2. فحص فلترة أرقام الهواتف (Phone Filtering Engine)
+      const phoneCheck = isPhoneAllowedByFilter(phone, {
+        excludeNoPhone: Boolean(excludeNoPhone),
+        excludeLandline: Boolean(excludeLandline),
+        excludeShortCodes: Boolean(excludeShortCodes),
+        onlyMobile: Boolean(onlyMobile),
+      });
+
+      if (!phoneCheck.allowed) {
+        phoneExcludedCount++;
+        continue; // استبعاد المنشأة تماماً وفق شروط الهاتف المحددة
+      }
+
+      // 3. فحص التكرار المحلي
+      const isDuplicate = existingIds.has(placeId) || (cleanName.length > 3 && existingNames.has(cleanName.toLowerCase()));
+      if (isDuplicate) {
+        duplicatesCount++;
+      }
+
+      // 4. فحص الجودة التكيفية ودعم منشآت 0 تقييم
+      const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, cleanName);
+      const isZeroRated = rating === 0 || userRatingCount === 0;
+      let isQualityApproved = false;
+      let qualityBadgeText = '';
+
+      if (isZeroRated && (allowUnrated || Number(minRating) === 0)) {
+        isQualityApproved = true;
+        qualityBadgeText = 'منشأة جديدة معتمدة ⭐ (0 تقييم)';
+      } else if (Number(minRating) === 0) {
+        isQualityApproved = true;
+        qualityBadgeText = `معتمد ⭐ ${rating} (${userRatingCount} مقيّم)`;
+      } else {
+        const thresholdRating = Number(minRating) > 0 ? Number(minRating) : (isCraft ? 4.3 : 4.2);
+        const thresholdReviews = Number(minReviews) > 0 ? Number(minReviews) : (isCraft ? 15 : 50);
+
+        if (rating >= thresholdRating && userRatingCount >= thresholdReviews) {
+          isQualityApproved = true;
+          qualityBadgeText = `${isCraft ? 'حرفي معتمد' : 'تجاري رائج'} ⭐ ${rating} (${userRatingCount} مقيّم)`;
         } else {
-          if (rating >= 4.2 && userRatingCount >= 80) {
-            isQualityApproved = true;
-            qualityBadgeText = `تجاري رائج ⭐ ${rating} (${userRatingCount} مقيّم)`;
-          } else {
-            qualityBadgeText = `دون الحد التجاري (مطلوب: 4.2★ و 80 مقيم) حالياً: ${rating}★ (${userRatingCount})`;
-          }
+          qualityBadgeText = `دون الحد المطلوب (مطلوب: ${thresholdRating}★ و ${thresholdReviews} مقيم) حالياً: ${rating}★ (${userRatingCount})`;
         }
+      }
 
-        if (isQualityApproved && !isDuplicate) {
-          qualifiedCount++;
-        }
+      if (isQualityApproved && !isDuplicate) {
+        qualifiedCount++;
+      }
 
-        // توحيد سحب الصور الصارم: سحب صورة واحدة فقط للأماكن المؤهلة
-        let coverPhoto: string | undefined = undefined;
-        if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
-          const firstPhotoName = p.photos[0].name;
-          if (firstPhotoName) {
-            try {
-              const mediaUrl = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_PLACES_API_KEY}&skipHttpRedirect=true`;
-              const mediaRes = await fetch(mediaUrl);
-              if (mediaRes.ok) {
-                const mediaData = await mediaRes.json();
-                if (mediaData && mediaData.photoUri) {
-                  coverPhoto = mediaData.photoUri;
-                }
+      // 5. توحيد سحب الصور الصارم: سحب صورة واحدة فقط للأماكن المؤهلة
+      let coverPhoto: string | undefined = undefined;
+      if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
+        const firstPhotoName = p.photos[0].name;
+        if (firstPhotoName) {
+          try {
+            const mediaUrl = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_PLACES_API_KEY}&skipHttpRedirect=true`;
+            const mediaRes = await fetch(mediaUrl);
+            if (mediaRes.ok) {
+              const mediaData = await mediaRes.json();
+              if (mediaData && mediaData.photoUri) {
+                coverPhoto = mediaData.photoUri;
               }
-            } catch (mediaErr) {
-              console.warn('Place cover photo fetch notice:', mediaErr);
             }
+          } catch (mediaErr) {
+            console.warn('Place cover photo fetch notice:', mediaErr);
           }
         }
+      }
 
-        let workingHours: string | undefined = undefined;
-        if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
-          const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
-          if (todayDesc) {
-            workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
-          }
+      let workingHours: string | undefined = undefined;
+      if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
+        const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
+        if (todayDesc) {
+          workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
         }
+      }
 
-        return {
-          id: placeId,
-          displayName: cleanName,
-          category: primaryTypeDisplayName || (isCraft ? 'خدمات وصيانة وحرفيين' : 'أنشطة تجارية عامة'),
-          primaryType,
-          primaryTypeDisplayName,
-          formattedAddress,
-          lat: pLat,
-          lng: pLng,
-          phone,
-          rating,
-          userRatingCount,
-          workingHours,
-          googleMapsUri,
-          coverPhoto,
-          photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
-          isDuplicate,
-          isQualityApproved,
-          qualityBadgeText,
-          isCraft,
-        };
-      })
-    );
+      candidatePlaces.push({
+        id: placeId,
+        displayName: cleanName,
+        category: primaryTypeDisplayName || (isCraft ? 'خدمات وصيانة وحرفيين' : 'أنشطة تجارية عامة'),
+        primaryType,
+        primaryTypeDisplayName,
+        formattedAddress,
+        lat: pLat,
+        lng: pLng,
+        phone,
+        phoneClassification: phoneCheck.classification.type,
+        phoneLabel: phoneCheck.classification.labelAr,
+        phoneBadgeClass: phoneCheck.classification.badgeClass,
+        distanceKm: geoCheck.distanceKm,
+        distanceText: geoCheck.distanceText,
+        rating,
+        userRatingCount,
+        isZeroRated,
+        workingHours,
+        googleMapsUri,
+        coverPhoto,
+        photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
+        isDuplicate,
+        isQualityApproved,
+        qualityBadgeText,
+        isCraft,
+      });
+    }
 
     const textSearchCost = 0.032;
     const photoFetchCost = qualifiedCount * 0.007;
@@ -1166,6 +1242,8 @@ app.post('/api/admin/places-batch-search', async (req, res) => {
         totalFound: rawPlaces.length,
         duplicatesCount,
         qualifiedCount,
+        outOfBoundsCount,
+        phoneExcludedCount,
         estimatedCost: `${totalEstCost}`,
       },
       places: candidatePlaces,
