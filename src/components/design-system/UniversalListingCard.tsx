@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star, MapPin, Clock, Film } from 'lucide-react';
 import { Business } from '../../types';
+import { isTrendingFreeActivity } from '../../utils/categoryMatcher';
 import { VerificationPill, PaymentPill } from './StatusPill';
 import { QuickActionBar } from './QuickActionBar';
 
@@ -17,6 +18,7 @@ export const UniversalListingCard: React.FC<UniversalListingCardProps> = ({
   onClick,
   showAdminMetrics = false,
 }) => {
+  const isExempt = isTrendingFreeActivity(business);
   const cover =
     business.coverPhoto ||
     (business.photos && business.photos.length > 0 ? business.photos[0] : null) ||
@@ -43,7 +45,7 @@ export const UniversalListingCard: React.FC<UniversalListingCardProps> = ({
                 {business.nameAr}
               </h3>
               <VerificationPill status={business.verificationStatus} size="sm" />
-              {business.isFeeExempt && <PaymentPill status={business.paymentStatus} isFeeExempt={true} size="sm" />}
+              {isExempt && <PaymentPill status={business.paymentStatus} isFeeExempt={true} size="sm" />}
               {business.googleRating && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
                   <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
@@ -106,7 +108,7 @@ export const UniversalListingCard: React.FC<UniversalListingCardProps> = ({
         {/* Status badges */}
         <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end">
           <VerificationPill status={business.verificationStatus} size="sm" />
-          {business.isFeeExempt && <PaymentPill status={business.paymentStatus} isFeeExempt={true} size="sm" />}
+          {isExempt && <PaymentPill status={business.paymentStatus} isFeeExempt={true} size="sm" />}
         </div>
 
         {/* Rating Badge */}
