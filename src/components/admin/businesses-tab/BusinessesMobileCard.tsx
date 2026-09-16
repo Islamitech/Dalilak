@@ -4,6 +4,7 @@ import { sanitizeExternalUrl } from '../../../utils/urlSanitizer';
 import { formatEGP } from '../../../utils/formatCurrency';
 import { isRepAccountDeleted } from '../../../utils/accountStatus';
 import { calcBusinessFinancials } from './businessesTabUtils';
+import { getPublicDirectoryUrl } from '../../../utils/directoryUrl';
 import {
   Clock,
   CheckCircle2,
@@ -74,10 +75,16 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1">
           {isDirectoryApproved ? (
-            <span className="bg-emerald-500/20 text-emerald-800 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+            <a
+              href={getPublicDirectoryUrl(biz)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 border border-emerald-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors cursor-pointer"
+              title="فتح صفحة المنشأة على الدليل العام (رابط دائم)"
+            >
               <CheckCircle2 className="w-2.5 h-2.5" />
               <span>معتمد بالدليل</span>
-            </span>
+            </a>
           ) : biz.verificationStatus === 'rejected' ? (
             <span className="bg-rose-500/20 text-rose-800 border border-rose-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
               <AlertTriangle className="w-2.5 h-2.5" />
