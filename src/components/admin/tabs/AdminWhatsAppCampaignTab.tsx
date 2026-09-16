@@ -37,6 +37,7 @@ import {
   Copy,
   Download,
   MapPin,
+  Repeat,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin, PRIMARY_WHATSAPP_SENDER_PHONE } from '../../../utils/permissions';
@@ -48,6 +49,8 @@ import { ExportContactsModal } from './ExportContactsModal';
 
 export { PRIMARY_WHATSAPP_SENDER_PHONE };
 
+export type SlotId = '1' | '2';
+
 export interface BroadcastLogItem {
   businessId: string;
   businessName: string;
@@ -55,6 +58,8 @@ export interface BroadcastLogItem {
   status: 'sent' | 'failed' | 'skipped';
   reason?: string;
   timestamp: string;
+  senderSlot?: SlotId;
+  senderPhone?: string;
 }
 
 export interface BroadcastProgress {
@@ -73,6 +78,27 @@ export interface BroadcastProgress {
   lastIndex?: number;
   cooldownRemainingSeconds?: number;
   cooldownBatchCount?: number;
+  currentSlot?: SlotId;
+  currentSlotSentCount?: number;
+  rotationBatchSize?: number;
+  currentSenderSlot?: SlotId;
+  rotationBatchCount?: number;
+}
+
+export interface WhatsAppSlotStatus {
+  slotId: SlotId;
+  name?: string;
+  state: 'disconnected' | 'connecting' | 'qr_ready' | 'connected';
+  qrCodeUrl: string | null;
+  connectedUser: { id: string; name?: string; phone: string } | null;
+  lastActive: string | null;
+}
+
+export interface WhatsAppRotationState {
+  enabled: boolean;
+  batchSize: number;
+  currentSlot: SlotId;
+  currentSlotSentCount: number;
 }
 
 export interface WhatsAppSessionStatus {
@@ -81,6 +107,11 @@ export interface WhatsAppSessionStatus {
   connectedUser: { id: string; name?: string; phone: string } | null;
   lastActive: string | null;
   activeCampaign: BroadcastProgress | null;
+  slots?: {
+    '1': WhatsAppSlotStatus;
+    '2': WhatsAppSlotStatus;
+  };
+  rotationConfig?: WhatsAppRotationState;
 }
 
 interface AdminWhatsAppCampaignTabProps {
@@ -431,7 +462,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
 
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectingSlot, setConnectingSlot] = useState<SlotId | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [disconnectingSlot, setDisconnectingSlot] = useState<SlotId | null>(null);
+  const [rotationBatchSize, setRotationBatchSize] = useState<number>(15);
+  const [enableRotation, setEnableRotation] = useState<boolean>(true);
   const [isStartingCampaign, setIsStartingCampaign] = useState(false);
   const [isAbortingCampaign, setIsAbortingCampaign] = useState(false);
   const [isResumingCampaign, setIsResumingCampaign] = useState(false);
@@ -536,9 +571,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     };
   }, [fetchStatus, sessionStatus.state, sessionStatus.activeCampaign?.status]);
 
-  // Connect WhatsApp Gateway
-  const handleConnect = async () => {
+  // Connect WhatsApp Gateway Slot
+  const handleConnect = async (slotId: SlotId = '1') => {
     triggerHaptic();
+    setConnectingSlot(slotId);
     setIsConnecting(true);
     try {
       const res = await safeFetchGatewayApi('/api/admin/whatsapp/connect', {
@@ -547,13 +583,17 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           ...getApiAuthHeaders(),
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ slot: slotId }),
       });
 
       if (res.success && res.data?.status) {
         setSessionStatus(res.data.status);
         setIsServerReachable(true);
         setServerNoticeMessage(null);
-        onShowNotification?.('تم بدء تشغيل محرك الواتساب، انتظر ظهور رمز الـ QR أو استعادة الجلسة', 'info');
+        onShowNotification?.(
+          `تم تشغيل محرك الهاتف ${slotId === '1' ? 'الأساسي (1)' : 'المساند (2)'}، انتظر ظهور رمز الـ QR أو استعادة الجلسة`,
+          'info'
+        );
       } else {
         if (res.isVercelStatic) {
           onShowNotification?.(
@@ -564,22 +604,30 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           );
           setServerNoticeMessage(res.error || null);
         } else {
-          onShowNotification?.(res.error || 'فشل الاتصال بمحرك الواتساب', 'error');
+          onShowNotification?.(res.error || `فشل الاتصال بمحرك الواتساب (${slotId})`, 'error');
         }
       }
     } catch (err: any) {
       onShowNotification?.(err?.message || 'خطأ في الاتصال بالسيرفر', 'error');
     } finally {
+      setConnectingSlot(null);
       setIsConnecting(false);
     }
   };
 
-  // Disconnect WhatsApp Gateway
-  const handleDisconnect = async () => {
-    if (!confirm('هل أنت متأكد من رغبتك في قطع الاتصال وحذف جلسة الواتساب؟ سيتطلب الدخول مجدداً مسح الـ QR.')) {
+  // Disconnect WhatsApp Gateway Slot
+  const handleDisconnect = async (slotId: SlotId = '1') => {
+    if (
+      !confirm(
+        `هل أنت متأكد من رغبتك في قطع اتصال هاتف ${
+          slotId === '1' ? 'الأساسي (1)' : 'المساند (2)'
+        }؟ سيتطلب الدخول مجدداً مسح الـ QR.`
+      )
+    ) {
       return;
     }
     triggerHaptic();
+    setDisconnectingSlot(slotId);
     setIsDisconnecting(true);
     try {
       const res = await safeFetchGatewayApi('/api/admin/whatsapp/disconnect', {
@@ -588,23 +636,31 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           ...getApiAuthHeaders(),
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ slot: slotId }),
       });
 
       if (res.success) {
-        setSessionStatus({
-          state: 'disconnected',
-          qrCodeUrl: null,
-          connectedUser: null,
-          lastActive: null,
-          activeCampaign: null,
-        });
-        onShowNotification?.('تم قطع الاتصال وحذف الجلسة بنجاح', 'success');
+        if (res.data?.status) {
+          setSessionStatus(res.data.status);
+        } else {
+          setSessionStatus((prev) => ({
+            ...prev,
+            state: 'disconnected',
+            qrCodeUrl: null,
+            connectedUser: null,
+          }));
+        }
+        onShowNotification?.(
+          `تم قطع اتصال هاتف ${slotId === '1' ? 'الأساسي (1)' : 'المساند (2)'} بنجاح`,
+          'success'
+        );
       } else {
         onShowNotification?.(res.error || 'تعذر قطع الاتصال', 'error');
       }
     } catch (err: any) {
       onShowNotification?.(err?.message || 'خطأ في السيرفر', 'error');
     } finally {
+      setDisconnectingSlot(null);
       setIsDisconnecting(false);
     }
   };
@@ -728,8 +784,13 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
 
   // Launch Server Gateway Campaign
   const handleLaunchCampaign = async () => {
-    if (sessionStatus.state !== 'connected') {
-      onShowNotification?.('محرك الواتساب غير متصل. يرجى مسح رمز الـ QR أولاً وتأكيد الاتصال.', 'warning');
+    const isAnyConnected =
+      sessionStatus.state === 'connected' ||
+      sessionStatus.slots?.['1']?.state === 'connected' ||
+      sessionStatus.slots?.['2']?.state === 'connected';
+
+    if (!isAnyConnected) {
+      onShowNotification?.('محرك الواتساب غير متصل. يرجى مسح رمز الـ QR لأحد الهاتفين على الأقل وتأكيد الاتصال.', 'warning');
       return;
     }
     if (targetBusinesses.length === 0) {
@@ -779,6 +840,8 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           skipRecentlyContacted,
           minDelaySeconds,
           maxDelaySeconds,
+          rotationBatchSize,
+          enableRotation,
         }),
       });
 
@@ -897,6 +960,31 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const isCampaignCooldown = sessionStatus.activeCampaign?.status === 'cooldown';
   const campaign = sessionStatus.activeCampaign;
   const progressPercent = campaign && campaign.total > 0 ? Math.round((campaign.current / campaign.total) * 100) : 0;
+
+  const slot1: WhatsAppSlotStatus = sessionStatus.slots?.['1'] || {
+    slotId: '1' as SlotId,
+    name: 'هاتف الإدارة الأساسي (1)',
+    state: sessionStatus.state,
+    qrCodeUrl: sessionStatus.qrCodeUrl,
+    connectedUser: sessionStatus.connectedUser,
+    lastActive: sessionStatus.lastActive,
+  };
+
+  const slot2: WhatsAppSlotStatus = sessionStatus.slots?.['2'] || {
+    slotId: '2' as SlotId,
+    name: 'هاتف الإدارة المساند (2)',
+    state: 'disconnected',
+    qrCodeUrl: null,
+    connectedUser: null,
+    lastActive: null,
+  };
+
+  const isAnyConnected =
+    sessionStatus.state === 'connected' ||
+    slot1.state === 'connected' ||
+    slot2.state === 'connected';
+
+  const isBothConnected = slot1.state === 'connected' && slot2.state === 'connected';
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fadeIn text-[var(--text-primary)]" dir="rtl">
@@ -1300,275 +1388,479 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* CARD 1: WHATSAPP WEB GATEWAY STATUS */}
-            <div className="lg:col-span-5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
-                      <Smartphone className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="font-black text-sm sm:text-base">بوابة ربط WhatsApp Web</h2>
-                      <p className="text-[11px] text-[var(--text-secondary)]">سيرفر Baileys الخفيف المدمج</p>
-                    </div>
-                  </div>
-
-                  {/* Status Badge */}
+          {/* DUAL SENDER GATEWAY & ROTATION SECTION */}
+          <div className="space-y-5">
+            {/* Top Status & Overview Banner */}
+            <div
+              className={`p-4 rounded-3xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm transition-all ${
+                isBothConnected
+                  ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
+                  : isAnyConnected
+                  ? 'bg-amber-950/20 border-amber-500/40 text-amber-300'
+                  : 'bg-slate-900/60 border-white/10 text-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                    isBothConnected
+                      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                      : isAnyConnected
+                      ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
+                      : 'bg-white/5 border-white/10 text-slate-400'
+                  }`}
+                >
+                  <Repeat className="w-5 h-5" />
+                </div>
+                <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    {sessionStatus.state === 'connected' ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 text-xs font-black animate-pulse">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        متصل ونشط
+                    <h3 className="font-black text-sm text-white">نظام التناوب الذكي بين رقمين (Dual-Sender Rotation)</h3>
+                    {isBothConnected ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black animate-pulse">
+                        🟢 الهاتفان متصلان وجاهزان للتناوب
                       </span>
-                    ) : sessionStatus.state === 'qr_ready' ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30 text-xs font-black">
-                        <QrCode className="w-3.5 h-3.5" />
-                        امسح رمز QR
-                      </span>
-                    ) : sessionStatus.state === 'connecting' ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-black">
-                        <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                        جارٍ الاتصال...
+                    ) : isAnyConnected ? (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-black">
+                        🟡 هاتف واحد متصل (جاهز للإرسال)
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30 text-xs font-black">
-                        <span className="w-2 h-2 rounded-full bg-slate-500" />
-                        غير متصل
+                      <span className="px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-400 border border-slate-500/30 text-[10px] font-black">
+                        ⚪ غير متصل
                       </span>
                     )}
                   </div>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    {isBothConnected
+                      ? `يعمل النظام بتبديل الإرسال تلقائياً بين الهاتفين كل ${rotationBatchSize} رسالة لإتاحة فترة راحة طبيعية لكل رقم وتفادي فلاتر الحظر بنسبة 100%.`
+                      : isAnyConnected
+                      ? 'يمكنك بدء الحملة بالهاتف المتصل حالياً، أو مسح رمز QR للهاتف الثاني لتفعيل التناوب التلقائي بينهما.'
+                      : 'امسح رمز QR لهاتف واحد على الأقل لتفعيل إطلاق الحملات الجماعية الآلية.'}
+                  </p>
                 </div>
-
-                {/* CONNECTED STATE DETAILS */}
-                {sessionStatus.state === 'connected' && sessionStatus.connectedUser && (
-                  <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-xs text-emerald-400 font-bold">الحساب المتصل حالياً بالإرسال:</p>
-                        <p className="text-lg font-black text-white font-mono" dir="ltr">
-                          {sessionStatus.connectedUser.phone}
-                        </p>
-                        <p className="text-xs text-[var(--text-secondary)]">
-                          {sessionStatus.connectedUser.phone.includes(PRIMARY_WHATSAPP_SENDER_PHONE) ||
-                          sessionStatus.connectedUser.phone.includes('1556221141')
-                            ? '⭐ هاتف إدارة المنصة الأساسي المعتمد'
-                            : sessionStatus.connectedUser.name || 'إدارة دليلك'}
-                        </p>
-                      </div>
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40 shadow-inner">
-                        <CheckCircle2 className="w-6 h-6" />
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-[var(--text-secondary)] border-t border-emerald-500/20 pt-2 flex items-center justify-between">
-                      <span>آخر نشاط موثق:</span>
-                      <span className="font-mono" dir="ltr">
-                        {sessionStatus.lastActive ? new Date(sessionStatus.lastActive).toLocaleTimeString('ar-EG') : 'الآن'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* QR CODE READY STATE */}
-                {sessionStatus.state === 'qr_ready' && sessionStatus.qrCodeUrl && (
-                  <div className="flex flex-col items-center justify-center p-4 bg-white/5 border border-blue-500/30 rounded-2xl space-y-3 text-center">
-                    <div className="p-3 bg-white rounded-2xl shadow-xl border-2 border-emerald-500">
-                      <img
-                        src={sessionStatus.qrCodeUrl}
-                        alt="WhatsApp QR Code"
-                        className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
-                      />
-                    </div>
-                    <div className="space-y-1 text-xs">
-                      <p className="font-black text-white">
-                        افتح واتساب على هاتف الإدارة ({PRIMARY_WHATSAPP_SENDER_PHONE}) &gt; الأجهزة المرتبطة &gt; ربط جهاز
-                      </p>
-                      <p className="text-[var(--text-secondary)]">وجّه الكاميرا نحو الرمز أعلاه لتفعيل الإرسال الجماعي فوراً</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* DISCONNECTED / CONNECTING PROMPT */}
-                {sessionStatus.state === 'disconnected' && (
-                  <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
-                        <Info className="w-4 h-4 shrink-0" />
-                        <span>المحرك غير مرتبط بهاتف الإدارة حالياً</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-lg bg-white/10 text-slate-200 font-mono text-[11px] font-bold" dir="ltr">
-                        المعتمد: {PRIMARY_WHATSAPP_SENDER_PHONE}
-                      </span>
-                    </div>
-                    <p className="text-[var(--text-secondary)] leading-relaxed">
-                      اضغط على زر <strong>"ربط هاتف الإدارة (مسح QR)"</strong> بالأسفل لتوليد كود الربط السريع لهاتف المنصة المعتمد (<strong>{PRIMARY_WHATSAPP_SENDER_PHONE}</strong>). الجلسة تُحفظ
-                      محلياً ولا تتطلب إعادة المسح في كل مرة.
-                    </p>
-                    {!isServerReachable && (
-                      <p className="text-[11px] text-amber-300/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 leading-relaxed">
-                        💡 <strong>تنبيه:</strong> إذا كنت تتصفح من رابط Vercel السحابي، يتطلب هذا الوضع تشغيل خادم المنصة محلياً (<code className="font-mono text-white">npm run dev</code>)، أو يمكنك التبديل للوضع المباشر للكمبيوتر بالأعلى للإرسال فوراً بدون سيرفر.
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 border-t border-[var(--border-color)]">
-                {sessionStatus.state === 'connected' ? (
-                  <button
-                    type="button"
-                    onClick={handleDisconnect}
-                    disabled={isDisconnecting || isCampaignRunning}
-                    className="w-full py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/30 transition-all font-black text-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>{isDisconnecting ? 'جارٍ قطع الاتصال...' : 'قطع الاتصال وحذف الجلسة'}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleConnect}
-                    disabled={isConnecting}
-                    className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    <span>{isConnecting ? 'جارٍ توليد الرمز...' : 'ربط هاتف الإدارة (توليد / مسح QR)'}</span>
-                  </button>
+              {/* Quick Rotation Batch Switcher */}
+              <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+                <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={enableRotation}
+                    onChange={(e) => setEnableRotation(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-emerald-500 focus:ring-emerald-500 bg-slate-900 border-white/20 cursor-pointer"
+                  />
+                  <span className="font-bold">تفعيل التناوب</span>
+                </label>
+                {enableRotation && (
+                  <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 text-xs">
+                    {[10, 15, 20].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setRotationBatchSize(size)}
+                        className={`px-2.5 py-1 rounded-lg font-bold font-mono text-[11px] transition-all cursor-pointer ${
+                          rotationBatchSize === size
+                            ? 'bg-emerald-500 text-slate-950 font-black shadow-xs'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {size} ر
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* CARD 2: ANTI-BAN THROTTLING VALVE SETTINGS */}
-            <div className="lg:col-span-7 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 shadow-sm space-y-5 flex flex-col justify-between">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
-                      <ShieldCheck className="w-5 h-5" />
+            {/* TWO SENDER CARDS: SLOT 1 & SLOT 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* SLOT 1 CARD */}
+              <div
+                className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between space-y-4 transition-all ${
+                  slot1.state === 'connected'
+                    ? 'bg-gradient-to-br from-emerald-950/20 to-[var(--bg-card)] border-emerald-500/40'
+                    : slot1.state === 'qr_ready'
+                    ? 'bg-gradient-to-br from-blue-950/20 to-[var(--bg-card)] border-blue-500/40'
+                    : 'bg-[var(--bg-card)] border-[var(--border-color)]'
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                        <Smartphone className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-black text-sm text-white">الهاتف الأساسي (رقم 1)</h4>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
+                            Slot 1
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-secondary)]">هاتف الإدارة الرئيسي المعتمد</p>
+                      </div>
                     </div>
+
                     <div>
-                      <h2 className="font-black text-sm sm:text-base">صمام الأمان الذكي ضد الحظر (Anti-Ban Jitter)</h2>
-                      <p className="text-[11px] text-[var(--text-secondary)]">محاكاة السلوك البشري الطبيعي لتفادي حظر الرقم</p>
+                      {slot1.state === 'connected' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-black">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          متصل ونشط
+                        </span>
+                      ) : slot1.state === 'qr_ready' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-black">
+                          <QrCode className="w-3.5 h-3.5" />
+                          امسح رمز QR
+                        </span>
+                      ) : slot1.state === 'connecting' || connectingSlot === '1' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-black">
+                          <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                          جارٍ الاتصال...
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30 text-xs font-black">
+                          <span className="w-2 h-2 rounded-full bg-slate-500" />
+                          غير متصل
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
-                    حماية مفعلة 🛡️
+                  {slot1.state === 'connected' && slot1.connectedUser ? (
+                    <div className="bg-white/5 rounded-2xl p-3.5 space-y-2 border border-white/5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] text-emerald-400 font-bold">الحساب المتصل حالياً:</p>
+                          <p className="text-base font-black text-white font-mono" dir="ltr">
+                            {slot1.connectedUser.phone}
+                          </p>
+                          <p className="text-[11px] text-[var(--text-secondary)]">
+                            {slot1.connectedUser.phone.includes(PRIMARY_WHATSAPP_SENDER_PHONE) ||
+                            slot1.connectedUser.phone.includes('1556221141')
+                              ? '⭐ هاتف إدارة المنصة الأساسي'
+                              : slot1.connectedUser.name || 'إدارة دليلك'}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shadow-inner">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                      </div>
+                      {slot1.lastActive && (
+                        <div className="text-[10px] text-[var(--text-secondary)] border-t border-white/5 pt-1.5 flex items-center justify-between">
+                          <span>آخر نشاط موثق:</span>
+                          <span className="font-mono" dir="ltr">
+                            {new Date(slot1.lastActive).toLocaleTimeString('ar-EG')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : slot1.state === 'qr_ready' && slot1.qrCodeUrl ? (
+                    <div className="flex flex-col items-center justify-center p-3 bg-white/5 border border-blue-500/30 rounded-2xl space-y-2 text-center">
+                      <div className="p-2.5 bg-white rounded-2xl shadow-xl border-2 border-emerald-500">
+                        <img
+                          src={slot1.qrCodeUrl}
+                          alt="WhatsApp QR Code Slot 1"
+                          className="w-44 h-44 object-contain"
+                        />
+                      </div>
+                      <p className="text-xs font-bold text-white">
+                        افتح واتساب على الهاتف الأساسي ({PRIMARY_WHATSAPP_SENDER_PHONE}) &gt; الأجهزة المرتبطة &gt; ربط جهاز
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5 text-[var(--text-secondary)]">
+                      <div className="flex items-center justify-between text-amber-400 font-bold">
+                        <span>هاتف الإدارة الأساسي</span>
+                        <span className="font-mono text-[11px]" dir="ltr">
+                          {PRIMARY_WHATSAPP_SENDER_PHONE}
+                        </span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed">
+                        اضغط على زر الربط بالأسفل لمسح رمز الـ QR وحفظ الجلسة محلياً على السيرفر.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-white/10">
+                  {slot1.state === 'connected' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDisconnect('1')}
+                      disabled={disconnectingSlot === '1' || isCampaignRunning}
+                      className="w-full py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 transition-all font-bold text-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>{disconnectingSlot === '1' ? 'جارٍ قطع الاتصال...' : 'قطع اتصال هاتف 1'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnect('1')}
+                      disabled={connectingSlot === '1' || isCampaignRunning}
+                      className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>{connectingSlot === '1' ? 'جارٍ توليد الرمز...' : 'ربط هاتف 1 (مسح QR)'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* SLOT 2 CARD */}
+              <div
+                className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between space-y-4 transition-all ${
+                  slot2.state === 'connected'
+                    ? 'bg-gradient-to-br from-blue-950/20 to-[var(--bg-card)] border-blue-500/40'
+                    : slot2.state === 'qr_ready'
+                    ? 'bg-gradient-to-br from-cyan-950/20 to-[var(--bg-card)] border-cyan-500/40'
+                    : 'bg-[var(--bg-card)] border-[var(--border-color)]'
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                        <Smartphone className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-black text-sm text-white">الهاتف المساند (رقم 2)</h4>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold">
+                            Slot 2
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-secondary)]">هاتف التناوب وتوزيع الحمل والردود</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      {slot2.state === 'connected' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-black">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                          متصل ونشط
+                        </span>
+                      ) : slot2.state === 'qr_ready' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 text-xs font-black">
+                          <QrCode className="w-3.5 h-3.5" />
+                          امسح رمز QR
+                        </span>
+                      ) : slot2.state === 'connecting' || connectingSlot === '2' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-black">
+                          <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                          جارٍ الاتصال...
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30 text-xs font-black">
+                          <span className="w-2 h-2 rounded-full bg-slate-500" />
+                          غير متصل
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {slot2.state === 'connected' && slot2.connectedUser ? (
+                    <div className="bg-white/5 rounded-2xl p-3.5 space-y-2 border border-white/5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] text-blue-400 font-bold">الحساب المتصل حالياً:</p>
+                          <p className="text-base font-black text-white font-mono" dir="ltr">
+                            {slot2.connectedUser.phone}
+                          </p>
+                          <p className="text-[11px] text-[var(--text-secondary)]">
+                            {slot2.connectedUser.name || 'هاتف المساند الثاني (دليلك)'}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30 shadow-inner">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                      </div>
+                      {slot2.lastActive && (
+                        <div className="text-[10px] text-[var(--text-secondary)] border-t border-white/5 pt-1.5 flex items-center justify-between">
+                          <span>آخر نشاط موثق:</span>
+                          <span className="font-mono" dir="ltr">
+                            {new Date(slot2.lastActive).toLocaleTimeString('ar-EG')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : slot2.state === 'qr_ready' && slot2.qrCodeUrl ? (
+                    <div className="flex flex-col items-center justify-center p-3 bg-white/5 border border-cyan-500/30 rounded-2xl space-y-2 text-center">
+                      <div className="p-2.5 bg-white rounded-2xl shadow-xl border-2 border-blue-500">
+                        <img
+                          src={slot2.qrCodeUrl}
+                          alt="WhatsApp QR Code Slot 2"
+                          className="w-44 h-44 object-contain"
+                        />
+                      </div>
+                      <p className="text-xs font-bold text-white">
+                        افتح واتساب على هاتف المساند 2 &gt; الأجهزة المرتبطة &gt; ربط جهاز
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs space-y-1.5 text-[var(--text-secondary)]">
+                      <div className="flex items-center justify-between text-blue-400 font-bold">
+                        <span>هاتف التناوب الإضافي</span>
+                        <span className="text-[11px]">مستحسن للأمان التام</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed">
+                        اربط هاتفك الإضافي ليتبادل الإرسال كل {rotationBatchSize} رسالة، مما يريح هاتف الإدارة الأساسي ويمنع الحظر نهائياً.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-white/10">
+                  {slot2.state === 'connected' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDisconnect('2')}
+                      disabled={disconnectingSlot === '2' || isCampaignRunning}
+                      className="w-full py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 transition-all font-bold text-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>{disconnectingSlot === '2' ? 'جارٍ قطع الاتصال...' : 'قطع اتصال هاتف 2'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnect('2')}
+                      disabled={connectingSlot === '2' || isCampaignRunning}
+                      className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>{connectingSlot === '2' ? 'جارٍ توليد الرمز...' : 'ربط هاتف 2 (مسح QR)'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* CARD 2: ANTI-BAN THROTTLING VALVE SETTINGS */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="font-black text-sm sm:text-base">صمام الأمان الذكي ضد الحظر (Anti-Ban Jitter & Auto-Cooldown)</h2>
+                    <p className="text-[11px] text-[var(--text-secondary)]">محاكاة السلوك البشري الطبيعي، فواصل عشوائية، وتهدئة ذاتية</p>
+                  </div>
+                </div>
+
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
+                  حماية مفعلة 🛡️
+                </span>
+              </div>
+
+              {/* Pacing Presets */}
+              <div className="space-y-2">
+                <label className="text-xs font-black text-[var(--text-secondary)]">اختر معدل التباعد الزمني بين الرسائل:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPreset('balanced')}
+                    className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+                      pacingPreset === 'balanced'
+                        ? 'bg-amber-500/15 border-amber-500 text-[var(--text-primary)] shadow-sm'
+                        : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-amber-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-black text-xs">
+                      <span>متزن وآمن (موصى به)</span>
+                      {pacingPreset === 'balanced' && <Check className="w-3.5 h-3.5 text-amber-500" />}
+                    </div>
+                    <p className="text-[11px] text-amber-400 mt-1 font-mono font-bold">10 - 20 ثانية عشوائي</p>
+                    <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">الحل الأمثل للحملات المعتادة</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPreset('ultra_safe')}
+                    className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+                      pacingPreset === 'ultra_safe'
+                        ? 'bg-emerald-500/15 border-emerald-500 text-[var(--text-primary)] shadow-sm'
+                        : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-black text-xs">
+                      <span>فائق الأمان</span>
+                      {pacingPreset === 'ultra_safe' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                    </div>
+                    <p className="text-[11px] text-emerald-400 mt-1 font-mono font-bold">15 - 30 ثانية عشوائي</p>
+                    <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للحملات الضخمة &gt; 500 منشأة</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPreset('fast')}
+                    className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+                      pacingPreset === 'fast'
+                        ? 'bg-blue-500/15 border-blue-500 text-[var(--text-primary)] shadow-sm'
+                        : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-blue-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-black text-xs">
+                      <span>سريع نسبي</span>
+                      {pacingPreset === 'fast' && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                    </div>
+                    <p className="text-[11px] text-blue-400 mt-1 font-mono font-bold">6 - 12 ثانية عشوائي</p>
+                    <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للقوائم الصغيرة والمستعجلة</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Delay Sliders */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-[var(--border-color)] space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-amber-500" />
+                    <span>الحد الأدنى للانتظار (ثوانٍ):</span>
                   </span>
+                  <span className="font-black text-amber-400 font-mono">{minDelaySeconds} ثانية</span>
                 </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="30"
+                  value={minDelaySeconds}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setMinDelaySeconds(val);
+                    if (maxDelaySeconds < val + 2) setMaxDelaySeconds(val + 5);
+                    setPacingPreset('custom');
+                  }}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
 
-                {/* Pacing Presets */}
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-[var(--text-secondary)]">اختر معدل التباعد الزمني بين الرسائل:</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectPreset('balanced')}
-                      className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                        pacingPreset === 'balanced'
-                          ? 'bg-amber-500/15 border-amber-500 text-[var(--text-primary)] shadow-sm'
-                          : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-amber-500/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between font-black text-xs">
-                        <span>متزن وآمن (موصى به)</span>
-                        {pacingPreset === 'balanced' && <Check className="w-3.5 h-3.5 text-amber-500" />}
-                      </div>
-                      <p className="text-[11px] text-amber-400 mt-1 font-mono font-bold">10 - 20 ثانية عشوائي</p>
-                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">الحل الأمثل للحملات المعتادة</p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleSelectPreset('ultra_safe')}
-                      className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                        pacingPreset === 'ultra_safe'
-                          ? 'bg-emerald-500/15 border-emerald-500 text-[var(--text-primary)] shadow-sm'
-                          : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-emerald-500/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between font-black text-xs">
-                        <span>فائق الأمان</span>
-                        {pacingPreset === 'ultra_safe' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
-                      </div>
-                      <p className="text-[11px] text-emerald-400 mt-1 font-mono font-bold">15 - 30 ثانية عشوائي</p>
-                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للحملات الضخمة &gt; 500 منشأة</p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleSelectPreset('fast')}
-                      className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                        pacingPreset === 'fast'
-                          ? 'bg-blue-500/15 border-blue-500 text-[var(--text-primary)] shadow-sm'
-                          : 'bg-white/5 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-blue-500/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between font-black text-xs">
-                        <span>سريع نسبي</span>
-                        {pacingPreset === 'fast' && <Check className="w-3.5 h-3.5 text-blue-500" />}
-                      </div>
-                      <p className="text-[11px] text-blue-400 mt-1 font-mono font-bold">6 - 12 ثانية عشوائي</p>
-                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">للقوائم الصغيرة والمستعجلة</p>
-                    </button>
-                  </div>
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-amber-500" />
+                    <span>الحد الأقصى للانتظار (ثوانٍ):</span>
+                  </span>
+                  <span className="font-black text-amber-400 font-mono">{maxDelaySeconds} ثانية</span>
                 </div>
-
-                {/* Custom Delay Sliders */}
-                <div className="p-4 rounded-2xl bg-white/5 border border-[var(--border-color)] space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold flex items-center gap-1.5">
-                      <Sliders className="w-3.5 h-3.5 text-amber-500" />
-                      <span>الحد الأدنى للانتظار (ثوانٍ):</span>
-                    </span>
-                    <span className="font-black text-amber-400 font-mono">{minDelaySeconds} ثانية</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5"
-                    max="30"
-                    value={minDelaySeconds}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setMinDelaySeconds(val);
-                      if (maxDelaySeconds < val + 2) setMaxDelaySeconds(val + 5);
-                      setPacingPreset('custom');
-                    }}
-                    className="w-full accent-amber-500 cursor-pointer"
-                  />
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="font-bold flex items-center gap-1.5">
-                      <Sliders className="w-3.5 h-3.5 text-amber-500" />
-                      <span>الحد الأقصى للانتظار (ثوانٍ):</span>
-                    </span>
-                    <span className="font-black text-amber-400 font-mono">{maxDelaySeconds} ثانية</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={minDelaySeconds + 2}
-                    max="60"
-                    value={maxDelaySeconds}
-                    onChange={(e) => {
-                      setMaxDelaySeconds(Number(e.target.value));
-                      setPacingPreset('custom');
-                    }}
-                    className="w-full accent-amber-500 cursor-pointer"
-                  />
-                </div>
+                <input
+                  type="range"
+                  min={minDelaySeconds + 2}
+                  max="60"
+                  value={maxDelaySeconds}
+                  onChange={(e) => {
+                    setMaxDelaySeconds(Number(e.target.value));
+                    setPacingPreset('custom');
+                  }}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 flex items-start gap-2.5">
                 <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="leading-relaxed space-y-1">
                   <p>
-                    <strong>كيف يعمل صمام الحماية والتهدئة التلقائية؟</strong> يُرسل المحرك كل رسالة بفاصل زمني عشوائي بشري (مثلاً: 12-25 ثانية).
+                    <strong>كيف يعمل صمام الحماية والتهدئة التلقائية؟</strong> يُرسل المحرك كل رسالة بفاصل زمني عشوائي بشري (مثلاً: 10-20 ثانية)، ثم يتناوب تلقائياً بين الهاتف 1 والهاتف 2 كل {rotationBatchSize} رسالة مع مهلة انتقال ناعمة 4 ثوانٍ.
                   </p>
                   <p className="text-cyan-300 font-bold">
-                    🧊 صمام التهدئة الاحترازي (Anti-Ban Cooldown): يتوقف الإرسال تلقائياً لمدة 10 دقائق بعد كل 20 رسالة بنجاح لمنع تصنيف الرقم كروبوت سبام من Meta، ثم يستأنف ذاتياً.
+                    🧊 صمام التهدئة الاحترازي (Anti-Ban Cooldown): يتوقف الإرسال تلقائياً لمدة 10 دقائق بعد كل 20 رسالة ناجحة لمنع تصنيف الأرقام كروبوت، ثم يستأنف ذاتياً.
                   </p>
                 </div>
               </div>
@@ -1618,6 +1910,19 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   جارٍ معالجة الآن: <strong>{campaign.currentBusinessName}</strong>
                 </p>
               )}
+              {campaign.currentSenderSlot && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-bold mt-1">
+                  <Repeat className="w-3.5 h-3.5 text-purple-400" />
+                  <span>
+                    المرسل النشط الآن: <strong>هاتف {campaign.currentSenderSlot === '1' ? '1 (الأساسي)' : '2 (المساند)'}</strong>
+                    {campaign.rotationBatchCount !== undefined && (
+                      <span className="font-mono text-white mr-1.5 font-normal">
+                        ({campaign.rotationBatchCount} / {campaign.rotationBatchSize || 15} في الدفعة الحالية)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
               {isCampaignCooldown && (
                 <div className="p-3 bg-cyan-950/60 border border-cyan-500/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2">
                   <div className="text-xs text-cyan-200 space-y-0.5">
@@ -1660,9 +1965,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 <button
                   type="button"
                   onClick={handleResumeCampaign}
-                  disabled={isResumingCampaign || sessionStatus.state !== 'connected'}
+                  disabled={isResumingCampaign || !isAnyConnected}
                   className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
-                  title={sessionStatus.state !== 'connected' ? 'يرجى مسح رمز QR والاتصال أولاً' : 'استئناف الحملة من حيث توقفت'}
+                  title={!isAnyConnected ? 'يرجى مسح رمز QR والاتصال أولاً' : 'استئناف الحملة من حيث توقفت'}
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>
@@ -1690,13 +1995,13 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           </div>
 
           {/* Alert Guidance when paused due to disconnect */}
-          {isCampaignPaused && sessionStatus.state !== 'connected' && (
+          {isCampaignPaused && !isAnyConnected && (
             <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-xs text-amber-200 flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="font-bold">انقطع اتصال WhatsApp أثناء الحملة وتم حفظ التقدم بأمان (توقفت عند المنشأة {(campaign.lastIndex ?? 0) + 1})</p>
                 <p className="text-[11px] text-slate-300">
-                  يرجى مسح رمز الـ QR الجديد من قسم "بوابة ربط WhatsApp Web" بالأعلى لإعادة الاتصال، وفور ظهور "متصل ونشط" اضغط على زر "استئناف الحملة" لتكمل عملها تلقائياً بدون أي تكرار.
+                  يرجى مسح رمز الـ QR الجديد لأحد الهاتفين بالأعلى لإعادة الاتصال، وفور ظهور "متصل ونشط" اضغط على زر "استئناف الحملة" لتكمل عملها تلقائياً بدون أي تكرار.
                 </p>
               </div>
             </div>
@@ -1765,6 +2070,17 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {log.senderSlot && (
+                        <span
+                          className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                            log.senderSlot === '1'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          }`}
+                        >
+                          {log.senderSlot === '1' ? '📱 هاتف 1' : '📱 هاتف 2'}
+                        </span>
+                      )}
                       <span
                         className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
                           log.status === 'sent'
@@ -2169,15 +2485,15 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 </div>
               </div>
 
-              {sessionStatus.state !== 'connected' ? (
+              {!isAnyConnected ? (
                 <button
                   type="button"
-                  onClick={handleConnect}
+                  onClick={() => handleConnect('1')}
                   disabled={isConnecting}
                   className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2"
                 >
                   <QrCode className="w-5 h-5" />
-                  <span>اربط WhatsApp أولاً لتفعيل الإرسال</span>
+                  <span>اربط هاتفاً واحداً على الأقل عبر QR لتفعيل الإرسال</span>
                 </button>
               ) : isCampaignRunning ? (
                 <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-center text-xs text-amber-300 font-black">
@@ -2255,10 +2571,16 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <span className="text-[var(--text-secondary)]">معدل التباعد الزمني (صمام الأمان):</span>
                   <span className="font-bold text-amber-400 font-mono">{minDelaySeconds} - {maxDelaySeconds} ثانية عشوائي</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">الحساب المرسل:</span>
-                  <span className="font-mono text-white" dir="ltr">
-                    {sessionStatus.connectedUser?.phone || `${PRIMARY_WHATSAPP_SENDER_PHONE} (هاتف الإدارة الأساسي)`}
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-secondary)]">نظام الإرسال:</span>
+                  <span className="font-bold text-white text-xs">
+                    {enableRotation && isBothConnected
+                      ? `🔄 تناوب دوري بين الهاتفين (كل ${rotationBatchSize} رسالة)`
+                      : slot1.state === 'connected'
+                      ? `هاتف 1 (${slot1.connectedUser?.phone || PRIMARY_WHATSAPP_SENDER_PHONE})`
+                      : slot2.state === 'connected'
+                      ? `هاتف 2 (${slot2.connectedUser?.phone || 'المساند'})`
+                      : 'الهاتف المتصل'}
                   </span>
                 </div>
               </div>

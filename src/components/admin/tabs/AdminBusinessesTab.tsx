@@ -46,6 +46,7 @@ export interface AdminBusinessesTabProps {
   pendingApprovalCount?: number;
   trendingFreeCount?: number;
   collectedInvoicesCount?: number;
+  unpaidBusinessesCount?: number;
   onCollectPayment?: (biz: Business) => void;
   onSetSyncModalBiz: (biz: Business | null) => void;
   onSetEditingBusiness: (biz: Business | null) => void;
@@ -87,6 +88,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
   pendingApprovalCount,
   trendingFreeCount,
   collectedInvoicesCount,
+  unpaidBusinessesCount,
   onCollectPayment,
   onSetSyncModalBiz,
   onSetEditingBusiness,
@@ -139,6 +141,7 @@ export const AdminBusinessesTab: React.FC<AdminBusinessesTabProps> = ({
         pendingApprovalCount={pendingApprovalCount}
         trendingFreeCount={trendingFreeCount}
         collectedInvoicesCount={collectedInvoicesCount}
+        unpaidCount={unpaidBusinessesCount}
         onResetFilters={onResetFilters}
         onOpenPackagesHub={() => setShowPackagesHubModal(true)}
       />

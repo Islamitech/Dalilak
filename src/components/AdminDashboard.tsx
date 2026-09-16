@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, User, InterestedLead } from '../types';
 import { sortBusinessesNewestFirst } from '../utils/dateFormatters';
 import { matchesBusinessSearch } from '../utils/arabicSearch';
-import { matchesCategoryFilter, getCategoryGroupFor, isTrendingFreeActivity, isCollectedInvoiceActivity } from '../utils/categoryMatcher';
+import { matchesCategoryFilter, getCategoryGroupFor, isTrendingFreeActivity, isCollectedInvoiceActivity, isUnpaidActivity } from '../utils/categoryMatcher';
 import { triggerHaptic } from '../utils/haptics';
 
 // Custom Hook for all financial and metric calculations
@@ -256,6 +256,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             if (!isTrendingFreeActivity(b)) return false;
           } else if (paymentFilter === 'fully_paid') {
             if (!isCollectedInvoiceActivity(b)) return false;
+          } else if (paymentFilter === 'unpaid') {
+            if (!isUnpaidActivity(b)) return false;
+          } else if (paymentFilter === 'partially_paid') {
+            if (isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b) || b.paymentStatus !== 'partially_paid') return false;
           } else if (paymentFilter !== 'all' && b.paymentStatus !== paymentFilter) {
             return false;
           }
@@ -662,6 +666,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           pendingApprovalCount={metrics.pendingApprovalCount}
           trendingFreeCount={metrics.trendingFreeCount}
           collectedInvoicesCount={metrics.collectedInvoicesCount}
+          unpaidBusinessesCount={metrics.unpaidBusinessesCount}
           onCollectPayment={onCollectPayment}
           onSetSyncModalBiz={setSyncModalBiz}
           onSetEditingBusiness={setEditingBusiness}

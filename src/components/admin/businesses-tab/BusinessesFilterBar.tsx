@@ -41,6 +41,7 @@ interface BusinessesFilterBarProps {
   pendingApprovalCount?: number;
   trendingFreeCount?: number;
   collectedInvoicesCount?: number;
+  unpaidCount?: number;
   onResetFilters?: () => void;
   onOpenPackagesHub?: () => void;
 }
@@ -72,6 +73,7 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
   pendingApprovalCount,
   trendingFreeCount = 0,
   collectedInvoicesCount = 0,
+  unpaidCount = 0,
   onResetFilters,
   onOpenPackagesHub,
 }) => {
@@ -258,11 +260,11 @@ export const BusinessesFilterBar: React.FC<BusinessesFilterBarProps> = ({
           }}
           className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-2.5 py-2 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer text-xs"
         >
-          <option value="all">كل حالات السداد</option>
-          <option value="trending_free">الأنشطة الرائجة (تسجيل مجاني)</option>
-          <option value="fully_paid">مسددة بالكامل (فواتير محصلة)</option>
+          <option value="all">كل حالات السداد ({businesses.length})</option>
+          <option value="trending_free">الأنشطة الرائجة (تسجيل مجاني) ({trendingFreeCount})</option>
+          <option value="fully_paid">مسددة بالكامل (فواتير محصلة) ({collectedInvoicesCount})</option>
           <option value="partially_paid">مسدد جزء منها</option>
-          <option value="unpaid">بانتظار السداد</option>
+          <option value="unpaid">بانتظار السداد ({unpaidCount})</option>
         </select>
 
         <select

@@ -18,6 +18,8 @@ export type WhatsAppConnectionState = 'disconnected' | 'connecting' | 'qr_ready'
 
 export const PRIMARY_WHATSAPP_SENDER_PHONE = '01556221141';
 
+export type SlotId = '1' | '2';
+
 export interface BroadcastLogItem {
   businessId: string;
   businessName: string;
@@ -25,6 +27,8 @@ export interface BroadcastLogItem {
   status: 'sent' | 'failed' | 'skipped';
   reason?: string;
   timestamp: string;
+  senderSlot?: SlotId;
+  senderPhone?: string;
 }
 
 export interface BroadcastProgress {
@@ -43,6 +47,28 @@ export interface BroadcastProgress {
   lastIndex?: number;
   cooldownRemainingSeconds?: number;
   cooldownBatchCount?: number;
+  currentSlot?: SlotId;
+  currentSlotSentCount?: number;
+  rotationBatchSize?: number;
+  currentSenderSlot?: SlotId;
+  rotationBatchCount?: number;
+}
+
+export interface WhatsAppSlotStatus {
+  slotId: SlotId;
+  name: string;
+  state: WhatsAppConnectionState;
+  qrCodeUrl: string | null;
+  connectedUser: { id: string; name?: string; phone: string } | null;
+  lastActive: string | null;
+  isInitializing?: boolean;
+}
+
+export interface WhatsAppRotationState {
+  enabled: boolean;
+  batchSize: number;
+  currentSlot: SlotId;
+  currentSlotSentCount: number;
 }
 
 export interface WhatsAppSessionStatus {
@@ -51,13 +77,93 @@ export interface WhatsAppSessionStatus {
   connectedUser: { id: string; name?: string; phone: string } | null;
   lastActive: string | null;
   activeCampaign: BroadcastProgress | null;
+  slots: {
+    '1': WhatsAppSlotStatus;
+    '2': WhatsAppSlotStatus;
+  };
+  rotationConfig: WhatsAppRotationState;
 }
 
-// Persistent Session Directory
-const AUTH_DIR = path.resolve(process.cwd(), 'data/baileys_auth_info');
-if (!fs.existsSync(AUTH_DIR)) {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
+// 📁 Persistent Session Directories for Dual Slots
+export function getAuthDirForSlot(slotId: SlotId): string {
+  const targetDir = path.resolve(process.cwd(), `data/baileys_auth_info_${slotId}`);
+  if (slotId === '1') {
+    const legacyDir = path.resolve(process.cwd(), 'data/baileys_auth_info');
+    if (fs.existsSync(legacyDir) && !fs.existsSync(targetDir)) {
+      try {
+        fs.renameSync(legacyDir, targetDir);
+        console.log('🔄 [WhatsApp Gateway] Migrated legacy session into Slot 1 storage.');
+      } catch {
+        // Ignore rename error
+      }
+    }
+  }
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+  return targetDir;
 }
+
+export interface InternalSlotSession {
+  slotId: SlotId;
+  name: string;
+  sock: WASocket | null;
+  connectionState: WhatsAppConnectionState;
+  qrCodeUrl: string | null;
+  connectedUser: { id: string; name?: string; phone: string } | null;
+  lastActive: string | null;
+  isInitializing: boolean;
+  isExplicitDisconnect: boolean;
+}
+
+export const slotSessions: Record<SlotId, InternalSlotSession> = {
+  '1': {
+    slotId: '1',
+    name: 'هاتف الإدارة الأساسي (1)',
+    sock: null,
+    connectionState: 'disconnected',
+    qrCodeUrl: null,
+    connectedUser: null,
+    lastActive: null,
+    isInitializing: false,
+    isExplicitDisconnect: false,
+  },
+  '2': {
+    slotId: '2',
+    name: 'هاتف الإدارة المساند (2)',
+    sock: null,
+    connectionState: 'disconnected',
+    qrCodeUrl: null,
+    connectedUser: null,
+    lastActive: null,
+    isInitializing: false,
+    isExplicitDisconnect: false,
+  },
+};
+
+export let rotationConfig: WhatsAppRotationState = {
+  enabled: true,
+  batchSize: 15,
+  currentSlot: '1',
+  currentSlotSentCount: 0,
+};
+
+// Legacy fallback aliases
+export const AUTH_DIR = getAuthDirForSlot('1');
+
+// Active Broadcast State & Local Persistence
+let activeCampaign: BroadcastProgress | null = null;
+let abortRequested = false;
+
+// Campaign In-Memory & File Persistence for Pause, Resume & Crash Recovery
+let cachedCampaignBusinesses: Business[] = [];
+let cachedCampaignOptions: {
+  templateType: string;
+  customText?: string;
+  minDelaySeconds?: number;
+  maxDelaySeconds?: number;
+  skipRecentlyContacted?: boolean;
+} | null = null;
 
 // Persistent Sent Log File (Protects against duplicate messaging across campaigns)
 const SENT_LOG_PATH = path.resolve(process.cwd(), 'data/whatsapp_sent_log.json');
@@ -74,7 +180,7 @@ function loadSentRegistry(): Record<string, { timestamp: string; bizId?: string;
   return {};
 }
 
-function recordSentTarget(phone: string, bizId?: string) {
+export function recordSentTarget(phone: string, bizId?: string) {
   try {
     const reg = loadSentRegistry();
     const now = new Date().toISOString();
@@ -111,29 +217,6 @@ export function isRecentlyContacted(rawPhone?: string | null, bizId?: string | n
   } catch {}
   return false;
 }
-
-// In-Memory Global State
-let sock: WASocket | null = null;
-let connectionState: WhatsAppConnectionState = 'disconnected';
-let qrCodeUrl: string | null = null;
-let connectedUser: { id: string; name?: string; phone: string } | null = null;
-let lastActive: string | null = null;
-let isInitializing = false;
-let isExplicitDisconnect = false;
-
-// Active Broadcast State & Local Persistence
-let activeCampaign: BroadcastProgress | null = null;
-let abortRequested = false;
-
-// Campaign In-Memory & File Persistence for Pause, Resume & Crash Recovery
-let cachedCampaignBusinesses: Business[] = [];
-let cachedCampaignOptions: {
-  templateType: string;
-  customText?: string;
-  minDelaySeconds?: number;
-  maxDelaySeconds?: number;
-  skipRecentlyContacted?: boolean;
-} | null = null;
 
 // Persistent Campaign Progress and History Files
 const CAMPAIGN_PROGRESS_FILE = path.resolve(process.cwd(), 'data/whatsapp_campaign_progress.json');
@@ -339,31 +422,77 @@ export function formatPhoneToWhatsAppJid(rawPhone?: string | null): string | nul
 /**
  * 🔄 Returns Current WhatsApp Session Status
  */
+/**
+ * 🔄 Returns Current WhatsApp Session Status for Both Slots
+ */
 export function getWhatsAppSessionStatus(): WhatsAppSessionStatus {
+  const isAnyConnected =
+    slotSessions['1'].connectionState === 'connected' ||
+    slotSessions['2'].connectionState === 'connected';
+  const isAnyConnecting =
+    slotSessions['1'].connectionState === 'connecting' ||
+    slotSessions['2'].connectionState === 'connecting';
+  const isAnyQr =
+    slotSessions['1'].connectionState === 'qr_ready' ||
+    slotSessions['2'].connectionState === 'qr_ready';
+
+  const aggregateState: WhatsAppConnectionState = isAnyConnected
+    ? 'connected'
+    : isAnyConnecting
+    ? 'connecting'
+    : isAnyQr
+    ? 'qr_ready'
+    : 'disconnected';
+
+  const activeUser = slotSessions['1'].connectedUser || slotSessions['2'].connectedUser;
+  const activeQr = slotSessions['1'].qrCodeUrl || slotSessions['2'].qrCodeUrl;
+  const activeLastActive = slotSessions['1'].lastActive || slotSessions['2'].lastActive;
+
   return {
-    state: connectionState,
-    qrCodeUrl,
-    connectedUser,
-    lastActive,
+    state: aggregateState,
+    qrCodeUrl: activeQr,
+    connectedUser: activeUser,
+    lastActive: activeLastActive,
     activeCampaign,
+    slots: {
+      '1': {
+        slotId: '1',
+        name: slotSessions['1'].name,
+        state: slotSessions['1'].connectionState,
+        qrCodeUrl: slotSessions['1'].qrCodeUrl,
+        connectedUser: slotSessions['1'].connectedUser,
+        lastActive: slotSessions['1'].lastActive,
+      },
+      '2': {
+        slotId: '2',
+        name: slotSessions['2'].name,
+        state: slotSessions['2'].connectionState,
+        qrCodeUrl: slotSessions['2'].qrCodeUrl,
+        connectedUser: slotSessions['2'].connectedUser,
+        lastActive: slotSessions['2'].lastActive,
+      },
+    },
+    rotationConfig,
   };
 }
 
 /**
- * 🚀 Initializes or Restores WhatsApp Web Connection
+ * 🚀 Initializes or Restores WhatsApp Web Connection for a specific Slot ('1' or '2')
  */
-export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
-  if (isInitializing || connectionState === 'connected') {
+export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAppSessionStatus> {
+  const session = slotSessions[slotId];
+  if (session.isInitializing || session.connectionState === 'connected') {
     return getWhatsAppSessionStatus();
   }
 
-  isInitializing = true;
-  isExplicitDisconnect = false;
-  connectionState = 'connecting';
-  qrCodeUrl = null;
+  session.isInitializing = true;
+  session.isExplicitDisconnect = false;
+  session.connectionState = 'connecting';
+  session.qrCodeUrl = null;
 
   try {
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+    const authDir = getAuthDirForSlot(slotId);
+    const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
     const logger = pino({ level: 'silent' });
 
@@ -371,14 +500,14 @@ export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
       auth: state,
       logger,
       printQRInTerminal: false,
-      browser: Browsers.windows('Desktop'),
+      browser: Browsers.windows(`Dalelak-${slotId}`),
       syncFullHistory: false,
       markOnlineOnConnect: true,
       connectTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
       generateHighQualityLinkPreview: true,
     });
-    sock = socketInstance;
+    session.sock = socketInstance;
 
     socketInstance.ev.on('creds.update', saveCreds);
 
@@ -387,33 +516,33 @@ export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
 
       if (qr) {
         try {
-          qrCodeUrl = await qrcode.toDataURL(qr, {
+          session.qrCodeUrl = await qrcode.toDataURL(qr, {
             margin: 2,
             scale: 7,
             color: {
-              dark: '#0f172a',
+              dark: slotId === '1' ? '#0f172a' : '#042f2e',
               light: '#ffffff',
             },
           });
-          connectionState = 'qr_ready';
+          session.connectionState = 'qr_ready';
         } catch (e) {
-          console.error('Failed to convert QR to DataURL:', e);
+          console.error(`Failed to convert QR for slot ${slotId}:`, e);
         }
       }
 
       if (connection === 'open') {
-        connectionState = 'connected';
-        qrCodeUrl = null;
-        lastActive = new Date().toISOString();
+        session.connectionState = 'connected';
+        session.qrCodeUrl = null;
+        session.lastActive = new Date().toISOString();
 
-        const rawId = sock?.user?.id || '';
+        const rawId = socketInstance.user?.id || '';
         const rawDigits = rawId.split(':')[0].replace(/\D/g, '');
-        connectedUser = {
+        session.connectedUser = {
           id: rawId,
-          name: sock?.user?.name || 'إدارة منصة دليلك',
+          name: socketInstance.user?.name || (slotId === '1' ? 'إدارة منصة دليلك (1)' : 'إدارة منصة دليلك (2)'),
           phone: rawDigits.startsWith('20') ? '0' + rawDigits.slice(2) : rawDigits,
         };
-        console.log('✅ WhatsApp Gateway Connected Successfully:', connectedUser.phone);
+        console.log(`✅ WhatsApp Gateway [Slot ${slotId}] Connected Successfully: ${session.connectedUser.phone}`);
       }
 
       if (connection === 'close') {
@@ -421,38 +550,42 @@ export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
         const statusCode = error?.output?.statusCode;
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
 
-        console.log('ℹ️ WhatsApp connection closed. Status code:', statusCode, 'Logged out:', isLoggedOut);
+        console.log(`ℹ️ WhatsApp [Slot ${slotId}] connection closed. Status code: ${statusCode}, Logged out: ${isLoggedOut}`);
 
-        if (isLoggedOut || isExplicitDisconnect) {
-          connectionState = 'disconnected';
-          connectedUser = null;
-          qrCodeUrl = null;
-          sock = null;
+        if (isLoggedOut || session.isExplicitDisconnect) {
+          session.connectionState = 'disconnected';
+          session.connectedUser = null;
+          session.qrCodeUrl = null;
+          session.sock = null;
           try {
-            if (fs.existsSync(AUTH_DIR)) {
-              fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+            if (fs.existsSync(authDir)) {
+              fs.rmSync(authDir, { recursive: true, force: true });
             }
           } catch {}
 
-          // If a campaign was running, pause it instead of losing progress!
-          if (activeCampaign && activeCampaign.status === 'running') {
+          // If a campaign was running and NO other slot is connected, pause it
+          const otherSlot: SlotId = slotId === '1' ? '2' : '1';
+          if (
+            activeCampaign &&
+            activeCampaign.status === 'running' &&
+            slotSessions[otherSlot].connectionState !== 'connected'
+          ) {
             activeCampaign.status = 'paused';
-            console.log('⏸️ Active campaign automatically paused due to session logout. Progress saved for resumption.');
+            console.log('⏸️ Active campaign automatically paused because all sender accounts disconnected.');
           }
 
-          // Automatically prepare a fresh QR code so the admin can re-pair smoothly
-          if (!isExplicitDisconnect) {
+          if (!session.isExplicitDisconnect) {
             setTimeout(() => {
-              initWhatsAppGateway().catch((err) => console.warn('Auto re-init QR notice:', err));
+              initWhatsAppGateway(slotId).catch((err) => console.warn(`Auto re-init QR for slot ${slotId}:`, err));
             }, 1500);
           }
         } else {
-          connectionState = 'disconnected';
-          qrCodeUrl = null;
+          session.connectionState = 'disconnected';
+          session.qrCodeUrl = null;
           // Auto-reconnect after 4 seconds
           setTimeout(() => {
-            if (!isExplicitDisconnect) {
-              initWhatsAppGateway().catch((err) => console.warn('Auto reconnect notice:', err));
+            if (!session.isExplicitDisconnect) {
+              initWhatsAppGateway(slotId).catch((err) => console.warn(`Auto reconnect notice for slot ${slotId}:`, err));
             }
           }, 4000);
         }
@@ -461,34 +594,42 @@ export async function initWhatsAppGateway(): Promise<WhatsAppSessionStatus> {
 
     return getWhatsAppSessionStatus();
   } catch (err: any) {
-    console.error('Error initializing WhatsApp Gateway:', err);
-    connectionState = 'disconnected';
+    console.error(`Error initializing WhatsApp Gateway [Slot ${slotId}]:`, err);
+    session.connectionState = 'disconnected';
     return getWhatsAppSessionStatus();
   } finally {
-    isInitializing = false;
+    session.isInitializing = false;
   }
 }
 
 /**
- * 🛑 Disconnects and Clears Current WhatsApp Session
+ * 🛑 Disconnects and Clears WhatsApp Session for a specific Slot or Both
  */
-export async function disconnectWhatsAppGateway(): Promise<void> {
-  isExplicitDisconnect = true;
-  connectionState = 'disconnected';
-  qrCodeUrl = null;
-  connectedUser = null;
+export async function disconnectWhatsAppGateway(slotId?: SlotId): Promise<boolean> {
+  const slotsToDisconnect: SlotId[] = slotId ? [slotId] : ['1', '2'];
 
-  try {
-    if (sock) {
-      await sock.logout();
-    }
-  } catch {}
+  for (const sId of slotsToDisconnect) {
+    const session = slotSessions[sId];
+    session.isExplicitDisconnect = true;
+    session.connectionState = 'disconnected';
+    session.qrCodeUrl = null;
+    session.connectedUser = null;
 
-  try {
-    if (fs.existsSync(AUTH_DIR)) {
-      fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-    }
-  } catch {}
+    try {
+      if (session.sock) {
+        await session.sock.logout().catch(() => {});
+      }
+    } catch {}
+    session.sock = null;
+
+    const authDir = getAuthDirForSlot(sId);
+    try {
+      if (fs.existsSync(authDir)) {
+        fs.rmSync(authDir, { recursive: true, force: true });
+      }
+    } catch {}
+  }
+  return true;
 }
 
 /**
@@ -636,6 +777,8 @@ async function executeCampaignLoop(
     minDelaySeconds?: number;
     maxDelaySeconds?: number;
     skipRecentlyContacted?: boolean;
+    rotationBatchSize?: number;
+    enableRotation?: boolean;
   },
   startIndex = 0
 ) {
@@ -643,7 +786,24 @@ async function executeCampaignLoop(
   const minDelay = Math.max(5, options.minDelaySeconds || 12);
   const maxDelay = Math.max(minDelay + 3, options.maxDelaySeconds || 20);
 
-  console.log(`📢 Executing WhatsApp Campaign from index ${startIndex + 1}/${businesses.length}...`);
+  const rotationBatchSize = Math.max(3, options.rotationBatchSize || 15);
+  const enableRotation = options.enableRotation !== false;
+
+  // Choose starting slot based on connectivity
+  let currentSlot: SlotId = rotationConfig.currentSlot || '1';
+  if (slotSessions[currentSlot].connectionState !== 'connected') {
+    const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+    if (slotSessions[otherSlot].connectionState === 'connected') {
+      currentSlot = otherSlot;
+    }
+  }
+  let currentSlotSentCount = 0;
+
+  console.log(
+    `📢 Executing WhatsApp Campaign from index ${startIndex + 1}/${businesses.length} (Dual-Rotation: ${
+      enableRotation ? `Every ${rotationBatchSize} msgs` : 'Disabled'
+    }, Start Slot: ${currentSlot})...`
+  );
 
   for (let i = startIndex; i < businesses.length; i++) {
     if (abortRequested) {
@@ -733,42 +893,69 @@ async function executeCampaignLoop(
       continue;
     }
 
-    // 🔌 Check socket connectivity and auto-wait if temporarily disconnected
-    if (!sock || connectionState !== 'connected') {
-      console.warn(`[Campaign] Socket not connected at index ${i + 1}/${businesses.length}, waiting up to 25s for reconnect...`);
-      let reconnected = false;
-      for (let w = 0; w < 50; w++) {
-        if (abortRequested) break;
-        await new Promise((r) => setTimeout(r, 500));
-        if (sock && connectionState === 'connected') {
-          reconnected = true;
+    // 🔌 1. Resolve Active Connected Socket with Auto-Failover
+    let activeSession = slotSessions[currentSlot];
+    if (!activeSession.sock || activeSession.connectionState !== 'connected') {
+      const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+      const otherSession = slotSessions[otherSlot];
+      if (otherSession.sock && otherSession.connectionState === 'connected') {
+        console.log(`🔄 [Auto-Failover] Slot ${currentSlot} disconnected. Switching seamlessly to active Slot ${otherSlot}.`);
+        currentSlot = otherSlot;
+        activeSession = otherSession;
+        currentSlotSentCount = 0;
+      } else {
+        console.warn(`[Campaign] Neither WhatsApp slot is connected at index ${i + 1}/${businesses.length}, waiting up to 25s for reconnect...`);
+        let reconnected = false;
+        for (let w = 0; w < 50; w++) {
+          if (abortRequested) break;
+          await new Promise((r) => setTimeout(r, 500));
+          if (slotSessions['1'].sock && slotSessions['1'].connectionState === 'connected') {
+            currentSlot = '1';
+            activeSession = slotSessions['1'];
+            reconnected = true;
+            break;
+          }
+          if (slotSessions['2'].sock && slotSessions['2'].connectionState === 'connected') {
+            currentSlot = '2';
+            activeSession = slotSessions['2'];
+            reconnected = true;
+            break;
+          }
+        }
+        if (!reconnected) {
+          console.warn(`[Campaign] Both sockets disconnected. Automatically pausing campaign at index ${i + 1}/${businesses.length}. Progress is saved!`);
+          if (activeCampaign) {
+            activeCampaign.status = 'paused';
+            activeCampaign.lastIndex = i;
+            activeCampaign.logs.unshift({
+              businessId: biz.id,
+              businessName: biz.nameAr || biz.name || 'منشأة',
+              phone: rawPhone || 'غير متوفر',
+              status: 'skipped',
+              reason: 'تم تجميد الحملة مؤقتاً بسبب انقطاع اتصال أرقام الواتساب (يمكن استئنافها بعد إعادة الاتصال) ⏸️',
+              timestamp: new Date().toISOString(),
+            });
+            saveCampaignProgress(activeCampaign);
+          }
           break;
         }
       }
-      if (!reconnected) {
-        console.warn(`[Campaign] Socket disconnected. Automatically pausing campaign at index ${i + 1}/${businesses.length}. Progress is saved!`);
-        if (activeCampaign) {
-          activeCampaign.status = 'paused';
-          activeCampaign.lastIndex = i;
-          activeCampaign.logs.unshift({
-            businessId: biz.id,
-            businessName: biz.nameAr || biz.name || 'منشأة',
-            phone: rawPhone || 'غير متوفر',
-            status: 'skipped',
-            reason: 'تم تجميد الحملة مؤقتاً بسبب انقطاع الاتصال (يمكن استئنافها بعد إعادة الاتصال) ⏸️',
-            timestamp: new Date().toISOString(),
-          });
-          saveCampaignProgress(activeCampaign);
-        }
-        break;
-      }
+    }
+
+    const currentSock = activeSession.sock!;
+    rotationConfig.currentSlot = currentSlot;
+    rotationConfig.currentSlotSentCount = currentSlotSentCount;
+    if (activeCampaign) {
+      activeCampaign.currentSlot = currentSlot;
+      activeCampaign.currentSlotSentCount = currentSlotSentCount;
+      activeCampaign.rotationBatchSize = rotationBatchSize;
     }
 
     // 🔍 3. VERIFY WHATSAPP ACCOUNT REGISTRATION (sock.onWhatsApp)
     try {
       // Micro-pause before query so it doesn't trigger USync anti-scraping
       await new Promise((r) => setTimeout(r, 350));
-      const waCheck = await sock!.onWhatsApp(jid);
+      const waCheck = await currentSock.onWhatsApp(jid);
       const targetAccount = Array.isArray(waCheck) ? waCheck.find((c) => c && c.exists) : null;
       if (!targetAccount || !targetAccount.exists) {
         if (activeCampaign) {
@@ -814,12 +1001,12 @@ async function executeCampaignLoop(
     try {
       // 🛡️ 4. HUMAN PRESENCE & TYPING SIMULATION (Emulates human writing behavior)
       try {
-        await sock!.presenceSubscribe?.(jid).catch(() => {});
-        await sock!.sendPresenceUpdate?.('composing', jid).catch(() => {});
+        await currentSock.presenceSubscribe?.(jid).catch(() => {});
+        await currentSock.sendPresenceUpdate?.('composing', jid).catch(() => {});
         // Human typing simulation (between 1800ms and 3000ms)
         const typingDelay = Math.floor(1800 + Math.random() * 1200);
         await new Promise((r) => setTimeout(r, typingDelay));
-        await sock!.sendPresenceUpdate?.('paused', jid).catch(() => {});
+        await currentSock.sendPresenceUpdate?.('paused', jid).catch(() => {});
       } catch (presErr) {
         // Non-blocking
       }
@@ -830,7 +1017,7 @@ async function executeCampaignLoop(
         nativeLinkPreview = await getUrlInfo(directoryUrl, {
           thumbnailWidth: 500,
           fetchOpts: { timeout: 8000 },
-          uploadImage: (sock as any)?.waUploadToServer,
+          uploadImage: (currentSock as any)?.waUploadToServer,
         });
       } catch (previewErr) {
         console.warn(`[Campaign] Native link preview generation notice for ${directoryUrl}:`, previewErr);
@@ -876,7 +1063,7 @@ async function executeCampaignLoop(
         messagePayload.linkPreview = nativeLinkPreview;
       }
 
-      await sock!.sendMessage(jid, messagePayload);
+      await currentSock.sendMessage(jid, messagePayload);
       recordSentTarget(rawPhone!, biz.id);
 
       if (activeCampaign) {
@@ -887,6 +1074,8 @@ async function executeCampaignLoop(
           phone: rawPhone!,
           status: 'sent',
           timestamp: new Date().toISOString(),
+          senderSlot: currentSlot,
+          senderPhone: activeSession.connectedUser?.phone || (currentSlot === '1' ? 'هاتف 1' : 'هاتف 2'),
         });
         // Keep live logs array efficient for polling
         if (activeCampaign.logs.length > 200) {
@@ -894,7 +1083,42 @@ async function executeCampaignLoop(
         }
         saveCampaignProgress(activeCampaign);
       }
-      console.log(`[Campaign ${i + 1}/${businesses.length}] Sent to ${biz.nameAr} (${rawPhone})`);
+      console.log(`[Campaign ${i + 1}/${businesses.length}] Sent to ${biz.nameAr} (${rawPhone}) [Slot ${currentSlot}]`);
+
+      // 🔄 Increment current slot counter & check rotation
+      currentSlotSentCount++;
+      rotationConfig.currentSlotSentCount = currentSlotSentCount;
+
+      const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+      const isOtherConnected =
+        slotSessions[otherSlot].sock !== null && slotSessions[otherSlot].connectionState === 'connected';
+
+      if (enableRotation && isOtherConnected && currentSlotSentCount >= rotationBatchSize) {
+        console.log(
+          `🔄 [Rotation Engine] Reached ${rotationBatchSize} messages on Slot ${currentSlot}. Switching to Slot ${otherSlot} for anti-ban cooling rest.`
+        );
+        currentSlot = otherSlot;
+        currentSlotSentCount = 0;
+        rotationConfig.currentSlot = otherSlot;
+        rotationConfig.currentSlotSentCount = 0;
+        if (activeCampaign) {
+          activeCampaign.currentSlot = otherSlot;
+          activeCampaign.currentSlotSentCount = 0;
+          activeCampaign.logs.unshift({
+            businessId: 'sys_rotation',
+            businessName: 'نظام التناوب الذكي',
+            phone: 'SYSTEM',
+            status: 'skipped',
+            reason: `🔄 تم التناوب التلقائي: اكتمال ${rotationBatchSize} رسالة على هاتف (${
+              otherSlot === '2' ? '1' : '2'
+            }). التحويل الآن إلى هاتف (${otherSlot}) لإراحة الرقم السابق.`,
+            timestamp: new Date().toISOString(),
+          });
+          saveCampaignProgress(activeCampaign);
+        }
+        // Gentle rotation handover pause (4 seconds)
+        await new Promise((r) => setTimeout(r, 4000));
+      }
     } catch (sendErr: any) {
       console.error(`[Campaign ${i + 1}/${businesses.length}] Failed to send to ${biz.nameAr}:`, sendErr?.message);
       if (activeCampaign) {
@@ -906,6 +1130,8 @@ async function executeCampaignLoop(
           status: 'failed',
           reason: sendErr?.message || 'فشل إرسال الرسالة عبر المقبس',
           timestamp: new Date().toISOString(),
+          senderSlot: currentSlot,
+          senderPhone: activeSession.connectedUser?.phone || (currentSlot === '1' ? 'هاتف 1' : 'هاتف 2'),
         });
         saveCampaignProgress(activeCampaign);
       }
@@ -933,32 +1159,38 @@ async function executeCampaignLoop(
         businessName: 'صمام الأمان والتهدئة التلقائية',
         phone: PRIMARY_WHATSAPP_SENDER_PHONE,
         status: 'skipped',
-        reason: `🧊 فترة تهدئة احترازية لمدة 10 دقائق بعد إرسال ${activeCampaign.successful} رسالة (دفعة #${batchNum}) لحماية الرقم من الحظر 🛡️`,
+        reason: `🧊 استراحة أمان احترازية لمدة 10 دقائق (بعد إرسال ${activeCampaign.successful} رسالة بنجاح - الدفعة #${batchNum}) لحماية الرقم من فلاتر الروبوتات`,
         timestamp: new Date().toISOString(),
       });
       saveCampaignProgress(activeCampaign);
 
-      for (let c = cooldownSeconds; c > 0; c--) {
-        if (abortRequested) break;
-        activeCampaign.cooldownRemainingSeconds = c;
+      const cooldownStart = Date.now();
+      while (Date.now() - cooldownStart < cooldownSeconds * 1000) {
+        if (abortRequested) {
+          console.log(`🛑 Cooldown interrupted by administrator.`);
+          break;
+        }
+        const remaining = Math.max(0, Math.ceil((cooldownSeconds * 1000 - (Date.now() - cooldownStart)) / 1000));
+        activeCampaign.cooldownRemainingSeconds = remaining;
         await new Promise((r) => setTimeout(r, 1000));
       }
 
-      activeCampaign.cooldownRemainingSeconds = undefined;
       if (!abortRequested) {
+        console.log(`🔥 [Anti-Ban Cooldown] Finished 10-minute rest. Resuming campaign seamlessly...`);
         activeCampaign.status = 'running';
+        activeCampaign.cooldownRemainingSeconds = undefined;
         saveCampaignProgress(activeCampaign);
-        console.log(`▶️ [Anti-Ban Cooldown] 10-minute cooldown completed. Resuming automated broadcast...`);
       }
-    } else if (i < businesses.length - 1 && !abortRequested) {
-      // 🛡️ 6. ANTI-BAN RANDOM JITTER THROTTLING (Between individual messages)
-      const jitterSeconds = Math.floor(minDelay + Math.random() * (maxDelay - minDelay));
-      console.log(`⏳ Anti-Ban pacing: Waiting ${jitterSeconds} seconds before next dispatch...`);
+    }
 
-      const sleepChunks = jitterSeconds * 4;
-      for (let s = 0; s < sleepChunks; s++) {
+    // ⏳ 6. ANTI-BAN JITTER DELAY (Simulates human pause between messages)
+    if (i < businesses.length - 1 && !abortRequested) {
+      const randomSeconds = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+      console.log(`⏱️ Anti-Ban Delay: waiting ${randomSeconds}s before next business...`);
+      const delayStart = Date.now();
+      while (Date.now() - delayStart < randomSeconds * 1000) {
         if (abortRequested) break;
-        await new Promise((r) => setTimeout(r, 250));
+        await new Promise((r) => setTimeout(r, 300));
       }
     }
   }
@@ -983,12 +1215,18 @@ export async function startWhatsAppBroadcast(
     minDelaySeconds?: number;
     maxDelaySeconds?: number;
     skipRecentlyContacted?: boolean;
+    rotationBatchSize?: number;
+    enableRotation?: boolean;
   }
 ): Promise<{ success: boolean; message: string; campaignId?: string }> {
-  if (connectionState !== 'connected' || !sock) {
+  const isAnyConnected =
+    (slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected') ||
+    (slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected');
+
+  if (!isAnyConnected) {
     return {
       success: false,
-      message: 'محرك WhatsApp غير متصل حالياً. يرجى مسح رمز الـ QR أولاً وتأكيد الاتصال.',
+      message: 'لا يوجد أي هاتف WhatsApp متصل حالياً. يرجى مسح رمز الـ QR لأحد الهاتفين وتأكيد الاتصال.',
     };
   }
 
@@ -1032,7 +1270,7 @@ export async function startWhatsAppBroadcast(
 
   return {
     success: true,
-    message: `تم بدء حملة الإرسال التلقائي بنجاح (${businesses.length} منشأة) مع تفعيل أعلى معايير الأمان ومحاكاة السلوك البشري.`,
+    message: `تم بدء حملة الإرسال التلقائي بنجاح (${businesses.length} منشأة) مع تفعيل أعلى معايير الأمان ومحاكاة السلوك البشري والتناوب الذكي.`,
     campaignId,
   };
 }
@@ -1041,10 +1279,14 @@ export async function startWhatsAppBroadcast(
  * ⏯️ Resumes a Paused WhatsApp Broadcast Campaign
  */
 export async function resumeWhatsAppBroadcast(): Promise<{ success: boolean; message: string }> {
-  if (connectionState !== 'connected' || !sock) {
+  const isAnyConnected =
+    (slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected') ||
+    (slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected');
+
+  if (!isAnyConnected) {
     return {
       success: false,
-      message: 'محرك WhatsApp غير متصل حالياً. يرجى التأكد من مسح الرمز واتصال المحرك أولاً قبل الاستئناف.',
+      message: 'لا يوجد أي هاتف WhatsApp متصل حالياً. يرجى التأكد من مسح الرمز واتصال أحد الهاتفين أولاً قبل الاستئناف.',
     };
   }
 

@@ -11,6 +11,7 @@ import {
 import { Pencil, Trash2, Check, X, Building2, MapPin, Phone, Clock, FileText, DollarSign, UserCheck, ShieldCheck } from 'lucide-react';
 import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES } from '../data/mockData';
 import { ConfirmDialog } from './ui';
+import { isTrendingFreeActivity, isUnpaidActivity } from '../utils/categoryMatcher';
 
 // Subcomponents matching prototype UX/UI
 import { DrawerHeroHeader } from './business-drawer/DrawerHeroHeader';
@@ -82,11 +83,12 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
   const isOwnerRep = userRole === 'rep' && (business.repId === currentUser?.id || business.repName === currentUser?.name);
   const canEdit = isManagerial || isOwnerRep;
 
-  const remaining = business.isFeeExempt
+  const isExemptOrTrending = isTrendingFreeActivity(business);
+  const remaining = isExemptOrTrending
     ? 0
-    : Math.max(0, (business.packagePrice || 0) - (business.amountPaid || 0));
+    : Math.max(0, (business.packagePrice || 250) - (business.amountPaid || 0));
 
-  const isUnpaidNonExempt = !business.isFeeExempt && (business.paymentStatus === 'unpaid' || remaining > 0);
+  const isUnpaidNonExempt = !isExemptOrTrending && isUnpaidActivity(business);
 
   const repCommissionRate = business.repCommissionRate || 40;
   const earnedCommission = Math.round((business.amountPaid || 0) * (repCommissionRate / 100));

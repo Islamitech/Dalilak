@@ -265,7 +265,8 @@ export function matchesCategoryFilter(
 }
 
 /**
- * 🌟 الأنشطة الرائجة: المنشآت التي تم تسجيلها بشكل مجاني / بدون تحصيل رسوم
+ * 🌟 الأنشطة الرائجة / المعفاة: المنشآت التي تم تسجيلها بشكل مجاني ترويجي بدون تحصيل رسوم
+ * (يجب ألا تشمل إطلاقاً المنشآت ذات الباقات المدفوعة بانتظار السداد)
  */
 export const isTrendingFreeActivity = (b: {
   isFeeExempt?: boolean;
@@ -274,24 +275,40 @@ export const isTrendingFreeActivity = (b: {
   paymentStatus?: string;
   amountPaid?: number;
   notes?: string;
+  packageName?: string;
+  registrationType?: string;
 }): boolean => {
-  return Boolean(
-    b.isFeeExempt ||
+  if (b.isFeeExempt === true) return true;
+  if (b.packagePrice === 0) return true;
+  if (
     b.packageId === 'pkg_free_directory' ||
     b.packageId === 'free_directory_listing' ||
-    (b.packagePrice === 0) ||
-    b.paymentStatus === 'exempt' ||
-    b.paymentStatus === 'free' ||
-    ((!b.amountPaid || b.amountPaid === 0) && (b.isFeeExempt || b.packagePrice === 0 || !b.paymentStatus || b.paymentStatus === 'unpaid')) ||
+    b.packageId === 'pkg_exempt' ||
+    b.packageId === 'pkg_already_on_google' ||
+    b.registrationType === 'already_on_google'
+  ) {
+    return true;
+  }
+  if (b.paymentStatus === 'exempt' || b.paymentStatus === 'free') return true;
+  if (
     b.notes?.includes('trending_free') ||
     b.notes?.includes('نشاط رائج') ||
-    b.notes?.includes('مكان رائج') ||
-    b.notes?.includes('مجاني')
-  );
+    b.notes?.includes('مكان رائج')
+  ) {
+    return true;
+  }
+  if (
+    b.packageName?.includes('إدراج شرفي') ||
+    b.packageName?.includes('إدراج مجاني') ||
+    b.packageName?.includes('إدراج ترويجي')
+  ) {
+    return true;
+  }
+  return false;
 };
 
 /**
- * 💳 الأنشطة ذات الفواتير المحصلة: المنشآت المسددة باقات مدفوعة
+ * 💳 الأنشطة ذات الفواتير المحصلة: المنشآت المسددة باقات مدفوعة بالكامل
  */
 export const isCollectedInvoiceActivity = (b: {
   paymentStatus?: string;
@@ -299,11 +316,74 @@ export const isCollectedInvoiceActivity = (b: {
   packagePrice?: number;
   invoiceNumber?: string;
   isFeeExempt?: boolean;
+  packageId?: string;
+  notes?: string;
+  packageName?: string;
+  registrationType?: string;
 }): boolean => {
-  if (b.isFeeExempt || (b.packagePrice || 0) === 0) return false;
+  // الأنشطة المجانية والرائجة ليست فواتير محصلة مدفوعة
+  if (isTrendingFreeActivity(b)) return false;
+
+  const price = b.packagePrice !== undefined && b.packagePrice !== null ? b.packagePrice : 250;
+  if (price <= 0) return false;
+
+  const paid = Number(b.amountPaid) || 0;
   return Boolean(
     b.paymentStatus === 'fully_paid' ||
-    ((b.amountPaid || 0) >= (b.packagePrice || 250) && (b.amountPaid || 0) > 0) ||
-    ((b.amountPaid || 0) > 0 && Boolean(b.invoiceNumber))
+    (paid >= price && paid > 0)
   );
+};
+
+/**
+ * ⏳ الأنشطة بانتظار السداد: المنشآت ذات الباقات المدفوعة التي لم تُسدد رسومها بالكامل
+ * (مستثنى منها الأنشطة الرائجة المجانية والمعفاة من الرسوم تماماً)
+ */
+export const isUnpaidActivity = (b: {
+  paymentStatus?: string;
+  amountPaid?: number;
+  packagePrice?: number;
+  invoiceNumber?: string;
+  isFeeExempt?: boolean;
+  packageId?: string;
+  notes?: string;
+  packageName?: string;
+  registrationType?: string;
+}): boolean => {
+  // 🛡️ الأنشطة الرائجة والمعفاة لا يجب إدراجها إطلاقاً ضمن انتظار السداد
+  if (isTrendingFreeActivity(b)) return false;
+  // الأنشطة المسددة بالكامل ليست بانتظار السداد
+  if (isCollectedInvoiceActivity(b)) return false;
+
+  const price = b.packagePrice !== undefined && b.packagePrice !== null ? b.packagePrice : 250;
+  if (price <= 0) return false;
+
+  const paid = Number(b.amountPaid) || 0;
+  return Boolean(
+    b.paymentStatus === 'unpaid' ||
+    b.paymentStatus === 'partially_paid' ||
+    paid < price
+  );
+};
+
+/**
+ * 🗺️ التحقق الدقيق من توثيق النشاط رسمياً على خرائط Google
+ */
+export const isBusinessGoogleVerified = (b: {
+  googleMapsUrl?: string | null;
+  isAlreadyOnGoogle?: boolean;
+  packageId?: string;
+  googleSyncStatus?: string;
+}): boolean => {
+  if (b.isAlreadyOnGoogle || b.packageId === 'pkg_already_on_google') return true;
+  if (b.googleSyncStatus === 'synced') return true;
+  const url = (b.googleMapsUrl || '').trim();
+  if (!url || !url.startsWith('http')) return false;
+  if (
+    url.includes('search/?api=1&query=') ||
+    url.includes('maps?q=') ||
+    url.includes('google.com/maps?q=')
+  ) {
+    return false;
+  }
+  return true;
 };

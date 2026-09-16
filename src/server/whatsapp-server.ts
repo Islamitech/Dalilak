@@ -13,6 +13,7 @@ import {
   clearSavedCampaignProgress,
   getCampaignHistory,
   PRIMARY_WHATSAPP_SENDER_PHONE,
+  SlotId,
 } from './whatsapp-gateway.js';
 import { Business } from '../types.js';
 
@@ -163,8 +164,9 @@ app.post(['/api/whatsapp/connect', '/api/admin/whatsapp/connect'], async (req, r
         error: 'غير مصرح: بوابة واتساب محصورة بالسوبر أدمن حصراً (403 Forbidden)',
       });
     }
-    const status = await initWhatsAppGateway();
-    return res.json({ success: true, status });
+    const slot: SlotId = req.body?.slot === '2' ? '2' : '1';
+    const status = await initWhatsAppGateway(slot);
+    return res.json({ success: true, status, slot });
   } catch (err: any) {
     console.error('[WhatsApp Server] Connect error:', err);
     return res.status(500).json({ success: false, error: err?.message || 'فشل بدء اتصال بوابة واتساب' });
@@ -180,10 +182,14 @@ app.post(['/api/whatsapp/disconnect', '/api/admin/whatsapp/disconnect'], async (
         error: 'غير مصرح: بوابة واتساب محصورة بالسوبر أدمن حصراً (403 Forbidden)',
       });
     }
-    await disconnectWhatsAppGateway();
+    const slot: SlotId | undefined = req.body?.slot ? (req.body.slot === '2' ? '2' : '1') : undefined;
+    await disconnectWhatsAppGateway(slot);
     return res.json({
       success: true,
-      message: 'تم إنهاء جلسة واتساب وحذف ملفات الاعتماد بأمان.',
+      message: slot
+        ? `تم إنهاء جلسة هاتف (${slot}) وحذف اعتماداته بأمان.`
+        : 'تم إنهاء جلسات واتساب وحذف ملفات الاعتماد بأمان.',
+      slot,
     });
   } catch (err: any) {
     console.error('[WhatsApp Server] Disconnect error:', err);
@@ -208,6 +214,8 @@ app.post(['/api/whatsapp/broadcast', '/api/admin/whatsapp/broadcast'], async (re
       minDelaySeconds = 10,
       maxDelaySeconds = 20,
       skipRecentlyContacted = true,
+      rotationBatchSize = 15,
+      enableRotation = true,
     } = req.body;
 
     const targetList: Business[] = Array.isArray(targetBusinesses) ? targetBusinesses : [];
@@ -225,6 +233,8 @@ app.post(['/api/whatsapp/broadcast', '/api/admin/whatsapp/broadcast'], async (re
       minDelaySeconds: Number(minDelaySeconds) || 10,
       maxDelaySeconds: Number(maxDelaySeconds) || 20,
       skipRecentlyContacted: Boolean(skipRecentlyContacted),
+      rotationBatchSize: Number(rotationBatchSize) || 15,
+      enableRotation: Boolean(enableRotation),
     });
 
     return res.json(result);
@@ -334,15 +344,29 @@ function startListening(targetPort: number) {
       console.log(`    - Last Index: ${saved.lastIndex ?? 0}`);
     }
 
-    // Auto-restore WhatsApp session if saved credentials exist
+    // Auto-restore WhatsApp sessions if saved credentials exist for Slot 1 or Slot 2
     try {
-      const credsPath = path.resolve(process.cwd(), 'data/baileys_auth_info/creds.json');
-      if (fs.existsSync(credsPath)) {
-        console.log(' 📱 [WhatsApp Gateway] Detected saved credentials. Auto-restoring session in background...');
-        initWhatsAppGateway().catch((err) => {
-          console.warn(' 📱 [WhatsApp Gateway] Auto-restore notice:', err?.message);
+      const slot1Creds = path.resolve(process.cwd(), 'data/baileys_auth_info_1/creds.json');
+      const legacyCreds = path.resolve(process.cwd(), 'data/baileys_auth_info/creds.json');
+      const slot2Creds = path.resolve(process.cwd(), 'data/baileys_auth_info_2/creds.json');
+
+      let restoredAny = false;
+      if (fs.existsSync(slot1Creds) || fs.existsSync(legacyCreds)) {
+        console.log(' 📱 [WhatsApp Gateway] Detected Slot 1 credentials. Auto-restoring in background...');
+        initWhatsAppGateway('1').catch((err) => {
+          console.warn(' 📱 [WhatsApp Gateway] Slot 1 auto-restore notice:', err?.message);
         });
-      } else {
+        restoredAny = true;
+      }
+      if (fs.existsSync(slot2Creds)) {
+        console.log(' 📱 [WhatsApp Gateway] Detected Slot 2 credentials. Auto-restoring in background...');
+        initWhatsAppGateway('2').catch((err) => {
+          console.warn(' 📱 [WhatsApp Gateway] Slot 2 auto-restore notice:', err?.message);
+        });
+        restoredAny = true;
+      }
+
+      if (!restoredAny) {
         console.log(' ℹ️ [WhatsApp Gateway] No saved credentials found. Ready to scan QR code from dashboard.');
       }
     } catch {}

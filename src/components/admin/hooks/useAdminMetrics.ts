@@ -5,7 +5,7 @@ import { isReferredByInviter, getRepReferralSummary } from '../../../utils/refer
 import { safeParseJson } from '../../../utils/storage';
 import { getDeletedRepresentatives } from '../../../services/db/repDb';
 import { isBusinessFollowUpOverdue } from '../../../utils/followUpUtils';
-import { getCategoryGroupFor, isTrendingFreeActivity, isCollectedInvoiceActivity } from '../../../utils/categoryMatcher';
+import { getCategoryGroupFor, isTrendingFreeActivity, isCollectedInvoiceActivity, isUnpaidActivity } from '../../../utils/categoryMatcher';
 
 interface UseAdminMetricsProps {
   currentUser?: User | null;
@@ -118,6 +118,12 @@ export const useAdminMetrics = ({
   // 💳 الأنشطة ذات الفواتير المحصلة (المسددة بالكامل أو دفعات فعلية)
   const collectedInvoicesCount = useMemo(
     () => realBusinesses.filter(isCollectedInvoiceActivity).length,
+    [realBusinesses]
+  );
+
+  // ⏳ الأنشطة بانتظار السداد (باقات مدفوعة لم تُسدد رسومها بالكامل)
+  const unpaidBusinessesCount = useMemo(
+    () => realBusinesses.filter(isUnpaidActivity).length,
     [realBusinesses]
   );
 
@@ -622,6 +628,7 @@ export const useAdminMetrics = ({
     pendingApprovalCount,
     trendingFreeCount,
     collectedInvoicesCount,
+    unpaidBusinessesCount,
     verificationRate,
     leadStats,
     overdueReviewBusinesses,
