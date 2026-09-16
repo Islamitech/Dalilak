@@ -38,8 +38,10 @@ import {
   Gift,
   QrCode,
   Shuffle,
+  ExternalLink,
 } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
+import { getPublicDirectoryUrl, getDisplayDirectoryUrl } from '../../utils/directoryUrl';
 
 export type DirectorySortOption = 'random' | 'newest' | 'oldest' | 'alpha';
 
@@ -1196,6 +1198,16 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                       <span>فاتورة</span>
                     </button>
 
+                    <a
+                      href={getPublicDirectoryUrl(biz)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
+                      title="فتح صفحة المنشأة على الدليل العام (رابط دائم)"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
+                    </a>
+
                     {ownerPhone && (
                       <a
                         href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
@@ -1395,6 +1407,16 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                                 </button>
                               );
                             })()}
+
+                            <a
+                              href={getPublicDirectoryUrl(biz)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-xl bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border border-amber-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
+                              title="فتح الرابط المباشر للمنشأة على الدليل العام (SEO)"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
+                            </a>
 
                             <button
                               onClick={() => onShowInvoice(biz)}

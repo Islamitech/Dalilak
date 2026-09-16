@@ -7,7 +7,7 @@ import {
   downloadBusinessVCard,
   getGiftBarcodeWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
-import { getPublicDirectoryUrl } from '../../utils/directoryUrl';
+import { getPublicDirectoryUrl, getDisplayDirectoryUrl } from '../../utils/directoryUrl';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   X,
@@ -32,6 +32,8 @@ import {
   ChevronRight,
   Gift,
   QrCode,
+  Copy,
+  Link2,
 } from 'lucide-react';
 import { ShowcasePhotoLightbox } from '../showcase/ShowcasePhotoLightbox';
 
@@ -524,6 +526,39 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Official Canonical Directory Permalink Bar */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/90 flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Link2 className="w-4 h-4 text-amber-700 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-black text-amber-900 block">رابط صفحة المنشأة على الدليل العام (SEO):</span>
+                <span className="text-xs font-mono text-slate-700 truncate block select-all" dir="ltr">
+                  {getDisplayDirectoryUrl(business)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="py-1.5 px-3 rounded-xl bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                title="نسخ رابط صفحة النشاط"
+              >
+                {copied ? (
+                  <>
+                    <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-700">تم النسخ</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-amber-700" />
+                    <span>نسخ الرابط</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
           {/* Discreet Claim & Report Footer */}
           <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500 font-bold">

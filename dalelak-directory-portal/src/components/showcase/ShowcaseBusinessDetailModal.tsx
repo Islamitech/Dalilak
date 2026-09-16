@@ -7,6 +7,7 @@ import {
   getSmartWhatsAppUrl,
   getGiftBarcodeWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
+import { getPublicDirectoryUrl, getDisplayDirectoryUrl } from '../../utils/directoryUrl';
 import {
   X,
   Lock,
@@ -27,6 +28,8 @@ import {
   MessageCircle,
   Gift,
   QrCode,
+  Copy,
+  Link2,
 } from 'lucide-react';
 
 export interface ShowcaseBusinessDetailModalProps {
@@ -581,6 +584,39 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
               )}
             </div>
           )}
+
+          {/* Official Canonical Directory Permalink Bar */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Link2 className="w-4 h-4 text-amber-600 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-black text-amber-700 block">رابط صفحة المنشأة على الدليل العام (SEO):</span>
+                <span className="text-xs font-mono text-[var(--text-primary)] truncate block select-all" dir="ltr">
+                  {getDisplayDirectoryUrl(selectedBiz)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={(e) => handleShareBusiness(selectedBiz, e)}
+                className="py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                title="نسخ رابط صفحة النشاط"
+              >
+                {copiedBizId === selectedBiz.id ? (
+                  <>
+                    <CheckCheck className="w-3.5 h-3.5 text-slate-950" />
+                    <span>تم النسخ</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-950" />
+                    <span>نسخ الرابط</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
           {/* Trust & Verification: Claim Listing & Report Incorrect Data */}
           <div className="pt-2.5 pb-1 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] font-bold">

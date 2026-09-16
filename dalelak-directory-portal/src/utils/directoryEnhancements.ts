@@ -174,6 +174,7 @@ export function downloadBusinessVCard(biz: Business): void {
   const city = biz.city || '';
   const gov = biz.governorate || '';
   const mapsUrl = biz.googleMapsUrl || (biz.lat && biz.lng ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}` : '');
+  const directoryUrl = getPublicDirectoryUrl(biz);
   const note = `منصة دليلك المعتمدة | ${biz.category} | ${biz.workingHours || ''}`;
 
   const vCardContent = [
@@ -185,7 +186,8 @@ export function downloadBusinessVCard(biz: Business): void {
     phone ? `TEL;TYPE=WORK,VOICE:${phone}` : '',
     biz.secondaryPhone ? `TEL;TYPE=CELL,VOICE:${biz.secondaryPhone}` : '',
     `ADR;TYPE=WORK;CHARSET=UTF-8:;;${street};${city};${gov};;مصر`,
-    mapsUrl ? `URL:${mapsUrl}` : '',
+    directoryUrl ? `URL;TYPE=DIRECTORY:${directoryUrl}` : '',
+    mapsUrl ? `URL;TYPE=MAP:${mapsUrl}` : '',
     `NOTE;CHARSET=UTF-8:${note}`,
     'END:VCARD',
   ]
@@ -262,7 +264,8 @@ export function injectBusinessSchemaLd(biz: Business | null): void {
       latitude: biz.lat,
       longitude: biz.lng,
     },
-    url: biz.googleMapsUrl || window.location.href,
+    url: getPublicDirectoryUrl(biz),
+    sameAs: biz.googleMapsUrl ? [biz.googleMapsUrl] : undefined,
     image: biz.photos && biz.photos.length > 0 ? biz.photos[0] : undefined,
   };
 

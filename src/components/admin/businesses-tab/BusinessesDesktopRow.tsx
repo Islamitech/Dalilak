@@ -5,6 +5,7 @@ import { formatEGP } from '../../../utils/formatCurrency';
 import { formatStandardDateTime } from '../../../utils/dateFormatters';
 import { isRepAccountDeleted } from '../../../utils/accountStatus';
 import { calcBusinessFinancials } from './businessesTabUtils';
+import { getPublicDirectoryUrl } from '../../../utils/directoryUrl';
 import {
   MapPin,
   CheckCircle2,
@@ -138,10 +139,16 @@ export const BusinessesDesktopRow: React.FC<BusinessesDesktopRowProps> = ({
         <div className="space-y-1">
           <div>
             {isDirectoryApproved ? (
-              <span className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+              <a
+                href={getPublicDirectoryUrl(biz)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors cursor-pointer"
+                title="فتح صفحة المنشأة على الدليل العام (رابط دائم)"
+              >
                 <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
                 <span>معتمد بالدليل</span>
-              </span>
+              </a>
             ) : biz.verificationStatus === 'rejected' ? (
               <span className="bg-rose-500/15 text-rose-700 border border-rose-500/30 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                 <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />

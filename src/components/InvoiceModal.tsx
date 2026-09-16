@@ -35,6 +35,7 @@ import {
 import { generateQrDataUrl } from '../utils/qrGenerator';
 import { triggerHaptic } from '../utils/haptics';
 import { getRepDisplayInfo } from '../utils/repDisplay';
+import { getDisplayDirectoryUrl, getPublicDirectoryUrl } from '../utils/directoryUrl';
 
 interface InvoiceModalProps {
   business: Business | null;
@@ -119,7 +120,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     packageId: activeBusiness.packageId,
   });
 
-  const directoryUrl = 'https://www.dalilaak.com/';
+  const directoryUrl = getDisplayDirectoryUrl(activeBusiness);
+  const publicDirectoryUrl = getPublicDirectoryUrl(activeBusiness);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartY(e.touches[0].clientY);
@@ -435,7 +437,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 : '✨ صفحة المكان الرسمية منشورة ومتاحة الآن في منصة دليلك:'}
             </div>
             <div>
-              <a href={directoryUrl} target="_blank" rel="noreferrer" className="text-amber-800 hover:text-amber-900 underline font-mono font-black">
+              <a href={publicDirectoryUrl} target="_blank" rel="noreferrer" className="text-amber-800 hover:text-amber-900 underline font-mono font-black break-all" dir="ltr">
                 {directoryUrl}
               </a>
             </div>

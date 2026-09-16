@@ -5,7 +5,7 @@
  */
 
 // Direct directory URL
-export const DIRECTORY_URL = 'https://www.dalilaak.com/?ref=app';
+export const DIRECTORY_URL = 'https://www.dalilaak.com';
 
 /**
  * Official Institutional Header - Universal across Egypt

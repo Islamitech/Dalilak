@@ -1,6 +1,7 @@
 import { Business, AdditionalServiceInvoice } from '../../types';
 import { formatWhatsAppPhone, cleanWhatsAppText, safeWhatsAppEncode } from './phoneFormatter';
 import { OFFICIAL_PLATFORM_HEADER, getVenueContextLabel, DIRECTORY_URL } from './venueContext';
+import { getDisplayDirectoryUrl } from '../directoryUrl';
 
 /**
  * Reads the active platform payment configuration from localStorage with safe fallback.
@@ -82,7 +83,7 @@ export function generateInvoiceWhatsAppMessage(biz: Business): string {
 ` +
     feeSection +
     `🔗 *رابط المعاينة المباشر لصفحتكم على الدليل:*\n` +
-    `${DIRECTORY_URL}\n\n` +
+    `${getDisplayDirectoryUrl(biz)}\n\n` +
     `*نحيطكم علماً بجاهزية صفحة المنشأة على الدليل، ويرجى استكمال سداد الرسوم المقررة لتأكيد النشر والاعتماد النهائي.*\n` +
     `شاكرين حسن تعاونكم،\n` +
     `الإدارة المالية — منصة دليلك`;
@@ -363,7 +364,7 @@ export function generatePaymentReceiptWhatsAppMessage(biz: Business): string {
     `• *رقم الفاتورة المرجعي:* ${biz.invoiceNumber || 'INV-2026'}
 
 ` +
-    `• *رابط صفحتكم بالدليل:* ${DIRECTORY_URL}
+    `• *رابط صفحتكم بالدليل:* ${getDisplayDirectoryUrl(biz)}
 
 ` +
     `نشكركم لالتزامكم وثقتكم في منصة دليلك 🤝`;

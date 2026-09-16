@@ -2,6 +2,7 @@ import { Business } from '../../types';
 import { formatWhatsAppPhone, cleanWhatsAppText, safeWhatsAppEncode } from './phoneFormatter';
 import { OFFICIAL_PLATFORM_HEADER, getVenueContextLabel, DIRECTORY_URL } from './venueContext';
 import { getActivePaymentConfig } from './financeMessages';
+import { getDisplayDirectoryUrl } from '../directoryUrl';
 
 // -----------------------------------------------------------------------------
 // EVENT 0: WELCOME FOR ALREADY GOOGLE ACTIVE VENUES
@@ -32,7 +33,7 @@ export function generateWelcomeAlreadyOnGoogleWhatsAppMessage(biz: Business): st
 ` +
     `*يسعدنا إعلامكم بأنه تم إدراج وربط صفحتكم رسمياً بدليل المنصة المعتمد مجاناً:*
 ` +
-    `🔗 رابط صفحتكم المباشر بالدليل: ${DIRECTORY_URL}
+    `🔗 رابط صفحتكم المباشر بالدليل: ${getDisplayDirectoryUrl(biz)}
 
 ` +
     `*مزايا وجودكم على منصة دليلك:*

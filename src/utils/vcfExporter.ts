@@ -1,5 +1,5 @@
 import { Business } from '../types';
-import { getDisplayDirectoryUrl } from './directoryUrl';
+import { getDisplayDirectoryUrl, getPublicDirectoryUrl } from './directoryUrl';
 
 export interface VcfExportOptions {
   /**
@@ -197,7 +197,7 @@ export function generateSingleVCard(biz: Business, options: VcfExportOptions = {
     try {
       profileUrl = getDisplayDirectoryUrl(biz);
     } catch {
-      profileUrl = `https://www.dalilaak.com/biz/${biz.id}`;
+      profileUrl = getPublicDirectoryUrl(biz);
     }
   }
 
