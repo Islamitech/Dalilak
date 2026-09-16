@@ -39,6 +39,7 @@ export interface BusinessDetailsDrawerProps {
   onUpdateBusiness?: (biz: Business) => void;
   onDeleteBusiness?: (id: string) => void;
   currentUser?: User | null;
+  initialTab?: string;
 }
 
 export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
@@ -51,6 +52,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
   onUpdateBusiness,
   onDeleteBusiness,
   currentUser,
+  initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'admin' | 'notes' | 'directory' | 'whatsapp'>('info');
   const [newNoteText, setNewNoteText] = useState('');
@@ -71,8 +73,21 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
   useEffect(() => {
     if (business) {
       setIsEditModalOpen(false);
+      if (initialTab) {
+        if (initialTab === 'payment' || initialTab === 'admin') {
+          setActiveTab('admin');
+        } else if (initialTab === 'admin_followup' || initialTab === 'notes') {
+          setActiveTab('notes');
+        } else if (initialTab === 'directory') {
+          setActiveTab('directory');
+        } else if (initialTab === 'whatsapp') {
+          setActiveTab('whatsapp');
+        } else if (initialTab === 'edit') {
+          setIsEditModalOpen(true);
+        }
+      }
     }
-  }, [business, isOpen]);
+  }, [business, isOpen, initialTab]);
 
   if (!business) return null;
 

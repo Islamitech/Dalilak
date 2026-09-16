@@ -808,6 +808,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <BusinessDetailsDrawer
         business={editingBusiness}
         isOpen={Boolean(editingBusiness)}
+        initialTab={editingBusinessInitialTab}
         currentUser={currentUser}
         onClose={() => {
           setEditingBusiness(null);
