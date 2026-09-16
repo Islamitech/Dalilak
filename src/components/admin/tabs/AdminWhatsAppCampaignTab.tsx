@@ -520,10 +520,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [minDelaySeconds, setMinDelaySeconds] = useState<number>(10);
   const [maxDelaySeconds, setMaxDelaySeconds] = useState<number>(20);
 
-  // 🌿 Organic Stealth Random Mode (15 then 15 then full random 20-60m)
+  // 🌿 Organic Stealth Random Mode (Direct alternating between Phone 1 & 2 with random 1-5m delay)
   const [enableStealthRandomMode, setEnableStealthRandomMode] = useState<boolean>(true);
-  const [stealthMinMinutes, setStealthMinMinutes] = useState<number>(20);
-  const [stealthMaxMinutes, setStealthMaxMinutes] = useState<number>(60);
+  const [stealthMinMinutes, setStealthMinMinutes] = useState<number>(1);
+  const [stealthMaxMinutes, setStealthMaxMinutes] = useState<number>(5);
   const [isSkippingDelay, setIsSkippingDelay] = useState<boolean>(false);
 
   // Audience Targeting state
@@ -586,6 +586,26 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         setSessionStatus(res.data.status);
         setIsServerReachable(true);
         setServerNoticeMessage(null);
+
+        // 🛡️ Keep user logged in permanently when campaign is active
+        const campaignState = res.data.status.activeCampaign?.status;
+        const isCampaignActive =
+          campaignState === 'running' || campaignState === 'cooldown' || campaignState === 'paused';
+
+        if (isCampaignActive) {
+          localStorage.setItem('dalelak_campaign_active', 'true');
+          sessionStorage.setItem('dalelak_campaign_active', 'true');
+          const nowStr = String(Date.now());
+          localStorage.setItem('dalelak_last_interaction', nowStr);
+          sessionStorage.setItem('dalelak_session_last_active', nowStr);
+        } else if (
+          campaignState === 'completed' ||
+          campaignState === 'idle' ||
+          campaignState === 'aborted'
+        ) {
+          localStorage.removeItem('dalelak_campaign_active');
+          sessionStorage.removeItem('dalelak_campaign_active');
+        }
       } else {
         setIsServerReachable(false);
         if (res.isVercelStatic) {
@@ -596,6 +616,44 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       setIsServerReachable(false);
     }
   }, []);
+
+  // 🛡️ Screen WakeLock & Session Keep-Alive Loop for active campaigns
+  useEffect(() => {
+    let wakeLockSentinel: any = null;
+    let keepAliveTimer: any = null;
+
+    const requestWakeLock = async () => {
+      try {
+        if (typeof navigator !== 'undefined' && 'wakeLock' in navigator && (navigator as any).wakeLock) {
+          wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+        }
+      } catch {}
+    };
+
+    const isRunning =
+      sessionStatus.activeCampaign?.status === 'running' ||
+      sessionStatus.activeCampaign?.status === 'cooldown' ||
+      sessionStatus.activeCampaign?.status === 'paused';
+
+    if (isRunning) {
+      requestWakeLock();
+      localStorage.setItem('dalelak_campaign_active', 'true');
+      sessionStorage.setItem('dalelak_campaign_active', 'true');
+
+      keepAliveTimer = setInterval(() => {
+        const nowStr = String(Date.now());
+        localStorage.setItem('dalelak_last_interaction', nowStr);
+        sessionStorage.setItem('dalelak_session_last_active', nowStr);
+      }, 15000);
+    }
+
+    return () => {
+      if (keepAliveTimer) clearInterval(keepAliveTimer);
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+      }
+    };
+  }, [sessionStatus.activeCampaign?.status]);
 
   // Polling loop
   useEffect(() => {
@@ -891,11 +949,16 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
           enableStealthRandomMode,
           stealthMinMinutes,
           stealthMaxMinutes,
-          stealthInitialBurstPerSlot: 15,
+          stealthInitialBurstPerSlot: 0,
         }),
       });
 
       if (res.success) {
+        localStorage.setItem('dalelak_campaign_active', 'true');
+        sessionStorage.setItem('dalelak_campaign_active', 'true');
+        const nowStr = String(Date.now());
+        localStorage.setItem('dalelak_last_interaction', nowStr);
+        sessionStorage.setItem('dalelak_session_last_active', nowStr);
         onShowNotification?.(res.data?.message || 'تم إطلاق حملة المراسلة بنجاح في الخلفية!', 'success');
         fetchStatus();
       } else {
@@ -1964,14 +2027,14 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-black text-sm sm:text-base text-white">
-                        وضع الإرسال الشبح البشري العشوائي (Stealth Organic Mode)
+                        وضع التبادل البشري العشوائي (Organic Alternating Mode)
                       </h3>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black">
-                        15 ثم 15 ثم عشوائي كامل
+                        تبديل مباشر بين الهاتفين (1 ⬅️ 2)
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-300 mt-0.5">
-                      يبدأ بـ 15 رسالة من هاتف (1)، ثم 15 رسالة من هاتف (2)، ثم يتحول تلقائياً إلى نظام عشوائي كامل (رسالة كل 20 إلى 60 دقيقة من أيٍّ من الهاتفين عشوائياً).
+                      إرسال رسالة من هاتف (1) ثم رسالة من هاتف (2) بالتناوب التبادلي المباشر، مع فاصل عشوائي طبيعي (من 1 إلى 5 دقائق) بين كل رسالة والأخرى لحماية الأرقام وتوزيع الجهد بالتساوي.
                     </p>
                   </div>
                 </div>
@@ -1997,19 +2060,19 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       </div>
                       <input
                         type="range"
-                        min="5"
-                        max="60"
-                        step="5"
+                        min="1"
+                        max="10"
+                        step="1"
                         value={stealthMinMinutes}
                         onChange={(e) => {
                           const val = Number(e.target.value);
                           setStealthMinMinutes(val);
-                          if (stealthMaxMinutes < val + 5) setStealthMaxMinutes(val + 10);
+                          if (stealthMaxMinutes < val + 1) setStealthMaxMinutes(val + 2);
                         }}
                         className="w-full accent-emerald-500 cursor-pointer"
                       />
                       <p className="text-[10px] text-[var(--text-secondary)]">
-                        (الافتراضي: 20 دقيقة = حوالي ثلث ساعة)
+                        (الافتراضي: 1 دقيقة كحد أدنى)
                       </p>
                     </div>
 
@@ -2020,15 +2083,15 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       </div>
                       <input
                         type="range"
-                        min={stealthMinMinutes + 5}
-                        max="120"
-                        step="5"
+                        min={stealthMinMinutes + 1}
+                        max="15"
+                        step="1"
                         value={stealthMaxMinutes}
                         onChange={(e) => setStealthMaxMinutes(Number(e.target.value))}
                         className="w-full accent-emerald-500 cursor-pointer"
                       />
                       <p className="text-[10px] text-[var(--text-secondary)]">
-                        (الافتراضي: 60 دقيقة = ساعة كاملة بين الرسائل)
+                        (الافتراضي: 5 دقائق كحد أقصى)
                       </p>
                     </div>
                   </div>
@@ -2036,7 +2099,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <div className="p-3 bg-emerald-950/40 border border-emerald-500/20 rounded-2xl text-[11px] text-emerald-200 leading-relaxed flex items-start gap-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                     <span>
-                      <strong>أعلى حماية وأمان ممكن:</strong> يبدأ بدفعة سريعة منتظمة (15 من الرقم 1 ثم 15 من الرقم 2)، ثم يتباعد الإرسال بالكامل ليصبح كاستخدام إنسان حقيقي يتراوح بين ثلث ساعة وساعة بين كل رسالة والأخرى ومن أرقام متبادلة، مما يمنع الحظر بنسبة 100%.
+                      <strong>توازن مثالي بين الأمان والسرعة:</strong> يتم التبديل مباشرة بين الهاتفين رسالة برسالة بالتناوب، مع فاصل عشوائي طبيعي من 1 إلى 5 دقائق لحماية الأرقام بنسبة تفوق 90%. وتظل جلسة تسجيل الدخول نشطة ومحمية تماماً طوال تشغيل الحملة دون انقطاع.
                     </span>
                   </div>
                 </div>
@@ -2104,7 +2167,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold mt-1 mr-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                   <span>
-                    🌿 <strong>وضع الشبح البشري (Stealth Organic):</strong> هاتف 1: ({campaign.slot1SentCount || 0}) • هاتف 2: ({campaign.slot2SentCount || 0})
+                    🌿 <strong>وضع التبادل البشري (Organic Alternating):</strong> هاتف 1: ({campaign.slot1SentCount || 0}) • هاتف 2: ({campaign.slot2SentCount || 0})
                   </span>
                 </div>
               )}
@@ -2807,7 +2870,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                   <span className="text-[var(--text-secondary)]">نظام الإرسال:</span>
                   <span className="font-bold text-white text-xs text-left max-w-[280px]">
                     {enableStealthRandomMode
-                      ? `🌿 وضع الشبح البشري (15 ثم 15 ثم عشوائي كامل ${stealthMinMinutes}-${stealthMaxMinutes} د)`
+                      ? `🌿 تبادل بشري عشوائي (${stealthMinMinutes}-${stealthMaxMinutes} د بالتناوب بين الهاتفين)`
                       : enableRotation && isBothConnected
                       ? `🔄 تناوب دوري بين الهاتفين (كل ${rotationBatchSize} رسالة)`
                       : slot1.state === 'connected'

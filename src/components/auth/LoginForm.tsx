@@ -187,18 +187,33 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         return;
       }
 
-      // Check account rejection status (only block if officially rejected with reasons)
-      if (foundRep.avatarStatus === 'rejected') {
-        const emailNotice = foundRep.email ? ` عبر البريد الإلكتروني (${foundRep.email})` : ' عبر البريد الإلكتروني';
-        onError(`❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`);
-        setIsLoading(false);
-        return;
-      }
+      // Check account approval and rejection status for non-admin accounts
+      if (!isSuperAdminAccount && foundRep.role !== 'admin') {
+        if (foundRep.avatarStatus === 'rejected') {
+          const emailNotice = foundRep.email ? ` عبر البريد الإلكتروني (${foundRep.email})` : ' عبر البريد الإلكتروني';
+          onError(`❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`);
+          setIsLoading(false);
+          return;
+        }
 
-      // 🚀 السماح لجميع الحسابات المسجلة بالدخول المباشر: تفعيل الحساب فورياً إذا كان قيد المراجعة أو معلقاً
-      if (foundRep.status !== 'active') {
-        foundRep.status = 'active';
-        updateRepInDb(foundRep.id, { status: 'active' }).catch(() => {});
+        const isPendingApproval = foundRep.avatarStatus === 'pending_approval';
+        const isSuspended = foundRep.status === 'suspended' || foundRep.status !== 'active';
+
+        if (isPendingApproval || isSuspended) {
+          // Self-healing: If an unapproved account was previously marked active, heal it back to suspended
+          if (isPendingApproval && foundRep.status === 'active') {
+            foundRep.status = 'suspended';
+            updateRepInDb(foundRep.id, { status: 'suspended' }).catch(() => {});
+          }
+
+          if (isPendingApproval) {
+            onError('⏳ طلب تسجيل الحساب قيد المراجعة والتدقيق من قِبل إدارة المنظومة. لا يمكنك تسجيل الدخول إلى المنظومة إلا بعد فحص مستندات الهوية وموافقة المدير على تفعيل حسابك.');
+          } else {
+            onError('⛔ هذا الحساب معلق حالياً من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به إلا بعد مراجعة الإدارة وتفعيله.');
+          }
+          setIsLoading(false);
+          return;
+        }
       }
 
       // Auto-upgrade legacy plaintext passwords to SHA-256 upon successful login

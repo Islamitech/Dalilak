@@ -8,7 +8,7 @@ import {
   RegisterForm,
   ImagePreviewModal,
 } from './auth';
-import { ShieldCheck, UserPlus, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { ShieldCheck, UserPlus, AlertCircle, CheckCircle2, Clock, X } from 'lucide-react';
 
 export interface LoginModalProps {
   onClose: () => void;
@@ -48,9 +48,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleRegisterSuccess = () => {
     setRegSuccessNotice(true);
     setTimeout(() => {
-      setRegSuccessNotice(false);
       setActiveTab('login');
-    }, 4000);
+    }, 2500);
   };
 
   const modalBox = (
@@ -114,11 +113,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       )}
 
       {regSuccessNotice && (
-        <div className="bg-[var(--alert-success-bg)] border-2 border-[var(--alert-success-border)] text-[var(--alert-success-text)] p-3 rounded-xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
-          <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>
-            ✅ تم إنشاء وتفعيل حسابك بنجاح! يمكنك الآن تسجيل الدخول مباشرة بالبريد أو رقم الهاتف وكلمة المرور.
-          </span>
+        <div className="bg-amber-500/15 border-2 border-amber-500/40 text-amber-950 dark:text-amber-200 p-3.5 rounded-2xl text-xs flex items-start gap-2.5 font-extrabold leading-relaxed shadow-lg animate-fade-in-up">
+          <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-black text-sm text-amber-700 dark:text-amber-400">
+              ✅ تم إرسال طلب تسجيل الحساب والمستندات بنجاح!
+            </p>
+            <p className="text-[11px] leading-relaxed text-[var(--text-primary)]">
+              حسابك الآن <strong className="text-amber-600 dark:text-amber-300 font-black">قيد المراجعة والتدقيق الأمني</strong> من قِبل إدارة المنظومة. سيقوم مدير النظام بمراجعة بطاقة الرقم القومي ومستنداتك، ولن تتمكن من تسجيل الدخول إلا بعد الموافقة الرسمية وتفعيل الحساب من قِبل المدير.
+            </p>
+          </div>
         </div>
       )}
 

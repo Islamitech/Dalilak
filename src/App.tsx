@@ -170,6 +170,25 @@ export default function App() {
     ? representatives.find((r) => r.id === user.id || (user.email && r.email && r.email.toLowerCase() === user.email.toLowerCase()))
     : null;
 
+  // 🛡️ CRITICAL GUARD: Immediately log out if active non-admin user is suspended or pending approval
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      const isPendingOrSuspended =
+        user.repData?.status === 'suspended' ||
+        user.repData?.status !== 'active' ||
+        user.repData?.avatarStatus === 'pending_approval' ||
+        user.repData?.avatarStatus === 'rejected' ||
+        user.avatarStatus === 'pending_approval' ||
+        user.avatarStatus === 'rejected' ||
+        (liveRep && (liveRep.status !== 'active' || liveRep.avatarStatus === 'pending_approval' || liveRep.avatarStatus === 'rejected'));
+
+      if (isPendingOrSuspended) {
+        handleLogout();
+        addNotification('⏳ طلب حسابك قيد المراجعة والتدقيق من قِبل إدارة المنظومة. لا يمكن الدخول إلا بعد اعتماد المدير.', 'warning');
+      }
+    }
+  }, [user, liveRep, handleLogout, addNotification]);
+
   const currentRep: Representative = useMemo(() => ({
     id: user?.repData?.id || liveRep?.id || user?.id || 'rep_1',
     name: user?.repData?.name || liveRep?.name || user?.name || 'مندوب معتمد',

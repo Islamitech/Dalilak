@@ -18,3 +18,7 @@ data/server_biz_store.backup*.json
 **/_backup_original/
 data/*registry.json
 data/whatsapp_campaign_progress.json
+data/whatsapp_campaigns_history.json
+__pycache__/
+*.pyc
+data/audit_progress.json

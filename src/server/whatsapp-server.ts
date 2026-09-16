@@ -218,9 +218,9 @@ app.post(['/api/whatsapp/broadcast', '/api/admin/whatsapp/broadcast'], async (re
       rotationBatchSize = 15,
       enableRotation = true,
       enableStealthRandomMode = true,
-      stealthMinMinutes = 20,
-      stealthMaxMinutes = 60,
-      stealthInitialBurstPerSlot = 15,
+      stealthMinMinutes = 1,
+      stealthMaxMinutes = 5,
+      stealthInitialBurstPerSlot = 0,
     } = req.body;
 
     const targetList: Business[] = Array.isArray(targetBusinesses) ? targetBusinesses : [];
@@ -241,9 +241,9 @@ app.post(['/api/whatsapp/broadcast', '/api/admin/whatsapp/broadcast'], async (re
       rotationBatchSize: Number(rotationBatchSize) || 15,
       enableRotation: Boolean(enableRotation),
       enableStealthRandomMode: Boolean(enableStealthRandomMode),
-      stealthMinMinutes: Number(stealthMinMinutes) || 20,
-      stealthMaxMinutes: Number(stealthMaxMinutes) || 60,
-      stealthInitialBurstPerSlot: Number(stealthInitialBurstPerSlot) || 15,
+      stealthMinMinutes: Number(stealthMinMinutes) || 1,
+      stealthMaxMinutes: Number(stealthMaxMinutes) || 5,
+      stealthInitialBurstPerSlot: Number(stealthInitialBurstPerSlot) || 0,
     });
 
     return res.json(result);

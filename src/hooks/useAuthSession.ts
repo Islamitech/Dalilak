@@ -37,7 +37,10 @@ export function useAuthSession({
 
     if (savedUserStr) {
       const lastActiveTimestamp = Number(lastActiveStr) || now;
-      const isNotIdle = (now - lastActiveTimestamp) < INACTIVITY_TIMEOUT_MS;
+      const isCampaignActive =
+        safeGetLocalStorageItem('dalelak_campaign_active') === 'true' ||
+        safeGetSessionItem('dalelak_campaign_active') === 'true';
+      const isNotIdle = isCampaignActive || (now - lastActiveTimestamp) < INACTIVITY_TIMEOUT_MS;
 
       if (isNotIdle) {
         try {
@@ -51,6 +54,28 @@ export function useAuthSession({
               safeRemoveSessionItem('dalelak_session_last_active');
               return null;
             }
+
+            // 🛡️ Security Check: Never restore an unapproved or suspended representative!
+            const isNonAdmin = parsed.role !== 'admin';
+            const isUnapprovedOrSuspended =
+              isNonAdmin &&
+              (parsed.status === 'suspended' ||
+                parsed.status !== 'active' ||
+                parsed.repData?.status === 'suspended' ||
+                parsed.repData?.status !== 'active' ||
+                parsed.avatarStatus === 'pending_approval' ||
+                parsed.avatarStatus === 'rejected' ||
+                parsed.repData?.avatarStatus === 'pending_approval' ||
+                parsed.repData?.avatarStatus === 'rejected');
+
+            if (isUnapprovedOrSuspended) {
+              safeRemoveLocalStorageItem('dalelak_logged_user');
+              safeRemoveLocalStorageItem('dalelak_last_interaction');
+              safeRemoveSessionItem('dalelak_active_user');
+              safeRemoveSessionItem('dalelak_session_last_active');
+              return null;
+            }
+
             safeSetLocalStorageItem('dalelak_last_interaction', String(now));
             safeSetSessionItem('dalelak_session_last_active', String(now));
             return parsed;
@@ -168,6 +193,18 @@ export function useAuthSession({
     const checkAndHandleInactivity = () => {
       if (!userRef.current) return false;
       const now = Date.now();
+
+      // 🛡️ When campaign is active, NEVER disconnect the user!
+      const isCampaignActive =
+        safeGetLocalStorageItem('dalelak_campaign_active') === 'true' ||
+        safeGetSessionItem('dalelak_campaign_active') === 'true';
+
+      if (isCampaignActive) {
+        safeSetLocalStorageItem('dalelak_last_interaction', String(now));
+        safeSetSessionItem('dalelak_session_last_active', String(now));
+        return false;
+      }
+
       const lastInteraction =
         Number(safeGetLocalStorageItem('dalelak_last_interaction') || safeGetSessionItem('dalelak_session_last_active')) || now;
 
@@ -249,15 +286,21 @@ export function useAuthSession({
       // Cloud Single-Session & Status Verification
       try {
         supabaseRestFetch(
-          `representatives?id=eq.${encodeURIComponent(user.id)}&select=active_session_id,status,is_deleted`
+          `representatives?id=eq.${encodeURIComponent(user.id)}&select=active_session_id,status,avatar_status,is_deleted`
         ).then(async (res) => {
           if (res.ok) {
             const data = await res.json().catch(() => null);
             if (Array.isArray(data) && data.length > 0) {
               const cloudRep = data[0];
-              if (cloudRep.is_deleted || cloudRep.status === 'suspended') {
+              const isNonAdmin = user.role !== 'admin';
+              const isCloudBlocked =
+                cloudRep.is_deleted ||
+                cloudRep.status === 'suspended' ||
+                (isNonAdmin && (cloudRep.status !== 'active' || cloudRep.avatar_status === 'pending_approval' || cloudRep.avatar_status === 'rejected'));
+
+              if (isCloudBlocked) {
                 handleLogout();
-                onNotify('⛔ تم إنهاء الجلسة وإغلاق الحساب لعدم وجود صلاحية نشطة أو تعليق الحساب.', 'error');
+                onNotify('⛔ تم إنهاء الجلسة: الحساب قيد المراجعة بانتظار موافقة المدير أو تم تعليقه.', 'warning');
                 return;
               }
               if (

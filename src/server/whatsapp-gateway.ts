@@ -829,9 +829,9 @@ async function executeCampaignLoop(
   const rotationBatchSize = Math.max(3, options.rotationBatchSize || 15);
   const enableRotation = options.enableRotation !== false;
   const enableStealthRandomMode = options.enableStealthRandomMode !== false;
-  const burstPerSlot = options.stealthInitialBurstPerSlot || 15;
-  const stealthMinMinutes = Math.max(1, options.stealthMinMinutes || 20);
-  const stealthMaxMinutes = Math.max(stealthMinMinutes, options.stealthMaxMinutes || 60);
+  const burstPerSlot = options.stealthInitialBurstPerSlot || 0;
+  const stealthMinMinutes = Math.max(1, options.stealthMinMinutes !== undefined ? options.stealthMinMinutes : 1);
+  const stealthMaxMinutes = Math.max(stealthMinMinutes, options.stealthMaxMinutes !== undefined ? options.stealthMaxMinutes : 5);
 
   if (!activeCampaign) {
     loadSavedCampaignProgress();
@@ -839,38 +839,21 @@ async function executeCampaignLoop(
 
   let slot1SentCount = activeCampaign?.slot1SentCount || 0;
   let slot2SentCount = activeCampaign?.slot2SentCount || 0;
-  let stealthModeActive = Boolean(activeCampaign?.stealthModeActive);
+  let stealthModeActive = enableStealthRandomMode || Boolean(activeCampaign?.stealthModeActive);
   let currentSlotSentCount = activeCampaign?.currentSlotSentCount || 0;
 
-  // Choose starting slot based on connectivity and mode
-  let currentSlot: SlotId = activeCampaign?.currentSlot || '1';
-  if (enableStealthRandomMode) {
-    if (stealthModeActive) {
-      currentSlot = (slotSessions['1'].connectionState === 'connected' && slotSessions['2'].connectionState === 'connected')
-        ? (Math.random() < 0.5 ? '1' : '2')
-        : (slotSessions['1'].connectionState === 'connected' ? '1' : '2');
-    } else {
-      currentSlot = slot1SentCount < burstPerSlot ? '1' : '2';
-      if (slotSessions[currentSlot].connectionState !== 'connected') {
-        const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
-        if (slotSessions[otherSlot].connectionState === 'connected') {
-          currentSlot = otherSlot;
-        }
-      }
-    }
-  } else {
-    currentSlot = rotationConfig.currentSlot || '1';
-    if (slotSessions[currentSlot].connectionState !== 'connected') {
-      const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
-      if (slotSessions[otherSlot].connectionState === 'connected') {
-        currentSlot = otherSlot;
-      }
+  // Choose starting slot based on connectivity and alternating count
+  let currentSlot: SlotId = activeCampaign?.currentSlot || (slot1SentCount <= slot2SentCount ? '1' : '2');
+  if (slotSessions[currentSlot].connectionState !== 'connected') {
+    const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+    if (slotSessions[otherSlot].connectionState === 'connected') {
+      currentSlot = otherSlot;
     }
   }
 
   console.log(
-    `📢 Executing WhatsApp Campaign from index ${startIndex + 1}/${businesses.length} (Stealth Mode: ${
-      enableStealthRandomMode ? `Active (15 then 15 then ${stealthMinMinutes}-${stealthMaxMinutes}m random)` : 'Disabled'
+    `📢 Executing WhatsApp Campaign from index ${startIndex + 1}/${businesses.length} (Mode: ${
+      enableStealthRandomMode ? `Organic Alternating (${stealthMinMinutes}-${stealthMaxMinutes}m random delay)` : 'Standard Pacing'
     }, Start Slot: ${currentSlot}, Slot 1 Sent: ${slot1SentCount}, Slot 2 Sent: ${slot2SentCount})...`
   );
 
@@ -962,55 +945,21 @@ async function executeCampaignLoop(
       continue;
     }
 
-    // 🛡️ 0. Check & Activate Organic Stealth Mode if Initial Burst (15 + 15) Completed
-    if (enableStealthRandomMode && !stealthModeActive) {
-      const isSlot1BurstDone = slot1SentCount >= burstPerSlot;
-      const isSlot2BurstDone = slot2SentCount >= burstPerSlot;
-      const isSlot1Connected = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
-      const isSlot2Connected = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
-
-      if (
-        (isSlot1BurstDone && isSlot2BurstDone) ||
-        (!isSlot2Connected && (activeCampaign?.successful || 0) >= burstPerSlot * 2) ||
-        (!isSlot1Connected && (activeCampaign?.successful || 0) >= burstPerSlot * 2)
-      ) {
-        stealthModeActive = true;
-        if (activeCampaign) {
-          activeCampaign.stealthModeActive = true;
-          activeCampaign.logs.unshift({
-            businessId: 'sys_stealth_start',
-            businessName: '🌿 وضع الإرسال الشبح البشري العشوائي',
-            phone: 'SYSTEM',
-            status: 'skipped',
-            reason: `🌿 تم إكمال الدفعة التأسيسية (${burstPerSlot} رسالة لكل رقم) بنجاح! الانتقال الآن إلى وضع التوزيع البشري العشوائي بالكامل: اختيار عشوائي بين الهاتفين، مع فواصل زمنية إنسانية طبيعية (${stealthMinMinutes} إلى ${stealthMaxMinutes} دقيقة) لحماية الأرقام بنسبة 100%.`,
-            timestamp: new Date().toISOString(),
-          });
-          saveCampaignProgress(activeCampaign);
-        }
-        console.log(
-          `🌿 [Organic Stealth Mode] Activated! (Slot 1: ${slot1SentCount}, Slot 2: ${slot2SentCount}). Randomizing interval (${stealthMinMinutes}-${stealthMaxMinutes}m) and sender slot.`
-        );
+    // 🎯 Select target slot for this message (Direct alternating rotation between Phone 1 & Phone 2)
+    if (enableStealthRandomMode) {
+      stealthModeActive = true;
+      if (activeCampaign && !activeCampaign.stealthModeActive) {
+        activeCampaign.stealthModeActive = true;
       }
-    }
-
-    // 🎯 Select target slot for this message
-    if (enableStealthRandomMode && stealthModeActive) {
       const is1Ok = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
       const is2Ok = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
       if (is1Ok && is2Ok) {
-        currentSlot = Math.random() < 0.5 ? '1' : '2';
+        // Balanced alternating rotation: phone with fewer messages sends next
+        currentSlot = slot1SentCount <= slot2SentCount ? '1' : '2';
       } else if (is1Ok) {
         currentSlot = '1';
       } else if (is2Ok) {
         currentSlot = '2';
-      }
-    } else if (enableStealthRandomMode) {
-      const is1Ok = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
-      const is2Ok = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
-      if (slot1SentCount < burstPerSlot) {
-        currentSlot = is1Ok ? '1' : is2Ok ? '2' : '1';
-      } else {
-        currentSlot = is2Ok ? '2' : is1Ok ? '1' : '2';
       }
     }
 
@@ -1226,37 +1175,6 @@ async function executeCampaignLoop(
         activeCampaign.currentSlotSentCount = currentSlotSentCount;
       }
 
-      // 🤝 Phase 1 Handover Announcement (When Phone 1 completes 15 and Phone 2 is ready to start)
-      if (
-        enableStealthRandomMode &&
-        !stealthModeActive &&
-        currentSlot === '1' &&
-        slot1SentCount === burstPerSlot
-      ) {
-        const otherSlot: SlotId = '2';
-        const isOtherConnected =
-          slotSessions[otherSlot].sock !== null && slotSessions[otherSlot].connectionState === 'connected';
-        if (isOtherConnected) {
-          console.log(`🔄 [Phase 1 Burst] Slot 1 reached ${burstPerSlot} messages. Handing over to Slot 2.`);
-          currentSlot = otherSlot;
-          currentSlotSentCount = 0;
-          if (activeCampaign) {
-            activeCampaign.currentSlot = otherSlot;
-            activeCampaign.currentSlotSentCount = 0;
-            activeCampaign.logs.unshift({
-              businessId: 'sys_phase1_handover',
-              businessName: 'تسليم الدفعة الأولى',
-              phone: 'SYSTEM',
-              status: 'skipped',
-              reason: `🔄 تم إكمال أول ${burstPerSlot} رسالة من هاتف (1) بنجاح! يتم الآن تسليم الإرسال لهاتف (2) لإرسال ${burstPerSlot} رسالة التالية.`,
-              timestamp: new Date().toISOString(),
-            });
-            saveCampaignProgress(activeCampaign);
-          }
-          await new Promise((r) => setTimeout(r, 4000));
-        }
-      }
-
       // Standard legacy rotation if stealth mode is not enabled
       if (!enableStealthRandomMode && enableRotation) {
         const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
@@ -1371,18 +1289,18 @@ async function executeCampaignLoop(
       }
     }
 
-    // ⏳ 6. DELAY PACING: EITHER ORGANIC STEALTH (20-60m) OR STANDARD JITTER (10-20s)
+    // ⏳ 6. DELAY PACING: ORGANIC ALTERNATING (1-5m) OR STANDARD JITTER (10-20s)
     if (i < businesses.length - 1 && !abortRequested) {
-      if (enableStealthRandomMode && stealthModeActive) {
-        // 🌿 Phase 2: Full Random Organic Mode (e.g. 20 to 60 minutes)
-        const randomMinutes =
-          Math.floor(Math.random() * (stealthMaxMinutes - stealthMinMinutes + 1)) + stealthMinMinutes;
-        const delayTotalSeconds = randomMinutes * 60;
+      if (enableStealthRandomMode) {
+        // 🌿 Organic Alternating Mode: Random delay between stealthMinMinutes and stealthMaxMinutes (granular seconds)
+        const minSec = stealthMinMinutes * 60;
+        const maxSec = stealthMaxMinutes * 60;
+        const delayTotalSeconds = Math.floor(Math.random() * (maxSec - minSec + 1)) + minSec;
 
         const is1Ok = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
         const is2Ok = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
         const predictedNextSlot: SlotId =
-          is1Ok && is2Ok ? (Math.random() < 0.5 ? '1' : '2') : is1Ok ? '1' : '2';
+          is1Ok && is2Ok ? (currentSlot === '1' ? '2' : '1') : is1Ok ? '1' : '2';
 
         if (activeCampaign) {
           activeCampaign.nextSlotTarget = predictedNextSlot;
@@ -1391,7 +1309,7 @@ async function executeCampaignLoop(
         }
 
         console.log(
-          `🌿 [Stealth Mode] Organic delay: waiting ${randomMinutes} minutes (${delayTotalSeconds}s) before next message...`
+          `🌿 [Organic Alternating Mode] Delay: waiting ${delayTotalSeconds}s (~${(delayTotalSeconds / 60).toFixed(1)}m) before next message on Slot ${predictedNextSlot}...`
         );
         const delayStart = Date.now();
         const targetMs = delayTotalSeconds * 1000;
@@ -1511,11 +1429,11 @@ export async function startWhatsAppBroadcast(
     currentSlotSentCount: 0,
     slot1SentCount: 0,
     slot2SentCount: 0,
-    stealthModeActive: false,
+    stealthModeActive: options.enableStealthRandomMode !== false,
     enableStealthRandomMode: options.enableStealthRandomMode !== false,
-    stealthMinMinutes: options.stealthMinMinutes || 20,
-    stealthMaxMinutes: options.stealthMaxMinutes || 60,
-    stealthInitialBurstPerSlot: options.stealthInitialBurstPerSlot || 15,
+    stealthMinMinutes: options.stealthMinMinutes !== undefined ? options.stealthMinMinutes : 1,
+    stealthMaxMinutes: options.stealthMaxMinutes !== undefined ? options.stealthMaxMinutes : 5,
+    stealthInitialBurstPerSlot: 0,
   };
 
   saveCampaignProgress(activeCampaign, businesses, options);
@@ -1533,7 +1451,7 @@ export async function startWhatsAppBroadcast(
 
   return {
     success: true,
-    message: `تم بدء حملة الإرسال التلقائي بنجاح (${businesses.length} منشأة) مع تفعيل نظام التوزيع البشري العشوائي (15 ثم 15 ثم عشوائي كامل).`,
+    message: `تم بدء حملة الإرسال التلقائي بنجاح (${businesses.length} منشأة) مع تفعيل نظام التبادل البشري العشوائي (من ${options.stealthMinMinutes !== undefined ? options.stealthMinMinutes : 1} إلى ${options.stealthMaxMinutes !== undefined ? options.stealthMaxMinutes : 5} دقيقة بالتناوب بين الهاتفين).`,
     campaignId,
   };
 }
