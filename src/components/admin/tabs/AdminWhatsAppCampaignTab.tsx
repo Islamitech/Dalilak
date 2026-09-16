@@ -36,12 +36,14 @@ import {
   Terminal,
   Copy,
   Download,
+  MapPin,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin, PRIMARY_WHATSAPP_SENDER_PHONE } from '../../../utils/permissions';
 import { getDisplayDirectoryUrl } from '../../../utils/directoryUrl';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { triggerHaptic } from '../../../utils/haptics';
+import { isWithinHadayekAlAhramScope, HADAYEK_AL_AHRAM_CENTER } from '../../../utils/geoBoundaryGuard';
 import { ExportContactsModal } from './ExportContactsModal';
 
 export { PRIMARY_WHATSAPP_SENDER_PHONE };
@@ -447,6 +449,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'honorary' | 'verified'>('all');
   const [governorateFilter, setGovernorateFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [hadayekRadiusFilter, setHadayekRadiusFilter] = useState<boolean>(false);
 
   // Template state
   const [selectedTemplate, setSelectedTemplate] = useState<string>('honorary_invitation');
@@ -607,14 +610,29 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   };
 
   // Filtered Target Businesses
-  const { targetBusinesses, validPhoneCount, landlineCount, dummyPhoneCount, governorateList, categoryList } = useMemo(() => {
+  const {
+    targetBusinesses,
+    validPhoneCount,
+    landlineCount,
+    dummyPhoneCount,
+    governorateList,
+    categoryList,
+    hadayekTotalCount,
+  } = useMemo(() => {
     const govs = new Set<string>();
     const cats = new Set<string>();
+    let hadayekTotal = 0;
 
     businesses.forEach((b) => {
+      if ((b as any).isDeleted) return;
       if (b.governorate) govs.add(b.governorate);
       if (b.category) cats.add(b.category);
+      if (isWithinHadayekAlAhramScope(b, 8).matches) {
+        hadayekTotal++;
+      }
     });
+
+    const isHadayekActive = hadayekRadiusFilter || governorateFilter === '__hadayek_8km__';
 
     const filtered = businesses.filter((b) => {
       if ((b as any).isDeleted) return false;
@@ -626,7 +644,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         if (b.verificationStatus !== 'verified') return false;
       }
 
-      if (governorateFilter !== 'all' && b.governorate !== governorateFilter) {
+      // 📍 Strict Geofence Filter: Hadayek Al Ahram (8 km radius)
+      if (isHadayekActive) {
+        const check = isWithinHadayekAlAhramScope(b, 8);
+        if (!check.matches) return false;
+      } else if (governorateFilter !== 'all' && b.governorate !== governorateFilter) {
         return false;
       }
 
@@ -658,8 +680,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       dummyPhoneCount: dummies,
       governorateList: Array.from(govs),
       categoryList: Array.from(cats),
+      hadayekTotalCount: hadayekTotal,
     };
-  }, [businesses, audienceFilter, governorateFilter, categoryFilter]);
+  }, [businesses, audienceFilter, governorateFilter, categoryFilter, hadayekRadiusFilter]);
 
   // Interpolator for a specific business
   const compileMessageForBiz = useCallback(
@@ -1066,10 +1089,29 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       {currentMobileBiz.nameAr || currentMobileBiz.name}
                     </h3>
                   </div>
-                  <p className="text-xs text-[var(--text-secondary)] flex items-center gap-2">
+                  <p className="text-xs text-[var(--text-secondary)] flex flex-wrap items-center gap-2">
                     <span>المسؤول: {currentMobileBiz.ownerName || 'غير محدد'}</span>
                     <span>•</span>
                     <span>الموقع: {[currentMobileBiz.city, currentMobileBiz.governorate].filter(Boolean).join(' - ')}</span>
+                    {(() => {
+                      const scope = isWithinHadayekAlAhramScope(currentMobileBiz, 8);
+                      if (scope.matches) {
+                        return (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
+                              <MapPin className="w-3 h-3 text-emerald-400" />
+                              <span>
+                                {scope.distanceText
+                                  ? `${scope.distanceText} من منتصف حدائق الأهرام`
+                                  : 'ضمن نطاق حدائق الأهرام'}
+                              </span>
+                            </span>
+                          </>
+                        );
+                      }
+                      return null;
+                    })()}
                   </p>
                 </div>
 
@@ -1833,16 +1875,23 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               {/* Governorate & Category Dropdowns */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-1 block">المحافظة:</label>
+                  <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-1 block">المحافظة / النطاق الجغرافي:</label>
                   <select
                     value={governorateFilter}
                     onChange={(e) => {
-                      setGovernorateFilter(e.target.value);
+                      const val = e.target.value;
+                      setGovernorateFilter(val);
+                      if (val === '__hadayek_8km__') {
+                        setHadayekRadiusFilter(true);
+                      } else if (hadayekRadiusFilter) {
+                        setHadayekRadiusFilter(false);
+                      }
                       setMobileQueueIndex(0);
                     }}
                     className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
                   >
                     <option value="all">كافة المحافظات ({businesses.length})</option>
+                    <option value="__hadayek_8km__">📍 حدائق الأهرام ومحيطها (نطاق 8 كم جغرافي) ({hadayekTotalCount})</option>
                     {governorateList.map((gov) => (
                       <option key={gov} value={gov}>
                         {gov}
@@ -1868,6 +1917,77 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* 📍 HADAYEK AL AHRAM 8KM GEOFENCE FILTER CARD */}
+              <div
+                className={`p-4 rounded-2xl border transition-all ${
+                  hadayekRadiusFilter || governorateFilter === '__hadayek_8km__'
+                    ? 'bg-gradient-to-r from-emerald-950/60 via-slate-900 to-emerald-950/40 border-emerald-500 shadow-md ring-1 ring-emerald-500/30'
+                    : 'bg-white/5 border-[var(--border-color)] hover:border-emerald-500/40'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                        hadayekRadiusFilter || governorateFilter === '__hadayek_8km__'
+                          ? 'bg-emerald-500 text-white border-emerald-400 shadow-sm'
+                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      }`}
+                    >
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs sm:text-sm font-black text-white">
+                          فلتر حدائق الأهرام الجغرافي (نطاق 8 كم من المنتصف)
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[11px] font-bold border border-emerald-500/30">
+                          {hadayekTotalCount} نشاط يقع بالنطاق 📍
+                        </span>
+                        {(hadayekRadiusFilter || governorateFilter === '__hadayek_8km__') && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black animate-pulse">
+                            مفعل الآن ✓
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-relaxed">
+                        يحصر الأنشطة الواقعة ضمن دائرة 8 كم بالإحداثيات من منتصف حدائق الأهرام، حتى لو لم يُذكر اسم حدائق الأهرام في العنوان.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !(hadayekRadiusFilter || governorateFilter === '__hadayek_8km__');
+                      setHadayekRadiusFilter(next);
+                      if (governorateFilter === '__hadayek_8km__') {
+                        setGovernorateFilter('all');
+                      }
+                      setMobileQueueIndex(0);
+                      triggerHaptic();
+                    }}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 ${
+                      hadayekRadiusFilter || governorateFilter === '__hadayek_8km__'
+                        ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 active:scale-95'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg active:scale-95'
+                    }`}
+                  >
+                    {hadayekRadiusFilter || governorateFilter === '__hadayek_8km__' ? (
+                      <>
+                        <XCircle className="w-4 h-4 text-rose-400" />
+                        <span>إلغاء حصر النطاق ✕</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4" />
+                        <span>تفعيل فلتر 8 كم 🎯</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 

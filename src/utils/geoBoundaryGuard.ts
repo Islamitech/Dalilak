@@ -140,3 +140,121 @@ export function evaluatePlaceGeoBoundary(
 
   return { withinBoundary: true };
 }
+
+/**
+ * 📍 إحداثيات مركز حدائق الأهرام (الجيزة) المعتمدة في منصة دليلك
+ */
+export const HADAYEK_AL_AHRAM_CENTER: GeoLocationPoint & { name: string } = {
+  lat: 29.9822,
+  lng: 31.1165,
+  name: 'حدائق الأهرام',
+};
+
+export interface HadayekScopeCheckResult {
+  matches: boolean;
+  distanceKm?: number;
+  distanceText?: string;
+  matchReason: 'coords' | 'text' | 'none';
+}
+
+/**
+ * 🎯 فحص انطباق المنشأة على نطاق حدائق الأهرام الجغرافي (نصف قطر 8 كم)
+ * 
+ * - يعتمد أولاً وبدقة تامة على الإحداثيات الجغرافية (lat, lng) ومعادلة Haversine.
+ * - إذا كانت المنشأة ضمن 8 كم من مركز حدائق الأهرام، يتم شملها فوراً بغض النظر عن الاسم أو المدينة المسجلة (حتى لو لم تُسجل باسم حدائق الأهرام).
+ * - كإجراء احتياطي للمنشآت ذات الإحداثيات المفقودة أو الصفرية: يتم فحص النصوص (العنوان، الشارع، المعالم، الاسم، الوصف).
+ */
+export function isWithinHadayekAlAhramScope(
+  business: {
+    lat?: number | string | null;
+    lng?: number | string | null;
+    city?: string | null;
+    street?: string | null;
+    landmark?: string | null;
+    governorate?: string | null;
+    nameAr?: string | null;
+    name?: string | null;
+    description?: string | null;
+    notes?: string | null;
+  },
+  radiusKm = 8
+): HadayekScopeCheckResult {
+  const numLat = typeof business.lat === 'number' ? business.lat : parseFloat(String(business.lat || ''));
+  const numLng = typeof business.lng === 'number' ? business.lng : parseFloat(String(business.lng || ''));
+
+  const hasValidCoords = !isNaN(numLat) && !isNaN(numLng) && (numLat !== 0 || numLng !== 0);
+
+  if (hasValidCoords) {
+    const dist = calculateHaversineDistanceKm(
+      numLat,
+      numLng,
+      HADAYEK_AL_AHRAM_CENTER.lat,
+      HADAYEK_AL_AHRAM_CENTER.lng
+    );
+
+    if (dist <= radiusKm) {
+      return {
+        matches: true,
+        distanceKm: dist,
+        distanceText: formatLocalizedDistance(dist),
+        matchReason: 'coords',
+      };
+    }
+    return {
+      matches: false,
+      distanceKm: dist,
+      distanceText: formatLocalizedDistance(dist),
+      matchReason: 'none',
+    };
+  }
+
+  // في حال غياب الإحداثيات، فحص الكلمات المفتاحية في النصوص كإجراء احترازي
+  const combinedText = [
+    business.city,
+    business.street,
+    business.landmark,
+    business.governorate,
+    business.nameAr,
+    business.name,
+    business.description,
+    business.notes,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const hadayekKeywords = [
+    'حدائق الاهرام',
+    'حدائق الأهرام',
+    'هضبة الاهرام',
+    'هضبة الأهرام',
+    'بوابة خفرع',
+    'بوابة خوفو',
+    'بوابة منقرع',
+    'بوابة مينا',
+    'بوابة حورس',
+    'بوابة صولجان',
+    'بوابة أحمس',
+    'البوابة الاولى',
+    'البوابة الأولى',
+    'البوابة الثانية',
+    'البوابة الثالثة',
+    'البوابة الرابعة',
+    'شارع الجيش',
+    'الثروة المعدنية',
+    'شارع الضغط',
+  ];
+
+  if (hadayekKeywords.some((keyword) => combinedText.includes(keyword))) {
+    return {
+      matches: true,
+      matchReason: 'text',
+    };
+  }
+
+  return {
+    matches: false,
+    matchReason: 'none',
+  };
+}
+
