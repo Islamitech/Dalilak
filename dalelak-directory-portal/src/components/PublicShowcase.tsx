@@ -369,7 +369,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       return [...list].sort((a, b) => (a.nameAr || '').localeCompare(b.nameAr || '', 'ar'));
     }
 
-    // Default Sorting ('default'): Unbiased, natural listing (no video forcing)
+    // Default Sorting ('default'): Unbiased, randomized natural showcase (not ordered by join date)
     return [...list].sort((a, b) => {
       const aFeatured = a.isFeatured || a.partnerStatus === 'certified' ? 1 : 0;
       const bFeatured = b.isFeatured || b.partnerStatus === 'certified' ? 1 : 0;
@@ -379,9 +379,10 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       const bHasPhoto = (b.photos?.length || 0) > 0 || !!b.coverPhoto ? 1 : 0;
       if (bHasPhoto !== aHasPhoto) return bHasPhoto - aHasPhoto;
 
-      const aTime = new Date(a.createdDate || 0).getTime();
-      const bTime = new Date(b.createdDate || 0).getTime();
-      if (bTime !== aTime) return bTime - aTime;
+      // Stable pseudo-random hash distribution across businesses
+      const hashA = ((a.id || '').split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) | 0, 0) >>> 0);
+      const hashB = ((b.id || '').split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) | 0, 0) >>> 0);
+      if (hashA !== hashB) return hashA - hashB;
 
       return (a.id || '').localeCompare(b.id || '');
     });

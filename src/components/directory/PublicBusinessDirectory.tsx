@@ -37,8 +37,30 @@ import {
   AlertCircle,
   Gift,
   QrCode,
+  Shuffle,
 } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
+
+export type DirectorySortOption = 'random' | 'newest' | 'oldest' | 'alpha';
+
+/**
+ * Fast, deterministic pseudo-random shuffle (Mulberry32 PRNG)
+ * Ensures fair, randomized distribution across all businesses
+ * while maintaining strict UI stability during search typing and pagination.
+ */
+function shuffleBusinessesWithSeed(list: Business[], seed: number): Business[] {
+  const result = [...list];
+  let currentSeed = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    currentSeed = (currentSeed + 0x6d2b79f5) | 0;
+    let t = Math.imul(currentSeed ^ (currentSeed >>> 15), 1 | currentSeed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    const rand = ((t >>> 0) / 4294967296);
+    const j = Math.floor(rand * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
 
 interface PublicBusinessDirectoryProps {
   businesses: Business[];
@@ -141,7 +163,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
   const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [verificationFilter, setVerificationFilter] = useState<'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('trending');
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
+  const [sortBy, setSortBy] = useState<DirectorySortOption>('random');
+  const [shuffleSeed, setShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000));
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list' | 'map') || 'list');
 
   const isRep = currentUser?.role === 'rep';
@@ -247,46 +271,63 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   }, [displayableBusinesses]);
 
   const filteredBusinesses = useMemo(() => {
-    return sortBusinessesNewestFirst(
-      displayableBusinesses.filter((b) => {
-        if (debouncedSearchQuery && !matchesBusinessSearch(b, debouncedSearchQuery)) {
-          return false;
-        }
-        if (govFilter !== 'all' && !(b.governorate || '').includes(govFilter)) {
-          return false;
-        }
-        if (categoryFilter !== 'all' && !matchesCategoryFilter(b, categoryFilter)) {
-          return false;
-        }
-        if (verificationFilter === 'trending') {
-          if (!isTrendingFreeActivity(b)) return false;
-        } else if (verificationFilter === 'fully_paid') {
-          if (!isCollectedInvoiceActivity(b)) return false;
-        } else if (verificationFilter === 'unpaid') {
-          if (!isUnpaidActivity(b)) return false;
-        } else if (verificationFilter === 'verified') {
-          if (b.verificationStatus !== 'verified') return false;
-        } else if (verificationFilter === 'in_progress') {
-          if (b.verificationStatus === 'verified' || b.verificationStatus === 'rejected') return false;
-        } else if (verificationFilter === 'needs_followup') {
-          const isDocumented = isBusinessGoogleVerified(b);
-          const isPaid = isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b);
-          const isApproved = b.verificationStatus === 'verified';
-          if (isDocumented && isPaid && isApproved) return false; // exclude fully complete businesses
-        }
-        return true;
-      })
-    );
-  }, [displayableBusinesses, debouncedSearchQuery, govFilter, categoryFilter, verificationFilter]);
+    const list = displayableBusinesses.filter((b) => {
+      if (debouncedSearchQuery && !matchesBusinessSearch(b, debouncedSearchQuery)) {
+        return false;
+      }
+      if (govFilter !== 'all' && !(b.governorate || '').includes(govFilter)) {
+        return false;
+      }
+      if (categoryFilter !== 'all' && !matchesCategoryFilter(b, categoryFilter)) {
+        return false;
+      }
+      if (verificationFilter === 'trending') {
+        if (!isTrendingFreeActivity(b)) return false;
+      } else if (verificationFilter === 'fully_paid') {
+        if (!isCollectedInvoiceActivity(b)) return false;
+      } else if (verificationFilter === 'unpaid') {
+        if (!isUnpaidActivity(b)) return false;
+      } else if (verificationFilter === 'verified') {
+        if (b.verificationStatus !== 'verified') return false;
+      } else if (verificationFilter === 'in_progress') {
+        if (b.verificationStatus === 'verified' || b.verificationStatus === 'rejected') return false;
+      } else if (verificationFilter === 'needs_followup') {
+        const isDocumented = isBusinessGoogleVerified(b);
+        const isPaid = isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b);
+        const isApproved = b.verificationStatus === 'verified';
+        if (isDocumented && isPaid && isApproved) return false; // exclude fully complete businesses
+      }
+      return true;
+    });
+
+    if (sortBy === 'random') {
+      return shuffleBusinessesWithSeed(list, shuffleSeed);
+    }
+    if (sortBy === 'newest') {
+      return sortBusinessesNewestFirst(list);
+    }
+    if (sortBy === 'oldest') {
+      return [...list].sort((a, b) => {
+        const timeA = a.createdDate ? new Date(a.createdDate).getTime() : a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+        const timeB = b.createdDate ? new Date(b.createdDate).getTime() : b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return (a.id || '').localeCompare(b.id || '');
+      });
+    }
+    if (sortBy === 'alpha') {
+      return [...list].sort((a, b) => (a.nameAr || '').localeCompare(b.nameAr || '', 'ar'));
+    }
+    return list;
+  }, [displayableBusinesses, debouncedSearchQuery, govFilter, categoryFilter, verificationFilter, sortBy, shuffleSeed]);
 
   // ── PROGRESSIVE WINDOWING & BATCH LOADING (ANTI-CRASH ON LOW-END DEVICES) ──
   const PAGE_SIZE = 24;
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
 
-  // Reset visible items whenever search or filtering conditions change
+  // Reset visible items whenever search, filtering, or sorting conditions change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [debouncedSearchQuery, govFilter, categoryFilter, verificationFilter, displayableBusinesses.length]);
+  }, [debouncedSearchQuery, govFilter, categoryFilter, verificationFilter, displayableBusinesses.length, sortBy, shuffleSeed]);
 
   const renderedBusinesses = useMemo(() => {
     return filteredBusinesses.slice(0, visibleCount);
@@ -489,7 +530,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <select
               value={govFilter}
               onChange={(e) => setGovFilter(e.target.value)}
@@ -502,6 +543,39 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                 </option>
               ))}
             </select>
+
+            {/* Sort Selector: Random / Newest / Oldest / Alpha */}
+            <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0 gap-1 shadow-2xs">
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  triggerHaptic('selection');
+                  setSortBy(e.target.value as DirectorySortOption);
+                }}
+                className="bg-transparent border-none text-[var(--text-primary)] text-xs font-bold px-2 py-1.5 focus:outline-none cursor-pointer"
+                title="ترتيب ظهور الأنشطة"
+              >
+                <option value="random">🔀 عشوائي (افتراضي)</option>
+                <option value="newest">⏱️ الأحدث انضماماً</option>
+                <option value="oldest">📅 الأقدم انضماماً</option>
+                <option value="alpha">🔤 أبجدياً (أ - ي)</option>
+              </select>
+
+              {sortBy === 'random' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('impactLight');
+                    setShuffleSeed(Date.now());
+                  }}
+                  className="p-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 transition-all cursor-pointer flex items-center gap-1"
+                  title="إعادة خلط وترتيب الأنشطة عشوائياً"
+                >
+                  <Shuffle className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-black hidden xl:inline">خلط جديد</span>
+                </button>
+              )}
+            </div>
 
             {/* View Switcher: Grid vs List vs Map */}
             <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0 gap-0.5">

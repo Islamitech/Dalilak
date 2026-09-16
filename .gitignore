@@ -7,8 +7,10 @@ coverage/
 .env*
 !.env.example
 data/baileys_auth_info/
+data/baileys_auth_info_*/
 data/whatsapp_sent_log.json
 dist-directory/
+**/dist-directory/
 backups/
 data/*backup*
 data/*.backup*
