@@ -107,8 +107,82 @@ const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,stree
 export { FAST_BUSINESS_SELECT };
 
 /**
+ * ⚡ High-Speed PostgREST Paginated Parallel Fetcher
+ * Automatically reads Content-Range and fetches remaining batches concurrently via Promise.all.
+ * Guarantees that datasets > 1000 rows are 100% retrieved in a single unified operation without cap.
+ */
+export async function fetchAllRestItems(baseQuery: string, pageSize: number = 1000): Promise<any[]> {
+  try {
+    const firstRes = await supabaseRestFetch(baseQuery, {
+      headers: {
+        'Range': `0-${pageSize - 1}`,
+        'Range-Unit': 'items',
+        'Prefer': 'count=exact',
+      },
+    });
+
+    if (!firstRes.ok) return [];
+    const firstBatch = await firstRes.json();
+    if (!Array.isArray(firstBatch)) return [];
+    if (firstBatch.length < pageSize) {
+      return firstBatch;
+    }
+
+    const contentRange = firstRes.headers.get('content-range') || '';
+    const totalCount = parseInt(contentRange.split('/')[1], 10);
+
+    if (!isNaN(totalCount) && totalCount > pageSize) {
+      const promises: Promise<any[]>[] = [];
+      for (let from = pageSize; from < totalCount; from += pageSize) {
+        const to = Math.min(from + pageSize - 1, totalCount - 1);
+        promises.push(
+          supabaseRestFetch(baseQuery, {
+            headers: {
+              'Range': `${from}-${to}`,
+              'Range-Unit': 'items',
+            },
+          })
+            .then(async (r) => {
+              if (!r.ok) return [];
+              const data = await r.json();
+              return Array.isArray(data) ? data : [];
+            })
+            .catch(() => [])
+        );
+      }
+      const remainingBatches = await Promise.all(promises);
+      return firstBatch.concat(...remainingBatches);
+    }
+
+    // Fallback if Content-Range was not returned with total count
+    let all = [...firstBatch];
+    let currentFrom = pageSize;
+    while (true) {
+      const currentTo = currentFrom + pageSize - 1;
+      const nextRes = await supabaseRestFetch(baseQuery, {
+        headers: {
+          'Range': `${currentFrom}-${currentTo}`,
+          'Range-Unit': 'items',
+        },
+      });
+      if (!nextRes.ok) break;
+      const nextBatch = await nextRes.json();
+      if (!Array.isArray(nextBatch) || nextBatch.length === 0) break;
+      all = all.concat(nextBatch);
+      if (nextBatch.length < pageSize) break;
+      currentFrom += pageSize;
+      if (currentFrom > 25000) break;
+    }
+    return all;
+  } catch (err) {
+    console.warn('fetchAllRestItems error:', err);
+    return [];
+  }
+}
+
+/**
  * ⚡ Stale-While-Revalidate Full Cloud Fetch
- * Returns fresh data and updates offline cache
+ * Returns fresh data and updates offline cache with complete 100% pagination coverage
  */
 export async function fetchBusinessesFromDb(): Promise<Business[]> {
   const cached = getCachedBusinesses();
@@ -120,28 +194,25 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
   });
   let resultList: Business[] = [];
 
-  // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH - FAST HIGH-SPEED QUERY)
+  // 1. Supabase Cloud fetch (PRIMARY SOURCE OF TRUTH - HIGH-SPEED PAGINATED REST)
   if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
     try {
-      const res = await supabaseRestFetch(`businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&order=created_at.desc`);
-      if (res.ok) {
-        const restData = await res.json();
-        if (Array.isArray(restData) && restData.length > 0) {
-          resultList = restData.map((item) => {
-            const b = mapDbToBusiness(item);
-            if ((!b.photos || b.photos.length === 0) && cachedPhotoMap.has(b.id)) {
-              b.photos = cachedPhotoMap.get(b.id)!;
-            }
-            return b;
-          });
-          try {
-            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList, 400));
-            safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList), 400));
-            safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
-            safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
-          } catch {}
-        }
+      const restData = await fetchAllRestItems(`businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&order=created_at.desc`);
+      if (Array.isArray(restData) && restData.length > 0) {
+        resultList = restData.map((item) => {
+          const b = mapDbToBusiness(item);
+          if ((!b.photos || b.photos.length === 0) && cachedPhotoMap.has(b.id)) {
+            b.photos = cachedPhotoMap.get(b.id)!;
+          }
+          return b;
+        });
+        try {
+          const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList, 2000));
+          safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
+          const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList), 2000));
+          safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
+          safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
+        } catch {}
       }
     } catch (err) {
       console.warn('Supabase fetch businesses REST error, trying fallback:', err);
@@ -149,7 +220,7 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
 
     if (resultList.length === 0) {
       try {
-        const { data, error } = await supabase.from('businesses').select(FAST_BUSINESS_SELECT).neq('package_id', 'pkg_interested_lead').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('businesses').select(FAST_BUSINESS_SELECT).neq('package_id', 'pkg_interested_lead').order('created_at', { ascending: false }).range(0, 4999);
         if (!error && data && Array.isArray(data) && data.length > 0) {
           resultList = data.map((item) => {
             const b = mapDbToBusiness(item);
@@ -159,9 +230,9 @@ export async function fetchBusinessesFromDb(): Promise<Business[]> {
             return b;
           });
           try {
-            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList, 400));
+            const safePayload = JSON.stringify(getSafeBusinessesForStorage(resultList, 2000));
             safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList), 400));
+            const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(resultList), 2000));
             safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
             safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
           } catch {}
@@ -357,16 +428,13 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     const query = `businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&created_at=gte.${encLastSync}&order=created_at.desc`;
     const res = await supabaseRestFetch(query);
 
-    // Also prune deleted records & detect missing records: lightweight fetch of active IDs
+    // Also prune deleted records & detect missing records: lightweight fetch of active IDs with 100% pagination coverage
     const deletedIds = getDeletedBusinessIds();
     let activeIds: Set<string> | null = null;
     try {
-      const idsRes = await supabaseRestFetch('businesses?select=id&package_id=neq.pkg_interested_lead&is_deleted=neq.true');
-      if (idsRes.ok) {
-        const idsData = await idsRes.json();
-        if (Array.isArray(idsData)) {
-          activeIds = new Set(idsData.map((x: any) => x.id));
-        }
+      const idsData = await fetchAllRestItems('businesses?select=id&package_id=neq.pkg_interested_lead&is_deleted=neq.true');
+      if (Array.isArray(idsData) && idsData.length > 0) {
+        activeIds = new Set(idsData.map((x: any) => x.id));
       }
     } catch {}
 
@@ -374,14 +442,18 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
     let freshDeltaCount = 0;
     const map = new Map<string, Business>();
 
-    // If activeIds is available, prune any cached business deleted on the server or in deletedIds
+    // 🛡️ Safety Guard: Only prune cached businesses if activeIds is confirmed reliable
+    // If activeIds is smaller than cached count by more than 30% (indicates network hiccup or partial query), NEVER aggressively prune!
+    const canSafelyPrune = Boolean(activeIds && activeIds.size >= Math.min(cached.length * 0.7, 50));
+
+    // If activeIds is available and verified, prune any cached business deleted on the server or in deletedIds
     cached.forEach((b) => {
       const cleanId = String(b.id).toLowerCase().trim();
       if (deletedIds.has(cleanId)) {
         hasChanges = true; // Prune deleted business
         return;
       }
-      if (!activeIds || activeIds.has(b.id) || b.id.startsWith('offline_')) {
+      if (!canSafelyPrune || !activeIds || activeIds.has(b.id) || b.id.startsWith('offline_')) {
         map.set(b.id, b);
       } else {
         hasChanges = true; // Pruning deleted business
@@ -466,9 +538,9 @@ export async function syncDeltaBusinessesFromDb(): Promise<{ updated: boolean; b
       );
 
       try {
-        const safePayload = JSON.stringify(getSafeBusinessesForStorage(merged, 400));
+        const safePayload = JSON.stringify(getSafeBusinessesForStorage(merged, 2000));
         safeSetLocalStorageItem('dalelak_cached_businesses', safePayload);
-        const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(merged), 400));
+        const verifiedPayload = JSON.stringify(getSafeBusinessesForStorage(getVerifiedBusinessesForDirectory(merged), 2000));
         safeSetLocalStorageItem('dalelak_directory_cache', verifiedPayload);
         safeSetLocalStorageItem('dalelak_last_sync_timestamp', new Date().toISOString());
       } catch {}

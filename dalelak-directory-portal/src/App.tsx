@@ -217,18 +217,46 @@ export default function App() {
       const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       try {
+        const PAGE_SIZE = 1000;
         const res = await fetch(SUPABASE_REST_URL, {
           signal: controller.signal,
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Range: `0-${PAGE_SIZE - 1}`,
+            'Range-Unit': 'items',
+            Prefer: 'count=exact',
           },
         });
         clearTimeout(timeoutId);
 
         if (res.ok) {
-          const raw = await res.json();
+          let raw = await res.json();
           if (Array.isArray(raw) && isMounted && raw.length > 0) {
+            // Check if there are more pages beyond 1000
+            const contentRange = res.headers.get('content-range') || '';
+            const totalCount = parseInt(contentRange.split('/')[1], 10);
+            if (!isNaN(totalCount) && totalCount > PAGE_SIZE) {
+              const promises: Promise<any[]>[] = [];
+              for (let from = PAGE_SIZE; from < totalCount; from += PAGE_SIZE) {
+                const to = Math.min(from + PAGE_SIZE - 1, totalCount - 1);
+                promises.push(
+                  fetch(SUPABASE_REST_URL, {
+                    headers: {
+                      apikey: SUPABASE_ANON_KEY,
+                      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                      Range: `${from}-${to}`,
+                      'Range-Unit': 'items',
+                    },
+                  })
+                    .then(async (r) => (r.ok ? r.json() : []))
+                    .catch(() => [])
+                );
+              }
+              const restBatches = await Promise.all(promises);
+              raw = raw.concat(...restBatches);
+            }
+
             const mapped: Business[] = raw
               .map((r) => mapRawToBusiness(r))
               .filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
@@ -268,7 +296,6 @@ export default function App() {
                 }));
                 localStorage.setItem('dalelak_directory_cache', JSON.stringify(cacheable));
                 localStorage.setItem('dalelak_directory_last_sync', new Date().toISOString());
-                localStorage.removeItem('dalelak_cached_businesses');
               } catch {}
 
               return updated;
