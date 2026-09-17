@@ -288,8 +288,10 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
                       onContextMenu={(e) => e.preventDefault()}
                     >
                       <img
-                        src={getOptimizedImageUrl(mainPhoto, 600)}
+                        src={getOptimizedImageUrl(mainPhoto, 420, 315)}
                         alt={biz.nameAr || 'صورة المنشأة'}
+                        width="420"
+                        height="315"
                         role="presentation"
                         aria-hidden="true"
                         data-reader-skip="true"

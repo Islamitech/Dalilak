@@ -226,13 +226,14 @@ export default function App() {
       const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       try {
-        const PAGE_SIZE = 1000;
+        // ⚡ TIER 1: Blazing-fast initial batch (first 60 verified businesses) for instant sub-second FCP/LCP
+        const FAST_BATCH_SIZE = 60;
         const res = await fetch(SUPABASE_REST_URL, {
           signal: controller.signal,
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            Range: `0-${PAGE_SIZE - 1}`,
+            Range: `0-${FAST_BATCH_SIZE - 1}`,
             'Range-Unit': 'items',
             Prefer: 'count=exact',
           },
@@ -242,13 +243,28 @@ export default function App() {
         if (res.ok) {
           let raw = await res.json();
           if (Array.isArray(raw) && isMounted && raw.length > 0) {
-            // Check if there are more pages beyond 1000
             const contentRange = res.headers.get('content-range') || '';
             const totalCount = parseInt(contentRange.split('/')[1], 10);
-            if (!isNaN(totalCount) && totalCount > PAGE_SIZE) {
+
+            // Immediately render initial batch to unlock screen and achieve instant LCP
+            const initialMapped: Business[] = raw
+              .map((r) => mapRawToBusiness(r))
+              .filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+
+            setBusinesses((prev) => {
+              if (prev.length >= initialMapped.length) return prev;
+              return initialMapped.sort(
+                (a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime()
+              );
+            });
+            if (isMounted) setLoading(false);
+
+            // ⚡ TIER 2: Stream remaining businesses in the background without UI blocking
+            if (!isNaN(totalCount) && totalCount > FAST_BATCH_SIZE) {
+              const BATCH_SIZE = 1000;
               const promises: Promise<any[]>[] = [];
-              for (let from = PAGE_SIZE; from < totalCount; from += PAGE_SIZE) {
-                const to = Math.min(from + PAGE_SIZE - 1, totalCount - 1);
+              for (let from = FAST_BATCH_SIZE; from < totalCount; from += BATCH_SIZE) {
+                const to = Math.min(from + BATCH_SIZE - 1, totalCount - 1);
                 promises.push(
                   fetch(SUPABASE_REST_URL, {
                     headers: {
@@ -318,46 +334,49 @@ export default function App() {
         if (isMounted) setLoading(false);
       }
 
-      // Background photo hydration for complete multi-photo coverage
-      try {
-        const pRes = await fetch(SUPABASE_PHOTOS_URL, {
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        });
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          if (Array.isArray(pData) && pData.length > 0 && isMounted) {
-            const photoMap = new Map<string, string[]>();
-            pData.forEach((item: any) => {
-              if (item.id && Array.isArray(item.photos) && item.photos.length > 0) {
-                photoMap.set(item.id, item.photos.filter((p: any) => typeof p === 'string' && p.trim().length > 0));
-              }
-            });
-            if (photoMap.size > 0) {
-              setBusinesses((prev) => {
-                let hasChanges = false;
-                const next = prev.map((b) => {
-                  const p = photoMap.get(b.id);
-                  if (p && p.length > (b.photos?.length || 0)) {
-                    hasChanges = true;
-                    return { ...b, photos: p };
-                  }
-                  return b;
-                });
-                if (hasChanges) {
-                  try {
-                    localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(next)));
-                  } catch {}
-                  return next;
+      // Background photo hydration after initial paint is settled (idle delay to save network contention)
+      setTimeout(async () => {
+        if (!isMounted) return;
+        try {
+          const pRes = await fetch(SUPABASE_PHOTOS_URL, {
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          });
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            if (Array.isArray(pData) && pData.length > 0 && isMounted) {
+              const photoMap = new Map<string, string[]>();
+              pData.forEach((item: any) => {
+                if (item.id && Array.isArray(item.photos) && item.photos.length > 0) {
+                  photoMap.set(item.id, item.photos.filter((p: any) => typeof p === 'string' && p.trim().length > 0));
                 }
-                return prev;
               });
+              if (photoMap.size > 0) {
+                setBusinesses((prev) => {
+                  let hasChanges = false;
+                  const next = prev.map((b) => {
+                    const p = photoMap.get(b.id);
+                    if (p && p.length > (b.photos?.length || 0)) {
+                      hasChanges = true;
+                      return { ...b, photos: p };
+                    }
+                    return b;
+                  });
+                  if (hasChanges) {
+                    try {
+                      localStorage.setItem('dalelak_directory_cache', JSON.stringify(getSafeCacheList(next)));
+                    } catch {}
+                    return next;
+                  }
+                  return prev;
+                });
+              }
             }
           }
-        }
-      } catch {}
+        } catch {}
+      }, 1500);
     }
 
     // 1. Initial Load

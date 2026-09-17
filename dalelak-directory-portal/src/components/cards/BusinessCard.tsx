@@ -65,8 +65,10 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       >
         <img
-          src={getOptimizedImageUrl(mainPhoto, 600)}
+          src={getOptimizedImageUrl(mainPhoto, 420, 262)}
           alt={business.nameAr || 'صورة المنشأة'}
+          width="420"
+          height="262"
           role="presentation"
           aria-hidden="true"
           data-reader-skip="true"
