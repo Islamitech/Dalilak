@@ -25,7 +25,7 @@ import { useAppEntityHandlers } from './hooks/useAppEntityHandlers';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { canUserAccessAdminPanel } from './utils/permissions';
 import { isRepAccountDeleted } from './utils/accountStatus';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, UserCheck } from 'lucide-react';
 
 // ⚡ Code Splitting: تحميل المكونات الضخمة عند الحاجة فقط مع معالجة ذكية لتحديثات السيرفر
 const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -55,6 +55,7 @@ export default function App() {
   const [showPermissionsModal, setShowPermissionsModal] = useState<boolean>(false);
   const [showPackagesModal, setShowPackagesModal] = useState<boolean>(false);
   const [showAdminProfileModal, setShowAdminProfileModal] = useState<boolean>(false);
+  const [showLeadsModal, setShowLeadsModal] = useState<boolean>(false);
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
   const [convertingLead, setConvertingLead] = useState<InterestedLead | null>(null);
   const [repViewScope, setRepViewScope] = useState<'my' | 'all'>('my');
@@ -445,6 +446,8 @@ export default function App() {
         onOpenTerms={() => setShowTermsModal(true)}
         onOpenPermissions={() => setShowPermissionsModal(true)}
         onOpenPackages={() => setShowPackagesModal(true)}
+        onOpenLeadsModal={() => setShowLeadsModal(true)}
+        pendingLeadsCount={leads.filter((l) => l.status !== 'converted').length}
       />
 
       {/* Main App Container */}
@@ -734,6 +737,54 @@ export default function App() {
         onAddRepresentative={handleAddRepresentative}
         onUpdateUserProfile={handleUpdateUserProfile}
       />
+
+      {/* ===================== CRM LEADS MODAL ===================== */}
+      {showLeadsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden relative animate-scale-up">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[var(--border-color)] bg-[var(--bg-card)]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center font-bold">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                    سجل العملاء المهتمين والمراجعات (CRM)
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] font-medium">
+                    متابعة الزيارات الميدانية والتواصل المباشر وتحويلهم لأنشطة معتمدة بالدليل
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLeadsModal(false)}
+                className="w-8 h-8 rounded-xl bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-rose-500 flex items-center justify-center cursor-pointer transition-colors font-bold text-sm"
+                title="إغلاق النافذة"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 sm:p-6 overflow-y-auto flex-1">
+              <InvoicesLeadsHub
+                leads={leads}
+                businesses={businesses}
+                currentUser={user}
+                currentRep={currentRep}
+                onCreateLead={handleCreateLead}
+                onUpdateLead={handleUpdateLead}
+                onDeleteLead={handleDeleteLead}
+                onConvertToBusiness={(lead) => {
+                  setShowLeadsModal(false);
+                  handleConvertToBusiness(lead);
+                }}
+                onDirectConvertLead={handleDirectConvertLeadToBusiness}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

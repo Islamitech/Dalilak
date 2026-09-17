@@ -103,53 +103,7 @@ export async function fetchLeadsFromDb(repId?: string): Promise<InterestedLead[]
       console.warn('Supabase fetch leads SDK error:', err);
     }
 
-    // Also fetch leads backed up in 'businesses' table
-    try {
-      let bQuery = supabase
-        .from('businesses')
-        .select('*')
-        .or('verification_status.eq.lead,package_id.eq.pkg_interested_lead')
-        .order('created_at', { ascending: false });
-      if (repId) bQuery = bQuery.eq('rep_id', repId);
-      const { data: bLeads, error: bError } = await bQuery;
-      if (!bError && Array.isArray(bLeads)) {
-        bLeads.forEach((b: any) => {
-          if (b.deleted_at) {
-            leadMap.delete(b.id);
-            return;
-          }
-          let notesData: any = {};
-          if (typeof b.notes === 'string' && b.notes.trim().startsWith('{')) {
-            try { notesData = JSON.parse(b.notes.trim()); } catch {}
-          }
-          leadMap.set(b.id, {
-            id: b.id,
-            clientName: (b.owner_name && b.owner_name !== 'عميل مهتم') ? b.owner_name : (b.name_ar || 'صاحب المنشأة'),
-            businessName: b.name_ar,
-            businessCategory: (b.category && b.category !== 'عملاء مهتمون' && b.category !== 'عميل مهتم') ? b.category : (notesData.businessCategory || undefined),
-            phone: b.phone || b.owner_phone || '',
-            secondaryPhone: b.secondary_phone,
-            governorate: b.governorate || 'الجيزة',
-            city: b.city || 'الجيزة',
-            street: b.street,
-            lat: b.lat,
-            lng: b.lng,
-            locationUrl: notesData.locationUrl || (b.lat && b.lng ? `https://www.google.com/maps?q=${b.lat},${b.lng}` : undefined),
-            interestLevel: notesData.interestLevel || 'high',
-            notes: notesData.leadNotes || (typeof b.notes === 'string' && !b.notes.startsWith('{') ? b.notes : undefined),
-            adminFollowUps: notesData.adminFollowUps || [],
-            followUpDate: notesData.followUpDate,
-            createdDate: b.created_at || new Date().toISOString(),
-            repId: b.rep_id || 'rep_1',
-            repName: b.rep_name || 'مندوب معتمد',
-            lastContactedDate: notesData.lastContactedDate,
-            status: notesData.status || 'pending_followup',
-          });
-        });
-      }
-    } catch (err) {
-      console.warn('Supabase fetch leads from businesses error:', err);
-    }
+    // Leads are strictly isolated to the 'leads' table and never polled from 'businesses'
   }
 
   const combined = Array.from(leadMap.values()).sort(
@@ -209,63 +163,6 @@ export async function saveLeadToDb(lead: InterestedLead): Promise<InterestedLead
       }
     } catch {}
 
-    // Strategy B: Fallback to 'businesses' table
-    if (!leadSaved) {
-      try {
-        const bizLeadPayload = {
-          id: lead.id,
-          name_ar: lead.businessName || lead.clientName || 'منشأة تجارية',
-          name_en: lead.clientName || null,
-          category: (lead.businessCategory && lead.businessCategory !== 'عملاء مهتمون' && lead.businessCategory !== 'عميل مهتم') ? lead.businessCategory : 'خدمات وأنشطة عامة',
-          owner_name: (lead.clientName && lead.clientName !== 'عميل مهتم') ? lead.clientName : (lead.businessName || 'صاحب المنشأة'),
-          phone: cleanPhone,
-          owner_phone: cleanPhone, // Required not-null constraint
-          secondary_phone: lead.secondaryPhone || null,
-          governorate: lead.governorate || 'الجيزة',
-          city: lead.city || 'الجيزة',
-          street: lead.street || 'زيارة ميدانية',
-          lat: Number(lead.lat) || 30.0444,
-          lng: Number(lead.lng) || 31.2357,
-          rep_id: lead.repId || 'rep_1',
-          rep_name: lead.repName || 'مندوب معتمد',
-          package_id: 'pkg_interested_lead',
-          package_name: 'عميل مهتم / زيارة ميدانية',
-          package_price: 0,
-          amount_paid: 0,
-          payment_status: 'unpaid',
-          verification_status: 'lead',
-          notes: JSON.stringify({
-            isLead: true,
-            clientName: lead.clientName,
-            businessName: lead.businessName,
-            businessCategory: lead.businessCategory,
-            interestLevel: lead.interestLevel || 'high',
-            followUpDate: lead.followUpDate,
-            lastContactedDate: lead.lastContactedDate,
-            status: lead.status || 'pending_followup',
-            leadNotes: lead.notes,
-            adminFollowUps: Array.isArray(lead.adminFollowUps) ? lead.adminFollowUps : [],
-            locationUrl: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
-          }),
-          created_at: lead.createdDate || new Date().toISOString(),
-        };
-
-        const { error: bizErr } = await supabase.from('businesses').upsert([bizLeadPayload], { onConflict: 'id' });
-        if (!bizErr) {
-          leadSaved = true;
-        } else {
-          const res = await supabaseRestFetch('businesses', {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-            body: JSON.stringify(bizLeadPayload),
-          });
-          if (res.ok) leadSaved = true;
-        }
-      } catch (bizErr) {
-        console.warn('Fallback save lead to businesses error:', bizErr);
-      }
-    }
-
     if (leadSaved) {
       await removeOfflineLead(lead.id);
     }
@@ -306,35 +203,6 @@ export async function updateLeadInDb(lead: InterestedLead): Promise<InterestedLe
     } catch (err) {
       console.error('Supabase update lead error:', err);
     }
-
-    // 3. Also update in businesses table if stored there
-    try {
-      const cleanPhone = lead.phone || '01000000000';
-      const bizUpdates: any = {
-        name_ar: lead.businessName || lead.clientName,
-        owner_name: lead.clientName,
-        phone: cleanPhone,
-        owner_phone: cleanPhone,
-        secondary_phone: lead.secondaryPhone || null,
-        governorate: lead.governorate,
-        city: lead.city,
-        street: lead.street,
-        notes: JSON.stringify({
-          isLead: true,
-          clientName: lead.clientName,
-          businessName: lead.businessName,
-          businessCategory: lead.businessCategory,
-          interestLevel: lead.interestLevel || 'high',
-          followUpDate: lead.followUpDate,
-          lastContactedDate: lead.lastContactedDate,
-          status: lead.status || 'pending_followup',
-          leadNotes: lead.notes,
-          adminFollowUps: Array.isArray(lead.adminFollowUps) ? lead.adminFollowUps : [],
-          locationUrl: lead.locationUrl || (lead.lat && lead.lng ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}` : null),
-        }),
-      };
-      await supabase.from('businesses').update(bizUpdates).eq('id', lead.id);
-    } catch {}
   }
 
   return lead;
@@ -364,9 +232,9 @@ export async function deleteLeadFromDb(id: string): Promise<void> {
       console.error('Supabase delete lead error:', err);
     }
 
-    // Also delete from businesses table if stored there
+    // Clean up any legacy lead entry in businesses table
     try {
-      await supabase.from('businesses').delete().eq('id', id);
+      await supabase.from('businesses').delete().eq('id', id).or('verification_status.eq.lead,package_id.eq.pkg_interested_lead');
     } catch {}
   }
 }

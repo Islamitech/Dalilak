@@ -856,6 +856,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeAdminTab === 'leads' && (
         <AdminLeadsTab
           leads={leads}
+          businesses={businesses}
           leadStats={metrics.leadStats}
           currentUser={currentUser}
           onUpdateLead={onUpdateLead}

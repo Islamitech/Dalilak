@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, PlusCircle, Shield, FileText } from 'lucide-react';
+import { Home, PlusCircle, Shield, User as UserIcon } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
 interface BottomNavProps {
@@ -18,7 +18,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
     : [
         { id: 'home', label: 'الرئيسية', icon: Home },
         { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
-        { id: 'invoices', label: 'الفرص', icon: FileText },
+        { id: 'profile', label: 'الملف الشخصي', icon: UserIcon },
       ];
 
   return (

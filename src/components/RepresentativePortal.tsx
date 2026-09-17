@@ -173,12 +173,13 @@ export const RepresentativePortal: React.FC<RepresentativePortalProps> = ({
     });
   }, [myBusinesses, searchQuery, statusFilter]);
 
-  // 5. Rep's Leads List
+  // 5. Rep's Leads List (Excludes converted/approved leads)
   const myLeads = useMemo(() => {
     const repIdClean = (rep.id || '').toLowerCase().trim();
     return leads.filter((l) => {
       const matchRep = !l.repId || l.repId.toLowerCase().trim() === repIdClean;
       if (!matchRep) return false;
+      if (l.status === 'converted') return false;
       if (leadInterestFilter === 'all') return true;
       if (leadInterestFilter === 'trending_free') return l.isTrending || l.interestLevel === 'trending_free';
       return l.interestLevel === leadInterestFilter;

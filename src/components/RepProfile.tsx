@@ -221,127 +221,131 @@ export const RepProfile: React.FC<RepProfileProps> = ({
       )}
 
       {/* 🌟 1. EXECUTIVE PROFILE HEADER BANNER */}
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
-        <div className="flex items-start sm:items-center gap-3.5 sm:gap-4">
-          <div className="relative group shrink-0">
-            <UserAvatar
-              avatar={rep.avatar}
-              name={rep.name}
-              role={rep.role}
-              avatarStatus={rep.avatarStatus}
-              size="lg"
-            />
-            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-900 z-10" title="نشط ومصرح" />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base sm:text-xl font-black text-white truncate">{rep.name}</h2>
-              <span className="bg-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 shrink-0">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>مندوب معتمد 2026</span>
-              </span>
+      <div className="bg-gradient-to-br from-slate-900 via-amber-950/80 to-slate-900 border border-amber-500/40 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl space-y-4 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5 sm:gap-4">
+            <div className="relative group shrink-0">
+              <UserAvatar
+                avatar={rep.avatar}
+                name={rep.name}
+                role={rep.role}
+                avatarStatus={rep.avatarStatus}
+                size="lg"
+              />
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-900 z-10 shadow-xs" title="نشط ومصرح" />
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 font-medium flex items-center gap-1.5 flex-wrap">
-              <span>{rep.roleTitle || 'مندوب مبيعات وتوثيق ميداني'}</span>
-              <span className="text-amber-500/60">•</span>
-              <span className="text-amber-300/90 font-bold">محافظة {rep.governorate}</span>
-            </p>
 
-            {/* Distinctive & Useful Executive Badges */}
-            <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              {/* Copyable Referral Code (Only visible when unlocked) */}
-              {referralSummary.isUnlocked ? (
-                <button
-                  type="button"
-                  onClick={handleCopyReferral}
-                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1 rounded-xl border border-amber-500/40 font-mono text-[11px] font-black flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95 group"
-                  title="اضغط لنسخ كود الإحالة المعتمد الخاص بك"
-                >
-                  <Users className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span>كود الإحالة: <span className="font-extrabold text-white">{referralCode}</span></span>
-                  {copiedCode ? (
-                    <span className="flex items-center gap-0.5 text-emerald-400 font-bold text-[9px] bg-emerald-500/20 px-1 py-0.2 rounded border border-emerald-500/30 animate-pulse">
-                      <Check className="w-2.5 h-2.5" /> تم النسخ!
-                    </span>
-                  ) : (
-                    <Copy className="w-3 h-3 text-amber-400 opacity-70 group-hover:opacity-100" />
-                  )}
-                </button>
-              ) : (
-                <div
-                  className="bg-slate-800/80 text-slate-300 px-3 py-1 rounded-xl border border-amber-500/30 font-mono text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
-                  title={`كود الإحالة مقفل لحين إتمام 25 نشاطاً مسجلاً (أنجزت ${repBusinesses.length}/25)`}
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  <span>كود الإحالة: <span className="text-amber-300 font-black">مقفل ({repBusinesses.length}/25 نشاط)</span></span>
-                </div>
-              )}
-
-              {/* Official Commission Rate */}
-              <span className="bg-emerald-500/15 text-emerald-300 px-2.5 py-1 rounded-xl border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 shadow-xs">
-                <Percent className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
-                <span>عمولة فورية: <strong className="text-white font-black">{commissionPercentage}%</strong></span>
-              </span>
-
-              {/* Verified Contact Phone */}
-              <span className="bg-black/35 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-white/10 text-[11px] text-slate-300 flex items-center gap-1.5">
-                <Phone className="w-3 h-3 text-slate-400" />
-                <span dir="ltr" className="font-mono text-slate-200">{rep.phone}</span>
-                {rep.phoneStatus === 'pending_approval' && (
-                  <span className="text-[9px] text-amber-400 font-bold bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-500/30">
-                    قيد مراجعة التعديل
-                  </span>
-                )}
-              </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-xl font-black text-white truncate">{rep.name}</h2>
+                <span className="bg-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 shrink-0">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>مندوب معتمد 2026</span>
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-1 font-medium flex items-center gap-1.5 flex-wrap">
+                <span>{rep.roleTitle || 'مندوب مبيعات وتوثيق ميداني'}</span>
+                <span className="text-amber-500/60">•</span>
+                <span className="text-amber-300/90 font-bold">محافظة {rep.governorate}</span>
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 pt-2 md:pt-0 border-t border-white/10 md:border-t-0 shrink-0">
+        {/* Badges strip: Referral Code, Commission, Phone */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Copyable Referral Code (Only visible when unlocked) */}
+          {referralSummary.isUnlocked ? (
+            <button
+              type="button"
+              onClick={handleCopyReferral}
+              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded-xl border border-amber-500/40 font-mono text-[11px] font-black flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95 group"
+              title="اضغط لنسخ كود الإحالة المعتمد الخاص بك"
+            >
+              <Users className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
+              <span>كود الإحالة: <span className="font-extrabold text-white">{referralCode}</span></span>
+              {copiedCode ? (
+                <span className="flex items-center gap-0.5 text-emerald-400 font-bold text-[9px] bg-emerald-500/20 px-1 py-0.2 rounded border border-emerald-500/30 animate-pulse">
+                  <Check className="w-2.5 h-2.5" /> تم النسخ!
+                </span>
+              ) : (
+                <Copy className="w-3 h-3 text-amber-400 opacity-70 group-hover:opacity-100 shrink-0" />
+              )}
+            </button>
+          ) : (
+            <div
+              className="bg-slate-800/80 text-slate-300 px-3 py-1.5 rounded-xl border border-amber-500/30 font-mono text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+              title={`كود الإحالة مقفل لحين إتمام 25 نشاطاً مسجلاً (أنجزت ${repBusinesses.length}/25)`}
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>كود الإحالة: <span className="text-amber-300 font-black">مقفل ({repBusinesses.length}/25)</span></span>
+            </div>
+          )}
+
+          {/* Official Commission Rate */}
+          <span className="bg-emerald-500/15 text-emerald-300 px-2.5 py-1.5 rounded-xl border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 shadow-xs">
+            <Percent className="w-3 h-3 text-emerald-400 stroke-[2.5] shrink-0" />
+            <span>عمولة فورية: <strong className="text-white font-black">{commissionPercentage}%</strong></span>
+          </span>
+
+          {/* Verified Contact Phone */}
+          <span className="bg-black/35 backdrop-blur-xs px-2.5 py-1.5 rounded-xl border border-white/10 text-[11px] text-slate-300 flex items-center gap-1.5">
+            <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+            <span dir="ltr" className="font-mono text-slate-200">{rep.phone}</span>
+            {rep.phoneStatus === 'pending_approval' && (
+              <span className="text-[9px] text-amber-400 font-bold bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-500/30">
+                قيد مراجعة التعديل
+              </span>
+            )}
+          </span>
+        </div>
+
+        {/* Action Controls: Balanced, Clean, Zero-Overflow Responsive Bar */}
+        <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <button
             type="button"
             onClick={() => setShowEditModal(true)}
-            className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            className="min-h-[42px] bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
           >
-            <Edit3 className="w-4 h-4 stroke-[2.5]" />
+            <Edit3 className="w-4 h-4 stroke-[2.5] shrink-0" />
             <span>{user?.role === 'admin' ? 'تعديل الملف الإداري والبيانات ✏️' : 'تعديل البيانات ✏️'}</span>
           </button>
 
-          {user?.role === 'admin' && onNavigateAdmin && (
+          <div className="flex items-center gap-1.5 justify-end flex-wrap">
+            {user?.role === 'admin' && onNavigateAdmin && (
+              <button
+                type="button"
+                onClick={onNavigateAdmin}
+                title="الانتقال إلى لوحة العمليات المركزية"
+                className="flex-1 sm:flex-initial min-h-[40px] px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/40 flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>لوحة الإدارة</span>
+              </button>
+            )}
+
+            {onNavigateHome && (
+              <button
+                type="button"
+                onClick={onNavigateHome}
+                title="العودة إلى الصفحة الرئيسية"
+                className="flex-1 sm:flex-initial min-h-[40px] px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 flex items-center justify-center gap-1 shadow transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Home className="w-3.5 h-3.5 text-amber-400 shrink-0 stroke-[2.2]" />
+                <span>الرئيسية</span>
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={onNavigateAdmin}
-              title="الانتقال إلى لوحة التحكم الإدارية المركزية"
-              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs px-3 py-2.5 rounded-xl border border-amber-500/40 flex items-center justify-center gap-1.5 shadow transition-all active:scale-95 cursor-pointer shrink-0"
+              onClick={onLogout}
+              title="تسجيل الخروج"
+              className="flex-1 sm:flex-initial min-h-[40px] px-3 py-2 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/30 flex items-center justify-center gap-1 shadow transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <Shield className="w-3.5 h-3.5 text-amber-400" />
-              <span>لوحة الإدارة</span>
+              <LogOut className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span>خروج</span>
             </button>
-          )}
-
-          {onNavigateHome && (
-            <button
-              type="button"
-              onClick={onNavigateHome}
-              title="العودة إلى الصفحة الرئيسية للأنشطة"
-              className="bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-bold text-xs px-3 py-2.5 rounded-xl border border-amber-500/30 flex items-center justify-center gap-1 shadow transition-all active:scale-95 cursor-pointer shrink-0"
-            >
-              <Home className="w-3.5 h-3.5 text-amber-400 stroke-[2.2]" />
-              <span>الرئيسية</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={onLogout}
-            title="تسجيل الخروج"
-            className="bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold text-xs px-3 py-2.5 rounded-xl border border-rose-500/30 flex items-center justify-center gap-1 shadow transition-all active:scale-95 cursor-pointer shrink-0"
-          >
-            <LogOut className="w-3.5 h-3.5 text-rose-400" />
-            <span>خروج</span>
-          </button>
+          </div>
         </div>
       </div>
 
@@ -396,57 +400,57 @@ export const RepProfile: React.FC<RepProfileProps> = ({
         </div>
       </div>
 
-      {/* 🧭 2. SUB-NAVIGATION TABS BAR (Mobile-optimized) */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-2xl flex items-center gap-1 shadow-sm text-xs font-bold overflow-x-auto scrollbar-none snap-x">
+      {/* 🧭 2. SUB-NAVIGATION TABS BAR (Mobile-optimized 2x2 Grid / Desktop 4-col Grid) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-2xl shadow-sm text-xs font-bold">
         <button
           type="button"
           onClick={() => setActiveTab('activities')}
-          className={`flex-1 min-w-[110px] sm:min-w-[130px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap snap-start ${
+          className={`min-h-[44px] py-2 px-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${
             activeTab === 'activities'
               ? 'bg-amber-500 text-slate-950 font-black shadow-md'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
           }`}
         >
-          <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>الأنشطة المسجلة ({repBusinesses.length})</span>
+          <FileText className="w-4 h-4 shrink-0" />
+          <span>الأنشطة ({repBusinesses.length})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('finance')}
-          className={`flex-1 min-w-[110px] sm:min-w-[130px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap snap-start ${
+          className={`min-h-[44px] py-2 px-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${
             activeTab === 'finance'
               ? 'bg-amber-500 text-slate-950 font-black shadow-md'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
           }`}
         >
-          <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <CreditCard className="w-4 h-4 shrink-0" />
           <span>كشف الحساب والعمولات</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('referral')}
-          className={`flex-1 min-w-[110px] sm:min-w-[130px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap snap-start ${
+          className={`min-h-[44px] py-2 px-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${
             activeTab === 'referral'
               ? 'bg-amber-500 text-slate-950 font-black shadow-md'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
           }`}
         >
-          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <Users className="w-4 h-4 shrink-0" />
           <span>برنامج الإحالة ({referralSummary.totalInvitedCount})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('id_docs')}
-          className={`flex-1 min-w-[110px] sm:min-w-[130px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap snap-start ${
+          className={`min-h-[44px] py-2 px-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${
             activeTab === 'id_docs'
               ? 'bg-amber-500 text-slate-950 font-black shadow-md'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)]'
           }`}
         >
-          <IdCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <IdCard className="w-4 h-4 shrink-0" />
           <span>بطاقة التكليف والوثائق</span>
         </button>
       </div>

@@ -34,9 +34,9 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
   onConvertToBusiness,
   onDirectConvertLead,
 }) => {
-  // Leads Filter States
+  // Leads Filter States: default to 'active' so converted/accredited leads disappear from primary list
   const [leadSearch, setLeadSearch] = useState<string>('');
-  const [leadStatusFilter, setLeadStatusFilter] = useState<string>('all');
+  const [leadStatusFilter, setLeadStatusFilter] = useState<string>('active');
   const [leadInterestFilter, setLeadInterestFilter] = useState<string>('all');
   const [leadGovFilter, setLeadGovFilter] = useState<string>('all');
 
@@ -59,9 +59,37 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
     });
   }, [leads, currentUser, currentRep, isRepAdmin]);
 
+  // Reconcile with businesses: if a business was registered with this lead ID or phone, auto-treat as converted
+  const reconciledLeads = useMemo(() => {
+    const convertedLeadIds = new Set<string>();
+    const registeredPhones = new Set<string>();
+
+    businesses.forEach((b) => {
+      if (b.convertedFromLeadId) convertedLeadIds.add(b.convertedFromLeadId);
+      if (b.phone) {
+        const cp = b.phone.replace(/[^\d]/g, '');
+        if (cp.length >= 9) registeredPhones.add(cp.slice(-9));
+      }
+      if (b.ownerPhone) {
+        const cp = b.ownerPhone.replace(/[^\d]/g, '');
+        if (cp.length >= 9) registeredPhones.add(cp.slice(-9));
+      }
+    });
+
+    return scopedLeads.map((l) => {
+      if (l.status === 'converted') return l;
+      const cleanPhone = (l.phone || '').replace(/[^\d]/g, '');
+      const hasPhoneMatch = cleanPhone.length >= 9 && registeredPhones.has(cleanPhone.slice(-9));
+      if (convertedLeadIds.has(l.id) || hasPhoneMatch) {
+        return { ...l, status: 'converted' as const };
+      }
+      return l;
+    });
+  }, [scopedLeads, businesses]);
+
   // Filtered Leads
   const filteredLeads = useMemo(() => {
-    return scopedLeads.filter((l) => {
+    return reconciledLeads.filter((l) => {
       const q = leadSearch.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -72,7 +100,13 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
         (l.phone || '').includes(q) ||
         (l.city || '').toLowerCase().includes(q);
 
-      const matchStatus = leadStatusFilter === 'all' || l.status === leadStatusFilter;
+      const matchStatus =
+        leadStatusFilter === 'active'
+          ? l.status !== 'converted'
+          : leadStatusFilter === 'all'
+          ? true
+          : l.status === leadStatusFilter;
+
       const matchInterest =
         leadInterestFilter === 'all' ||
         l.interestLevel === leadInterestFilter ||
@@ -81,13 +115,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
       return matchSearch && matchStatus && matchInterest && matchGov;
     });
-  }, [scopedLeads, leadSearch, leadStatusFilter, leadInterestFilter, leadGovFilter]);
+  }, [reconciledLeads, leadSearch, leadStatusFilter, leadInterestFilter, leadGovFilter]);
 
   // Stats calculation
-  const totalLeadsCount = scopedLeads.length;
-  const pendingLeadsCount = scopedLeads.filter((l) => l.status === 'pending_followup').length;
-  const contactedLeadsCount = scopedLeads.filter((l) => l.status === 'contacted').length;
-  const convertedLeadsCount = scopedLeads.filter((l) => l.status === 'converted').length;
+  const totalLeadsCount = reconciledLeads.length;
+  const activeLeadsCount = reconciledLeads.filter((l) => l.status !== 'converted').length;
+  const pendingLeadsCount = reconciledLeads.filter((l) => l.status === 'pending_followup').length;
+  const contactedLeadsCount = reconciledLeads.filter((l) => l.status === 'contacted').length;
+  const convertedLeadsCount = reconciledLeads.filter((l) => l.status === 'converted').length;
 
   return (
     <div className="space-y-6 animate-fade-in text-[var(--text-primary)]">
@@ -104,7 +139,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
                   سجل العملاء المهتمين والزيارات
                 </h2>
                 <span className="bg-amber-500/15 text-amber-800 border border-amber-500/30 text-[11px] font-black px-2 py-0.5 rounded-full">
-                  {scopedLeads.length} شخص مهتم
+                  {activeLeadsCount} قيد المتابعة
                 </span>
               </div>
               <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">
@@ -128,20 +163,20 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <button
             type="button"
-            onClick={() => { setLeadStatusFilter('all'); setLeadInterestFilter('all'); }}
+            onClick={() => { setLeadStatusFilter(leadStatusFilter === 'active' ? 'all' : 'active'); setLeadInterestFilter('all'); }}
             className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-              leadStatusFilter === 'all' && leadInterestFilter === 'all'
+              leadStatusFilter === 'active'
                 ? 'bg-amber-500/15 border-amber-500 shadow-sm ring-1 ring-amber-500/30'
                 : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-amber-500/40'
             }`}
           >
-            <span className="text-[11px] text-[var(--text-muted)] font-bold block">إجمالي المهتمين</span>
-            <span className="text-lg font-black text-amber-500 font-mono">{totalLeadsCount}</span>
+            <span className="text-[11px] text-[var(--text-muted)] font-bold block">المهتمين قيد المتابعة</span>
+            <span className="text-lg font-black text-amber-500 font-mono">{activeLeadsCount}</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setLeadStatusFilter(leadStatusFilter === 'pending_followup' ? 'all' : 'pending_followup')}
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'pending_followup' ? 'active' : 'pending_followup')}
             className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
               leadStatusFilter === 'pending_followup'
                 ? 'bg-amber-500/15 border-amber-500 shadow-sm ring-1 ring-amber-500/30'
@@ -154,7 +189,7 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
           <button
             type="button"
-            onClick={() => setLeadStatusFilter(leadStatusFilter === 'contacted' ? 'all' : 'contacted')}
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'contacted' ? 'active' : 'contacted')}
             className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
               leadStatusFilter === 'contacted'
                 ? 'bg-blue-500/15 border-blue-500 shadow-sm ring-1 ring-blue-500/30'
@@ -167,14 +202,14 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
 
           <button
             type="button"
-            onClick={() => setLeadStatusFilter(leadStatusFilter === 'converted' ? 'all' : 'converted')}
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'converted' ? 'active' : 'converted')}
             className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
               leadStatusFilter === 'converted'
                 ? 'bg-emerald-500/15 border-emerald-500 shadow-sm ring-1 ring-emerald-500/30'
                 : 'bg-[var(--input-bg)] border-[var(--border-color)] hover:border-emerald-500/40'
             }`}
           >
-            <span className="text-[11px] text-emerald-700 font-bold block">تحولوا لمشتركين</span>
+            <span className="text-[11px] text-emerald-700 font-bold block">المعتمدون والمحولون</span>
             <span className="text-lg font-black text-emerald-600 font-mono">{convertedLeadsCount}</span>
           </button>
         </div>
@@ -194,13 +229,13 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
           />
         )}
 
-        {/* Leads Search & Filter Toolbar */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
-          <div className="relative col-span-1 sm:col-span-1">
-            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute right-3 top-3" />
+        {/* Search & Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-[var(--border-color)] text-xs">
+          <div className="relative">
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute right-2.5 top-2.5" />
             <input
               type="text"
-              placeholder="بحث باسم العميل أو النشاط أو الهاتف..."
+              placeholder="بحث بالاسم، المنشأة، الهاتف، الملاحظات..."
               value={leadSearch}
               onChange={(e) => setLeadSearch(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl pr-8 pl-3 py-2 focus:outline-none focus:border-amber-500 shadow-xs"
@@ -212,10 +247,11 @@ export const InvoicesLeadsHub: React.FC<InvoicesLeadsHubProps> = ({
             onChange={(e) => setLeadStatusFilter(e.target.value)}
             className="bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 shadow-xs"
           >
-            <option value="all">كل حالات المتابعة</option>
-            <option value="pending_followup">بانتظار المتابعة</option>
-            <option value="contacted">تم التواصل</option>
-            <option value="converted">تم التحويل لمشترك</option>
+            <option value="active">المهتمون قيد المتابعة فقط (يستبعد المعتمدين)</option>
+            <option value="all">كل الحالات (شامل المعتمدين)</option>
+            <option value="pending_followup">بانتظار المتابعة فقط</option>
+            <option value="contacted">تم التواصل فقط</option>
+            <option value="converted">المعتمدون والمحولون لأنشطة فقط</option>
             <option value="cancelled">ملغي / غير مهتم</option>
           </select>
 

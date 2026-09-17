@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
-import { InterestedLead, User } from '../../../types';
+import { InterestedLead, User, Business } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { formatActivityDateTime } from '../../../utils/dateFormatters';
 import { sanitizeExternalUrl } from '../../../utils/urlSanitizer';
@@ -24,6 +24,7 @@ import {
 
 interface AdminLeadsTabProps {
   leads: InterestedLead[];
+  businesses?: Business[];
   leadStats: {
     total: number;
     pendingFollowup: number;
@@ -42,6 +43,7 @@ interface AdminLeadsTabProps {
 
 export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
   leads = [],
+  businesses = [],
   leadStats,
   currentUser,
   onUpdateLead,
@@ -51,7 +53,8 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
   onSelectFollowUpLead,
 }) => {
   const [leadSearchQuery, setLeadSearchQuery] = useState<string>('');
-  const [leadStatusFilter, setLeadStatusFilter] = useState<string>('all');
+  // Default to 'active' so converted/accredited leads disappear from active follow-up list
+  const [leadStatusFilter, setLeadStatusFilter] = useState<string>('active');
   const [leadInterestFilter, setLeadInterestFilter] = useState<string>('all');
   const [leadGovFilter, setLeadGovFilter] = useState<string>('all');
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
@@ -90,8 +93,40 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
     });
   }, []);
 
+  const reconciledLeads = useMemo(() => {
+    const convertedLeadIds = new Set<string>();
+    const registeredPhones = new Set<string>();
+
+    businesses.forEach((b) => {
+      if (b.convertedFromLeadId) convertedLeadIds.add(b.convertedFromLeadId);
+      if (b.phone) {
+        const cp = b.phone.replace(/[^\d]/g, '');
+        if (cp.length >= 9) registeredPhones.add(cp.slice(-9));
+      }
+      if (b.ownerPhone) {
+        const cp = b.ownerPhone.replace(/[^\d]/g, '');
+        if (cp.length >= 9) registeredPhones.add(cp.slice(-9));
+      }
+    });
+
+    return leads.map((l) => {
+      if (l.status === 'converted') return l;
+      const cleanPhone = (l.phone || '').replace(/[^\d]/g, '');
+      const hasPhoneMatch = cleanPhone.length >= 9 && registeredPhones.has(cleanPhone.slice(-9));
+      if (convertedLeadIds.has(l.id) || hasPhoneMatch) {
+        return { ...l, status: 'converted' as const };
+      }
+      return l;
+    });
+  }, [leads, businesses]);
+
+  const activeCount = reconciledLeads.filter((l) => l.status !== 'converted').length;
+  const pendingCount = reconciledLeads.filter((l) => l.status === 'pending_followup').length;
+  const contactedCount = reconciledLeads.filter((l) => l.status === 'contacted').length;
+  const convertedCount = reconciledLeads.filter((l) => l.status === 'converted').length;
+
   const filteredLeads = useMemo(() => {
-    return leads.filter((l) => {
+    return reconciledLeads.filter((l) => {
       if (leadSearchQuery) {
         const q = leadSearchQuery.toLowerCase();
         const cName = (l.clientName || '').toLowerCase();
@@ -102,7 +137,9 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
           return false;
         }
       }
-      if (leadStatusFilter !== 'all' && l.status !== leadStatusFilter) {
+      if (leadStatusFilter === 'active') {
+        if (l.status === 'converted') return false;
+      } else if (leadStatusFilter !== 'all' && l.status !== leadStatusFilter) {
         return false;
       }
       if (leadInterestFilter !== 'all' && l.interestLevel !== leadInterestFilter) {
@@ -113,7 +150,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
       }
       return true;
     });
-  }, [leads, leadSearchQuery, leadStatusFilter, leadInterestFilter, leadGovFilter]);
+  }, [reconciledLeads, leadSearchQuery, leadStatusFilter, leadInterestFilter, leadGovFilter]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -128,7 +165,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
               <h3 className="font-black text-base text-[var(--text-primary)] flex items-center gap-2">
                 <span>سجل متابعة ومراجعات العملاء المهتمين (CRM Leads)</span>
                 <span className="bg-emerald-500/15 text-emerald-700 text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                  {leadStats.total} عميل مهتم
+                  {activeCount} قيد المتابعة
                 </span>
               </h3>
               <p className="text-xs text-[var(--text-muted)] font-medium">
@@ -142,29 +179,64 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
             <Sparkles className="w-4 h-4 text-emerald-500" />
             <span className="text-xs font-bold text-[var(--text-muted)]">معدل التحويل لاشتراكات:</span>
             <span className="font-black text-sm text-emerald-600 font-mono">
-              {leadStats.conversionRate}% ({leadStats.converted} من {leadStats.total})
+              {leadStats.conversionRate}% ({convertedCount} من {reconciledLeads.length})
             </span>
           </div>
         </div>
 
-        {/* 4 Stat Cards */}
+        {/* 4 Interactive Stat Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl space-y-1">
-            <span className="text-[11px] font-bold text-[var(--text-muted)] block">إجمالي العملاء المهتمين</span>
-            <span className="text-xl font-black text-[var(--text-primary)] font-mono">{leadStats.total}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 rounded-2xl space-y-1">
+          <button
+            type="button"
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'active' ? 'all' : 'active')}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'active'
+                ? 'bg-emerald-500/15 border-emerald-500 shadow-sm ring-1 ring-emerald-500/30'
+                : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-emerald-500/40'
+            }`}
+          >
+            <span className="text-[11px] font-bold text-[var(--text-muted)] block">المهتمين قيد المتابعة</span>
+            <span className="text-xl font-black text-emerald-600 font-mono">{activeCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'pending_followup' ? 'active' : 'pending_followup')}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'pending_followup'
+                ? 'bg-amber-500/15 border-amber-500 shadow-sm ring-1 ring-amber-500/30'
+                : 'bg-[var(--bg-card)] border-amber-500/30 hover:border-amber-500/60'
+            }`}
+          >
             <span className="text-[11px] font-bold text-amber-600 block">بانتظار المتابعة</span>
-            <span className="text-xl font-black text-amber-600 font-mono">{leadStats.pendingFollowup}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 rounded-2xl space-y-1">
+            <span className="text-xl font-black text-amber-600 font-mono">{pendingCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'contacted' ? 'active' : 'contacted')}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'contacted'
+                ? 'bg-blue-500/15 border-blue-500 shadow-sm ring-1 ring-blue-500/30'
+                : 'bg-[var(--bg-card)] border-blue-500/30 hover:border-blue-500/60'
+            }`}
+          >
             <span className="text-[11px] font-bold text-blue-600 block">تم التواصل معهم</span>
-            <span className="text-xl font-black text-blue-600 font-mono">{leadStats.contacted}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 rounded-2xl space-y-1">
-            <span className="text-[11px] font-bold text-emerald-600 block">تحولوا لاشتراكات فعلية</span>
-            <span className="text-xl font-black text-emerald-600 font-mono">{leadStats.converted}</span>
-          </div>
+            <span className="text-xl font-black text-blue-600 font-mono">{contactedCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLeadStatusFilter(leadStatusFilter === 'converted' ? 'active' : 'converted')}
+            className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
+              leadStatusFilter === 'converted'
+                ? 'bg-emerald-500/15 border-emerald-500 shadow-sm ring-1 ring-emerald-500/30'
+                : 'bg-[var(--bg-card)] border-emerald-500/30 hover:border-emerald-500/60'
+            }`}
+          >
+            <span className="text-[11px] font-bold text-emerald-600 block">المعتمدون والمحولون</span>
+            <span className="text-xl font-black text-emerald-600 font-mono">{convertedCount}</span>
+          </button>
         </div>
       </div>
 
@@ -190,10 +262,11 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
               onChange={(e) => setLeadStatusFilter(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
-              <option value="all">كل الحالات ({leads.length})</option>
-              <option value="pending_followup">بانتظار المتابعة ({leadStats.pendingFollowup})</option>
-              <option value="contacted">تم التواصل ({leadStats.contacted})</option>
-              <option value="converted">تحول إلى نشاط مسجل ({leadStats.converted})</option>
+              <option value="active">المهتمون قيد المتابعة فقط (يستبعد المعتمدين)</option>
+              <option value="all">كل الحالات (شامل المعتمدين)</option>
+              <option value="pending_followup">بانتظار المتابعة فقط ({pendingCount})</option>
+              <option value="contacted">تم التواصل فقط ({contactedCount})</option>
+              <option value="converted">المعتمدون والمحولون لأنشطة فقط ({convertedCount})</option>
             </select>
           </div>
 

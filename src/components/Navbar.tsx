@@ -36,6 +36,8 @@ interface NavbarProps {
   onOpenTerms?: () => void;
   onOpenPermissions?: () => void;
   onOpenPackages?: () => void;
+  onOpenLeadsModal?: () => void;
+  pendingLeadsCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -56,6 +58,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenTerms,
   onOpenPermissions,
   onOpenPackages,
+  onOpenLeadsModal,
+  pendingLeadsCount = 0,
 }) => {
   const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
   const servicesMenuRef = useRef<HTMLDivElement>(null);
@@ -211,6 +215,24 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Left side controls: Services Dropdown + Notification Center + Theme Toggle + User Badge / Login */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Quick CRM Leads Modal Trigger */}
+          {user && onOpenLeadsModal && (
+            <button
+              type="button"
+              onClick={onOpenLeadsModal}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 transition-all cursor-pointer shadow-2xs active:scale-95"
+              title="فتح سجل العملاء المهتمين والمراجعات الميدانية (CRM)"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="hidden sm:inline font-bold">المهتمين</span>
+              {pendingLeadsCount > 0 && (
+                <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full leading-none">
+                  {pendingLeadsCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Services & Quick Links Dropdown for Authenticated Users */}
           {user && (
             <div className="relative" ref={servicesMenuRef}>
