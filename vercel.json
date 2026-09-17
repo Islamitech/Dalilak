@@ -7,6 +7,10 @@
       "config": {
         "distDir": "dist"
       }
+    },
+    {
+      "src": "api/*.ts",
+      "use": "@vercel/node"
     }
   ],
   "headers": [
@@ -59,6 +63,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/sitemap.xml",
+      "dest": "/api/sitemap"
+    },
     {
       "handle": "filesystem"
     },

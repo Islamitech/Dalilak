@@ -103,18 +103,28 @@ function isRequestSuperAdmin(req: express.Request): boolean {
 }
 
 // -----------------------------------------------------------------------------
-// Health & Info Endpoint
+// Health & Diagnostic Telemetry Endpoints
 // -----------------------------------------------------------------------------
-app.get(['/', '/health', '/api/health'], (_req, res) => {
+app.get(['/', '/health', '/api/health', '/api/whatsapp/health', '/api/admin/whatsapp/health'], (_req, res) => {
   const session = getWhatsAppSessionStatus();
   const campaign = getCampaignProgress();
+  const slot1Connected = session.slots['1'].state === 'connected';
+  const slot2Connected = session.slots['2'].state === 'connected';
+  const isAnyConnected = slot1Connected || slot2Connected;
+  const isBothConnected = slot1Connected && slot2Connected;
+
   return res.json({
     status: 'ok',
     service: 'Dalelak Dedicated WhatsApp Gateway',
-    version: '2.0.0 (Standalone)',
+    version: '2.1.0 (Standalone Health Telemetry)',
     port: PORT,
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime()),
     connectionState: session.state,
     connectedUser: session.connectedUser,
+    isAnyConnected,
+    isBothConnected,
+    slots: session.slots,
     activeCampaign: campaign
       ? {
           id: campaign.id,
@@ -126,6 +136,27 @@ app.get(['/', '/health', '/api/health'], (_req, res) => {
           skipped: campaign.skipped,
         }
       : null,
+    memoryUsage: {
+      rssMb: Math.round((process.memoryUsage().rss / 1024 / 1024) * 10) / 10,
+      heapUsedMb: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 10) / 10,
+    },
+  });
+});
+
+app.get(['/api/whatsapp/heartbeat', '/api/admin/whatsapp/heartbeat'], (_req, res) => {
+  const session = getWhatsAppSessionStatus();
+  const isAnyConnected =
+    session.slots['1'].state === 'connected' || session.slots['2'].state === 'connected';
+  return res.json({
+    status: 'alive',
+    timestamp: new Date().toISOString(),
+    state: session.state,
+    isAnyConnected,
+    isBothConnected: session.slots['1'].state === 'connected' && session.slots['2'].state === 'connected',
+    slotsHealth: {
+      '1': session.slots['1'].healthStatus || (session.slots['1'].state === 'connected' ? 'healthy' : 'offline'),
+      '2': session.slots['2'].healthStatus || (session.slots['2'].state === 'connected' ? 'healthy' : 'offline'),
+    },
   });
 });
 

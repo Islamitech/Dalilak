@@ -86,13 +86,47 @@ ALTER TABLE IF EXISTS public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.payment_config ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------------------------
--- 2. صلاحيات جدول المندوبين والمستخدمين (Table Privileges & Access Grants)
--- منح الصلاحيات للأدوار العامة مع حوكمة أمان الصفوف عبر RLS لتمكين التسجيل والدخول المباشر
+-- 2. صلاحيات جدول المندوبين والمستخدمين (Table Privileges & Column-Level Defense-in-depth)
+-- 🛡️ تطبيق Defense-in-Depth RLS و Column-Level Security (CLS) لحماية بيانات الهوية والـ PII
 -- ------------------------------------------------------------------------------
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON SCHEMA public TO postgres, service_role;
 
-GRANT SELECT, INSERT, UPDATE ON public.representatives TO anon, authenticated;
+-- 🛡️ 1. سحب صلاحية SELECT الشاملة على مستوى الجدول من المفاتيح العامة (Anon / Authenticated)
+REVOKE SELECT ON public.representatives FROM anon, authenticated;
+
+-- 🛡️ 2. منح SELECT على الأعمدة العامة والآمنة فقط (حجب قطعي لـ password, national_id, card photos, active_session_id)
+GRANT SELECT (
+    id, name, email, phone, role, role_title, governorate, target_month,
+    avatar, avatar_status, commission_rate, status, referral_code,
+    referred_by_code, referral_unlocked, referral_reward_granted,
+    created_at, updated_at, is_deleted, deleted_at
+) ON public.representatives TO anon, authenticated;
+
+-- 🛡️ 3. السماح بالإدخال عند التسجيل الذاتي (مع حفظ الوثائق بآلية Write-Only Drop Box)
+GRANT INSERT (
+    id, name, email, phone, password, national_id, activation_face_photo,
+    national_id_card_photo, national_id_card_back_photo, role, role_title,
+    governorate, target_month, avatar, avatar_status, commission_rate, status,
+    referral_code, referred_by_code, referral_unlocked, created_at, updated_at
+) ON public.representatives TO anon, authenticated;
+
+-- 🛡️ 4. السماح بالتحديث للأعمدة الذاتية غير الحساسة فقط
+GRANT UPDATE (
+    name, phone, governorate, avatar, avatar_status, pending_phone, phone_status, updated_at
+) ON public.representatives TO anon, authenticated;
+
+-- 🛡️ 5. حجب إيصالات السداد وبيانات المحاسبة في جدول الأنشطة عن المفتاح العام anon
+REVOKE SELECT ON public.businesses FROM anon;
+GRANT SELECT (
+    id, name_ar, phone, address, governorate, category, description,
+    lat, lng, google_rating, google_reviews_count, views_count, favorite_count,
+    cover_photo, photos, videos, is_deleted, deleted_at, created_at, updated_at,
+    working_hours, features, social_links, menu_items, package_id, verification_status
+) ON public.businesses TO anon;
+GRANT SELECT ON public.businesses TO authenticated, service_role, postgres;
+
+-- الصلاحيات الكاملة مقتصرة حصراً على حساب الخدمة الموثوق (Service Role) و Postgres
 GRANT ALL ON public.representatives TO service_role, postgres;
 GRANT ALL ON public.businesses TO service_role, postgres;
 GRANT ALL ON public.payout_requests TO service_role, postgres;
@@ -100,8 +134,55 @@ GRANT ALL ON public.leads TO service_role, postgres;
 GRANT ALL ON public.payment_config TO service_role, postgres;
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE ON TABLES TO anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role, postgres;
+
+-- ------------------------------------------------------------------------------
+-- 2.1 دوال RPC الآمنة للتحقق من الهوية دون تسريب البيانات (Zero-Knowledge Existence Checks)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.check_rep_national_id_exists(p_national_id TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF p_national_id IS NULL OR length(trim(p_national_id)) = 0 THEN
+        RETURN FALSE;
+    END IF;
+    RETURN EXISTS (
+        SELECT 1 FROM public.representatives
+        WHERE trim(national_id) = trim(p_national_id)
+        AND (is_deleted IS NULL OR is_deleted = false)
+        AND deleted_at IS NULL
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.check_rep_national_id_exists(TEXT) TO anon, authenticated, service_role;
+
+-- ------------------------------------------------------------------------------
+-- 2.2 العروض الآمنة المطهرة (Secure Sanitized Views)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.safe_representatives AS
+SELECT 
+    id, name, email, phone, role, role_title, governorate, target_month,
+    avatar, avatar_status, commission_rate, status, referral_code,
+    referred_by_code, referral_unlocked, referral_reward_granted,
+    created_at, updated_at, is_deleted, deleted_at
+FROM public.representatives
+WHERE (is_deleted IS NULL OR is_deleted = false) AND deleted_at IS NULL;
+
+GRANT SELECT ON public.safe_representatives TO anon, authenticated, service_role;
+
+CREATE OR REPLACE VIEW public.safe_businesses AS
+SELECT 
+    id, name_ar, phone, address, governorate, category, description,
+    lat, lng, google_rating, google_reviews_count, views_count, favorite_count,
+    cover_photo, photos, videos, is_deleted, deleted_at, created_at, updated_at,
+    working_hours, features, social_links, menu_items, package_id, verification_status
+FROM public.businesses
+WHERE deleted_at IS NULL AND (is_deleted IS NULL OR is_deleted = false);
+
+GRANT SELECT ON public.safe_businesses TO anon, authenticated, service_role;
 
 -- ------------------------------------------------------------------------------
 -- 3. سياسات جدول المندوبين (representatives)

@@ -8,6 +8,8 @@ import { INITIAL_BUSINESSES, MOCK_REPRESENTATIVES, DEFAULT_PAYMENT_CONFIG, BUSIN
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead } from './src/types.js';
 import { classifyPhoneNumber, isPhoneAllowedByFilter } from './src/utils/phoneClassifier.js';
 import { calculateHaversineDistanceKm, evaluatePlaceGeoBoundary, formatLocalizedDistance } from './src/utils/geoBoundaryGuard.js';
+import { serviceSupabase, isSupabaseServiceConfigured } from './server/supabase.js';
+import { mapDbToBusiness, mapDbToRep, getSafeCoreBusinessDbRecord } from './src/services/db/dbMappers.js';
 
 
 process.on('uncaughtException', (err) => {
@@ -33,7 +35,7 @@ app.use((_req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self)');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://*.ggpht.com https://*.tile.openstreetmap.org https://unpkg.com https://dalilaak.com https://www.dalilaak.com; media-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://places.googleapis.com https://unpkg.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://*.ggpht.com https://*.tile.openstreetmap.org https://unpkg.com https://dalilaak.com https://www.dalilaak.com https://cdn.jsdelivr.net; media-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://places.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
   );
   // CORS: السماح من المصادر الموثوقة المعتمدة فقط
   const origin = _req.headers.origin || '';
@@ -153,121 +155,13 @@ function atomicWriteFileSync(filePath: string, data: string): void {
   fs.renameSync(tmpPath, filePath);
 }
 
-// 🛡️ In-memory Session Registry & Authorization
-interface ActiveSession {
-  userId: string;
-  role: string;
-  expiresAt: number;
-}
-const activeSessions = new Map<string, ActiveSession>();
-
-// 🛡️ Rate Limiting: Dual-layer protection (IP + Account) against Brute Force & Password Spraying
-interface RateLimitRecord { count: number; resetAt: number; }
-const loginRateLimit = new Map<string, RateLimitRecord>();
-const MAX_LOGIN_ATTEMPTS_PER_ACCOUNT = 5;
-const MAX_LOGIN_ATTEMPTS_PER_IP = 25;
-const LOGIN_RATE_WINDOW_MS = 60 * 1000; // نافذة دقيقة واحدة
-
-// تنظيف دوري لإدخالات Rate Limit المنتهية كل 5 دقائق لمنع تسرب الذاكرة
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, val] of loginRateLimit.entries()) {
-    if (now >= val.resetAt) loginRateLimit.delete(key);
-  }
-}, 5 * 60 * 1000);
-
-// تنظيف دوري لـ Sessions المنتهية كل 30 دقيقة
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, session] of activeSessions.entries()) {
-    if (now >= session.expiresAt) activeSessions.delete(token);
-  }
-}, 30 * 60 * 1000);
-
-function getRequestUser(req: express.Request): ActiveSession | null {
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.replace(/^Bearer\s+/i, '');
-  const sessionId = (req.headers['x-session-id'] as string) || '';
-
-  // 1. Direct active token lookup
-  if (token && activeSessions.has(token)) {
-    const session = activeSessions.get(token)!;
-    if (Date.now() < session.expiresAt) {
-      return session;
-    } else {
-      activeSessions.delete(token);
-    }
-  }
-
-  // 2. Active Session ID lookup from active verified sessions
-  if (sessionId && activeSessions.has(sessionId)) {
-    const session = activeSessions.get(sessionId)!;
-    if (Date.now() < session.expiresAt) {
-      return session;
-    } else {
-      activeSessions.delete(sessionId);
-    }
-  }
-
-  // 3. Resilient Session Fallback: If in-memory sessions were cleared on server restart, restore ONLY from cryptographically verified activeSessionId
-  if (sessionId) {
-    const rep = representatives.find(
-      (r) => r.activeSessionId && r.activeSessionId === sessionId
-    );
-    if (rep) {
-      const lastActive = rep.lastActiveTimestamp || 0;
-      const isRecent = Date.now() - lastActive < 24 * 60 * 60 * 1000;
-      if (isRecent || !lastActive) {
-        const restoredSession: ActiveSession = {
-          userId: rep.id,
-          role: rep.role || 'rep',
-          expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-        };
-        activeSessions.set(sessionId, restoredSession);
-        if (token) activeSessions.set(token, restoredSession);
-        return restoredSession;
-      }
-    }
-  }
-
-  return null;
-}
-
-// 🛡️ Representative Data Sanitization (Hides sensitive credentials, active session IDs & KYC documents from public)
-function sanitizeRep(rep: Representative, isPrivileged: boolean = false): Partial<Representative> {
-  const copy = { ...rep };
-  delete copy.password;
-  delete copy.activeSessionId; // 🛡️ CRITICAL FIX: Never expose active session ID to avoid session hijacking!
-  if (!isPrivileged) {
-    delete copy.nationalId;
-    delete copy.nationalIdCardPhoto;
-    delete copy.nationalIdCardBackPhoto;
-    delete copy.activationFacePhoto;
-  }
-  return copy;
-}
-
-// 🛡️ Business Data Sanitization (Removes sensitive PII, payment receipts, KYC, and internal accounting details for non-privileged callers)
-function sanitizePublicBusiness(biz: Business, isPrivileged: boolean = false): Partial<Business> {
-  if (isPrivileged) return biz;
-  const copy: any = { ...biz };
-  delete copy.nationalId;
-  delete copy.nationalIdCardPhoto;
-  delete copy.nationalIdCardBackPhoto;
-  delete copy.paymentReceiptPhoto;
-  delete copy.adminFollowUps;
-  delete copy.cashCollectedByRep;
-  delete copy.repCommissionRate;
-  delete copy.repCommissionAmount;
-  delete copy.paymentDetails;
-  return copy;
-}
-
-// Persistent file data store
+// Persistent file data store directories and paths
 const STORE_DIR = path.resolve(process.cwd(), 'data');
 const REPS_STORE_PATH = path.resolve(STORE_DIR, 'server_reps_store.json');
 const BIZ_STORE_PATH = path.resolve(STORE_DIR, 'server_biz_store.json');
 const PAYOUTS_STORE_PATH = path.resolve(STORE_DIR, 'server_payouts_store.json');
+const SESSIONS_STORE_PATH = path.resolve(STORE_DIR, 'server_sessions_store.json');
+const LEADS_STORE_FILE = path.join(STORE_DIR, 'server_leads_store.json');
 
 if (!fs.existsSync(STORE_DIR)) {
   try { fs.mkdirSync(STORE_DIR, { recursive: true }); } catch {}
@@ -343,8 +237,6 @@ function persistStoredPayouts(payoutList: any[]) {
   }
 }
 
-const LEADS_STORE_FILE = path.join(STORE_DIR, 'server_leads_store.json');
-
 function loadStoredLeads(): any[] {
   try {
     if (fs.existsSync(LEADS_STORE_FILE)) {
@@ -370,6 +262,322 @@ let representatives: Representative[] = loadStoredReps();
 let payoutRequests: PayoutRequest[] = loadStoredPayouts();
 let leadsStore: InterestedLead[] = loadStoredLeads();
 let paymentConfig: PaymentGatewayConfig = { ...DEFAULT_PAYMENT_CONFIG };
+let isServerTestMode = process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'true';
+
+// 🛡️ Supabase SSOT Synchronization Engine for Businesses
+let isSyncingBusinesses = false;
+let lastSupabaseSyncTimestamp: number = 0;
+
+async function syncBusinessesFromSupabase(force: boolean = false): Promise<Business[]> {
+  if (!isSupabaseServiceConfigured || !serviceSupabase || isServerTestMode) {
+    return businesses;
+  }
+  if (isSyncingBusinesses) return businesses;
+  if (!force && Date.now() - lastSupabaseSyncTimestamp < 60 * 1000 && businesses.length > 0) {
+    return businesses;
+  }
+
+  isSyncingBusinesses = true;
+  try {
+    const PAGE_SIZE = 1000;
+    let allRows: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await serviceSupabase
+        .from('businesses')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allRows = allRows.concat(data);
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+
+    if (allRows.length > 0) {
+      const mapped = allRows.map(mapDbToBusiness).filter(
+        (b: any) => b && b.packageId !== 'pkg_interested_lead' && b.verificationStatus !== 'lead' && !String(b.id || '').startsWith('lead_')
+      );
+      businesses = mapped;
+      lastSupabaseSyncTimestamp = Date.now();
+      persistStoredBusinesses(businesses);
+      console.log(`[server.ts] ✅ Synced ${businesses.length} businesses from Supabase (SSOT) to local cache.`);
+    }
+  } catch (err) {
+    console.warn('[server.ts] ⚠️ Failed to sync businesses from Supabase, relying on local cache:', err);
+  } finally {
+    isSyncingBusinesses = false;
+  }
+  return businesses;
+}
+
+// تشغيل المزامنة الأولية في الخلفية فور إقلاع السيرفر
+if (isSupabaseServiceConfigured && serviceSupabase) {
+  syncBusinessesFromSupabase(true).catch((err) => {
+    console.warn('[server.ts] Initial Supabase business sync error:', err);
+  });
+}
+
+// مزامنة دورية هادئة كل 10 دقائق لتحديث الكاش المحلي
+setInterval(() => {
+  if (isSupabaseServiceConfigured && serviceSupabase && !isServerTestMode) {
+    syncBusinessesFromSupabase(false).catch(() => {});
+    syncRepresentativesFromSupabase(false).catch(() => {});
+  }
+}, 10 * 60 * 1000);
+
+// 🛡️ Supabase SSOT Synchronization Engine for Representatives
+let isSyncingReps = false;
+let lastSupabaseRepsSyncTimestamp: number = 0;
+
+async function syncRepresentativesFromSupabase(force: boolean = false): Promise<Representative[]> {
+  if (!isSupabaseServiceConfigured || !serviceSupabase || isServerTestMode) {
+    return representatives;
+  }
+  if (isSyncingReps) return representatives;
+  if (!force && Date.now() - lastSupabaseRepsSyncTimestamp < 60 * 1000 && representatives.length > 0) {
+    return representatives;
+  }
+
+  isSyncingReps = true;
+  try {
+    const { data, error } = await serviceSupabase
+      .from('representatives')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (data && Array.isArray(data) && data.length > 0) {
+      const mapped = data.map(mapDbToRep);
+      representatives = mapped;
+      lastSupabaseRepsSyncTimestamp = Date.now();
+      persistStoredReps(representatives);
+      console.log(`[server.ts] ✅ Synced ${representatives.length} representatives from Supabase (SSOT) to local cache.`);
+    }
+  } catch (err) {
+    console.warn('[server.ts] ⚠️ Failed to sync representatives from Supabase, relying on local cache:', err);
+  } finally {
+    isSyncingReps = false;
+  }
+  return representatives;
+}
+
+if (isSupabaseServiceConfigured && serviceSupabase) {
+  syncRepresentativesFromSupabase(true).catch((err) => {
+    console.warn('[server.ts] Initial Supabase representatives sync error:', err);
+  });
+}
+
+// 🛡️ Persistent Session Store & Cryptographic Verification Engine
+interface ActiveSession {
+  userId: string;
+  role: string;
+  expiresAt: number;
+}
+
+const SESSION_SIGNING_SECRET = (
+  process.env.SESSION_SIGNING_SECRET ||
+  'dalelak_super_resilient_signing_secret_2026_sovereign_gate_03'
+).trim();
+
+function generateSignedSessionToken(userId: string, role: string, expiresAt: number): string {
+  const payload = `${userId}:${role}:${expiresAt}`;
+  const sig = crypto.createHmac('sha256', SESSION_SIGNING_SECRET).update(payload).digest('hex');
+  return `dalil_v2_${Buffer.from(payload).toString('base64url')}_${sig}`;
+}
+
+function verifySignedSessionToken(token: string): ActiveSession | null {
+  if (!token || !token.startsWith('dalil_v2_')) return null;
+  try {
+    const parts = token.split('_');
+    if (parts.length !== 4) return null;
+    const b64Payload = parts[2];
+    const sig = parts[3];
+    const payload = Buffer.from(b64Payload, 'base64url').toString('utf-8');
+    const [userId, role, expStr] = payload.split(':');
+    const expiresAt = Number(expStr);
+
+    if (!userId || !role || !expiresAt || isNaN(expiresAt)) return null;
+    if (Date.now() >= expiresAt) return null;
+
+    const expectedSig = crypto.createHmac('sha256', SESSION_SIGNING_SECRET).update(payload).digest('hex');
+    const sigBuf = Buffer.from(sig, 'hex');
+    const expBuf = Buffer.from(expectedSig, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null;
+    }
+
+    return { userId, role, expiresAt };
+  } catch {
+    return null;
+  }
+}
+
+function loadStoredSessions(): Map<string, ActiveSession> {
+  const map = new Map<string, ActiveSession>();
+  try {
+    if (fs.existsSync(SESSIONS_STORE_PATH)) {
+      const data = JSON.parse(fs.readFileSync(SESSIONS_STORE_PATH, 'utf-8'));
+      const now = Date.now();
+      if (typeof data === 'object' && data !== null) {
+        for (const [key, session] of Object.entries(data)) {
+          const s = session as ActiveSession;
+          if (s && s.userId && s.role && s.expiresAt && now < s.expiresAt) {
+            map.set(key, s);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Daleelek Auth] Error loading stored sessions:', e);
+  }
+  return map;
+}
+
+function persistStoredSessions(sessionsMap: Map<string, ActiveSession>) {
+  try {
+    const now = Date.now();
+    const obj: Record<string, ActiveSession> = {};
+    for (const [key, session] of sessionsMap.entries()) {
+      if (now < session.expiresAt) {
+        obj[key] = session;
+      }
+    }
+    atomicWriteFileSync(SESSIONS_STORE_PATH, JSON.stringify(obj, null, 2));
+  } catch (e) {
+    console.error('[Daleelek Auth] Error persisting sessions:', e);
+  }
+}
+
+const activeSessions: Map<string, ActiveSession> = loadStoredSessions();
+
+// 🛡️ Rate Limiting: Dual-layer protection (IP + Account) against Brute Force & Password Spraying
+interface RateLimitRecord { count: number; resetAt: number; }
+const loginRateLimit = new Map<string, RateLimitRecord>();
+const MAX_LOGIN_ATTEMPTS_PER_ACCOUNT = 5;
+const MAX_LOGIN_ATTEMPTS_PER_IP = 25;
+const LOGIN_RATE_WINDOW_MS = 60 * 1000; // نافذة دقيقة واحدة
+
+// تنظيف دوري لإدخالات Rate Limit المنتهية كل 5 دقائق لمنع تسرب الذاكرة
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of loginRateLimit.entries()) {
+    if (now >= val.resetAt) loginRateLimit.delete(key);
+  }
+}, 5 * 60 * 1000);
+
+// تنظيف دوري لـ Sessions المنتهية كل 30 دقيقة وحفظ الحالة في القرص
+setInterval(() => {
+  const now = Date.now();
+  let changed = false;
+  for (const [token, session] of activeSessions.entries()) {
+    if (now >= session.expiresAt) {
+      activeSessions.delete(token);
+      changed = true;
+    }
+  }
+  if (changed) persistStoredSessions(activeSessions);
+}, 30 * 60 * 1000);
+
+function getRequestUser(req: express.Request): ActiveSession | null {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace(/^Bearer\s+/i, '');
+  const sessionId = (req.headers['x-session-id'] as string) || '';
+
+  // 1. Direct active token lookup in memory cache
+  if (token && activeSessions.has(token)) {
+    const session = activeSessions.get(token)!;
+    if (Date.now() < session.expiresAt) {
+      return session;
+    } else {
+      activeSessions.delete(token);
+      persistStoredSessions(activeSessions);
+    }
+  }
+
+  // 2. Active Session ID lookup from active verified sessions
+  if (sessionId && activeSessions.has(sessionId)) {
+    const session = activeSessions.get(sessionId)!;
+    if (Date.now() < session.expiresAt) {
+      return session;
+    } else {
+      activeSessions.delete(sessionId);
+      persistStoredSessions(activeSessions);
+    }
+  }
+
+  // 3. Cryptographic HMAC Token Verification (Stateless & Resilient across all restarts)
+  if (token && token.startsWith('dalil_v2_')) {
+    const verified = verifySignedSessionToken(token);
+    if (verified) {
+      // Ensure user account is still active and valid in store
+      representatives = loadStoredReps();
+      const rep = representatives.find((r) => r.id === verified.userId);
+      if (rep && rep.status === 'active' && !rep.isDeleted) {
+        // Cache in memory registry and persist
+        activeSessions.set(token, verified);
+        persistStoredSessions(activeSessions);
+        return verified;
+      }
+    }
+  }
+
+  // 4. Resilient Session Fallback: If in-memory sessions were cleared on server restart, restore from verified activeSessionId
+  if (sessionId) {
+    representatives = loadStoredReps();
+    const rep = representatives.find(
+      (r) => r.activeSessionId && r.activeSessionId === sessionId
+    );
+    if (rep && rep.status === 'active' && !rep.isDeleted) {
+      const lastActive = rep.lastActiveTimestamp || 0;
+      const isRecent = Date.now() - lastActive < 24 * 60 * 60 * 1000;
+      if (isRecent || !lastActive) {
+        const restoredSession: ActiveSession = {
+          userId: rep.id,
+          role: rep.role || 'rep',
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        };
+        activeSessions.set(sessionId, restoredSession);
+        if (token) activeSessions.set(token, restoredSession);
+        persistStoredSessions(activeSessions);
+        return restoredSession;
+      }
+    }
+  }
+
+  return null;
+}
+
+// 🛡️ Representative Data Sanitization (Hides sensitive credentials, active session IDs & KYC documents from public)
+function sanitizeRep(rep: Representative, isPrivileged: boolean = false): Partial<Representative> {
+  const copy = { ...rep };
+  delete copy.password;
+  delete copy.activeSessionId; // 🛡️ CRITICAL FIX: Never expose active session ID to avoid session hijacking!
+  if (!isPrivileged) {
+    delete copy.nationalId;
+    delete copy.nationalIdCardPhoto;
+    delete copy.nationalIdCardBackPhoto;
+    delete copy.activationFacePhoto;
+  }
+  return copy;
+}
+
+// 🛡️ Business Data Sanitization (Removes sensitive PII, payment receipts, KYC, and internal accounting details for non-privileged callers)
+function sanitizePublicBusiness(biz: Business, isPrivileged: boolean = false): Partial<Business> {
+  if (isPrivileged) return biz;
+  const copy: any = { ...biz };
+  delete copy.nationalId;
+  delete copy.nationalIdCardPhoto;
+  delete copy.nationalIdCardBackPhoto;
+  delete copy.paymentReceiptPhoto;
+  delete copy.adminFollowUps;
+  delete copy.cashCollectedByRep;
+  delete copy.repCommissionRate;
+  delete copy.repCommissionAmount;
+  delete copy.paymentDetails;
+  return copy;
+}
 
 // =============================================================================
 // 🛡️ Input Validation Helper: يتحقق من وجود الحقول المطلوبة في الطلب
@@ -387,8 +595,6 @@ function validateRequiredFields(obj: Record<string, unknown>, fields: string[]):
 // REST API Endpoints
 
 // 1. Health check & Test Mode check
-let isServerTestMode = false;
-
 app.get('/api/health', (_req, res) => {
   res.json({ 
     status: 'ok', 
@@ -396,6 +602,51 @@ app.get('/api/health', (_req, res) => {
     testMode: isServerTestMode,
     environment: isServerTestMode ? 'local_test_sandbox' : 'production'
   });
+});
+
+// 2. OpenAPI 3.0 Standard Documentation & Interactive Viewer (GAP-03 / WS-07)
+app.get('/api/docs/openapi.json', (_req, res) => {
+  const specPath = path.resolve(process.cwd(), 'docs/openapi.json');
+  if (fs.existsSync(specPath)) {
+    res.setHeader('Content-Type', 'application/json');
+    return res.sendFile(specPath);
+  }
+  return res.status(404).json({ error: 'OpenAPI specification file not found' });
+});
+
+app.get('/api/docs', (_req, res) => {
+  const html = `<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <title>Dalelak API Documentation (دليلك) — OpenAPI 3.0</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      body { margin: 0; padding: 0; background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+      #scalar-fallback { display: none; padding: 40px; text-align: center; }
+      .fallback-btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #0284c7; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <script id="api-reference" data-url="/api/docs/openapi.json" data-proxy-url=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <div id="scalar-fallback">
+      <h2>منصة دليلك — توثيق الواجهات البرمجية المعيارية (OpenAPI 3.0)</h2>
+      <p>يمكنك استعراض أو تحميل مواصفة OpenAPI بصيغة JSON المباشرة للاستيراد في Postman أو Swagger:</p>
+      <a href="/api/docs/openapi.json" class="fallback-btn" target="_blank">📄 تحميل ملف openapi.json</a>
+    </div>
+    <script>
+      setTimeout(() => {
+        if (!document.querySelector('.scalar-api-reference') && !document.querySelector('scalar-api-reference')) {
+          document.getElementById('scalar-fallback').style.display = 'block';
+        }
+      }, 3500);
+    </script>
+  </body>
+</html>`;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
 });
 
 // 🛡️ SSRF Guard: Validates that URL strictly targets official Google Maps domains and blocks private/loopback addresses
@@ -1420,12 +1671,66 @@ async function forwardToStandaloneWhatsApp(req: express.Request, res: express.Re
   }
 }
 
+// Dedicated healthcheck route with timeout and graceful offline fallback
+app.get('/api/admin/whatsapp/health', async (req, res) => {
+  if (!isRequestSuperAdmin(req)) {
+    return res.status(403).json({
+      success: false,
+      error: 'غير مصرح: استعلام صحة خادم واتساب مقتصر على السوبر أدمن حصراً (403 Forbidden)',
+    });
+  }
+
+  const startTime = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    const targetUrl = `${WHATSAPP_STANDALONE_URL}/api/whatsapp/health`;
+    const response = await fetch(targetUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    const latencyMs = Date.now() - startTime;
+    if (response.ok) {
+      const data = await response.json();
+      return res.json({
+        success: true,
+        isStandaloneOnline: true,
+        latencyMs,
+        ...data,
+      });
+    } else {
+      return res.status(response.status).json({
+        success: false,
+        isStandaloneOnline: false,
+        error: `استجاب سيرفر الواتساب بكود غير متوقع (${response.status})`,
+      });
+    }
+  } catch (err: any) {
+    return res.json({
+      success: false,
+      isStandaloneOnline: false,
+      isStandaloneOffline: true,
+      error:
+        'سيرفر الواتساب المستقل غير قيد التشغيل حالياً على المنفذ 3005. يرجى إطلاقه محلياً عبر ملف «تشغيل_سيرفر_الواتساب.bat» أو الأمر «npm run whatsapp».',
+      state: 'disconnected',
+      isAnyConnected: false,
+      isBothConnected: false,
+      slots: {
+        '1': { slotId: '1', name: 'هاتف الإدارة الأساسي (1)', state: 'disconnected', healthStatus: 'offline' },
+        '2': { slotId: '2', name: 'هاتف الإدارة المساند (2)', state: 'disconnected', healthStatus: 'offline' },
+      },
+    });
+  }
+});
+
+app.get('/api/admin/whatsapp/heartbeat', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/heartbeat'));
 app.get('/api/admin/whatsapp/status', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/status'));
 app.post('/api/admin/whatsapp/connect', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/connect'));
 app.post('/api/admin/whatsapp/disconnect', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/disconnect'));
 app.post('/api/admin/whatsapp/broadcast', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/broadcast'));
 app.post('/api/admin/whatsapp/broadcast-abort', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/broadcast-abort'));
 app.post('/api/admin/whatsapp/broadcast-resume', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/broadcast-resume'));
+app.post('/api/admin/whatsapp/broadcast-skip-delay', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/broadcast-skip-delay'));
 app.get('/api/admin/whatsapp/progress', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/progress'));
 app.post('/api/admin/whatsapp/clear-progress', (req, res) => forwardToStandaloneWhatsApp(req, res, '/api/whatsapp/clear-progress'));
 
@@ -1480,6 +1785,43 @@ app.post('/api/test-mode/reset', (req, res) => {
     representativesCount: representatives.length,
     payoutRequestsCount: payoutRequests.length,
   });
+});
+
+// 🛡️ Zero-Knowledge National ID Duplication Check (Strictly prevents PII scraping)
+app.post('/api/auth/check-national-id', async (req, res) => {
+  const { nationalId } = req.body || {};
+  const cleanId = (nationalId || '').trim();
+  if (!cleanId || cleanId.length < 8) {
+    return res.status(400).json({ error: 'الرقم القومي غير صالح', exists: false });
+  }
+
+  // 1. Check local reps cache
+  representatives = loadStoredReps();
+  const localFound = representatives.some(
+    (r) => (r.nationalId || '').trim() === cleanId && !r.isDeleted
+  );
+  if (localFound) {
+    return res.json({ exists: true });
+  }
+
+  // 2. Check cloud Supabase via serviceSupabase (privileged, bypasses RLS)
+  if (isSupabaseServiceConfigured && serviceSupabase) {
+    try {
+      const { data, error } = await serviceSupabase
+        .from('representatives')
+        .select('id')
+        .eq('national_id', cleanId)
+        .is('deleted_at', null)
+        .limit(1);
+      if (!error && data && data.length > 0) {
+        return res.json({ exists: true });
+      }
+    } catch (err) {
+      console.warn('[Daleelek Auth] National ID check error:', err);
+    }
+  }
+
+  return res.json({ exists: false });
 });
 
 // 2. Auth endpoints with Single-Session Concurrent Login Protection
@@ -1646,15 +1988,16 @@ app.post('/api/auth/login', async (req, res) => {
   rep.lastActiveTimestamp = now;
   persistStoredReps(representatives);
 
-  // Register session token and session ID in memory registry
+  // Register session token and session ID in memory registry and persistent store
   const sessionData: ActiveSession = {
     userId: rep.id,
     role: rep.role || 'rep',
     expiresAt: now + 24 * 60 * 60 * 1000,
   };
-  const authToken = `dalil_tok_${now}_${crypto.randomBytes(24).toString('hex')}`;
+  const authToken = generateSignedSessionToken(rep.id, rep.role || 'rep', sessionData.expiresAt);
   activeSessions.set(authToken, sessionData);
   activeSessions.set(newSessionId, sessionData);
+  persistStoredSessions(activeSessions);
 
   const sanitizedRepData = sanitizeRep(rep, rep.role === 'admin' || rep.role === 'supervisor');
 
@@ -1708,6 +2051,7 @@ app.post('/api/auth/logout', (req, res) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.replace(/^Bearer\s+/i, '');
   if (token) activeSessions.delete(token);
+  persistStoredSessions(activeSessions);
 
   if (reqUser && (reqUser.userId === userId || reqUser.role === 'admin')) {
     const rep = representatives.find((r) => r.id === userId);
@@ -1720,9 +2064,11 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ status: 'logged_out' });
 });
 
-// 3. Businesses API
-app.get('/api/businesses', (req, res) => {
-  businesses = loadStoredBusinesses();
+// 3. Businesses API (Supabase as SSOT & Local JSON as Resilient Cache)
+app.get('/api/businesses', async (req, res) => {
+  if (businesses.length === 0) {
+    await syncBusinessesFromSupabase(true);
+  }
   const reqUser = getRequestUser(req);
   const isPrivileged = Boolean(reqUser && (reqUser.role === 'admin' || reqUser.role === 'manager'));
   const sanitized = businesses.map((b) => {
@@ -1732,9 +2078,25 @@ app.get('/api/businesses', (req, res) => {
   res.json(sanitized);
 });
 
-app.get('/api/businesses/:id', (req, res) => {
-  businesses = loadStoredBusinesses();
-  const found = businesses.find((b) => b.id === req.params.id);
+app.get('/api/businesses/:id', async (req, res) => {
+  if (businesses.length === 0) {
+    await syncBusinessesFromSupabase(true);
+  }
+  let found = businesses.find((b) => b.id === req.params.id);
+  if (!found && isSupabaseServiceConfigured && serviceSupabase && !isServerTestMode) {
+    try {
+      const { data, error } = await serviceSupabase
+        .from('businesses')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
+      if (!error && data) {
+        found = mapDbToBusiness(data);
+        businesses.unshift(found);
+        persistStoredBusinesses(businesses);
+      }
+    } catch {}
+  }
   if (found) {
     const reqUser = getRequestUser(req);
     const isOwner = Boolean(reqUser && reqUser.userId === found.repId);
@@ -1745,7 +2107,7 @@ app.get('/api/businesses/:id', (req, res) => {
   }
 });
 
-app.post('/api/businesses', (req, res) => {
+app.post('/api/businesses', async (req, res) => {
   try {
     const reqUser = getRequestUser(req);
     if (!reqUser) {
@@ -1801,6 +2163,23 @@ app.post('/api/businesses', (req, res) => {
       if (!isManager && !isOwner) {
         return res.status(403).json({ error: 'غير مصرح بتعديل هذا النشاط' });
       }
+    }
+
+    // 🛡️ Supabase as SSOT: Save directly to Supabase first!
+    if (!isServerTestMode && isSupabaseServiceConfigured && serviceSupabase) {
+      const dbRecord = getSafeCoreBusinessDbRecord(newBiz);
+      const { error: dbErr } = await serviceSupabase
+        .from('businesses')
+        .upsert([dbRecord], { onConflict: 'id' });
+      if (dbErr) {
+        console.error('[server.ts] Supabase business creation failed:', dbErr);
+        return res.status(502).json({
+          error: `فشل حفظ النشاط في قاعدة البيانات المركزية (Supabase): ${dbErr.message || 'خطأ في قاعدة البيانات'}`
+        });
+      }
+    }
+
+    if (existingIdx >= 0) {
       businesses[existingIdx] = { ...businesses[existingIdx], ...newBiz };
     } else {
       businesses.unshift(newBiz);
@@ -1812,7 +2191,7 @@ app.post('/api/businesses', (req, res) => {
   }
 });
 
-app.put('/api/businesses/:id', (req, res) => {
+app.put('/api/businesses/:id', async (req, res) => {
   const { id } = req.params;
   const index = businesses.findIndex((b) => b.id === id);
 
@@ -1829,17 +2208,38 @@ app.put('/api/businesses/:id', (req, res) => {
     }
   }
 
+  const existingBiz = index >= 0 ? businesses[index] : ({} as Partial<Business>);
+  const updatedBiz: Business = {
+    ...existingBiz,
+    ...req.body,
+    id,
+    repId: req.body.repId || existingBiz.repId || reqUser.userId,
+  } as Business;
+
+  // 🛡️ Supabase as SSOT: Update Supabase directly
+  if (!isServerTestMode && isSupabaseServiceConfigured && serviceSupabase) {
+    const dbRecord = getSafeCoreBusinessDbRecord(updatedBiz);
+    const { error: dbErr } = await serviceSupabase
+      .from('businesses')
+      .upsert([dbRecord], { onConflict: 'id' });
+    if (dbErr) {
+      console.error('[server.ts] Supabase business update failed:', dbErr);
+      return res.status(502).json({
+        error: `فشل تحديث النشاط في قاعدة البيانات المركزية (Supabase): ${dbErr.message || 'خطأ في قاعدة البيانات'}`
+      });
+    }
+  }
+
   if (index === -1) {
-    businesses.unshift({ ...req.body, id, repId: req.body.repId || reqUser.userId });
+    businesses.unshift(updatedBiz);
   } else {
-    businesses[index] = { ...businesses[index], ...req.body, id };
+    businesses[index] = updatedBiz;
   }
   persistStoredBusinesses(businesses);
-  const saved = businesses.find((b) => b.id === id) || req.body;
-  res.json(saved);
+  res.json(updatedBiz);
 });
 
-app.delete('/api/businesses/:id', (req, res) => {
+app.delete('/api/businesses/:id', async (req, res) => {
   const { id } = req.params;
   const targetBiz = businesses.find((b) => b.id === id);
   if (!targetBiz) {
@@ -1859,6 +2259,20 @@ app.delete('/api/businesses/:id', (req, res) => {
     return res.status(403).json({ error: 'غير مصرح بحذف هذا النشاط' });
   }
 
+  // 🛡️ Supabase as SSOT: Delete from Supabase first
+  if (!isServerTestMode && isSupabaseServiceConfigured && serviceSupabase) {
+    const { error: dbErr } = await serviceSupabase
+      .from('businesses')
+      .delete()
+      .eq('id', id);
+    if (dbErr) {
+      console.error('[server.ts] Supabase business deletion failed:', dbErr);
+      return res.status(502).json({
+        error: `فشل حذف النشاط من قاعدة البيانات المركزية (Supabase): ${dbErr.message || 'خطأ في قاعدة البيانات'}`
+      });
+    }
+  }
+
   businesses = businesses.filter((b) => b.id !== id);
   persistStoredBusinesses(businesses);
 
@@ -1870,11 +2284,32 @@ app.delete('/api/businesses/:id', (req, res) => {
   res.json({ success: true, message: 'تم حذف النشاط وكافة بياناته نهائياً بنجاح' });
 });
 
-// 4. Representatives API
-app.get('/api/representatives', (req, res) => {
+app.post('/api/admin/sync-supabase', async (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser || (reqUser.role !== 'admin' && reqUser.role !== 'supervisor')) {
+    return res.status(403).json({ error: 'غير مصرح: مزامنة Supabase مقتصرة على الإدارة' });
+  }
+  const list = await syncBusinessesFromSupabase(true);
+  res.json({ success: true, count: list.length, timestamp: new Date().toISOString() });
+});
+
+app.post('/api/admin/sync-supabase-reps', async (req, res) => {
+  const reqUser = getRequestUser(req);
+  if (!reqUser || (reqUser.role !== 'admin' && reqUser.role !== 'supervisor')) {
+    return res.status(403).json({ error: 'غير مصرح: مزامنة المناديب مقتصرة على الإدارة' });
+  }
+  const list = await syncRepresentativesFromSupabase(true);
+  res.json({ success: true, count: list.length, timestamp: new Date().toISOString() });
+});
+
+// 4. Representatives API (🛡️ PII Protected & Sanitized)
+app.get('/api/representatives', async (req, res) => {
   const reqUser = getRequestUser(req);
   if (!reqUser) {
     return res.status(401).json({ error: 'غير مصرح: يرجى تسجيل الدخول للوصول إلى قائمة المناديب' });
+  }
+  if (representatives.length === 0) {
+    await syncRepresentativesFromSupabase(true);
   }
   representatives = loadStoredReps();
   const isPrivileged = reqUser.role === 'admin' || reqUser.role === 'supervisor';
@@ -2147,9 +2582,127 @@ app.post('/api/payment-config', (req, res) => {
   res.json(paymentConfig);
 });
 
+// 8. Dynamic XML Sitemap (SEO Engine - WS-09)
+app.get('/sitemap.xml', (_req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const baseUrl = 'https://www.dalilaak.com';
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+    // Static core pages
+    xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+    xml += `  <url>\n    <loc>${baseUrl}/?tab=home</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+    xml += `  <url>\n    <loc>${baseUrl}/?tab=map</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+    xml += `  <url>\n    <loc>${baseUrl}/api/docs</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+
+    // Verified active businesses
+    const activeBiz = businesses.filter((b: Business) => !b.isDeleted);
+    for (const biz of activeBiz) {
+      const bizId = encodeURIComponent(biz.id);
+      const lastMod = (biz.updatedAt || biz.createdDate || today).slice(0, 10);
+      xml += `  <url>\n    <loc>${baseUrl}/?biz=${bizId}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+    }
+
+    xml += `</urlset>`;
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=14400');
+    return res.status(200).send(xml);
+  } catch (err) {
+    console.error('[SEO Sitemap] Error generating sitemap.xml:', err);
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    return res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+  }
+});
+
+// 🛡️ SEO & Social Sharing Crawler Detector & Pre-renderer
+export function isSocialBotOrCrawler(userAgent?: string): boolean {
+  if (!userAgent) return false;
+  const ua = userAgent.toLowerCase();
+  return (
+    ua.includes('facebookexternalhit') ||
+    ua.includes('facebot') ||
+    ua.includes('twitterbot') ||
+    ua.includes('whatsapp') ||
+    ua.includes('telegrambot') ||
+    ua.includes('linkedinbot') ||
+    ua.includes('slackbot') ||
+    ua.includes('discordbot') ||
+    ua.includes('googlebot') ||
+    ua.includes('bingbot') ||
+    ua.includes('yandexbot') ||
+    ua.includes('duckduckbot')
+  );
+}
+
+export function injectBusinessSocialMetadata(html: string, biz: Business): string {
+  const title = `${biz.nameAr} - ${biz.category} في ${biz.city}، ${biz.governorate} | منصة دليلك`;
+  const desc = biz.description
+    ? `${biz.nameAr}: ${biz.description.slice(0, 150)}... تواصل: ${biz.phone}`
+    : `تواصل مع ${biz.nameAr} في ${biz.city}، ${biz.governorate}. العنوان: ${biz.street}. رقم الهاتف: ${biz.phone}. موثق عبر منصة دليلك.`;
+  const photos = Array.isArray(biz.photos) ? biz.photos : [];
+  const image = biz.coverPhoto || photos[0] || 'https://www.dalilaak.com/og-image.jpg?v=2026_dalilak_v5_platform';
+  const url = `https://www.dalilaak.com/?biz=${encodeURIComponent(biz.id)}`;
+
+  let modified = html
+    .replace(/<title>.*?<\/title>/i, `<title>${title}</title>`)
+    .replace(/<meta property="og:title" content=".*?" \/>/i, `<meta property="og:title" content="${title}" />`)
+    .replace(/<meta property="og:description" content=".*?" \/>/i, `<meta property="og:description" content="${desc}" />`)
+    .replace(/<meta property="og:image" content=".*?" \/>/i, `<meta property="og:image" content="${image}" />`)
+    .replace(/<meta property="og:url" content=".*?" \/>/i, `<meta property="og:url" content="${url}" />`)
+    .replace(/<meta name="twitter:title" content=".*?" \/>/i, `<meta name="twitter:title" content="${title}" />`)
+    .replace(/<meta name="twitter:description" content=".*?" \/>/i, `<meta name="twitter:description" content="${desc}" />`)
+    .replace(/<meta name="twitter:image" content=".*?" \/>/i, `<meta name="twitter:image" content="${image}" />`);
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: biz.nameAr,
+    description: desc,
+    url: url,
+    telephone: biz.phone,
+    image: image,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: biz.street || '',
+      addressLocality: biz.city || '',
+      addressRegion: biz.governorate || 'مصر',
+      addressCountry: 'EG',
+    },
+  };
+
+  const scriptTag = `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script></head>`;
+  modified = modified.replace('</head>', scriptTag);
+
+  return modified;
+}
+
 // Start Vite / Static serving
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production' || (typeof __filename !== 'undefined' && __filename.includes('dist'));
+  
+  // Crawler pre-render middleware for social links
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && isSocialBotOrCrawler(req.headers['user-agent'])) {
+      const bizId = (req.query.biz || req.query.id) as string;
+      if (bizId) {
+        const targetBiz = businesses.find((b: Business) => b.id === bizId && !b.isDeleted);
+        if (targetBiz) {
+          const indexPath = isProd ? path.join(process.cwd(), 'dist', 'index.html') : path.join(process.cwd(), 'index.html');
+          if (fs.existsSync(indexPath)) {
+            const rawHtml = fs.readFileSync(indexPath, 'utf-8');
+            const preRendered = injectBusinessSocialMetadata(rawHtml, targetBiz);
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return res.status(200).send(preRendered);
+          }
+        }
+      }
+    }
+    next();
+  });
+
   if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -2184,4 +2737,8 @@ async function startServer() {
   listenOnPort(DEFAULT_PORT);
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export { app, startServer };

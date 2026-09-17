@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import { User, Representative } from '../../types';
-import { supabase, supabaseRestFetch, isSupabaseConfigured } from '../../lib/supabase';
-import { updateRepSessionInDb, saveRepToDb, updateRepInDb } from '../../services/db';
-import { mapDbToRep } from '../../services/db/dbMappers';
-import { hashPassword, verifyPassword, isPasswordHashed } from '../../utils/crypto';
-import { safeSetLocalStorageItem, safeSetSessionItem, safeParseJson } from '../../utils/storage';
-import { isRepAccountDeleted } from '../../utils/accountStatus';
+import { safeSetSessionItem, safeSetLocalStorageItem } from '../../utils/storage';
 import { Mail, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 export interface LoginFormProps {
@@ -48,205 +43,24 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setIsLoading(true);
 
     try {
-      // 🛡️ AUTHORITATIVE CLOUD AUTHENTICATION (Supabase Cloud = Single Source of Truth)
-      let foundRep: Representative | null = null;
-      const cleanPhoneDigits = cleanEmail.replace(/\D/g, '');
-      const AUTH_SELECT = 'id,name,email,phone,password,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
-
-      if (isSupabaseConfigured()) {
-        // A. Direct email lookup
-        if (cleanEmail.includes('@')) {
-          try {
-            const { data, error } = await supabase
-              .from('representatives')
-              .select(AUTH_SELECT)
-              .ilike('email', cleanEmail)
-              .limit(1);
-
-            if (!error && data && data.length > 0) {
-              foundRep = mapDbToRep(data[0]);
-            }
-          } catch (sdkErr) {
-            console.warn('Supabase direct email lookup notice:', sdkErr);
-          }
-        }
-
-        // B. Phone-based lookup if phone digits >= 8
-        if (!foundRep && cleanPhoneDigits.length >= 8) {
-          try {
-            const { data, error } = await supabase
-              .from('representatives')
-              .select(AUTH_SELECT)
-              .or(`phone.eq.${cleanEmail},phone.ilike.%${cleanPhoneDigits}%,phone.eq.${cleanPhoneDigits}`)
-              .limit(1);
-
-            if (!error && data && data.length > 0) {
-              foundRep = mapDbToRep(data[0]);
-            }
-          } catch (sdkErr) {
-            console.warn('Supabase direct phone lookup notice:', sdkErr);
-          }
-        }
-
-        // C. Combined lookup by email, phone, or ID
-        if (!foundRep) {
-          try {
-            const orQuery = cleanPhoneDigits.length >= 8
-              ? `email.ilike.${cleanEmail},phone.eq.${cleanEmail},phone.ilike.%${cleanPhoneDigits}%,id.eq.${cleanEmail}`
-              : `email.ilike.${cleanEmail},phone.eq.${cleanEmail},id.eq.${cleanEmail}`;
-
-            const { data, error } = await supabase
-              .from('representatives')
-              .select(AUTH_SELECT)
-              .or(orQuery)
-              .limit(1);
-
-            if (!error && data && data.length > 0) {
-              foundRep = mapDbToRep(data[0]);
-            }
-          } catch (sdkErr) {
-            console.warn('Supabase SDK lookup notice:', sdkErr);
-          }
-        }
-
-        // D. Direct REST API lookup fallback
-        if (!foundRep) {
-          try {
-            const restRes = await supabaseRestFetch(
-              `representatives?select=${AUTH_SELECT}&or=(email.ilike.${encodeURIComponent(cleanEmail)},phone.eq.${encodeURIComponent(cleanEmail)},id.eq.${encodeURIComponent(cleanEmail)})&limit=1`
-            );
-            if (restRes.ok) {
-              const restData = await restRes.json().catch(() => null);
-              if (Array.isArray(restData) && restData.length > 0) {
-                foundRep = mapDbToRep(restData[0]);
-              }
-            }
-          } catch (restErr) {
-            console.warn('Supabase REST lookup notice:', restErr);
-          }
-        }
-      }
-
-      // Check current in-memory representatives if cloud query had schema column restriction
-      if (!foundRep) {
-        const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
-        foundRep = representatives.find((r) => {
-          const rEmail = (r.email || '').trim().toLowerCase();
-          const normR = rEmail.replace(/[^a-z0-9]/g, '');
-          const rPhone = (r.phone || '').replace(/\D/g, '');
-          return (
-            rEmail === cleanEmail ||
-            normR === normClean ||
-            (cleanPhoneDigits.length >= 8 && rPhone && (rPhone === cleanPhoneDigits || rPhone.endsWith(cleanPhoneDigits) || cleanPhoneDigits.endsWith(rPhone))) ||
-            r.id.toLowerCase() === cleanEmail
-          );
-        }) || null;
-      }
-
-      if (!foundRep) {
-        onError(`⚠️ الحساب (${cleanEmail}) غير مسجل في قاعدة البيانات السحابية.`);
-        setIsLoading(false);
-        return;
-      }
-
-      // Security Check: Prevent login if account was deleted or blacklisted
-      if (isRepAccountDeleted(foundRep)) {
-        onError('⛔ هذا الحساب تم حذفه وإلغاء تنشيطه نهائياً من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Verify Password strictly
-      let storedPassword = (foundRep.password || '').trim();
-      let isPassValid = false;
-
-      // Special master password verification for Super Admin
-      const isSuperAdminAccount =
-        cleanEmail === 'ahmedhufne@gmail.com' ||
-        cleanEmail === 'info@dalilaak.com' ||
-        foundRep.id === 'rep_ahmed_ezalden' ||
-        cleanPhoneDigits === '01143888355';
-
-      if (isSuperAdminAccount) {
-        if (
-          cleanPassword === 'Aa132456' ||
-          cleanPassword === 'Aa123456' ||
-          cleanPassword === 'admin' ||
-          cleanPassword === '01143888355' ||
-          (storedPassword && (await verifyPassword(cleanPassword, storedPassword)))
-        ) {
-          isPassValid = true;
-        }
-      } else if (storedPassword && storedPassword !== '••••••••') {
-        isPassValid = (cleanPassword === storedPassword) || (await verifyPassword(cleanPassword, storedPassword));
-      }
-
-      if (!isPassValid) {
-        onError('⚠️ كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور وإعادة المحاولة.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Check account approval and rejection status for non-admin accounts
-      if (!isSuperAdminAccount && foundRep.role !== 'admin') {
-        if (foundRep.avatarStatus === 'rejected') {
-          const emailNotice = foundRep.email ? ` عبر البريد الإلكتروني (${foundRep.email})` : ' عبر البريد الإلكتروني';
-          onError(`❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`);
-          setIsLoading(false);
-          return;
-        }
-
-        const isPendingApproval = foundRep.avatarStatus === 'pending_approval';
-        const isSuspended = foundRep.status === 'suspended' || foundRep.status !== 'active';
-
-        if (isPendingApproval || isSuspended) {
-          // Self-healing: If an unapproved account was previously marked active, heal it back to suspended
-          if (isPendingApproval && foundRep.status === 'active') {
-            foundRep.status = 'suspended';
-            updateRepInDb(foundRep.id, { status: 'suspended' }).catch(() => {});
-          }
-
-          if (isPendingApproval) {
-            onError('⏳ طلب تسجيل الحساب قيد المراجعة والتدقيق من قِبل إدارة المنظومة. لا يمكنك تسجيل الدخول إلى المنظومة إلا بعد فحص مستندات الهوية وموافقة المدير على تفعيل حسابك.');
-          } else {
-            onError('⛔ هذا الحساب معلق حالياً من قِبل إدارة المنظومة. لا يمكن تسجيل الدخول به إلا بعد مراجعة الإدارة وتفعيله.');
-          }
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Auto-upgrade legacy plaintext passwords to SHA-256 upon successful login
-      if (!isPasswordHashed(storedPassword)) {
-        try {
-          const newHashed = await hashPassword(cleanPassword);
-          foundRep.password = newHashed;
-          saveRepToDb({ ...foundRep, password: newHashed }).catch(() => {});
-        } catch {}
-      }
-
-      const now = Date.now();
-      const newSessionId = `sess_${now}_${Math.random().toString(36).substring(2, 9)}`;
-      foundRep.activeSessionId = newSessionId;
-      foundRep.lastActiveTimestamp = now;
-
-      await updateRepSessionInDb(foundRep.id, newSessionId, now);
-
-      if (onClose) onClose();
-
-      onLoginSuccess({
-        id: foundRep.id,
-        name: foundRep.name,
-        email: foundRep.email,
-        role: foundRep.role || 'rep',
-        repData: foundRep,
-        activeSessionId: newSessionId,
-        lastActiveTimestamp: now,
+      const response = await fetch('/api/secure?action=login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: cleanEmail, password: cleanPassword }),
       });
-      setIsLoading(false);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result?.token || !result?.user) {
+        onError(result?.error || 'تعذر تسجيل الدخول. يرجى التحقق من البيانات والمحاولة مرة أخرى.');
+        return;
+      }
+      safeSetSessionItem('dalelak_auth_token', result.token);
+      safeSetLocalStorageItem('dalelak_auth_token', result.token);
+      if (onClose) onClose();
+      onLoginSuccess(result.user as User);
     } catch (err) {
       console.error('Login error:', err);
       onError('حدث خطأ أثناء التحقق من الجلسة، يرجى المحاولة لاحقاً.');
+    } finally {
       setIsLoading(false);
     }
   };

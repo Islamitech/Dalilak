@@ -1,70 +1,28 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Business, User } from '../../types';
-import { EGYPT_GOVERNORATES, CATEGORY_GROUPS } from '../../data/mockData';
-import { formatActivityDateTime, sortBusinessesNewestFirst } from '../../utils/dateFormatters';
+import { sortBusinessesNewestFirst } from '../../utils/dateFormatters';
 import { matchesBusinessSearch } from '../../utils/arabicSearch';
-import { matchesCategoryFilter, isTrendingFreeActivity, isCollectedInvoiceActivity, isUnpaidActivity, isBusinessGoogleVerified } from '../../utils/categoryMatcher';
-import { getRepFieldIntroWhatsAppUrl } from '../../utils/whatsapp';
-import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
-import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
-import { getRepDisplayInfo } from '../../utils/repDisplay';
-import { getGiftBarcodeWhatsAppUrl } from '../../utils/directoryEnhancements';
-import { getDeletedBusinessIds } from '../../services/db/businessDb';
-import { formatWhatsAppPhone } from '../../utils/whatsapp/phoneFormatter';
-import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
-import { InteractiveMap } from '../InteractiveMap';
 import {
-  Store,
-  ShieldCheck,
-  MapPin,
-  Clock,
-  Building2,
-  Search,
-  LayoutGrid,
-  List,
-  Loader2,
-  PlusCircle,
-  Play,
-  Phone,
-  MessageCircle,
-  Navigation,
-  FileText,
-  Eye,
-  Star,
-  X,
-  CheckCircle2,
-  Sparkles,
-  AlertCircle,
-  Gift,
-  QrCode,
-  Shuffle,
-  ExternalLink,
-} from 'lucide-react';
-import { triggerHaptic } from '../../utils/haptics';
-import { getPublicDirectoryUrl, getDisplayDirectoryUrl } from '../../utils/directoryUrl';
+  matchesCategoryFilter,
+  isTrendingFreeActivity,
+  isCollectedInvoiceActivity,
+  isUnpaidActivity,
+  isBusinessGoogleVerified,
+} from '../../utils/categoryMatcher';
+import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/storage';
+import { getDeletedBusinessIds } from '../../services/db/businessDb';
+import { InteractiveMap } from '../InteractiveMap';
+import { DirectoryMetricsBar, DirectoryStats } from './DirectoryMetricsBar';
+import { DirectoryFilterBar } from './DirectoryFilterBar';
+import { DirectoryGridCard } from './DirectoryGridCard';
+import { DirectoryListMobileCard, DirectoryListTableRow } from './DirectoryListRow';
+import { DirectorySortOption, shuffleBusinessesWithSeed } from './types';
+import { Loader2, PlusCircle } from 'lucide-react';
+import { setDynamicSEO, resetSEO } from '../../utils/seoHelper';
 
-export type DirectorySortOption = 'random' | 'newest' | 'oldest' | 'alpha';
+export type { DirectorySortOption } from './types';
 
-/**
- * Fast, deterministic pseudo-random shuffle (Mulberry32 PRNG)
- * Ensures fair, randomized distribution across all businesses
- * while maintaining strict UI stability during search typing and pagination.
- */
-function shuffleBusinessesWithSeed(list: Business[], seed: number): Business[] {
-  const result = [...list];
-  let currentSeed = seed;
-  for (let i = result.length - 1; i > 0; i--) {
-    currentSeed = (currentSeed + 0x6d2b79f5) | 0;
-    let t = Math.imul(currentSeed ^ (currentSeed >>> 15), 1 | currentSeed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    const rand = ((t >>> 0) / 4294967296);
-    const j = Math.floor(rand * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
-interface PublicBusinessDirectoryProps {
+export interface PublicBusinessDirectoryProps {
   businesses: Business[];
   isLoadingData: boolean;
   hasInitialCloudSynced: boolean;
@@ -76,67 +34,8 @@ interface PublicBusinessDirectoryProps {
   onAddNewClick: () => void;
   onShowInvoice: (biz: Business) => void;
   onEditBusiness: (biz: Business) => void;
-  onSelectVideoBiz: (biz: Business) => void;
+  onSelectVideoBiz?: (biz: Business) => void;
 }
-
-const getBusinessMapDetails = (biz: Business) => {
-  const officialUrl =
-    biz.googleMapsUrl &&
-    typeof biz.googleMapsUrl === 'string' &&
-    biz.googleMapsUrl.trim().startsWith('http') &&
-    !biz.googleMapsUrl.includes('search/?api=1&query=') &&
-    !biz.googleMapsUrl.includes('maps?q=') &&
-    !biz.googleMapsUrl.includes('google.com/maps?q=')
-      ? biz.googleMapsUrl.trim()
-      : null;
-
-  const repUrl =
-    biz.repLocationUrl &&
-    typeof biz.repLocationUrl === 'string' &&
-    biz.repLocationUrl.trim().startsWith('http')
-      ? biz.repLocationUrl.trim()
-      : biz.lat && biz.lng
-      ? `https://www.google.com/maps?q=${biz.lat},${biz.lng}`
-      : null;
-
-  const effectiveUrl = officialUrl || repUrl;
-  const isOfficial = Boolean(officialUrl);
-
-  return {
-    effectiveUrl,
-    isOfficial,
-    hasLocation: Boolean(effectiveUrl),
-  };
-};
-
-const getVerificationBadge = (status?: string) => {
-  if (status === 'verified') {
-    return {
-      text: 'معتمد 🟢',
-      className: 'bg-emerald-500/90 text-white border-emerald-400/40',
-      badgeClass: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
-    };
-  }
-  if (status === 'rejected') {
-    return {
-      text: 'مرفوض ❌',
-      className: 'bg-rose-500/90 text-white border-rose-400/40',
-      badgeClass: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
-    };
-  }
-  if (status === 'needs_action') {
-    return {
-      text: 'يتطلب إجراء ⚠️',
-      className: 'bg-orange-500/90 text-white border-orange-400/40',
-      badgeClass: 'bg-orange-500/10 text-orange-600 border-orange-500/30',
-    };
-  }
-  return {
-    text: 'قيد المراجعة ⏳',
-    className: 'bg-amber-500/90 text-slate-950 border-amber-400/40',
-    badgeClass: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
-  };
-};
 
 export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = ({
   businesses,
@@ -150,9 +49,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
   onAddNewClick,
   onShowInvoice,
   onEditBusiness,
-  onSelectVideoBiz,
+  onSelectVideoBiz = () => {},
 }) => {
-  // Local Directory Filters & View Mode
+  // ── 1. LOCAL SEARCH & FILTER STATES ──
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
 
@@ -165,19 +64,28 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
   const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [verificationFilter, setVerificationFilter] = useState<'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'>('all');
+  const [verificationFilter, setVerificationFilter] = useState<
+    'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'
+  >('all');
   const [sortBy, setSortBy] = useState<DirectorySortOption>('random');
   const [shuffleSeed, setShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000));
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(() => (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list' | 'map') || 'list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(() => {
+    return (safeGetLocalStorageItem('dalelak_home_view_mode') as 'grid' | 'list' | 'map') || 'list';
+  });
+
+  const handleViewModeChange = useCallback((mode: 'grid' | 'list' | 'map') => {
+    setViewMode(mode);
+    safeSetLocalStorageItem('dalelak_home_view_mode', mode);
+  }, []);
+
+  const handleReshuffle = useCallback(() => {
+    setShuffleSeed(Date.now() ^ Math.floor(Math.random() * 1000000));
+  }, []);
 
   const isRep = currentUser?.role === 'rep';
   const isManagerial = ['admin', 'supervisor', 'accountant'].includes(currentUser?.role || '');
 
-  // Scope filter:
-  // - Admin & supervisors: see all businesses (strictly excluding deleted & CRM leads)
-  // - Rep with 'my' scope: see own submissions (strictly excluding deleted & CRM leads)
-  // - Rep with 'all' scope: see all cloud businesses across the network (strictly excluding rejected, unlisted & deleted)
-  // - Public unauthenticated visitors: see only verified published businesses
+  // ── 2. SCOPE AND DELETED ENTITIES FILTER ──
   const displayableBusinesses = useMemo(() => {
     const deletedIds = getDeletedBusinessIds();
     const cleanList = businesses.filter(
@@ -200,17 +108,16 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         return Boolean(myId && bRepId === myId);
       });
     }
-    if (isRep && repScope === 'all') {
-      return cleanList.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
-    }
-    // Public unauthenticated visitors: see only verified published businesses
-    return cleanList.filter((b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted');
+    // Rep with 'all' or public visitors
+    return cleanList.filter(
+      (b) => b.verificationStatus === 'verified' && b.publishedStatus !== 'draft' && b.publishedStatus !== 'unlisted'
+    );
   }, [businesses, isRep, isManagerial, repScope, currentUser]);
 
   const hasRegisteredBiz = displayableBusinesses.length > 0;
 
-  // 🚀 Single-pass O(N) calculation for all directory metrics
-  const homeStats = useMemo(() => {
+  // ── 3. SINGLE-PASS METRICS COMPUTATION ──
+  const homeStats: DirectoryStats = useMemo(() => {
     const totalRegistered = displayableBusinesses.length;
     let directoryApproved = 0;
     let pendingDirectory = 0;
@@ -272,6 +179,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     };
   }, [displayableBusinesses]);
 
+  // ── 4. FILTERING & SORTING PIPELINE ──
   const filteredBusinesses = useMemo(() => {
     const list = displayableBusinesses.filter((b) => {
       if (debouncedSearchQuery && !matchesBusinessSearch(b, debouncedSearchQuery)) {
@@ -297,7 +205,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         const isDocumented = isBusinessGoogleVerified(b);
         const isPaid = isTrendingFreeActivity(b) || isCollectedInvoiceActivity(b);
         const isApproved = b.verificationStatus === 'verified';
-        if (isDocumented && isPaid && isApproved) return false; // exclude fully complete businesses
+        if (isDocumented && isPaid && isApproved) return false;
       }
       return true;
     });
@@ -305,9 +213,9 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     if (sortBy === 'random') {
       const hasFilter = Boolean(
         (debouncedSearchQuery && debouncedSearchQuery.trim().length > 0) ||
-        govFilter !== 'all' ||
-        categoryFilter !== 'all' ||
-        verificationFilter !== 'all'
+          govFilter !== 'all' ||
+          categoryFilter !== 'all' ||
+          verificationFilter !== 'all'
       );
       if (hasFilter) {
         return sortBusinessesNewestFirst(list);
@@ -331,14 +239,21 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
     return list;
   }, [displayableBusinesses, debouncedSearchQuery, govFilter, categoryFilter, verificationFilter, sortBy, shuffleSeed]);
 
-  // ── PROGRESSIVE WINDOWING & BATCH LOADING (ANTI-CRASH ON LOW-END DEVICES) ──
+  // ── 5. PROGRESSIVE WINDOWING (PAGINATION) ──
   const PAGE_SIZE = 24;
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
 
-  // Reset visible items whenever search, filtering, or sorting conditions change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [debouncedSearchQuery, govFilter, categoryFilter, verificationFilter, displayableBusinesses.length, sortBy, shuffleSeed]);
+
+  useEffect(() => {
+    if (govFilter !== 'all' || categoryFilter !== 'all') {
+      setDynamicSEO({ category: categoryFilter, governorate: govFilter });
+    } else {
+      resetSEO();
+    }
+  }, [govFilter, categoryFilter]);
 
   const renderedBusinesses = useMemo(() => {
     return filteredBusinesses.slice(0, visibleCount);
@@ -348,381 +263,39 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
   return (
     <div className="space-y-4">
-      {/* ── TOP KPI METRICS BAR (PROGRESSIVE DISCLOSURE FOR REPRESENTATIVES) ── */}
-      {isRep && !hasRegisteredBiz ? (
-        <div className="max-w-md mx-auto w-full">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-black shrink-0">
-              <Store className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[var(--text-muted)] font-bold">إجمالي المسجل</span>
-                <span className="text-xl font-black text-[var(--text-primary)] font-mono">0</span>
-              </div>
-              <p className="text-[11px] text-amber-700 font-medium mt-0.5">
-                رصيد البداية — سجّل أول نشاط تجاري في منطقتك لبدء تنشيط الإحصاءات وكسب عمولتك
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-          {/* 1. إجمالي الأنشطة المسجلة */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-500/15 text-slate-600 flex items-center justify-center font-black shrink-0">
-              <Store className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">إجمالي المسجل</div>
-              {isLoadingData && businesses.length === 0 ? (
-                <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
-              ) : (
-                <div className="text-base sm:text-lg font-black text-[var(--text-primary)] font-mono">{homeStats.totalRegistered}</div>
-              )}
-              {isRep && (
-                <span className="text-[9px] text-[var(--text-muted)] font-medium block truncate">
-                  كافة أنشطتك المسجلة
-                </span>
-              )}
-            </div>
-          </div>
+      {/* 1. TOP KPI METRICS BAR */}
+      <DirectoryMetricsBar
+        stats={homeStats}
+        isLoadingData={isLoadingData}
+        totalBusinessesCount={businesses.length}
+        isRep={isRep}
+        hasRegisteredBiz={hasRegisteredBiz}
+      />
 
-          {/* 2. معتمد بالدليل العام - يظهر للمندوب عند اعتماد أول نشاط (أو دائماً لغير المندوب) */}
-          {(!isRep || homeStats.directoryApproved > 0) && (
-            <div className="bg-[var(--bg-card)] border border-emerald-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-black shrink-0">
-                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] sm:text-[11px] text-emerald-600 font-bold truncate">معتمد 🟢</div>
-                {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
-                ) : (
-                  <div className="text-base sm:text-lg font-black text-emerald-600 font-mono">{homeStats.directoryApproved}</div>
-                )}
-                {isRep && (
-                  <span className="text-[9px] text-emerald-700 font-medium block truncate">
-                    أنشطة معتمدة ومطابقة بالدليل
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+      {/* 2. FILTERS AND CONTROLS BAR */}
+      <DirectoryFilterBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        govFilter={govFilter}
+        onGovFilterChange={setGovFilter}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        verificationFilter={verificationFilter}
+        onVerificationFilterChange={setVerificationFilter}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        onReshuffle={handleReshuffle}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        isRep={isRep}
+        repScope={repScope}
+        myBusinessesCount={myBusinessesCount}
+        onToggleRepScope={onToggleRepScope}
+        stats={homeStats}
+        filteredCount={filteredBusinesses.length}
+      />
 
-          {/* 3. موثق بـ Google Maps - يظهر للمندوب عند توثيق أول نشاط (أو دائماً لغير المندوب) */}
-          {(!isRep || homeStats.googleMapsVerified > 0) && (
-            <div className="bg-[var(--bg-card)] border border-blue-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center font-black shrink-0">
-                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] sm:text-[11px] text-blue-600 font-bold truncate">موثق بـ Google 🗺️</div>
-                {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
-                ) : (
-                  <div className="text-base sm:text-lg font-black text-blue-600 font-mono">{homeStats.googleMapsVerified}</div>
-                )}
-                {isRep && (
-                  <span className="text-[9px] text-blue-700 font-medium block truncate">
-                    أنشطة موثقة رسمياً على الخرائط
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 4. قيد مراجعة الدليل - يظهر بعد تسجيل أول نشاط */}
-          {(!isRep || hasRegisteredBiz) && (
-            <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-black shrink-0">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] sm:text-[11px] text-amber-600 font-bold truncate">قيد المراجعة ⏳</div>
-                {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
-                ) : (
-                  <div className="text-base sm:text-lg font-black text-amber-600 font-mono">{homeStats.pendingDirectory}</div>
-                )}
-                {isRep && (
-                  <span className="text-[9px] text-amber-700 font-medium block truncate">
-                    بانتظار تدقيق الإدارة للبيانات
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 5. المحافظات المغطاة - يظهر بعد تسجيل أول نشاط */}
-          {(!isRep || hasRegisteredBiz) && (
-            <div className="col-span-2 sm:col-span-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 rounded-2xl shadow-xs flex items-center gap-2.5 animate-fade-in">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center font-black shrink-0">
-                <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] font-bold truncate">المحافظات المغطاة</div>
-                {isLoadingData && businesses.length === 0 ? (
-                  <div className="w-12 h-6 bg-slate-300 animate-pulse rounded-lg mt-1" />
-                ) : (
-                  <div className="text-base sm:text-lg font-black text-purple-600 font-mono">{homeStats.govs}</div>
-                )}
-                {isRep && (
-                  <span className="text-[9px] text-purple-700 font-medium block truncate">
-                    المناطق الجغرافية لعملك
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── UNIFIED DIRECTORY TOOLBAR & FILTERS ── */}
-      {(businesses.length > 0 || !isRep) && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3.5 sm:p-5 space-y-3.5 shadow-sm">
-          {/* Representative Cloud Scope Toggle Banner */}
-          {isRep && onToggleRepScope && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-2.5 sm:p-3 rounded-2xl">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-amber-600">استعراض الأنشطة:</span>
-                <span className="text-[11px] text-[var(--text-muted)] font-medium">
-                  {repScope === 'my' ? 'تعرض حالياً أنشطتك الميدانية المسجلة فقط' : 'تعرض حالياً الأنشطة المعتمدة في الدليل العام'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)] self-start sm:self-auto shrink-0 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => onToggleRepScope('my')}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-                    repScope === 'my'
-                      ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <span>أنشطتي فقط</span>
-                  <span className="font-mono text-[10.5px]">({myBusinessesCount})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onToggleRepScope('all')}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-                    repScope === 'all'
-                      ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <span>الدليل العام المعتمد</span>
-                  <span className="font-mono text-[10.5px]">({businesses.filter((b) => b.verificationStatus === 'verified').length})</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-        {/* Row 1: Search + Governorate + View Switcher */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-amber-500 absolute start-3.5 top-3" />
-            <input
-              type="text"
-              placeholder="ابحث باسم المحل، المالك، الهاتف، أو المدينة..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs sm:text-sm rounded-xl ps-10 pe-9 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-bold shadow-inner placeholder:text-[var(--text-muted)]"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute end-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-                aria-label="مسح البحث"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <select
-              value={govFilter}
-              onChange={(e) => setGovFilter(e.target.value)}
-              className="flex-1 sm:flex-initial bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold rounded-2xl px-3 py-2.5 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
-            >
-              <option value="all">كل المحافظات</option>
-              {EGYPT_GOVERNORATES.map((gov) => (
-                <option key={gov} value={gov}>
-                  {gov}
-                </option>
-              ))}
-            </select>
-
-            {/* Sort Selector: Random / Newest / Oldest / Alpha */}
-            <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0 gap-1 shadow-2xs">
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  triggerHaptic('selection');
-                  setSortBy(e.target.value as DirectorySortOption);
-                }}
-                className="bg-transparent border-none text-[var(--text-primary)] text-xs font-bold px-2 py-1.5 focus:outline-none cursor-pointer"
-                title="ترتيب ظهور الأنشطة"
-              >
-                <option value="random">🔀 عشوائي (افتراضي)</option>
-                <option value="newest">⏱️ الأحدث انضماماً</option>
-                <option value="oldest">📅 الأقدم انضماماً</option>
-                <option value="alpha">🔤 أبجدياً (أ - ي)</option>
-              </select>
-
-              {sortBy === 'random' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setShuffleSeed(Date.now());
-                  }}
-                  className="p-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 transition-all cursor-pointer flex items-center gap-1"
-                  title="إعادة خلط وترتيب الأنشطة عشوائياً"
-                >
-                  <Shuffle className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-black hidden xl:inline">خلط جديد</span>
-                </button>
-              )}
-            </div>
-
-            {/* View Switcher: Grid vs List vs Map */}
-            <div className="flex items-center bg-[var(--input-bg)] p-1 rounded-2xl border border-[var(--border-color)] shrink-0 gap-0.5">
-              <button
-                onClick={() => { setViewMode('grid'); safeSetLocalStorageItem('dalelak_home_view_mode', 'grid'); }}
-                className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                  viewMode === 'grid'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-                title="عرض البطاقات العصرية"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => { setViewMode('list'); safeSetLocalStorageItem('dalelak_home_view_mode', 'list'); }}
-                className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                  viewMode === 'list'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-                title="عرض القائمة المجدولة"
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => { setViewMode('map'); safeSetLocalStorageItem('dalelak_home_view_mode', 'map'); }}
-                className={`px-2 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 ${
-                  viewMode === 'map'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-                title="عرض الخريطة التفاعلية المباشرة"
-              >
-                <MapPin className="w-4 h-4" />
-                <span className="text-[10.5px] font-black hidden sm:inline">الخريطة</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2: Status Quick Filter Tabs (Responsive & Compact for Mobile PWA) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] sm:text-xs font-bold">
-          {(isRep || isManagerial
-            ? [
-                { key: 'trending', label: 'الأنشطة الرائجة', count: homeStats.trending, Icon: Sparkles },
-                { key: 'all', label: 'الكل', count: homeStats.total, Icon: Store },
-                { key: 'verified', label: 'المعتمدة', count: homeStats.directoryApproved, Icon: CheckCircle2 },
-                ...(homeStats.pendingDirectory > 0 ? [{ key: 'in_progress', label: 'قيد التدقيق', count: homeStats.pendingDirectory, Icon: Clock }] : []),
-                { key: 'needs_followup', label: 'متابعات مطلوبة', count: homeStats.needsFollowup, Icon: AlertCircle },
-                { key: 'fully_paid', label: 'مسددة', count: homeStats.fullyPaid, Icon: CheckCircle2 },
-                { key: 'unpaid', label: 'بانتظار السداد', count: homeStats.unpaid, Icon: Clock },
-              ]
-            : [
-                { key: 'trending', label: 'الأنشطة الرائجة', count: homeStats.trending, Icon: Sparkles },
-                { key: 'all', label: 'جميع الأنشطة', count: homeStats.total, Icon: Store },
-                { key: 'verified', label: 'موثقة ومعتمدة', count: homeStats.directoryApproved, Icon: CheckCircle2 },
-                ...(homeStats.pendingDirectory > 0 ? [{ key: 'in_progress', label: 'قيد المراجعة', count: homeStats.pendingDirectory, Icon: Clock }] : []),
-              ]
-          ).map((tab) => {
-            const Icon = tab.Icon;
-            const isSelected = verificationFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => {
-                  triggerHaptic('selection');
-                  setVerificationFilter(tab.key as any);
-                }}
-                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 border ${
-                  isSelected
-                    ? (tab.key === 'needs_followup'
-                        ? 'bg-rose-500 text-slate-950 border-rose-600 shadow-xs font-black'
-                        : 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs font-black')
-                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-amber-500/40 hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950' : 'text-amber-500'}`} />
-                <span>{tab.label}</span>
-                {isLoadingData && businesses.length === 0 ? (
-                  <span className="w-3.5 h-3 bg-slate-300 animate-pulse rounded-full" />
-                ) : (
-                  <span
-                    className={`text-[9.5px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-mono font-black ${
-                      isSelected
-                        ? 'bg-slate-950 text-amber-400'
-                        : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)]'
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Row 3: Category Quick Chips Bar (Mobile Compact Scroll) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[10.5px] sm:text-[11px] font-bold border-t border-[var(--border-color)]/50 pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('selection');
-              setCategoryFilter('all');
-            }}
-            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              categoryFilter === 'all'
-                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-            }`}
-          >
-            كل الأقسام
-          </button>
-          {CATEGORY_GROUPS.map((grp) => (
-            <button
-              key={grp.group}
-              type="button"
-              onClick={() => {
-                triggerHaptic('selection');
-                setCategoryFilter(grp.group === categoryFilter ? 'all' : grp.group);
-              }}
-              className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-                categoryFilter === grp.group
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              }`}
-            >
-              <span>{grp.group}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      )}
-
-      {/* ── 1. LOADING SKELETON STATE (Shown ONLY on first cold visit with empty cache) ── */}
+      {/* 3. LOADING SKELETON STATE */}
       {isLoadingData && businesses.length === 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-center gap-2.5 py-3.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-600 font-bold text-xs sm:text-sm rounded-2xl animate-pulse shadow-xs">
@@ -752,7 +325,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         </div>
       )}
 
-      {/* ── 2. EMPTY STATE ── */}
+      {/* 4. EMPTY STATE */}
       {hasInitialCloudSynced && filteredBusinesses.length === 0 && (
         <div className="text-center py-12 px-4 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] space-y-3.5 shadow-sm">
           <div className="w-16 h-16 rounded-3xl bg-amber-500/15 text-amber-500 flex items-center justify-center mx-auto text-2xl shadow-inner">
@@ -798,453 +371,40 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         </div>
       )}
 
-      {/* ── 3. GRID MODE ── */}
+      {/* 5. GRID MODE */}
       {(!isLoadingData || businesses.length > 0) && viewMode === 'grid' && filteredBusinesses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-          {renderedBusinesses.map((biz) => {
-            const isExempt = isTrendingFreeActivity(biz);
-            const pkgDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-            const addDebt = (biz.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
-            const remaining = pkgDebt + addDebt;
-            const isVerified = biz.verificationStatus === 'verified';
-            const vBadge = getVerificationBadge(biz.verificationStatus);
-            const hasPhotos = biz.photos && biz.photos.length > 0;
-            const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
-            const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
-
-            return (
-              <div
-                key={biz.id}
-                onContextMenu={(e) => e.preventDefault()}
-                data-readability-ignore="true"
-                data-reader-skip="true"
-                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between group protected-asset-shield"
-              >
-                {/* Visual Header / Cover with Anti-Extraction Shield */}
-                <div 
-                  className="relative aspect-[16/8.5] bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-slate-900/10 overflow-hidden select-none"
-                  onContextMenu={(e) => e.preventDefault()}
-                >
-                  {coverPhoto ? (
-                    <img
-                      src={coverPhoto}
-                      alt=""
-                      role="presentation"
-                      aria-hidden="true"
-                      data-reader-skip="true"
-                      data-readability-ignore="true"
-                      loading="lazy"
-                      decoding="async"
-                      draggable={false}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-amber-500/60 bg-[var(--bg-surface)]">
-                      <Store className="w-8 h-8 opacity-40 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-bold text-[var(--text-muted)] opacity-70">منظومة دليلك الميدانية</span>
-                    </div>
-                  )}
-
-                  {/* Anti-Extraction Transparent Protection Shield */}
-                  <div 
-                    className="absolute inset-0 z-[5] select-none pointer-events-auto"
-                    onContextMenu={(e) => e.preventDefault()}
-                    onDragStart={(e) => e.preventDefault()}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />
-
-                  {/* Center Play Button Overlay for Videos */}
-                  {hasVideos && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectVideoBiz(biz);
-                      }}
-                      className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-slate-950/75 hover:bg-amber-500 text-amber-400 hover:text-slate-950 flex items-center justify-center backdrop-blur-md border border-amber-500/60 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer group-hover:scale-105"
-                      title="تشغيل فيديو النشاط (30 ثانية)"
-                    >
-                      <Play className="w-5 h-5 fill-current ml-0.5" />
-                    </button>
-                  )}
-
-                  {/* Floating Verified & Video Badges */}
-                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-                    <span
-                      className={`text-[9.5px] font-black px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm border ${vBadge.className}`}
-                    >
-                      {vBadge.text}
-                    </span>
-
-                    {hasVideos && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectVideoBiz(biz);
-                        }}
-                        className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-black shadow-md hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
-                        title="مشاهدة فيديو النشاط الميداني"
-                      >
-                        <Play className="w-2.5 h-2.5 fill-slate-950" />
-                        <span>فيديو 30ث</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
-                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-950/70 text-slate-200 backdrop-blur-md border border-white/10">
-                      {biz.invoiceNumber || 'INV'}
-                    </span>
-                    {coverPhoto && (
-                      <PhotoWatermarkBadge position="top-left" className="!relative !top-auto !left-auto" />
-                    )}
-                  </div>
-
-                  {/* Bottom info on photo */}
-                  <div className="absolute bottom-2 right-2.5 left-2.5 flex items-center justify-between text-white">
-                    <div className="flex items-center gap-1.5 truncate max-w-[210px]">
-                      <span className="text-[10px] font-bold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 truncate">
-                        {biz.category}
-                      </span>
-                      {biz.googleRatingEnabled && biz.googleRating && (
-                        <span className="inline-flex items-center gap-1 bg-amber-500/25 border border-amber-400/40 text-amber-300 text-[9.5px] font-black px-1.5 py-0.5 rounded-md backdrop-blur-md">
-                          <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                          <span>{biz.googleRating.toFixed(1)}</span>
-                          {biz.googleReviewsCount !== undefined && (
-                            <span className="text-[8.5px] opacity-75">({biz.googleReviewsCount})</span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    {biz.workingHours && (
-                      <span className="text-[9px] font-medium opacity-80 truncate max-w-[130px] flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5" /> {biz.workingHours}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Card Content Body */}
-                <div className="p-3.5 sm:p-4 space-y-3 flex-1 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div>
-                      <h4 className="font-black text-sm sm:text-base text-[var(--text-primary)] group-hover:text-amber-500 transition-colors line-clamp-1">
-                        {biz.nameAr}
-                      </h4>
-                      <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        <span className="truncate">{biz.governorate} • {biz.city} {biz.street ? `• ${biz.street}` : ''}</span>
-                      </div>
-                    </div>
-
-                    {/* Representative & Date Strip */}
-                    <div className="flex items-center justify-between text-[10.5px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold">
-                      <span className="truncate max-w-[140px] text-[var(--text-secondary)]">
-                        {(() => {
-                          const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: isExempt, packageId: biz.packageId });
-                          return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : `👤 ${info.displayName}`;
-                        })()}
-                      </span>
-                      <span className="font-mono text-[9.5px] shrink-0">{formatActivityDateTime(biz.createdDate || biz.invoiceDate)}</span>
-                    </div>
-
-                    {/* Financial Package & Payment Row */}
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <div className="flex items-center gap-1">
-                        {isExempt ? (
-                          <span className="text-[11px] font-black text-teal-700 bg-teal-500/10 px-2 py-0.5 rounded-md border border-teal-500/20">
-                            🆓 نشاط رائج (مجاني 0 ج)
-                          </span>
-                        ) : (
-                          <span className="text-[11px] font-black text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                            {biz.packagePrice || 250} ج.م
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        {isExempt ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-600 border border-teal-500/30">
-                            ✓ إدراج مجاني
-                          </span>
-                        ) : remaining === 0 ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-                            ✓ مسدد بالكامل
-                          </span>
-                        ) : (biz.amountPaid || 0) === 0 ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/30">
-                            غير مدفوع ⏳
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30">
-                            متبقي {remaining} ج
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Interactive Actions */}
-                  <div className="pt-2 border-t border-[var(--border-color)]/60 space-y-2">
-                    <div className="grid grid-cols-4 gap-1.5 text-center">
-                      {/* Call */}
-                      <a
-                        href={sanitizeExternalUrl(`tel:${(biz.phone || biz.ownerPhone || '').replace(/[^\d+]/g, '')}`, '#')}
-                        className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                        title="اتصال هاتفي"
-                      >
-                        <Phone className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>اتصال</span>
-                      </a>
-
-                      {/* WhatsApp */}
-                      <a
-                        href={sanitizeExternalUrl(getRepFieldIntroWhatsAppUrl(biz, currentUser?.name), '#')}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                        title="محادثة واتساب ميدانية"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>واتساب</span>
-                      </a>
-
-                      {/* Google Maps / Direction */}
-                      {(() => {
-                        const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
-                        if (effectiveUrl) {
-                          return (
-                            <a
-                              href={sanitizeExternalUrl(effectiveUrl, '#')}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
-                              title={isOfficial ? 'الموقع موثق رسمياً: فتح على خرائط Google' : 'الموقع الجغرافي الميداني للنشاط على الخريطة'}
-                            >
-                              <Navigation className="w-3.5 h-3.5 text-emerald-500" />
-                              <span>الخريطة</span>
-                            </a>
-                          );
-                        }
-                        return (
-                          <button
-                            type="button"
-                            disabled
-                            className="p-2 rounded-xl bg-slate-200 text-slate-400 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 cursor-not-allowed opacity-60"
-                            title="لم يتم تحديد الموقع الجغرافي بعد"
-                          >
-                            <Navigation className="w-3.5 h-3.5 opacity-40" />
-                            <span>غير محدد</span>
-                          </button>
-                        );
-                      })()}
-
-                      {/* Invoice Preview */}
-                      <button
-                        type="button"
-                        onClick={() => onShowInvoice(biz)}
-                        className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-purple-500/15 text-[var(--text-secondary)] hover:text-purple-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)] cursor-pointer"
-                        title="عرض الفاتورة الإلكترونية"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-purple-500" />
-                        <span>فاتورة</span>
-                      </button>
-                    </div>
-
-                    {/* Primary Details / Edit Button */}
-                    <button
-                      onClick={() => onEditBusiness(biz)}
-                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
-                    >
-                      <Eye className="w-4 h-4 stroke-[2.5]" />
-                      <span>تفاصيل وتعديل النشاط</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {renderedBusinesses.map((biz) => (
+            <DirectoryGridCard
+              key={biz.id}
+              biz={biz}
+              currentUser={currentUser}
+              onShowInvoice={onShowInvoice}
+              onEditBusiness={onEditBusiness}
+              onSelectVideoBiz={onSelectVideoBiz}
+            />
+          ))}
         </div>
       )}
 
-      {/* ── 4. LIST / TABLE MODE ── */}
+      {/* 6. LIST / TABLE MODE */}
       {(!isLoadingData || businesses.length > 0) && viewMode === 'list' && filteredBusinesses.length > 0 && (
         <div className="space-y-3">
-          {/* MOBILE VIEW (< md) */}
+          {/* Mobile view (< md) */}
           <div className="md:hidden space-y-2.5">
-            {renderedBusinesses.map((biz) => {
-              const isExempt = isTrendingFreeActivity(biz);
-              const pkgDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-              const addDebt = (biz.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
-              const remaining = pkgDebt + addDebt;
-              const isVerified = biz.verificationStatus === 'verified';
-              const vBadge = getVerificationBadge(biz.verificationStatus);
-              const ownerPhone = biz.ownerPhone || biz.phone || '';
-
-              const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
-              const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
-              const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
-
-              return (
-                <div
-                  key={`mob_${biz.id}`}
-                  className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs space-y-2"
-                >
-                  {/* Row 1: Photo + Name + Badges */}
-                  <div className="flex items-start justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      {/* Photo Thumbnail */}
-                      <div
-                        onClick={() => onEditBusiness(biz)}
-                        className="relative w-12 h-12 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
-                      >
-                        {coverPhoto ? (
-                          <img src={coverPhoto} alt={biz.nameAr} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-amber-500/60">
-                            <Store className="w-5 h-5" />
-                          </div>
-                        )}
-                        {hasVideos && (
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectVideoBiz(biz);
-                            }}
-                            className="absolute inset-0 bg-slate-950/50 flex items-center justify-center cursor-pointer hover:bg-amber-500/80 transition-colors"
-                            title="مشاهدة فيديو النشاط"
-                          >
-                            <Play className="w-3.5 h-3.5 text-amber-400 fill-current" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div
-                          onClick={() => onEditBusiness(biz)}
-                          className="font-black text-sm text-[var(--text-primary)] hover:text-amber-500 cursor-pointer truncate"
-                        >
-                          {biz.nameAr}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] font-bold mt-0.5">
-                          <span>{biz.governorate}</span>
-                          <span>•</span>
-                          <span>{biz.city}</span>
-                          <span>•</span>
-                          <span className="text-[var(--text-muted)]">{biz.category}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span
-                        className={`text-[9.5px] font-black px-2 py-0.5 rounded-full border ${vBadge.badgeClass}`}
-                      >
-                        {vBadge.text}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Row 2: Finance & Rep */}
-                  <div className="flex items-center justify-between text-[11px] bg-[var(--input-bg)] px-2.5 py-1.5 rounded-xl border border-[var(--border-color)]">
-                    <span className="font-bold text-[var(--text-secondary)]">
-                      {isExempt ? (
-                        <span className="text-teal-600">مجاني 0 ج</span>
-                      ) : (
-                        <span>{biz.packagePrice || 250} ج.م ({remaining === 0 ? 'مسدد' : (biz.amountPaid || 0) === 0 ? 'غير مدفوع ⏳' : `متبقي ${remaining}`})</span>
-                      )}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                      {(() => {
-                        const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: isExempt, packageId: biz.packageId });
-                        return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
-                      })()}
-                    </span>
-                  </div>
-
-                  {/* Row 3: Fast Quick Actions */}
-                  <div className="flex items-center justify-between gap-1.5 pt-0.5">
-                    <button
-                      onClick={() => onEditBusiness(biz)}
-                      className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black py-1.5 px-2 rounded-xl shadow-2xs transition-transform active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>التفاصيل</span>
-                    </button>
-
-                    {(() => {
-                      const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
-                      if (effectiveUrl) {
-                        return (
-                          <a
-                            href={sanitizeExternalUrl(effectiveUrl, '#')}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-                            title={isOfficial ? 'فتح موقع النشاط المعتمد على خرائط Google' : 'معاينة الموقع الجغرافي الميداني للنشاط على الخريطة'}
-                          >
-                            <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                          </a>
-                        );
-                      }
-                      return (
-                        <button
-                          type="button"
-                          disabled
-                          className="bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
-                          title="لم يتم تحديد الموقع الجغرافي بعد"
-                        >
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        </button>
-                      );
-                    })()}
-
-                    <button
-                      onClick={() => onShowInvoice(biz)}
-                      className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                      title="عرض الفاتورة"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-amber-500" />
-                      <span>فاتورة</span>
-                    </button>
-
-                    <a
-                      href={getPublicDirectoryUrl(biz)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
-                      title="فتح صفحة المنشأة على الدليل العام (رابط دائم)"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
-                    </a>
-
-                    {ownerPhone && (
-                      <a
-                        href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 border border-emerald-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-                        title="مراسلة واتساب"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-
-                    {ownerPhone && (
-                      <a
-                        href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
-                        className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-                        title="اتصال هاتفي"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {renderedBusinesses.map((biz) => (
+              <DirectoryListMobileCard
+                key={`mob_${biz.id}`}
+                biz={biz}
+                currentUser={currentUser}
+                onShowInvoice={onShowInvoice}
+                onEditBusiness={onEditBusiness}
+                onSelectVideoBiz={onSelectVideoBiz}
+              />
+            ))}
           </div>
 
-          {/* DESKTOP VIEW (>= md): High-Speed Clean Data Table */}
+          {/* Desktop view (>= md) */}
           <div className="hidden md:block bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs table-auto">
@@ -1260,205 +420,16 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]/60">
-                  {renderedBusinesses.map((biz) => {
-                    const isExempt = isTrendingFreeActivity(biz);
-                    const pkgDebt = isExempt ? 0 : Math.max(0, (biz.packagePrice || 0) - (biz.amountPaid || 0));
-                    const addDebt = (biz.additionalInvoices || []).reduce((sum, inv) => sum + Math.max(0, (Number(inv.amount) || 0) - (Number(inv.amountPaid) || 0)), 0);
-                    const remaining = pkgDebt + addDebt;
-                    const isVerified = biz.verificationStatus === 'verified';
-                    const vBadge = getVerificationBadge(biz.verificationStatus);
-                    const ownerPhone = biz.ownerPhone || biz.phone || '';
-
-                    const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
-                    const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
-                    const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
-
-                    return (
-                      <tr key={`desktop_list_${biz.id}`} className="hover:bg-[var(--input-bg)]/50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2.5">
-                            {/* Photo Thumbnail */}
-                            <div
-                              onClick={() => onEditBusiness(biz)}
-                              className="relative w-10 h-10 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
-                            >
-                              {coverPhoto ? (
-                                <img src={coverPhoto} alt={biz.nameAr} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-amber-500/50">
-                                  <Store className="w-4 h-4" />
-                                </div>
-                              )}
-                              {hasVideos && (
-                                <div
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSelectVideoBiz(biz);
-                                  }}
-                                  className="absolute inset-0 bg-slate-950/50 flex items-center justify-center cursor-pointer hover:bg-amber-500/80 transition-colors"
-                                  title="مشاهدة فيديو النشاط"
-                                >
-                                  <Play className="w-3.5 h-3.5 text-amber-400 fill-current" />
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="min-w-0">
-                              <div
-                                onClick={() => onEditBusiness(biz)}
-                                className="font-black text-[var(--text-primary)] hover:text-amber-500 cursor-pointer text-sm truncate max-w-[160px]"
-                              >
-                                {biz.nameAr}
-                              </div>
-                              <div className="text-[10px] font-mono text-[var(--text-muted)] flex items-center gap-1">
-                                <span>{biz.invoiceNumber}</span>
-                                {hasPhotos && (
-                                  <span className="text-[9px] font-bold text-amber-600 bg-amber-500/10 px-1 rounded">
-                                    📷 {biz.photos.length}
-                                  </span>
-                                )}
-                                {hasVideos && (
-                                  <span className="text-[9px] font-bold text-yellow-600 bg-yellow-500/10 px-1 rounded">
-                                    🎬 فيديو
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-3">
-                          <span className="bg-[var(--input-bg)] px-2 py-0.5 rounded-lg border border-[var(--border-color)] font-bold text-[11px] text-[var(--text-secondary)]">
-                            {biz.category}
-                          </span>
-                        </td>
-
-                        <td className="py-3 px-3">
-                          <div className="font-bold text-[var(--text-primary)]">{biz.governorate}</div>
-                          <div className="text-[10.5px] text-[var(--text-muted)] truncate max-w-[140px]">{biz.city}</div>
-                        </td>
-
-                        <td className="py-3 px-3">
-                          <span
-                            className={`inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-full border ${vBadge.badgeClass}`}
-                          >
-                            <span>{vBadge.text}</span>
-                          </span>
-                        </td>
-
-                        <td className="py-3 px-3">
-                          <div className="font-black text-[var(--text-primary)] font-mono">
-                            {isExempt ? (
-                              <span className="text-teal-600 text-[11px]">مجاني (0 ج)</span>
-                            ) : (
-                              <span>{biz.packagePrice || 250} ج.م</span>
-                            )}
-                          </div>
-                          <div className="text-[10px] font-bold mt-0.5">
-                            {isExempt ? (
-                              <span className="text-teal-600">إدراج ترويجي</span>
-                            ) : remaining === 0 ? (
-                              <span className="text-emerald-600">مسدد بالكامل ✓</span>
-                            ) : (biz.amountPaid || 0) === 0 ? (
-                              <span className="text-amber-700 font-bold">غير مدفوع ⏳</span>
-                            ) : (
-                              <span className="text-amber-600 font-mono">متبقي {remaining} ج</span>
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-3">
-                          <div className="font-bold text-[var(--text-secondary)] truncate max-w-[130px]">
-                            {(() => {
-                              const info = getRepDisplayInfo(biz.repName, { repId: biz.repId, isFeeExempt: isExempt, packageId: biz.packageId });
-                              return info.isPlatformOfficial ? '🏛️ إدارة المنصة' : info.displayName;
-                            })()}
-                          </div>
-                          <div className="text-[10px] font-mono text-[var(--text-muted)]">
-                            {formatActivityDateTime(biz.createdDate || biz.invoiceDate)}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => onEditBusiness(biz)}
-                              className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-colors cursor-pointer flex items-center gap-1"
-                              title="عرض وتعديل النشاط"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>عرض</span>
-                            </button>
-
-                            {(() => {
-                              const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
-                              if (effectiveUrl) {
-                                return (
-                                  <a
-                                    href={sanitizeExternalUrl(effectiveUrl, '#')}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border border-blue-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
-                                    title={isOfficial ? 'فتح موقع النشاط المعتمد على خرائط Google 🗺️' : 'معاينة الموقع الجغرافي الميداني للنشاط 🗺️'}
-                                  >
-                                    <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                                  </a>
-                                );
-                              }
-                              return (
-                                <button
-                                  type="button"
-                                  disabled
-                                  className="p-1.5 rounded-xl bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] opacity-40 cursor-not-allowed flex items-center justify-center"
-                                  title="لم يتم تحديد الموقع الجغرافي بعد"
-                                >
-                                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                </button>
-                              );
-                            })()}
-
-                            <a
-                              href={getPublicDirectoryUrl(biz)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-xl bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border border-amber-500/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer shadow-2xs"
-                              title="فتح الرابط المباشر للمنشأة على الدليل العام (SEO)"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
-                            </a>
-
-                            <button
-                              onClick={() => onShowInvoice(biz)}
-                              className="p-1.5 rounded-xl bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-amber-500 border border-[var(--border-color)] transition-colors cursor-pointer"
-                              title="عرض الفاتورة"
-                            >
-                              <FileText className="w-3.5 h-3.5 text-amber-500" />
-                            </button>
-                            {ownerPhone && (
-                              <a
-                                href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors"
-                                title="مراسلة واتساب"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                            {ownerPhone && (
-                              <a
-                                href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
-                                className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border border-blue-500/30 transition-colors"
-                                title="اتصال هاتفي"
-                              >
-                                <Phone className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {renderedBusinesses.map((biz) => (
+                    <DirectoryListTableRow
+                      key={`desktop_list_${biz.id}`}
+                      biz={biz}
+                      currentUser={currentUser}
+                      onShowInvoice={onShowInvoice}
+                      onEditBusiness={onEditBusiness}
+                      onSelectVideoBiz={onSelectVideoBiz}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -1466,43 +437,49 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         </div>
       )}
 
-      {/* ── 4.5. PROGRESSIVE PAGINATION CONTROLLER (ANTI-CRASH & BATCH LOADING) ── */}
-      {(!isLoadingData || businesses.length > 0) && (viewMode === 'grid' || viewMode === 'list') && filteredBusinesses.length > 0 && (
-        <div className="pt-2 pb-6 flex flex-col items-center justify-center gap-3 animate-fade-in">
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-color)] px-4 py-1.5 rounded-full shadow-2xs">
-            <span>عرض {renderedBusinesses.length} من أصل {filteredBusinesses.length} نشاطاً</span>
-            {filteredBusinesses.length > renderedBusinesses.length && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            )}
-          </div>
-
-          {hasMore && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                className="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-2xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>تحميل المزيد (+{Math.min(PAGE_SIZE, filteredBusinesses.length - renderedBusinesses.length)} نشاط)</span>
-              </button>
-
-              {filteredBusinesses.length > PAGE_SIZE * 2 && (
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount(filteredBusinesses.length)}
-                  className="bg-[var(--bg-card)] hover:bg-[var(--input-bg)] active:scale-95 text-[var(--text-primary)] font-bold text-xs px-4 py-2.5 rounded-2xl border border-[var(--border-color)] transition-all cursor-pointer"
-                  title="عرض جميع الأنشطة المفلترة في الصفحة دفعة واحدة"
-                >
-                  <span>عرض الكل ({filteredBusinesses.length})</span>
-                </button>
+      {/* 7. PROGRESSIVE PAGINATION CONTROLLER */}
+      {(!isLoadingData || businesses.length > 0) &&
+        (viewMode === 'grid' || viewMode === 'list') &&
+        filteredBusinesses.length > 0 && (
+          <div className="pt-2 pb-6 flex flex-col items-center justify-center gap-3 animate-fade-in">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-color)] px-4 py-1.5 rounded-full shadow-2xs">
+              <span>
+                عرض {renderedBusinesses.length} من أصل {filteredBusinesses.length} نشاطاً
+              </span>
+              {filteredBusinesses.length > renderedBusinesses.length && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               )}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* ── 5. INTERACTIVE MAP MODE ── */}
+            {hasMore && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                  className="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-2xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>
+                    تحميل المزيد (+{Math.min(PAGE_SIZE, filteredBusinesses.length - renderedBusinesses.length)} نشاط)
+                  </span>
+                </button>
+
+                {filteredBusinesses.length > PAGE_SIZE * 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(filteredBusinesses.length)}
+                    className="bg-[var(--bg-card)] hover:bg-[var(--input-bg)] active:scale-95 text-[var(--text-primary)] font-bold text-xs px-4 py-2.5 rounded-2xl border border-[var(--border-color)] transition-all cursor-pointer"
+                    title="عرض جميع الأنشطة المفلترة في الصفحة دفعة واحدة"
+                  >
+                    <span>عرض الكل ({filteredBusinesses.length})</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* 8. INTERACTIVE MAP MODE */}
       {(!isLoadingData || businesses.length > 0) && viewMode === 'map' && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3 shadow-lg animate-fade-in">
           <InteractiveMap
