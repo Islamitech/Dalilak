@@ -90,14 +90,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       </div>
 
       {/* Second Row: Quick Filters & Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]">
-        {/* Left: Quick Toggles */}
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-[var(--border-color)]">
+        {/* Left: Quick Toggles (Clean scrollable strip on mobile) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 shrink-0">
           {/* Advanced Filters Button */}
           <button
             type="button"
             onClick={onOpenFilterDrawer}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs active:scale-95 ${
               activeFiltersCount > 0
                 ? 'bg-amber-500/15 border-amber-500/50 text-amber-800'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -116,7 +116,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <button
             type="button"
             onClick={onToggleOpenNow}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs active:scale-95 ${
               openNowOnly
                 ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-800'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -130,7 +130,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <button
             type="button"
             onClick={() => onSortChange(sortBy === 'nearest' ? 'default' : 'nearest')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs active:scale-95 ${
               sortBy === 'nearest'
                 ? 'bg-blue-500/15 border-blue-500/40 text-blue-800'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -145,7 +145,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={onToggleHasVideo}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs active:scale-95 ${
                 hasVideoOnly
                   ? 'bg-purple-500/15 border-purple-500/40 text-purple-800'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -159,37 +159,37 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
 
         {/* Right: Sort Dropdown & View Mode Switcher */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
           <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
-            <span className="hidden sm:inline">ترتيب:</span>
+            <span className="text-[11px] text-slate-400 shrink-0">ترتيب:</span>
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value as any)}
-              className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+              className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
             >
-              <option value="default">عشوائي متجدد 🔀</option>
-              <option value="nearest">الأقرب جغرافياً 📍</option>
-              <option value="newest">الأحدث انضماماً ⏱️</option>
-              <option value="open_now">المفتوح أولاً 🟢</option>
-              <option value="alpha">أبجدياً (أ-ي) 🔤</option>
+              <option value="default">الترتيب المقترح (الافتراضي)</option>
+              <option value="nearest">الأقرب لموقعي</option>
+              <option value="newest">الأحدث انضماماً</option>
+              <option value="open_now">المفتوح الآن أولاً</option>
+              <option value="alpha">أبجدياً (أ - ي)</option>
             </select>
 
             {sortBy === 'default' && onReshuffle && (
               <button
                 type="button"
                 onClick={onReshuffle}
-                className="p-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 transition-all cursor-pointer flex items-center gap-1 border border-amber-500/30"
-                title="إعادة خلط وترتيب الأنشطة عشوائياً"
+                className="p-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 transition-all cursor-pointer flex items-center gap-1 border border-amber-500/30 active:scale-95 shadow-2xs shrink-0"
+                title="تحديث الترتيب المقترح"
               >
                 <Shuffle className="w-3.5 h-3.5 text-amber-600" />
-                <span className="text-[10px] font-black hidden xl:inline">خلط جديد</span>
+                <span className="text-[10px] font-black hidden xl:inline">تحديث</span>
               </button>
             )}
           </div>
 
           {/* View Mode Switcher (if enabled) */}
           {showViewToggle && onViewChange && (
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
               <button
                 type="button"
                 onClick={() => onViewChange('grid')}

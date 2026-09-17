@@ -252,27 +252,29 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
                 </div>
               )}
 
-              <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
-                <div className="flex items-center gap-2">
-                  <span className="bg-slate-900/50 backdrop-blur-sm text-amber-400 text-[11px] font-black px-3 py-1 rounded-full border border-amber-500/30 shadow-md">
+              <div className="absolute top-3 right-3 left-3 flex items-center justify-between gap-2 z-10">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="bg-slate-950/80 backdrop-blur-md text-amber-300 text-[11px] font-black px-2.5 py-1 rounded-xl border border-amber-400/30 shadow-xs whitespace-nowrap truncate max-w-[180px] sm:max-w-xs">
                     {selectedBiz.category}
                   </span>
-                  <PhotoWatermarkBadge position="top-right" size="md" className="!relative !top-auto !right-auto" />
                 </div>
 
-                {selectedBiz.videos && selectedBiz.videos.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenVideoModal(selectedBiz);
-                    }}
-                    className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg hover:scale-105 transition-transform cursor-pointer border border-amber-400/60"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>تشغيل الفيديو (30ث)</span>
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <PhotoWatermarkBadge position="top-left" size="sm" className="!relative !top-auto !left-auto" />
+                  {selectedBiz.videos && selectedBiz.videos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenVideoModal(selectedBiz);
+                      }}
+                      className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-md transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-slate-950" />
+                      <span>فيديو</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="absolute bottom-3.5 right-4 left-4 text-white space-y-1">

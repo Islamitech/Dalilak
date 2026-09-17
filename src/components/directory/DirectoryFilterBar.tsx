@@ -296,9 +296,9 @@ export const DirectoryFilterBar: React.FC<DirectoryFilterBarProps> = ({
                   ? 'bg-amber-500 text-slate-950 font-black shadow-2xs'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
-              title="عرض عشوائي منوع لمنح جميع الأنشطة ظهوراً متكافئاً"
+              title="عرض مقترح متجدد لمنح جميع الأنشطة ظهوراً متكافئاً"
             >
-              <span>عشوائي 🔀</span>
+              <span>المقترح ✨</span>
             </button>
             {sortBy === 'random' && (
               <button
@@ -308,7 +308,7 @@ export const DirectoryFilterBar: React.FC<DirectoryFilterBarProps> = ({
                   onReshuffle();
                 }}
                 className="p-1 text-amber-600 hover:text-amber-500 hover:rotate-180 transition-all cursor-pointer"
-                title="إعادة خلط الأنشطة عشوائياً الآن"
+                title="تحديث الترتيب المقترح الآن"
               >
                 <Shuffle className="w-3 h-3" />
               </button>

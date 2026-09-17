@@ -290,33 +290,37 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
 
-              <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
-                <div className="flex items-center gap-2">
-                  <span className="bg-slate-900/60 backdrop-blur-md text-amber-300 text-[11px] font-black px-3 py-1 rounded-full border border-amber-400/30">
+              <div className="absolute top-3 right-3 left-3 flex items-center justify-between gap-2 z-10">
+                {/* Right (RTL Start): Clean Category Pill & Photo Count */}
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="bg-slate-950/80 backdrop-blur-md text-amber-300 text-[11px] font-black px-2.5 py-1 rounded-xl border border-amber-400/30 shadow-xs whitespace-nowrap truncate max-w-[180px] sm:max-w-xs">
                     {business.category}
                   </span>
-                  <PhotoWatermarkBadge position="top-right" size="sm" className="!relative !top-auto !right-auto" />
                   {photos.length > 1 && (
-                    <span className="bg-slate-900/70 backdrop-blur-md text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1 shadow-sm">
+                    <span className="bg-slate-950/80 backdrop-blur-md text-slate-100 text-[10px] font-black px-2 py-1 rounded-xl border border-slate-700/60 flex items-center gap-1 shadow-xs whitespace-nowrap shrink-0">
                       <span>📸</span>
                       <span>{photos.length} صور</span>
                     </span>
                   )}
                 </div>
 
-                {business.videos && business.videos.length > 0 && onOpenVideoModal && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenVideoModal(business);
-                    }}
-                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md transition-transform cursor-pointer"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>فيديو تعريفي</span>
-                  </button>
-                )}
+                {/* Left (RTL End): Official Brand Watermark & Video Action */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <PhotoWatermarkBadge position="top-left" size="sm" className="!relative !top-auto !left-auto" />
+                  {business.videos && business.videos.length > 0 && onOpenVideoModal && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenVideoModal(business);
+                      }}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-md transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-slate-950" />
+                      <span>فيديو</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="absolute bottom-3.5 right-4 left-4 text-white space-y-1 z-10">
