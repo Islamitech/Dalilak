@@ -464,19 +464,7 @@ export default function App() {
               mode="view"
               businesses={scopedBusinesses}
               onSelectBusiness={(b) => setSelectedInvoiceBiz(b)}
-              onEditBusiness={(b) => {
-                if (user?.role === 'rep') {
-                  const myId = (currentRep.id || user.id || '').toLowerCase().trim();
-                  const myName = (currentRep.name || user.name || '').toLowerCase().trim();
-                  const bRepId = (b.repId || '').toLowerCase().trim();
-                  const bRepName = (b.repName || '').toLowerCase().trim();
-                  if ((myId && bRepId === myId) || (myName && bRepName === myName)) {
-                    setEditingBusiness(b);
-                  }
-                } else {
-                  setEditingBusiness(b);
-                }
-              }}
+              onEditBusiness={(b) => setEditingBusiness(b)}
               heightClass="h-[520px]"
             />
           </div>

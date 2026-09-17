@@ -106,19 +106,7 @@ export const HomeFeedView: React.FC<HomeFeedViewProps> = ({
         onToggleRepScope={onToggleRepScope}
         onAddNewClick={onAddNewClick}
         onShowInvoice={onShowInvoice}
-        onEditBusiness={(b) => {
-          if (user?.role === 'rep') {
-            const myId = (currentRep.id || user.id || '').toLowerCase().trim();
-            const bRepId = (b.repId || '').toLowerCase().trim();
-            if (myId && bRepId === myId) {
-              onEditBusiness(b);
-            } else {
-              addNotification('⚠️ لا يمكن تعديل نشاط مسجل بواسطة مندوب آخر إلا من قِبل إدارة النظام.', 'warning');
-            }
-          } else {
-            onEditBusiness(b);
-          }
-        }}
+        onEditBusiness={onEditBusiness}
         onSelectVideoBiz={onSelectVideoBiz}
       />
     </div>

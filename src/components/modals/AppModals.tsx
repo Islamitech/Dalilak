@@ -128,7 +128,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
       )}
 
       {/* DRAWER: FULL BUSINESS DATA VIEW & EDITING */}
-      {editingBusiness && user && (
+      {editingBusiness && (
         <Suspense fallback={null}>
           <BusinessDetailsDrawer
             business={editingBusiness}
@@ -149,14 +149,14 @@ export const AppModals: React.FC<AppModalsProps> = ({
                 : undefined
             }
             onDeleteBusiness={
-              canUserDeleteBusiness(user, editingBusiness) ? onDeleteBusiness : undefined
+              user && canUserDeleteBusiness(user, editingBusiness) ? onDeleteBusiness : undefined
             }
           />
         </Suspense>
       )}
 
       {/* MODAL: INVOICE VIEWER & WHATSAPP DISPATCH */}
-      {selectedInvoiceBiz && user && (
+      {selectedInvoiceBiz && (
         <InvoiceModal
           business={selectedInvoiceBiz}
           selectedAdditionalInvoiceId={selectedAdditionalInvoiceId}
@@ -170,9 +170,9 @@ export const AppModals: React.FC<AppModalsProps> = ({
               ? (b) => setSelectedPayBiz(b)
               : undefined
           }
-          userRole={user?.role}
+          userRole={user?.role || 'guest'}
           isAdmin={user?.role === 'admin' || user?.role === 'supervisor'}
-          currentUserName={user?.name}
+          currentUserName={user?.name || 'زائر المنصة'}
         />
       )}
 

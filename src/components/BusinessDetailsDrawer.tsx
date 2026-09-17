@@ -96,12 +96,13 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
 
   if (!business) return null;
 
-  const userRole = (currentUser?.role || 'rep') as string;
-  const userName = currentUser?.name || 'مستخدم النظام';
-  const isGuest = userRole === 'guest';
-  const isManagerial = ['admin', 'supervisor', 'accountant'].includes(userRole);
-  const isOwnerRep = userRole === 'rep' && (business.repId === currentUser?.id || business.repName === currentUser?.name);
+  const isGuest = !currentUser || currentUser.role === 'guest';
+  const userRole = (currentUser?.role || 'guest') as string;
+  const userName = currentUser?.name || (isGuest ? 'زائر' : 'مستخدم النظام');
+  const isManagerial = Boolean(currentUser && ['admin', 'supervisor', 'accountant'].includes(userRole));
+  const isOwnerRep = Boolean(currentUser && userRole === 'rep' && (business.repId === currentUser?.id || business.repName === currentUser?.name));
   const canEdit = isManagerial || isOwnerRep;
+  const showInternalTabs = canEdit;
 
   const isExemptOrTrending = isTrendingFreeActivity(business);
   const remaining = isExemptOrTrending
@@ -314,7 +315,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             <QuickActionBar business={business} compact={false} />
 
             {/* 3. Internal Navigation Tabs */}
-            {!isGuest && (
+            {showInternalTabs && (
               <div className="flex items-center border-b border-slate-200 text-sm font-medium overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex w-full justify-between sm:justify-start sm:gap-1">
                   <button
@@ -384,7 +385,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             )}
 
             {/* TAB 1: Business Details & Interactive Map */}
-            {(isGuest || activeTab === 'info') && (
+            {(!showInternalTabs || activeTab === 'info') && (
               <DrawerInfoTab
                 business={business}
                 isGuest={isGuest}
@@ -400,7 +401,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             )}
 
             {/* TAB 2: Financial & Operational Review */}
-            {!isGuest && activeTab === 'admin' && (
+            {showInternalTabs && activeTab === 'admin' && (
               <>
                 <ConditionalVerificationAlert
                   isOpen={showVerificationAlert}
@@ -444,7 +445,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             )}
 
             {/* TAB 3: Notes & Automated Timeline Follow-ups */}
-            {!isGuest && activeTab === 'notes' && (
+            {showInternalTabs && activeTab === 'notes' && (
               <DrawerNotesTab
                 business={business}
                 newNoteText={newNoteText}
@@ -454,7 +455,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             )}
 
             {/* TAB 4: Public Directory Management */}
-            {!isGuest && activeTab === 'directory' && (
+            {showInternalTabs && activeTab === 'directory' && (
               <DrawerDirectoryTab
                 business={business}
                 canEdit={canEdit}
@@ -468,7 +469,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             )}
 
             {/* TAB 5: WhatsApp Marketing & Communications Hub */}
-            {!isGuest && activeTab === 'whatsapp' && (
+            {showInternalTabs && activeTab === 'whatsapp' && (
               <DrawerWhatsAppTab
                 business={business}
               />

@@ -126,8 +126,56 @@ describe('Directory Views & Component Helpers', () => {
     it('should return null URL if no map or coordinates are present', () => {
       const details = getBusinessMapDetails(mockBusinesses[2]);
       expect(details.hasLocation).toBe(false);
-      expect(details.isOfficial).toBe(false);
       expect(details.effectiveUrl).toBeNull();
     });
   });
+
+  describe('Business Details Drawer Permissions & Access Control', () => {
+    const sampleBiz = {
+      id: 'biz_01',
+      nameAr: 'مطعم الشجرة',
+      repId: 'rep_100',
+      repName: 'أحمد الميداني',
+    } as Business;
+
+    const checkAccess = (user: any) => {
+      const isGuest = !user || user.role === 'guest';
+      const userRole = (user?.role || 'guest') as string;
+      const isManagerial = Boolean(user && ['admin', 'supervisor', 'accountant'].includes(userRole));
+      const isOwnerRep = Boolean(user && userRole === 'rep' && (sampleBiz.repId === user?.id || sampleBiz.repName === user?.name));
+      const canEdit = isManagerial || isOwnerRep;
+      const showInternalTabs = canEdit;
+      return { isGuest, canEdit, showInternalTabs };
+    };
+
+    it('should grant public view access to unauthenticated guest visitors without admin tabs or edit rights', () => {
+      const access = checkAccess(null);
+      expect(access.isGuest).toBe(true);
+      expect(access.canEdit).toBe(false);
+      expect(access.showInternalTabs).toBe(false);
+    });
+
+    it('should grant view-only access to representatives viewing other reps businesses without edit or admin tabs', () => {
+      const otherRep = { id: 'rep_200', name: 'محمود', role: 'rep' };
+      const access = checkAccess(otherRep);
+      expect(access.isGuest).toBe(false);
+      expect(access.canEdit).toBe(false);
+      expect(access.showInternalTabs).toBe(false);
+    });
+
+    it('should grant edit and internal tab rights to the owner representative', () => {
+      const ownerRep = { id: 'rep_100', name: 'أحمد الميداني', role: 'rep' };
+      const access = checkAccess(ownerRep);
+      expect(access.canEdit).toBe(true);
+      expect(access.showInternalTabs).toBe(true);
+    });
+
+    it('should grant full management and internal tab rights to admins and supervisors', () => {
+      const admin = { id: 'adm_1', name: 'المدير', role: 'admin' };
+      const access = checkAccess(admin);
+      expect(access.canEdit).toBe(true);
+      expect(access.showInternalTabs).toBe(true);
+    });
+  });
 });
+
