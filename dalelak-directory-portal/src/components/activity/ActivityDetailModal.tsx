@@ -22,6 +22,7 @@ import {
   Heart,
   CheckCheck,
   UserPlus,
+  Camera,
   Play,
   Maximize,
   ExternalLink,
@@ -291,36 +292,27 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
 
               <div className="absolute top-3 right-3 left-3 flex items-center justify-between gap-2 z-10">
-                {/* Right (RTL Start): Clean Category Pill & Photo Count */}
+                {/* Right (RTL Start): Clean Category Pill Only */}
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="bg-slate-950/80 backdrop-blur-md text-amber-300 text-[11px] font-black px-2.5 py-1 rounded-xl border border-amber-400/30 shadow-xs whitespace-nowrap truncate max-w-[180px] sm:max-w-xs">
+                  <span className="bg-slate-950/80 backdrop-blur-md text-amber-300 text-[11px] font-black px-3 py-1 rounded-xl border border-amber-400/30 shadow-xs whitespace-nowrap truncate max-w-[220px] sm:max-w-xs">
                     {business.category}
                   </span>
-                  {photos.length > 1 && (
-                    <span className="bg-slate-950/80 backdrop-blur-md text-slate-100 text-[10px] font-black px-2 py-1 rounded-xl border border-slate-700/60 flex items-center gap-1 shadow-xs whitespace-nowrap shrink-0">
-                      <span>📸</span>
-                      <span>{photos.length} صور</span>
-                    </span>
-                  )}
                 </div>
 
-                {/* Left (RTL End): Official Brand Watermark & Video Action */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <PhotoWatermarkBadge position="top-left" size="sm" className="!relative !top-auto !left-auto" />
-                  {business.videos && business.videos.length > 0 && onOpenVideoModal && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenVideoModal(business);
-                      }}
-                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-md transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-slate-950" />
-                      <span>فيديو</span>
-                    </button>
-                  )}
-                </div>
+                {/* Left (RTL End): Video Action (if present) */}
+                {business.videos && business.videos.length > 0 && onOpenVideoModal && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenVideoModal(business);
+                    }}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-black px-3 py-1 rounded-xl flex items-center gap-1.5 shadow-md transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>فيديو</span>
+                  </button>
+                )}
               </div>
 
               <div className="absolute bottom-3.5 right-4 left-4 text-white space-y-1 z-10">
@@ -346,34 +338,23 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Photo Thumbnails */}
+            {/* Photo Count Indicator (Replaces heavy thumbnail downloads for superior speed and lightweight mobile browsing) */}
             {photos.length > 1 && (
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {photos.map((ph, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setPreviewPhotoIndex(idx)}
-                    onContextMenu={(e) => e.preventDefault()}
-                    className={`relative h-16 rounded-xl overflow-hidden bg-slate-950 border transition-all cursor-pointer group select-none ${
-                      previewPhotoIndex === idx ? 'border-amber-500 ring-2 ring-amber-500/50' : 'border-slate-200 hover:border-amber-500'
-                    }`}
-                    title={`عرض صورة ${idx + 1} من ${photos.length}`}
-                  >
-                    <img 
-                      src={ph} 
-                      alt="" 
-                      role="presentation"
-                      aria-hidden="true"
-                      draggable={false}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform pointer-events-none select-none" 
-                    />
-                    <span className="absolute bottom-1 right-1 text-[8.5px] font-mono font-black text-white/90 bg-black/60 px-1 rounded backdrop-blur-xs">
-                      {idx + 1}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewPhotoIndex(0)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-100/90 hover:bg-amber-500/10 text-slate-800 hover:text-amber-950 border border-slate-200 hover:border-amber-400/60 transition-all cursor-pointer text-xs font-bold active:scale-[0.99] shadow-2xs group"
+                title="فتح ومعاينة ألبوم الصور"
+              >
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-amber-600 group-hover:scale-110 transition-transform" />
+                  <span className="font-black">معاينة صور المنشأة</span>
+                </div>
+                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-black bg-white px-2.5 py-1 rounded-xl border border-slate-200 text-amber-800 shadow-2xs">
+                  <span>{photos.length} صور متوفرة</span>
+                  <span className="text-slate-400 font-normal">↗</span>
+                </span>
+              </button>
             )}
           </div>
 

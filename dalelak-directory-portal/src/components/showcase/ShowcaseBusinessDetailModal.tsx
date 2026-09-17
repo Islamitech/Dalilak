@@ -22,6 +22,7 @@ import {
   Sparkles,
   Play,
   Star,
+  Camera,
   Maximize,
   Phone,
   UserPlus,
@@ -254,13 +255,12 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
 
               <div className="absolute top-3 right-3 left-3 flex items-center justify-between gap-2 z-10">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="bg-slate-950/80 backdrop-blur-md text-amber-300 text-[11px] font-black px-2.5 py-1 rounded-xl border border-amber-400/30 shadow-xs whitespace-nowrap truncate max-w-[180px] sm:max-w-xs">
+                  <span className="bg-slate-950/80 backdrop-blur-md text-amber-300 text-[11px] font-black px-3 py-1 rounded-xl border border-amber-400/30 shadow-xs whitespace-nowrap truncate max-w-[220px] sm:max-w-xs">
                     {selectedBiz.category}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <PhotoWatermarkBadge position="top-left" size="sm" className="!relative !top-auto !left-auto" />
                   {selectedBiz.videos && selectedBiz.videos.length > 0 && (
                     <button
                       type="button"
@@ -302,28 +302,23 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
               </div>
             </div>
 
-            {/* Photo Thumbnails */}
+            {/* Photo Count Indicator (Replaces heavy thumbnail downloads for speed) */}
             {selectedBiz.photos && selectedBiz.photos.length > 1 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-1">
-                {selectedBiz.photos.map((ph, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onOpenPhotoPreview(idx)}
-                    className="relative h-20 rounded-xl overflow-hidden bg-slate-950 border border-[var(--border-color)] hover:border-amber-500 transition-all cursor-pointer shadow-xs group"
-                    title="انقر لتكبير الصورة"
-                  >
-                    <img
-                      src={ph}
-                      alt={`صورة ${idx + 1}`}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <Maximize className="w-4 h-4 text-white" />
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => onOpenPhotoPreview(0)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-100/90 hover:bg-amber-500/10 text-slate-800 hover:text-amber-950 border border-slate-200 hover:border-amber-400/60 transition-all cursor-pointer text-xs font-bold active:scale-[0.99] shadow-2xs group"
+                title="فتح ومعاينة ألبوم الصور"
+              >
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-amber-600 group-hover:scale-110 transition-transform" />
+                  <span className="font-black">معاينة صور المنشأة</span>
+                </div>
+                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-black bg-white px-2.5 py-1 rounded-xl border border-slate-200 text-amber-800 shadow-2xs">
+                  <span>{selectedBiz.photos.length} صور متوفرة</span>
+                  <span className="text-slate-400 font-normal">↗</span>
+                </span>
+              </button>
             )}
           </div>
 
