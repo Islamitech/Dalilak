@@ -47,31 +47,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
     setIsLoading(true);
 
-    // 🛡️ LAYER 1: Attempt Server Secure API Endpoint first (for persistent Express/VPS deployments)
     try {
-      const response = await fetch('/api/secure?action=login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: cleanEmail, password: cleanPassword }),
-      });
-      if (response.ok) {
-        const result = await response.json().catch(() => ({}));
-        if (result?.token && result?.user) {
-          safeSetSessionItem('dalelak_auth_token', result.token);
-          safeSetLocalStorageItem('dalelak_auth_token', result.token);
-          if (onClose) onClose();
-          onLoginSuccess(result.user as User);
-          setIsLoading(false);
-          return;
-        }
-      }
-    } catch {
-      // Server API unreachable or not deployed on this host (e.g. Vercel Static/Serverless)
-      // Gracefully continue to authoritative Cloud Supabase fallback below
-    }
-
-    // 🛡️ LAYER 2: Authoritative Direct Supabase Cloud Authentication (Primary Sovereign Fallback)
-    try {
+      // 🛡️ AUTHORITATIVE CLOUD AUTHENTICATION (Supabase Cloud = Single Source of Truth)
       let foundRep: Representative | null = null;
       const cleanPhoneDigits = cleanEmail.replace(/\D/g, '');
       const AUTH_SELECT = 'id,name,email,phone,password,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
@@ -133,7 +110,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         }
       }
 
-      // D. In-memory / cache fallback if Supabase lookup did not return record
+      // D. In-memory / cached representatives fallback if cloud fetch did not return record
       if (!foundRep && representatives && representatives.length > 0) {
         const normClean = cleanEmail.replace(/[^a-z0-9]/g, '');
         foundRep = representatives.find((r) => {
@@ -162,30 +139,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         return;
       }
 
-      // Verify Password strictly
-      let storedPassword = (foundRep.password || '').trim();
-      let isPassValid = false;
-
-      // Special master password verification for Super Admin
-      const isSuperAdminAccount =
-        cleanEmail === 'ahmedhufne@gmail.com' ||
-        cleanEmail === 'info@dalilaak.com' ||
-        foundRep.id === 'rep_ahmed_ezalden' ||
-        cleanPhoneDigits === '01143888355';
-
-      if (isSuperAdminAccount) {
-        if (
-          cleanPassword === 'Aa132456' ||
-          cleanPassword === 'Aa123456' ||
-          cleanPassword === 'admin' ||
-          cleanPassword === '01143888355' ||
-          (storedPassword && (await verifyPassword(cleanPassword, storedPassword)))
-        ) {
-          isPassValid = true;
-        }
-      } else if (storedPassword && storedPassword !== '••••••••') {
-        isPassValid = (cleanPassword === storedPassword) || (await verifyPassword(cleanPassword, storedPassword));
-      }
+      // Verify Password strictly using standard cryptographic verification
+      const storedPassword = (foundRep.password || '').trim();
+      const isPassValid = Boolean(
+        storedPassword && (
+          cleanPassword === storedPassword ||
+          (await verifyPassword(cleanPassword, storedPassword))
+        )
+      );
 
       if (!isPassValid) {
         onError('⚠️ كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور وإعادة المحاولة.');
@@ -194,7 +155,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       }
 
       // Check account approval and rejection status for non-admin accounts
-      if (!isSuperAdminAccount && foundRep.role !== 'admin') {
+      if (foundRep.role !== 'admin') {
         if (foundRep.avatarStatus === 'rejected') {
           const emailNotice = foundRep.email ? ` عبر البريد الإلكتروني (${foundRep.email})` : ' عبر البريد الإلكتروني';
           onError(`❌ تم رفض طلب تسجيل هذا الحساب من قِبل إدارة المنظومة. تم إرسال أسباب الرفض${emailNotice}، يرجى مراجعتها لمعرفة الأسباب.`);
