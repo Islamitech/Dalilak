@@ -639,12 +639,16 @@ export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAp
 
         console.log(`ℹ️ WhatsApp [Slot ${slotId}] connection closed. Status code: ${statusCode}, Logged out: ${isLoggedOut}, Reason: ${session.disconnectReason}`);
 
+        const credsFile = path.join(authDir, 'creds.json');
+        const hasSavedCreds = fs.existsSync(credsFile);
+
         if (isLoggedOut || session.isExplicitDisconnect) {
           session.connectionState = 'disconnected';
           session.connectedUser = null;
           session.qrCodeUrl = null;
           session.sock = null;
           session.connectedAt = null;
+          session.autoReconnectAttempts = 0;
           try {
             if (fs.existsSync(authDir)) {
               fs.rmSync(authDir, { recursive: true, force: true });
@@ -662,20 +666,35 @@ export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAp
             console.log('⏸️ Active campaign automatically paused because all sender accounts disconnected.');
           }
 
-          if (!session.isExplicitDisconnect) {
-            setTimeout(() => {
-              initWhatsAppGateway(slotId).catch((err) => console.warn(`Auto re-init QR for slot ${slotId}:`, err));
-            }, 1500);
-          }
+          // Do NOT auto-reconnect if explicitly disconnected or logged out.
+          // The admin can click Connect / Scan QR in the dashboard when ready.
         } else {
           session.connectionState = 'disconnected';
           session.qrCodeUrl = null;
-          // Auto-reconnect after 4 seconds
-          setTimeout(() => {
-            if (!session.isExplicitDisconnect) {
-              initWhatsAppGateway(slotId).catch((err) => console.warn(`Auto reconnect notice for slot ${slotId}:`, err));
+          session.sock = null;
+
+          // If there are NO saved credentials and we received 408 (QR timed out without scanning):
+          if (!hasSavedCreds && (statusCode === 408 || statusCode === DisconnectReason.timedOut)) {
+            console.log(`ℹ️ WhatsApp [Slot ${slotId}] QR timed out without scan. Standing by for user action in dashboard.`);
+            session.autoReconnectAttempts = 0;
+            return;
+          }
+
+          // If we have saved credentials, auto-reconnect with smart backoff
+          if (hasSavedCreds && !session.isExplicitDisconnect) {
+            const attempts = session.autoReconnectAttempts || 1;
+            // Cap attempts to avoid infinite spamming if device is offline (max 15 attempts)
+            if (attempts > 15) {
+              console.warn(`⚠️ WhatsApp [Slot ${slotId}] Reached reconnect attempt limit (15). Pausing until user action.`);
+              return;
             }
-          }, 4000);
+            const delayMs = Math.min(30000, attempts * 3000); // 3s, 6s, 9s ... up to 30s
+            setTimeout(() => {
+              if (!session.isExplicitDisconnect && session.connectionState !== 'connected') {
+                initWhatsAppGateway(slotId).catch((err) => console.warn(`Auto reconnect notice for slot ${slotId}:`, err?.message));
+              }
+            }, delayMs);
+          }
         }
       }
     });
