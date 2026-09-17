@@ -36,7 +36,7 @@ export const ForBusinessView: React.FC<ForBusinessViewProps> = ({ onNavigate }) 
 - المحافظة: ${gov}
 - الخدمة المطلوبة: إدراج مجاني (0 ج) بموقع Google Maps`;
 
-    window.open(`https://wa.me/201143888355?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://wa.me/201556221141?text=${encodeURIComponent(text)}`, '_blank');
     setSubmitted(true);
   };
 

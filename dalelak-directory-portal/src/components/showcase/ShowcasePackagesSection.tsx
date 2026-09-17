@@ -121,7 +121,7 @@ export const ShowcasePackagesSection: React.FC<ShowcasePackagesSectionProps> = (
           {/* Action Buttons for Free */}
           <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
             <a
-              href={`https://wa.me/201143888355?text=${encodeURIComponent('مرحباً دليلك 👋 نشاطنا التجاري لديه موقع موثق بالفعل على خرائط Google، ونود طلب إدراج وظهور المكان في الدليل مجاناً 100%.')}`}
+              href={`https://wa.me/201556221141?text=${encodeURIComponent('مرحباً دليلك 👋 نشاطنا التجاري لديه موقع موثق بالفعل على خرائط Google، ونود طلب إدراج وظهور المكان في الدليل مجاناً 100%.')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"

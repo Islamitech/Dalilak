@@ -618,7 +618,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
           {/* Trust & Verification: Claim Listing & Report Incorrect Data */}
           <div className="pt-2.5 pb-1 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] font-bold">
             <a
-              href={`https://wa.me/201143888355?text=${encodeURIComponent(
+              href={`https://wa.me/201556221141?text=${encodeURIComponent(
                 `مرحباً دليلك 👋 أنا صاحب منشأة "${selectedBiz.nameAr}" وأود التحقق من ملكيتها أو تحديث بياناتها.`
               )}`}
               target="_blank"
@@ -629,7 +629,7 @@ export const ShowcaseBusinessDetailModal: React.FC<ShowcaseBusinessDetailModalPr
             </a>
 
             <a
-              href={`https://wa.me/201143888355?text=${encodeURIComponent(
+              href={`https://wa.me/201556221141?text=${encodeURIComponent(
                 `إبلاغ عن بيانات غير دقيقة: منشأة "${selectedBiz.nameAr}" (كود: ${selectedBiz.id}).`
               )}`}
               target="_blank"

@@ -647,7 +647,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
       {/* 6. Subtle Floating WhatsApp Action */}
       <a
-        href={`https://wa.me/201143888355?text=${encodeURIComponent(
+        href={`https://wa.me/201556221141?text=${encodeURIComponent(
           'مرحباً دليلك، أود الاستفسار عن خدمة في الدليل' + (referralCode ? ` (كود: ${referralCode})` : '')
         )}`}
         target="_blank"

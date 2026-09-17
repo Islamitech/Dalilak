@@ -645,7 +645,7 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                 if (onNavigateToBusinessClaim) onNavigateToBusinessClaim(business);
                 else {
                   window.open(
-                    `https://wa.me/201143888355?text=${encodeURIComponent(
+                    `https://wa.me/201556221141?text=${encodeURIComponent(
                       `مرحباً دليلك 👋 أنا صاحب منشأة "${business.nameAr}" وأود إدارة وتحديث بياناتها.`
                     )}`,
                     '_blank'
@@ -659,7 +659,7 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
             </button>
 
             <a
-              href={`https://wa.me/201143888355?text=${encodeURIComponent(
+              href={`https://wa.me/201556221141?text=${encodeURIComponent(
                 `إبلاغ عن بيانات: منشأة "${business.nameAr}" (كود: ${business.id})`
               )}`}
               target="_blank"

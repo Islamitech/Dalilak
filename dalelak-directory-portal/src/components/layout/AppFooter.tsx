@@ -102,7 +102,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavigate }) => {
               </li>
               <li>
                 <a
-                  href={`https://wa.me/201143888355?text=${encodeURIComponent('مرحباً دليلك، أود الاستفسار عن توثيق نشاطي التجاري')}`}
+                  href={`https://wa.me/201556221141?text=${encodeURIComponent('مرحباً دليلك، أود الاستفسار عن توثيق نشاطي التجاري')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-emerald-400 transition-colors flex items-center gap-1 py-1.5 min-h-[38px]"

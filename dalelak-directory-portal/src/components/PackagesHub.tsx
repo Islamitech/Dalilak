@@ -495,7 +495,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
                 <div className="pt-1">
                   {mode === 'public' ? (
                     <a
-                      href={`https://wa.me/201143888355?text=${encodeURIComponent(`مرحباً دليلك، أود الاستفسار والاشتراك في «${pkg.name}» (${pkg.priceText}).`)}`}
+                      href={`https://wa.me/201556221141?text=${encodeURIComponent(`مرحباً دليلك، أود الاستفسار والاشتراك في «${pkg.name}» (${pkg.priceText}).`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`w-full py-3 px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer ${
@@ -634,7 +634,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
 
               {mode === 'public' ? (
                 <a
-                  href="https://wa.me/201143888355?text=مرحباً%20دليلك،%20نود%20الاستفسار%20عن%20باقة%20الشركات%20والمشاريع%20الكبرى."
+                  href="https://wa.me/201556221141?text=مرحباً%20دليلك،%20نود%20الاستفسار%20عن%20باقة%20الشركات%20والمشاريع%20الكبرى."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm transition-all"
@@ -741,7 +741,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
             <div className="pt-3 border-t border-[var(--border-color)] flex items-center justify-between gap-2">
               {mode === 'public' ? (
                 <a
-                  href={`https://wa.me/201143888355?text=${encodeURIComponent(`مرحباً دليلك، أود الاستفسار والاشتراك في «${detailModalPkg.name}» (${detailModalPkg.priceText}).`)}`}
+                  href={`https://wa.me/201556221141?text=${encodeURIComponent(`مرحباً دليلك، أود الاستفسار والاشتراك في «${detailModalPkg.name}» (${detailModalPkg.priceText}).`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm"

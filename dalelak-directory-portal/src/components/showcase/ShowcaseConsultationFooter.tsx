@@ -318,12 +318,12 @@ export const ShowcaseConsultationFooter: React.FC<ShowcaseConsultationFooterProp
             <p className="flex items-center justify-center gap-1">
               <span>تواصل مباشر:</span>
               <a
-                href="https://wa.me/201143888355"
+                href="https://wa.me/201556221141"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-emerald-600 hover:underline dir-ltr font-mono font-bold"
               >
-                +20 114 388 8355
+                +20 155 622 1141
               </a>
             </p>
           </div>

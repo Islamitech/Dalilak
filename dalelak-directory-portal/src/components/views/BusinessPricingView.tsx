@@ -60,7 +60,7 @@ export const BusinessPricingView: React.FC<BusinessPricingViewProps> = ({
         </div>
 
         <a
-          href={`https://wa.me/201143888355?text=${encodeURIComponent('مرحباً دليلك 👋 أود استشارة حول الباقة التسويقية المناسبة لمنشأتي.')}`}
+          href={`https://wa.me/201556221141?text=${encodeURIComponent('مرحباً دليلك 👋 أود استشارة حول الباقة التسويقية المناسبة لمنشأتي.')}`}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-white hover:bg-slate-100 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2 shrink-0"
