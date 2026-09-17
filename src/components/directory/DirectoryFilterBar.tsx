@@ -150,7 +150,8 @@ export const DirectoryFilterBar: React.FC<DirectoryFilterBarProps> = ({
       </div>
 
       {/* Row 2: Status / Verification Filter Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+      <div className="relative">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
         <button
           type="button"
           onClick={() => {
@@ -272,6 +273,10 @@ export const DirectoryFilterBar: React.FC<DirectoryFilterBarProps> = ({
             <span className="font-mono text-[10px] opacity-80">({stats.needsFollowup})</span>
           </button>
         )}
+        </div>
+        {/* Visual fading indicators for horizontal scroll cue on mobile */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-1 w-6 bg-gradient-to-r from-[var(--bg-card,#ffffff)] to-transparent sm:hidden" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-6 bg-gradient-to-l from-[var(--bg-card,#ffffff)] to-transparent sm:hidden" />
       </div>
 
       {/* Row 3: Sort & Layout Controls */}
@@ -416,38 +421,43 @@ export const DirectoryFilterBar: React.FC<DirectoryFilterBarProps> = ({
 
       {/* Row 4: Categories Quick Carousel / Horizontal Scroll */}
       {viewMode !== 'map' && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar border-t border-[var(--border-color)]/60 pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('selection');
-              onCategoryFilterChange('all');
-            }}
-            className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              categoryFilter === 'all'
-                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-            }`}
-          >
-            كل الأقسام
-          </button>
-          {CATEGORY_GROUPS.map((grp) => (
+        <div className="relative border-t border-[var(--border-color)]/60 pt-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
             <button
-              key={grp.group}
               type="button"
               onClick={() => {
                 triggerHaptic('selection');
-                onCategoryFilterChange(grp.group === categoryFilter ? 'all' : grp.group);
+                onCategoryFilterChange('all');
               }}
-              className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-                categoryFilter === grp.group
+              className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                categoryFilter === 'all'
                   ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
                   : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
               }`}
             >
-              <span>{grp.group}</span>
+              كل الأقسام
             </button>
-          ))}
+            {CATEGORY_GROUPS.map((grp) => (
+              <button
+                key={grp.group}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('selection');
+                  onCategoryFilterChange(grp.group === categoryFilter ? 'all' : grp.group);
+                }}
+                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
+                  categoryFilter === grp.group
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+                }`}
+              >
+                <span>{grp.group}</span>
+              </button>
+            ))}
+          </div>
+          {/* Visual fading indicators for category pills scroll cue on mobile */}
+          <div className="pointer-events-none absolute left-0 top-2 bottom-1 w-6 bg-gradient-to-r from-[var(--bg-card,#ffffff)] to-transparent sm:hidden" />
+          <div className="pointer-events-none absolute right-0 top-2 bottom-1 w-6 bg-gradient-to-l from-[var(--bg-card,#ffffff)] to-transparent sm:hidden" />
         </div>
       )}
     </div>

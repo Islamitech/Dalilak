@@ -51,13 +51,13 @@ export const HomeFeedView: React.FC<HomeFeedViewProps> = ({
     <div className="space-y-5 pb-20 tab-content-enter">
       {/* Field Banner (Only for non-rep or general view to avoid duplicate headers) */}
       {user?.role !== 'rep' && (
-        <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-4 sm:p-5 rounded-3xl shadow-xl flex items-center justify-between">
+        <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-slate-950 p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl flex items-center justify-between gap-3">
           <div>
-            <span className="bg-slate-950/20 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="bg-slate-950/20 text-slate-950 text-[9px] sm:text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider">
               منظومة دليلك الميدانية الشاملة
             </span>
-            <h1 className="text-xl sm:text-2xl font-black mt-1">المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات في مصر</h1>
-            <p className="text-xs font-bold text-slate-900/90 mt-1 max-w-lg">
+            <h1 className="text-base sm:text-2xl font-black mt-1 leading-snug">المنصة الشاملة لإدارة وتوثيق الأنشطة والخدمات في مصر</h1>
+            <p className="text-[11px] sm:text-xs font-bold text-slate-900/90 mt-0.5 sm:mt-1 max-w-lg line-clamp-2 sm:line-clamp-none">
               تسجيل مباشر لبيانات المحلات، إحداثيات GPS الدقيقة، وإصدار الفواتير الإلكترونية على واتساب صاحب النشاط في جميع محافظات مصر.
             </p>
           </div>
