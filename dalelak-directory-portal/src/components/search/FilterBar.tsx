@@ -1,14 +1,5 @@
 import React from 'react';
 import {
-  Sparkles,
-  UtensilsCrossed,
-  ShieldCheck,
-  Wrench,
-  Scissors,
-  ShoppingBag,
-  ShoppingCart,
-  GraduationCap,
-  Shirt,
   SlidersHorizontal,
   Clock,
   Star,
@@ -20,8 +11,8 @@ import {
 } from 'lucide-react';
 
 export interface FilterBarProps {
-  categoryFilter: string;
-  onCategoryChange: (cat: string) => void;
+  categoryFilter?: string;
+  onCategoryChange?: (cat: string) => void;
   sortBy: 'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha';
   onSortChange: (sort: 'default' | 'nearest' | 'newest' | 'has_video' | 'open_now' | 'alpha') => void;
   openNowOnly: boolean;
@@ -36,21 +27,7 @@ export interface FilterBarProps {
   onReshuffle?: () => void;
 }
 
-export const POPULAR_CATEGORY_CHIPS = [
-  { label: 'الكل', value: 'all', icon: Sparkles },
-  { label: 'مطاعم ومأكولات', value: 'مطاعم ومأكولات', icon: UtensilsCrossed },
-  { label: 'سوبر ماركت وبقالة', value: 'سوبر ماركت وبقالة', icon: ShoppingCart },
-  { label: 'طبي وصيدلي', value: 'طبي وصيدلي', icon: ShieldCheck },
-  { label: 'سيارات وصيانة', value: 'سيارات وصيانة', icon: Wrench },
-  { label: 'تجميل وعناية', value: 'تجميل وعناية', icon: Scissors },
-  { label: 'ملابس وأزياء', value: 'ملابس وأزياء', icon: Shirt },
-  { label: 'خدمات منزلية', value: 'خدمات منزلية', icon: ShoppingBag },
-  { label: 'تعليم وتدريب', value: 'تعليم وتدريب', icon: GraduationCap },
-];
-
 export const FilterBar: React.FC<FilterBarProps> = ({
-  categoryFilter,
-  onCategoryChange,
   sortBy,
   onSortChange,
   openNowOnly,
@@ -65,32 +42,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onReshuffle,
 }) => {
   return (
-    <div className="w-full space-y-2.5">
-      {/* Category Chips Carousel / Row */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none no-scrollbar">
-        {POPULAR_CATEGORY_CHIPS.map((cat) => {
-          const Icon = cat.icon;
-          const isSelected = categoryFilter === cat.value;
-          return (
-            <button
-              key={cat.value}
-              type="button"
-              onClick={() => onCategoryChange(cat.value)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                isSelected
-                  ? 'bg-amber-500 text-slate-950 shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200'
-              }`}
-            >
-              <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950' : 'text-amber-600'}`} />
-              <span>{cat.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Second Row: Quick Filters & Actions Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-[var(--border-color)]">
+    <div className="w-full">
+      {/* Quick Filters & Actions Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         {/* Left: Quick Toggles (Clean scrollable strip on mobile) */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 shrink-0">
           {/* Advanced Filters Button */}
