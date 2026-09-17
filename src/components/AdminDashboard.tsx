@@ -46,6 +46,7 @@ import {
   ChevronRight,
   Sparkles,
   MessageCircle,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -86,10 +87,12 @@ interface AdminDashboardProps {
     }
   ) => Promise<void> | void;
   onShowNotification?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  onSwitchToSupervisorHub?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
+  onSwitchToSupervisorHub,
   businesses,
   representatives,
   paymentConfig,
@@ -457,6 +460,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto px-2 sm:px-4 py-4">
+      {onSwitchToSupervisorHub && (
+        <div className="bg-[var(--bg-card)] border border-amber-500/30 p-3 sm:p-4 rounded-3xl flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span className="text-xs sm:text-sm font-black text-[var(--text-primary)]">
+              أنت الآن في لوحة العمليات الموسعة (إدارة المنظومة بالكامل)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onSwitchToSupervisorHub}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs cursor-pointer shadow-xs active:scale-95 transition-all shrink-0"
+          >
+            <span>العودة للمركز الإشرافي</span>
+            <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+          </button>
+        </div>
+      )}
+
       {/* ── TOP OPERATIONAL TABS NAVIGATION BAR ── */}
       <div className="relative group">
         {/* Right Arrow (scrolls towards beginning in RTL) */}

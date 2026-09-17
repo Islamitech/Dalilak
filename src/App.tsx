@@ -29,6 +29,7 @@ const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard')
 const BusinessForm = lazyWithRetry(() => import('./components/BusinessForm').then(m => ({ default: m.BusinessForm })));
 const RepProfile = lazyWithRetry(() => import('./components/RepProfile').then(m => ({ default: m.RepProfile })));
 const RepresentativePortal = lazyWithRetry(() => import('./components/RepresentativePortal').then(m => ({ default: m.RepresentativePortal })));
+const SupervisorDashboard = lazyWithRetry(() => import('./components/SupervisorDashboard').then(m => ({ default: m.SupervisorDashboard })));
 
 export default function App() {
   // 1. App Routing & Deep Linking
@@ -433,6 +434,35 @@ export default function App() {
                 onOpenAdminView={canUserAccessAdminPanel(user) ? () => setActiveTab('admin') : undefined}
               />
             </Suspense>
+          ) : user?.role === 'supervisor' ? (
+            <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-10 h-10 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
+              <SupervisorDashboard
+                currentUser={user}
+                businesses={businesses}
+                representatives={representatives}
+                paymentConfig={paymentConfig}
+                payoutRequests={payoutRequests}
+                leads={leads}
+                onAddNewClick={() => setActiveTab('add')}
+                onShowInvoice={(b) => setSelectedInvoiceBiz(b)}
+                onCollectPayment={(b) => setSelectedPayBiz(b)}
+                onEditBusiness={(b) => setEditingBusiness(b)}
+                onUpdateBusiness={handleUpdateBusiness}
+                onDeleteBusiness={handleDeleteBusiness}
+                onAddRepresentative={handleAddRepresentative}
+                onUpdateRepresentative={handleUpdateRepresentative}
+                onDeleteRepresentative={handleDeleteRepresentative}
+                onUpdatePayoutRequest={handleUpdatePayoutRequest}
+                onCreateLead={handleCreateLead}
+                onUpdateLead={handleUpdateLead}
+                onDeleteLead={handleDeleteLead}
+                onConvertToBusiness={handleConvertToBusiness}
+                onDirectConvertLead={handleDirectConvertLeadToBusiness}
+                onSwitchToAdvancedAdmin={() => setActiveTab('admin')}
+                onLogout={handleLogout}
+                onShowNotification={(msg, type) => addNotification(msg, type || 'info')}
+              />
+            </Suspense>
           ) : (
             <HomeFeedView
               user={user}
@@ -531,6 +561,7 @@ export default function App() {
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-10 h-10 rounded-xl border-2 border-amber-500/30 border-t-amber-500 animate-spin" /></div>}>
             <AdminDashboard
               currentUser={user}
+              onSwitchToSupervisorHub={user?.role === 'supervisor' ? () => setActiveTab('home') : undefined}
               businesses={businesses}
               representatives={representatives}
               paymentConfig={paymentConfig}
