@@ -22,3 +22,4 @@ data/whatsapp_campaigns_history.json
 __pycache__/
 *.pyc
 data/audit_progress.json
+data/server_sessions_store*.json

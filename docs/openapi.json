@@ -1,0 +1,868 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Dalelak Platform API (دليلك) — Sovereign Standard Specification",
+    "description": "المواصفة المعيارية الشاملة لجميع مسارات وعقود الواجهات البرمجية لمنصة دليلك (Dalelak Portal & Dedicated WhatsApp Gateway).\nتغطي هذه الوثيقة عقود المصادقة المشفرة، حماية البيانات الشخصية PII، إدارة دليل الأنشطة التجارية والمناديب، المعاملات المالية، وسيرفر الواتساب المستقل.",
+    "version": "2.2.0",
+    "contact": {
+      "name": "فريق التطوير والسيادة التقنية — منصة دليلك",
+      "email": "ahmedhufne@gmail.com",
+      "url": "https://dalilaak.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "خادم المنصة المحلي (Main Platform Express Server)"
+    },
+    {
+      "url": "https://dalilaak.com",
+      "description": "بيئة الإنتاج الرسمية (Production Environment)"
+    },
+    {
+      "url": "http://localhost:3005",
+      "description": "خادم بوابة الواتساب المستقل (Dedicated WhatsApp Gateway Server)"
+    }
+  ],
+  "tags": [
+    { "name": "System", "description": "فحص صحة النظام والتشخيص والتوثيق" },
+    { "name": "Auth", "description": "إدارة الجلسات والمصادقة المشفرة والتحقق الصفري من الهوية" },
+    { "name": "Businesses", "description": "إدارة دليل الأنشطة التجارية ومزامنة مصدر الحقيقة" },
+    { "name": "Representatives", "description": "إدارة المناديب وتطهير PII" },
+    { "name": "Payouts", "description": "إدارة المستحقات المالية وطلبات الصرف" },
+    { "name": "Leads", "description": "إدارة بيانات العملاء والأنشطة المهتمة" },
+    { "name": "Places", "description": "سحب وتحسين وتصنيف بيانات خرائط Google" },
+    { "name": "WhatsApp", "description": "مراقبة وإدارة بوابات وحملات البث بالواتساب" },
+    { "name": "Admin", "description": "عمليات المشرفين والمزامنة الشاملة" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "فحص الجاهزية وصحة الخادم",
+        "description": "يعيد حالة الخادم، الإصدار، ونوعية مصدر البيانات الفعال.",
+        "responses": {
+          "200": {
+            "description": "الخادم يعمل بحالة طبيعية",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "service": { "type": "string", "example": "Dalelak Server" },
+                    "version": { "type": "string", "example": "2.2.0" },
+                    "port": { "type": "integer", "example": 3001 },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "supabaseConfigured": { "type": "boolean", "example": true },
+                    "businessCount": { "type": "integer", "example": 1418 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/docs/openapi.json": {
+      "get": {
+        "tags": ["System"],
+        "summary": "استرجاع مواصفة OpenAPI بصيغة JSON",
+        "description": "توفير العقد المعياري للاستهلاك الآلي من Postman أو Swagger UI أو أدوات التحقق التكاملي.",
+        "responses": {
+          "200": {
+            "description": "ملف المواصفة المعيارية كاملاً",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "تسجيل الدخول وتوليد رمز الجلسة المشفر",
+        "description": "التحقق من بيانات المستخدم (مدير/مشرف/مندوب/محاسب) وتوليد توكن HMAC-SHA256 ببادئة `dalil_v2_` وتخزينه الدائم على القرص.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "نجاح تسجيل الدخول",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "بيانات تسجيل الدخول ناقصة",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "فشل التحقق من كلمة المرور أو الحساب غير موجود",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "تسجيل الخروج وإبطال الجلسة",
+        "description": "إلغاء التوكن من جدول الجلسات النشطة والتخزين الدائم للقرص.",
+        "security": [{ "BearerAuth": [] }, { "SessionIdHeader": [] }],
+        "responses": {
+          "200": {
+            "description": "تم تسجيل الخروج بنجاح",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/heartbeat": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "نبض الجلسة وتمديد فترة الصلاحية",
+        "description": "تحديث توقيت آخر نشاط وتمديد عمر التوكن المشفر لمنع انتهاء الجلسة أثناء الاستخدام الفعال.",
+        "security": [{ "BearerAuth": [] }, { "SessionIdHeader": [] }],
+        "responses": {
+          "200": {
+            "description": "الجلسة صالحة ومحدثة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "expiresAt": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "الجلسة منتهية أو التوكن غير صالح",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/check-national-id": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "التحقق الصفري من عدم تكرار بطاقة الهوية (Zero-Knowledge Check)",
+        "description": "التحقق مما إذا كان رقم الهوية الوطنية مسجلاً مسبقاً لمندوب دون كشف أو استرجاع بيانات أي مستخدم (حماية PII الصارمة).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NationalIdCheckRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "نتيجة الفحص الفوري",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NationalIdCheckResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "رقم الهوية غير صالح (يجب أن يكون 14 رقماً)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/businesses": {
+      "get": {
+        "tags": ["Businesses"],
+        "summary": "استرجاع قائمة الأنشطة التجارية في الدليل",
+        "description": "جلب الأنشطة التجارية مع إمكانية التصفية بحسب المحافظة أو التصنيف أو حالة النشر.",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "تصفية بحسب الفئة"
+          },
+          {
+            "name": "governorate",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "تصفية بحسب المحافظة"
+          },
+          {
+            "name": "publishedOnly",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "قصر النتائج على الأنشطة المنشورة فقط"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة الأنشطة التجارية",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Business" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Businesses"],
+        "summary": "إضافة نشاط تجاري جديد (مع Supabase SSOT والمزامنة)",
+        "description": "تسجيل منشأة جديدة في قاعدة البيانات Supabase كمصدر حقيقة وحيد مع تحديث الكاش المحلي فورياً.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Business" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم تسجيل النشاط بنجاح",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Business" }
+              }
+            }
+          },
+          "400": {
+            "description": "بيانات النشاط غير مكتملة",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/businesses/{id}": {
+      "get": {
+        "tags": ["Businesses"],
+        "summary": "جلب تفاصيل نشاط تجاري محدد",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل النشاط التجاري",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Business" }
+              }
+            }
+          },
+          "404": {
+            "description": "النشاط غير موجود",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Businesses"],
+        "summary": "تحديث بيانات نشاط تجاري قائم",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Business" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تحديث النشاط ومزامنة قاعدة البيانات",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Business" }
+              }
+            }
+          },
+          "404": {
+            "description": "النشاط المطلوب تعديله غير موجود"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Businesses"],
+        "summary": "حذف نشاط تجاري ناعماً / أرشفة",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "تم حذف النشاط بنجاح",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/representatives": {
+      "get": {
+        "tags": ["Representatives"],
+        "summary": "جلب قائمة المناديب المعتمدين (مصفاة من PII الحساسة)",
+        "description": "تطهير أرقام الهويات الوطنية وصور البطاقات الشخصية لضمان عدم التسريب.",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "قائمة المناديب المعتمدين",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Representative" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Representatives"],
+        "summary": "تسجيل مندوب جديد بواسطة الإدارة",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Representative" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم تسجيل المندوب بنجاح",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Representative" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/representatives/{id}": {
+      "put": {
+        "tags": ["Representatives"],
+        "summary": "تحديث بيانات مندوب أو تغيير حالته",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Representative" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تحديث بيانات المندوب"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Representatives"],
+        "summary": "حذف مندوب",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "تم حذف المندوب"
+          }
+        }
+      }
+    },
+    "/api/payouts": {
+      "get": {
+        "tags": ["Payouts"],
+        "summary": "استعراض طلبات الصرف والمستحقات المالية",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "قائمة طلبات الصرف",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PayoutRequest" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Payouts"],
+        "summary": "تقديم طلب صرف مستحقات جديد للمندوب",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PayoutRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم تسجيل طلب الصرف"
+          }
+        }
+      }
+    },
+    "/api/payouts/{id}": {
+      "put": {
+        "tags": ["Payouts"],
+        "summary": "تحديث حالة طلب الصرف (اعتماد أو رفض)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["pending", "approved", "rejected", "paid"] },
+                  "notes": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تحديث حالة الصرف"
+          }
+        }
+      }
+    },
+    "/api/leads": {
+      "get": {
+        "tags": ["Leads"],
+        "summary": "جلب قائمة العملاء المحتملين والمهتمين",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "قائمة العملاء المهتمين",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/InterestedLead" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Leads"],
+        "summary": "تسجيل عميل محتمل جديد",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/InterestedLead" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم تسجيل العميل بنجاح"
+          }
+        }
+      }
+    },
+    "/api/admin/sync-supabase": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "مزامنة كاملة فورية للأنشطة من Supabase SSOT",
+        "description": "سحب كافة الأنشطة المعتمدة في Supabase وتحديث كاش السيرفر المحلي فورياً.",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "نجاح المزامنة مع بيان العدد المسترجع",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string" },
+                    "count": { "type": "integer", "example": 1418 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/whatsapp/health": {
+      "get": {
+        "tags": ["WhatsApp"],
+        "summary": "فحص النبض والتشخيص اللحظي لخادم الواتساب",
+        "description": "إرجاع حالة الاتصال بالرقمين (Slot 1 و Slot 2)، مؤشرات الـ Uptime، وحالة الحملة النشطة.",
+        "responses": {
+          "200": {
+            "description": "بيانات النبض وصحة الخادم المباشرة",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WhatsAppHealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/whatsapp/broadcast": {
+      "post": {
+        "tags": ["WhatsApp"],
+        "summary": "بدء حملة بث واتساب جديدة مع التناوب الذكي",
+        "description": "بدء إرسال رسائل متناوبة بين الخطين بفواصل زمنية آمنة (1-5 دقائق) لمنع الحظر.",
+        "security": [{ "SuperAdminEmail": [] }, { "SuperAdminPhone": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WhatsAppBroadcastRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم إطلاق الحملة بنجاح",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/whatsapp/broadcast-skip-delay": {
+      "post": {
+        "tags": ["WhatsApp"],
+        "summary": "تخطي فترة الانتظار الفاصلة للحملة الحالية",
+        "security": [{ "SuperAdminEmail": [] }, { "SuperAdminPhone": [] }],
+        "responses": {
+          "200": {
+            "description": "تم تخطي التأخير وإرسال الرسالة التالية فوراً"
+          }
+        }
+      }
+    },
+    "/api/admin/whatsapp/broadcast-abort": {
+      "post": {
+        "tags": ["WhatsApp"],
+        "summary": "إلغاء وإيقاف حملة الواتساب الجارية فوراً",
+        "security": [{ "SuperAdminEmail": [] }, { "SuperAdminPhone": [] }],
+        "responses": {
+          "200": {
+            "description": "تم إلغاء الحملة"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "dalil_v2_HMAC",
+        "description": "توكن الجلسة المشفر الصادر من خادم دليلك بصيغة dalil_v2_{id}_{timestamp}_{signature}"
+      },
+      "SessionIdHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-session-id",
+        "description": "معرف الجلسة الاحتياطي"
+      },
+      "SuperAdminEmail": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-user-email",
+        "description": "البريد الإلكتروني المعتمد للمشرف العام"
+      },
+      "SuperAdminPhone": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-user-phone",
+        "description": "رقم الهاتف المعتمد للمشرف العام"
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": ["login", "password"],
+        "properties": {
+          "login": { "type": "string", "description": "البريد الإلكتروني أو رقم الهاتف أو كود المندوب", "example": "ahmedhufne@gmail.com" },
+          "password": { "type": "string", "format": "password", "example": "securePassword123" }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "token": { "type": "string", "example": "dalil_v2_admin_1773729900000_a3b8..." },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "role": { "type": "string", "enum": ["superadmin", "admin", "supervisor", "representative", "accountant"] },
+              "email": { "type": "string" },
+              "phone": { "type": "string" }
+            }
+          }
+        }
+      },
+      "NationalIdCheckRequest": {
+        "type": "object",
+        "required": ["nationalId"],
+        "properties": {
+          "nationalId": { "type": "string", "minLength": 14, "maxLength": 14, "example": "29801011234567" }
+        }
+      },
+      "NationalIdCheckResponse": {
+        "type": "object",
+        "properties": {
+          "exists": { "type": "boolean", "example": false },
+          "message": { "type": "string" }
+        }
+      },
+      "Business": {
+        "type": "object",
+        "required": ["id", "nameAr", "category", "governorate", "city", "street", "phone"],
+        "properties": {
+          "id": { "type": "string", "example": "biz_1001" },
+          "nameAr": { "type": "string", "example": "مستشفى الأمل التخصصي" },
+          "nameEn": { "type": "string", "example": "Al Amal Specialized Hospital" },
+          "category": { "type": "string", "example": "طبي" },
+          "subCategory": { "type": "string", "example": "مستشفيات" },
+          "governorate": { "type": "string", "example": "القاهرة" },
+          "city": { "type": "string", "example": "مدينة نصر" },
+          "street": { "type": "string", "example": "شارع الطيران" },
+          "landmark": { "type": "string", "example": "بجوار مسجد الإيمان" },
+          "phone": { "type": "string", "example": "01012345678" },
+          "secondaryPhone": { "type": "string" },
+          "workingHours": { "type": "string", "example": "24 ساعة" },
+          "description": { "type": "string" },
+          "lat": { "type": "number", "example": 30.0511 },
+          "lng": { "type": "number", "example": 31.3322 },
+          "ownerName": { "type": "string" },
+          "ownerPhone": { "type": "string" },
+          "photos": { "type": "array", "items": { "type": "string" } },
+          "coverPhoto": { "type": "string" },
+          "repId": { "type": "string" },
+          "repName": { "type": "string" },
+          "packageId": { "type": "string" },
+          "packageName": { "type": "string" },
+          "packagePrice": { "type": "number", "example": 500 },
+          "amountPaid": { "type": "number", "example": 500 },
+          "paymentStatus": { "type": "string", "enum": ["fully_paid", "partially_paid", "unpaid"] },
+          "verificationStatus": { "type": "string", "enum": ["pending", "in_progress", "verified", "rejected", "needs_action"] },
+          "publishedStatus": { "type": "string", "enum": ["published", "draft", "unlisted"] },
+          "googleMapsUrl": { "type": "string" },
+          "googleRating": { "type": "number", "example": 4.8 },
+          "googleReviewsCount": { "type": "integer", "example": 94 },
+          "viewsCount": { "type": "integer", "example": 150 },
+          "createdDate": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Representative": {
+        "type": "object",
+        "required": ["id", "name", "phone", "governorates"],
+        "properties": {
+          "id": { "type": "string", "example": "rep_101" },
+          "name": { "type": "string", "example": "محمد أحمد إبراهيم" },
+          "phone": { "type": "string", "example": "01123456789" },
+          "governorates": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["active", "suspended", "pending"] },
+          "commissionRate": { "type": "number", "example": 25 },
+          "totalEarned": { "type": "number", "example": 4500 },
+          "totalPaid": { "type": "number", "example": 3000 },
+          "currentBalance": { "type": "number", "example": 1500 }
+        }
+      },
+      "PayoutRequest": {
+        "type": "object",
+        "required": ["id", "repId", "repName", "amount", "method"],
+        "properties": {
+          "id": { "type": "string" },
+          "repId": { "type": "string" },
+          "repName": { "type": "string" },
+          "amount": { "type": "number", "example": 1000 },
+          "method": { "type": "string", "enum": ["vodafone_cash", "instapay", "bank_transfer"] },
+          "accountNumber": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected", "paid"] },
+          "requestedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "InterestedLead": {
+        "type": "object",
+        "required": ["id", "name", "phone", "businessName"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "phone": { "type": "string" },
+          "businessName": { "type": "string" },
+          "category": { "type": "string" },
+          "governorate": { "type": "string" },
+          "status": { "type": "string", "enum": ["new", "contacted", "converted", "rejected"] }
+        }
+      },
+      "WhatsAppHealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" },
+          "service": { "type": "string" },
+          "version": { "type": "string" },
+          "uptimeSeconds": { "type": "integer" },
+          "isAnyConnected": { "type": "boolean" },
+          "isBothConnected": { "type": "boolean" },
+          "slots": {
+            "type": "object",
+            "properties": {
+              "1": {
+                "type": "object",
+                "properties": {
+                  "state": { "type": "string", "example": "connected" },
+                  "uptimeSeconds": { "type": "integer" }
+                }
+              },
+              "2": {
+                "type": "object",
+                "properties": {
+                  "state": { "type": "string", "example": "disconnected" },
+                  "uptimeSeconds": { "type": "integer" }
+                }
+              }
+            }
+          },
+          "activeCampaign": { "type": "object", "nullable": true }
+        }
+      },
+      "WhatsAppBroadcastRequest": {
+        "type": "object",
+        "required": ["businessIds", "templateMessage"],
+        "properties": {
+          "businessIds": { "type": "array", "items": { "type": "string" } },
+          "templateMessage": { "type": "string", "example": "مرحباً بكم في منصة دليلك..." },
+          "mediaUrl": { "type": "string" },
+          "minDelaySeconds": { "type": "integer", "default": 60 },
+          "maxDelaySeconds": { "type": "integer", "default": 300 }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "message": { "type": "string" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": { "type": "string", "example": "Invalid credentials or unauthorized" }
+        }
+      }
+    }
+  }
+}

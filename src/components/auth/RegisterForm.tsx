@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Representative } from '../../types';
 import { EGYPT_GOVERNORATES } from '../../data/mockData';
 import { supabase } from '../../lib/supabase';
-import { fetchRepsFromDb, saveRepToDb } from '../../services/db';
+import { fetchRepsFromDb, saveRepToDb, checkNationalIdExists } from '../../services/db';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { getRepReferralCode } from '../../utils/referral';
 import { hashPassword } from '../../utils/crypto';
@@ -170,15 +170,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       return;
     }
 
-    const duplicateNationalId = representatives.some(
-      (r) => (r.nationalId || '').trim() === regNationalId.trim()
-    );
-    if (duplicateNationalId) {
-      onError(`⚠️ الرقم القومي (${regNationalId}) مسجل مسبقاً لحساب آخر في المنظومة.`);
-      return;
-    }
-
     setIsLoading(true);
+
+    // 2. Zero-Knowledge National ID duplicate check (via Secure Server API / RPC)
+    try {
+      const isIdTaken = await checkNationalIdExists(regNationalId);
+      if (isIdTaken) {
+        onError(`⚠️ الرقم القومي (${regNationalId}) مسجل مسبقاً لحساب آخر في المنظومة.`);
+        setIsLoading(false);
+        return;
+      }
+    } catch (nidErr) {
+      console.warn('National ID duplication check notice:', nidErr);
+    }
 
     // 2. Supabase DB Async Query check (Duplicate email or phone)
     try {

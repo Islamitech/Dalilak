@@ -5,7 +5,46 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem, getSafeRepsForStorage
 import { mapDbToRep, mapRepToDb } from './dbMappers';
 
 
-export const SAFE_REP_SELECT = 'id,name,email,phone,password,national_id,activation_face_photo,national_id_card_photo,national_id_card_back_photo,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
+// 🛡️ Defense-in-depth Sanitized Select: Excludes sensitive PII (password, national_id, KYC photos, session tokens)
+export const SAFE_REP_SELECT = 'id,name,email,phone,role,role_title,governorate,target_month,avatar,avatar_status,commission_rate,status,referral_code,referral_unlocked,created_at';
+
+/**
+ * 🛡️ Zero-Knowledge National ID Existence Checker
+ * Checks if a national ID already exists in the system without revealing any PII or client data.
+ */
+export async function checkNationalIdExists(nationalId: string): Promise<boolean> {
+  const cleanId = (nationalId || '').trim();
+  if (!cleanId || cleanId.length < 8) return false;
+
+  // 1. Check via server secure API endpoint first (with HMAC session if present)
+  try {
+    const res = await fetch('/api/auth/check-national-id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getApiAuthHeaders() },
+      body: JSON.stringify({ nationalId: cleanId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return Boolean(data.exists);
+    }
+  } catch (err) {
+    console.warn('Server national ID check fallback:', err);
+  }
+
+  // 2. Direct Supabase RPC check (defense-in-depth SECURITY DEFINER)
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.rpc('check_rep_national_id_exists', { p_national_id: cleanId });
+      if (!error && typeof data === 'boolean') {
+        return data;
+      }
+    } catch (rpcErr) {
+      console.warn('Supabase RPC check_rep_national_id_exists error:', rpcErr);
+    }
+  }
+
+  return false;
+}
 
 export function enrichRepsWithFallback(reps: Representative[]): Representative[] {
   // Never inject fake mock representatives into real database records.

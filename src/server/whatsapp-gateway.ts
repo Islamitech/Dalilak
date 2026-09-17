@@ -72,6 +72,12 @@ export interface WhatsAppSlotStatus {
   connectedUser: { id: string; name?: string; phone: string } | null;
   lastActive: string | null;
   isInitializing?: boolean;
+  connectedAt?: string | null;
+  lastHeartbeat?: string | null;
+  uptimeSeconds?: number;
+  disconnectReason?: string | null;
+  autoReconnectAttempts?: number;
+  healthStatus?: 'healthy' | 'degraded' | 'offline';
 }
 
 export interface WhatsAppRotationState {
@@ -124,6 +130,12 @@ export interface InternalSlotSession {
   lastActive: string | null;
   isInitializing: boolean;
   isExplicitDisconnect: boolean;
+  connectedAt: string | null;
+  lastHeartbeat: string | null;
+  uptimeSeconds: number;
+  disconnectReason: string | null;
+  autoReconnectAttempts: number;
+  healthStatus: 'healthy' | 'degraded' | 'offline';
 }
 
 export const slotSessions: Record<SlotId, InternalSlotSession> = {
@@ -137,6 +149,12 @@ export const slotSessions: Record<SlotId, InternalSlotSession> = {
     lastActive: null,
     isInitializing: false,
     isExplicitDisconnect: false,
+    connectedAt: null,
+    lastHeartbeat: null,
+    uptimeSeconds: 0,
+    disconnectReason: null,
+    autoReconnectAttempts: 0,
+    healthStatus: 'offline',
   },
   '2': {
     slotId: '2',
@@ -148,6 +166,12 @@ export const slotSessions: Record<SlotId, InternalSlotSession> = {
     lastActive: null,
     isInitializing: false,
     isExplicitDisconnect: false,
+    connectedAt: null,
+    lastHeartbeat: null,
+    uptimeSeconds: 0,
+    disconnectReason: null,
+    autoReconnectAttempts: 0,
+    healthStatus: 'offline',
   },
 };
 
@@ -487,6 +511,19 @@ export function getWhatsAppSessionStatus(): WhatsAppSessionStatus {
         qrCodeUrl: slotSessions['1'].qrCodeUrl,
         connectedUser: slotSessions['1'].connectedUser,
         lastActive: slotSessions['1'].lastActive,
+        connectedAt: slotSessions['1'].connectedAt,
+        lastHeartbeat: slotSessions['1'].lastHeartbeat,
+        uptimeSeconds: slotSessions['1'].connectedAt
+          ? Math.floor((Date.now() - new Date(slotSessions['1'].connectedAt).getTime()) / 1000)
+          : 0,
+        disconnectReason: slotSessions['1'].disconnectReason,
+        autoReconnectAttempts: slotSessions['1'].autoReconnectAttempts,
+        healthStatus:
+          slotSessions['1'].connectionState === 'connected'
+            ? 'healthy'
+            : slotSessions['1'].connectionState === 'connecting' || slotSessions['1'].connectionState === 'qr_ready'
+            ? 'degraded'
+            : 'offline',
       },
       '2': {
         slotId: '2',
@@ -495,6 +532,19 @@ export function getWhatsAppSessionStatus(): WhatsAppSessionStatus {
         qrCodeUrl: slotSessions['2'].qrCodeUrl,
         connectedUser: slotSessions['2'].connectedUser,
         lastActive: slotSessions['2'].lastActive,
+        connectedAt: slotSessions['2'].connectedAt,
+        lastHeartbeat: slotSessions['2'].lastHeartbeat,
+        uptimeSeconds: slotSessions['2'].connectedAt
+          ? Math.floor((Date.now() - new Date(slotSessions['2'].connectedAt).getTime()) / 1000)
+          : 0,
+        disconnectReason: slotSessions['2'].disconnectReason,
+        autoReconnectAttempts: slotSessions['2'].autoReconnectAttempts,
+        healthStatus:
+          slotSessions['2'].connectionState === 'connected'
+            ? 'healthy'
+            : slotSessions['2'].connectionState === 'connecting' || slotSessions['2'].connectionState === 'qr_ready'
+            ? 'degraded'
+            : 'offline',
       },
     },
     rotationConfig,
@@ -559,6 +609,11 @@ export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAp
         session.connectionState = 'connected';
         session.qrCodeUrl = null;
         session.lastActive = new Date().toISOString();
+        session.connectedAt = session.connectedAt || new Date().toISOString();
+        session.lastHeartbeat = new Date().toISOString();
+        session.autoReconnectAttempts = 0;
+        session.disconnectReason = null;
+        session.healthStatus = 'healthy';
 
         const rawId = socketInstance.user?.id || '';
         const rawDigits = rawId.split(':')[0].replace(/\D/g, '');
@@ -574,14 +629,22 @@ export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAp
         const error = lastDisconnect?.error as any;
         const statusCode = error?.output?.statusCode;
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        session.disconnectReason = isLoggedOut
+          ? 'logged_out'
+          : error?.output?.payload?.message || error?.message || (statusCode ? `code_${statusCode}` : 'connection_lost');
+        session.healthStatus = 'offline';
+        if (!session.isExplicitDisconnect) {
+          session.autoReconnectAttempts++;
+        }
 
-        console.log(`ℹ️ WhatsApp [Slot ${slotId}] connection closed. Status code: ${statusCode}, Logged out: ${isLoggedOut}`);
+        console.log(`ℹ️ WhatsApp [Slot ${slotId}] connection closed. Status code: ${statusCode}, Logged out: ${isLoggedOut}, Reason: ${session.disconnectReason}`);
 
         if (isLoggedOut || session.isExplicitDisconnect) {
           session.connectionState = 'disconnected';
           session.connectedUser = null;
           session.qrCodeUrl = null;
           session.sock = null;
+          session.connectedAt = null;
           try {
             if (fs.existsSync(authDir)) {
               fs.rmSync(authDir, { recursive: true, force: true });
@@ -621,6 +684,7 @@ export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAp
   } catch (err: any) {
     console.error(`Error initializing WhatsApp Gateway [Slot ${slotId}]:`, err);
     session.connectionState = 'disconnected';
+    session.healthStatus = 'offline';
     return getWhatsAppSessionStatus();
   } finally {
     session.isInitializing = false;
@@ -639,6 +703,9 @@ export async function disconnectWhatsAppGateway(slotId?: SlotId): Promise<boolea
     session.connectionState = 'disconnected';
     session.qrCodeUrl = null;
     session.connectedUser = null;
+    session.connectedAt = null;
+    session.healthStatus = 'offline';
+    session.disconnectReason = 'explicit_disconnect';
 
     try {
       if (session.sock) {
@@ -656,6 +723,25 @@ export async function disconnectWhatsAppGateway(slotId?: SlotId): Promise<boolea
   }
   return true;
 }
+
+// 💓 Periodic Heartbeat & Socket Liveness Engine
+setInterval(() => {
+  const now = new Date().toISOString();
+  (['1', '2'] as SlotId[]).forEach((sId) => {
+    const session = slotSessions[sId];
+    if (session.connectionState === 'connected' && session.sock) {
+      session.lastHeartbeat = now;
+      session.healthStatus = 'healthy';
+      if (session.connectedAt) {
+        session.uptimeSeconds = Math.floor((Date.now() - new Date(session.connectedAt).getTime()) / 1000);
+      }
+    } else if (session.connectionState === 'connecting' || session.connectionState === 'qr_ready') {
+      session.healthStatus = 'degraded';
+    } else {
+      session.healthStatus = 'offline';
+    }
+  });
+}, 25000);
 
 /**
  * 📝 Compiles Dynamic Personalized Message

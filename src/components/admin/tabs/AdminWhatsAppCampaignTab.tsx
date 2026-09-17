@@ -102,6 +102,12 @@ export interface WhatsAppSlotStatus {
   qrCodeUrl: string | null;
   connectedUser: { id: string; name?: string; phone: string } | null;
   lastActive: string | null;
+  connectedAt?: string | null;
+  lastHeartbeat?: string | null;
+  uptimeSeconds?: number;
+  disconnectReason?: string | null;
+  autoReconnectAttempts?: number;
+  healthStatus?: 'healthy' | 'degraded' | 'offline';
 }
 
 export interface WhatsAppRotationState {
@@ -1691,6 +1697,22 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                           </span>
                         </div>
                       )}
+                      <div className="flex items-center justify-between text-[10px] text-slate-300 border-t border-white/5 pt-1.5 flex-wrap gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="text-emerald-300 font-bold">النبض: متصل ومستقر</span>
+                          {slot1.lastHeartbeat && (
+                            <span className="font-mono text-[9px] text-slate-400" dir="ltr">
+                              ({new Date(slot1.lastHeartbeat).toLocaleTimeString('ar-EG')})
+                            </span>
+                          )}
+                        </div>
+                        {typeof slot1.uptimeSeconds === 'number' && slot1.uptimeSeconds > 0 && (
+                          <div className="text-slate-400 font-mono">
+                            استمرار: {Math.floor(slot1.uptimeSeconds / 60)}د
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : slot1.state === 'qr_ready' && slot1.qrCodeUrl ? (
                     <div className="flex flex-col items-center justify-center p-3 bg-white/5 border border-blue-500/30 rounded-2xl space-y-2 text-center">
@@ -1716,6 +1738,12 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       <p className="text-[11px] leading-relaxed">
                         اضغط على زر الربط بالأسفل لمسح رمز الـ QR وحفظ الجلسة محلياً على السيرفر.
                       </p>
+                      {slot1.disconnectReason && (
+                        <div className="text-[10px] text-rose-300 font-mono bg-rose-500/15 px-2 py-1 rounded-lg border border-rose-500/30">
+                          سبب الانقطاع: {slot1.disconnectReason}
+                          {slot1.autoReconnectAttempts ? ` (محاولات إعادة الربط: ${slot1.autoReconnectAttempts})` : ''}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1821,6 +1849,22 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                           </span>
                         </div>
                       )}
+                      <div className="flex items-center justify-between text-[10px] text-slate-300 border-t border-white/5 pt-1.5 flex-wrap gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                          <span className="text-blue-300 font-bold">النبض: متصل ومستقر</span>
+                          {slot2.lastHeartbeat && (
+                            <span className="font-mono text-[9px] text-slate-400" dir="ltr">
+                              ({new Date(slot2.lastHeartbeat).toLocaleTimeString('ar-EG')})
+                            </span>
+                          )}
+                        </div>
+                        {typeof slot2.uptimeSeconds === 'number' && slot2.uptimeSeconds > 0 && (
+                          <div className="text-slate-400 font-mono">
+                            استمرار: {Math.floor(slot2.uptimeSeconds / 60)}د
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : slot2.state === 'qr_ready' && slot2.qrCodeUrl ? (
                     <div className="flex flex-col items-center justify-center p-3 bg-white/5 border border-cyan-500/30 rounded-2xl space-y-2 text-center">
@@ -1844,6 +1888,12 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                       <p className="text-[11px] leading-relaxed">
                         اربط هاتفك الإضافي ليتبادل الإرسال كل {rotationBatchSize} رسالة، مما يريح هاتف الإدارة الأساسي ويمنع الحظر نهائياً.
                       </p>
+                      {slot2.disconnectReason && (
+                        <div className="text-[10px] text-rose-300 font-mono bg-rose-500/15 px-2 py-1 rounded-lg border border-rose-500/30">
+                          سبب الانقطاع: {slot2.disconnectReason}
+                          {slot2.autoReconnectAttempts ? ` (محاولات إعادة الربط: ${slot2.autoReconnectAttempts})` : ''}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -12,6 +12,7 @@ import { Pencil, Trash2, Check, X, Building2, MapPin, Phone, Clock, FileText, Do
 import { EGYPT_GOVERNORATES, BUSINESS_CATEGORIES } from '../data/mockData';
 import { ConfirmDialog } from './ui';
 import { isTrendingFreeActivity, isUnpaidActivity } from '../utils/categoryMatcher';
+import { setDynamicSEO, resetSEO } from '../utils/seoHelper';
 
 // Subcomponents matching prototype UX/UI
 import { DrawerHeroHeader } from './business-drawer/DrawerHeroHeader';
@@ -71,7 +72,8 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   useEffect(() => {
-    if (business) {
+    if (business && isOpen) {
+      setDynamicSEO({ business });
       setIsEditModalOpen(false);
       if (initialTab) {
         if (initialTab === 'payment' || initialTab === 'admin') {
@@ -87,6 +89,9 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
         }
       }
     }
+    return () => {
+      resetSEO();
+    };
   }, [business, isOpen, initialTab]);
 
   if (!business) return null;

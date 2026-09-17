@@ -32,6 +32,7 @@ import { AdminAuditTrashTab } from './admin/tabs/AdminAuditTrashTab';
 import { AdminPlacesIngestionTab } from './admin/tabs/AdminPlacesIngestionTab';
 import { AdminWhatsAppCampaignTab } from './admin/tabs/AdminWhatsAppCampaignTab';
 import { isSuperAdmin } from '../utils/permissions';
+import { getApiAuthHeaders } from '../utils/storage';
 
 import {
   ShieldCheck,
@@ -163,6 +164,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [accountPage, setAccountPage] = useState<number>(1);
   const [accountPageSize, setAccountPageSize] = useState<number>(25);
+
+  // 📡 Ambient WhatsApp Health Telemetry State (Super Admin Only)
+  const [waAmbientHealth, setWaAmbientHealth] = useState<{
+    isOnline: boolean;
+    state: string;
+    connectedCount: number;
+    isCampaignActive: boolean;
+    latencyMs?: number;
+  } | null>(null);
+
+  // Ambient WhatsApp Health Poller
+  useEffect(() => {
+    if (!isSuperAdmin(currentUser)) return;
+
+    let isMounted = true;
+    const checkWhatsAppHealth = async () => {
+      try {
+        const res = await fetch('/api/admin/whatsapp/health', {
+          headers: getApiAuthHeaders(),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted) return;
+
+        const slot1Connected = data?.slots?.['1']?.state === 'connected';
+        const slot2Connected = data?.slots?.['2']?.state === 'connected';
+        const connectedCount = (slot1Connected ? 1 : 0) + (slot2Connected ? 1 : 0);
+        const campaignStatus = data?.activeCampaign?.status;
+        const isCampaignActive =
+          campaignStatus === 'running' || campaignStatus === 'cooldown';
+
+        setWaAmbientHealth({
+          isOnline: Boolean(data.isStandaloneOnline),
+          state: data.connectionState || 'disconnected',
+          connectedCount,
+          isCampaignActive,
+          latencyMs: data.latencyMs,
+        });
+      } catch {
+        if (isMounted) {
+          setWaAmbientHealth((prev) =>
+            prev ? { ...prev, isOnline: false, connectedCount: 0 } : null
+          );
+        }
+      }
+    };
+
+    checkWhatsAppHealth();
+    const interval = setInterval(checkWhatsAppHealth, 20000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [currentUser]);
 
   // Reset pagination on filter changes
   useEffect(() => {
@@ -563,7 +618,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               type="button"
               data-active={activeAdminTab === 'whatsapp_campaign'}
               onClick={() => setActiveAdminTab('whatsapp_campaign')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer relative ${
                 activeAdminTab === 'whatsapp_campaign'
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
                   : 'text-emerald-500 hover:text-emerald-400 hover:bg-[var(--input-bg)] border border-emerald-500/30'
@@ -571,7 +626,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               title="إرسال رسائل WhatsApp جماعية مباشرة لكافة الأنشطة بدون شات يدوي (حصري للسوبر أدمن)"
             >
               <MessageCircle className="w-4 h-4 fill-current" />
-              <span>حملات WhatsApp الجماعية 📢</span>
+              <span>حملات WhatsApp الجماعية</span>
+              {waAmbientHealth && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black flex items-center gap-1 ${
+                    waAmbientHealth.isCampaignActive
+                      ? 'bg-rose-500 text-white animate-pulse'
+                      : waAmbientHealth.connectedCount === 2
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : waAmbientHealth.connectedCount === 1
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'bg-slate-700/50 text-slate-400 border border-white/10'
+                  }`}
+                  title={
+                    waAmbientHealth.isCampaignActive
+                      ? 'حملة بث جماعي نشطة حالياً'
+                      : waAmbientHealth.isOnline
+                      ? `سيرفر الواتساب نشط (${waAmbientHealth.connectedCount}/2 خطوط متصلة)`
+                      : 'سيرفر الواتساب غير متصل'
+                  }
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      waAmbientHealth.isCampaignActive
+                        ? 'bg-white animate-ping'
+                        : waAmbientHealth.connectedCount === 2
+                        ? 'bg-emerald-400'
+                        : waAmbientHealth.connectedCount === 1
+                        ? 'bg-amber-400'
+                        : 'bg-slate-500'
+                    }`}
+                  />
+                  <span>
+                    {waAmbientHealth.isCampaignActive
+                      ? 'بث جاري'
+                      : waAmbientHealth.connectedCount > 0
+                      ? `${waAmbientHealth.connectedCount}/2`
+                      : 'مغلق'}
+                  </span>
+                </span>
+              )}
             </button>
           )}
 
