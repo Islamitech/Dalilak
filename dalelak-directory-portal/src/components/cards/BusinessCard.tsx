@@ -234,7 +234,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 bg-blue-50/80 hover:bg-blue-100 text-blue-800 border border-blue-200/90"
+              className="min-h-[44px] py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 bg-blue-50/80 hover:bg-blue-100 text-blue-800 border border-blue-200/90"
               title={isOfficial ? 'فتح خرائط Google' : 'الموقع على الخريطة'}
             >
               <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -247,7 +247,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
                 e.stopPropagation();
                 onOpenBusiness(business);
               }}
-              className="py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-slate-50 text-[var(--text-muted)] border border-slate-200"
+              className="min-h-[44px] py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-slate-50 text-[var(--text-muted)] border border-slate-200 cursor-pointer active:scale-95"
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
               <span>الموقع</span>
@@ -261,7 +261,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="py-2.5 px-2 rounded-xl text-xs font-black bg-emerald-50/80 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/90 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+              className="min-h-[44px] py-2.5 px-2 rounded-xl text-xs font-black bg-emerald-50/80 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/90 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
               title="محادثة واتساب مباشرة"
             >
               <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -271,7 +271,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
             <button
               type="button"
               disabled
-              className="py-2.5 px-2 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
+              className="min-h-[44px] py-2.5 px-2 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
             >
               <MessageCircle className="w-3.5 h-3.5 shrink-0" />
               <span>واتساب</span>
@@ -281,9 +281,9 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           {/* Call */}
           {business.phone ? (
             <a
-              href={`tel:${business.phone}`}
+              href={`tel:${business.phone.replace(/[^\d+]/g, '')}`}
               onClick={(e) => e.stopPropagation()}
-              className="py-2.5 px-2 rounded-xl text-xs font-black bg-slate-50 hover:bg-amber-50 text-slate-800 hover:text-amber-900 border border-slate-200 hover:border-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+              className="min-h-[44px] py-2.5 px-2 rounded-xl text-xs font-black bg-slate-50 hover:bg-amber-50 text-slate-800 hover:text-amber-900 border border-slate-200 hover:border-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
               title="اتصال هاتفي فوري"
             >
               <Phone className="w-3.5 h-3.5 text-slate-700 shrink-0" />
@@ -293,7 +293,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
             <button
               type="button"
               disabled
-              className="py-2.5 px-2 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
+              className="min-h-[44px] py-2.5 px-2 rounded-xl text-xs bg-slate-50 text-[var(--text-muted)] border border-slate-200 font-bold flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
             >
               <Phone className="w-3.5 h-3.5 shrink-0" />
               <span>اتصال</span>
