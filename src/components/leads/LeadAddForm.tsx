@@ -302,11 +302,13 @@ export const LeadAddForm: React.FC<LeadAddFormProps> = ({
             <label className="block font-bold mb-1 text-[var(--text-primary)]">رقم الهاتف / واتساب *</label>
             <input
               type="tel"
+              inputMode="tel"
+              dir="ltr"
               required
               placeholder="010XXXXXXXX"
               value={newPhone}
               onChange={(e) => setNewPhone(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs dir-ltr text-right"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold font-mono tabular-nums rounded-xl p-2.5 focus:outline-none focus:border-amber-500 shadow-xs text-right"
             />
             {duplicateNewPhone && (
               <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">

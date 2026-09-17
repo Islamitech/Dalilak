@@ -3,9 +3,9 @@
 - **المشروع:** دليلك — منظومة التوثيق والدليل التجاري الميداني (Dalilak)
 - **الجذر:** `c:\Users\Ahmed\Desktop\New folder\Dalelak`
 - **مسار مخرجات التحسين:** `docs/ux-review/`
-- **بصمة Git:** `7a25343f849c09dfe4584d82d32aada5437a3db8`
-- **تاريخ التحديث:** 2026-09-17 14:40:00+03:00
-- **حالة المنظومة:** تم تنفيذ الدفعتين الأولى `UXB-01` والثانية `UXB-02` والتحقق منهما بنسبة 100% — معروضة للاعتماد عند بوابة `UX-GATE-04`
+- **بصمة Git:** `c7e2c5f`
+- **تاريخ التحديث:** 2026-09-17 14:52:00+03:00
+- **حالة المنظومة:** تم تنفيذ الدفعات الأولى `UXB-01` والثانية `UXB-02` والثالثة `UXB-03` والتحقق منها بنسبة 100% — معروضة للاعتماد عند بوابة `UX-GATE-04`
 
 ---
 
@@ -21,7 +21,7 @@
 | **05: الاتجاه البصري ونظام التصميم** | [05_VISUAL_DIRECTION_AND_DESIGN_SYSTEM.md](05_VISUAL_DIRECTION_AND_DESIGN_SYSTEM.md) | الطور 2 | مكتمل ومعتمد |
 | **06: مواصفة التحسين الدقيقة** | [06_TARGET_UX_SPECIFICATION.md](06_TARGET_UX_SPECIFICATION.md) | الطور 2 | مكتمل ومعتمد |
 | **07: مصفوفة التجاوب والوصول** | [07_RESPONSIVE_RTL_ACCESSIBILITY_MATRIX.md](07_RESPONSIVE_RTL_ACCESSIBILITY_MATRIX.md) | الطور 2 | مكتمل ومحقق |
-| **08: دفعات التنفيذ** | [08_IMPLEMENTATION_BATCHES.md](08_IMPLEMENTATION_BATCHES.md) | الطور 3 | منفذ (UXB-01 + UXB-02) |
+| **08: دفعات التنفيذ** | [08_IMPLEMENTATION_BATCHES.md](08_IMPLEMENTATION_BATCHES.md) | الطور 3 | منفذ (UXB-01 + UXB-02 + UXB-03) |
 | **09: التحقق والمقارنة قبل/بعد** | [09_VERIFICATION_AND_BEFORE_AFTER.md](09_VERIFICATION_AND_BEFORE_AFTER.md) | الطور 4 | مكتمل ومحقق (60/60 اختباراً) |
 | **10: التسليم والمحطة التالية** | [10_DELIVERY_AND_NEXT_BATCH.md](10_DELIVERY_AND_NEXT_BATCH.md) | الطور 4 | مهيأ للبوابة UX-GATE-04 |
 | **11: القرارات والمخاطر والفجوات** | [11_DECISIONS_RISKS_AND_GAPS.md](11_DECISIONS_RISKS_AND_GAPS.md) | مستمر | نشط ومحدث |

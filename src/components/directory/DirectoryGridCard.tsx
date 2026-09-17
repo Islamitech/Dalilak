@@ -232,7 +232,7 @@ export const DirectoryGridCard: React.FC<DirectoryGridCardProps> = ({
             {/* Call */}
             <a
               href={sanitizeExternalUrl(`tel:${(biz.phone || biz.ownerPhone || '').replace(/[^\d+]/g, '')}`, '#')}
-              className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+              className="p-2 min-h-[44px] rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-all text-[9.5px] font-bold border border-[var(--border-color)] active:scale-95"
               title="اتصال هاتفي"
             >
               <Phone className="w-3.5 h-3.5 text-emerald-500" />
@@ -244,7 +244,7 @@ export const DirectoryGridCard: React.FC<DirectoryGridCardProps> = ({
               href={sanitizeExternalUrl(getRepFieldIntroWhatsAppUrl(biz, currentUser?.name), '#')}
               target="_blank"
               rel="noreferrer"
-              className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+              className="p-2 min-h-[44px] rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-[var(--text-secondary)] hover:text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-all text-[9.5px] font-bold border border-[var(--border-color)] active:scale-95"
               title="محادثة واتساب ميدانية"
             >
               <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
@@ -260,7 +260,7 @@ export const DirectoryGridCard: React.FC<DirectoryGridCardProps> = ({
                     href={sanitizeExternalUrl(effectiveUrl, '#')}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)]"
+                    className="p-2 min-h-[44px] rounded-xl bg-[var(--input-bg)] hover:bg-emerald-500/15 text-emerald-600 flex flex-col items-center justify-center gap-0.5 transition-all text-[9.5px] font-bold border border-[var(--border-color)] active:scale-95"
                     title={
                       isOfficial
                         ? 'الموقع موثق رسمياً: فتح على خرائط Google'
@@ -276,7 +276,7 @@ export const DirectoryGridCard: React.FC<DirectoryGridCardProps> = ({
                 <button
                   type="button"
                   disabled
-                  className="p-2 rounded-xl bg-slate-200 text-slate-400 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 cursor-not-allowed opacity-60"
+                  className="p-2 min-h-[44px] rounded-xl bg-slate-200 text-slate-400 flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-bold border border-slate-300 cursor-not-allowed opacity-60"
                   title="لم يتم تحديد الموقع الجغرافي بعد"
                 >
                   <Navigation className="w-3.5 h-3.5 opacity-40" />
@@ -289,7 +289,7 @@ export const DirectoryGridCard: React.FC<DirectoryGridCardProps> = ({
             <button
               type="button"
               onClick={() => onShowInvoice(biz)}
-              className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-purple-500/15 text-[var(--text-secondary)] hover:text-purple-600 flex flex-col items-center justify-center gap-0.5 transition-colors text-[9.5px] font-bold border border-[var(--border-color)] cursor-pointer"
+              className="p-2 min-h-[44px] rounded-xl bg-[var(--input-bg)] hover:bg-purple-500/15 text-[var(--text-secondary)] hover:text-purple-600 flex flex-col items-center justify-center gap-0.5 transition-all text-[9.5px] font-bold border border-[var(--border-color)] cursor-pointer active:scale-95"
               title="عرض الفاتورة الإلكترونية"
             >
               <FileText className="w-3.5 h-3.5 text-purple-500" />

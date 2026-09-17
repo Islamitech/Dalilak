@@ -7,9 +7,7 @@ import { BottomNav } from './components/BottomNav';
 import { InteractiveMap } from './components/InteractiveMap';
 import { InvoiceModal } from './components/InvoiceModal';
 import { InvoicesLeadsHub } from './components/InvoicesLeadsHub';
-import { LoginModal } from './components/LoginModal';
-import { AboutUsModal } from './components/AboutUsModal';
-import { TermsModal } from './components/TermsModal';
+
 import { AppModals } from './components/modals/AppModals';
 import { AppToastContainer } from './components/layout/AppToastContainer';
 import { AppOfflineBanner } from './components/layout/AppOfflineBanner';
@@ -365,46 +363,7 @@ export default function App() {
     );
   }
 
-  // Strict Unauthenticated Protection: If user is not logged in, render ONLY the Login screen
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col font-['Cairo',sans-serif] transition-colors duration-300">
-        <div className="flex-1 flex items-center justify-center p-4">
-          <LoginModal
-            isInline={true}
-            onClose={() => {}}
-            onOpenAbout={() => setShowAboutModal(true)}
-            onOpenTerms={() => setShowTermsModal(true)}
-            onLoginSuccess={handleLoginUser}
-            representatives={representatives}
-            onAddRepresentative={handleAddRepresentative}
-            initialReferralCode={pendingReferralCode}
-          />
-        </div>
 
-        {/* Informational Modals for Unauthenticated Visitors */}
-        {showAboutModal && (
-          <AboutUsModal
-            onClose={() => setShowAboutModal(false)}
-            onOpenTerms={() => {
-              setShowAboutModal(false);
-              setShowTermsModal(true);
-            }}
-          />
-        )}
-
-        {showTermsModal && (
-          <TermsModal
-            onClose={() => setShowTermsModal(false)}
-            onOpenAbout={() => {
-              setShowTermsModal(false);
-              setShowAboutModal(true);
-            }}
-          />
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>

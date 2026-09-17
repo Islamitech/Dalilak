@@ -138,7 +138,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
       <div className="flex items-center justify-between gap-1.5 pt-0.5">
         <button
           onClick={() => onEditBusiness(biz)}
-          className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black py-1.5 px-2 rounded-xl shadow-2xs transition-transform active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+          className="flex-1 min-h-[44px] bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black py-1.5 px-2 rounded-xl shadow-2xs transition-transform active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
         >
           <Eye className="w-3.5 h-3.5" />
           <span>التفاصيل</span>
@@ -152,7 +152,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
                 href={sanitizeExternalUrl(effectiveUrl, '#')}
                 target="_blank"
                 rel="noreferrer"
-                className="bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                className="min-h-[44px] min-w-[44px] bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer active:scale-95"
                 title={
                   isOfficial
                     ? 'فتح موقع النشاط المعتمد على خرائط Google'
@@ -167,7 +167,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
             <button
               type="button"
               disabled
-              className="bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
+              className="min-h-[44px] min-w-[44px] bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
               title="لم يتم تحديد الموقع الجغرافي بعد"
             >
               <MapPin className="w-3.5 h-3.5 text-slate-400" />
@@ -177,7 +177,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
 
         <button
           onClick={() => onShowInvoice(biz)}
-          className="bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+          className="min-h-[44px] bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-all flex items-center gap-1 cursor-pointer active:scale-95"
           title="عرض الفاتورة"
         >
           <FileText className="w-3.5 h-3.5 text-amber-500" />
@@ -188,7 +188,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
           href={getPublicDirectoryUrl(biz)}
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
+          className="min-h-[44px] min-w-[44px] bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
           title="فتح صفحة المنشأة على الدليل العام (رابط دائم)"
         >
           <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
@@ -199,7 +199,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
             href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
             target="_blank"
             rel="noreferrer"
-            className="bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 border border-emerald-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+            className="min-h-[44px] min-w-[44px] bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 border border-emerald-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer active:scale-95"
             title="مراسلة واتساب"
           >
             <MessageCircle className="w-3.5 h-3.5" />
@@ -209,7 +209,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
         {ownerPhone && (
           <a
             href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
-            className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+            className="min-h-[44px] min-w-[44px] bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer active:scale-95"
             title="اتصال هاتفي"
           >
             <Phone className="w-3.5 h-3.5" />

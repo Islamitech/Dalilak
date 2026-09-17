@@ -568,10 +568,12 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
             </label>
             <input
               type="tel"
+              inputMode="tel"
+              dir="ltr"
               placeholder="010XXXXXXXX"
               value={leadPhone}
               onChange={(e) => setLeadPhone(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-mono font-bold focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl p-2.5 font-mono tabular-nums text-right font-bold focus:outline-none focus:border-emerald-500"
             />
             {duplicatePhone && (
               <div className="bg-rose-500/15 border border-rose-500/40 text-rose-700 p-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 mt-1.5 animate-fade-in">

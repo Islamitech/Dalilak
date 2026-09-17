@@ -45,11 +45,13 @@ export const FormOwnerInfoSection: React.FC<FormOwnerInfoSectionProps> = ({
           <label className="block text-[var(--text-primary)] font-bold mb-1">رقم هاتف الواتساب (لإرسال الفاتورة) *</label>
           <input
             type="tel"
+            inputMode="tel"
+            dir="ltr"
             required
             placeholder="مثال: 01012345678"
             value={ownerPhone}
             onChange={(e) => setOwnerPhone(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 font-mono dir-ltr text-right shadow-sm"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 font-mono tabular-nums text-right shadow-sm"
           />
         </div>
 
@@ -57,10 +59,12 @@ export const FormOwnerInfoSection: React.FC<FormOwnerInfoSectionProps> = ({
           <label className="block text-[var(--text-primary)] font-bold mb-1">رقم هاتف آخر (اختياري)</label>
           <input
             type="tel"
+            inputMode="tel"
+            dir="ltr"
             placeholder="مثال: 01123456789 أو رقم أرضي"
             value={secondaryPhone}
             onChange={(e) => setSecondaryPhone(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 font-mono dir-ltr text-right shadow-sm"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-slate-400 font-bold rounded-xl p-3 focus:outline-none focus:border-amber-500 font-mono tabular-nums text-right shadow-sm"
           />
         </div>
       </div>

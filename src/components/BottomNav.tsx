@@ -18,11 +18,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, i
         { id: 'profile', label: 'حسابي', icon: ShieldCheck },
       ]
     : [
-        { id: 'home', label: 'بوابتي', icon: Home },
+        { id: 'home', label: 'الدليل', icon: Home },
         { id: 'map', label: 'الخريطة', icon: Map },
         { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
         { id: 'invoices', label: 'الفرص', icon: FileText },
-        { id: 'profile', label: 'ملفي', icon: ShieldCheck },
+        { id: 'profile', label: 'حسابي', icon: ShieldCheck },
       ];
 
   return (
