@@ -9,6 +9,9 @@ import { InvoiceModal } from './components/InvoiceModal';
 import { InvoicesLeadsHub } from './components/InvoicesLeadsHub';
 
 import { AppModals } from './components/modals/AppModals';
+import { LoginModal } from './components/LoginModal';
+import { AboutUsModal } from './components/AboutUsModal';
+import { TermsModal } from './components/TermsModal';
 import { AppToastContainer } from './components/layout/AppToastContainer';
 import { AppOfflineBanner } from './components/layout/AppOfflineBanner';
 import { AppFooter } from './components/layout/AppFooter';
@@ -365,6 +368,52 @@ export default function App() {
   }
 
 
+
+  // ── STRICT SOVEREIGN AUTH GATEKEEPER ─────────────────────────────
+  // The system is 100% administrative and protected. Unauthenticated visitors
+  // can NEVER view internal activities, invoices, leads, or dashboards.
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30 flex flex-col justify-center">
+        <AppToastContainer
+          notifications={notifications}
+          setNotifications={setNotifications}
+          showSyncBadge={showSyncBadge}
+        />
+
+        <LoginModal
+          isInline={true}
+          onClose={() => {}}
+          onLoginSuccess={handleLoginUser}
+          representatives={representatives}
+          onAddRepresentative={handleAddRepresentative}
+          initialReferralCode={pendingReferralCode}
+          onOpenAbout={() => setShowAboutModal(true)}
+          onOpenTerms={() => setShowTermsModal(true)}
+        />
+
+        {showAboutModal && (
+          <AboutUsModal
+            onClose={() => setShowAboutModal(false)}
+            onOpenTerms={() => {
+              setShowAboutModal(false);
+              setShowTermsModal(true);
+            }}
+          />
+        )}
+
+        {showTermsModal && (
+          <TermsModal
+            onClose={() => setShowTermsModal(false)}
+            onOpenAbout={() => {
+              setShowTermsModal(false);
+              setShowAboutModal(true);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen pb-safe bg-[var(--bg-primary)] text-[var(--text-primary)] font-['Cairo'] transition-colors duration-300 selection:bg-amber-500/30`}>

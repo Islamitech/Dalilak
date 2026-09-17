@@ -50,7 +50,7 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
   const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3 rounded-2xl shadow-xs space-y-2">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-3.5 rounded-2xl shadow-xs space-y-2.5 overflow-hidden">
       {/* Row 1: Photo + Name + Badges */}
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -134,87 +134,117 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
         </span>
       </div>
 
-      {/* Row 3: Fast Quick Actions */}
-      <div className="flex items-center justify-between gap-1.5 pt-0.5">
-        <button
-          onClick={() => onEditBusiness(biz)}
-          className="flex-1 min-h-[44px] bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black py-1.5 px-2 rounded-xl shadow-2xs transition-transform active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          <span>التفاصيل</span>
-        </button>
+      {/* Row 3: Fast Quick Actions (2-Tier Zero-Overflow Grid) */}
+      <div className="pt-2 border-t border-[var(--border-color)] space-y-2">
+        {/* Tier 1: Primary Management Actions (Equal 50% split) */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onEditBusiness(biz)}
+            className="min-h-[42px] bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black py-2 px-2.5 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Eye className="w-4 h-4 stroke-[2.5]" />
+            <span>التفاصيل الكاملة</span>
+          </button>
 
-        {(() => {
-          const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
-          if (effectiveUrl) {
+          <button
+            type="button"
+            onClick={() => onShowInvoice(biz)}
+            className="min-h-[42px] bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-xs font-bold py-2 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            title="عرض الفاتورة"
+          >
+            <FileText className="w-4 h-4 text-amber-500" />
+            <span>الفاتورة</span>
+          </button>
+        </div>
+
+        {/* Tier 2: Quick Communication & Navigation Grid (Equal 4-cell distribution, strictly bounded) */}
+        <div className="grid grid-cols-4 gap-1.5">
+          {(() => {
+            const { effectiveUrl, isOfficial } = getBusinessMapDetails(biz);
+            if (effectiveUrl) {
+              return (
+                <a
+                  href={sanitizeExternalUrl(effectiveUrl, '#')}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="min-h-[40px] bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border border-blue-500/30 p-1 rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 text-[11px] font-bold"
+                  title={
+                    isOfficial
+                      ? 'فتح موقع النشاط المعتمد على خرائط Google'
+                      : 'معاينة الموقع الجغرافي الميداني للنشاط على الخريطة'
+                  }
+                >
+                  <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span className="hidden sm:inline">الموقع</span>
+                </a>
+              );
+            }
             return (
-              <a
-                href={sanitizeExternalUrl(effectiveUrl, '#')}
-                target="_blank"
-                rel="noreferrer"
-                className="min-h-[44px] min-w-[44px] bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer active:scale-95"
-                title={
-                  isOfficial
-                    ? 'فتح موقع النشاط المعتمد على خرائط Google'
-                    : 'معاينة الموقع الجغرافي الميداني للنشاط على الخريطة'
-                }
+              <button
+                type="button"
+                disabled
+                className="min-h-[40px] bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center text-[11px]"
+                title="لم يتم تحديد الموقع الجغرافي بعد"
               >
-                <MapPin className="w-3.5 h-3.5 text-blue-500" />
-              </a>
+                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              </button>
             );
-          }
-          return (
+          })()}
+
+          {ownerPhone ? (
+            <a
+              href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="min-h-[40px] bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 border border-emerald-500/30 p-1 rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 text-[11px] font-bold"
+              title="مراسلة واتساب"
+            >
+              <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">واتساب</span>
+            </a>
+          ) : (
             <button
               type="button"
               disabled
-              className="min-h-[44px] min-w-[44px] bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1.5 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center"
-              title="لم يتم تحديد الموقع الجغرافي بعد"
+              className="min-h-[40px] bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center text-[11px]"
+              title="لا يتوفر هاتف"
             >
-              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              <MessageCircle className="w-3.5 h-3.5 text-slate-400" />
             </button>
-          );
-        })()}
+          )}
 
-        <button
-          onClick={() => onShowInvoice(biz)}
-          className="min-h-[44px] bg-[var(--input-bg)] hover:bg-amber-500/10 text-[var(--text-primary)] border border-[var(--border-color)] text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-all flex items-center gap-1 cursor-pointer active:scale-95"
-          title="عرض الفاتورة"
-        >
-          <FileText className="w-3.5 h-3.5 text-amber-500" />
-          <span>فاتورة</span>
-        </button>
+          {ownerPhone ? (
+            <a
+              href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
+              className="min-h-[40px] bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 border border-blue-500/30 p-1 rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 text-[11px] font-bold"
+              title="اتصال هاتفي"
+            >
+              <Phone className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">اتصال</span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="min-h-[40px] bg-[var(--input-bg)] text-slate-400 border border-[var(--border-color)] p-1 rounded-xl opacity-40 cursor-not-allowed flex items-center justify-center text-[11px]"
+              title="لا يتوفر هاتف"
+            >
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          )}
 
-        <a
-          href={getPublicDirectoryUrl(biz)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="min-h-[44px] min-w-[44px] bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
-          title="فتح صفحة المنشأة على الدليل العام (رابط دائم)"
-        >
-          <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
-        </a>
-
-        {ownerPhone && (
           <a
-            href={`https://wa.me/${formatWhatsAppPhone(ownerPhone)}`}
+            href={getPublicDirectoryUrl(biz)}
             target="_blank"
-            rel="noreferrer"
-            className="min-h-[44px] min-w-[44px] bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 border border-emerald-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer active:scale-95"
-            title="مراسلة واتساب"
+            rel="noopener noreferrer"
+            className="min-h-[40px] bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 border border-amber-500/30 p-1 rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer shadow-2xs active:scale-95 text-[11px] font-bold"
+            title="فتح صفحة المنشأة على الدليل العام (رابط دائم)"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
+            <ExternalLink className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span className="hidden sm:inline">الدليل</span>
           </a>
-        )}
-
-        {ownerPhone && (
-          <a
-            href={sanitizeExternalUrl(`tel:${ownerPhone.replace(/[^\d+]/g, '')}`, '#')}
-            className="min-h-[44px] min-w-[44px] bg-blue-600/15 hover:bg-blue-600/25 text-blue-600 border border-blue-500/30 p-1.5 rounded-xl transition-all flex items-center justify-center cursor-pointer active:scale-95"
-            title="اتصال هاتفي"
-          >
-            <Phone className="w-3.5 h-3.5" />
-          </a>
-        )}
+        </div>
       </div>
     </div>
   );

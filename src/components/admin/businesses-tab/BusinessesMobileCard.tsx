@@ -58,7 +58,7 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
   } = calcBusinessFinancials(biz);
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl space-y-3 shadow-sm hover:border-amber-500/40 transition-all">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl space-y-3 shadow-sm hover:border-amber-500/40 transition-all overflow-hidden">
       {/* Header: Name + Dual Status */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -247,80 +247,88 @@ export const BusinessesMobileCard: React.FC<BusinessesMobileCardProps> = ({
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-end gap-1.5 pt-1">
-        <button
-          type="button"
-          onClick={() => onSelectFollowUpBiz(biz)}
-          className={`font-bold text-xs p-2 rounded-xl border cursor-pointer relative ${
-            fuSummary.isOverdue
-              ? 'bg-rose-500/20 border-rose-500 text-rose-600 animate-pulse'
-              : fuSummary.dueTodayCount > 0
-              ? 'bg-amber-500/20 border-amber-500 text-amber-600'
-              : 'bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] border-[var(--border-color)]'
-          }`}
-          title={`سجل المتابعات الإدارية (${biz.adminFollowUps?.length || 0})`}
-        >
-          <ClipboardList className="w-4 h-4 text-amber-500" />
-          {fuSummary.isOverdue ? (
-            <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs animate-bounce">
-              {fuSummary.overdueCount}
-            </span>
-          ) : Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) ? (
-            <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-              {biz.adminFollowUps!.length}
-            </span>
-          ) : null}
-        </button>
-
-        {onSendPackageBiz && (
+      {/* Row 4: Actions Bar (2-Tier Zero-Overflow Layout) */}
+      <div className="pt-2.5 border-t border-[var(--border-color)] space-y-2">
+        {/* Tier 1: Primary Management Actions */}
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => onSendPackageBiz(biz)}
-            className="bg-gradient-to-r from-amber-500/15 to-yellow-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-700 font-black text-xs p-2 rounded-xl border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
-            title="إرسال تفاصيل باقة تسويقية للمنشأة عبر واتساب 💎"
+            onClick={() => onSetEditingBusiness(biz)}
+            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95 min-h-[40px]"
           >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="text-[10.5px]">باقة 💎</span>
+            <Eye className="w-4 h-4 stroke-[2.5]" />
+            <span>التفاصيل الكاملة</span>
           </button>
-        )}
 
-        <button
-          type="button"
-          onClick={() => onShowInvoice(biz)}
-          className="bg-[var(--input-bg)] hover:bg-amber-500/20 text-[var(--text-primary)] font-bold text-xs p-2 rounded-xl border border-[var(--border-color)] cursor-pointer"
-          title="عرض وإصدار الفاتورة"
-        >
-          <FileText className="w-4 h-4 text-amber-500" />
-        </button>
+          <button
+            type="button"
+            onClick={() => onSetSyncModalBiz(biz)}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95 min-h-[40px]"
+            title="ربط وتوثيق خرائط Google"
+          >
+            <Zap className="w-4 h-4 stroke-[2.5]" />
+            <span>خرائط Google</span>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => onSetSyncModalBiz(biz)}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3 py-2 rounded-xl flex items-center gap-1 cursor-pointer"
-          title="ربط خرائط جوجل"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          <span>Google</span>
-        </button>
+        {/* Tier 2: Secondary Tools & Actions */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onShowInvoice(biz)}
+            className="flex-1 min-h-[38px] bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] font-bold text-xs p-1.5 rounded-xl border border-[var(--border-color)] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+            title="عرض وإصدار الفاتورة"
+          >
+            <FileText className="w-3.5 h-3.5 text-amber-500" />
+            <span>فاتورة</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => onSetEditingBusiness(biz)}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1 cursor-pointer flex-1 justify-center"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          <span>التفاصيل</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => onSelectFollowUpBiz(biz)}
+            className={`flex-1 min-h-[38px] font-bold text-xs p-1.5 rounded-xl border cursor-pointer relative flex items-center justify-center gap-1 transition-all active:scale-95 ${
+              fuSummary.isOverdue
+                ? 'bg-rose-500/20 border-rose-500 text-rose-600 animate-pulse'
+                : fuSummary.dueTodayCount > 0
+                ? 'bg-amber-500/20 border-amber-500 text-amber-600'
+                : 'bg-[var(--input-bg)] hover:bg-amber-500/15 text-[var(--text-primary)] border-[var(--border-color)]'
+            }`}
+            title={`سجل المتابعات الإدارية (${biz.adminFollowUps?.length || 0})`}
+          >
+            <ClipboardList className="w-3.5 h-3.5 text-amber-500" />
+            <span>متابعة</span>
+            {fuSummary.isOverdue ? (
+              <span className="bg-rose-600 text-white font-black text-[9px] px-1 py-0.2 rounded-full shadow-xs">
+                {fuSummary.overdueCount}
+              </span>
+            ) : Boolean(biz.adminFollowUps && biz.adminFollowUps.length > 0) ? (
+              <span className="bg-amber-500 text-slate-950 font-black text-[9px] px-1 py-0.2 rounded-full shadow-xs">
+                {biz.adminFollowUps!.length}
+              </span>
+            ) : null}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => onConfirmDelete({ id: biz.id, name: biz.nameAr })}
-          className="bg-rose-500/15 hover:bg-rose-500 text-rose-600 hover:text-white p-2 rounded-xl border border-rose-500/30 transition-colors cursor-pointer"
-          title="حذف المنشأة نهائياً"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+          {onSendPackageBiz && (
+            <button
+              type="button"
+              onClick={() => onSendPackageBiz(biz)}
+              className="min-h-[38px] bg-gradient-to-r from-amber-500/15 to-yellow-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-700 font-black text-xs px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+              title="إرسال تفاصيل باقة تسويقية للمنشأة عبر واتساب 💎"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[10.5px]">باقة 💎</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onConfirmDelete({ id: biz.id, name: biz.nameAr })}
+            className="min-h-[38px] w-9 bg-rose-500/15 hover:bg-rose-500 text-rose-600 hover:text-white rounded-xl border border-rose-500/30 transition-colors flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
+            title="حذف المنشأة نهائياً"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
