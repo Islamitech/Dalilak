@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Map, PlusCircle, UserCheck, Shield, ShieldCheck, FileText } from 'lucide-react';
+import { Home, PlusCircle, Shield, FileText } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
 interface BottomNavProps {
@@ -11,18 +11,14 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, isAdmin }) => {
   const tabs = isAdmin
     ? [
-        { id: 'admin', label: 'العمليات', icon: Shield },
         { id: 'home', label: 'الدليل', icon: Home },
         { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
-        { id: 'map', label: 'الخريطة', icon: Map },
-        { id: 'profile', label: 'حسابي', icon: ShieldCheck },
+        { id: 'admin', label: 'العمليات', icon: Shield },
       ]
     : [
         { id: 'home', label: 'الدليل', icon: Home },
-        { id: 'map', label: 'الخريطة', icon: Map },
         { id: 'add', label: 'تسجيل جديد', icon: PlusCircle, isPrimary: true },
         { id: 'invoices', label: 'الفرص', icon: FileText },
-        { id: 'profile', label: 'حسابي', icon: ShieldCheck },
       ];
 
   return (
