@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../ui/OverlayLayer';
 import React, { useState } from 'react';
 import { X, Receipt, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Business, AdditionalServiceInvoice, ElectronicPaymentMethod, PaymentStatus } from '../../types';
@@ -24,6 +25,7 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
   const [newServiceMethod, setNewServiceMethod] = useState<ElectronicPaymentMethod>('vodafone_cash');
   const [newServiceRef, setNewServiceRef] = useState('');
   const [newServiceNotes, setNewServiceNotes] = useState('');
+  const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -33,7 +35,7 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
     const amt = parseFloat(newServiceAmount) || 0;
     const paid = parseFloat(newServicePaid) || 0;
     if (amt <= 0) {
-      alert('يرجى إدخال قيمة صحيحة للخدمة');
+      setErrorNotice('يرجى إدخال قيمة صحيحة للخدمة');
       return;
     }
 
@@ -63,7 +65,7 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs font-['Tajawal',sans-serif] animate-in fade-in duration-200">
+    <OverlayLayer className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs font-['Tajawal',sans-serif] animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 text-right">
         <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -85,6 +87,12 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-4 text-xs">
+          {errorNotice && (
+            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
+              {errorNotice}
+            </div>
+          )}
+
           {/* Preset Buttons */}
           <div className="space-y-1.5">
             <span className="font-bold text-slate-700 block text-[11px]">خدمات سريعة جاهزة للاختيار:</span>
@@ -208,6 +216,6 @@ export const AddServiceInvoiceModal: React.FC<AddServiceInvoiceModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </OverlayLayer>
   );
 };

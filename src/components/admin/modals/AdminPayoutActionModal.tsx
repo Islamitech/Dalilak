@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PayoutRequest } from '../../../types';
@@ -52,7 +53,7 @@ export const AdminPayoutActionModal: React.FC<AdminPayoutActionModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <OverlayLayer className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 relative max-h-[92vh] overflow-y-auto">
         <button
           onClick={onClose}
@@ -217,7 +218,7 @@ export const AdminPayoutActionModal: React.FC<AdminPayoutActionModalProps> = ({
           </div>
         </form>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

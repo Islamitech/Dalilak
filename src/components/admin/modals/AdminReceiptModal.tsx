@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { FileCheck } from 'lucide-react';
@@ -14,7 +15,7 @@ export const AdminReceiptModal: React.FC<AdminReceiptModalProps> = ({
   if (!receiptPhoto) return null;
 
   return createPortal(
-    <div
+    <OverlayLayer
       className="fixed inset-0 z-[100300] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 cursor-pointer animate-fade-in"
       onClick={onClose}
     >
@@ -59,7 +60,7 @@ export const AdminReceiptModal: React.FC<AdminReceiptModalProps> = ({
           </button>
         </div>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

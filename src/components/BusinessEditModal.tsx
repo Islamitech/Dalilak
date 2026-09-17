@@ -1,3 +1,5 @@
+import { OverlayLayer } from './ui/OverlayLayer';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import React, { useState, useEffect } from 'react';
 import {
   Business,
@@ -86,6 +88,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   const [newInvoiceMethod, setNewInvoiceMethod] = useState<ElectronicPaymentMethod>('vodafone_cash');
   const [newInvoiceRef, setNewInvoiceRef] = useState('');
   const [newInvoiceNotes, setNewInvoiceNotes] = useState('');
+  const [invoiceToDeleteId, setInvoiceToDeleteId] = useState<string | null>(null);
 
   // Owner ID Card Photo state
   const [ownerIdCardPhoto, setOwnerIdCardPhoto] = useState<string>('');
@@ -426,7 +429,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     const amt = parseFloat(newInvoiceAmount) || 0;
     const paid = parseFloat(newInvoicePaid) || 0;
     if (amt <= 0) {
-      alert('يرجى إدخال قيمة صحيحة للخدمة');
+      showNotice('⚠️ يرجى إدخال قيمة صحيحة للخدمة');
       return;
     }
 
@@ -490,14 +493,19 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
   // 🗑️ Delete Additional Invoice
   const handleDeleteAdditionalInvoice = (invoiceId: string) => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في إلغاء وحذف هذه الفاتورة الإضافية؟')) return;
+    setInvoiceToDeleteId(invoiceId);
+  };
+
+  const confirmDeleteAdditionalInvoice = () => {
+    if (!invoiceToDeleteId) return;
     setFormData((prev) => {
       const existing = prev.additionalInvoices || [];
       return {
         ...prev,
-        additionalInvoices: existing.filter((inv) => inv.id !== invoiceId),
+        additionalInvoices: existing.filter((inv) => inv.id !== invoiceToDeleteId),
       };
     });
+    setInvoiceToDeleteId(null);
     showNotice('تم حذف الفاتورة الإضافية');
   };
 
@@ -570,7 +578,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-xs font-['Tajawal',sans-serif] animate-in fade-in duration-150">
+    <OverlayLayer className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-xs font-['Tajawal',sans-serif] animate-in fade-in duration-150">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-3xl w-full max-h-[94vh] flex flex-col overflow-hidden text-right">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50/95">
@@ -1641,7 +1649,9 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
 
       {/* Lightbox Modal */}
       {previewLightbox && (
-        <div
+        <OverlayLayer
+          onEscape={() => setPreviewLightbox(null)}
+          aria-label="معاينة صورة النشاط"
           className="fixed inset-0 z-[10000] bg-slate-950/90 flex items-center justify-center p-4"
           onClick={() => setPreviewLightbox(null)}
         >
@@ -1659,8 +1669,20 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-white/20 animate-fade-in"
             />
           </div>
-        </div>
+        </OverlayLayer>
       )}
-    </div>
+
+      {/* Delete Invoice Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(invoiceToDeleteId)}
+        title="إلغاء الفاتورة الإضافية"
+        message="هل أنت متأكد من رغبتك في إلغاء وحذف هذه الفاتورة الإضافية؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف الفاتورة"
+        cancelLabel="تراجع"
+        variant="danger"
+        onConfirm={confirmDeleteAdditionalInvoice}
+        onCancel={() => setInvoiceToDeleteId(null)}
+      />
+    </OverlayLayer>
   );
 };

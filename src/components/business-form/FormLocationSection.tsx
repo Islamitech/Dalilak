@@ -72,7 +72,7 @@ export const FormLocationSection: React.FC<FormLocationSectionProps> = ({
   const handleAutoExtract = async (urlToExtract = alreadyGoogleMapsUrl) => {
     const trimmed = (urlToExtract || '').trim();
     if (!trimmed) {
-      alert('يرجى لصق رابط خرائط Google أولاً');
+      setExtractedNotice('⚠️ يرجى لصق رابط خرائط Google أولاً');
       return;
     }
     triggerHaptic('medium');

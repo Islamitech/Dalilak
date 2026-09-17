@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../ui/OverlayLayer';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Representative, PayoutRequest, PayoutMethod } from '../../types';
@@ -107,7 +108,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
   };
 
   return createPortal(
-    <div
+    <OverlayLayer
       className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
       dir="rtl"
     >
@@ -405,7 +406,7 @@ export const RemitInfoModal: React.FC<RemitInfoModalProps> = ({
           </form>
         )}
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

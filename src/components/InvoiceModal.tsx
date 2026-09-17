@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toPng } from 'html-to-image';
@@ -80,12 +81,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     }
   }, [selectedAdditionalInvoiceId]);
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
 
   // Safe early exit if neither business prop nor currentBiz state is present
   const activeBusiness = business || currentBiz;
@@ -186,7 +181,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10030] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
+    <OverlayLayer className="fixed inset-0 z-[10030] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" dir="rtl">
       <div 
         className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-0 sm:my-auto relative text-[var(--text-primary)] modal-content transition-colors duration-300 overflow-y-auto max-h-[94vh]"
       >
@@ -551,7 +546,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </button>
         </div>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

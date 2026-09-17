@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useId, useRef } from 'react';
+import { OverlayLayer } from './OverlayLayer';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
@@ -14,6 +15,8 @@ export interface BaseModalProps {
   swipeable?: boolean;
   showCloseButton?: boolean;
   preventBackdropClose?: boolean;
+  preventEscapeClose?: boolean;
+  ariaLabel?: string;
   headerActions?: React.ReactNode;
   footer?: React.ReactNode;
   children: React.ReactNode;
@@ -30,6 +33,7 @@ const sizeClasses: Record<ModalSize, string> = {
   full: 'max-w-[96vw] h-[94vh]',
 };
 
+
 export const BaseModal: React.FC<BaseModalProps> = ({
   isOpen,
   onClose,
@@ -40,6 +44,8 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   swipeable = true,
   showCloseButton = true,
   preventBackdropClose = false,
+  preventEscapeClose = false,
+  ariaLabel,
   headerActions,
   footer,
   children,
@@ -50,33 +56,10 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   const touchStartY = useRef(0);
   const touchDeltaY = useRef(0);
   const modalContentRef = useRef<HTMLDivElement>(null);
-
-  // 1. Lock Body Scroll
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow || '';
-    };
-  }, [isOpen]);
-
-  // 2. Escape Key Listener
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // 3. Mobile Swipe Down to Close
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const subtitleId = useId();
+  // Mobile swipe is limited to the dedicated handle.
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!swipeable) return;
     touchStartY.current = e.touches[0].clientY;
@@ -88,10 +71,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
     const currentY = e.touches[0].clientY;
     const delta = currentY - touchStartY.current;
 
-    // Only allow downward drag when scrolled to top
-    if (delta > 0 && modalContentRef.current && modalContentRef.current.scrollTop <= 0) {
-      touchDeltaY.current = delta;
-    }
+    touchDeltaY.current = Math.max(0, delta);
   };
 
   const handleTouchEnd = () => {
@@ -105,7 +85,9 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div
+    <OverlayLayer
+      onEscape={() => { if (!preventEscapeClose) onClose(); }}
+      ref={dialogRef}
       className="fixed inset-0 flex items-center justify-center p-3 sm:p-4 modal-overlay animate-fade-in"
       style={{
         zIndex,
@@ -117,6 +99,10 @@ export const BaseModal: React.FC<BaseModalProps> = ({
       }}
       aria-modal="true"
       role="dialog"
+      tabIndex={-1}
+      aria-labelledby={title ? titleId : undefined}
+      aria-label={title ? undefined : (ariaLabel || 'نافذة حوار')}
+      aria-describedby={subtitle ? subtitleId : undefined}
     >
       <div
         ref={modalContentRef}
@@ -128,13 +114,12 @@ export const BaseModal: React.FC<BaseModalProps> = ({
           ${className}
         `}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Mobile Swipe Handle Indicator */}
         {swipeable && (
-          <div className="sm:hidden flex justify-center pt-2 pb-1">
+          <div className="sm:hidden flex justify-center pt-2 pb-1 touch-none"
+            onTouchStart={handleTouchStart} onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd} onTouchCancel={() => { touchDeltaY.current = 0; }}>
             <div className="w-10 h-1 rounded-full bg-slate-400/40" />
           </div>
         )}
@@ -150,12 +135,12 @@ export const BaseModal: React.FC<BaseModalProps> = ({
               )}
               <div className="min-w-0">
                 {title && (
-                  <h3 className="font-black text-base sm:text-lg text-[var(--text-primary)] truncate leading-tight">
+                  <h3 id={titleId} className="font-black text-base sm:text-lg text-[var(--text-primary)] break-words leading-snug">
                     {title}
                   </h3>
                 )}
                 {subtitle && (
-                  <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5 truncate">
+                  <p id={subtitleId} className="text-xs text-[var(--text-secondary)] font-medium mt-0.5 break-words">
                     {subtitle}
                   </p>
                 )}
@@ -169,7 +154,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)] transition-colors cursor-pointer"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--input-bg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 transition-colors cursor-pointer"
                   aria-label="إغلاق النافذة"
                 >
                   <X className="w-5 h-5" />
@@ -191,7 +176,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
           </div>
         )}
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

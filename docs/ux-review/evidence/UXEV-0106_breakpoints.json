@@ -1,0 +1,17 @@
+[
+  {
+    "navDisplay": "block",
+    "overflow": false,
+    "width": 767
+  },
+  {
+    "navDisplay": "none",
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "navDisplay": "none",
+    "overflow": false,
+    "width": 770
+  }
+]

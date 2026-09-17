@@ -82,7 +82,7 @@ export const EditLocationTab: React.FC<EditLocationTabProps> = ({
     const url = formData.googleMapsUrl?.trim();
     if (!url) {
       if (onShowNotification) onShowNotification('يرجى إدخال رابط خرائط Google أولاً');
-      else alert('يرجى إدخال رابط خرائط Google أولاً');
+      else setSyncNotice('⚠️ يرجى إدخال رابط خرائط Google أولاً');
       return;
     }
     setIsSyncingFromGoogle(true);

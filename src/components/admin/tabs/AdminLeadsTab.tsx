@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { InterestedLead, User } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
 import { formatActivityDateTime } from '../../../utils/dateFormatters';
@@ -54,6 +55,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
   const [leadInterestFilter, setLeadInterestFilter] = useState<string>('all');
   const [leadGovFilter, setLeadGovFilter] = useState<string>('all');
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+  const [leadToDelete, setLeadToDelete] = useState<InterestedLead | null>(null);
 
   const extractNotesAndMapUrl = useCallback((notes?: string, locationUrl?: string): { cleanText: string; mapUrl?: string } => {
     if (!notes && !locationUrl) return { cleanText: '' };
@@ -479,11 +481,7 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
                     {onDeleteLead && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (confirm(`هل أنت متأكد من حذف سجل العميل "${lead.clientName}"؟`)) {
-                            onDeleteLead(lead.id);
-                          }
-                        }}
+                        onClick={() => setLeadToDelete(lead)}
                         className="p-1.5 rounded-xl text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                         title="حذف السجل"
                       >
@@ -505,6 +503,23 @@ export const AdminLeadsTab: React.FC<AdminLeadsTabProps> = ({
           </p>
         </div>
       )}
+
+      {/* Delete Lead Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(leadToDelete)}
+        title="حذف سجل العميل"
+        message={`هل أنت متأكد من حذف سجل العميل "${leadToDelete?.clientName}" نهائياً من قائمة المتابعة؟`}
+        confirmLabel="حذف السجل"
+        cancelLabel="تراجع"
+        variant="danger"
+        onConfirm={() => {
+          if (leadToDelete && onDeleteLead) {
+            onDeleteLead(leadToDelete.id);
+          }
+          setLeadToDelete(null);
+        }}
+        onCancel={() => setLeadToDelete(null)}
+      />
     </div>
   );
 };

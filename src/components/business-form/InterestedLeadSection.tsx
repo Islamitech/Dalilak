@@ -25,6 +25,7 @@ import {
   Sparkles,
   Zap,
   AlertTriangle,
+  AlertCircle,
   Tag,
 } from 'lucide-react';
 import { getTrendingVenuePermissionWhatsAppUrl } from '../../utils/whatsapp';
@@ -58,6 +59,7 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   );
   const [leadNotes, setLeadNotes] = useState<string>('');
   const [leadSuccessMsg, setLeadSuccessMsg] = useState<string | null>(null);
+  const [leadErrorMsg, setLeadErrorMsg] = useState<string | null>(null);
 
   const [leadLat, setLeadLat] = useState<number>(29.9753);
   const [leadLng, setLeadLng] = useState<number>(31.112);
@@ -78,7 +80,8 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
   const handleAutoExtractLead = async (urlToExtract = leadGoogleUrl) => {
     const trimmed = (urlToExtract || '').trim();
     if (!trimmed) {
-      alert('يرجى لصق رابط خرائط Google أولاً');
+      setLeadExtractNotice('⚠️ يرجى لصق رابط خرائط Google أولاً');
+      setTimeout(() => setLeadExtractNotice(null), 4000);
       return;
     }
     triggerHaptic('medium');
@@ -147,7 +150,8 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
 
   const handleGetLeadLocation = () => {
     if (!navigator.geolocation) {
-      alert('متصفحك لا يدعم تحديد الموقع الجغرافي');
+      setLeadLocationNotice('⚠️ متصفحك لا يدعم تحديد الموقع الجغرافي');
+      setTimeout(() => setLeadLocationNotice(null), 4000);
       return;
     }
 
@@ -226,17 +230,20 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
 
   const handleSaveLeadSubmit = async () => {
     if (!leadClientName.trim() && !leadBizName.trim()) {
-      alert('يرجى إدخال اسم العميل أو اسم النشاط على الأقل');
+      setLeadErrorMsg('⚠️ يرجى إدخال اسم العميل أو اسم النشاط على الأقل');
+      setTimeout(() => setLeadErrorMsg(null), 5000);
       return;
     }
     if (!leadPhone.trim()) {
-      alert('يرجى إدخال رقم الهاتف للتواصل');
+      setLeadErrorMsg('⚠️ يرجى إدخال رقم الهاتف للتواصل');
+      setTimeout(() => setLeadErrorMsg(null), 5000);
       return;
     }
 
     if (duplicatePhone) {
       const entityTypeStr = duplicatePhone.type === 'business' ? 'نشاط تجاري مسجل' : 'عميل مهتم / مراجعة مسجلة';
-      alert(`⛔ رقم الهاتف (${duplicatePhone.phone}) مسجل بالفعل مسبقاً مع ${entityTypeStr}: "${duplicatePhone.name}" ${duplicatePhone.location ? `(${duplicatePhone.location})` : ''}.\nلا يمكن تكرار تسجيل نفس رقم الهاتف.`);
+      setLeadErrorMsg(`⛔ رقم الهاتف (${duplicatePhone.phone}) مسجل بالفعل مسبقاً مع ${entityTypeStr}: "${duplicatePhone.name}" ${duplicatePhone.location ? `(${duplicatePhone.location})` : ''}. لا يمكن تكرار تسجيل نفس رقم الهاتف.`);
+      setTimeout(() => setLeadErrorMsg(null), 8000);
       return;
     }
 
@@ -406,6 +413,13 @@ export const InterestedLeadSection: React.FC<InterestedLeadSectionProps> = ({
         <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 p-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
           <span>{leadSuccessMsg}</span>
+        </div>
+      )}
+
+      {leadErrorMsg && (
+        <div className="bg-rose-500/15 border border-rose-500/40 text-rose-800 p-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 animate-fade-in">
+          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+          <span>{leadErrorMsg}</span>
         </div>
       )}
 

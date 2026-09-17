@@ -1,3 +1,5 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   MessageCircle,
@@ -520,6 +522,14 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   const [showExportContactsModal, setShowExportContactsModal] = useState(false);
   const [hasCopiedCommand, setHasCopiedCommand] = useState(false);
   const [skipRecentlyContacted, setSkipRecentlyContacted] = useState(true);
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    variant: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  } | null>(null);
 
   // Throttling & Pacing state
   const [pacingPreset, setPacingPreset] = useState<'balanced' | 'ultra_safe' | 'fast' | 'custom'>('balanced');
@@ -726,16 +736,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   };
 
   // Disconnect WhatsApp Gateway Slot
-  const handleDisconnect = async (slotId: SlotId = '1') => {
-    if (
-      !confirm(
-        `هل أنت متأكد من رغبتك في قطع اتصال هاتف ${
-          slotId === '1' ? 'الأساسي (1)' : 'المساند (2)'
-        }؟ سيتطلب الدخول مجدداً مسح الـ QR.`
-      )
-    ) {
-      return;
-    }
+  const executeDisconnect = async (slotId: SlotId = '1') => {
     triggerHaptic();
     setDisconnectingSlot(slotId);
     setIsDisconnecting(true);
@@ -773,6 +774,19 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       setDisconnectingSlot(null);
       setIsDisconnecting(false);
     }
+  };
+
+  const handleDisconnect = (slotId: SlotId = '1') => {
+    setConfirmDialogConfig({
+      isOpen: true,
+      title: 'قطع اتصال بوابة الواتساب',
+      message: `هل أنت متأكد من رغبتك في قطع اتصال هاتف ${
+        slotId === '1' ? 'الأساسي (1)' : 'المساند (2)'
+      }؟ سيتطلب الدخول مجدداً مسح رمز الـ QR.`,
+      confirmLabel: 'قطع الاتصال',
+      variant: 'danger',
+      onConfirm: () => executeDisconnect(slotId),
+    });
   };
 
   // Filtered Target Businesses
@@ -1004,10 +1018,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   };
 
   // Emergency Abort Broadcast
-  const handleAbortCampaign = async () => {
-    if (!confirm('🛑 تحذير طارئ: هل تريد إيقاف حملة الواتساب فوراً وتجميد طابور الإرسال؟')) {
-      return;
-    }
+  const executeAbortCampaign = async () => {
     triggerHaptic();
     setIsAbortingCampaign(true);
     try {
@@ -1030,6 +1041,17 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     } finally {
       setIsAbortingCampaign(false);
     }
+  };
+
+  const handleAbortCampaign = () => {
+    setConfirmDialogConfig({
+      isOpen: true,
+      title: 'إيقاف طارئ للحملة',
+      message: 'تحذير طارئ: هل تريد إيقاف حملة الواتساب فوراً وتجميد طابور الإرسال؟ لن يتم إرسال أي رسائل إضافية.',
+      confirmLabel: 'إيقاف الحملة فوراً',
+      variant: 'danger',
+      onConfirm: () => executeAbortCampaign(),
+    });
   };
 
   // Resume Paused Campaign
@@ -2878,7 +2900,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
 
       {/* ── FINAL CONFIRMATION MODAL (FOR SERVER CAMPAIGN) ── */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fadeIn">
+        <OverlayLayer className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 animate-scaleUp">
             <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
               <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center border border-emerald-500/30">
@@ -2974,7 +2996,7 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               </button>
             </div>
           </div>
-        </div>
+        </OverlayLayer>
       )}
 
       {/* ── GOOGLE CONTACTS VCF 3.0 EXPORT MODAL ── */}
@@ -2985,6 +3007,22 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         filteredBusinesses={targetBusinesses}
         onShowNotification={onShowNotification}
       />
+
+      {/* ── CENTRAL CONFIRM DIALOG ── */}
+      {confirmDialogConfig && (
+        <ConfirmDialog
+          isOpen={confirmDialogConfig.isOpen}
+          title={confirmDialogConfig.title}
+          message={confirmDialogConfig.message}
+          confirmLabel={confirmDialogConfig.confirmLabel}
+          variant={confirmDialogConfig.variant}
+          onConfirm={() => {
+            confirmDialogConfig.onConfirm();
+            setConfirmDialogConfig(null);
+          }}
+          onCancel={() => setConfirmDialogConfig(null)}
+        />
+      )}
     </div>
   );
 };

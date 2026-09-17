@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import { OverlayLayer } from './ui/OverlayLayer';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import { Logo } from './Logo';
 import { Sparkles, X } from 'lucide-react';
@@ -20,15 +21,9 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
   businesses,
   onSendPackageBiz
 }) => {
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-5 overflow-hidden animate-fade-in">
+    <OverlayLayer className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-5 overflow-hidden animate-fade-in">
       <div className="bg-[var(--modal-bg)] border border-[var(--modal-border)] rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-[var(--text-primary)] relative modal-content transition-colors duration-300 my-auto max-h-[90vh] flex flex-col">
         {/* Close Button */}
         <button
@@ -64,7 +59,7 @@ export const PackagesModal: React.FC<PackagesModalProps> = ({
           </button>
         </div>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

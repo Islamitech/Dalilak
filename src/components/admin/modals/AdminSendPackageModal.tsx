@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Business, User, AdminFollowUpNote } from '../../../types';
@@ -292,7 +293,7 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
   };
 
   return createPortal(
-    <div 
+    <OverlayLayer
       className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       style={{ direction: 'rtl' }}
     >
@@ -446,7 +447,7 @@ export const AdminSendPackageModal: React.FC<AdminSendPackageModalProps> = ({
           </button>
         </div>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

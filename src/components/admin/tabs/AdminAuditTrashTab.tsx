@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Business, Representative, InterestedLead, AdminFollowUpNote } from '../../../types';
 import { formatStandardDateTime } from '../../../utils/dateFormatters';
 import {
@@ -43,6 +44,13 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
 }) => {
   const [subSection, setSubSection] = useState<'trash_biz' | 'trash_reps' | 'followups_audit'>('trash_biz');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    variant: 'danger' | 'warning' | 'info';
+    action: () => void;
+  } | null>(null);
 
   // 1. Filtered Deleted Businesses
   const filteredBusinesses = useMemo(() => {
@@ -267,10 +275,16 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`هل ترغب في استرجاع نشاط "${biz.nameAr}" وإعادته نشطاً بالمنظومة فوراً؟`)) {
-                            onRestoreBusiness(biz);
-                            onShowNotification?.(`تم استرجاع نشاط "${biz.nameAr}" بنجاح`, 'success');
-                          }
+                          setConfirmAction({
+                            title: 'استرجاع النشاط التجاري',
+                            message: `هل ترغب في استرجاع نشاط "${biz.nameAr}" وإعادته نشطاً بالمنظومة فوراً؟`,
+                            confirmLabel: 'استرجاع النشاط',
+                            variant: 'info',
+                            action: () => {
+                              onRestoreBusiness(biz);
+                              onShowNotification?.(`تم استرجاع نشاط "${biz.nameAr}" بنجاح`, 'success');
+                            },
+                          });
                         }}
                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
                       >
@@ -281,10 +295,16 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`تحذير: هل أنت متأكد من الحذف النهائي لنشاط "${biz.nameAr}"؟\nسيتم مسحه نهائياً من قاعدة بيانات Supabase والسيرفر دون إمكانية استرجاع.`)) {
-                            onHardDeleteBusiness(biz.id);
-                            onShowNotification?.(`تم الحذف النهائي لنشاط "${biz.nameAr}"`, 'warning');
-                          }
+                          setConfirmAction({
+                            title: 'الحذف النهائي للنشاط التجاري',
+                            message: `تحذير: هل أنت متأكد من الحذف النهائي لنشاط "${biz.nameAr}"؟ سيتم مسحه نهائياً من قاعدة بيانات Supabase والسيرفر دون إمكانية استرجاع.`,
+                            confirmLabel: 'حذف نهائي بات',
+                            variant: 'danger',
+                            action: () => {
+                              onHardDeleteBusiness(biz.id);
+                              onShowNotification?.(`تم الحذف النهائي لنشاط "${biz.nameAr}"`, 'warning');
+                            },
+                          });
                         }}
                         className="bg-rose-500/15 hover:bg-rose-500 text-rose-600 hover:text-white font-black text-xs px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
@@ -357,10 +377,16 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`هل ترغب في استرجاع حساب "${rep.name}" وإعادته نشطاً بالمنظومة فوراً؟`)) {
-                            onRestoreRepresentative(rep);
-                            onShowNotification?.(`تم استرجاع حساب "${rep.name}" بنجاح`, 'success');
-                          }
+                          setConfirmAction({
+                            title: 'استرجاع حساب المندوب',
+                            message: `هل ترغب في استرجاع حساب "${rep.name}" وإعادته نشطاً بالمنظومة فوراً؟`,
+                            confirmLabel: 'استرجاع الحساب',
+                            variant: 'info',
+                            action: () => {
+                              onRestoreRepresentative(rep);
+                              onShowNotification?.(`تم استرجاع حساب "${rep.name}" بنجاح`, 'success');
+                            },
+                          });
                         }}
                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
                       >
@@ -371,10 +397,16 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`تحذير: هل أنت متأكد من الحذف النهائي لحساب "${rep.name}"؟\nسيتم مسح الحساب وملفاته نهائياً من قاعدة بيانات Supabase والسيرفر.`)) {
-                            onHardDeleteRepresentative(rep.id);
-                            onShowNotification?.(`تم الحذف النهائي لحساب "${rep.name}"`, 'warning');
-                          }
+                          setConfirmAction({
+                            title: 'الحذف النهائي لحساب المندوب',
+                            message: `تحذير: هل أنت متأكد من الحذف النهائي لحساب "${rep.name}"؟ سيتم مسح الحساب وملفاته نهائياً من قاعدة بيانات Supabase والسيرفر دون إمكانية استرجاع.`,
+                            confirmLabel: 'حذف نهائي بات',
+                            variant: 'danger',
+                            action: () => {
+                              onHardDeleteRepresentative(rep.id);
+                              onShowNotification?.(`تم الحذف النهائي لحساب "${rep.name}"`, 'warning');
+                            },
+                          });
                         }}
                         className="bg-rose-500/15 hover:bg-rose-500 text-rose-600 hover:text-white font-black text-xs px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
@@ -447,6 +479,21 @@ export const AdminAuditTrashTab: React.FC<AdminAuditTrashTabProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {confirmAction && (
+        <ConfirmDialog
+          isOpen={true}
+          title={confirmAction.title}
+          message={confirmAction.message}
+          confirmLabel={confirmAction.confirmLabel}
+          variant={confirmAction.variant}
+          onConfirm={() => {
+            confirmAction.action();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
     </div>
   );

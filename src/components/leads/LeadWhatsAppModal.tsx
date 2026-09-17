@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../ui/OverlayLayer';
 import React, { useState } from 'react';
 import { MessageSquare, X, Copy, Check, Send } from 'lucide-react';
 import { InterestedLead } from '../../types';
@@ -50,7 +51,7 @@ export const LeadWhatsAppModal: React.FC<LeadWhatsAppModalProps> = ({ lead, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs font-['Cairo',sans-serif]">
+    <OverlayLayer className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs font-['Cairo',sans-serif]">
       <div className="bg-[var(--bg-card)] rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-[var(--border-color)] animate-fade-in flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[var(--border-color)]">
@@ -158,6 +159,6 @@ export const LeadWhatsAppModal: React.FC<LeadWhatsAppModalProps> = ({ lead, onCl
           </div>
         </div>
       </div>
-    </div>
+    </OverlayLayer>
   );
 };

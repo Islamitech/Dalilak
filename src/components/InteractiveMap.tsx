@@ -52,6 +52,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   // Mobile Touch Scroll Lock: on touch devices, dragging is disabled by default so single-finger touch scrolls the page
   const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
   const [isTouchDraggingEnabled, setIsTouchDraggingEnabled] = useState<boolean>(!isTouchDevice);
+  const [mapNotice, setMapNotice] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
+
+  const showMapNotice = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    setMapNotice({ message, type });
+    setTimeout(() => setMapNotice(null), 4000);
+  };
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<any>(null);
@@ -426,7 +432,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     if (!('geolocation' in navigator)) {
       setIsLocating(false);
-      alert('خدمة تحديد الموقع GPS غير مدعومة على هذا المتصفح.');
+      showMapNotice('خدمة تحديد الموقع GPS غير مدعومة على هذا المتصفح.', 'error');
       return;
     }
 
@@ -469,7 +475,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             (pos) => finalizePosition(pos),
             () => {
               setIsLocating(false);
-              alert('تعذر الوصول إلى إشارة GPS دقيقة. يرجى تفعيل خدمة الموقع على جهازك أو التحديد يدوياً على الخريطة.');
+              showMapNotice('تعذر الوصول إلى إشارة GPS دقيقة. يرجى تفعيل خدمة الموقع أو التحديد يدوياً.', 'error');
             },
             { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
           );
@@ -557,7 +563,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         />
       )}
 
-      <div className={containerClasses}>
+      <div className={`${containerClasses} relative`}>
+        {/* Floating in-map notice */}
+        {mapNotice && (
+          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-slate-950/90 text-white text-xs font-bold py-2 px-4 rounded-2xl shadow-xl border border-amber-500/40 backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-150">
+            <span>{mapNotice.message}</span>
+          </div>
+        )}
+
         {/* Map Header Bar */}
         <MapHeaderBar
           mode={mode}

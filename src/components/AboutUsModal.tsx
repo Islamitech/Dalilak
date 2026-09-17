@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState } from 'react';
 import { Logo } from './Logo';
 import { BaseModal, Button } from './ui';
@@ -267,7 +268,9 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
 
       {/* Lightbox Modal */}
       {lightboxPhoto && (
-        <div
+        <OverlayLayer
+          onEscape={() => setLightboxPhoto(null)}
+          aria-label="معاينة صورة المقر"
           className="fixed inset-0 z-[70] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setLightboxPhoto(null)}
         >
@@ -285,7 +288,7 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ onClose, onOpenTerms
               className="max-w-full max-h-[80vh] object-contain rounded-2xl border-2 border-amber-500/50 shadow-2xl mx-auto"
             />
           </div>
-        </div>
+        </OverlayLayer>
       )}
     </>
   );

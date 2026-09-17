@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
 import React, { useState, useMemo } from 'react';
 import {
   X,
@@ -129,7 +130,7 @@ export const ExportContactsModal: React.FC<ExportContactsModalProps> = ({
   };
 
   return (
-    <div
+    <OverlayLayer
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-3 sm:p-4 animate-fadeIn overflow-y-auto"
       dir="rtl"
     >
@@ -444,6 +445,6 @@ export const ExportContactsModal: React.FC<ExportContactsModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </OverlayLayer>
   );
 };

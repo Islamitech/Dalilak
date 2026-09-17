@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Representative, PayoutRequest, PayoutMethod } from '../types';
@@ -34,13 +35,6 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -85,7 +79,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+    <OverlayLayer className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <div 
         className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl max-w-lg w-full shadow-2xl text-[var(--text-primary)] flex flex-col overflow-hidden relative animate-fade-in"
         style={{ maxHeight: '92vh' }}
@@ -287,7 +281,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           </div>
         </form>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

@@ -132,6 +132,7 @@ export interface Representative {
   email: string;
   phone: string;
   nationalId?: string;
+  gender?: 'male' | 'female'; // إجباري عند التسجيل — يلزم إضافة عمود gender TEXT في جدول representatives في قاعدة بيانات Supabase: ALTER TABLE representatives ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT 'male' CHECK (gender IN ('male', 'female'));
   activationFacePhoto?: string; // صورة وجه التفعيل والتحقق الإداري (سجلات مدير التطبيق فقط)
   nationalIdCardPhoto?: string; // صورة وجه البطاقة الأمامي (سجلات مدير التطبيق فقط)
   nationalIdCardBackPhoto?: string; // صورة ظهر البطاقة الخلفي (سجلات مدير التطبيق فقط)

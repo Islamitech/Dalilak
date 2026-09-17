@@ -47,6 +47,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [regEmail, setRegEmail] = useState<string>('');
   const [regNationalId, setRegNationalId] = useState<string>('');
   const [regGovernorate, setRegGovernorate] = useState<string>('القاهرة');
+  // إجباري — يلزم إضافة عمود gender TEXT في جدول representatives في قاعدة بيانات Supabase
+  const [regGender, setRegGender] = useState<'male' | 'female'>('male');
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
   const [regReferralCode, setRegReferralCode] = useState<string>(() =>
@@ -313,6 +315,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       email: cleanRegEmail,
       phone: regPhone,
       nationalId: regNationalId,
+      gender: regGender, // إجباري — يلزم تحديث جدول representatives في قاعدة بيانات Supabase (ALTER TABLE representatives ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT 'male' CHECK (gender IN ('male', 'female'));)
       activationFacePhoto: regAvatar, // محفوظة في سجلات مدير التطبيق فقط للتحقق والتفعيل
       nationalIdCardPhoto: regNationalIdCardPhoto, // محفوظة في سجلات مدير التطبيق فقط
       nationalIdCardBackPhoto: regNationalIdCardBackPhoto, // محفوظة في سجلات مدير التطبيق فقط
@@ -446,6 +449,39 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      {/* اختيار الجنس (إجباري) */}
+      <div>
+        <label className="block text-[var(--text-primary)] font-extrabold mb-1">
+          الجنس * <span className="text-[10px] text-amber-600 font-bold">(إجباري لتحديد هوية الحساب)</span>
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setRegGender('male')}
+            className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+              regGender === 'male'
+                ? 'bg-amber-500/15 border-amber-500 text-amber-700 font-black shadow-xs ring-1 ring-amber-500/30'
+                : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
+            }`}
+          >
+            <span>👨</span>
+            <span>ذكر (مندوب)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRegGender('female')}
+            className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+              regGender === 'female'
+                ? 'bg-amber-500/15 border-amber-500 text-amber-700 font-black shadow-xs ring-1 ring-amber-500/30'
+                : 'bg-[var(--input-bg)] border-[var(--border-color)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
+            }`}
+          >
+            <span>👩</span>
+            <span>أنثى (مندوبة)</span>
+          </button>
         </div>
       </div>
 

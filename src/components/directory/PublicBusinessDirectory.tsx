@@ -13,7 +13,7 @@ import { safeSetLocalStorageItem, safeGetLocalStorageItem } from '../../utils/st
 import { getDeletedBusinessIds } from '../../services/db/businessDb';
 import { InteractiveMap } from '../InteractiveMap';
 import { DirectoryMetricsBar, DirectoryStats } from './DirectoryMetricsBar';
-import { DirectoryFilterBar } from './DirectoryFilterBar';
+import { DirectoryFilterBar, DirectoryVerificationFilter } from './DirectoryFilterBar';
 import { DirectoryGridCard } from './DirectoryGridCard';
 import { DirectoryListMobileCard, DirectoryListTableRow } from './DirectoryListRow';
 import { DirectorySortOption, shuffleBusinessesWithSeed } from './types';
@@ -64,9 +64,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
   const [govFilter, setGovFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [verificationFilter, setVerificationFilter] = useState<
-    'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid'
-  >('all');
+  const [verificationFilter, setVerificationFilter] = useState<DirectoryVerificationFilter>('all');
   const [sortBy, setSortBy] = useState<DirectorySortOption>('random');
   const [shuffleSeed, setShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000));
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(() => {
@@ -84,6 +82,13 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
 
   const isRep = currentUser?.role === 'rep';
   const isManagerial = ['admin', 'supervisor', 'accountant'].includes(currentUser?.role || '');
+
+  // Reset administrative verification filter for public visitors
+  useEffect(() => {
+    if (!isRep && !isManagerial && verificationFilter !== 'all') {
+      setVerificationFilter('all');
+    }
+  }, [isRep, isManagerial, verificationFilter]);
 
   // ── 2. SCOPE AND DELETED ENTITIES FILTER ──
   const displayableBusinesses = useMemo(() => {
@@ -193,6 +198,8 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
       }
       if (verificationFilter === 'trending') {
         if (!isTrendingFreeActivity(b)) return false;
+      } else if (verificationFilter === 'google_verified') {
+        if (!isBusinessGoogleVerified(b)) return false;
       } else if (verificationFilter === 'fully_paid') {
         if (!isCollectedInvoiceActivity(b)) return false;
       } else if (verificationFilter === 'unpaid') {
@@ -288,6 +295,7 @@ export const PublicBusinessDirectory: React.FC<PublicBusinessDirectoryProps> = (
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         isRep={isRep}
+        isAdmin={isManagerial}
         repScope={repScope}
         myBusinessesCount={myBusinessesCount}
         onToggleRepScope={onToggleRepScope}

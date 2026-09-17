@@ -44,6 +44,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       size="sm"
       showCloseButton={!loading}
       preventBackdropClose={loading}
+      preventEscapeClose={loading}
+      swipeable={!loading}
+      ariaLabel={title}
       zIndex={zIndex}
     >
       <div className="flex items-start gap-4">

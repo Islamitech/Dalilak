@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import { OverlayLayer } from '../ui/OverlayLayer';
+import React from 'react';
 import { X } from 'lucide-react';
 
 interface DrawerProps {
@@ -20,20 +21,6 @@ export const Drawer: React.FC<DrawerProps> = ({
   width = 'xl',
   headerActions,
 }) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const widthClass = {
@@ -44,16 +31,16 @@ export const Drawer: React.FC<DrawerProps> = ({
   }[width];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden font-['Cairo',sans-serif]">
+    <OverlayLayer onEscape={onClose} className="fixed inset-0 z-50 overflow-hidden font-['Cairo',sans-serif]">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
-      <div className="fixed inset-y-0 left-0 max-w-full flex pl-0 sm:pl-10">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pr-0 sm:pr-10">
         <div
-          className={`w-screen ${widthClass} bg-[var(--bg-card)] shadow-2xl flex flex-col border-r border-[var(--border-color)] animate-in slide-in-from-left duration-200`}
+          className={`w-screen ${widthClass} bg-[var(--bg-card)] shadow-2xl flex flex-col border-l border-[var(--border-color)] animate-in slide-in-from-right duration-200`}
         >
           {/* Header */}
           <div className="p-4 sm:p-5 border-b border-[var(--border-color)] flex items-center justify-between bg-[var(--bg-secondary)] gap-3">
@@ -77,6 +64,6 @@ export const Drawer: React.FC<DrawerProps> = ({
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">{children}</div>
         </div>
       </div>
-    </div>
+    </OverlayLayer>
   );
 };

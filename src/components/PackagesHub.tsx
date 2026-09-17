@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState } from 'react';
 import { 
   Check, 
@@ -671,7 +672,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
 
       {/* 5. Package Detail Modal (Clean & Focused on Click) */}
       {detailModalPkg && (
-        <div className="fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+        <OverlayLayer className="fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-fade-in">
           <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[88vh] flex flex-col text-[var(--text-primary)] relative">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
@@ -772,12 +773,12 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
               </button>
             </div>
           </div>
-        </div>
+        </OverlayLayer>
       )}
 
       {/* 6. Admin Business Selector Modal */}
       {mode === 'admin' && showBizPicker && selectedBizPkg && (
-        <div className="fixed inset-0 z-[10002] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+        <OverlayLayer className="fixed inset-0 z-[10002] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
           <div className="bg-[var(--modal-bg)] border border-[var(--border-color)] rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col text-[var(--text-primary)]">
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
               <div>
@@ -866,7 +867,7 @@ ${pkg.deliverables.map(d => `• ${d}`).join('\n')}
               </button>
             </div>
           </div>
-        </div>
+        </OverlayLayer>
       )}
 
       {/* Floating Toast Notification */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { createPortal } from 'react-dom';
 import { Representative, User, UserRole, Business } from '../../../types';
 import { EGYPT_GOVERNORATES } from '../../../data/mockData';
@@ -55,6 +56,8 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
   const [modalReferralCode, setModalReferralCode] = useState<string>('');
   const [modalReferredByCode, setModalReferredByCode] = useState<string>('');
   const [modalAdminBypassReferral, setModalAdminBypassReferral] = useState<boolean>(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -97,6 +100,8 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
       setModalReferredByCode('');
       setModalAdminBypassReferral(false);
     }
+    setAccountError(null);
+    setShowDeleteConfirm(false);
   }, [editingRep?.id, isOpen]);
 
   if (!isOpen) return null;
@@ -109,7 +114,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEditAccount) {
-      alert('⛔ ليس لديك صلاحية تعديل هذا الحساب وفق هرمية الصلاحيات وسيادة النظام.');
+      setAccountError('⛔ ليس لديك صلاحية تعديل هذا الحساب وفق هرمية الصلاحيات وسيادة النظام.');
       return;
     }
     if (!modalName.trim()) return;
@@ -211,6 +216,12 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
             ✕
           </button>
         </div>
+
+        {accountError && (
+          <div className="mb-3 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 text-xs font-bold">
+            {accountError}
+          </div>
+        )}
 
         <div className="space-y-4">
           {editingRep && (
@@ -770,12 +781,7 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
           {editingRep && !isTargetSuperAdmin && canUserDeleteAccount(currentUser) && onDeleteRepresentative && (
             <button
               type="button"
-              onClick={() => {
-                if (confirm('هل أنت متأكد من رغبتك في حذف هذا الحساب نهائياً من المنظومة؟')) {
-                  onDeleteRepresentative(editingRep.id);
-                  onClose();
-                }
-              }}
+              onClick={() => setShowDeleteConfirm(true)}
               className="bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-500/30 font-black px-3.5 py-2.5 rounded-xl cursor-pointer transition-colors flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -803,6 +809,26 @@ export const AdminAccountModal: React.FC<AdminAccountModalProps> = ({
           </div>
         </div>
       </form>
+
+      {/* Account Deletion Confirmation Dialog */}
+      {showDeleteConfirm && editingRep && (
+        <ConfirmDialog
+          isOpen={showDeleteConfirm}
+          title="حذف الحساب نهائياً"
+          message={`هل أنت متأكد من رغبتك في حذف حساب "${editingRep.name}" نهائياً من المنظومة؟`}
+          confirmLabel="حذف الحساب"
+          cancelLabel="تراجع"
+          variant="danger"
+          onConfirm={() => {
+            if (onDeleteRepresentative) {
+              onDeleteRepresentative(editingRep.id);
+            }
+            setShowDeleteConfirm(false);
+            onClose();
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>,
     document.body
   );

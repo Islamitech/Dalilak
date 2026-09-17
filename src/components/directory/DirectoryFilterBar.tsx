@@ -11,11 +11,17 @@ import {
   Navigation,
   Shuffle,
   Sparkles,
-  ShieldCheck,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
 } from 'lucide-react';
+
+export type DirectoryVerificationFilter =
+  | 'all'
+  | 'trending'
+  | 'needs_followup'
+  | 'verified'
+  | 'in_progress'
+  | 'fully_paid'
+  | 'unpaid'
+  | 'google_verified';
 
 export interface DirectoryFilterBarProps {
   searchQuery: string;
@@ -24,14 +30,15 @@ export interface DirectoryFilterBarProps {
   onGovFilterChange: (gov: string) => void;
   categoryFilter: string;
   onCategoryFilterChange: (cat: string) => void;
-  verificationFilter: 'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid';
-  onVerificationFilterChange: (filter: 'all' | 'trending' | 'needs_followup' | 'verified' | 'in_progress' | 'fully_paid' | 'unpaid') => void;
+  verificationFilter: DirectoryVerificationFilter;
+  onVerificationFilterChange: (filter: DirectoryVerificationFilter) => void;
   sortBy: DirectorySortOption;
   onSortByChange: (sort: DirectorySortOption) => void;
   onReshuffle: () => void;
   viewMode: 'grid' | 'list' | 'map';
   onViewModeChange: (mode: 'grid' | 'list' | 'map') => void;
   isRep: boolean;
+  isAdmin?: boolean;
   repScope?: 'my' | 'all';
   myBusinessesCount?: number;
   onToggleRepScope?: (scope: 'my' | 'all') => void;
@@ -54,12 +61,15 @@ export const DirectoryFilterBar: React.FC<DirectoryFilterBarProps> = ({
   viewMode,
   onViewModeChange,
   isRep,
+  isAdmin = false,
   repScope = 'my',
   myBusinessesCount = 0,
   onToggleRepScope,
   stats,
   filteredCount,
 }) => {
+  const showAdminFilters = isRep || isAdmin;
+
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3 sm:p-4 space-y-3.5 shadow-xs">
       {/* Scope selector for field representatives */}
@@ -129,154 +139,77 @@ export const DirectoryFilterBar: React.FC<DirectoryFilterBarProps> = ({
           )}
         </div>
 
-        {/* Governorate Filter */}
-        <div className="w-full sm:w-52">
-          <select
-            value={govFilter}
-            onChange={(e) => {
-              triggerHaptic('selection');
-              onGovFilterChange(e.target.value);
-            }}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] focus:border-amber-500 rounded-2xl py-2.5 px-3 text-xs sm:text-sm text-[var(--text-primary)] font-bold focus:outline-hidden transition-all cursor-pointer shadow-inner"
-          >
-            <option value="all">كل المحافظات المصرية ({stats.govs})</option>
-            {EGYPT_GOVERNORATES.map((gov) => (
-              <option key={gov} value={gov}>
-                {gov}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+        {/* Filters Row: Single Governorate select for visitors, or Grid with Admin Filter for Reps/Admins */}
+        {showAdminFilters ? (
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+            {/* Governorate Filter */}
+            <div className="w-full sm:w-48">
+              <select
+                value={govFilter}
+                onChange={(e) => {
+                  triggerHaptic('selection');
+                  onGovFilterChange(e.target.value);
+                }}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] focus:border-amber-500 rounded-2xl py-2.5 px-3 text-xs sm:text-sm text-[var(--text-primary)] font-bold focus:outline-hidden transition-all cursor-pointer shadow-inner"
+              >
+                <option value="all">كل المحافظات ({stats.govs})</option>
+                {EGYPT_GOVERNORATES.map((gov) => (
+                  <option key={gov} value={gov}>
+                    {gov}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      {/* Row 2: Status / Verification Filter Pills */}
-      <div className="relative">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic('selection');
-            onVerificationFilterChange('all');
-          }}
-          className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-            verificationFilter === 'all'
-              ? 'bg-amber-500 text-slate-950 shadow-xs'
-              : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-          }`}
-        >
-          <span>الكل</span>
-          <span className="font-mono text-[10px] opacity-80">({stats.totalRegistered})</span>
-        </button>
-
-        {stats.trending > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('selection');
-              onVerificationFilterChange('trending');
-            }}
-            className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-              verificationFilter === 'trending'
-                ? 'bg-teal-500 text-white shadow-xs'
-                : 'bg-[var(--input-bg)] text-teal-600 hover:text-teal-700 border border-teal-500/30'
-            }`}
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>رائج ومجاني 🔥</span>
-            <span className="font-mono text-[10px] opacity-80">({stats.trending})</span>
-          </button>
+            {/* Administrative Verification & Status Filter Dropdown (Hidden from public visitors) */}
+            <div className="w-full sm:w-48">
+              <select
+                value={verificationFilter}
+                onChange={(e) => {
+                  triggerHaptic('selection');
+                  onVerificationFilterChange(e.target.value as DirectoryVerificationFilter);
+                }}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] focus:border-amber-500 rounded-2xl py-2.5 px-3 text-xs sm:text-sm text-[var(--text-primary)] font-bold focus:outline-hidden transition-all cursor-pointer shadow-inner"
+              >
+                <option value="all">كل الحالات ({stats.totalRegistered})</option>
+                <option value="verified">معتمد وموثق 🟢 ({stats.directoryApproved})</option>
+                {stats.pendingDirectory > 0 && (
+                  <option value="in_progress">قيد المراجعة ⏳ ({stats.pendingDirectory})</option>
+                )}
+                <option value="fully_paid">مسدد بالكامل 💳 ({stats.fullyPaid})</option>
+                <option value="unpaid">غير مدفوع / متبقي ⏳ ({stats.unpaid})</option>
+                {stats.needsFollowup > 0 && (
+                  <option value="needs_followup">بحاجة لمتابعة ⚠️ ({stats.needsFollowup})</option>
+                )}
+                {stats.trending > 0 && (
+                  <option value="trending">باقة ترويجية مجانية ({stats.trending})</option>
+                )}
+                {stats.googleMapsVerified > 0 && (
+                  <option value="google_verified">موثق بـ Google ({stats.googleMapsVerified})</option>
+                )}
+              </select>
+            </div>
+          </div>
+        ) : (
+          /* Public Visitors View: Clean Governorate Selector Only */
+          <div className="w-full sm:w-56">
+            <select
+              value={govFilter}
+              onChange={(e) => {
+                triggerHaptic('selection');
+                onGovFilterChange(e.target.value);
+              }}
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] focus:border-amber-500 rounded-2xl py-2.5 px-3 text-xs sm:text-sm text-[var(--text-primary)] font-bold focus:outline-hidden transition-all cursor-pointer shadow-inner"
+            >
+              <option value="all">كل المحافظات ({stats.govs})</option>
+              {EGYPT_GOVERNORATES.map((gov) => (
+                <option key={gov} value={gov}>
+                  {gov}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
-
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic('selection');
-            onVerificationFilterChange('verified');
-          }}
-          className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-            verificationFilter === 'verified'
-              ? 'bg-emerald-500 text-white shadow-xs'
-              : 'bg-[var(--input-bg)] text-emerald-600 hover:text-emerald-700 border border-emerald-500/30'
-          }`}
-        >
-          <ShieldCheck className="w-3 h-3" />
-          <span>معتمد 🟢</span>
-          <span className="font-mono text-[10px] opacity-80">({stats.directoryApproved})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic('selection');
-            onVerificationFilterChange('in_progress');
-          }}
-          className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-            verificationFilter === 'in_progress'
-              ? 'bg-amber-500 text-slate-950 shadow-xs'
-              : 'bg-[var(--input-bg)] text-amber-600 hover:text-amber-700 border border-amber-500/30'
-          }`}
-        >
-          <Clock className="w-3 h-3" />
-          <span>قيد المراجعة ⏳</span>
-          <span className="font-mono text-[10px] opacity-80">({stats.pendingDirectory})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic('selection');
-            onVerificationFilterChange('fully_paid');
-          }}
-          className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-            verificationFilter === 'fully_paid'
-              ? 'bg-blue-500 text-white shadow-xs'
-              : 'bg-[var(--input-bg)] text-blue-600 hover:text-blue-700 border border-blue-500/30'
-          }`}
-        >
-          <CheckCircle2 className="w-3 h-3" />
-          <span>مسدد بالكامل</span>
-          <span className="font-mono text-[10px] opacity-80">({stats.fullyPaid})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic('selection');
-            onVerificationFilterChange('unpaid');
-          }}
-          className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-            verificationFilter === 'unpaid'
-              ? 'bg-amber-600 text-white shadow-xs'
-              : 'bg-[var(--input-bg)] text-amber-700 hover:text-amber-800 border border-amber-500/30'
-          }`}
-        >
-          <Clock className="w-3 h-3" />
-          <span>غير مدفوع</span>
-          <span className="font-mono text-[10px] opacity-80">({stats.unpaid})</span>
-        </button>
-
-        {stats.needsFollowup > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('selection');
-              onVerificationFilterChange('needs_followup');
-            }}
-            className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 shrink-0 ${
-              verificationFilter === 'needs_followup'
-                ? 'bg-rose-500 text-white shadow-xs'
-                : 'bg-[var(--input-bg)] text-rose-600 hover:text-rose-700 border border-rose-500/30'
-            }`}
-          >
-            <AlertCircle className="w-3 h-3" />
-            <span>بحاجة لمتابعة ⚠️</span>
-            <span className="font-mono text-[10px] opacity-80">({stats.needsFollowup})</span>
-          </button>
-        )}
-        </div>
-        {/* Visual fading indicators for horizontal scroll cue on mobile */}
-        <div className="pointer-events-none absolute left-0 top-0 bottom-1 w-6 bg-gradient-to-r from-[var(--bg-card,#ffffff)] to-transparent sm:hidden" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-6 bg-gradient-to-l from-[var(--bg-card,#ffffff)] to-transparent sm:hidden" />
       </div>
 
       {/* Row 3: Sort & Layout Controls */}

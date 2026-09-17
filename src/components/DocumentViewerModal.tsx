@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState } from 'react';
 import { X, FileText, CheckCircle2, ZoomIn, ZoomOut, ShieldCheck } from 'lucide-react';
 import { Business } from '../types';
@@ -51,7 +52,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   const currentDoc = docs.find(d => d.id === selectedDoc) || docs[0];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <OverlayLayer className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
@@ -216,6 +217,6 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </OverlayLayer>
   );
 };

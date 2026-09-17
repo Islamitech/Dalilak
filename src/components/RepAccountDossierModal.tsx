@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -236,7 +237,7 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
   };
 
   return createPortal(
-    <div
+    <OverlayLayer
       className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onClick={onClose}
     >
@@ -345,7 +346,7 @@ export const RepAccountDossierModal: React.FC<RepAccountDossierModalProps> = ({
           onClose={() => setSelectedReceiptPhoto(null)}
         />
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

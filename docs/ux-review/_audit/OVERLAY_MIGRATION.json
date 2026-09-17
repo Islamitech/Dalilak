@@ -1,0 +1,122 @@
+[
+  {
+    "file": "src/components/AboutUsModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/modals/AdminAccountModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/modals/AdminAvatarModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/modals/AdminPaymentConfigModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/modals/AdminPayoutActionModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/modals/AdminReceiptModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/modals/AdminSendPackageModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/tabs/AdminWhatsAppCampaignTab.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/tabs/ExportContactsModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/admin/tabs/ExportDirectoryLinksModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/auth/ImagePreviewModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/business-drawer/AddServiceInvoiceModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/business-form/BusinessPaymentModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/BusinessDetailsDrawer.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/BusinessEditModal.tsx",
+    "overlays": 2
+  },
+  {
+    "file": "src/components/ConfirmDialog.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/design-system/Drawer.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/DocumentViewerModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/InvoiceModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/leads/LeadWhatsAppModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/LoginModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/modals/AddServiceInvoiceModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/PackagesHub.tsx",
+    "overlays": 2
+  },
+  {
+    "file": "src/components/PackagesModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/PermissionsModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/rep-finance/AnnualStatementModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/rep-finance/RemitInfoModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/RepAccountDossierModal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/RepresentativePortal.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src/components/RequestPayoutModal.tsx",
+    "overlays": 1
+  }
+]

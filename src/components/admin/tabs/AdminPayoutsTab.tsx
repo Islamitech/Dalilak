@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { PayoutRequest, Representative, User } from '../../../types';
 import { PAYOUT_METHOD_LABELS } from '../../../utils/commission';
 import { isSuperAdmin } from '../../../utils/permissions';
@@ -46,6 +47,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
 }) => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'payout' | 'remittance'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [payoutToDelete, setPayoutToDelete] = useState<PayoutRequest | null>(null);
 
   // ── Financial Stats Separated Accurately by Type ──
   // 1. Outgoing Payouts (العمولات المصروفة للمناديب - صادر من المنصة)
@@ -464,11 +466,7 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
                     {isSuperAdmin(currentUser) && onDeletePayout && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (confirm(`تأكيد الحذف النهائي:\nهل أنت متأكد من رغبتك في حذف هذا الطلب / المعاملة المالية نهائياً من المنظومة وقاعدة البيانات؟\nالمبلغ: ${payout.amount} ج.م - المندوب: ${payout.repName}`)) {
-                            onDeletePayout(payout.id);
-                          }
-                        }}
+                        onClick={() => setPayoutToDelete(payout)}
                         className="bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white font-black px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-1 text-xs transition-colors cursor-pointer"
                         title="حذف نهائي بات للمعاملة من قاعدة البيانات (حصري للـ Super Admin)"
                       >
@@ -511,6 +509,21 @@ export const AdminPayoutsTab: React.FC<AdminPayoutsTabProps> = ({
           <p className="text-xs text-[var(--text-muted)]">عند قيام المناديب بطلب سحب عمولاتهم أو تسجيل إيصالات سداد، ستظهر الطلبات هنا فورياً.</p>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={Boolean(payoutToDelete)}
+        title="تأكيد حذف المعاملة المالية"
+        message={`هل أنت متأكد من حذف معاملة ${payoutToDelete?.repName || ''} بقيمة ${payoutToDelete?.amount?.toLocaleString('en-US') || 0} ج.م نهائياً من قاعدة البيانات؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف نهائي"
+        variant="danger"
+        onConfirm={() => {
+          if (payoutToDelete && onDeletePayout) {
+            onDeletePayout(payoutToDelete.id);
+            setPayoutToDelete(null);
+          }
+        }}
+        onCancel={() => setPayoutToDelete(null)}
+      />
     </div>
   );
 };

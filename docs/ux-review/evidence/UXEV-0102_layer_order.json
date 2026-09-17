@@ -1,0 +1,20 @@
+{
+  "layers": [
+    {
+      "label": "نافذة عالية الطبقة",
+      "parent": "BODY",
+      "z": "100300"
+    },
+    {
+      "label": "صورة اختبار صناعية",
+      "parent": "BODY",
+      "z": "100310"
+    }
+  ],
+  "overflow": "hidden",
+  "topAtCenter": "صورة اختبار صناعية",
+  "viewport": [
+    360,
+    800
+  ]
+}

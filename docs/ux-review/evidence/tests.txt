@@ -1,0 +1,9 @@
+
+ RUN  v5.0.1 C:/Users/Ahmed/Desktop/New folder/Dalelak
+
+
+ Test Files  7 passed (7)
+      Tests  64 passed (64)
+   Start at  19:22:20
+   Duration  1.19s (transform 44%, import 40%, tests 11%, worker 6%)
+

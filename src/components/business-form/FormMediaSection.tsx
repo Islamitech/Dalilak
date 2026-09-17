@@ -24,7 +24,8 @@ export const FormMediaSection: React.FC<FormMediaSectionProps> = ({
 
   const handlePullGooglePhotos = async () => {
     if (!googleMapsUrl?.trim()) {
-      alert('يرجى كتابة أو لصق رابط خرائط Google في قسم الموقع أولاً');
+      setPullNotice('⚠️ يرجى كتابة أو لصق رابط خرائط Google في قسم الموقع أولاً');
+      setTimeout(() => setPullNotice(null), 4500);
       return;
     }
     triggerHaptic('medium');

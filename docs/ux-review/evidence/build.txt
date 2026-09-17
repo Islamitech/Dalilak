@@ -1,0 +1,27 @@
+vite v6.4.3 building for production...
+transforming...
+✓ 1988 modules transformed.
+rendering chunks...
+computing gzip size...
+.ux-build/index.html                                  7.83 kB │ gzip:   2.49 kB
+.ux-build/assets/index-DQf2ip9k.css                 240.96 kB │ gzip:  29.50 kB
+.ux-build/assets/VideoWatermarkBadge-DmxpegzC.js      0.92 kB │ gzip:   0.52 kB
+.ux-build/assets/UserAvatar-0nANCQWe.js               2.49 kB │ gzip:   1.16 kB
+.ux-build/assets/react-vendor-CgLLQeNd.js             3.90 kB │ gzip:   1.52 kB
+.ux-build/assets/VideoPlayerModal-Cvg_HIGO.js         5.01 kB │ gzip:   1.93 kB
+.ux-build/assets/RequestPayoutModal-CfTzpSTO.js       8.45 kB │ gzip:   2.92 kB
+.ux-build/assets/RepDashboard-C14gaCbo.js             9.67 kB │ gzip:   2.75 kB
+.ux-build/assets/UniversalListingCard-CPeMuwsA.js    10.39 kB │ gzip:   3.10 kB
+.ux-build/assets/PaymentGatewayModal-BaXzeWDL.js     18.80 kB │ gzip:   4.55 kB
+.ux-build/assets/RepresentativePortal-D1hMMCbN.js    27.44 kB │ gzip:   6.60 kB
+.ux-build/assets/GoogleMapsSyncModal-CW5ySJb9.js     28.07 kB │ gzip:   6.80 kB
+.ux-build/assets/AdminProfileModal-CdQs9Mz3.js       29.99 kB │ gzip:   5.85 kB
+.ux-build/assets/DocViewerModal-rwaAt1dt.js          32.59 kB │ gzip:   7.88 kB
+.ux-build/assets/icons-vendor-D-AWWFAw.js            62.58 kB │ gzip:  14.01 kB
+.ux-build/assets/BusinessForm-BvtXNIsg.js           107.31 kB │ gzip:  25.54 kB
+.ux-build/assets/RepProfile-CsxXxyj8.js             110.56 kB │ gzip:  21.52 kB
+.ux-build/assets/BusinessDetailsDrawer-CPR_X9qI.js  154.72 kB │ gzip:  34.84 kB
+.ux-build/assets/supabase-vendor-CSIM0fnT.js        219.90 kB │ gzip:  57.42 kB
+.ux-build/assets/AdminDashboard-Bhj2sIvY.js         492.53 kB │ gzip: 103.79 kB
+.ux-build/assets/index-DapaNU6X.js                  862.44 kB │ gzip: 233.29 kB
+✓ built in 13.21s

@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../ui/OverlayLayer';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Representative } from '../../types';
@@ -60,7 +61,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
   }, [isOpen, isRepUser, isFeeExempt, setPaymentStatus, setAmountPaid, setPaymentMethod]);
 
   return createPortal(
-    <div
+    <OverlayLayer
       className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in"
       dir="rtl"
     >
@@ -409,7 +410,7 @@ export const BusinessPaymentModal: React.FC<BusinessPaymentModalProps> = ({
           </button>
         </div>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

@@ -578,6 +578,7 @@ export function mapDbToRep(item: any): Representative {
   let metaPendingPhone: string | undefined = item.pending_phone || item.pendingPhone;
   let metaPhoneStatus = item.phone_status || item.phoneStatus || 'none';
   let metaPassword: string | undefined = item.password;
+  let metaGender: 'male' | 'female' | undefined = item.gender;
   let metaLastActiveTimestamp: number | undefined = item.last_active_timestamp ? Number(item.last_active_timestamp) : (item.lastActiveTimestamp ? Number(item.lastActiveTimestamp) : undefined);
   let metaActiveSessionId: string | undefined = item.active_session_id || item.activeSessionId;
   let metaIsDeleted: boolean | undefined = item.is_deleted !== undefined ? Boolean(item.is_deleted) : item.isDeleted !== undefined ? Boolean(item.isDeleted) : undefined;
@@ -606,6 +607,7 @@ export function mapDbToRep(item: any): Representative {
         if (parsed.activeSessionId && !metaActiveSessionId) metaActiveSessionId = parsed.activeSessionId;
         if (parsed.isDeleted !== undefined && metaIsDeleted === undefined) metaIsDeleted = Boolean(parsed.isDeleted);
         if (parsed.deletedAt && !metaDeletedAt) metaDeletedAt = parsed.deletedAt;
+        if (parsed.gender && !metaGender) metaGender = parsed.gender;
         if (parsed.deletedBy && !metaDeletedBy) metaDeletedBy = parsed.deletedBy;
         if (parsed.deletedByRole && !metaDeletedByRole) metaDeletedByRole = parsed.deletedByRole;
       }
@@ -620,6 +622,7 @@ export function mapDbToRep(item: any): Representative {
     name: item.name || 'مندوب معتمد',
     email: item.email || '',
     phone: item.phone || '',
+    gender: (metaGender || 'male') as 'male' | 'female', // إجباري — افتراضي male
     pendingPhone: metaPendingPhone,
     phoneStatus: metaPhoneStatus,
     nationalId: item.national_id || item.nationalId,
@@ -670,6 +673,7 @@ export function mapRepToDb(rep: Partial<Representative>): any {
   if (rep.email !== undefined) record.email = rep.email;
   if (rep.phone !== undefined) record.phone = rep.phone;
   if (rep.nationalId !== undefined) record.national_id = rep.nationalId || null;
+  if (rep.gender !== undefined) record.gender = rep.gender;
   if (rep.role !== undefined) record.role = rep.role;
   if (rep.roleTitle !== undefined) record.role_title = rep.roleTitle;
   if (rep.governorate !== undefined) record.governorate = rep.governorate;
@@ -725,6 +729,7 @@ export function mapRepToDb(rep: Partial<Representative>): any {
       deletedAt: rep.deletedAt ?? existingMeta.deletedAt,
       deletedBy: rep.deletedBy ?? existingMeta.deletedBy,
       deletedByRole: rep.deletedByRole ?? existingMeta.deletedByRole,
+      gender: rep.gender ?? existingMeta.gender ?? 'male', // إجباري — مدمج بالباقة للأمان الكامل ضد اختلاف الجداول
     };
 
     record.avatar = JSON.stringify(avatarBundle);

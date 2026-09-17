@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Representative } from '../types';
@@ -247,9 +248,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <OverlayLayer className="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {modalBox}
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

@@ -267,6 +267,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </div>
       </div>
 
+      {/* مكان مخصص لزر نسيت كلمة المرور (واجهة فقط دون منطق معقد حالياً) */}
+      <div className="flex justify-end -mt-1">
+        <button
+          type="button"
+          onClick={() => {
+            onError('ℹ️ خاصية استعادة كلمة المرور قيد التطوير — يرجى التواصل مع إدارة المنظومة.');
+          }}
+          className="text-[11px] font-bold text-amber-500 hover:text-amber-600 hover:underline transition-colors cursor-pointer"
+        >
+          نسيت كلمة المرور؟
+        </button>
+      </div>
+
       <button
         type="submit"
         disabled={isLoading}

@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../ui/OverlayLayer';
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Representative } from '../../types';
@@ -91,7 +92,7 @@ export const AnnualStatementModal: React.FC<AnnualStatementModalProps> = ({
   const qrCodeDataUrl = generateQrDataUrl(statementVerifyUrl, 200);
 
   return createPortal(
-    <div
+    <OverlayLayer
       className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       dir="rtl"
     >
@@ -510,7 +511,7 @@ export const AnnualStatementModal: React.FC<AnnualStatementModalProps> = ({
           </div>
         </div>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
 ﻿import React, { useState, useMemo } from 'react';
 import {
   X,
@@ -108,7 +109,7 @@ export const ExportDirectoryLinksModal: React.FC<ExportDirectoryLinksModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in font-['Cairo',sans-serif]">
+    <OverlayLayer className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in font-['Cairo',sans-serif]">
       <div
         className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in-scale"
         style={{ direction: 'rtl' }}
@@ -303,6 +304,6 @@ export const ExportDirectoryLinksModal: React.FC<ExportDirectoryLinksModalProps>
           </button>
         </div>
       </div>
-    </div>
+    </OverlayLayer>
   );
 };

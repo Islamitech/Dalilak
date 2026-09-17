@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PaymentGatewayConfig } from '../../../types';
@@ -42,7 +43,7 @@ export const AdminPaymentConfigModal: React.FC<AdminPaymentConfigModalProps> = (
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <OverlayLayer className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
       <form
         onSubmit={handleSubmit}
         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 text-xs my-auto text-[var(--text-primary)] shadow-2xl transition-colors duration-300 max-h-[92vh] overflow-y-auto"
@@ -109,7 +110,7 @@ export const AdminPaymentConfigModal: React.FC<AdminPaymentConfigModalProps> = (
           </button>
         </div>
       </form>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };

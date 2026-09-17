@@ -2341,6 +2341,7 @@ app.post('/api/representatives', (req, res) => {
     pendingPhone: repData.pendingPhone || undefined,
     phoneStatus: repData.phoneStatus || 'none',
     nationalId: repData.nationalId || '',
+    gender: repData.gender === 'female' ? 'female' : 'male', // إجباري — حفظ الجنس (ذكر/أنثى)
     activationFacePhoto: repData.activationFacePhoto || repData.avatar || '',
     nationalIdCardPhoto: repData.nationalIdCardPhoto || '',
     nationalIdCardBackPhoto: repData.nationalIdCardBackPhoto || '',

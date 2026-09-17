@@ -1,5 +1,5 @@
-import React from 'react';
-import { Phone, MessageCircle, MapPin, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Phone, MessageCircle, MapPin, Share2, Check } from 'lucide-react';
 import { Business } from '../../types';
 import { getPublicDirectoryUrl } from '../../utils/directoryUrl';
 
@@ -9,6 +9,13 @@ interface QuickActionBarProps {
 }
 
 export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compact = false }) => {
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const showFeedback = (msg: string) => {
+    setFeedback(msg);
+    setTimeout(() => setFeedback(null), 2500);
+  };
+
   const formatPhone = (phone: string) => {
     let clean = (phone || '').replace(/\D/g, '');
     if (clean.startsWith('0')) {
@@ -23,7 +30,7 @@ export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compac
     e.stopPropagation();
     const phone = formatPhone(business.phone || business.secondaryPhone || '');
     if (!phone) {
-      alert('لا يتوفر رقم هاتف مسجل لهذا النشاط');
+      showFeedback('لا يتوفر رقم هاتف مسجل لهذا النشاط');
       return;
     }
     const msg = encodeURIComponent(
@@ -35,7 +42,7 @@ export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compac
   const handleCall = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!business.phone) {
-      alert('لا يتوفر رقم هاتف للاتصال');
+      showFeedback('لا يتوفر رقم هاتف للاتصال');
       return;
     }
     window.location.href = `tel:${business.phone}`;
@@ -48,7 +55,7 @@ export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compac
     } else if (business.lat && business.lng) {
       window.open(`https://maps.google.com/?q=${business.lat},${business.lng}`, '_blank');
     } else {
-      alert('لم يتم تحديد إحداثيات موقع هذا النشاط على الخريطة');
+      showFeedback('لم يتم تحديد إحداثيات موقع هذا النشاط على الخريطة');
     }
   };
 
@@ -66,8 +73,12 @@ export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compac
         // Ignored or cancelled
       }
     } else {
-      navigator.clipboard.writeText(shareUrl);
-      alert('تم نسخ رابط المنشأة بنجاح!');
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showFeedback('تم نسخ رابط المنشأة بنجاح! ✓');
+      } catch {
+        showFeedback('تعذر نسخ الرابط');
+      }
     }
   };
 
@@ -76,46 +87,54 @@ export const QuickActionBar: React.FC<QuickActionBarProps> = ({ business, compac
     : 'flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer';
 
   return (
-    <div className={`flex items-center ${compact ? 'gap-1' : 'gap-2 w-full pt-3 border-t border-[var(--border-color)]'}`}>
-      {/* Call */}
-      <button
-        onClick={handleCall}
-        title="اتصال هاتفي"
-        className={`${btnClass} ${!compact ? 'bg-[var(--input-bg)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-blue-500/10 hover:text-blue-500' : ''}`}
-      >
-        <Phone className="w-3.5 h-3.5 text-blue-500" />
-        {!compact && <span>اتصال</span>}
-      </button>
+    <div className="relative">
+      {feedback && (
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[11px] font-bold py-1 px-3 rounded-xl shadow-lg whitespace-nowrap animate-in fade-in zoom-in-95 duration-150 z-30 border border-amber-500/30 flex items-center gap-1.5">
+          <span>{feedback}</span>
+        </div>
+      )}
 
-      {/* WhatsApp */}
-      <button
-        onClick={handleWhatsApp}
-        title="محادثة واتساب"
-        className={`${btnClass} ${!compact ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20' : ''}`}
-      >
-        <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-        {!compact && <span>واتساب</span>}
-      </button>
+      <div className={`flex items-center ${compact ? 'gap-1' : 'gap-2 w-full pt-3 border-t border-[var(--border-color)]'}`}>
+        {/* Call */}
+        <button
+          onClick={handleCall}
+          title="اتصال هاتفي"
+          className={`${btnClass} ${!compact ? 'bg-[var(--input-bg)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-blue-500/10 hover:text-blue-500' : ''}`}
+        >
+          <Phone className="w-3.5 h-3.5 text-blue-500" />
+          {!compact && <span>اتصال</span>}
+        </button>
 
-      {/* Directions */}
-      <button
-        onClick={handleDirections}
-        title="الموقع على الخريطة"
-        className={`${btnClass} ${!compact ? 'bg-[var(--input-bg)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-rose-500/10 hover:text-rose-500' : ''}`}
-      >
-        <MapPin className="w-3.5 h-3.5 text-rose-500" />
-        {!compact && <span>الموقع</span>}
-      </button>
+        {/* WhatsApp */}
+        <button
+          onClick={handleWhatsApp}
+          title="محادثة واتساب"
+          className={`${btnClass} ${!compact ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20' : ''}`}
+        >
+          <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
+          {!compact && <span>واتساب</span>}
+        </button>
 
-      {/* Share */}
-      <button
-        onClick={handleShare}
-        title="مشاركة"
-        className={`${btnClass} ${!compact ? 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]' : ''}`}
-      >
-        <Share2 className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-        {!compact && <span>مشاركة</span>}
-      </button>
+        {/* Directions */}
+        <button
+          onClick={handleDirections}
+          title="الموقع على الخريطة"
+          className={`${btnClass} ${!compact ? 'bg-[var(--input-bg)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-rose-500/10 hover:text-rose-500' : ''}`}
+        >
+          <MapPin className="w-3.5 h-3.5 text-rose-500" />
+          {!compact && <span>الموقع</span>}
+        </button>
+
+        {/* Share */}
+        <button
+          onClick={handleShare}
+          title="مشاركة"
+          className={`${btnClass} ${!compact ? 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]' : ''}`}
+        >
+          <Share2 className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+          {!compact && <span>مشاركة</span>}
+        </button>
+      </div>
     </div>
   );
 };

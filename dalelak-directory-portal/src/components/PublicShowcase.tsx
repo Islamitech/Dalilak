@@ -22,7 +22,7 @@ const FavoritesView = React.lazy(() => import('./views/FavoritesView').then(m =>
 const ForBusinessView = React.lazy(() => import('./views/ForBusinessView').then(m => ({ default: m.ForBusinessView })));
 const BusinessPricingView = React.lazy(() => import('./views/BusinessPricingView').then(m => ({ default: m.BusinessPricingView })));
 const AboutView = React.lazy(() => import('./views/AboutView').then(m => ({ default: m.AboutView })));
-const ActivityDetailModal = React.lazy(() => import('./activity/ActivityDetailModal').then(m => ({ default: m.ActivityDetailModal })));
+import { ActivityDetailModal } from './activity/ActivityDetailModal';
 const VideoPlayerModal = React.lazy(() => import('./VideoPlayerModal').then(m => ({ default: m.VideoPlayerModal })));
 
 export interface PublicShowcaseProps {
@@ -161,6 +161,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   // 5. Selected Business (Modal details)
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [selectedVideoBiz, setSelectedVideoBiz] = useState<Business | null>(null);
+  const [pinnedDirectBizId, setPinnedDirectBizId] = useState<string | null>(null);
   const isDirectLinkOpenRef = React.useRef<boolean>(Boolean(initialBizId));
 
   const handleOpenBusiness = (biz: Business) => {
@@ -174,12 +175,8 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   };
 
   const handleCloseBusiness = () => {
-    // 💡 Only retain category context if the visitor came directly via an external shared link,
-    // so they discover related businesses in that category after viewing the shared card.
-    // For normal directory browsing or after filter reset, keep the user's filter untouched.
-    if (isDirectLinkOpenRef.current && selectedBiz?.category) {
-      setCategoryFilter(selectedBiz.category);
-    }
+    // 💡 The background view is already pre-configured upfront on load,
+    // so closing the modal simply unmounts it cleanly without triggering background recalculations or layout shift.
     isDirectLinkOpenRef.current = false;
     setSelectedBiz(null);
     setCurrentPath('/search');
@@ -188,7 +185,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     } catch {}
   };
 
-  // Deep Link Auto-Select Business on load & lock category context
+  // Deep Link Auto-Select Business on load, lock category context & pin business at #1
   useEffect(() => {
     if (!initialBizId || businesses.length === 0) return;
     let raw = initialBizId.trim();
@@ -212,6 +209,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
     if (match) {
       setSelectedBiz(match);
+      setPinnedDirectBizId(match.id);
       if (match.category) {
         setCategoryFilter(match.category);
       }
@@ -231,6 +229,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   // Reset all filters handler
   const resetAllFilters = () => {
     isDirectLinkOpenRef.current = false;
+    setPinnedDirectBizId(null);
     setSearchQuery('');
     setGovFilter('all');
     setCityFilter('all');
@@ -363,6 +362,37 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     }
 
     // Default Sorting ('default'):
+    // 0. Direct Link Contextual Ordering:
+    // If opened from a direct activity link, pin that exact business at #1,
+    // and dynamically shuffle related businesses (same category/area) while maintaining fair exposure!
+    if (pinnedDirectBizId && sortBy === 'default') {
+      const pinnedBiz = list.find((b) => b.id === pinnedDirectBizId);
+      if (pinnedBiz) {
+        const rest = list.filter((b) => b.id !== pinnedDirectBizId);
+        const sameCategoryAndCity: Business[] = [];
+        const sameCategoryOtherCity: Business[] = [];
+        const otherBusinesses: Business[] = [];
+
+        rest.forEach((b) => {
+          const isSameCat = b.category && pinnedBiz.category && b.category.trim() === pinnedBiz.category.trim();
+          const isSameCity = b.city && pinnedBiz.city && b.city.trim().toLowerCase() === pinnedBiz.city.trim().toLowerCase();
+          if (isSameCat && isSameCity) {
+            sameCategoryAndCity.push(b);
+          } else if (isSameCat) {
+            sameCategoryOtherCity.push(b);
+          } else {
+            otherBusinesses.push(b);
+          }
+        });
+
+        const shuffledSameCatCity = shuffleBusinessesWithSeed(sameCategoryAndCity, shuffleSeed);
+        const shuffledSameCatOther = shuffleBusinessesWithSeed(sameCategoryOtherCity, shuffleSeed + 1);
+        const shuffledOther = shuffleBusinessesWithSeed(otherBusinesses, shuffleSeed + 2);
+
+        return [pinnedBiz, ...shuffledSameCatCity, ...shuffledSameCatOther, ...shuffledOther];
+      }
+    }
+
     // 1. If user has NOT applied any filter: Unbiased, dynamic per-load random shuffle (breaks static patterns)
     const hasUserFilters =
       searchQuery.trim() !== '' ||
@@ -407,6 +437,7 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
     sortBy,
     userCoords,
     shuffleSeed,
+    pinnedDirectBizId,
   ]);
 
   // Route Dispatcher View
@@ -589,21 +620,19 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
       {/* 4. Activity Details Modal */}
       {selectedBiz && (
-        <React.Suspense fallback={null}>
-          <ActivityDetailModal
-            business={selectedBiz}
-            onClose={handleCloseBusiness}
-            isFavorite={favorites.includes(selectedBiz.id)}
-            onToggleFavorite={toggleFavorite}
-            onOpenVideoModal={(b) => setSelectedVideoBiz(b)}
-            allBusinesses={publicBusinesses}
-            onSelectBusiness={(b) => setSelectedBiz(b)}
-            onNavigateToBusinessClaim={(b) => {
-              handleCloseBusiness();
-              handleNavigate('/for-business');
-            }}
-          />
-        </React.Suspense>
+        <ActivityDetailModal
+          business={selectedBiz}
+          onClose={handleCloseBusiness}
+          isFavorite={favorites.includes(selectedBiz.id)}
+          onToggleFavorite={toggleFavorite}
+          onOpenVideoModal={(b) => setSelectedVideoBiz(b)}
+          allBusinesses={publicBusinesses}
+          onSelectBusiness={(b) => setSelectedBiz(b)}
+          onNavigateToBusinessClaim={(b) => {
+            handleCloseBusiness();
+            handleNavigate('/for-business');
+          }}
+        />
       )}
 
       {/* 5. Video Player Modal */}

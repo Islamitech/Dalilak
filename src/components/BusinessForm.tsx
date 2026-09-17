@@ -307,7 +307,7 @@ export const BusinessForm: React.FC<BusinessFormProps> = ({
       }, 4500);
     } else {
       setIsLocating(false);
-      alert('خدمة GPS غير مدعومة على متصفحك.');
+      setAutoFillNotice('⚠️ خدمة تحديد الموقع الجغرافي GPS غير مدعومة على متصفحك.');
     }
   };
 

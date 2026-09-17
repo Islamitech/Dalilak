@@ -1,3 +1,4 @@
+import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState, useEffect } from 'react';
 import { Drawer } from './design-system/Drawer';
 import {
@@ -96,8 +97,8 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
 
   if (!business) return null;
 
-  const isGuest = !currentUser || currentUser.role === 'guest';
   const userRole = (currentUser?.role || 'guest') as string;
+  const isGuest = !currentUser || userRole === 'guest';
   const userName = currentUser?.name || (isGuest ? 'زائر' : 'مستخدم النظام');
   const isManagerial = Boolean(currentUser && ['admin', 'supervisor', 'accountant'].includes(userRole));
   const isOwnerRep = Boolean(currentUser && userRole === 'rep' && (business.repId === currentUser?.id || business.repName === currentUser?.name));
@@ -540,7 +541,9 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
 
       {/* Lightbox for Photos */}
       {selectedPhoto && (
-        <div
+        <OverlayLayer
+          onEscape={() => setSelectedPhoto(null)}
+          aria-label="معاينة صورة النشاط"
           className="fixed inset-0 z-60 bg-slate-950/90 flex items-center justify-center p-4"
           onClick={() => setSelectedPhoto(null)}
         >
@@ -549,7 +552,7 @@ export const BusinessDetailsDrawer: React.FC<BusinessDetailsDrawerProps> = ({
             alt="Preview"
             className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-white/20 animate-fade-in"
           />
-        </div>
+        </OverlayLayer>
       )}
 
       {/* Delete Confirmation Dialog */}

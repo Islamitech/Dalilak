@@ -1,3 +1,4 @@
+import { OverlayLayer } from '../../ui/OverlayLayer';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Representative } from '../../../types';
@@ -16,7 +17,7 @@ export const AdminAvatarModal: React.FC<AdminAvatarModalProps> = ({
   if (!rep) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <OverlayLayer className="fixed inset-0 z-[10050] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl relative text-[var(--text-primary)] my-auto transition-colors duration-300 max-h-[92vh] overflow-y-auto">
         <button
           onClick={onClose}
@@ -76,7 +77,7 @@ export const AdminAvatarModal: React.FC<AdminAvatarModalProps> = ({
           </button>
         </div>
       </div>
-    </div>,
+    </OverlayLayer>,
     document.body
   );
 };
