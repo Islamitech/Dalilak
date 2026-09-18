@@ -1616,7 +1616,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                       </span>
                       <span className="flex items-center gap-1 font-bold text-amber-400">
                         <Star className="w-3 h-3 fill-amber-400" />
-                        <span>{p.rating > 0 ? `${p.rating} (${p.userRatingCount})` : 'جديد'}</span>
+                        <span>{(p.rating ?? 0) > 0 ? `${p.rating} (${p.userRatingCount || 0})` : 'جديد'}</span>
                       </span>
                     </div>
                   </div>
