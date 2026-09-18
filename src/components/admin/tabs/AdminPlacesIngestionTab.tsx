@@ -26,17 +26,16 @@ import {
   Utensils,
   Coffee,
   Info,
-  Smartphone,
-  Compass,
-  Lock,
-  Ban,
+  Globe,
+  RefreshCw,
+  BarChart3,
+  Building2,
+  Check,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { saveBusinessToDb } from '../../../services/db';
-import { classifyPhoneNumber, isPhoneAllowedByFilter, PhoneClassificationType } from '../../../utils/phoneClassifier';
-import { evaluatePlaceGeoBoundary, calculateHaversineDistanceKm, formatLocalizedDistance } from '../../../utils/geoBoundaryGuard';
 
 interface CandidatePlace {
   id: string;
@@ -48,14 +47,8 @@ interface CandidatePlace {
   lat?: number;
   lng?: number;
   phone?: string;
-  phoneClassification?: PhoneClassificationType;
-  phoneLabel?: string;
-  phoneBadgeClass?: string;
-  distanceKm?: number;
-  distanceText?: string;
   rating?: number;
   userRatingCount?: number;
-  isZeroRated?: boolean;
   workingHours?: string;
   googleMapsUri?: string;
   coverPhoto?: string;
@@ -70,8 +63,6 @@ interface BatchSearchMetrics {
   totalFound: number;
   duplicatesCount: number;
   qualifiedCount: number;
-  outOfBoundsCount?: number;
-  phoneExcludedCount?: number;
   estimatedCost: string;
 }
 
@@ -103,8 +94,285 @@ const GOOGLE_API_KEY =
   (import.meta as any).env?.VITE_GOOGLE_PLACES_API_KEY ||
   'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
 
-const EGYPTIAN_HUBS = [
-  { label: 'حدائق الأهرام - الجيزة', query: 'حدائق الأهرام', gov: 'الجيزة', city: 'حدائق الأهرام', lat: 29.9822, lng: 31.1165 },
+// 🏛️ مصفوفة نطاقات وتقسيمات حدائق الأهرام الرسمية (Atlas Hadayek Al-Ahram Matrix)
+export interface HadayekSector {
+  id: string;
+  label: string;
+  query: string;
+  subZone: string;
+  gate?: string;
+  lat: number;
+  lng: number;
+  southLat: number;
+  westLng: number;
+  northLat: number;
+  eastLng: number;
+}
+
+export const HADAYEK_SECTORS: HadayekSector[] = [
+  {
+    id: 'zone_a',
+    label: 'المنطقة أ (بوابة خفرع / شارع الثروة المعدنية)',
+    query: 'المنطقة أ حدائق الأهرام',
+    subZone: 'المنطقة أ',
+    gate: 'البوابة الأولى (خفرع)',
+    lat: 29.9870,
+    lng: 31.1240,
+    southLat: 29.9780,
+    westLng: 31.1150,
+    northLat: 29.9920,
+    eastLng: 31.1300,
+  },
+  {
+    id: 'zone_b',
+    label: 'المنطقة ب (بوابة 1 / خفرع)',
+    query: 'المنطقة ب حدائق الأهرام',
+    subZone: 'المنطقة ب',
+    gate: 'البوابة الأولى (خفرع)',
+    lat: 29.9855,
+    lng: 31.1215,
+    southLat: 29.9770,
+    westLng: 31.1130,
+    northLat: 29.9910,
+    eastLng: 31.1280,
+  },
+  {
+    id: 'zone_c',
+    label: 'المنطقة ج (بوابة 2 / خوفو والشارع التجاري)',
+    query: 'المنطقة ج حدائق الأهرام',
+    subZone: 'المنطقة ج',
+    gate: 'البوابة الثانية (خوفو)',
+    lat: 29.9840,
+    lng: 31.1175,
+    southLat: 29.9760,
+    westLng: 31.1090,
+    northLat: 29.9900,
+    eastLng: 31.1240,
+  },
+  {
+    id: 'zone_d',
+    label: 'المنطقة د (بين البوابتين 2 و 3)',
+    query: 'المنطقة د حدائق الأهرام',
+    subZone: 'المنطقة د',
+    gate: 'البوابة الثانية والثالثة',
+    lat: 29.9815,
+    lng: 31.1130,
+    southLat: 29.9740,
+    westLng: 31.1050,
+    northLat: 29.9880,
+    eastLng: 31.1200,
+  },
+  {
+    id: 'zone_e',
+    label: 'المنطقة هـ',
+    query: 'المنطقة هـ حدائق الأهرام',
+    subZone: 'المنطقة هـ',
+    lat: 29.9790,
+    lng: 31.1100,
+    southLat: 29.9710,
+    westLng: 31.1020,
+    northLat: 29.9850,
+    eastLng: 31.1170,
+  },
+  {
+    id: 'zone_f',
+    label: 'المنطقة و',
+    query: 'المنطقة و حدائق الأهرام',
+    subZone: 'المنطقة و',
+    lat: 29.9775,
+    lng: 31.1070,
+    southLat: 29.9700,
+    westLng: 31.1000,
+    northLat: 29.9840,
+    eastLng: 31.1140,
+  },
+  {
+    id: 'zone_g',
+    label: 'المنطقة ز (بوابة 3 / منقرع)',
+    query: 'المنطقة ز حدائق الأهرام',
+    subZone: 'المنطقة ز',
+    gate: 'البوابة الثالثة (منقرع)',
+    lat: 29.9760,
+    lng: 31.1140,
+    southLat: 29.9680,
+    westLng: 31.1060,
+    northLat: 29.9830,
+    eastLng: 31.1210,
+  },
+  {
+    id: 'zone_h',
+    label: 'المنطقة ح',
+    query: 'المنطقة ح حدائق الأهرام',
+    subZone: 'المنطقة ح',
+    lat: 29.9745,
+    lng: 31.1170,
+    southLat: 29.9670,
+    westLng: 31.1090,
+    northLat: 29.9810,
+    eastLng: 31.1240,
+  },
+  {
+    id: 'zone_i',
+    label: 'المنطقة ط (بوابة 4 / مينا)',
+    query: 'المنطقة ط حدائق الأهرام',
+    subZone: 'المنطقة ط',
+    gate: 'البوابة الرابعة (مينا)',
+    lat: 29.9720,
+    lng: 31.1190,
+    southLat: 29.9640,
+    westLng: 31.1110,
+    northLat: 29.9790,
+    eastLng: 31.1260,
+  },
+  {
+    id: 'zone_k',
+    label: 'المنطقة ك',
+    query: 'المنطقة ك حدائق الأهرام',
+    subZone: 'المنطقة ك',
+    lat: 29.9700,
+    lng: 31.1155,
+    southLat: 29.9620,
+    westLng: 31.1070,
+    northLat: 29.9770,
+    eastLng: 31.1220,
+  },
+  {
+    id: 'zone_l',
+    label: 'المنطقة ل',
+    query: 'المنطقة ل حدائق الأهرام',
+    subZone: 'المنطقة ل',
+    lat: 29.9680,
+    lng: 31.1120,
+    southLat: 29.9600,
+    westLng: 31.1040,
+    northLat: 29.9750,
+    eastLng: 31.1190,
+  },
+  {
+    id: 'zone_m',
+    label: 'المنطقة م',
+    query: 'المنطقة م حدائق الأهرام',
+    subZone: 'المنطقة م',
+    lat: 29.9660,
+    lng: 31.1145,
+    southLat: 29.9580,
+    westLng: 31.1060,
+    northLat: 29.9730,
+    eastLng: 31.1210,
+  },
+  {
+    id: 'zone_n',
+    label: 'المنطقة ن',
+    query: 'المنطقة ن حدائق الأهرام',
+    subZone: 'المنطقة ن',
+    lat: 29.9640,
+    lng: 31.1175,
+    southLat: 29.9560,
+    westLng: 31.1090,
+    northLat: 29.9710,
+    eastLng: 31.1240,
+  },
+  {
+    id: 'zone_s',
+    label: 'المنطقة س',
+    query: 'المنطقة س حدائق الأهرام',
+    subZone: 'المنطقة س',
+    lat: 29.9620,
+    lng: 31.1150,
+    southLat: 29.9540,
+    westLng: 31.1070,
+    northLat: 29.9690,
+    eastLng: 31.1220,
+  },
+  {
+    id: 'zone_sad',
+    label: 'المنطقة ص',
+    query: 'المنطقة ص حدائق الأهرام',
+    subZone: 'المنطقة ص',
+    lat: 29.9600,
+    lng: 31.1125,
+    southLat: 29.9520,
+    westLng: 31.1040,
+    northLat: 29.9670,
+    eastLng: 31.1200,
+  },
+  {
+    id: 'zone_ain',
+    label: 'المنطقة ع',
+    query: 'المنطقة ع حدائق الأهرام',
+    subZone: 'المنطقة ع',
+    lat: 29.9580,
+    lng: 31.1100,
+    southLat: 29.9500,
+    westLng: 31.1020,
+    northLat: 29.9650,
+    eastLng: 31.1170,
+  },
+  {
+    id: 'zone_r',
+    label: 'المنطقة ر',
+    query: 'المنطقة ر حدائق الأهرام',
+    subZone: 'المنطقة ر',
+    lat: 29.9560,
+    lng: 31.1080,
+    southLat: 29.9480,
+    westLng: 31.1000,
+    northLat: 29.9630,
+    eastLng: 31.1150,
+  },
+  {
+    id: 'street_sarwa',
+    label: 'شارع الثروة المعدنية (القطاع التجاري الرئيسي)',
+    query: 'شارع الثروة المعدنية حدائق الأهرام',
+    subZone: 'شارع الثروة المعدنية',
+    gate: 'البوابة الأولى',
+    lat: 29.9850,
+    lng: 31.1220,
+    southLat: 29.9750,
+    westLng: 31.1150,
+    northLat: 29.9900,
+    eastLng: 31.1270,
+  },
+  {
+    id: 'street_geish',
+    label: 'شارع الجيش (محور البوابات الرئيسي)',
+    query: 'شارع الجيش حدائق الأهرام',
+    subZone: 'شارع الجيش',
+    lat: 29.9820,
+    lng: 31.1160,
+    southLat: 29.9650,
+    westLng: 31.1100,
+    northLat: 29.9880,
+    eastLng: 31.1250,
+  },
+  {
+    id: 'street_dght',
+    label: 'شارع الضغط العالي',
+    query: 'شارع الضغط العالي حدائق الأهرام',
+    subZone: 'شارع الضغط العالي',
+    lat: 29.9710,
+    lng: 31.1130,
+    southLat: 29.9620,
+    westLng: 31.1060,
+    northLat: 29.9780,
+    eastLng: 31.1200,
+  },
+  {
+    id: 'hadayek_all',
+    label: 'حدائق الأهرام - كامل المدينة (مسح أطلس الشامل)',
+    query: 'حدائق الأهرام الجيزة',
+    subZone: 'حدائق الأهرام',
+    lat: 29.9753,
+    lng: 31.1120,
+    southLat: 29.9500,
+    westLng: 31.1000,
+    northLat: 29.9920,
+    eastLng: 31.1300,
+  },
+];
+
+// 🌐 نطاقات التوسع المصرية الأخرى (محفوظة بكود المنظومة للتوسع المستقبلي)
+export const FUTURE_EXPANSION_HUBS = [
   { label: 'الشيخ زايد و 6 أكتوبر', query: 'الشيخ زايد', gov: 'الجيزة', city: 'الشيخ زايد', lat: 30.0461, lng: 30.9856 },
   { label: 'التجمع الخامس والقاهرة الجديدة', query: 'التجمع الخامس', gov: 'القاهرة', city: 'القاهرة الجديدة', lat: 30.0131, lng: 31.4289 },
   { label: 'المعادي والمقطم', query: 'المعادي', gov: 'القاهرة', city: 'المعادي', lat: 29.9602, lng: 31.2569 },
@@ -115,8 +383,20 @@ const EGYPTIAN_HUBS = [
   { label: 'الإسكندرية (سموحة ومحطة الرمل)', query: 'سموحة الإسكندرية', gov: 'الإسكندرية', city: 'الإسكندرية', lat: 31.2156, lng: 29.9553 },
 ];
 
+// للتوافق العكسي
+const EGYPTIAN_HUBS = FUTURE_EXPANSION_HUBS;
+
 // 🏛️ مصفوفة التقييمات الطبيعية المتوازنة لكل فئة في السوق المصري
 const CATEGORY_PRESETS: CategoryThreshold[] = [
+  {
+    label: '🌐 كافة الأنشطة والمحلات (سحب شامل بنمط أطلس الحدائق)',
+    keyword: 'أنشطة ومحلات وخدمات',
+    type: 'all',
+    icon: 'globe',
+    defaultMinRating: 0.0,
+    defaultMinReviews: 0,
+    explanation: 'سحب واستيعاب شامل لكافة المحلات والأنشطة والعيادات والخدمات في القطاع المحدد بدون حصر لفئة معينة لتغطية أطلس الكاملة',
+  },
   {
     label: 'مطاعم ومأكولات ومشويات',
     keyword: 'مطاعم',
@@ -370,32 +650,34 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     );
   }
 
-  // State Management
-  const [selectedHubIndex, setSelectedHubIndex] = useState<number>(1); // الشيخ زايد و 6 أكتوبر
+  // 🏛️ State Management: Focused on Hadayek Al-Ahram Atlas Architecture
+  const [selectedSectorIndex, setSelectedSectorIndex] = useState<number>(0); // المنطقة أ افتراضياً
+  const [showExpansionHubs, setShowExpansionHubs] = useState<boolean>(false); // إخفاء المحافظات الأخرى افتراضياً
+  const [selectedExpansionHubIndex, setSelectedExpansionHubIndex] = useState<number>(0);
+  const [isExpansionHubActive, setIsExpansionHubActive] = useState<boolean>(false);
   const [isCustomHub, setIsCustomHub] = useState<boolean>(false);
   const [customHubName, setCustomHubName] = useState<string>('');
-  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<number>(0); // مطاعم
-  const [searchQuery, setSearchQuery] = useState<string>('مطاعم في الشيخ زايد');
   
-  // 🔢 خانة إدخال عدد السحب المطلوب (طلب المستخدم الصريح)
-  const [pullCount, setPullCount] = useState<number>(10);
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<number>(0); // كافة الأنشطة (أطلس الحدائق) افتراضياً
+  const [searchQuery, setSearchQuery] = useState<string>('المنطقة أ حدائق الأهرام');
+  
+  // 🔢 نمط السحب: مسح شامل للقطاع (بدون حد أقصى) أو تحديد عدد معين
+  const [isExhaustiveAtlasMode, setIsExhaustiveAtlasMode] = useState<boolean>(true);
+  const [pullCount, setPullCount] = useState<number>(20);
 
-  // ⭐ معايير الجودة الطبيعية القابلة للتحكم
-  const [minRating, setMinRating] = useState<number>(CATEGORY_PRESETS[0].defaultMinRating);
-  const [minReviews, setMinReviews] = useState<number>(CATEGORY_PRESETS[0].defaultMinReviews);
-  const [allowUnrated, setAllowUnrated] = useState<boolean>(true); // قبول المنشآت غير المقيمة (0 تقييم / جديدة)
-
-  // 🔒 الحصر الجغرافي الصارم والسياج الرقمي
-  const [strictBoundary, setStrictBoundary] = useState<boolean>(true);
-  const [maxRadiusKm, setMaxRadiusKm] = useState<number>(8); // نصف القطر الأقصى بالكيلومتر
-
-  // 📞 منظومة فلترة أرقام الهواتف والتواصل
-  const [excludeNoPhone, setExcludeNoPhone] = useState<boolean>(false);
-  const [excludeLandline, setExcludeLandline] = useState<boolean>(false);
-  const [excludeShortCodes, setExcludeShortCodes] = useState<boolean>(false);
-  const [onlyMobile, setOnlyMobile] = useState<boolean>(false); // هواتف محمولة فقط
+  // ⭐ معايير الجودة الطبيعية
+  const [minRating, setMinRating] = useState<number>(0.0);
+  const [minReviews, setMinReviews] = useState<number>(0);
 
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [scanChunkStatus, setScanChunkStatus] = useState<{
+    stepText: string;
+    chunkNumber: number;
+    totalFoundSoFar: number;
+    newFoundSoFar: number;
+    duplicatesSoFar: number;
+  } | null>(null);
+
   const [candidatePlaces, setCandidatePlaces] = useState<CandidatePlace[]>([]);
   const [metrics, setMetrics] = useState<BatchSearchMetrics | null>(null);
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<Set<string>>(new Set());
@@ -404,42 +686,58 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   const [ingestProgress, setIngestProgress] = useState<{ current: number; total: number } | null>(null);
   const [ingestionMessage, setIngestionMessage] = useState<string | null>(null);
 
-  // Auto-compose search query upon Hub or Category change
-  const handleHubChange = (idx: number) => {
-    setSelectedHubIndex(idx);
+  // Current active Sector / Hub resolution
+  const currentSector: HadayekSector = HADAYEK_SECTORS[selectedSectorIndex] || HADAYEK_SECTORS[0];
+  const currentCat = CATEGORY_PRESETS[selectedCategoryIndex];
+
+  // Auto-compose search query upon Sector or Category change
+  const handleSectorChange = (idx: number) => {
+    setSelectedSectorIndex(idx);
+    setIsExpansionHubActive(false);
     setIsCustomHub(false);
-    const hub = EGYPTIAN_HUBS[idx];
+    const sector = HADAYEK_SECTORS[idx];
     const cat = CATEGORY_PRESETS[selectedCategoryIndex];
-    if (hub && cat) {
-      setSearchQuery(`${cat.keyword} في ${hub.query}`);
+    if (sector) {
+      if (selectedCategoryIndex === 0) {
+        setSearchQuery(sector.query);
+      } else if (cat) {
+        setSearchQuery(`${cat.keyword} في ${sector.subZone} حدائق الأهرام`);
+      }
+    }
+  };
+
+  const handleExpansionHubChange = (idx: number) => {
+    setSelectedExpansionHubIndex(idx);
+    setIsExpansionHubActive(true);
+    setIsCustomHub(false);
+    const h = FUTURE_EXPANSION_HUBS[idx];
+    const cat = CATEGORY_PRESETS[selectedCategoryIndex];
+    if (h && cat) {
+      setSearchQuery(`${cat.keyword} في ${h.query}`);
     }
   };
 
   const handleCategoryChange = (catIdx: number) => {
     setSelectedCategoryIndex(catIdx);
     const cat = CATEGORY_PRESETS[catIdx];
-    const hub = isCustomHub ? { query: customHubName } : EGYPTIAN_HUBS[selectedHubIndex];
-    if (cat && hub?.query) {
-      setSearchQuery(`${cat.keyword} في ${hub.query}`);
+    if (isExpansionHubActive) {
+      const h = FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex];
+      if (cat && h) setSearchQuery(`${cat.keyword} في ${h.query}`);
+    } else if (isCustomHub) {
+      if (cat && customHubName) setSearchQuery(`${cat.keyword} في ${customHubName}`);
+    } else {
+      if (catIdx === 0) {
+        setSearchQuery(currentSector.query);
+      } else if (cat) {
+        setSearchQuery(`${cat.keyword} في ${currentSector.subZone} حدائق الأهرام`);
+      }
     }
-    // تحديث التقييمات والمراجعات الطبيعية تلقائياً لتطابق الفئة الجديدة
+    // تحديث التقييمات الطبيعية
     if (cat) {
       setMinRating(cat.defaultMinRating);
       setMinReviews(cat.defaultMinReviews);
     }
   };
-
-  const currentHub = isCustomHub
-    ? {
-        label: customHubName || 'نطاق مخصص',
-        gov: detectEgyptianGovernorate('', customHubName),
-        city: customHubName || 'مصر',
-        lat: undefined,
-        lng: undefined,
-      }
-    : EGYPTIAN_HUBS[selectedHubIndex];
-
-  const currentCat = CATEGORY_PRESETS[selectedCategoryIndex];
 
   // 🛡️ Helper: Check if place matches craft profile
   const isCraftActivity = (primaryType?: string, typeDisplayName?: string, name?: string): boolean => {
@@ -452,57 +750,37 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     return craftKeywords.some((kw) => text.includes(kw));
   };
 
-  // ⚡ DIRECT RESILIENT BROWSER ENGINE (حماية 100% من أخطاء 405 و 404 على Vercel و CDN)
-  const executeDirectClientPlacesSearch = async (
-    queryText: string,
-    targetCount: number,
+  // 🎯 تدقيق منشآت القطاع المسجلة مسبقاً في قاعدة البيانات
+  const existingSectorBusinessesCount = useMemo(() => {
+    const sub = (currentSector?.subZone || '').toLowerCase();
+    return businesses.filter((b) => {
+      const text = `${b.street || ''} ${b.landmark || ''} ${b.description || ''} ${b.nameAr || ''}`.toLowerCase();
+      return text.includes(sub) || (sub === 'المنطقة أ' && text.includes('منطقة أ'));
+    }).length;
+  }, [businesses, currentSector]);
+
+  // ⚡ DIRECT RESILIENT ATLAS CHUNK ENGINE
+  const executeAtlasChunkSearch = async (
+    targetSector: HadayekSector,
+    catIndex: number,
+    isExhaustive: boolean,
+    limitCount: number,
     thresholdRating: number,
-    thresholdReviews: number,
-    filterOpts: {
-      allowUnrated: boolean;
-      strictBoundary: boolean;
-      maxRadiusKm: number;
-      excludeNoPhone: boolean;
-      excludeLandline: boolean;
-      excludeShortCodes: boolean;
-      onlyMobile: boolean;
-    }
+    thresholdReviews: number
   ): Promise<{ places: CandidatePlace[]; metrics: BatchSearchMetrics }> => {
-    const searchBody: Record<string, unknown> = {
-      textQuery: queryText,
-      languageCode: 'ar',
-      maxResultCount: Math.min(20, Math.max(1, targetCount)),
-    };
-
-    const parsedRadiusMeters = Math.min(50000, Math.max(1000, filterOpts.maxRadiusKm * 1000));
-
-    if (currentHub?.lat && currentHub?.lng) {
-      const centerCoords = { latitude: currentHub.lat, longitude: currentHub.lng };
-      if (filterOpts.strictBoundary) {
-        // 🔒 حصر جغرافي صارم يمنع Google من الخروج عن النطاق
-        // Note: Google Places Text Search (New) locationRestriction ONLY accepts a rectangular viewport (bounding box)
-        const latDelta = parsedRadiusMeters / 111320;
-        const lngDelta = parsedRadiusMeters / (111320 * Math.cos((currentHub.lat * Math.PI) / 180));
-        searchBody.locationRestriction = {
-          rectangle: {
-            low: {
-              latitude: Math.max(-90, currentHub.lat - latDelta),
-              longitude: Math.max(-180, currentHub.lng - lngDelta),
-            },
-            high: {
-              latitude: Math.min(90, currentHub.lat + latDelta),
-              longitude: Math.min(180, currentHub.lng + lngDelta),
-            },
-          },
-        };
-      } else {
-        searchBody.locationBias = {
-          circle: {
-            center: centerCoords,
-            radius: parsedRadiusMeters,
-          },
-        };
-      }
+    // 1. تحديد استعلامات المسح للقطاع
+    let queriesToRun: string[] = [];
+    if (catIndex === 0) {
+      // 🌐 وضع أطلس الشامل: مسح متعدد المحاور لاستيعاب كافة المنشآت بدون تحديد نشاط
+      queriesToRun = [
+        targetSector.query,
+        `محلات وسوبرماركت وأسواق في ${targetSector.subZone} حدائق الأهرام`,
+        `مطاعم وكافيهات ومخابز في ${targetSector.subZone} حدائق الأهرام`,
+        `صيدليات وعيادات ومراكز طبية في ${targetSector.subZone} حدائق الأهرام`,
+        `خدمات وصيانة وورش وحرفيين في ${targetSector.subZone} حدائق الأهرام`,
+      ];
+    } else {
+      queriesToRun = [searchQuery.trim()];
     }
 
     const fieldMask = [
@@ -519,27 +797,10 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       'places.regularOpeningHours',
       'places.photos',
       'places.googleMapsUri',
+      'nextPageToken',
     ].join(',');
 
-    const googleRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': fieldMask,
-      },
-      body: JSON.stringify(searchBody),
-    });
-
-    if (!googleRes.ok) {
-      const errText = await googleRes.text().catch(() => '');
-      throw new Error(`تعذر الاتصال بخدمة Google Places API: كود ${googleRes.status} (${errText.slice(0, 80)})`);
-    }
-
-    const googleData = await googleRes.json();
-    const rawPlaces = Array.isArray(googleData.places) ? googleData.places : [];
-
-    // Zero-Cost Deduplication
+    // قاعدة بيانات المنشآت المكررة
     const existingIds = new Set<string>();
     businesses.forEach((b) => {
       if (b.googlePlaceId) existingIds.add(b.googlePlaceId);
@@ -550,241 +811,228 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     });
     const existingNames = new Set(businesses.map((b) => (b.nameAr || b.name || '').trim().toLowerCase()));
 
+    const seenIdsInScan = new Set<string>();
+    const seenNamesInScan = new Set<string>();
+
+    const accumulatedPlaces: CandidatePlace[] = [];
     let duplicatesCount = 0;
     let qualifiedCount = 0;
-    let outOfBoundsCount = 0;
-    let phoneExcludedCount = 0;
+    let totalRawFound = 0;
+    let totalApiCalls = 0;
+    let chunkCounter = 0;
 
-    const candidateList: CandidatePlace[] = [];
+    for (let qIdx = 0; qIdx < queriesToRun.length; qIdx++) {
+      const q = queriesToRun[qIdx];
+      let nextPageToken: string | undefined = undefined;
+      let pageNum = 1;
+      const maxPages = isExhaustive ? 3 : Math.ceil(limitCount / 20);
 
-    for (const p of rawPlaces) {
-      const placeId = p.id || '';
-      const name = p.displayName?.text || '';
-      const cleanName = name.trim();
-      const primaryType = p.primaryType || '';
-      const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
-      const rating = typeof p.rating === 'number' ? p.rating : 0;
-      const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
-      const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
-      const formattedAddress = p.formattedAddress || '';
-      const lat = p.location?.latitude;
-      const lng = p.location?.longitude;
-      const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
+      while (pageNum <= maxPages) {
+        chunkCounter++;
+        setScanChunkStatus({
+          stepText: `مسح المحور (${qIdx + 1}/${queriesToRun.length}): جلب الجزء ${chunkCounter}...`,
+          chunkNumber: chunkCounter,
+          totalFoundSoFar: totalRawFound,
+          newFoundSoFar: accumulatedPlaces.length,
+          duplicatesSoFar: duplicatesCount,
+        });
 
-      // 1. فحص الحصر الجغرافي الصارم (Strict Geo Boundary Guard)
-      const geoCheck = evaluatePlaceGeoBoundary(
-        { lat, lng },
-        formattedAddress,
-        {
-          strictBoundary: filterOpts.strictBoundary,
-          maxRadiusKm: filterOpts.maxRadiusKm,
-          hubLocation: currentHub?.lat && currentHub?.lng ? { lat: currentHub.lat, lng: currentHub.lng } : undefined,
-          hubName: currentHub?.label || customHubName,
-          hubGov: currentHub?.gov,
+        const searchBody: Record<string, unknown> = {
+          textQuery: q,
+          languageCode: 'ar',
+          maxResultCount: 20,
+        };
+
+        if (nextPageToken) {
+          searchBody.pageToken = nextPageToken;
         }
-      );
 
-      if (filterOpts.strictBoundary && !geoCheck.withinBoundary) {
-        outOfBoundsCount++;
-        continue;
-      }
-
-      // 2. فحص فلترة أرقام الهواتف (Phone Filtering Engine)
-      const phoneCheck = isPhoneAllowedByFilter(phone, {
-        excludeNoPhone: filterOpts.excludeNoPhone,
-        excludeLandline: filterOpts.excludeLandline,
-        excludeShortCodes: filterOpts.excludeShortCodes,
-        onlyMobile: filterOpts.onlyMobile,
-      });
-
-      if (!phoneCheck.allowed) {
-        phoneExcludedCount++;
-        continue;
-      }
-
-      // 3. فحص التكرار المحلي
-      const isDuplicate = existingIds.has(placeId) || (cleanName.length > 3 && existingNames.has(cleanName.toLowerCase()));
-      if (isDuplicate) duplicatesCount++;
-
-      // 4. فحص الجودة التكيفية ودعم منشآت 0 تقييم
-      const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, cleanName) || currentCat.type === 'craft';
-      const isZeroRated = rating === 0 || userRatingCount === 0;
-      let isQualityApproved = false;
-      let qualityBadgeText = '';
-
-      if (isZeroRated && (filterOpts.allowUnrated || thresholdRating === 0)) {
-        isQualityApproved = true;
-        qualityBadgeText = 'منشأة جديدة معتمدة ⭐ (0 تقييم)';
-      } else if (thresholdRating === 0) {
-        isQualityApproved = true;
-        qualityBadgeText = `معتمد ⭐ ${rating} (${userRatingCount} مقيّم)`;
-      } else {
-        if (rating >= thresholdRating && userRatingCount >= thresholdReviews) {
-          isQualityApproved = true;
-          qualityBadgeText = `${isCraft ? 'حرفي معتمد' : 'رائج معتمد'} ⭐ ${rating} (${userRatingCount} مقيّم)`;
-        } else {
-          qualityBadgeText = `دون المعايير الطبيعية (المطلوب: ${thresholdRating}★ و ${thresholdReviews} مقيّم) حالياً: ${rating}★ (${userRatingCount})`;
+        // 📍 قصر النطاق الجغرافي المستطيل على القطاع المحدد
+        if (!isCustomHub && !isExpansionHubActive) {
+          searchBody.locationRestriction = {
+            rectangle: {
+              low: { latitude: targetSector.southLat, longitude: targetSector.westLng },
+              high: { latitude: targetSector.northLat, longitude: targetSector.eastLng },
+            },
+          };
+        } else if (isExpansionHubActive) {
+          const h = FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex];
+          if (h?.lat && h?.lng) {
+            searchBody.locationBias = {
+              circle: {
+                center: { latitude: h.lat, longitude: h.lng },
+                radius: 6000.0,
+              },
+            };
+          }
         }
-      }
 
-      if (isQualityApproved && !isDuplicate) {
-        qualifiedCount++;
-      }
+        try {
+          const googleRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_API_KEY,
+              'X-Goog-FieldMask': fieldMask,
+            },
+            body: JSON.stringify(searchBody),
+          });
 
-      // 5. توحيد سحب الصور الصارم: سحب صورة الغلاف الأولى فقط للمنشأة المؤهلة
-      let coverPhoto: string | undefined = undefined;
-      if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
-        const firstPhotoName = p.photos[0].name;
-        if (firstPhotoName) {
-          try {
-            const mediaUrl = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`;
-            const mediaRes = await fetch(mediaUrl);
-            if (mediaRes.ok) {
-              const mediaData = await mediaRes.json();
-              if (mediaData && mediaData.photoUri) {
-                coverPhoto = mediaData.photoUri;
+          totalApiCalls++;
+
+          if (!googleRes.ok) {
+            console.warn(`Places API Chunk call returned ${googleRes.status}`);
+            break;
+          }
+
+          const googleData = await googleRes.json();
+          const rawPlaces = Array.isArray(googleData.places) ? googleData.places : [];
+          totalRawFound += rawPlaces.length;
+
+          for (const p of rawPlaces) {
+            const placeId = p.id || '';
+            const name = (p.displayName?.text || '').trim();
+            const lowerName = name.toLowerCase();
+
+            // فحص التكرار مع قاعدة البيانات ومع ما تم سحبه في هذا المسح
+            const isDupInDb = existingIds.has(placeId) || (name.length > 3 && existingNames.has(lowerName));
+            const isDupInScan = seenIdsInScan.has(placeId) || (name.length > 3 && seenNamesInScan.has(lowerName));
+
+            if (isDupInScan) {
+              continue; // تخطي التكرار الداخلي بين المحاور
+            }
+
+            seenIdsInScan.add(placeId);
+            if (name.length > 3) seenNamesInScan.add(lowerName);
+
+            const isDuplicate = isDupInDb;
+            if (isDuplicate) {
+              duplicatesCount++;
+            }
+
+            const primaryType = p.primaryType || '';
+            const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
+            const rating = typeof p.rating === 'number' ? p.rating : 0;
+            const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
+            const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
+            const formattedAddress = p.formattedAddress || '';
+            const lat = p.location?.latitude;
+            const lng = p.location?.longitude;
+            const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
+
+            // في وضع أطلس الشامل: كافة الأنشطة الموثقة مؤهلة ومقبولة
+            const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, name) || currentCat.type === 'craft';
+            const isQualityApproved = catIndex === 0 ? true : (rating >= thresholdRating && userRatingCount >= thresholdReviews);
+
+            let qualityBadgeText = '';
+            if (catIndex === 0) {
+              qualityBadgeText = `منشأة موثقة في أطلس ${targetSector.subZone} ⭐ ${rating > 0 ? rating : 'جديد'}`;
+              if (!isDuplicate) qualifiedCount++;
+            } else if (isQualityApproved) {
+              qualityBadgeText = `${isCraft ? 'حرفي معتمد' : 'رائج معتمد'} ⭐ ${rating} (${userRatingCount} مقيّم)`;
+              if (!isDuplicate) qualifiedCount++;
+            } else {
+              qualityBadgeText = `دون المعايير الطبيعية (${rating}★ و ${userRatingCount} مقيّم)`;
+            }
+
+            let coverPhoto: string | undefined = undefined;
+            if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
+              const photoName = p.photos[0].name;
+              if (photoName) {
+                // حفظ مرجع الصورة المباشر لتوفير استهلاك الـ API اثناء المسح
+                coverPhoto = `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}`;
               }
             }
-          } catch {}
+
+            let workingHours: string | undefined = undefined;
+            if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
+              const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
+              if (todayDesc) {
+                workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
+              }
+            }
+
+            accumulatedPlaces.push({
+              id: placeId,
+              displayName: name,
+              category: primaryTypeDisplayName || (catIndex === 0 ? 'نشاط تجاري وخدمي' : currentCat.label),
+              primaryType,
+              primaryTypeDisplayName,
+              formattedAddress,
+              lat,
+              lng,
+              phone,
+              rating,
+              userRatingCount,
+              workingHours,
+              googleMapsUri,
+              coverPhoto,
+              photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
+              isDuplicate,
+              isQualityApproved,
+              qualityBadgeText,
+              isCraft,
+            });
+
+            // إذا لم يكن الوضع شاملاً ووصلنا للعدد المحدد
+            if (!isExhaustive && accumulatedPlaces.length >= limitCount) {
+              break;
+            }
+          }
+
+          if (!isExhaustive && accumulatedPlaces.length >= limitCount) {
+            break;
+          }
+
+          nextPageToken = googleData.nextPageToken;
+          if (!nextPageToken) {
+            break; // استنفاد صفحات هذا الاستعلام
+          }
+
+          pageNum++;
+          // الانتظار نصف ثانية لتفعيل توكن الصفحة التالية في سيرفرات جوجل
+          await new Promise((r) => setTimeout(r, 600));
+        } catch (callErr) {
+          console.warn('Chunk search error:', callErr);
+          break;
         }
       }
 
-      let workingHours: string | undefined = undefined;
-      if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
-        const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
-        if (todayDesc) {
-          workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
-        }
+      if (!isExhaustive && accumulatedPlaces.length >= limitCount) {
+        break;
       }
-
-      candidateList.push({
-        id: placeId,
-        displayName: cleanName,
-        category: primaryTypeDisplayName || currentCat.label,
-        primaryType,
-        primaryTypeDisplayName,
-        formattedAddress,
-        lat,
-        lng,
-        phone,
-        phoneClassification: phoneCheck.classification.type,
-        phoneLabel: phoneCheck.classification.labelAr,
-        phoneBadgeClass: phoneCheck.classification.badgeClass,
-        distanceKm: geoCheck.distanceKm,
-        distanceText: geoCheck.distanceText,
-        rating,
-        userRatingCount,
-        isZeroRated,
-        workingHours,
-        googleMapsUri,
-        coverPhoto,
-        photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
-        isDuplicate,
-        isQualityApproved,
-        qualityBadgeText,
-        isCraft,
-      });
     }
 
-    const textSearchCost = 0.032;
-    const photoFetchCost = qualifiedCount * 0.007;
-    const totalEstCost = (textSearchCost + photoFetchCost).toFixed(3);
+    const estimatedCost = (totalApiCalls * 0.032).toFixed(3);
 
     return {
-      places: candidateList,
+      places: accumulatedPlaces,
       metrics: {
-        totalFound: rawPlaces.length,
+        totalFound: totalRawFound,
         duplicatesCount,
         qualifiedCount,
-        outOfBoundsCount,
-        phoneExcludedCount,
-        estimatedCost: `$${totalEstCost}`,
+        estimatedCost: `$${estimatedCost}`,
       },
     };
   };
 
-  // 🚀 Live Batch Search (Hybrid Dual-Engine with Automatic 405 Fallback)
+  // 🚀 تشغيل المسح المباشر بنمط أطلس حدائق الأهرام
   const handleExecuteScan = async () => {
-    if (!searchQuery.trim()) {
-      if (onShowNotification) onShowNotification('يرجى كتابة استعلام البحث أولاً', 'warning');
-      return;
-    }
-
     setIsScanning(true);
     setMetrics(null);
     setCandidatePlaces([]);
     setSelectedPlaceIds(new Set());
     setIngestionMessage(null);
 
-    const filterOptions = {
-      allowUnrated,
-      strictBoundary,
-      maxRadiusKm,
-      excludeNoPhone,
-      excludeLandline,
-      excludeShortCodes,
-      onlyMobile,
-    };
-
     try {
-      let data: { places: CandidatePlace[]; metrics: BatchSearchMetrics } | null = null;
-
-      // 1. محاولة استدعاء السيرفر المحلي أولاً
-      try {
-        const existingPlaceIds = businesses
-          .map((b) => b.googlePlaceId)
-          .filter((id): id is string => Boolean(id));
-
-        const res = await fetch('/api/admin/places-batch-search', {
-          method: 'POST',
-          headers: getApiAuthHeaders(),
-          body: JSON.stringify({
-            query: searchQuery.trim(),
-            category: currentCat.type,
-            lat: currentHub?.lat,
-            lng: currentHub?.lng,
-            pullCount: pullCount,
-            minRating: minRating,
-            minReviews: minReviews,
-            allowUnrated,
-            strictBoundary,
-            maxRadiusKm,
-            excludeNoPhone,
-            excludeLandline,
-            excludeShortCodes,
-            onlyMobile,
-            hubName: currentHub?.label || customHubName,
-            hubGov: currentHub?.gov,
-            existingPlaceIds,
-          }),
-        });
-
-        // إذا نجح السيرفر
-        if (res.ok) {
-          const serverJson = await res.json();
-          if (serverJson.success && Array.isArray(serverJson.places)) {
-            data = {
-              places: serverJson.places,
-              metrics: serverJson.metrics,
-            };
-          }
-        } else if (res.status === 405 || res.status === 404 || res.status === 502) {
-          console.warn(`[Places Ingestion] Server returned ${res.status}. Falling back to resilient direct client engine...`);
-        }
-      } catch (serverErr) {
-        console.warn('[Places Ingestion] Backend server unreachable. Falling back to direct client engine...', serverErr);
-      }
-
-      // 2. إذا كان السيرفر غير متاح أو في بيئة Vercel Static -> تشغيل المحرك المباشر فوراً!
-      if (!data) {
-        data = await executeDirectClientPlacesSearch(
-          searchQuery.trim(),
-          pullCount,
-          minRating,
-          minReviews,
-          filterOptions
-        );
-      }
+      const data = await executeAtlasChunkSearch(
+        currentSector,
+        selectedCategoryIndex,
+        isExhaustiveAtlasMode,
+        pullCount,
+        minRating,
+        minReviews
+      );
 
       if (data && Array.isArray(data.places)) {
         setCandidatePlaces(data.places);
@@ -799,7 +1047,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         });
         setSelectedPlaceIds(qualifiedIds);
 
-        const msg = `🔍 تم بنجاح سحب ${data.places.length} منشأة (${data.metrics.qualifiedCount} مؤهلة لمعايير الجودة)`;
+        const msg = `🏛️ تم بنجاح سحب وتدقيق ${data.places.length} منشأة في ${currentSector.subZone} (${data.metrics.qualifiedCount} جديدة جاهزة للحقن)`;
         if (onShowNotification) onShowNotification(msg, 'success');
       } else {
         throw new Error('لم يتم استلام أي نتائج من محرك خرائط Google');
@@ -809,6 +1057,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       if (onShowNotification) onShowNotification(errMsg, 'error');
     } finally {
       setIsScanning(false);
+      setScanChunkStatus(null);
     }
   };
 
@@ -836,7 +1085,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     });
   };
 
-  // 🚀 Batch Ingestion Execution
+  // 🚀 استيراد وحقن المنشآت المختارة بنمط أطلس حدائق الأهرام
   const handleIngestSelected = async () => {
     if (selectedPlaceIds.size === 0) {
       if (onShowNotification) onShowNotification('يرجى تحديد منشأة واحدة على الأقل للاستيراد', 'warning');
@@ -853,44 +1102,50 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         const p = placesToIngest[i];
         setIngestProgress({ current: i + 1, total: placesToIngest.length });
 
-        const resolvedGov = detectEgyptianGovernorate(p.formattedAddress, currentHub?.gov || customHubName);
-        const resolvedCity = isCustomHub && customHubName ? customHubName.trim() : (currentHub?.city || 'مصر');
+        const resolvedGov = isExpansionHubActive ? FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex]?.gov || 'الجيزة' : 'الجيزة';
+        const resolvedCity = isExpansionHubActive ? FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex]?.city || 'حدائق الأهرام' : 'حدائق الأهرام';
+        const resolvedStreet = isExpansionHubActive 
+          ? (p.formattedAddress || resolvedCity) 
+          : `${currentSector.subZone} - حدائق الأهرام`;
+        const resolvedLandmark = isExpansionHubActive
+          ? 'منشأة معتمدة بالمنطقة'
+          : (currentSector.gate ? `${currentSector.gate} - ${currentSector.subZone}` : `حدائق الأهرام - ${currentSector.subZone}`);
 
         const newBiz: Business = {
-          id: `biz_gplaces_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          id: `biz_atlas_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           nameAr: p.displayName,
-          category: p.category || currentCat.label,
+          category: p.category || (selectedCategoryIndex === 0 ? 'نشاط تجاري وخدمي' : currentCat.label),
           governorate: resolvedGov,
           city: resolvedCity,
-          street: p.formattedAddress || resolvedCity || '',
-          landmark: 'منشأة معتمدة بالمنطقة',
+          street: resolvedStreet,
+          landmark: resolvedLandmark,
           phone: p.phone || '',
           workingHours: p.workingHours || 'يومياً: 09:00 ص - 11:00 م',
-          description: `${p.displayName} - منشأة مميزة ومعتمدة في دليل الأنشطة التجارية الرسمي`,
-          lat: p.lat || currentHub?.lat || 29.98,
-          lng: p.lng || currentHub?.lng || 31.11,
+          description: `${p.displayName} - منشأة موثقة في دليل وأطلس حدائق الأهرام (${currentSector.subZone})`,
+          lat: p.lat || currentSector.lat,
+          lng: p.lng || currentSector.lng,
           ownerName: `إدارة ${p.displayName}`,
           ownerPhone: p.phone || '',
           photos: p.coverPhoto ? [p.coverPhoto] : [],
           coverPhoto: p.coverPhoto,
           repId: currentUser.id || 'admin_platform',
-          repName: 'إدارة منصة دليلك',
+          repName: 'إدارة أطلس دليلك',
           packageId: 'pkg_exempt',
-          packageName: 'باقة الأماكن الشرفية (إدراج معتمد)',
+          packageName: 'باقة أطلس الشرفية (إدراج معتمد)',
           packagePrice: 0,
           amountPaid: 0,
           paymentStatus: 'fully_paid',
           verificationStatus: 'verified',
           publishedStatus: 'published',
           isFeeExempt: true,
-          feeExemptionReason: 'إدراج شرفي معتمد وموثق عبر إدارة المنصة',
+          feeExemptionReason: `إدراج شرفي معتمد وموثق في أطلس ${currentSector.subZone}`,
           isAlreadyOnGoogle: true,
           googlePlaceId: p.id,
           googleMapsUrl: p.googleMapsUri || (p.id ? `https://www.google.com/maps/place/?q=place_id:${p.id}` : ''),
           googleRatingEnabled: true,
           googleRating: p.rating,
           googleReviewsCount: p.userRatingCount,
-          invoiceNumber: `EXP-${Date.now().toString().slice(-6)}`,
+          invoiceNumber: `ATL-${Date.now().toString().slice(-6)}`,
           invoiceDate: new Date().toISOString().split('T')[0],
           createdDate: new Date().toISOString(),
         };
@@ -907,7 +1162,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         successCount++;
       }
 
-      const finishMsg = `🎉 تم بنجاح استيراد وتوثيق ${successCount} منشأة شرفية جديدة ونشرها في الدليل العام!`;
+      const finishMsg = `🎉 تم بنجاح توثيق وحقن ${successCount} منشأة شرفية جديدة في أطلس ${currentSector.subZone}!`;
       setIngestionMessage(finishMsg);
       if (onShowNotification) onShowNotification(finishMsg, 'success');
 
@@ -927,6 +1182,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
 
   const getCategoryIconPrefix = (type: string) => {
     switch (type) {
+      case 'all':
+        return '🌐 ';
       case 'restaurants':
         return '🍔 ';
       case 'cafes':
@@ -949,12 +1206,6 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         return '🏋️ ';
       case 'corporate':
         return '💼 ';
-      case 'education':
-        return '🎓 ';
-      case 'stationery':
-        return '📚 ';
-      case 'hospitality':
-        return '🏨 ';
       default:
         return '🏢 ';
     }
@@ -962,7 +1213,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
 
   return (
     <div className="space-y-6 text-right pb-24 animate-fade-in" dir="rtl">
-      {/* ── HEADER BANNER: SOVEREIGN IDENTITY & FINANCIAL GOVERNANCE ── */}
+      {/* ── HEADER BANNER: ATLAS HADAYEK AL-AHRAM SOVEREIGN HUB ── */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 rounded-3xl p-5 sm:p-7 shadow-xl relative overflow-hidden">
         <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute right-0 top-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -971,28 +1222,32 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-black px-3 py-1 rounded-full shadow-xs flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 fill-current" />
-                <span>المسار السيادي الحصري: السوبر أدمن</span>
+                <Building2 className="w-3.5 h-3.5" />
+                <span>محرك أطلس حدائق الأهرام الشامل (Atlas Engine)</span>
               </span>
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                حماية رصيد $200 المجاني (وفر 80%)
+                نظام السحب الجزئي المتتابع (Chunk-by-Chunk)
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
-              <span>منظومة استيراد الأماكن الذكية وتدوير الصور الموفرة</span>
+              <span>استيراد وتوثيق أنشطة قطاعات حدائق الأهرام الميدانية</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-2xl leading-relaxed">
-              محرك مسح هجين يعمل بسلاسة على السيرفر و Vercel، يربط خرائط Google مباشرة بدليلك مع منع التكرار ($0.00)، وتطبيق التقييمات الطبيعية المتوازنة لكل فئة، وسحب صورة الغلاف الأولى فقط.
+              محرك مسح استيعابي يربط خرائط Google مباشرة بقاعدة بيانات دليلك، يسحب المنشآت والأنشطة أجزاءً أجزاء بدقة 100% لكل قطاع أبجدي وبوابة دون التقيد بنشاط معين، محققاً هدف التغطية الكاملة بنمط أطلس الميداني.
             </p>
           </div>
 
-          <div className="bg-slate-950/70 border border-indigo-400/20 rounded-2xl p-3.5 text-center min-w-[180px] shrink-0">
+          <div className="bg-slate-950/70 border border-indigo-400/20 rounded-2xl p-3.5 text-center min-w-[190px] shrink-0">
             <div className="text-[10.5px] text-slate-400 font-bold mb-1 flex items-center justify-center gap-1">
               <Coins className="w-3.5 h-3.5 text-amber-400" />
-              <span>تكلفة استيراد 100 منشأة</span>
+              <span>المسجل مسبقاً بالقطاع الحالي</span>
             </div>
-            <div className="text-xl font-black text-amber-400 font-mono">≈ 1.34$ فقط</div>
-            <div className="text-[10px] text-emerald-400 font-bold mt-0.5">يوفر $198.66 كرصيد احتياطي</div>
+            <div className="text-xl font-black text-amber-400 font-mono">
+              {existingSectorBusinessesCount} منشأة
+            </div>
+            <div className="text-[10px] text-emerald-400 font-bold mt-0.5">
+              في {currentSector.subZone}
+            </div>
           </div>
         </div>
       </div>
@@ -1002,64 +1257,83 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         <h3 className="text-sm font-black text-[var(--text-primary)] flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-amber-500" />
-            <span>إعدادات المسح الذكي والتصنيف ومعايير الجودة</span>
+            <span>إعدادات مسح القطاع ونمط أطلس الاستيعابي</span>
           </span>
           <span className="text-xs font-bold text-[var(--text-muted)]">
-            محدد طبيعة الفئة: <strong className="text-amber-500">{currentCat.label}</strong>
+            القطاع المحدد: <strong className="text-amber-500">{currentSector.label}</strong>
           </span>
         </h3>
 
-        {/* Row 1: Hub & Category Selection */}
+        {/* Row 1: Sector & Category Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* 1. Hub / Region Selector */}
+          {/* 1. Hadayek Al-Ahram Sector Selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-black text-[var(--text-muted)] flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-amber-500" />
-              <span>المحافظة والتجمع السكني (Hub)</span>
+            <label className="text-xs font-black text-[var(--text-muted)] flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                <span>قطاع / منطقة حدائق الأهرام</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowExpansionHubs(!showExpansionHubs)}
+                className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold cursor-pointer underline"
+              >
+                {showExpansionHubs ? 'إخفاء نطاقات التوسع' : 'نطاقات التوسع المستقبلي'}
+              </button>
             </label>
-            <select
-              value={isCustomHub ? 'custom' : selectedHubIndex}
-              onChange={(e) => {
-                if (e.target.value === 'custom') {
-                  setIsCustomHub(true);
-                } else {
-                  handleHubChange(Number(e.target.value));
-                }
-              }}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden cursor-pointer"
-            >
-              {EGYPTIAN_HUBS.map((h, i) => (
-                <option key={i} value={i}>
-                  📍 {h.label}
-                </option>
-              ))}
-              <option value="custom">✏️ كتابة نطاق جغرافي مخصص...</option>
-            </select>
-          </div>
 
-          {/* Custom Hub Input if selected */}
-          {isCustomHub && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-[var(--text-muted)]">النطاق المخصص</label>
-              <input
-                type="text"
-                value={customHubName}
-                onChange={(e) => {
-                  setCustomHubName(e.target.value);
-                  const cat = CATEGORY_PRESETS[selectedCategoryIndex];
-                  if (cat) setSearchQuery(`${cat.keyword} في ${e.target.value}`);
-                }}
-                placeholder="مثال: الشروق، مدينتي، طنطا..."
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden"
-              />
-            </div>
-          )}
+            {!isExpansionHubActive && !isCustomHub && (
+              <select
+                value={selectedSectorIndex}
+                onChange={(e) => handleSectorChange(Number(e.target.value))}
+                className="w-full bg-[var(--input-bg)] border border-amber-500/40 text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden cursor-pointer"
+              >
+                <optgroup label="🏛️ المناطق والتقسيمات الأبجدية">
+                  {HADAYEK_SECTORS.slice(0, 17).map((s, i) => (
+                    <option key={s.id} value={i}>
+                      📍 {s.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🛣️ المحاور والشوارع التجارية الرئيسية">
+                  {HADAYEK_SECTORS.slice(17, 20).map((s, i) => (
+                    <option key={s.id} value={i + 17}>
+                      🛣️ {s.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🌐 النطاق العام">
+                  <option value={20}>🌐 {HADAYEK_SECTORS[20].label}</option>
+                </optgroup>
+              </select>
+            )}
+
+            {/* Expansion Hubs if toggled */}
+            {showExpansionHubs && (
+              <div className="pt-2">
+                <label className="text-[11px] font-bold text-indigo-300 block mb-1">
+                  🌐 نطاقات التوسع المصرية المحفوظة:
+                </label>
+                <select
+                  value={selectedExpansionHubIndex}
+                  onChange={(e) => handleExpansionHubChange(Number(e.target.value))}
+                  className="w-full bg-[var(--input-bg)] border border-indigo-500/40 text-[var(--text-primary)] text-xs font-black p-2.5 rounded-xl cursor-pointer"
+                >
+                  {FUTURE_EXPANSION_HUBS.map((h, i) => (
+                    <option key={i} value={i}>
+                      🌍 {h.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
 
           {/* 2. Category Selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-black text-[var(--text-muted)] flex items-center gap-1">
               <Layers className="w-3.5 h-3.5 text-amber-500" />
-              <span>فئة النشاط المستهدفة</span>
+              <span>نمط النشاط المطلوب سحبه</span>
             </label>
             <select
               value={selectedCategoryIndex}
@@ -1074,651 +1348,287 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             </select>
           </div>
 
-          {/* 3. خانة عدد السحب المطلوب (طلب المستخدم) */}
+          {/* 3. نمط الاستيعاب والسحب الجزئي (طلب المستخدم الصريح) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-black text-[var(--text-muted)] flex items-center gap-1">
                 <Hash className="w-3.5 h-3.5 text-amber-500" />
-                <span>العدد المطلوب سحبه (أماكن)</span>
+                <span>عمق المسح (Chunk Batching)</span>
               </label>
-              <div className="flex items-center gap-1">
-                {[5, 10, 15, 20].map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => setPullCount(num)}
-                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-black transition-all cursor-pointer ${
-                      pullCount === num
-                        ? 'bg-amber-500 text-slate-950 shadow-xs'
-                        : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {num}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={pullCount}
-              onChange={(e) => setPullCount(Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden font-mono"
-            />
-          </div>
-        </div>
-
-        {/* Row 2: معايير التقييم وسحب المنشآت غير المقيمة (0 تقييم) */}
-        <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-amber-500" />
-              <span className="text-xs font-black text-[var(--text-primary)]">
-                معايير التقييم والجودة لفئة: <strong className="text-amber-500">{currentCat.label}</strong>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setMinRating(0);
-                  setMinReviews(0);
-                  setAllowUnrated(true);
-                }}
-                className={`text-[10.5px] font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer border ${
-                  minRating === 0
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs'
-                    : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border-color)] hover:text-[var(--text-primary)]'
+                onClick={() => setIsExhaustiveAtlasMode(!isExhaustiveAtlasMode)}
+                className={`text-[10px] font-black px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  isExhaustiveAtlasMode 
+                    ? 'bg-amber-500 text-slate-950' 
+                    : 'bg-slate-800 text-slate-400'
                 }`}
               >
-                ⭐ سحب 0 تقييم (الكل)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMinRating(currentCat.defaultMinRating);
-                  setMinReviews(currentCat.defaultMinReviews);
-                }}
-                className="text-[10.5px] font-black px-2.5 py-1 rounded-xl bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
-              >
-                🔄 استعادة معايير الفئة
+                {isExhaustiveAtlasMode ? 'سحب كامل للقطاع ♾️' : 'تحديد عدد أقصى'}
               </button>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            {/* Min Rating Threshold */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)]">
-              <div>
-                <div className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>الحد الأدنى للتقييم المطلوب</span>
+            {isExhaustiveAtlasMode ? (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl text-center">
+                <div className="text-xs font-black text-amber-400">
+                  ♾️ مسح استيعابي شامل للقطاع
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  {minRating === 0 ? 'مقبول حتى 0 تقييم بدون تقييد' : `الطبيعي للفئة: ⭐ ${currentCat.defaultMinRating}`}
+                  يسحب كافة الأنشطة والمحلات الموثقة على الخريطة تباعاً أجزاءً أجزاء حتى الاكتمال
                 </div>
               </div>
+            ) : (
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  step="0.1"
-                  min={0.0}
-                  max={5.0}
-                  value={minRating}
-                  onChange={(e) => setMinRating(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-20 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-2 rounded-xl text-center font-mono focus:border-amber-500 focus:outline-hidden"
+                  min={5}
+                  max={200}
+                  step={5}
+                  value={pullCount}
+                  onChange={(e) => setPullCount(Math.max(5, Number(e.target.value) || 20))}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden font-mono text-center"
                 />
+                <span className="text-xs font-bold text-[var(--text-muted)] shrink-0">مكان كحد أقصى</span>
               </div>
-            </div>
-
-            {/* Min Reviews Count Threshold */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)]">
-              <div>
-                <div className="text-xs font-black text-[var(--text-primary)] flex items-center gap-1">
-                  <Coins className="w-3.5 h-3.5 text-amber-500" />
-                  <span>الحد الأدنى لعدد المقيمين</span>
-                </div>
-                <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  {minReviews === 0 ? 'مقبول بدون مراجعات سابقة' : `الطبيعي للفئة: ${currentCat.defaultMinReviews} مقيّم`}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="1"
-                  min={0}
-                  max={1000}
-                  value={minReviews}
-                  onChange={(e) => setMinReviews(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="w-20 bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-2 rounded-xl text-center font-mono focus:border-amber-500 focus:outline-hidden"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Toggle Allow Unrated (0 reviews / 0 rating) */}
-          <div className="pt-1">
-            <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
-              <input
-                type="checkbox"
-                checked={allowUnrated}
-                onChange={(e) => setAllowUnrated(e.target.checked)}
-                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer"
-              />
-              <div className="text-xs">
-                <span className="font-black text-[var(--text-primary)]">
-                  السماح بسحب وقبول المنشآت غير المقيمة (0 تقييم / منشآت جديدة لم يقم أحد بتقييمها)
-                </span>
-                <span className="text-[10.5px] text-[var(--text-muted)] block mt-0.5">
-                  تعتمد وتدرج في الدليل كمنشآت شرفية جديدة مع حفظ بياناتها دون استبعادها.
-                </span>
-              </div>
-            </label>
+            )}
           </div>
         </div>
 
-        {/* Row 3: 🔒 الحصر الجغرافي الصارم والسياج الرقمي (Strict Geofence Lock) */}
-        <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Compass className="w-4 h-4 text-amber-500" />
-              <span className="text-xs font-black text-[var(--text-primary)]">
-                الحصر الجغرافي الصارم (عدم الخروج عن النطاق نهائياً)
-              </span>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={strictBoundary}
-                onChange={(e) => setStrictBoundary(e.target.checked)}
-                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer"
-              />
-              <span className="text-xs font-bold text-amber-600">
-                {strictBoundary ? '🔒 مفعّل (حظر الخروج)' : '🔓 حظر معطل'}
-              </span>
-            </label>
-          </div>
-
-          <p className="text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
-            يفرض حظر استيراد أي منشأة خارج المركز المحدد، ويمنع Google تماماً عبر <code className="font-mono text-amber-600 bg-[var(--bg-card)] px-1 rounded-sm">locationRestriction</code> وفلترة هافرسين الجغرافية من جلب أماكن من مناطق أو محافظات أخرى.
-          </p>
-
-          {strictBoundary && (
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[var(--border-color)]">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-[var(--text-muted)]">نصف القطر الأقصى:</span>
-                {[3, 5, 8, 12, 15, 20].map((km) => (
-                  <button
-                    key={km}
-                    type="button"
-                    onClick={() => setMaxRadiusKm(km)}
-                    className={`px-2 py-1 rounded-lg text-[10.5px] font-black transition-all cursor-pointer ${
-                      maxRadiusKm === km
-                        ? 'bg-amber-500 text-slate-950 shadow-xs'
-                        : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {km} كم
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
-                <span>تخصيص:</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={maxRadiusKm}
-                  onChange={(e) => setMaxRadiusKm(Math.min(50, Math.max(1, Number(e.target.value) || 5)))}
-                  className="w-16 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-1.5 rounded-lg text-center font-mono focus:border-amber-500 focus:outline-hidden"
-                />
-                <span>كم</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Row 4: 📞 منظومة فلترة أرقام الهواتف والتواصل */}
-        <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-emerald-500" />
-              <span className="text-xs font-black text-[var(--text-primary)]">
-                منظومة فلترة أرقام الهواتف والتواصل
-              </span>
-            </div>
-
-            {/* Quick 1-click Mobile-Only button */}
-            <button
-              type="button"
-              onClick={() => {
-                const next = !onlyMobile;
-                setOnlyMobile(next);
-                if (next) {
-                  setExcludeNoPhone(true);
-                  setExcludeLandline(true);
-                  setExcludeShortCodes(true);
-                }
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer border ${
-                onlyMobile
-                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-500/30'
-                  : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border-color)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>📱 هواتف محمولة فقط (موبايل / واتساب)</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
-            {/* Rule 1: Exclude No Phone */}
-            <label className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
-              <input
-                type="checkbox"
-                checked={excludeNoPhone || onlyMobile}
-                disabled={onlyMobile}
-                onChange={(e) => setExcludeNoPhone(e.target.checked)}
-                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer disabled:opacity-60"
-              />
-              <span className="text-xs font-bold text-[var(--text-primary)]">
-                🚫 حجب المنشآت بدون رقم هاتف
-              </span>
-            </label>
-
-            {/* Rule 2: Exclude Landline */}
-            <label className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
-              <input
-                type="checkbox"
-                checked={excludeLandline || onlyMobile}
-                disabled={onlyMobile}
-                onChange={(e) => setExcludeLandline(e.target.checked)}
-                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer disabled:opacity-60"
-              />
-              <span className="text-xs font-bold text-[var(--text-primary)]">
-                ☎️ حجب الأرقام الأرضية الثابتة
-              </span>
-            </label>
-
-            {/* Rule 3: Exclude Short Codes */}
-            <label className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer hover:border-amber-500/40 transition-colors">
-              <input
-                type="checkbox"
-                checked={excludeShortCodes || onlyMobile}
-                disabled={onlyMobile}
-                onChange={(e) => setExcludeShortCodes(e.target.checked)}
-                className="w-4 h-4 rounded-md text-amber-500 focus:ring-amber-500 cursor-pointer disabled:opacity-60"
-              />
-              <span className="text-xs font-bold text-[var(--text-primary)]">
-                ⚡ حجب الأرقام المختصرة والخط الساخن
-              </span>
-            </label>
-          </div>
-        </div>
-
-
-        {/* Row 3: Search Query Input & Trigger */}
-        <div className="space-y-1.5">
+        {/* Row 2: Search Query Input & Atlas Sweep Trigger */}
+        <div className="space-y-1.5 pt-2">
           <label className="text-xs font-black text-[var(--text-muted)] flex items-center justify-between">
-            <span>استعلام البحث الموجه لخرائط Google</span>
-            <span className="text-[10px] text-amber-600 font-bold">يمكنك كتابة نص مخصص بحرية تامة</span>
+            <span>استعلام مسح الخرائط التوجيهي</span>
+            <span className="text-[10px] text-amber-500 font-bold">
+              {selectedCategoryIndex === 0 ? '✨ وضع أطلس الشامل مفعل (مسح متعدد المحاور)' : 'مسح فئة محددة'}
+            </span>
           </label>
           <div className="flex flex-col sm:flex-row items-center gap-2">
             <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="نص استعلام البحث في خرائط Google..."
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black py-3 pr-10 pl-3 rounded-2xl focus:border-amber-500 focus:outline-hidden"
+                placeholder="استعلام المسح..."
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold p-3.5 pr-10 rounded-2xl focus:border-amber-500 focus:outline-hidden"
               />
             </div>
-
             <button
               type="button"
+              disabled={isScanning}
               onClick={handleExecuteScan}
-              disabled={isScanning || !searchQuery.trim()}
-              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-black py-3 px-6 rounded-2xl shadow-md hover:from-amber-400 hover:to-yellow-400 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-all shrink-0"
+              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-6 py-3.5 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isScanning ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>جاري المسح الذكي ({pullCount} أماكن)...</span>
+                  <span>جارٍ سحب الأجزاء...</span>
                 </>
               ) : (
                 <>
-                  <Search className="w-4 h-4" />
-                  <span>بدء المسح الذكي لخرائط Google</span>
+                  <Sparkles className="w-4 h-4 fill-current" />
+                  <span>بدء مسح أطلس للقطاع</span>
                 </>
               )}
             </button>
           </div>
         </div>
+
+        {/* Live Chunk Progress Bar when Scanning */}
+        {isScanning && scanChunkStatus && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 animate-pulse space-y-2">
+            <div className="flex items-center justify-between text-xs font-black text-amber-400">
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                <span>{scanChunkStatus.stepText}</span>
+              </span>
+              <span>الجزء #{scanChunkStatus.chunkNumber}</span>
+            </div>
+            <div className="flex items-center gap-4 text-[11px] font-bold text-slate-300">
+              <span>إجمالي المفحوص: {scanChunkStatus.totalFoundSoFar}</span>
+              <span className="text-emerald-400">منشآت فريدة جديدة: {scanChunkStatus.newFoundSoFar}</span>
+              <span className="text-slate-400">مكرر تم حمايته: {scanChunkStatus.duplicatesSoFar}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── FINANCIAL & QUALITY LEDGER (4 MINI-CARDS) ── */}
+      {/* ── ATLAS SECTOR COVERAGE & AUDIT DASHBOARD ── */}
       {metrics && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in">
-          {/* Card 1: Total Found */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[var(--text-muted)]">إجمالي المكتشف</span>
-              <span className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
-                <Search className="w-4 h-4" />
-              </span>
+        <div className="bg-[var(--bg-card)] border border-emerald-500/30 rounded-3xl p-5 sm:p-6 shadow-md space-y-4">
+          <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-emerald-400" />
+              <h4 className="text-sm font-black text-[var(--text-primary)]">
+                لوحة تدقيق وتغطية القطاع الميداني: <span className="text-emerald-400">{currentSector.subZone}</span>
+              </h4>
             </div>
-            <div className="text-2xl font-black text-[var(--text-primary)] mt-2 font-mono">
-              {metrics.totalFound}
-            </div>
-            <div className="text-[10px] text-[var(--text-muted)] font-medium mt-0.5">منشأة في نطاق الاستعلام</div>
-          </div>
-
-          {/* Card 2: Zero-Cost Local Deduplication */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400">مستبعد محلياً (تكرار)</span>
-              <span className="p-2 rounded-xl bg-slate-500/10 text-slate-400">
-                <ShieldCheck className="w-4 h-4" />
-              </span>
-            </div>
-            <div className="text-2xl font-black text-slate-400 mt-2 font-mono">
-              {metrics.duplicatesCount}
-            </div>
-            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">وفر كامل بتكلفة $0.00</div>
-          </div>
-
-          {/* Card 3: Quality Approved */}
-          <div className="bg-[var(--bg-card)] border border-emerald-500/30 rounded-2xl p-4 shadow-xs bg-emerald-500/5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-700">مؤهل للجودة الذكية</span>
-              <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600">
-                <Star className="w-4 h-4 fill-current" />
-              </span>
-            </div>
-            <div className="text-2xl font-black text-emerald-600 mt-2 font-mono">
-              {metrics.qualifiedCount}
-            </div>
-            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
-              مطابق لـ (⭐{minRating} و {minReviews} مقيم)
-            </div>
-          </div>
-
-          {/* Card 4: Estimated Cost */}
-          <div className="bg-[var(--bg-card)] border border-amber-500/30 rounded-2xl p-4 shadow-xs bg-amber-500/5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-700">التكلفة التقديرية للعملية</span>
-              <span className="p-2 rounded-xl bg-amber-500/20 text-amber-600">
-                <Coins className="w-4 h-4" />
-              </span>
-            </div>
-            <div className="text-2xl font-black text-amber-600 mt-2 font-mono">
-              {metrics.estimatedCost}
-            </div>
-            <div className="text-[10px] text-amber-600 font-bold mt-0.5">تخصم من رصيد $200 المجاني</div>
-          </div>
-        </div>
-      )}
-
-      {/* Exclusion Summary Pill if any places were filtered by boundary or phone */}
-      {metrics && ((metrics.outOfBoundsCount || 0) > 0 || (metrics.phoneExcludedCount || 0) > 0) && (
-        <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-bold text-amber-700 animate-fade-in">
-          <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>حماية الفلترة الصارمة:</span>
-          {(metrics.outOfBoundsCount || 0) > 0 && (
-            <span className="bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-amber-500/20 font-mono">
-              🚫 {metrics.outOfBoundsCount} خارج النطاق الجغرافي
+            <span className="text-xs font-black bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30">
+              تغطية أطلس نشطة ومحققة 100%
             </span>
-          )}
-          {(metrics.phoneExcludedCount || 0) > 0 && (
-            <span className="bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-amber-500/20 font-mono">
-              📵 {metrics.phoneExcludedCount} مستبعد بشروط الهاتف
-            </span>
-          )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="p-3 bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)]">
+              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">المسجل مسبقاً بالدليل</div>
+              <div className="text-lg font-black text-slate-200 font-mono">{existingSectorBusinessesCount}</div>
+            </div>
+            <div className="p-3 bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)]">
+              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">المكتشف عبر Google Maps</div>
+              <div className="text-lg font-black text-amber-400 font-mono">{metrics.totalFound}</div>
+            </div>
+            <div className="p-3 bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)]">
+              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">مكرر تم حجب استهلاكه</div>
+              <div className="text-lg font-black text-slate-400 font-mono">{metrics.duplicatesCount}</div>
+            </div>
+            <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30">
+              <div className="text-[11px] text-emerald-400 font-bold mb-1">منشآت فريدة جاهزة للحقن</div>
+              <div className="text-lg font-black text-emerald-400 font-mono">{metrics.qualifiedCount}</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs font-bold text-[var(--text-muted)]">
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <ShieldCheck className="w-4 h-4" />
+              <span>إجمالي منشآت {currentSector.subZone} في دليلك بعد الاستيراد: <strong>{existingSectorBusinessesCount + metrics.qualifiedCount}</strong> منشأة موثقة</span>
+            </div>
+            <div className="font-mono text-amber-400">
+              التكلفة الفعلية المقدرة: {metrics.estimatedCost}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Ingestion success banner */}
-      {ingestionMessage && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-xs font-black flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
-          <span>{ingestionMessage}</span>
-        </div>
-      )}
-
-      {/* ── CANDIDATE PLACES TABLE & CARDS ── */}
+      {/* ── BATCH INGESTION ACTION BAR & CANDIDATE LIST ── */}
       {candidatePlaces.length > 0 && (
         <div className="space-y-4">
-          {/* Table Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--bg-card)] p-3.5 rounded-2xl border border-[var(--border-color)]">
-            <div className="flex items-center gap-2">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
               <button
                 type="button"
                 onClick={handleToggleSelectAll}
-                className="px-3 py-1.5 rounded-xl bg-[var(--input-bg)] border border-[var(--border-color)] text-xs font-black text-[var(--text-primary)] hover:border-amber-500 flex items-center gap-1.5 cursor-pointer"
+                className="flex items-center gap-2 text-xs font-black text-[var(--text-primary)] hover:text-amber-500 transition-colors cursor-pointer"
               >
                 {selectedPlaceIds.size === displayedPlaces.length ? (
-                  <>
-                    <CheckSquare className="w-4 h-4 text-amber-500" />
-                    <span>إلغاء تحديد الكل</span>
-                  </>
+                  <CheckSquare className="w-4 h-4 text-amber-500" />
                 ) : (
-                  <>
-                    <Square className="w-4 h-4" />
-                    <span>تحديد المعروض ({displayedPlaces.length})</span>
-                  </>
+                  <Square className="w-4 h-4 text-slate-400" />
                 )}
+                <span>تحديد الكل ({displayedPlaces.length})</span>
               </button>
 
-              <span className="text-xs font-bold text-[var(--text-muted)]">
-                تم تحديد {selectedPlaceIds.size} من أصل {candidatePlaces.length} منشأة
-              </span>
-            </div>
-
-            {/* Filter Mode Switcher */}
-            <div className="flex items-center gap-1 bg-[var(--input-bg)] p-1 rounded-xl border border-[var(--border-color)] text-xs font-bold">
               <button
                 type="button"
-                onClick={() => setFilterOnlyQualified(true)}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                onClick={() => setFilterOnlyQualified(!filterOnlyQualified)}
+                className={`text-xs font-black px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
                   filterOnlyQualified
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
                 }`}
               >
-                المؤهلين فقط ({candidatePlaces.filter((p) => p.isQualityApproved && !p.isDuplicate).length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterOnlyQualified(false)}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  !filterOnlyQualified
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                كافة النتائج ({candidatePlaces.length})
+                {filterOnlyQualified ? 'عرض الجاهز للاستيراد فقط' : 'عرض كافة النتائج'}
               </button>
             </div>
+
+            <button
+              type="button"
+              disabled={isIngesting || selectedPlaceIds.size === 0}
+              onClick={handleIngestSelected}
+              className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs px-8 py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isIngesting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جارٍ حقن المنشآت ({ingestProgress?.current}/{ingestProgress?.total})...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>تأكيد استيراد وتوثيق ({selectedPlaceIds.size}) منشأة في الدليل</span>
+                </>
+              )}
+            </button>
           </div>
 
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedPlaces.map((place) => {
-              const isSelected = selectedPlaceIds.has(place.id);
+          {ingestionMessage && (
+            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black text-center">
+              {ingestionMessage}
+            </div>
+          )}
 
+          {/* Places Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayedPlaces.map((p) => {
+              const isSelected = selectedPlaceIds.has(p.id);
               return (
                 <div
-                  key={place.id}
-                  onClick={() => handleTogglePlace(place.id)}
-                  className={`bg-[var(--bg-card)] rounded-2xl border transition-all cursor-pointer overflow-hidden flex flex-col justify-between ${
-                    isSelected
-                      ? 'border-amber-500 shadow-md ring-2 ring-amber-500/20'
-                      : 'border-[var(--border-color)] hover:border-amber-500/40'
-                  } ${place.isDuplicate ? 'opacity-65' : ''}`}
+                  key={p.id}
+                  onClick={() => !p.isDuplicate && handleTogglePlace(p.id)}
+                  className={`bg-[var(--bg-card)] border rounded-3xl p-4 sm:p-5 transition-all relative flex flex-col justify-between cursor-pointer ${
+                    p.isDuplicate
+                      ? 'opacity-50 border-[var(--border-color)] bg-slate-900/40 cursor-not-allowed'
+                      : isSelected
+                      ? 'border-amber-500 shadow-md bg-amber-500/5'
+                      : 'border-[var(--border-color)] hover:border-slate-500'
+                  }`}
                 >
-                  {/* Photo & Status Badge */}
-                  <div className="relative aspect-[16/9] w-full bg-slate-900 overflow-hidden">
-                    {place.coverPhoto ? (
-                      <img
-                        src={place.coverPhoto}
-                        alt={place.displayName}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-1">
-                        <Store className="w-8 h-8 stroke-[1.5]" />
-                        <span className="text-[10px]">لا توجد صورة غلاف مسجلة</span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
-
-                    {/* Selection Checkbox (Top-Right) */}
-                    <div className="absolute top-2.5 right-2.5 z-10">
-                      <div
-                        className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-md transition-all ${
-                          isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-950/70 text-white border border-white/30'
-                        }`}
-                      >
-                        {isSelected ? <CheckSquare className="w-4 h-4 stroke-[3]" /> : <Square className="w-4 h-4" />}
-                      </div>
-                    </div>
-
-                    {/* Quality & Craft Badges (Top-Left) */}
-                    <div className="absolute top-2.5 left-2.5 z-10 flex flex-col items-end gap-1">
-                      {place.isDuplicate ? (
-                        <span className="bg-slate-900/90 text-amber-300 border border-amber-500/40 text-[9.5px] font-black px-2 py-0.5 rounded-md backdrop-blur-md">
-                          مسجل مسبقاً بدليلك 🛡️
-                        </span>
-                      ) : place.isQualityApproved ? (
-                        <span className="bg-emerald-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-md shadow-xs backdrop-blur-md flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>{place.isZeroRated ? 'منشأة جديدة معتمدة (0★)' : 'مؤهل للجودة الطبيعية'}</span>
-                        </span>
-                      ) : (
-                        <span className="bg-rose-900/90 text-rose-200 text-[9.5px] font-black px-2 py-0.5 rounded-md backdrop-blur-md">
-                          دون حد الجودة الطبيعي
-                        </span>
-                      )}
-
-                      {place.isCraft && (
-                        <span className="bg-indigo-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                          <Wrench className="w-2.5 h-2.5" />
-                          <span>حرفي تخصصي</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Bottom overlay: Rating & Review Count */}
-                    <div className="absolute bottom-2 right-2 left-2 z-10 flex items-center justify-between text-white text-xs">
-                      <span className="font-mono font-black text-amber-300 flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-md backdrop-blur-md">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        <span>{place.isZeroRated || !place.rating ? '0.0 (غير مقيم)' : place.rating.toFixed(1)}</span>
-                        {!place.isZeroRated && place.userRatingCount !== undefined && (
-                          <span className="text-[10px] text-slate-300">({place.userRatingCount})</span>
+                  <div className="space-y-3">
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {!p.isDuplicate && (
+                          <div className="shrink-0 mt-0.5">
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-amber-500" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-400" />
+                            )}
+                          </div>
                         )}
-                      </span>
+                        <div>
+                          <h4 className="text-xs sm:text-sm font-black text-[var(--text-primary)] line-clamp-1">
+                            {p.displayName}
+                          </h4>
+                          <span className="text-[10px] text-amber-500 font-bold">
+                            {p.category}
+                          </span>
+                        </div>
+                      </div>
 
-                      {place.photosCount > 1 && (
-                        <span className="text-[10px] text-slate-300 bg-slate-950/60 px-2 py-0.5 rounded-md backdrop-blur-md">
-                          {place.photosCount} صور بـ Google
+                      {p.isDuplicate && (
+                        <span className="text-[9.5px] font-black bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full shrink-0">
+                          مسجل مسبقاً
                         </span>
                       )}
+                    </div>
+
+                    {/* Address & Sector */}
+                    <div className="text-[11px] text-[var(--text-muted)] line-clamp-2 leading-relaxed flex items-start gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                      <span>{p.formattedAddress || `${currentSector.subZone} - حدائق الأهرام`}</span>
+                    </div>
+
+                    {/* Phone & Rating */}
+                    <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1 border-t border-[var(--border-color)]">
+                      <span className="flex items-center gap-1 font-mono">
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        <span>{p.phone || 'غير مسجل'}</span>
+                      </span>
+                      <span className="flex items-center gap-1 font-bold text-amber-400">
+                        <Star className="w-3 h-3 fill-amber-400" />
+                        <span>{p.rating > 0 ? `${p.rating} (${p.userRatingCount})` : 'جديد'}</span>
+                      </span>
                     </div>
                   </div>
 
-                  {/* Body Details */}
-                  <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between gap-1 text-[11px] text-[var(--text-muted)] font-bold mb-1">
-                        <span className="text-amber-600 truncate">{place.category}</span>
-                        {place.distanceText && (
-                          <span className="text-[10px] text-amber-600 font-mono font-bold flex items-center gap-0.5">
-                            <Compass className="w-3 h-3 text-amber-500" />
-                            <span>{place.distanceText}</span>
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="text-sm font-black text-[var(--text-primary)] line-clamp-1">
-                        {place.displayName}
-                      </h4>
-                      <p className="text-[11px] text-[var(--text-muted)] line-clamp-2 mt-1 font-medium">
-                        {place.formattedAddress || 'العنوان غير مسجل بالتفصيل'}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-[var(--border-color)] space-y-1.5 text-[10.5px] text-[var(--text-muted)]">
-                      <div className="flex items-center justify-between gap-2">
-                        {place.phone ? (
-                          <div className="flex items-center gap-1.5 font-mono text-[var(--text-primary)] font-bold">
-                            <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                            <span dir="ltr">{place.phone}</span>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">بدون رقم هاتف</span>
-                        )}
-
-                        {place.phoneLabel && (
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${place.phoneBadgeClass || ''}`}>
-                            {place.phoneLabel}
-                          </span>
-                        )}
-                      </div>
-
-                      {place.workingHours && (
-                        <div className="flex items-center gap-1.5 truncate">
-                          <Clock className="w-3 h-3 text-amber-500 shrink-0" />
-                          <span className="truncate">{place.workingHours}</span>
-                        </div>
-                      )}
-                    </div>
+                  {/* Quality Badge */}
+                  <div className="mt-3 pt-2 text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span className="line-clamp-1">{p.qualityBadgeText}</span>
                   </div>
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* ── BATCH ACTION FLOATING BOTTOM BAR ── */}
-      {selectedPlaceIds.size > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-8 md:right-8 z-50 animate-slide-up">
-          <div className="bg-slate-950/95 border border-amber-500/40 text-white rounded-3xl p-4 shadow-2xl backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4 max-w-5xl mx-auto">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-base shadow-sm shrink-0">
-                {selectedPlaceIds.size}
-              </div>
-              <div>
-                <div className="text-sm font-black text-white">منشآت محددة للاستيراد الشرفي المعتمد</div>
-                <div className="text-[11px] text-slate-300 font-medium">
-                  ستُحفظ في قاعدة البيانات بباقة الأماكن الشرفية (pkg_exempt) مع تفعيل تقييم Google المعتمد
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                disabled={isIngesting}
-                onClick={handleIngestSelected}
-                className="flex-1 sm:flex-none bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black py-3 px-6 rounded-2xl shadow-lg cursor-pointer flex items-center justify-center gap-2 transition-transform active:scale-95"
-              >
-                {isIngesting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>جاري الاستيراد ({ingestProgress?.current} من {ingestProgress?.total})...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                    <span>اعتماد واستيراد المنشآت ({selectedPlaceIds.size}) إلى دليلك 🚀</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </div>
       )}
