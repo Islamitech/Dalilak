@@ -480,10 +480,19 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       const centerCoords = { latitude: currentHub.lat, longitude: currentHub.lng };
       if (filterOpts.strictBoundary) {
         // 🔒 حصر جغرافي صارم يمنع Google من الخروج عن النطاق
+        // Note: Google Places Text Search (New) locationRestriction ONLY accepts a rectangular viewport (bounding box)
+        const latDelta = parsedRadiusMeters / 111320;
+        const lngDelta = parsedRadiusMeters / (111320 * Math.cos((currentHub.lat * Math.PI) / 180));
         searchBody.locationRestriction = {
-          circle: {
-            center: centerCoords,
-            radius: parsedRadiusMeters,
+          rectangle: {
+            low: {
+              latitude: Math.max(-90, currentHub.lat - latDelta),
+              longitude: Math.max(-180, currentHub.lng - lngDelta),
+            },
+            high: {
+              latitude: Math.min(90, currentHub.lat + latDelta),
+              longitude: Math.min(180, currentHub.lng + lngDelta),
+            },
           },
         };
       } else {

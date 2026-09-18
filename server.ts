@@ -1288,13 +1288,24 @@ app.post('/api/admin/places-batch-search', async (req, res) => {
     };
 
     if (lat && lng && !isNaN(Number(lat)) && !isNaN(Number(lng))) {
-      const centerCoords = { latitude: Number(lat), longitude: Number(lng) };
+      const numLat = Number(lat);
+      const numLng = Number(lng);
+      const centerCoords = { latitude: numLat, longitude: numLng };
       if (strictBoundary) {
         // 🔒 حصر جغرافي صارم يمنع Google من الخروج عن النطاق نهائياً
+        // Note: Google Places Text Search (New) locationRestriction ONLY accepts a rectangular viewport (bounding box)
+        const latDelta = parsedRadiusMeters / 111320;
+        const lngDelta = parsedRadiusMeters / (111320 * Math.cos((numLat * Math.PI) / 180));
         searchBody.locationRestriction = {
-          circle: {
-            center: centerCoords,
-            radius: parsedRadiusMeters,
+          rectangle: {
+            low: {
+              latitude: Math.max(-90, numLat - latDelta),
+              longitude: Math.max(-180, numLng - lngDelta),
+            },
+            high: {
+              latitude: Math.min(90, numLat + latDelta),
+              longitude: Math.min(180, numLng + lngDelta),
+            },
           },
         };
       } else {
