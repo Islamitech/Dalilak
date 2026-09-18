@@ -694,7 +694,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   const [activeBucketTab, setActiveBucketTab] = useState<EntityBucket | 'ALL'>('COMMERCIAL');
   const [metrics, setMetrics] = useState<BatchSearchMetrics | null>(null);
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<Set<string>>(new Set());
-  const [filterOnlyQualified, setFilterOnlyQualified] = useState<boolean>(true);
+  const [filterOnlyQualified, setFilterOnlyQualified] = useState<boolean>(false);
   const [isIngesting, setIsIngesting] = useState<boolean>(false);
   const [ingestProgress, setIngestProgress] = useState<{ current: number; total: number } | null>(null);
   const [ingestionMessage, setIngestionMessage] = useState<string | null>(null);
@@ -1207,16 +1207,10 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         setCandidatePlaces(data.places);
         setMetrics(data.metrics);
 
-        // تحديد كافة المنشآت التجارية المؤهلة وغير المكررة افتراضياً
-        const qualifiedIds = new Set<string>();
-        data.places.forEach((p) => {
-          if (p.bucket === 'COMMERCIAL' && p.isQualityApproved && !p.isDuplicate) {
-            qualifiedIds.add(p.id);
-          }
-        });
-        setSelectedPlaceIds(qualifiedIds);
+        // لا نقوم بالتحديد التلقائي؛ لتمكين المستخدم من الفرز اليدوي المخصص وتحديد ما يُعتمد
+        setSelectedPlaceIds(new Set());
 
-        const msg = `🏛️ تم بنجاح سحب وتدقيق ${data.places.length} كياناً في ${currentSector.subZone} (${data.metrics.qualifiedCount} نشاط تجاري جاهز للحقن)`;
+        const msg = `🏛️ تم بنجاح سحب ${data.places.length} كياناً في ${currentSector.subZone} بنمط الاستيعاب الميداني. يمكنك الآن مراجعتها وفرزها يدوياً.`;
         if (onShowNotification) onShowNotification(msg, 'success');
       } else {
         throw new Error('لم يتم استلام أي نتائج من محرك خرائط Google');
