@@ -8,7 +8,7 @@ echo           Dalelak Platform - Standalone WhatsApp Gateway
 echo ====================================================================
 echo.
 
-:: Try launching via PowerShell script (supports UTF-8, port auto-clean, rich output)
+:: Launch via PowerShell script (supports UTF-8, port auto-clean, rich output)
 where powershell >nul 2>nul
 if %errorlevel% equ 0 (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-whatsapp-server.ps1"

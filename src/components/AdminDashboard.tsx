@@ -31,6 +31,7 @@ import { LeadFollowUpModal } from './LeadFollowUpModal';
 import { AdminAuditTrashTab } from './admin/tabs/AdminAuditTrashTab';
 import { AdminPlacesIngestionTab } from './admin/tabs/AdminPlacesIngestionTab';
 import { AdminWhatsAppCampaignTab } from './admin/tabs/AdminWhatsAppCampaignTab';
+import { AdminWhatsAppAiRadarTab } from './admin/tabs/AdminWhatsAppAiRadarTab';
 import { isSuperAdmin } from '../utils/permissions';
 import { getApiAuthHeaders } from '../utils/storage';
 
@@ -47,6 +48,7 @@ import {
   Sparkles,
   MessageCircle,
   ArrowLeft,
+  Bot,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -123,16 +125,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onAddBusiness,
   onShowNotification,
 }) => {
-  // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash, Places Ingestion, WhatsApp Campaign)
-  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash' | 'places_ingestion' | 'whatsapp_campaign'>(() => {
+  // Main Tab State (Overview, Businesses, Reps, Gateways, Payouts, Leads, Audit & Trash, Places Ingestion, WhatsApp Campaign, WhatsApp AI Radar)
+  const [activeAdminTab, setActiveAdminTab] = useState<'overview' | 'businesses' | 'reps' | 'gateways' | 'payouts' | 'leads' | 'audit_trash' | 'places_ingestion' | 'whatsapp_campaign' | 'whatsapp_ai_radar'>(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlSubtab = urlParams.get('subtab');
-    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion', 'whatsapp_campaign'].includes(urlSubtab)) {
+    if (urlSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion', 'whatsapp_campaign', 'whatsapp_ai_radar'].includes(urlSubtab)) {
       return urlSubtab as any;
     }
 
     const savedSubtab = localStorage.getItem('dalelak_active_admin_tab');
-    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion', 'whatsapp_campaign'].includes(savedSubtab)) {
+    if (savedSubtab && ['overview', 'businesses', 'reps', 'gateways', 'payouts', 'leads', 'audit_trash', 'places_ingestion', 'whatsapp_campaign', 'whatsapp_ai_radar'].includes(savedSubtab)) {
       return savedSubtab as any;
     }
 
@@ -691,6 +693,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           )}
 
+          {/* ── SUPER ADMIN EXCLUSIVE: WHATSAPP AI RADAR TAB (رادار أمان الواتساب وGrok الذكي) ── */}
+          {isSuperAdmin(currentUser) && (
+            <button
+              type="button"
+              data-active={activeAdminTab === 'whatsapp_ai_radar'}
+              onClick={() => setActiveAdminTab('whatsapp_ai_radar')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shrink-0 cursor-pointer relative ${
+                activeAdminTab === 'whatsapp_ai_radar'
+                  ? 'bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white shadow-md'
+                  : 'text-teal-400 hover:text-teal-300 hover:bg-[var(--input-bg)] border border-teal-500/30'
+              }`}
+              title="رادار أمان الواتساب، والرد الآلي الذكي (Grok AI)، وتوليد وإرسال كروت الـ QR والهدايا"
+            >
+              <Bot className="w-4 h-4" />
+              <span>رادار الأمان وGrok (AI)</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </button>
+          )}
+
           {/* ── SUPER ADMIN EXCLUSIVE TAB BUTTON (مخفي تماماً عن باقي الحسابات) ── */}
           {isSuperAdmin(currentUser) && (
             <button
@@ -897,6 +918,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           currentUser={currentUser!}
           businesses={businesses}
           onShowNotification={onShowNotification}
+        />
+      )}
+
+      {/* ── TAB 10: CONFIDENTIAL SUPER ADMIN WHATSAPP AI RADAR & GIFT DELIVERY ── */}
+      {activeAdminTab === 'whatsapp_ai_radar' && isSuperAdmin(currentUser) && (
+        <AdminWhatsAppAiRadarTab
+          currentUser={currentUser!}
+          businesses={businesses}
+          onShowNotification={onShowNotification}
+          onNavigateToCampaigns={() => setActiveAdminTab('whatsapp_campaign')}
         />
       )}
 

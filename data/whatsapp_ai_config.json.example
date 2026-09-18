@@ -1,0 +1,12 @@
+{
+  "apiKey": "YOUR_GROK_API_KEY",
+  "model": "openai/gpt-oss-120b",
+  "enabled": true,
+  "tone": "egyptian_warm",
+  "autoGiftEnabled": true,
+  "autoUpdateBusinessEnabled": true,
+  "autoRepLeadEnabled": true,
+  "typingSimulationEnabled": true,
+  "humanTakeoverCooldownMinutes": 1440,
+  "apiKeys": []
+}

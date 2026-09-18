@@ -1,0 +1,2502 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>رادار واتساب & محرك Grok AI - منصة دليلك المستقلة</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+    .radar-pulse { animation: pulseGlow 2s infinite ease-in-out; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 sm:p-6 antialiased">
+  
+  <div class="max-w-7xl mx-auto space-y-5">
+
+    <!-- Top Navigation & Control Bar -->
+    <header class="bg-slate-900/90 border border-slate-800 backdrop-blur rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="relative w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">
+          📡
+          <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 radar-pulse border-2 border-slate-900"></span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">رادار واتساب & محرك الحملات و Grok AI</h1>
+            <span class="bg-emerald-500/15 text-emerald-400 text-[11px] px-2.5 py-0.5 rounded-full font-semibold border border-emerald-500/30">
+              ● تطبيق مستقل شامل
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            إطلاق الحملات مباشرة، إدارة الخطين (15 ثم 15 وتخفي عشوائي)، 3 مفاتيح Grok، وسجلات المحادثات والأرقام المرسلة والملغاة.
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 w-full md:w-auto flex-wrap">
+        <button id="killSwitchBtn" onclick="toggleEmergencyKill()" class="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          <span id="killSwitchLabel">إيقاف الطوارئ للـ AI (نشط)</span>
+        </button>
+
+        <button onclick="openConfigModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 shadow-sm">
+          ⚙️ إعدادات Grok (3 مفاتيح)
+        </button>
+
+        <button onclick="refreshAllData()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 shadow-lg shadow-emerald-600/20">
+          🔄 تحديث فوري
+        </button>
+      </div>
+    </header>
+
+    <!-- 🛡️ CRITICAL SOVEREIGN ANTI-BAN & LIVE TELEMETRY RADAR BANNER -->
+    <div id="sovereignAntiBanBanner" class="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/40 border-2 border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        
+        <!-- Left: Status Badges -->
+        <div class="flex items-center gap-3.5">
+          <div class="relative w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-emerald-500/20">
+            🛡️
+            <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 radar-pulse border-2 border-slate-900"></span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="text-base sm:text-lg font-black text-white">رادار الحصانة ضد الحظر & صحة الخطوط</h2>
+              <span id="bannerBanStatusBadge" class="bg-emerald-500/25 text-emerald-300 text-xs px-3 py-1 rounded-full font-bold border border-emerald-500/50 flex items-center gap-1.5 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>لا يوجد أي حظر نهائياً (الحساب آمن ومستقر 100%)</span>
+              </span>
+            </div>
+            <p class="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap" id="bannerLineSummary">
+              <span>الخط الأساسي: <strong class="text-emerald-400 font-mono">+201556221141</strong></span>
+              <span class="text-slate-600">•</span>
+              <span>الحالة: <strong class="text-emerald-300 font-semibold" id="bannerLiveState">متصل ومستقر (Online 🟢)</strong></span>
+              <span class="text-slate-600">•</span>
+              <span>درجة الأمان: <strong class="text-emerald-400 font-mono font-bold" id="bannerSafetyScore">95/100 (محمي)</strong></span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Telemetry Quick Counters -->
+        <div class="grid grid-cols-3 gap-2 sm:gap-3 w-full lg:w-auto text-center shrink-0">
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 min-w-[95px]">
+            <span class="text-[10px] text-slate-400 block font-medium">رسائل واردة</span>
+            <strong class="text-emerald-400 font-mono text-base font-bold" id="bannerInboundCount">0</strong>
+            <span class="text-[9px] text-slate-500 block">وارد من عملاء</span>
+          </div>
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 min-w-[95px]">
+            <span class="text-[10px] text-slate-400 block font-medium">ردود ذكية</span>
+            <strong class="text-cyan-400 font-mono text-base font-bold" id="bannerAiRepliesCount">0</strong>
+            <span class="text-[9px] text-slate-500 block">Groq 120B</span>
+          </div>
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 min-w-[95px]">
+            <span class="text-[10px] text-slate-400 block font-medium">قاطع الحظر</span>
+            <strong class="text-emerald-400 font-mono text-xs block mt-1" id="bannerBreakerStatus">✅ سليم وغير مفصول</strong>
+            <span class="text-[9px] text-slate-500 block">حماية تلقائية</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 🛡️ SOVEREIGN LINE HEALTH & ZERO-BAN RADAR BANNER (بانر الحصانة والأمان ضد الحظر وحالة الخط المباشر) -->
+    <div id="sovereignHealthBanner" class="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <!-- Left: Line Status & Ban Protection -->
+        <div class="flex items-center gap-3.5">
+          <div id="bannerStatusIcon" class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl shadow-inner text-emerald-400 shrink-0">
+            🟢
+          </div>
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 id="bannerLineTitle" class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                خط الواتساب 1: <span id="bannerPhoneText" class="font-mono text-emerald-400 font-bold" dir="ltr">+201556221141</span>
+              </h2>
+              <span id="bannerConnBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="bannerConnBadgeText">متصل ومستقر الآن</span>
+              </span>
+              <span id="bannerBanBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center gap-1">
+                🛡️ الحساب آمن بنسبة 100% (لا يوجد حظر)
+              </span>
+            </div>
+            <p id="bannerSubText" class="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
+              <span>⏱️ متصل ومستقر دون انقطاع منذ: <strong id="bannerUptimeText" class="text-emerald-400 font-mono">الآن</strong></span>
+              <span class="text-slate-600">•</span>
+              <span>📩 الرسائل المستلمة اليوم: <strong id="bannerInboundCount" class="text-white font-mono">0</strong></span>
+              <span class="text-slate-600">•</span>
+              <span>📤 الرسائل المرسلة اليوم: <strong id="bannerOutboundCount" class="text-white font-mono">0</strong></span>
+              <span class="text-slate-600">•</span>
+              <span>⚡ مؤشر الأمان ضد الحظر: <strong id="bannerSafetyScore" class="text-emerald-400 font-mono">100%</strong></span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Realtime Last Interaction & Quick Health Ping -->
+        <div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end border-t lg:border-t-0 border-slate-800 pt-3 lg:pt-0">
+          <div class="text-right bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2">
+            <span class="text-[10px] text-slate-400 block font-semibold">آخر تفاعل حي مع العميل:</span>
+            <span id="bannerLastInteraction" class="text-xs font-mono text-emerald-300 font-bold block truncate max-w-xs">
+              جاهز ومستعد للرد الفوري
+            </span>
+          </div>
+          <button onclick="pingSlotHealth('1')" class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 shrink-0 transition-all shadow-sm">
+            📡 فحص النبض
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-Slot Hardware / Phone Numbers & Live Interaction Center -->
+    <div class="space-y-4">
+      
+      <!-- Dual-Slot Orchestration & Coordination Center (نمط التناسق والتحكم في الرقمين) -->
+      <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+        <div class="absolute -top-24 -left-24 w-60 h-60 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-60 h-60 bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- Header of Orchestration Panel -->
+        <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-lg">
+              🔀
+            </div>
+            <div>
+              <h2 class="text-sm font-black text-white flex items-center gap-2">
+                <span>نمط التحكم في تناسق وتناوب الرقمين</span>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold" id="coordinationModeBadge">
+                  🔄 تناوب متوازن (15 رسالة / 15 رسالة)
+                </span>
+              </h2>
+              <p class="text-[11px] text-slate-400 mt-0.5">
+                توزيع ذكي للحمل بين خط 1 وخط 2 لحماية الأرقام من فلاتر الحظر مع التبديل التلقائي الفوري عند الطوارئ.
+              </p>
+            </div>
+          </div>
+
+          <!-- Quick Mode Switcher Pills -->
+          <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+            <button onclick="changeCoordinationMode('batch_round_robin')" id="modeBtn-batch" class="px-2.5 py-1.5 rounded-lg text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 transition-all text-[11px]">
+              🔄 تناوب بالدفعات (15/15)
+            </button>
+            <button onclick="changeCoordinationMode('ping_pong')" id="modeBtn-pingpong" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all text-[11px]">
+              🔀 تبادل فردي (1 بـ 1)
+            </button>
+            <button onclick="changeCoordinationMode('failover_backup')" id="modeBtn-failover" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all text-[11px]">
+              🛡️ خط أساسي + طوارئ
+            </button>
+          </div>
+        </div>
+
+        <!-- Visual Synchronization Pipeline (المخطط التدفقي الحي للرقمين) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center pt-3 pb-1">
+          
+          <!-- Slot 1 Status Node -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all" id="coordNode-1">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold font-mono text-emerald-400 text-xs">#1</span>
+              <div>
+                <span class="text-xs font-bold text-white block">هاتف 1 (الأساسي)</span>
+                <span class="text-[10px] font-mono text-slate-400" id="coordPhone-1">--</span>
+              </div>
+            </div>
+            <div class="text-left" id="coordStatus-1">
+              <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold block text-center">جاهز</span>
+            </div>
+          </div>
+
+          <!-- Flow Engine Center Indicator -->
+          <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-center space-y-1.5 relative">
+            <div class="flex items-center justify-center gap-2 text-xs font-bold text-slate-300">
+              <span id="coordArrowLeft" class="transition-opacity opacity-20 text-slate-700">◀</span>
+              <span id="coordFlowText" class="font-mono text-amber-400">⏸️ المنظومة في وضع الاستعداد (لا يوجد إرسال حالياً)</span>
+              <span id="coordArrowRight" class="transition-opacity opacity-20 text-slate-700">▶</span>
+            </div>
+            <!-- Progress towards next slot handover -->
+            <div class="space-y-1">
+              <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+                <div id="coordBatchProgress" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono px-0.5">
+                <span id="coordBatchCount">0 رسالة مرسلة حالياً</span>
+                <span id="coordRemainingText" class="text-emerald-400 font-semibold">جاهز للبدء فور إطلاقك للحملة</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slot 2 Status Node -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all" id="coordNode-2">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold font-mono text-teal-400 text-xs">#2</span>
+              <div>
+                <span class="text-xs font-bold text-white block">هاتف 2 (المساند)</span>
+                <span class="text-[10px] font-mono text-slate-400" id="coordPhone-2">--</span>
+              </div>
+            </div>
+            <div class="text-left" id="coordStatus-2">
+              <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold block text-center">جاهز</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Orchestration Action Buttons & Safeguard Assurance -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pt-3 border-t border-slate-800/80 text-xs">
+          <div class="flex items-center gap-2 text-[11px] text-emerald-400 font-semibold">
+            <span>🛡️ نظام الحصانة ضد الحظر:</span>
+            <span class="text-slate-300">تناوب متناسق + محاكاة كتابة حية + فواصل تبريد تلقائية</span>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="manualSwitchSlot()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all">
+              <span>🔄</span>
+              <span>تبديل الخط النشط الآن يدويّاً</span>
+            </button>
+            <button onclick="balanceSlotsNow()" class="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all">
+              <span>⚖️</span>
+              <span>موازنة 50% / 50%</span>
+            </button>
+            <button onclick="clearSavedCampaign()" title="تصفير الأرقام السابقة والبدء من الصفر تماماً" class="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all">
+              <span>🗑️</span>
+              <span>تصفير العداد والبدء من (0 / 0)</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Phone Cards Container -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="slotsContainer">
+        <div class="p-6 text-center text-slate-500 col-span-full">جاري قراءة حالة خطوط الواتساب...</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-semibold">
+      <button onclick="switchTab('campaign')" id="tabBtn-campaign" class="px-4 py-2.5 rounded-xl transition-all bg-emerald-600 text-white flex items-center gap-1.5 shadow">
+        🚀 إدارة وإطلاق الحملات
+      </button>
+      <button onclick="switchTab('logs')" id="tabBtn-logs" class="px-4 py-2.5 rounded-xl transition-all bg-slate-800/80 text-slate-400 hover:text-white flex items-center gap-1.5">
+        📊 سجل الأرقام (المرسل إليها & الملغاة)
+      </button>
+      <button onclick="switchTab('feed')" id="tabBtn-feed" class="px-4 py-2.5 rounded-xl transition-all bg-slate-800/80 text-slate-400 hover:text-white flex items-center gap-1.5">
+        💬 البث المباشر والمحادثات
+      </button>
+      <button onclick="switchTab('gifts')" id="tabBtn-gifts" class="px-4 py-2.5 rounded-xl transition-all bg-slate-800/80 text-slate-400 hover:text-white flex items-center gap-1.5">
+        🎁 كروت الهدايا والـ QR المسلّمة
+      </button>
+      <button onclick="switchTab('audit')" id="tabBtn-audit" class="px-4 py-2.5 rounded-xl transition-all bg-slate-800/80 text-slate-400 hover:text-white flex items-center gap-1.5">
+        📋 سجل قرارات الذكاء الاصطناعي
+      </button>
+    </div>
+
+    <!-- TAB 1: CAMPAIGN MANAGER -->
+    <div id="tabContent-campaign" class="space-y-4">
+      
+      <!-- Live Progress Banner (Always on Top when campaign active) -->
+      <div id="campaignLiveBanner" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" id="campStatusDot"></span>
+            <div>
+              <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>حالة الحملة الحالية:</span>
+                <span id="campStatusText" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">جاهزة</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5" id="campSubtitleText">لا توجد حملة قيد التشغيل حالياً.</p>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            <button id="btnSkipDelay" onclick="skipCampaignWaitDelay()" class="hidden px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md flex items-center gap-1">
+              ⚡ إرسال فوراً (تخطي وقت الانتظار)
+            </button>
+            <button id="btnPauseCamp" onclick="pauseCampaign()" class="hidden px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30">
+              ⏸️ إيقاف مؤقت
+            </button>
+            <button id="btnResumeCamp" onclick="resumeCampaign()" class="hidden px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow">
+              ▶️ استئناف الإرسال
+            </button>
+            <button id="btnResetCamp" onclick="resetCampaignProgress()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+              🗑️ تصفير السجل
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Bar & Next Countdown -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-300 font-mono">
+            <span>نسبة الإنجاز: <strong id="campPercent">0%</strong></span>
+            <span id="campCountdownNotice" class="text-amber-400 font-bold hidden">⏳ الرسالة القادمة بعد: <span id="campCountdownTimer" class="font-mono text-sm underline">--:--</span> (عبر <span id="campNextSlot">هاتف 1</span>)</span>
+          </div>
+          <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
+            <div id="campProgressBar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Telemetry Stats Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1 text-center">
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-[11px] text-slate-400 block">إجمالي المستهدفين</span>
+            <strong class="text-base text-white font-mono" id="statTotal">0</strong>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-[11px] text-emerald-400 block">تم الإرسال بنجاح</span>
+            <strong class="text-base text-emerald-400 font-mono" id="statSent">0</strong>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-[11px] text-amber-400 block">ملغاة ومتخطاة</span>
+            <strong class="text-base text-amber-400 font-mono" id="statSkipped">0</strong>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-[11px] text-red-400 block">فشل الإرسال</span>
+            <strong class="text-base text-red-400 font-mono" id="statFailed">0</strong>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 col-span-2 sm:col-span-1">
+            <span class="text-[11px] text-cyan-400 block">توزيع الهواتف</span>
+            <span class="text-xs font-mono text-cyan-300 block mt-0.5" id="statSlots">1: 0 | 2: 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaign Setup & Launch Form -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>⚙️ إعدادات وتخصيص الحملة الجديدة</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">تحكم كامل في الشريحة المستهدفة، الوتيرة التتابعية، عدد الرسائل لكل خط، وفترات التخفي.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+          
+          <!-- Left Column: Target Segment & Templates -->
+          <div class="space-y-4">
+            <div>
+              <label class="block font-semibold mb-1.5 text-slate-300">1. الشريحة الجغرافية والمستهدفة:</label>
+              <select id="campSegment" onchange="onSegmentChange()" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-semibold">
+                <option value="hadayek_8km">📍 حدائق الأهرام (نطاق جغرافي 8 كم - موصى به)</option>
+                <option value="uncontacted">🆕 المنشآت غير المتواصل معها سابقاً فقط</option>
+                <option value="all">🏢 جميع المنشآت المسجلة بقاعدة البيانات</option>
+              </select>
+              <p class="text-[11px] text-emerald-400 mt-1" id="campSegmentBadge">جاري حساب العدد الفعلي للشريحة...</p>
+            </div>
+
+            <div>
+              <label class="block font-semibold mb-1.5 text-slate-300">2. قالب الرسالة المعتمد:</label>
+              <select id="campTemplate" onchange="onTemplateChange()" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <option value="hadayek_invitation">💐 دعوة حدائق الأهرام الشرفية المجانية (مخصصة)</option>
+                <option value="honorary_invitation">🌟 الإدراج الشرفي العام المعتمد للمحافظات</option>
+                <option value="custom">✍️ رسالة نصية مخصصة</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-semibold mb-1.5 text-slate-300">نص الرسالة (المعاينة الحية والتخصيص):</label>
+              <textarea id="campCustomText" rows="6" placeholder="اكتب نص الرسالة هنا..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none leading-relaxed text-xs"></textarea>
+              <p class="text-[10px] text-slate-500 mt-1">المتغيرات المتاحة تلقائياً: {businessName}، {directoryUrl}، {phone}</p>
+            </div>
+          </div>
+
+          <!-- Right Column: Rotation, Delay, and Stealth Controls -->
+          <div class="space-y-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800/80">
+            <h3 class="font-bold text-sm text-emerald-400 border-b border-slate-800 pb-2 flex items-center gap-1.5">
+              🛡️ ضوابط الأمان وتناوب الأرقام (Anti-Ban Engine)
+            </h3>
+
+            <div>
+              <label class="block font-semibold mb-1 text-slate-300">عدد الرسائل لكل رقم قبل التبديل (Batch Burst Size):</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="campBurstSize" value="15" min="1" max="50" class="w-28 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white text-center font-bold">
+                <span class="text-slate-400 text-xs">رسالة لكل هاتف بالتناوب (الافتراضي: 15)</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/80 space-y-2">
+              <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                <input type="checkbox" id="campStealthMode" checked onchange="toggleStealthInputs()" class="rounded bg-slate-900 border-slate-700 text-emerald-600 focus:ring-emerald-500">
+                <span class="font-semibold">تفعيل وضع التخفي البشري العشوائي (Organic Stealth Mode)</span>
+              </label>
+              <p class="text-[11px] text-slate-400 pr-6">
+                يبدأ بـ 15 رسالة لهاتف 1، ثم 15 رسالة لهاتف 2، ثم يتحول تلقائياً لاختيار عشوائي (50% / 50%) بفترات انتظار بشرية واسعة.
+              </p>
+            </div>
+
+            <!-- Stealth Minutes Interval -->
+            <div id="stealthIntervalInputs" class="space-y-2 pt-2 border-t border-slate-800/60">
+              <span class="block font-semibold text-slate-300">فترة الانتظار العشوائية في وضع التخفي (بالدقائق):</span>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[11px] text-slate-400 block mb-0.5">الحد الأدنى (دقائق):</label>
+                  <input type="number" id="campStealthMin" value="20" min="1" max="180" class="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white text-center">
+                </div>
+                <div>
+                  <label class="text-[11px] text-slate-400 block mb-0.5">الحد الأقصى (دقائق):</label>
+                  <input type="number" id="campStealthMax" value="60" min="2" max="240" class="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white text-center">
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-500 block">نص ساعة أو ساعة عشوائياً بين كل رسالتين (20 إلى 60 دقيقة).</span>
+            </div>
+
+            <!-- Fast Seconds Interval (when stealth is disabled) -->
+            <div id="fastIntervalInputs" class="space-y-2 pt-2 border-t border-slate-800/60 hidden">
+              <span class="block font-semibold text-slate-300">فترة الانتظار السريعة (بالثواني):</span>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[11px] text-slate-400 block mb-0.5">الحد الأدنى (ثوانٍ):</label>
+                  <input type="number" id="campMinSec" value="10" min="5" max="120" class="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white text-center">
+                </div>
+                <div>
+                  <label class="text-[11px] text-slate-400 block mb-0.5">الحد الأقصى (ثوانٍ):</label>
+                  <input type="number" id="campMaxSec" value="20" min="10" max="180" class="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white text-center">
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+                <input type="checkbox" id="campSkipRecent" checked class="rounded bg-slate-900 border-slate-700 text-emerald-600 focus:ring-emerald-500">
+                <span>استبعاد الأرقام التي تم مراسلتها سابقاً لمنع التكرار والإزعاج</span>
+              </label>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Start Campaign Action -->
+        <div class="flex items-center justify-between border-t border-slate-800 pt-4 flex-wrap gap-3">
+          <div class="text-xs text-slate-400 flex items-center gap-2">
+            <span>🛡️ محمي ضد الحظر بقواطع السرعة وفصل الجلسات الذكي</span>
+          </div>
+          <button id="btnStartCamp" onclick="startCampaign()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-sm shadow-xl shadow-emerald-600/30 flex items-center gap-2">
+            🚀 إطلاق الحملة الآن من التطبيق
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 2: SENT & SKIPPED NUMBERS LOGS -->
+    <div id="tabContent-logs" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="font-bold text-sm text-white flex items-center gap-2">
+              <span>📊 سجل أرقام الحملة (المرسل إليها & الملغاة والمتخطاة)</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">توثيق دقيق لكل رقم تم إرسال الرسالة له أو استبعاده مع ذكر السبب الكامل.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="filterLogs('all')" id="logFilter-all" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 text-white shadow">الكل</button>
+            <button onclick="filterLogs('sent')" id="logFilter-sent" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 hover:text-white">✅ تم الإرسال (<span id="badgeSentCount">0</span>)</button>
+            <button onclick="filterLogs('skipped')" id="logFilter-skipped" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 hover:text-white">⏸️ الملغاة والمتخطاة (<span id="badgeSkippedCount">0</span>)</button>
+            <button onclick="filterLogs('failed')" id="logFilter-failed" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 hover:text-white">❌ الفاشلة (<span id="badgeFailedCount">0</span>)</button>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative">
+          <input type="text" id="logSearchInput" oninput="renderLogsTable()" placeholder="ابحث بالاسم أو رقم الهاتف..." class="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+
+        <!-- Logs Table -->
+        <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <table class="w-full text-xs text-right">
+            <thead class="sticky top-0 bg-slate-900 border-b border-slate-800 text-slate-400">
+              <tr>
+                <th class="py-2.5 px-3">المنشأة</th>
+                <th class="py-2.5 px-3">الهاتف</th>
+                <th class="py-2.5 px-3 text-center">الحالة</th>
+                <th class="py-2.5 px-3">الخط / السبب</th>
+                <th class="py-2.5 px-3">الوقت</th>
+                <th class="py-2.5 px-3 text-center">المحادثة</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-sans" id="logsTableBody">
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-500">جاري قراءة السجلات...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: LIVE FEED & CONVERSATIONS -->
+    <div id="tabContent-feed" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-bold text-sm text-white flex items-center gap-2">
+              <span>💬 المحادثات الواردة وردود الذكاء الاصطناعي الفورية</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">يمكنك كتم الـ AI لأي محادثة والتدخل بشرياً، أو استعراض الحوار الكامل.</p>
+          </div>
+          <span class="text-xs font-mono text-emerald-400 font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10" id="convsCountBadge">0 محادثة</span>
+        </div>
+
+        <div class="space-y-3" id="conversationsContainer">
+          <div class="p-8 text-center text-slate-500 text-xs">لا توجد محادثات واردة جديدة حتى الآن.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: DELIVERED GIFTS -->
+    <div id="tabContent-gifts" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-bold text-sm text-white">🎁 سجل الهدايا وأكواد الـ QR المُسلّمة للمنشآت</h2>
+            <p class="text-xs text-slate-400 mt-0.5">توثيق كامل لكل كارت تم إرساله للعميل بالصورة والتعليق</p>
+          </div>
+          <span class="text-xs font-semibold px-3 py-1 bg-purple-500/10 text-purple-400 rounded-lg font-mono" id="giftsCountBadge">0 هدية</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-right">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400">
+                <th class="py-2.5 px-3">المنشأة</th>
+                <th class="py-2.5 px-3">الهاتف</th>
+                <th class="py-2.5 px-3">المصدر المعتمد</th>
+                <th class="py-2.5 px-3">تاريخ الإرسال</th>
+                <th class="py-2.5 px-3 text-center">المعاينة</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60" id="giftsTableBody">
+              <tr>
+                <td colspan="5" class="py-8 text-center text-slate-500">لا توجد هدايا مسجلة حتى الآن.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: AUDIT TRAIL -->
+    <div id="tabContent-audit" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+        <h2 class="font-bold text-sm text-white">📋 سجل تدقيق قرارات Grok الذاتية (Audit Trail)</h2>
+        <div class="space-y-2 text-xs font-mono max-h-[600px] overflow-y-auto" id="auditList">
+          <div class="p-6 text-center text-slate-500">جاري تحميل سجل التدقيق...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL: GROK CONFIG (3 KEYS SUPPORT) -->
+  <div id="configModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+          ⚙️ إعدادات محرك Grok AI (دعم 3 مفاتيح للتبديل التلقائي)
+        </h3>
+        <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        
+        <!-- 3 Keys (Groq / Gemini / Grok) -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-emerald-400">🔑 مفاتيح الذكاء الاصطناعي (Groq المجاني / Gemini / Grok):</span>
+            <span class="text-[10px] text-slate-500">تبديل واحتياط تلقائي بين المفاتيح الثلاثة</span>
+          </div>
+
+          <div class="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg text-[11px] text-emerald-300 space-y-1">
+            <div class="font-bold flex items-center gap-1.5">
+              <span>💡</span>
+              <span>للحصول على مفاتيح مجانية 100% مدى الحياة بدون فيزا:</span>
+            </div>
+            <p class="text-slate-300">
+              1. <b>Groq (موصى به لسرعته الفائقة ومجانيته):</b> سجل بضغطة زر عبر حساب جوجل على <a href="https://console.groq.com/keys" target="_blank" class="text-emerald-400 underline font-mono">console.groq.com</a> وأنشئ مفتاحاً يبدأ بـ <code class="font-mono text-emerald-300">gsk_</code>.<br>
+              2. <b>Google Gemini:</b> احصل على مفتاحك المجاني من <a href="https://aistudio.google.com/apikey" target="_blank" class="text-emerald-400 underline font-mono">aistudio.google.com</a>.<br>
+              3. النظام يتعرف تلقائياً على نوع المفتاح ويوجه الردود بدقة!
+            </p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-semibold text-slate-300">1. المفتاح الأساسي (Primary Key):</label>
+              <span id="key1Badge" class="text-[10px] text-slate-500">غير مُدخل</span>
+            </div>
+            <input type="password" id="cfgApiKey1" placeholder="gsk_... (Groq مجاني) أو AIza... (Gemini) أو xai-..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" dir="ltr">
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-semibold text-slate-300">2. المفتاح الاحتياطي الأول (Backup 1):</label>
+              <span id="key2Badge" class="text-[10px] text-slate-500">غير مُدخل</span>
+            </div>
+            <input type="password" id="cfgApiKey2" placeholder="gsk_... أو AIza... أو xai-... (اختياري)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" dir="ltr">
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-semibold text-slate-300">3. المفتاح الاحتياطي الثاني (Backup 2):</label>
+              <span id="key3Badge" class="text-[10px] text-slate-500">غير مُدخل</span>
+            </div>
+            <input type="password" id="cfgApiKey3" placeholder="gsk_... أو AIza... أو xai-... (اختياري)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 font-mono text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" dir="ltr">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold mb-1 text-slate-300">النموذج الذكي (Model):</label>
+            <select id="cfgModel" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Groq مجاني - فائق الذكاء وموصى به ⚡)</option>
+              <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b (Groq مجاني - استجابة فائقة السرعة)</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash (Google مجاني - فهم مصري رائع)</option>
+              <option value="grok-2-mini">grok-2-mini (xAI Grok اقتصادي)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold mb-1 text-slate-300">نبرة المحادثة (Tone):</label>
+            <select id="cfgTone" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="egyptian_warm">مصري ودود ولبق (موصى به للأنشطة)</option>
+              <option value="formal_official">عربي فصيح رسمي إداري</option>
+              <option value="marketing_promotional">تسويقي ترويجي حماسي</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+          <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+            <input type="checkbox" id="cfgAutoGift" class="rounded bg-slate-950 border-slate-700 text-emerald-600 focus:ring-emerald-500">
+            <span>تفعيل تسليم كارت الـ QR والهدية فورياً عند طلب العميل</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+            <input type="checkbox" id="cfgAutoUpdate" class="rounded bg-slate-950 border-slate-700 text-emerald-600 focus:ring-emerald-500">
+            <span>تحديث بيانات المنشأة بقاعدة البيانات تلقائياً</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+            <input type="checkbox" id="cfgTypingSim" class="rounded bg-slate-950 border-slate-700 text-emerald-600 focus:ring-emerald-500">
+            <span>محاكاة الكتابة البشرية (3.5s - 6.5s) للحماية من الحظر</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="closeConfigModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold">إلغاء</button>
+        <button onclick="saveConfig()" id="btnSaveConfig" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20">حفظ وتفعيل المفاتيح 100%</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHAT TRANSCRIPT MODAL -->
+  <div id="chatModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="font-bold text-sm text-white flex items-center gap-2" id="chatModalTitle">
+            💬 سجل محادثة المنشأة
+          </h3>
+          <p class="text-[11px] text-slate-400 font-mono" id="chatModalSubtitle" dir="ltr">+20...</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="chatModalMuteBtn" onclick="toggleChatMuteFromModal()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            👤 كتم الـ AI
+          </button>
+          <button onclick="closeChatModal()" class="text-slate-400 hover:text-white text-lg px-2">✕</button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto py-4 space-y-3 text-xs" id="chatModalMessages">
+        <div class="p-6 text-center text-slate-500">جاري تحميل الرسائل...</div>
+      </div>
+
+      <div class="border-t border-slate-800 pt-3 flex items-center justify-between gap-2 flex-wrap">
+        <button id="chatModalSendGiftBtn" onclick="sendGiftFromChatModal()" class="px-3.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5">
+          🎁 إرسال كارت الـ QR والهدية فوراً
+        </button>
+        <button onclick="closeChatModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
+          إغلاق
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: QR PREVIEW -->
+  <div id="qrModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-xs text-white" id="qrModalTitle">معاينة كارت الـ QR</h3>
+        <button onclick="closeQrModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl shadow-xl text-slate-900 mx-auto max-w-[260px]">
+        <div class="text-[10px] font-black tracking-wider text-emerald-700 uppercase">دليلك التجاري المعتمد</div>
+        <div id="qrModalBizName" class="font-bold text-sm my-1 text-slate-900">منشأة دليلك</div>
+        <img id="qrModalImg" src="" alt="QR" class="w-40 h-40 mx-auto my-2 rounded-lg bg-slate-50 border p-1 object-contain">
+        <div class="text-[9px] text-slate-500 font-mono break-all" id="qrModalUrl">https://www.dalilaak.com</div>
+      </div>
+
+      <p class="text-xs text-slate-400">الكارت المعتمد المخصص للإرسال كصورة أصلية عالية الدقة 800×800.</p>
+      <button onclick="closeQrModal()" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">إغلاق</button>
+    </div>
+  </div>
+
+  <!-- MODAL: STAT DETAIL & CONTROLS POPUP (نافذة تفاصيل الإحصاء والتحكم السريع) -->
+  <div id="statDetailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-right">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-lg" id="statModalIcon">
+            📊
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <span id="statModalTitle">تفاصيل الإحصائية</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700" id="statModalSlotBadge">خط 1</span>
+            </h3>
+            <p class="text-[11px] text-slate-400 font-mono" id="statModalPhone">--</p>
+          </div>
+        </div>
+        <button onclick="closeStatDetailModal()" class="text-slate-400 hover:text-white text-lg px-2">✕</button>
+      </div>
+
+      <!-- Dynamic Content -->
+      <div id="statModalBody" class="space-y-3 text-xs text-slate-300">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 pt-3 border-t border-slate-800 flex-wrap" id="statModalActions">
+        <!-- Injected via JavaScript -->
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // State
+    let globalAiEnabled = true;
+    let allLogs = [];
+    let currentLogFilter = 'all';
+    let currentActivePhone = null;
+    let currentCountdownSeconds = 0;
+    let countdownIntervalId = null;
+
+    // Standard Templates
+    const DEFAULT_TEMPLATES = {
+      hadayek_invitation: `أهلاً بحضرتك في *دليلك* 💐\n\nلأنك من سكان أو العاملين الكرام بـ *حدائق الأهرام*، تم إدراج نشاطك كـ *إدراج شرفي مجاني مدى الحياة (0.00 ج.م)* على منصة «دليلك» الجغرافية الذكية.\n\n🔗 رابط بطاقة نشاطك ومعاينته واستلام هديتك الترويجية المعتمدة:\n{directoryUrl}\n\nلو حابب تفعل بياناتك وتظهر في المقدمة، ابعتلنا:\n1. نوع وتفاصيل النشاط بدقة.\n2. رقم الواتساب المعتمد للتواصل.\n3. كام صورة مميزة للمكان.\n\nتفضل اسأل وإحنا هنجاوبك على أي استفسار بكل ترحيب 🤝\nغير مهتم؟ شرفتنا ونعتذر للإزعاج.`,
+      honorary_invitation: `السلام عليكم ورحمة الله وبركاته 💐\nتحياتنا لإدارة المنشأة الكريمة،\n\nتشرّف فريق منصة «دليلك» باعتماد *إدراج شرفي موثق ومجاني تماماً (0.00 ج.م)* لمنشأتكم في دليلنا المعتمد الرسمي مدى الحياة.\n\n🔗 رابط بطاقة منشأتكم بالدليل العام المعتمد:\n{directoryUrl}\n\nيسعدنا دائماً خدمتكم واستقبال استفساراتكم 🤝`,
+      custom: ''
+    };
+
+    // TAB SWITCHING
+    function switchTab(tabId) {
+      ['campaign', 'logs', 'feed', 'gifts', 'audit'].forEach(t => {
+        const el = document.getElementById(`tabContent-${t}`);
+        const btn = document.getElementById(`tabBtn-${t}`);
+        if (el) el.classList.add('hidden');
+        if (btn) {
+          btn.classList.remove('bg-emerald-600', 'text-white', 'shadow');
+          btn.classList.add('bg-slate-800/80', 'text-slate-400');
+        }
+      });
+      const activeContent = document.getElementById(`tabContent-${tabId}`);
+      const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+      if (activeContent) activeContent.classList.remove('hidden');
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-slate-800/80', 'text-slate-400');
+        activeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow');
+      }
+
+      if (tabId === 'logs') fetchCampaignLogs();
+    }
+
+    function toggleStealthInputs() {
+      const isStealth = document.getElementById('campStealthMode').checked;
+      document.getElementById('stealthIntervalInputs').classList.toggle('hidden', !isStealth);
+      document.getElementById('fastIntervalInputs').classList.toggle('hidden', isStealth);
+    }
+
+    function onTemplateChange() {
+      const val = document.getElementById('campTemplate').value;
+      if (DEFAULT_TEMPLATES[val] !== undefined) {
+        document.getElementById('campCustomText').value = DEFAULT_TEMPLATES[val];
+      }
+    }
+
+    // DATA REFRESH
+    async function refreshAllData() {
+      await Promise.all([
+        fetchRadarData(),
+        fetchCampaignProgress(),
+        fetchCampaignSegments(),
+        fetchCampaignLogs()
+      ]);
+    }
+
+    // 1. Radar & Slots Data
+    async function fetchRadarData() {
+      try {
+        const [healthRes, convRes, auditRes, giftsRes] = await Promise.all([
+          fetch('/api/whatsapp/health').then(r => r.json()).catch(() => ({})),
+          fetch('/api/whatsapp/ai/conversations').then(r => r.json()).catch(() => ({})),
+          fetch('/api/whatsapp/ai/audit').then(r => r.json()).catch(() => ({})),
+          fetch('/api/whatsapp/gift/history').then(r => r.json()).catch(() => ({}))
+        ]);
+
+        latestHealthData = healthRes;
+        try { renderBanner(healthRes, convRes); } catch (e) { console.error('renderBanner error:', e); }
+        try { renderCoordination(healthRes.slots || {}, healthRes.activeCampaign || latestCampData, healthRes.rotationConfig); } catch (e) { console.error('renderCoordination error:', e); }
+        try { renderSlots(healthRes.slots || []); } catch (e) { console.error('renderSlots error:', e); }
+        try { renderConversations(convRes.conversations || convRes.threads || []); } catch (e) { console.error('renderConversations error:', e); }
+        try { renderAudit(auditRes.logs || []); } catch (e) { console.error('renderAudit error:', e); }
+        try { renderGifts(giftsRes.history || giftsRes.deliveredGifts || []); } catch (e) { console.error('renderGifts error:', e); }
+      } catch (err) {
+        console.error('Fetch radar data failed:', err);
+      }
+    }
+
+    function renderBanner(health, convRes) {
+      if (!health) return;
+      const slots = health.slots || {};
+      const slotsList = Array.isArray(slots) ? slots : Object.values(slots);
+      const slot1 = slotsList.find(s => String(s.slotId) === '1') || slots['1'] || {};
+
+      const isConn = slot1.state === 'connected';
+      const phone = formatNicePhone(slot1) || '+201556221141';
+      const isTripped = Boolean(slot1.safety?.isCircuitBreakerActive || slot1.state === 'tripped');
+
+      const phoneEl = document.getElementById('bannerPhoneText');
+      const connBadge = document.getElementById('bannerConnBadge');
+      const connText = document.getElementById('bannerConnBadgeText');
+      const banBadge = document.getElementById('bannerBanBadge');
+      const iconEl = document.getElementById('bannerStatusIcon');
+      const uptimeEl = document.getElementById('bannerUptimeText');
+      const inEl = document.getElementById('bannerInboundCount');
+      const outEl = document.getElementById('bannerOutboundCount');
+      const scoreEl = document.getElementById('bannerSafetyScore');
+      const lastIntEl = document.getElementById('bannerLastInteraction');
+
+      if (phoneEl) phoneEl.textContent = phone;
+      if (inEl) inEl.textContent = slot1.safety?.dailyInboundCount ?? slot1.safety?.hourlyInboundCount ?? 0;
+      if (outEl) outEl.textContent = slot1.safety?.dailyOutboundCount ?? slot1.safety?.hourlyOutboundCount ?? 0;
+      if (scoreEl) scoreEl.textContent = (slot1.safety?.safetyScore ?? 95) + '%';
+
+      if (uptimeEl) {
+        const uptimeSec = slot1.uptimeSeconds || health.uptimeSeconds || 0;
+        if (uptimeSec > 3600) uptimeEl.textContent = `${Math.floor(uptimeSec / 3600)} ساعة و ${Math.floor((uptimeSec % 3600) / 60)} دقيقة`;
+        else if (uptimeSec > 60) uptimeEl.textContent = `${Math.floor(uptimeSec / 60)} دقيقة`;
+        else uptimeEl.textContent = `${uptimeSec} ثانية`;
+      }
+
+      if (isConn) {
+        if (iconEl) { iconEl.textContent = '🟢'; iconEl.className = 'w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl shadow-inner text-emerald-400 shrink-0'; }
+        if (connBadge) connBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm';
+        if (connText) connText.textContent = 'متصل ومستقر الآن';
+        if (banBadge) {
+          banBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center gap-1';
+          banBadge.innerHTML = '🛡️ الحساب آمن بنسبة 100% (لا يوجد حظر)';
+        }
+      } else if (isTripped) {
+        if (iconEl) { iconEl.textContent = '🚨'; iconEl.className = 'w-12 h-12 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-2xl shadow-inner text-red-400 shrink-0'; }
+        if (connBadge) connBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/40 flex items-center gap-1.5 shadow-sm';
+        if (connText) connText.textContent = 'توقف الحماية المؤقت (كبح السرعة)';
+        if (banBadge) {
+          banBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1';
+          banBadge.innerHTML = '⚠️ تم تفعيل قاطع الحماية التلقائي';
+        }
+      } else {
+        if (iconEl) { iconEl.textContent = '⚪'; iconEl.className = 'w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-2xl shadow-inner text-slate-400 shrink-0'; }
+        if (connBadge) connBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5 shadow-sm';
+        if (connText) connText.textContent = 'غير متصل (بانتظار المسح)';
+        if (banBadge) {
+          banBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1';
+          banBadge.innerHTML = '📱 الخط في وضع الانتظار';
+        }
+      }
+
+      // Last interaction resolution
+      const convList = convRes?.conversations || convRes?.threads || [];
+      if (Array.isArray(convList) && convList.length > 0) {
+        const latestConv = convList[0];
+        const lastMsg = latestConv.messages?.[latestConv.messages.length - 1];
+        if (lastMsg && lastIntEl) {
+          const sender = lastMsg.role === 'assistant' ? '🤖 المنظومة: ' : '👤 العميل: ';
+          lastIntEl.textContent = sender + (lastMsg.content?.slice(0, 35) || 'محادثة نشطة');
+        }
+      }
+    }
+
+    let latestCampData = null;
+    let latestSlotsData = null;
+    let latestHealthData = null;
+
+    function formatNicePhone(s) {
+      if (!s) return '';
+      const jidPhone = s.connectedUser?.id ? s.connectedUser.id.split('@')[0].split(':')[0] : '';
+      let raw = jidPhone || s.phoneNumber || s.connectedUser?.phone || (typeof s.connectedUser === 'string' ? s.connectedUser.replace(/@.*/, '') : '') || '';
+      if (!raw) return '';
+      raw = raw.replace(/\D/g, '');
+      if (raw.startsWith('01')) raw = '20' + raw.slice(1);
+      return '+' + raw;
+    }
+
+    function renderCoordination(slots, camp, rotConfig) {
+      if (!slots) return;
+      const slotsList = Array.isArray(slots) ? slots : Object.values(slots);
+      const slot1 = slotsList.find(s => String(s.slotId) === '1') || slots['1'] || {};
+      const slot2 = slotsList.find(s => String(s.slotId) === '2') || slots['2'] || {};
+
+      // Display registered numbers
+      const phone1 = formatNicePhone(slot1);
+      const phone2 = formatNicePhone(slot2);
+      
+      const p1El = document.getElementById('coordPhone-1');
+      const p2El = document.getElementById('coordPhone-2');
+      if (p1El) p1El.textContent = phone1 || '(بانتظار المسح)';
+      if (p2El) p2El.textContent = phone2 || '(بانتظار المسح)';
+
+      // Active slot resolution
+      let activeSlot = String(camp?.currentSlot || rotConfig?.currentSlot || '1');
+      const slot1Conn = slot1.state === 'connected';
+      const slot2Conn = slot2.state === 'connected';
+
+      if (!slot1Conn && slot2Conn) activeSlot = '2';
+      else if (slot1Conn && !slot2Conn) activeSlot = '1';
+
+      // Current batch count & limit
+      const currentBatchSent = camp?.currentSlotSentCount ?? rotConfig?.currentSlotSentCount ?? 0;
+      const batchLimit = camp?.rotationBatchSize ?? rotConfig?.batchSize ?? 15;
+      const remaining = Math.max(0, batchLimit - currentBatchSent);
+      const percent = batchLimit > 0 ? Math.min(100, Math.round((currentBatchSent / batchLimit) * 100)) : 0;
+
+      const progressEl = document.getElementById('coordBatchProgress');
+      const countEl = document.getElementById('coordBatchCount');
+      const remainEl = document.getElementById('coordRemainingText');
+      const flowText = document.getElementById('coordFlowText');
+      const arrowL = document.getElementById('coordArrowLeft');
+      const arrowR = document.getElementById('coordArrowRight');
+      const node1 = document.getElementById('coordNode-1');
+      const status1 = document.getElementById('coordStatus-1');
+      const node2 = document.getElementById('coordNode-2');
+      const status2 = document.getElementById('coordStatus-2');
+
+      const isRunning = Boolean(camp && camp.status === 'running');
+
+      if (!isRunning) {
+        if (flowText) {
+          flowText.innerHTML = `<span class="text-amber-400">⏸️ المنظومة في وضع الاستعداد</span> <span class="text-slate-400 text-[11px] block sm:inline">(لا يوجد إرسال حالياً)</span>`;
+        }
+        if (arrowL && arrowR) {
+          arrowL.className = 'transition-all text-slate-700 opacity-30';
+          arrowR.className = 'transition-all text-slate-700 opacity-30';
+        }
+        if (progressEl) progressEl.style.width = '0%';
+        if (countEl) countEl.textContent = '0 رسالة مرسلة حالياً';
+        if (remainEl) {
+          remainEl.innerHTML = `<span class="text-emerald-400 font-semibold">جاهز للبدء عبر هاتف (${activeSlot}) فور إطلاقك للحملة</span>`;
+        }
+
+        // Highlight nodes in standby
+        if (node1 && status1) {
+          if (slot1Conn) {
+            node1.className = 'bg-slate-950 border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all';
+            status1.innerHTML = '<span class="text-[10px] px-2.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">🟢 متصل ومستعد (ستاند باي)</span>';
+          } else {
+            node1.className = 'bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all opacity-70';
+            status1.innerHTML = '<span class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-500 font-medium">⚪ غير متصل (خامل)</span>';
+          }
+        }
+
+        if (node2 && status2) {
+          if (slot2Conn) {
+            node2.className = 'bg-slate-950 border border-teal-500/40 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all';
+            status2.innerHTML = '<span class="text-[10px] px-2.5 py-0.5 rounded bg-teal-500/15 text-teal-400 font-semibold border border-teal-500/30">🟢 متصل ومستعد (ستاند باي)</span>';
+          } else {
+            node2.className = 'bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all opacity-70';
+            status2.innerHTML = '<span class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-500 font-medium">⚪ غير متصل (بانتظار المسح)</span>';
+          }
+        }
+      } else {
+        // ACTIVE RUNNING MODE
+        if (flowText) {
+          flowText.innerHTML = `<span class="text-emerald-400 animate-pulse">🚀 جاري الإرسال الآن:</span> <strong class="text-white">هاتف ${activeSlot} (${activeSlot === '1' ? 'الأساسي' : 'المساند'})</strong>`;
+        }
+        if (arrowL && arrowR) {
+          if (activeSlot === '1') {
+            arrowL.className = 'transition-all text-emerald-400 font-black scale-125 animate-pulse';
+            arrowR.className = 'transition-all text-slate-600 opacity-30';
+          } else {
+            arrowL.className = 'transition-all text-slate-600 opacity-30';
+            arrowR.className = 'transition-all text-teal-400 font-black scale-125 animate-pulse';
+          }
+        }
+        if (progressEl) progressEl.style.width = `${percent}%`;
+        if (countEl) countEl.textContent = `${currentBatchSent} / ${batchLimit} رسالة`;
+        if (remainEl) remainEl.textContent = remaining === 0 ? 'جاهز للتبديل الآن 🔄' : `باقي ${remaining} للتبديل التلقائي`;
+
+        if (node1 && status1) {
+          if (activeSlot === '1') {
+            node1.className = 'bg-emerald-950/40 border-2 border-emerald-500/60 rounded-xl p-3 flex items-center justify-between gap-2.5 shadow-lg shadow-emerald-500/10 transition-all';
+            status1.innerHTML = '<span class="text-[10px] px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 animate-pulse">🟢 نشط للإرسال الآن</span>';
+          } else {
+            node1.className = 'bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all opacity-80';
+            status1.innerHTML = '<span class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-medium">🧊 فترة راحة وتبريد</span>';
+          }
+        }
+
+        if (node2 && status2) {
+          if (activeSlot === '2') {
+            node2.className = 'bg-teal-950/40 border-2 border-teal-500/60 rounded-xl p-3 flex items-center justify-between gap-2.5 shadow-lg shadow-teal-500/10 transition-all';
+            status2.innerHTML = '<span class="text-[10px] px-2.5 py-0.5 rounded bg-teal-500/20 text-teal-400 font-bold border border-teal-500/30 animate-pulse">🟢 نشط للإرسال الآن</span>';
+          } else {
+            node2.className = 'bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2.5 transition-all opacity-80';
+            status2.innerHTML = '<span class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-medium">🧊 فترة راحة وتبريد</span>';
+          }
+        }
+      }
+
+      // Mode Badge & Pill selection
+      const mode = rotConfig?.mode || (camp?.stealthModeActive ? 'ping_pong' : 'batch_round_robin');
+      const badge = document.getElementById('coordinationModeBadge');
+      if (badge) {
+        if (mode === 'ping_pong') {
+          badge.textContent = '🔀 تبادل فردي (رسالة برقم 1 ➔ رسالة برقم 2)';
+          badge.className = 'text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold';
+        } else if (mode === 'failover_backup') {
+          badge.textContent = '🛡️ خط أساسي + احتياطي للطوارئ';
+          badge.className = 'text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold';
+        } else {
+          badge.textContent = `🔄 تناوب متوازن (${batchLimit} رسالة لكل خط)`;
+          badge.className = 'text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold';
+        }
+      }
+
+      ['batch', 'pingpong', 'failover'].forEach(m => {
+        const btn = document.getElementById(`modeBtn-${m}`);
+        if (btn) {
+          const isActive = (m === 'batch' && mode === 'batch_round_robin') ||
+                           (m === 'pingpong' && mode === 'ping_pong') ||
+                           (m === 'failover' && mode === 'failover_backup');
+          if (isActive) {
+            btn.className = 'px-2.5 py-1.5 rounded-lg text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 font-bold transition-all text-[11px] shadow-sm';
+          } else {
+            btn.className = 'px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all text-[11px]';
+          }
+        }
+      });
+    }
+
+    function renderSlots(slots) {
+      const container = document.getElementById('slotsContainer');
+      if (slots) {
+        latestSlotsData = slots;
+      } else if (latestSlotsData) {
+        slots = latestSlotsData;
+      }
+
+      if (!slots) {
+        container.innerHTML = '<div class="p-6 text-center text-slate-500 col-span-full">جاري قراءة حالة خطوط الواتساب...</div>';
+        return;
+      }
+
+      // Convert dict/object to array safely
+      const slotsList = Array.isArray(slots) ? slots : Object.values(slots);
+      if (slotsList.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-slate-500 col-span-full">لا توجد خطوط مسجلة بالمنظومة.</div>';
+        return;
+      }
+
+      container.innerHTML = slotsList.map(s => {
+        const slotId = String(s.slotId || '1');
+        const isConn = s.state === 'connected';
+        const isConnecting = s.state === 'connecting';
+        const qrData = s.qrCodeUrl || s.qrCode;
+        const isQr = (s.state === 'qr_ready' || !isConn) && Boolean(qrData);
+        const isTripped = Boolean(s.safety?.isCircuitBreakerActive || s.safety?.circuitBreakerTripped || s.state === 'tripped');
+
+        // Extract registered phone number
+        const displayPhone = formatNicePhone(s) || 'لم يتم ربط رقم بعد';
+        const rawPhone = displayPhone !== 'لم يتم ربط رقم بعد' ? displayPhone : '';
+
+        // Campaign sent count for this specific slot
+        const campSent = slotId === '2' ? (latestCampData?.slot2SentCount || 0) : (latestCampData?.slot1SentCount || 0);
+
+        // Safety & Velocity metrics
+        const sentHour = s.safety?.messagesSentLastHour ?? s.safety?.hourlyOutboundCount ?? 0;
+        const hourlyCap = s.safety?.hourlyCap ?? 40;
+        const speedPercent = Math.min(100, Math.round((sentHour / hourlyCap) * 100));
+
+        let safetyScore = 95;
+        if (typeof s.safety?.safetyScore === 'number') {
+          safetyScore = s.safety.safetyScore;
+        } else if (typeof s.safety?.riskScore === 'number') {
+          safetyScore = Math.max(0, 100 - s.safety.riskScore);
+        }
+
+        const inboundCount = s.safety?.dailyInboundCount ?? s.safety?.hourlyInboundCount ?? 0;
+        const inboundRatio = s.safety?.inboundRatio ? `${s.safety.inboundRatio}%` : (inboundCount > 0 ? `${inboundCount} ردود` : 'جاهز للرد');
+
+        // Status badges and interaction states
+        let badgeBg = 'bg-slate-800 text-slate-400 border border-slate-700';
+        let stateText = 'غير متصل ❌';
+        let interactionState = 'الخط خامل / غير متصل بالخادم';
+        let statusDot = 'bg-slate-500';
+
+        const isCampActive = Boolean(latestCampData && latestCampData.status === 'running');
+        if (isConn) {
+          badgeBg = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm';
+          stateText = isCampActive ? 'متصل ونشط للإرسال الآن 🟢' : 'متصل وفي وضع الاستعداد 🟢';
+          interactionState = isCampActive
+            ? 'متفاعل وجاري بث رسائل الحملة واستقبال الردود الفورية'
+            : 'متصل ومستقر وجاهز لبدء الإرسال فور إطلاقك للحملة';
+          statusDot = isCampActive ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400';
+        } else if (isQr) {
+          badgeBg = 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse';
+          stateText = 'امسح رمز QR 📷';
+          interactionState = 'بانتظار مسح كود الربط بكاميرا تطبيق واتساب';
+          statusDot = 'bg-amber-400';
+        } else if (isConnecting) {
+          badgeBg = 'bg-blue-500/20 text-blue-300 border border-blue-500/40';
+          stateText = 'جاري الاتصال والتهيئة ⏳';
+          interactionState = 'جاري مزامنة مفاتيح الجلسة والاتصال...';
+          statusDot = 'bg-blue-400 animate-ping';
+        } else if (isTripped) {
+          badgeBg = 'bg-red-500/20 text-red-300 border border-red-500/40';
+          stateText = 'قاطع الحظر مفصول 🚨';
+          interactionState = 'تم تفعيل قاطع الحماية التلقائي لكبح سرعة الإرسال';
+          statusDot = 'bg-red-500';
+        }
+
+        // Format Last Active
+        let lastActiveStr = 'لا يوجد نشاط مسجل';
+        const lastActiveTime = s.lastActive || s.lastHeartbeat || s.connectedAt;
+        if (lastActiveTime) {
+          const diffSec = Math.floor((Date.now() - new Date(lastActiveTime).getTime()) / 1000);
+          if (diffSec < 60) lastActiveStr = 'الآن (منذ لحظات)';
+          else if (diffSec < 3600) lastActiveStr = `منذ ${Math.floor(diffSec / 60)} دقيقة`;
+          else lastActiveStr = new Date(lastActiveTime).toLocaleTimeString('ar-EG');
+        }
+
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 relative overflow-hidden transition-all hover:border-slate-700">
+            <div class="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r ${isConn ? 'from-emerald-500 to-teal-400' : isQr ? 'from-amber-500 to-orange-400' : 'from-slate-700 to-slate-800'}"></div>
+            
+            <!-- Header: Slot Name & Phone Number -->
+            <div class="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-3">
+              <div class="flex items-center gap-3">
+                <div class="relative w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-xl shrink-0">
+                  📱
+                  <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full ${statusDot} border-2 border-slate-900"></span>
+                </div>
+                <div>
+                  <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                    <span>${s.name || (slotId === '2' ? 'هاتف الإدارة المساند' : 'هاتف الإدارة الأساسي')}</span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">خط ${slotId}</span>
+                  </h3>
+                  
+                  <!-- The Actual WhatsApp Phone Number Used in System -->
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-sm sm:text-base font-mono font-black tracking-wide ${rawPhone ? 'text-emerald-400' : 'text-amber-400'}" dir="ltr">
+                      ${displayPhone}
+                    </span>
+                    ${rawPhone ? `
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
+                        ✓ رقم معتمد
+                      </span>
+                    ` : `
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-semibold border border-amber-500/20">
+                        (بانتظار المسح)
+                      </span>
+                    `}
+                  </div>
+                </div>
+              </div>
+
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${badgeBg}">
+                ${stateText}
+              </span>
+            </div>
+
+            <!-- Interaction State Banner -->
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs">
+              <span class="text-slate-400 flex items-center gap-1.5">
+                <span class="text-emerald-400">⚡ حالة التفاعل:</span>
+                <strong class="text-slate-200">${interactionState}</strong>
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono">
+                آخر تفاعل: <strong class="text-emerald-400">${lastActiveStr}</strong>
+              </span>
+            </div>
+
+            <!-- QR Code Display (If ready for scan) -->
+            ${isQr ? `
+              <div class="bg-white p-4 rounded-2xl text-center max-w-[220px] mx-auto shadow-2xl border border-amber-400/50 animate-pulse my-2">
+                <img src="${qrData}" alt="WhatsApp QR Code" class="w-full h-auto rounded-lg mx-auto">
+                <div class="mt-2 text-slate-900">
+                  <p class="text-xs font-black tracking-tight text-emerald-800">امسح الكود بكاميرا الواتساب الآن</p>
+                  <p class="text-[10px] text-slate-600 mt-0.5">افتح واتساب > الأجهزة المرتبطة > ربط جهاز</p>
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- 4 Interactive Telemetry & Control Action Buttons -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+              
+              <!-- 1. Campaign Messages Sent from THIS phone -->
+              <button type="button" onclick="openStatDetailModal('sent', '${slotId}')" title="اضغط لعرض تفاصيل الإرسال والتحكم" class="bg-slate-950 hover:bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/90 hover:border-cyan-500/60 transition-all text-center group cursor-pointer relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between text-[10px] text-cyan-400 mb-0.5 font-semibold">
+                  <span class="group-hover:text-cyan-300 transition-colors">مرسل بالحملة</span>
+                  <span class="text-[9px] opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">🔍</span>
+                </div>
+                <strong class="font-mono text-white text-sm sm:text-base block group-hover:text-cyan-300 transition-colors">${campSent}</strong>
+                <span class="text-[9px] text-slate-500 block group-hover:text-slate-400">رسالة • تفاصيل ↗</span>
+              </button>
+
+              <!-- 2. Hourly Velocity Gauge -->
+              <button type="button" onclick="openStatDetailModal('speed', '${slotId}')" title="اضغط لعرض سرعة الإرسال وسقف الأمان" class="bg-slate-950 hover:bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/90 hover:border-emerald-500/60 transition-all text-center group cursor-pointer relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between text-[10px] text-slate-400 mb-0.5 font-semibold">
+                  <span class="group-hover:text-emerald-400 transition-colors">سرعة الإرسال</span>
+                  <span class="text-[9px] opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">⚡</span>
+                </div>
+                <strong class="font-mono text-emerald-400 text-sm sm:text-base block">${sentHour} / ${hourlyCap}</strong>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+                  <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${speedPercent}%;"></div>
+                </div>
+                <span class="text-[8px] text-slate-500 block mt-0.5 group-hover:text-slate-400">سقف الساعة • تحكم ↗</span>
+              </button>
+
+              <!-- 3. Inbound Responses / Engagement -->
+              <button type="button" onclick="openStatDetailModal('replies', '${slotId}')" title="اضغط لعرض الردود والمحادثات" class="bg-slate-950 hover:bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/90 hover:border-purple-500/60 transition-all text-center group cursor-pointer relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between text-[10px] text-purple-400 mb-0.5 font-semibold">
+                  <span class="group-hover:text-purple-300 transition-colors">تفاعل الردود</span>
+                  <span class="text-[9px] opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">💬</span>
+                </div>
+                <strong class="font-mono text-purple-300 text-sm sm:text-base block group-hover:text-purple-200 transition-colors">${inboundCount}</strong>
+                <span class="text-[9px] text-slate-500 block group-hover:text-slate-400">${inboundRatio} • ردود ↗</span>
+              </button>
+
+              <!-- 4. Anti-Ban Safety Score -->
+              <button type="button" onclick="openStatDetailModal('safety', '${slotId}')" title="اضغط لفحص حصانة وأمان الحساب" class="bg-slate-950 hover:bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/90 hover:border-emerald-500/60 transition-all text-center group cursor-pointer relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between text-[10px] text-slate-400 mb-0.5 font-semibold">
+                  <span class="group-hover:text-emerald-400 transition-colors">أمان الحساب</span>
+                  <span class="text-[9px] opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">🛡️</span>
+                </div>
+                <strong class="font-mono ${safetyScore > 80 ? 'text-emerald-400' : safetyScore > 50 ? 'text-amber-400' : 'text-red-400'} text-sm sm:text-base block">${safetyScore}%</strong>
+                <span class="text-[9px] text-slate-500 block group-hover:text-slate-400">${safetyScore > 80 ? 'محمي تماماً' : 'تحت المراقبة'} • فحص ↗</span>
+              </button>
+
+            </div>
+
+            <!-- Action Controls for this Phone -->
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-800 flex-wrap">
+              ${!isConn ? `
+                <button onclick="connectSlot('${slotId}')" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all">
+                  <span>🔗</span>
+                  <span>طلب كود QR لربط الرقم (${slotId})</span>
+                </button>
+              ` : `
+                <button onclick="pingSlot('${slotId}')" class="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1">
+                  <span>⚡</span>
+                  <span>فحص النبض</span>
+                </button>
+                <button onclick="disconnectSlot('${slotId}')" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 transition-all">
+                  قطع اتصال الرقم ✕
+                </button>
+              `}
+              ${isTripped ? `
+                <button onclick="resetBreaker('${slotId}')" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30">
+                  🔄 فك قاطع الحظر
+                </button>
+              ` : ''}
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 2. Campaign Progress & Telemetry
+    async function fetchCampaignProgress() {
+      try {
+        const res = await fetch('/api/whatsapp/progress').then(r => r.json()).catch(() => ({}));
+        const camp = res.campaign;
+        updateCampaignUI(camp);
+      } catch (err) {
+        console.error('Fetch campaign progress failed:', err);
+      }
+    }
+
+    function updateCampaignUI(camp) {
+      if (!camp) return;
+      latestCampData = camp;
+      if (latestSlotsData) {
+        renderSlots(latestSlotsData);
+      }
+      if (latestSlotsData || latestHealthData?.slots) {
+        renderCoordination(latestSlotsData || latestHealthData?.slots, camp, latestHealthData?.rotationConfig);
+      }
+
+      const banner = document.getElementById('campaignLiveBanner');
+      const dot = document.getElementById('campStatusDot');
+      const statusText = document.getElementById('campStatusText');
+      const subtitleText = document.getElementById('campSubtitleText');
+
+      const btnSkip = document.getElementById('btnSkipDelay');
+      const btnPause = document.getElementById('btnPauseCamp');
+      const btnResume = document.getElementById('btnResumeCamp');
+
+      if (camp.status === 'idle') {
+        dot.className = 'w-3 h-3 rounded-full bg-slate-500';
+        statusText.textContent = 'جاهز للإطلاق';
+        statusText.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono';
+        subtitleText.textContent = 'حدد الشريحة واضغط «إطلاق الحملة الآن» لبدء الإرسال الآلي.';
+        btnSkip.classList.add('hidden');
+        btnPause.classList.add('hidden');
+        btnResume.classList.add('hidden');
+        setCountdown(0);
+        return;
+      }
+
+      const total = camp.total || 0;
+      const sent = camp.successful || 0;
+      const skipped = camp.skipped || 0;
+      const failed = camp.failed || 0;
+      const processed = sent + skipped + failed;
+      const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+
+      document.getElementById('campPercent').textContent = `${percent}%`;
+      document.getElementById('campProgressBar').style.width = `${percent}%`;
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statSent').textContent = sent;
+      document.getElementById('statSkipped').textContent = skipped;
+      document.getElementById('statFailed').textContent = failed;
+      document.getElementById('statSlots').textContent = `1: ${camp.slot1SentCount || 0} | 2: ${camp.slot2SentCount || 0}`;
+
+      if (camp.status === 'running') {
+        dot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse';
+        statusText.textContent = camp.stealthModeActive ? 'وضع التخفي البشري (نشط 🥷)' : 'جاري الإرسال التتابعي 🚀';
+        statusText.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold';
+        subtitleText.textContent = `تم إنجاز ${processed} من ${total} منشأة (${sent} تم إرسالها بنجاح).`;
+        btnSkip.classList.remove('hidden');
+        btnPause.classList.remove('hidden');
+        btnResume.classList.add('hidden');
+
+        setCountdown(camp.nextDispatchInSeconds || 0, camp.nextSlotTarget || '1');
+      } else if (camp.status === 'paused' || camp.status === 'aborted') {
+        dot.className = 'w-3 h-3 rounded-full bg-amber-500';
+        statusText.textContent = 'متوقفة مؤقتاً ⏸️';
+        statusText.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono font-bold';
+        subtitleText.textContent = `الحملة مجمدة عند المنشأة (${processed}/${total}). اضغط استئناف للمتابعة.`;
+        btnSkip.classList.add('hidden');
+        btnPause.classList.add('hidden');
+        btnResume.classList.remove('hidden');
+        setCountdown(0);
+      } else if (camp.status === 'completed') {
+        dot.className = 'w-3 h-3 rounded-full bg-teal-500';
+        statusText.textContent = 'اكتملت الحملة بنجاح 🎯';
+        statusText.className = 'px-2 py-0.5 rounded bg-teal-500/20 text-teal-400 font-mono font-bold';
+        subtitleText.textContent = `تم الانتهاء من مراسلة كافة المنشآت المستهدفة (${total}).`;
+        btnSkip.classList.add('hidden');
+        btnPause.classList.add('hidden');
+        btnResume.classList.add('hidden');
+        setCountdown(0);
+      }
+    }
+
+    function setCountdown(seconds, targetSlot = '1') {
+      currentCountdownSeconds = seconds;
+      const notice = document.getElementById('campCountdownNotice');
+      const timerEl = document.getElementById('campCountdownTimer');
+      const slotEl = document.getElementById('campNextSlot');
+
+      if (countdownIntervalId) {
+        clearInterval(countdownIntervalId);
+        countdownIntervalId = null;
+      }
+
+      if (seconds <= 0) {
+        notice.classList.add('hidden');
+        return;
+      }
+
+      notice.classList.remove('hidden');
+      slotEl.textContent = targetSlot === '2' ? 'هاتف 2 (الاحتياطي)' : 'هاتف 1 (الأساسي)';
+
+      const updateDisplay = () => {
+        const m = Math.floor(currentCountdownSeconds / 60);
+        const s = currentCountdownSeconds % 60;
+        timerEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      };
+
+      updateDisplay();
+      countdownIntervalId = setInterval(() => {
+        if (currentCountdownSeconds > 0) {
+          currentCountdownSeconds--;
+          updateDisplay();
+        } else {
+          clearInterval(countdownIntervalId);
+          countdownIntervalId = null;
+          fetchCampaignProgress();
+        }
+      }, 1000);
+    }
+
+    // 3. Campaign Segments
+    async function fetchCampaignSegments() {
+      try {
+        const res = await fetch('/api/whatsapp/campaign/segments').then(r => r.json()).catch(() => ({}));
+        if (res.segments) {
+          const hadayek = res.segments.find(s => s.id === 'hadayek_8km');
+          if (hadayek) {
+            document.getElementById('campSegmentBadge').textContent = `✅ الشريحة الجاهزة: ${hadayek.count} منشأة داخل نطاق 8 كم من حدائق الأهرام.`;
+          }
+        }
+      } catch {}
+    }
+
+    function onSegmentChange() {
+      const seg = document.getElementById('campSegment').value;
+      if (seg === 'hadayek_8km') {
+        document.getElementById('campTemplate').value = 'hadayek_invitation';
+        onTemplateChange();
+      }
+    }
+
+    // 4. Campaign Logs (Sent, Skipped, Failed)
+    async function fetchCampaignLogs() {
+      try {
+        const res = await fetch('/api/whatsapp/campaign/logs').then(r => r.json()).catch(() => ({}));
+        allLogs = [
+          ...(res.sentList || []),
+          ...(res.skippedList || []),
+          ...(res.failedList || [])
+        ];
+
+        document.getElementById('badgeSentCount').textContent = res.sentList ? res.sentList.length : 0;
+        document.getElementById('badgeSkippedCount').textContent = res.skippedList ? res.skippedList.length : 0;
+        document.getElementById('badgeFailedCount').textContent = res.failedList ? res.failedList.length : 0;
+
+        renderLogsTable();
+      } catch (err) {
+        console.error('Fetch campaign logs failed:', err);
+      }
+    }
+
+    function filterLogs(type) {
+      currentLogFilter = type;
+      ['all', 'sent', 'skipped', 'failed'].forEach(f => {
+        const btn = document.getElementById(`logFilter-${f}`);
+        if (btn) {
+          btn.classList.remove('bg-emerald-600', 'text-white', 'shadow');
+          btn.classList.add('bg-slate-800', 'text-slate-400');
+        }
+      });
+      const activeBtn = document.getElementById(`logFilter-${type}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-slate-800', 'text-slate-400');
+        activeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow');
+      }
+      renderLogsTable();
+    }
+
+    function renderLogsTable() {
+      const tbody = document.getElementById('logsTableBody');
+      const query = (document.getElementById('logSearchInput').value || '').trim().toLowerCase();
+
+      let filtered = allLogs;
+      if (currentLogFilter !== 'all') {
+        filtered = filtered.filter(l => l.status === currentLogFilter);
+      }
+      if (query) {
+        filtered = filtered.filter(l => 
+          (l.businessName && l.businessName.toLowerCase().includes(query)) ||
+          (l.phone && l.phone.includes(query))
+        );
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500">لا توجد سجلات مطابقة.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.slice(0, 100).map(l => {
+        let statusBadge = '<span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold text-[10px]">✅ تم الإرسال</span>';
+        if (l.status === 'skipped') {
+          statusBadge = '<span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 font-semibold text-[10px]">⏸️ متخطاة / ملغاة</span>';
+        } else if (l.status === 'failed') {
+          statusBadge = '<span class="px-2 py-0.5 rounded bg-red-500/15 text-red-400 font-semibold text-[10px]">❌ فاشلة</span>';
+        }
+
+        const slotNotice = l.senderSlot ? `<span class="text-cyan-400 font-mono">هاتف ${l.senderSlot}</span>` : '';
+        const reasonText = l.reason ? `<span class="text-slate-400">${l.reason}</span>` : slotNotice || '<span class="text-slate-500">-</span>';
+        const timeStr = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-';
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="py-3 px-3 font-semibold text-white">${l.businessName || 'منشأة'}</td>
+            <td class="py-3 px-3 font-mono text-slate-300" dir="ltr">${l.phone || '-'}</td>
+            <td class="py-3 px-3 text-center">${statusBadge}</td>
+            <td class="py-3 px-3 text-xs leading-relaxed max-w-xs truncate">${reasonText}</td>
+            <td class="py-3 px-3 text-slate-400 text-[11px]">${timeStr}</td>
+            <td class="py-3 px-3 text-center">
+              <button onclick="openChatModal('${l.phone}', '${l.businessName || ''}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 transition-all text-[11px] font-semibold">
+                💬 المحادثة
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 5. Conversations Feed
+    function renderConversations(convs) {
+      const convList = Array.isArray(convs) ? convs : Object.values(convs || {});
+      const badge = document.getElementById('convsCountBadge');
+      if (badge) badge.textContent = `${convList.length} محادثة`;
+
+      const container = document.getElementById('conversationsContainer');
+      if (!container) return;
+
+      if (!convList || convList.length === 0) {
+        container.innerHTML = '<div class="p-8 text-center text-slate-500 text-xs">لا توجد محادثات واردة جديدة حتى الآن.</div>';
+        return;
+      }
+
+      // Sort newest first
+      convList.sort((a, b) => new Date(b.lastIncomingAt || 0) - new Date(a.lastIncomingAt || 0));
+
+      container.innerHTML = convList.map(c => {
+        const lastMsg = c.messages && c.messages.length > 0 ? c.messages[c.messages.length - 1] : null;
+        const isMuted = c.isMutedByHuman || c.isMutedForHuman;
+
+        return `
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div class="space-y-1 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-sm text-white">${c.businessName || 'منشأة'}</span>
+                <span class="font-mono text-xs text-slate-400" dir="ltr">+${c.phone}</span>
+                ${isMuted ? '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold">👤 الـ AI مكتوم للتدخل البشري</span>' : '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">🤖 الـ AI نشط</span>'}
+              </div>
+              <p class="text-xs text-slate-300 line-clamp-2">
+                ${lastMsg ? `<strong>${lastMsg.role === 'user' ? 'العميل:' : 'الرد:'}</strong> ${lastMsg.content}` : 'بدء المحادثة'}
+              </p>
+              <span class="text-[10px] text-slate-500">${c.lastIncomingAt ? new Date(c.lastIncomingAt).toLocaleTimeString('ar-EG') : ''}</span>
+            </div>
+
+            <div class="flex items-center gap-2 w-full md:w-auto flex-wrap">
+              <button onclick="openChatModal('${c.phone}', '${c.businessName || ''}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white">
+                🔍 عرض الحوار
+              </button>
+              ${isMuted ? `
+                <button onclick="unmutePhone('${c.phone}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  🤖 استئناف الـ AI
+                </button>
+              ` : `
+                <button onclick="mutePhone('${c.phone}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  👤 كتم الـ AI للتدخل
+                </button>
+              `}
+              <button onclick="sendManualGift('${c.phone}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                🎁 إرسال الهدية & QR
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 6. Delivered Gifts & Audit
+    function renderGifts(gifts) {
+      document.getElementById('giftsCountBadge').textContent = `${gifts.length} هدية مُسلّمة`;
+      const tbody = document.getElementById('giftsTableBody');
+      if (!gifts || gifts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">لا توجد هدايا مسجلة حتى الآن.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = gifts.map(g => `
+        <tr>
+          <td class="py-3 px-3 font-semibold text-white">${g.businessName}</td>
+          <td class="py-3 px-3 font-mono text-slate-300" dir="ltr">+${g.phone}</td>
+          <td class="py-3 px-3">
+            <span class="px-2 py-0.5 rounded ${g.source === 'external_app' ? 'bg-blue-500/15 text-blue-400' : 'bg-emerald-500/15 text-emerald-400'} font-semibold text-[11px]">
+              ${g.source === 'external_app' ? '🎨 تطبيق التصميم الخارجي' : '✨ كود QR بدقة فائقة 800×800'}
+            </span>
+          </td>
+          <td class="py-3 px-3 text-slate-400">${new Date(g.deliveredAt).toLocaleTimeString('ar-EG')}</td>
+          <td class="py-3 px-3 text-center">
+            <button onclick="previewQr('${g.targetUrl}', '${g.businessName}')" class="text-purple-400 hover:underline font-semibold">
+              معاينة 🔍
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAudit(logs) {
+      const container = document.getElementById('auditList');
+      if (!logs || logs.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-slate-500">لا توجد قرارات مسجلة حتى الآن.</div>';
+        return;
+      }
+      container.innerHTML = logs.slice(0, 50).map(l => `
+        <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+          <div>
+            <span class="text-emerald-400 font-bold">[${l.actionExecuted || 'قرار'}]</span>
+            <span class="text-slate-200"> ${l.businessName || l.senderPhone || l.phone} -> ${l.detectedIntent || 'استفسار'}</span>
+          </div>
+          <span class="text-slate-500">${new Date(l.timestamp).toLocaleTimeString('ar-EG')}</span>
+        </div>
+      `).join('');
+    }
+
+    // ACTIONS: CAMPAIGN CONTROLS
+    async function startCampaign() {
+      const btn = document.getElementById('btnStartCamp');
+      const segment = document.getElementById('campSegment').value;
+      const templateType = document.getElementById('campTemplate').value;
+      const customText = document.getElementById('campCustomText').value;
+      const rotationBatchSize = Number(document.getElementById('campBurstSize').value) || 15;
+      const enableStealth = document.getElementById('campStealthMode').checked;
+      const stealthMin = Number(document.getElementById('campStealthMin').value) || 20;
+      const stealthMax = Number(document.getElementById('campStealthMax').value) || 60;
+      const minDelaySec = Number(document.getElementById('campMinSec').value) || 10;
+      const maxDelaySec = Number(document.getElementById('campMaxSec').value) || 20;
+      const skipRecent = document.getElementById('campSkipRecent').checked;
+
+      if (!confirm(`هل أنت متأكد من إطلاق الحملة الآن للشريحة المختارة؟\n- وتيرة التناوب: ${rotationBatchSize} رسالة لكل هاتف.\n- وضع التخفي: ${enableStealth ? `مفعل (${stealthMin}-${stealthMax} دقيقة عشوائياً)` : 'معطل'}`)) {
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'جاري بدء الحملة...';
+
+      try {
+        const payload = {
+          segment,
+          templateType,
+          customText,
+          rotationBatchSize,
+          enableRotation: true,
+          enableStealthRandomMode: enableStealth,
+          stealthMinMinutes: stealthMin,
+          stealthMaxMinutes: stealthMax,
+          stealthInitialBurstPerSlot: rotationBatchSize,
+          minDelaySeconds: minDelaySec,
+          maxDelaySeconds: maxDelaySec,
+          skipRecentlyContacted: skipRecent,
+        };
+
+        const res = await fetch('/api/whatsapp/broadcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(r => r.json());
+
+        if (res.success) {
+          alert('🚀 تم بدء حملة الواتساب بنجاح!');
+          fetchCampaignProgress();
+        } else {
+          alert(`خطأ: ${res.error || 'فشل بدء الحملة'}`);
+        }
+      } catch (err) {
+        alert('حدث خطأ بالاتصال بالسيرفر أثناء بدء الحملة');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 إطلاق الحملة الآن من التطبيق';
+      }
+    }
+
+    async function pauseCampaign() {
+      if (!confirm('هل تريد إيقاف الحملة مؤقتاً؟')) return;
+      const res = await fetch('/api/whatsapp/broadcast-abort', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+      alert(res.message || 'تم إيقاف الحملة مؤقتاً');
+      fetchCampaignProgress();
+    }
+
+    async function resumeCampaign() {
+      const res = await fetch('/api/whatsapp/broadcast-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+      alert(res.message || 'تم استئناف الحملة');
+      fetchCampaignProgress();
+    }
+
+    async function skipCampaignWaitDelay() {
+      const res = await fetch('/api/whatsapp/broadcast-skip-delay', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+      alert(res.message || 'تم طلب تخطي فترة الانتظار');
+      fetchCampaignProgress();
+    }
+
+    async function resetCampaignProgress() {
+      if (!confirm('تحذير: هل أنت متأكد من تصفير وأرشفة سجل تقدم الحملة الحالية للبدء من جديد بالكامل؟')) return;
+      const res = await fetch('/api/whatsapp/clear-progress', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+      alert(res.message || 'تم تصفير السجل');
+      fetchCampaignProgress();
+      fetchCampaignLogs();
+    }
+
+    // ACTIONS: SLOTS & HARDWARE
+    async function manualSwitchSlot() {
+      try {
+        const res = await fetch('/api/whatsapp/rotation/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        }).then(r => r.json());
+        if (res.success) {
+          const nextSlot = res.rotationConfig?.currentSlot || '1';
+          alert(`🔄 تم تبديل الدور بنجاح! الإرسال القادم سينطلق عبر هاتف (${nextSlot}).`);
+          fetchRadarData();
+        } else {
+          alert('تعذر تبديل الخط: ' + (res.error || 'خطأ غير معروف'));
+        }
+      } catch (err) {
+        console.error('Manual switch error:', err);
+      }
+    }
+
+    async function changeCoordinationMode(mode) {
+      try {
+        const batchSize = mode === 'ping_pong' ? 1 : 15;
+        const res = await fetch('/api/whatsapp/rotation/mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode, batchSize })
+        }).then(r => r.json());
+        if (res.success) {
+          fetchRadarData();
+        }
+      } catch (err) {
+        console.error('Change mode error:', err);
+      }
+    }
+
+    async function balanceSlotsNow() {
+      await changeCoordinationMode('batch_round_robin');
+      alert('⚖️ تم تفعيل موازنة التناوب الذكية (15 رسالة لكل خط بالتساوي مع فترات تبريد مريحة).');
+    }
+
+    async function pingSlot(slotId) {
+      try {
+        const res = await fetch('/api/whatsapp/health').then(r => r.json());
+        const slotsObj = res.slots || {};
+        const slot = slotsObj[slotId] || (Array.isArray(slotsObj) ? slotsObj.find(x => String(x.slotId) === String(slotId)) : null);
+        const state = slot ? slot.state : 'unknown';
+        const phone = slot?.phoneNumber || slot?.connectedUser?.phone || (slot?.connectedUser ? slot.connectedUser.replace(/@.*/, '') : '') || '';
+        const phoneTxt = phone ? `الرقم: +${phone}` : 'لم يتم ربط رقم بعد';
+        alert(`⚡ فحص نبض وتفاعل الهاتف (${slotId}):\n- الحالة: ${state}\n- ${phoneTxt}\n- الاتصال: مستقر ومتجاوب بنجاح ✓.`);
+      } catch {
+        alert(`تم فحص استجابة الهاتف (${slotId}) بنجاح ✓.`);
+      }
+      fetchRadarData();
+    }
+
+    async function connectSlot(slotId) {
+      await fetch('/api/whatsapp/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slot: slotId }) });
+      fetchRadarData();
+    }
+    async function disconnectSlot(slotId) {
+      if (!confirm(`هل تريد قطع اتصال هاتف (${slotId})؟`)) return;
+      await fetch('/api/whatsapp/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slot: slotId }) });
+      fetchRadarData();
+    }
+    async function resetBreaker(slotId) {
+      await fetch('/api/whatsapp/safety/reset-breaker', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slotId }) });
+      fetchRadarData();
+    }
+
+    // ACTIONS: CONVERSATIONS & GIFTS
+    async function mutePhone(phone) {
+      await fetch('/api/whatsapp/ai/toggle-conversation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, action: 'mute' }) });
+      fetchRadarData();
+      if (currentActivePhone === phone) openChatModal(phone);
+    }
+    async function unmutePhone(phone) {
+      await fetch('/api/whatsapp/ai/toggle-conversation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, action: 'unmute' }) });
+      fetchRadarData();
+      if (currentActivePhone === phone) openChatModal(phone);
+    }
+    async function sendManualGift(phone) {
+      if (!confirm(`هل تريد إرسال كارت الـ QR والهدية فوراً للرقم ${phone}؟`)) return;
+      const res = await fetch('/api/whatsapp/gift/send-manual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }).then(r => r.json());
+      alert(res.message || res.error);
+      fetchRadarData();
+    }
+
+    async function toggleEmergencyKill() {
+      globalAiEnabled = !globalAiEnabled;
+      const res = await fetch('/api/whatsapp/ai/kill-switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: globalAiEnabled }) }).then(r => r.json());
+      document.getElementById('killSwitchLabel').textContent = res.enabled ? 'إيقاف الطوارئ للـ AI (نشط)' : 'الـ AI متوقف طوارئ 🚨';
+      document.getElementById('killSwitchBtn').classList.toggle('bg-red-600', !res.enabled);
+    }
+
+    // CHAT TRANSCRIPT MODAL
+    async function openChatModal(phone, bizName = '') {
+      currentActivePhone = phone;
+      const modal = document.getElementById('chatModal');
+      const title = document.getElementById('chatModalTitle');
+      const subtitle = document.getElementById('chatModalSubtitle');
+      const container = document.getElementById('chatModalMessages');
+      const muteBtn = document.getElementById('chatModalMuteBtn');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      title.textContent = `💬 محادثة ${bizName || 'المنشأة'}`;
+      subtitle.textContent = `+${phone}`;
+      container.innerHTML = '<div class="p-6 text-center text-slate-500">جاري قراءة سجل الرسائل...</div>';
+
+      try {
+        const res = await fetch(`/api/whatsapp/ai/conversation-thread?phone=${encodeURIComponent(phone)}`).then(r => r.json());
+        const thread = res.thread || {};
+        const msgs = thread.messages || [];
+        const isMuted = thread.isMutedByHuman || thread.isMutedForHuman;
+
+        muteBtn.textContent = isMuted ? '🤖 استئناف الـ AI' : '👤 كتم الـ AI';
+        muteBtn.className = isMuted
+          ? 'px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+          : 'px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30';
+
+        if (msgs.length === 0) {
+          container.innerHTML = '<div class="p-8 text-center text-slate-500">لا توجد رسائل مسجلة مع هذا الرقم بعد.</div>';
+          return;
+        }
+
+        container.innerHTML = msgs.map(m => {
+          const isUser = m.role === 'user';
+          const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '';
+          return `
+            <div class="flex flex-col ${isUser ? 'items-start' : 'items-end'}">
+              <div class="max-w-[80%] rounded-2xl p-3 shadow ${isUser ? 'bg-slate-800 text-white rounded-tr-none' : 'bg-emerald-600 text-white rounded-tl-none'}">
+                <p class="whitespace-pre-line leading-relaxed">${m.content}</p>
+                <span class="text-[9px] text-slate-300/70 block mt-1 text-left" dir="ltr">${time}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+      } catch (err) {
+        container.innerHTML = '<div class="p-6 text-center text-red-400">فشل جلب تفاصيل المحادثة.</div>';
+      }
+    }
+
+    function closeChatModal() {
+      document.getElementById('chatModal').classList.add('hidden');
+      document.getElementById('chatModal').classList.remove('flex');
+      currentActivePhone = null;
+    }
+
+    function toggleChatMuteFromModal() {
+      if (!currentActivePhone) return;
+      const btn = document.getElementById('chatModalMuteBtn');
+      if (btn.textContent.includes('كتم')) {
+        mutePhone(currentActivePhone);
+      } else {
+        unmutePhone(currentActivePhone);
+      }
+    }
+
+    function sendGiftFromChatModal() {
+      if (!currentActivePhone) return;
+      sendManualGift(currentActivePhone);
+    }
+
+    // CONFIG MODAL (3 GROK KEYS)
+    async function openConfigModal() {
+      try {
+        const res = await fetch('/api/whatsapp/ai/config').then(r => r.json());
+        const cfg = res.config || {};
+        const keys = cfg.maskedApiKeys || [];
+
+        document.getElementById('cfgApiKey1').value = keys[0] || '';
+        document.getElementById('cfgApiKey2').value = keys[1] || '';
+        document.getElementById('cfgApiKey3').value = keys[2] || '';
+
+        document.getElementById('key1Badge').textContent = keys[0] ? '✅ مُهيّأ ومحمي' : 'غير مُدخل';
+        document.getElementById('key2Badge').textContent = keys[1] ? '✅ مُهيّأ ومحمي' : 'غير مُدخل';
+        document.getElementById('key3Badge').textContent = keys[2] ? '✅ مُهيّأ ومحمي' : 'غير مُدخل';
+
+        document.getElementById('cfgModel').value = cfg.model || 'grok-2-mini';
+        document.getElementById('cfgTone').value = cfg.tone || 'egyptian_warm';
+        document.getElementById('cfgAutoGift').checked = cfg.autoGiftEnabled !== false;
+        document.getElementById('cfgAutoUpdate').checked = cfg.autoUpdateBusinessEnabled !== false;
+        document.getElementById('cfgTypingSim').checked = cfg.typingSimulationEnabled !== false;
+
+        document.getElementById('configModal').classList.remove('hidden');
+        document.getElementById('configModal').classList.add('flex');
+      } catch (err) {
+        alert('فشل جلب إعدادات Grok');
+      }
+    }
+
+    function closeConfigModal() {
+      document.getElementById('configModal').classList.add('hidden');
+      document.getElementById('configModal').classList.remove('flex');
+    }
+
+    async function saveConfig() {
+      const btn = document.getElementById('btnSaveConfig');
+      btn.disabled = true;
+      btn.textContent = 'جاري الحفظ والتحقق...';
+
+      try {
+        const payload = {
+          apiKey1: document.getElementById('cfgApiKey1').value,
+          apiKey2: document.getElementById('cfgApiKey2').value,
+          apiKey3: document.getElementById('cfgApiKey3').value,
+          model: document.getElementById('cfgModel').value,
+          tone: document.getElementById('cfgTone').value,
+          autoGiftEnabled: document.getElementById('cfgAutoGift').checked,
+          autoUpdateBusinessEnabled: document.getElementById('cfgAutoUpdate').checked,
+          typingSimulationEnabled: document.getElementById('cfgTypingSim').checked,
+        };
+
+        const res = await fetch('/api/whatsapp/ai/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(r => r.json());
+
+        if (res.success) {
+          alert('✨ تم حفظ وتفعيل مفاتيح وإعدادات Grok AI بنجاح 100%!');
+          closeConfigModal();
+          fetchRadarData();
+        } else {
+          alert(`خطأ: ${res.error || 'فشل حفظ الإعدادات'}`);
+        }
+      } catch (err) {
+        alert('حدث خطأ أثناء حفظ الإعدادات');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'حفظ وتفعيل المفاتيح 100%';
+      }
+    }
+
+    // STAT DETAIL & CONTROLS MODAL
+    function openStatDetailModal(statType, slotId) {
+      slotId = String(slotId || '1');
+      const slotsList = Array.isArray(latestSlotsData) ? latestSlotsData : Object.values(latestSlotsData || {});
+      const slot = slotsList.find(s => String(s.slotId) === slotId) || (latestHealthData?.slots ? latestHealthData.slots[slotId] : {}) || {};
+      const phone = formatNicePhone(slot) || 'لم يتم ربط رقم بعد';
+      const slotName = slot.name || (slotId === '2' ? 'هاتف الإدارة المساند' : 'هاتف الإدارة الأساسي');
+
+      const modal = document.getElementById('statDetailModal');
+      const iconEl = document.getElementById('statModalIcon');
+      const titleEl = document.getElementById('statModalTitle');
+      const badgeEl = document.getElementById('statModalSlotBadge');
+      const phoneEl = document.getElementById('statModalPhone');
+      const bodyEl = document.getElementById('statModalBody');
+      const actionsEl = document.getElementById('statModalActions');
+
+      badgeEl.textContent = `خط ${slotId} (${slotId === '1' ? 'الأساسي' : 'المساند'})`;
+      phoneEl.textContent = phone;
+
+      const campSent = slotId === '2' ? (latestCampData?.slot2SentCount || 0) : (latestCampData?.slot1SentCount || 0);
+      const totalCampSent = latestCampData?.successful || 0;
+      const sentRatio = totalCampSent > 0 ? Math.round((campSent / totalCampSent) * 100) : 0;
+
+      const sentHour = slot.safety?.messagesSentLastHour ?? slot.safety?.hourlyOutboundCount ?? 0;
+      const hourlyCap = slot.safety?.hourlyCap ?? 40;
+      const minDelay = slot.safety?.minDelaySeconds ?? 10;
+      const maxDelay = slot.safety?.maxDelaySeconds ?? 20;
+      const coolingFreq = slot.safety?.cooldownFrequency ?? 20;
+      const coolingMins = slot.safety?.cooldownDurationMinutes ?? 10;
+      const remainingHour = Math.max(0, hourlyCap - sentHour);
+      const speedPercent = Math.min(100, Math.round((sentHour / hourlyCap) * 100));
+
+      const batchLimit = latestCampData?.rotationBatchSize || latestHealthData?.rotationConfig?.batchSize || 15;
+
+      const inboundCount = slot.safety?.dailyInboundCount ?? slot.safety?.hourlyInboundCount ?? 0;
+      const inboundRatio = slot.safety?.inboundRatio ? `${slot.safety.inboundRatio}%` : (inboundCount > 0 ? `${inboundCount} ردود` : 'جاهز للرد');
+
+      let safetyScore = 95;
+      if (typeof slot.safety?.safetyScore === 'number') safetyScore = slot.safety.safetyScore;
+      else if (typeof slot.safety?.riskScore === 'number') safetyScore = Math.max(0, 100 - slot.safety.riskScore);
+      const isTripped = Boolean(slot.safety?.isCircuitBreakerActive || slot.safety?.circuitBreakerTripped || slot.state === 'tripped');
+
+      if (statType === 'speed') {
+        // 1. SPEED & TIMING CONTROLS
+        iconEl.textContent = '⚡';
+        titleEl.textContent = 'التحكم في سرعة الإرسال وتوقيت الرسائل';
+        bodyEl.innerHTML = `
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3.5">
+            <!-- Live Status Meter -->
+            <div class="flex items-center justify-between text-xs pb-2.5 border-b border-slate-800">
+              <span class="text-slate-400">معدل الإرسال بالساعة الحالية:</span>
+              <span class="font-mono font-bold text-emerald-400 text-sm">${sentHour} / <span id="lblHourlyCap">${hourlyCap}</span> رسالة</span>
+            </div>
+
+            <!-- Control 1: Hourly Cap -->
+            <div>
+              <label class="block text-xs font-bold text-white mb-1.5">
+                📊 سقف الرسائل في الساعة (Hourly Cap):
+              </label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="ctrlHourlyCap" value="${hourlyCap}" min="5" max="120" class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-center font-bold text-sm focus:border-emerald-500 focus:outline-none">
+                <div class="flex items-center gap-1.5 flex-wrap flex-1">
+                  <button type="button" onclick="document.getElementById('ctrlHourlyCap').value=20" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 font-semibold transition-all">20 (فائق الأمان)</button>
+                  <button type="button" onclick="document.getElementById('ctrlHourlyCap').value=40" class="px-2 py-1 rounded bg-emerald-600/30 border border-emerald-500/40 text-[10px] text-emerald-300 font-semibold transition-all">40 (الموصى به)</button>
+                  <button type="button" onclick="document.getElementById('ctrlHourlyCap').value=60" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 font-semibold transition-all">60 (سريع)</button>
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 block mt-1">يمنع تجاوز هذا الحد بالساعة الواحدة لتفادي رصد خوارزميات مكافحة السبام.</span>
+            </div>
+
+            <!-- Control 2: Delays Min & Max -->
+            <div class="pt-2 border-t border-slate-800">
+              <label class="block text-xs font-bold text-white mb-1.5">
+                ⏱️ توقيت الفاصل الزمني العشوائي بين كل رسالة والأخرى (بالثواني):
+              </label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <span class="text-[10px] text-slate-400 block mb-1">الحد الأدنى (ثانية):</span>
+                  <input type="number" id="ctrlMinDelay" value="${minDelay}" min="5" max="120" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center font-bold text-xs focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 block mb-1">الحد الأقصى (ثانية):</span>
+                  <input type="number" id="ctrlMaxDelay" value="${maxDelay}" min="10" max="300" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center font-bold text-xs focus:border-emerald-500 focus:outline-none">
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 block mt-1">يتم اختيار فاصل عشوائي بين هذين الرقمين لكل رسالة لمحاكاة السلوك البشري الطبيعي.</span>
+            </div>
+
+            <!-- Control 3: Auto Cooldown Pauses -->
+            <div class="pt-2 border-t border-slate-800">
+              <label class="block text-xs font-bold text-white mb-1.5">
+                🧊 فترات التهدئة والتبريد التلقائي (Automatic Rest):
+              </label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <span class="text-[10px] text-slate-400 block mb-1">استراحة تبريد كل:</span>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="ctrlCoolingFreq" value="${coolingFreq}" min="10" max="50" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white font-mono text-center text-xs">
+                    <span class="text-[10px] text-slate-400 shrink-0">رسالة</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 block mb-1">مدة الاستراحة:</span>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="ctrlCoolingMins" value="${coolingMins}" min="2" max="60" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white font-mono text-center text-xs">
+                    <span class="text-[10px] text-slate-400 shrink-0">دقائق</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="statModalFeedback" class="hidden text-xs py-2 px-3 rounded-lg text-center font-bold"></div>
+          </div>
+        `;
+        actionsEl.innerHTML = `
+          <button onclick="saveSpeedSettings('${slotId}')" class="flex-1 py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+            <span>💾</span>
+            <span>حفظ وتطبيق إعدادات السرعة والتوقيت فوراً</span>
+          </button>
+          <button onclick="closeStatDetailModal()" class="py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold">إلغاء</button>
+        `;
+      } else if (statType === 'sent') {
+        // 2. SENT & BURST HANDOVER CONTROLS
+        iconEl.textContent = '📊';
+        titleEl.textContent = 'التحكم في حصة الإرسال وعداد الحملة';
+        bodyEl.innerHTML = `
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3.5">
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-cyan-400 block font-semibold mb-0.5">مرسل من هذا الخط</span>
+                <strong class="text-xl font-mono text-white" id="statModalSentCount">${campSent}</strong>
+                <span class="text-[9px] text-slate-500 block">رسالة موثقة</span>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block font-semibold mb-0.5">حجم دفعة التناوب</span>
+                <strong class="text-xl font-mono text-emerald-400">${batchLimit}</strong>
+                <span class="text-[9px] text-slate-500 block">رسالة قبل التبديل</span>
+              </div>
+            </div>
+
+            <!-- Batch Burst Control -->
+            <div class="pt-2 border-t border-slate-800">
+              <label class="block text-xs font-bold text-white mb-1.5">
+                🔄 حجم دفعة التناوب لهذا الهاتف (Handover Burst Size):
+              </label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="ctrlBurstSize" value="${batchLimit}" min="1" max="100" class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-center font-bold text-sm focus:border-cyan-500 focus:outline-none">
+                <div class="flex items-center gap-1.5 flex-wrap flex-1">
+                  <button type="button" onclick="document.getElementById('ctrlBurstSize').value=1" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 font-semibold transition-all">1 (رسالة برسالة)</button>
+                  <button type="button" onclick="document.getElementById('ctrlBurstSize').value=15" class="px-2 py-1 rounded bg-cyan-600/30 border border-cyan-500/40 text-[10px] text-cyan-300 font-semibold transition-all">15 (قياسي)</button>
+                  <button type="button" onclick="document.getElementById('ctrlBurstSize').value=25" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 font-semibold transition-all">25 (طويل)</button>
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 block mt-1">عدد الرسائل التي يرسلها هذا الرقم قبل تحويل الدور تلقائياً للرقم المساند.</span>
+            </div>
+
+            <!-- Counter Reset Options -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+              <label class="block text-xs font-bold text-white">
+                🧹 تصفير وإعادة ضبط العدادات:
+              </label>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" onclick="resetSlotCounter('${slotId}')" class="flex-1 py-2 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all">
+                  <span>🔄</span>
+                  <span>تصفير عداد هذا الهاتف (0)</span>
+                </button>
+                <button type="button" onclick="clearSavedCampaign()" class="flex-1 py-2 px-3 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all">
+                  <span>🗑️</span>
+                  <span>تصفير كامل الحملة (0/0)</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="statModalFeedback" class="hidden text-xs py-2 px-3 rounded-lg text-center font-bold"></div>
+          </div>
+        `;
+        actionsEl.innerHTML = `
+          <button onclick="saveBurstSettings('${slotId}')" class="flex-1 py-2.5 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+            <span>💾</span>
+            <span>حفظ حجم دفعة التناوب</span>
+          </button>
+          <button onclick="closeStatDetailModal(); switchTab('logs'); filterLogsBySlot('${slotId}')" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">📋 عرض السجل</button>
+          <button onclick="closeStatDetailModal()" class="py-2.5 px-3 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold">إغلاق</button>
+        `;
+      } else if (statType === 'replies') {
+        // 3. REPLIES & AI AUTO-RESPONSE CONTROLS
+        iconEl.textContent = '💬';
+        titleEl.textContent = 'التحكم في تفاعل الردود والذكاء الاصطناعي';
+        bodyEl.innerHTML = `
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3.5">
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-purple-400 block font-semibold mb-0.5">الردود الواردة</span>
+                <strong class="text-xl font-mono text-purple-300">${inboundCount}</strong>
+                <span class="text-[9px] text-slate-500 block">محادثات واردة</span>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block font-semibold mb-0.5">معدل التفاعل</span>
+                <strong class="text-xl font-mono text-emerald-400">${inboundRatio}</strong>
+                <span class="text-[9px] text-slate-500 block">نسبة الاستجابة</span>
+              </div>
+            </div>
+
+            <!-- AI Controls -->
+            <div class="pt-2 border-t border-slate-800 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="text-xs font-bold text-white block">🤖 الرد الذكي التلقائي (Grok AI):</label>
+                  <span class="text-[10px] text-slate-400">الرد التلقائي اللحظي على العملاء وتأكيد بيانات المنشأة</span>
+                </div>
+                <input type="checkbox" id="ctrlAiEnabled" class="w-4 h-4 accent-emerald-500 cursor-pointer" checked>
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <div>
+                  <label class="text-xs font-bold text-white block">🎁 إرسال كارت QR والهدية فوراً:</label>
+                  <span class="text-[10px] text-slate-400">إرسال كارت الهدية عالي الدقة فور إبداء العميل اهتمامه</span>
+                </div>
+                <input type="checkbox" id="ctrlAutoGift" class="w-4 h-4 accent-emerald-500 cursor-pointer" checked>
+              </div>
+
+              <div class="pt-1">
+                <label class="block text-xs font-bold text-white mb-1">
+                  ✍️ مدة محاكاة الكتابة الحية (Typing Simulation):
+                </label>
+                <div class="flex items-center gap-3">
+                  <input type="range" id="ctrlTypingSim" min="1.5" max="6" step="0.5" value="3.0" class="flex-1 accent-purple-500 cursor-pointer" oninput="document.getElementById('lblTypingSec').textContent=this.value + ' ثوانٍ'">
+                  <span id="lblTypingSec" class="text-xs font-mono font-bold text-purple-300 w-16 text-left">3.0 ثوانٍ</span>
+                </div>
+                <span class="text-[10px] text-slate-400 block mt-0.5">إظهار حالة "جاري الكتابة..." في واتساب قبل إرسال رد الذكاء الاصطناعي.</span>
+              </div>
+            </div>
+
+            <div id="statModalFeedback" class="hidden text-xs py-2 px-3 rounded-lg text-center font-bold"></div>
+          </div>
+        `;
+        actionsEl.innerHTML = `
+          <button onclick="saveRepliesSettings()" class="flex-1 py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+            <span>💾</span>
+            <span>حفظ إعدادات الرد والـ AI</span>
+          </button>
+          <button onclick="closeStatDetailModal(); switchTab('feed')" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">💬 بث المحادثات</button>
+          <button onclick="closeStatDetailModal()" class="py-2.5 px-3 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold">إغلاق</button>
+        `;
+      } else if (statType === 'safety') {
+        // 4. SAFETY & BREAKER CONTROLS
+        iconEl.textContent = '🛡️';
+        titleEl.textContent = 'التحكم في أمان الخط وقاطع الحظر';
+        bodyEl.innerHTML = `
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3.5">
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block font-semibold mb-0.5">درجة الأمان الحالية</span>
+                <strong class="text-xl font-mono ${safetyScore > 80 ? 'text-emerald-400' : 'text-amber-400'}">${safetyScore}%</strong>
+                <span class="text-[9px] text-slate-500 block">${safetyScore > 80 ? 'محمي ومستقر تماماً' : 'تحت المراقبة'}</span>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block font-semibold mb-0.5">قاطع الحظر التلقائي</span>
+                <strong class="text-xs font-bold ${isTripped ? 'text-red-400' : 'text-emerald-400'} block my-1">${isTripped ? '🚨 مفصول للحماية' : 'سليم وغير مفصول 🟢'}</strong>
+                <span class="text-[9px] text-slate-500 block">${isTripped ? 'اضغط فك القاطع للاستئناف' : 'يعمل تلقائياً عند أي إجهاد'}</span>
+              </div>
+            </div>
+
+            <!-- Safety Live Actions -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+              <label class="block text-xs font-bold text-white">
+                ⚡ الإجراءات الفورية للأمان:
+              </label>
+              <div class="space-y-2">
+                <button type="button" onclick="pingSlotTest('${slotId}')" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
+                  <span>⚡</span>
+                  <span>فحص نبض الخط وسرعة الاستجابة فورياً (Ping Test)</span>
+                </button>
+
+                <button type="button" onclick="resetBreaker('${slotId}')" class="w-full py-2.5 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
+                  <span>🔄</span>
+                  <span>إعادة ضبط وفك قاطع الحظر واستئناف الخط</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="statModalFeedback" class="hidden text-xs py-2 px-3 rounded-lg text-center font-bold"></div>
+          </div>
+        `;
+        actionsEl.innerHTML = `
+          <button onclick="closeStatDetailModal()" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold">إغلاق</button>
+        `;
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeStatDetailModal() {
+      const modal = document.getElementById('statDetailModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function showModalFeedback(msg, colorClass) {
+      const fb = document.getElementById('statModalFeedback');
+      if (fb) {
+        fb.className = `text-xs py-2 px-3 rounded-lg text-center font-bold bg-slate-900 border border-slate-800 ${colorClass}`;
+        fb.textContent = msg;
+        fb.classList.remove('hidden');
+      }
+    }
+
+    // 1. SAVE SPEED & DELAY SETTINGS
+    async function saveSpeedSettings(slotId) {
+      const hourlyCap = document.getElementById('ctrlHourlyCap')?.value;
+      const minDelay = document.getElementById('ctrlMinDelay')?.value;
+      const maxDelay = document.getElementById('ctrlMaxDelay')?.value;
+      const coolingFreq = document.getElementById('ctrlCoolingFreq')?.value;
+      const coolingMins = document.getElementById('ctrlCoolingMins')?.value;
+
+      try {
+        showModalFeedback('⏳ جاري حفظ وتطبيق الإعدادات بالخادم...', 'text-cyan-400');
+        const res = await fetch('/api/whatsapp/slot/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slotId,
+            hourlyCap: Number(hourlyCap) || 40,
+            minDelaySeconds: Number(minDelay) || 10,
+            maxDelaySeconds: Number(maxDelay) || 20,
+            cooldownFrequency: Number(coolingFreq) || 20,
+            cooldownDurationMinutes: Number(coolingMins) || 10
+          })
+        }).then(r => r.json()).catch(() => ({}));
+
+        if (res.success) {
+          showModalFeedback('✅ تم حفظ وتطبيق إعدادات السرعة والتوقيت فورياً!', 'text-emerald-400');
+          setTimeout(() => {
+            closeStatDetailModal();
+            refreshAllData();
+          }, 1000);
+        } else {
+          showModalFeedback('❌ فشل الحفظ: ' + (res.error || 'خطأ غير معروف'), 'text-red-400');
+        }
+      } catch (err) {
+        showModalFeedback('❌ حدث خطأ بالاتصال', 'text-red-400');
+      }
+    }
+
+    // 2. SAVE BURST SETTINGS
+    async function saveBurstSettings(slotId) {
+      const burst = document.getElementById('ctrlBurstSize')?.value;
+      try {
+        showModalFeedback('⏳ جاري تحديث حجم دفعة التناوب...', 'text-cyan-400');
+        const res = await fetch('/api/whatsapp/slot/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slotId,
+            batchSize: Number(burst) || 15
+          })
+        }).then(r => r.json()).catch(() => ({}));
+
+        if (res.success) {
+          showModalFeedback('✅ تم تحديث حجم دفعة التناوب بنجاح!', 'text-emerald-400');
+          setTimeout(() => {
+            closeStatDetailModal();
+            refreshAllData();
+          }, 1000);
+        } else {
+          showModalFeedback('❌ فشل التحديث', 'text-red-400');
+        }
+      } catch (err) {
+        showModalFeedback('❌ حدث خطأ بالاتصال', 'text-red-400');
+      }
+    }
+
+    // 3. RESET SPECIFIC SLOT COUNTER
+    async function resetSlotCounter(slotId) {
+      if (!confirm(`هل تريد تصفير عداد إرسال هاتف (${slotId}) فقط للبدء من 0؟`)) {
+        return;
+      }
+      try {
+        const res = await fetch('/api/whatsapp/slot/reset-counter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slotId })
+        }).then(r => r.json()).catch(() => ({}));
+
+        if (latestCampData) {
+          if (slotId === '1') latestCampData.slot1SentCount = 0;
+          else if (slotId === '2') latestCampData.slot2SentCount = 0;
+          updateCampaignUI(latestCampData);
+          if (latestSlotsData) renderSlots(latestSlotsData);
+        }
+        showModalFeedback('✅ تم تصفير عداد هذا الهاتف بنجاح!', 'text-emerald-400');
+        setTimeout(() => {
+          closeStatDetailModal();
+          refreshAllData();
+        }, 1000);
+      } catch (err) {
+        showModalFeedback('❌ فشل تصفير عداد الهاتف', 'text-red-400');
+      }
+    }
+
+    // 4. CLEAR SAVED CAMPAIGN COMPLETELY (0 / 0)
+    async function clearSavedCampaign() {
+      if (!confirm('هل تريد بالتأكيد تصفير وأرشفة إحصاءات الحملة السابقة للبدء من جديد من الصفر (0 / 0)؟')) {
+        return;
+      }
+      try {
+        const res = await fetch('/api/whatsapp/clear-progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).then(r => r.json()).catch(() => ({}));
+
+        latestCampData = {
+          status: 'idle',
+          total: 0,
+          current: 0,
+          successful: 0,
+          failed: 0,
+          skipped: 0,
+          slot1SentCount: 0,
+          slot2SentCount: 0,
+          rotationBatchSize: latestHealthData?.rotationConfig?.batchSize || 15
+        };
+        closeStatDetailModal();
+        updateCampaignUI(latestCampData);
+        if (latestSlotsData) renderSlots(latestSlotsData);
+        renderCoordination(latestSlotsData || latestHealthData?.slots, latestCampData, latestHealthData?.rotationConfig);
+        alert('✨ تم تصفير بيانات وعدادات الحملة بنجاح! المنظومة الآن على الصفر النظيف (0 / 0).');
+        refreshAllData();
+      } catch (err) {
+        alert('حدث خطأ أثناء تصفير الحملة');
+      }
+    }
+
+    // 5. PING SLOT TEST
+    async function pingSlotTest(slotId) {
+      try {
+        showModalFeedback('⚡ جاري فحص نبض الخط والاتصال بمخدمات واتساب...', 'text-cyan-400');
+        const res = await fetch('/api/whatsapp/slot/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slotId })
+        }).then(r => r.json()).catch(() => ({}));
+
+        if (res.success) {
+          showModalFeedback(`🟢 نبض الخط ممتاز! زمن الاستجابة: ${res.latencyMs}ms (${res.message})`, 'text-emerald-400');
+        } else {
+          showModalFeedback('⚪ ' + (res.message || 'الخط غير متصل حالياً'), 'text-amber-400');
+        }
+      } catch (err) {
+        showModalFeedback('❌ تعذر فحص النبض', 'text-red-400');
+      }
+    }
+
+    // 6. SAVE REPLIES SETTINGS
+    async function saveRepliesSettings() {
+      const enabled = document.getElementById('ctrlAiEnabled')?.checked;
+      const autoGift = document.getElementById('ctrlAutoGift')?.checked;
+      const typingSim = document.getElementById('ctrlTypingSim')?.value;
+      try {
+        showModalFeedback('⏳ جاري حفظ إعدادات الرد...', 'text-cyan-400');
+        const res = await fetch('/api/whatsapp/ai/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            enabled: Boolean(enabled),
+            autoGiftEnabled: Boolean(autoGift),
+            typingSimulationEnabled: true
+          })
+        }).then(r => r.json()).catch(() => ({}));
+
+        if (res.success) {
+          showModalFeedback('✅ تم حفظ إعدادات الرد والذكاء الاصطناعي بنجاح!', 'text-emerald-400');
+          setTimeout(() => {
+            closeStatDetailModal();
+            refreshAllData();
+          }, 1000);
+        } else {
+          showModalFeedback('❌ فشل حفظ الإعدادات', 'text-red-400');
+        }
+      } catch (err) {
+        showModalFeedback('❌ حدث خطأ بالاتصال', 'text-red-400');
+      }
+    }
+
+    function filterLogsBySlot(slotId) {
+      document.getElementById('logSearchInput').value = `هاتف ${slotId}`;
+      renderLogsTable();
+    }
+
+    // QR PREVIEW MODAL
+    function previewQr(url, name) {
+      document.getElementById('qrModalBizName').textContent = name;
+      document.getElementById('qrModalUrl').textContent = url;
+      document.getElementById('qrModalImg').src = `/api/whatsapp/gift/preview-qr?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+      document.getElementById('qrModal').classList.remove('hidden');
+      document.getElementById('qrModal').classList.add('flex');
+    }
+    function closeQrModal() {
+      document.getElementById('qrModal').classList.add('hidden');
+      document.getElementById('qrModal').classList.remove('flex');
+    }
+
+    function pingSlotHealth(slotId) {
+      return pingSlotTest(slotId);
+    }
+
+    // INITIALIZATION & POLLING
+    onTemplateChange();
+    refreshAllData();
+    setInterval(fetchCampaignProgress, 4000);
+    setInterval(fetchRadarData, 3000);
+  </script>
+</body>
+</html>

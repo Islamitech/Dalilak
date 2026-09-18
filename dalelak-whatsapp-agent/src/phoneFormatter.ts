@@ -1,7 +1,5 @@
 /**
- * Phone Formatter & URL Encoding Utilities for WhatsApp
- * Provides robust international and Egyptian phone formatting,
- * text sanitization, and safe URL encoding.
+ * Standalone Phone Formatter & String Sanitization Utility
  */
 
 export function formatWhatsAppPhone(phone?: string): string {
@@ -36,13 +34,4 @@ export function cleanWhatsAppText(text: string): string {
     .replace(/[\uFE00-\uFE0F\u200B-\u200D\uFFFD\u00A0]/g, ' ')
     .replace(/\r\n/g, '\n')
     .trim();
-}
-
-export function safeWhatsAppEncode(text: string): string {
-  const cleaned = cleanWhatsAppText(text);
-  return encodeURIComponent(cleaned)
-    .replace(/!/g, '%21')
-    .replace(/'/g, '%27')
-    .replace(/\(/g, '%28')
-    .replace(/\)/g, '%29');
 }

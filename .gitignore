@@ -23,3 +23,12 @@ __pycache__/
 *.pyc
 data/audit_progress.json
 data/server_sessions_store*.json
+data/whatsapp_ai_config.json
+data/whatsapp_ai_conversations.json
+data/whatsapp_ai_audit_log.json
+data/whatsapp_gifts_log.json
+**/generated_designs/
+dalelak-whatsapp-agent.zip
+**/data/baileys_auth_info*
+**/.env*
+!**/.env.example

@@ -215,6 +215,26 @@ function formatPhoneForWaLink(rawPhone?: string | null): string | null {
   return digits;
 }
 
+/**
+ * 🎲 Spintax Resolution Helper
+ * Resolves {Option A|Option B|Option C} patterns into random single selections
+ */
+export function resolveSpintaxText(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  const regex = /\{([^{}]+)\}/g;
+  let result = text;
+  let safetyCounter = 0;
+  while (regex.test(result) && safetyCounter < 20) {
+    result = result.replace(regex, (_, choices) => {
+      const parts = choices.split('|');
+      const selected = parts[Math.floor(Math.random() * parts.length)];
+      return selected !== undefined ? selected.trim() : '';
+    });
+    safetyCounter++;
+  }
+  return result;
+}
+
 // 🛡️ SAFE API FETCH HELPER (With Dual Localhost & 127.0.0.1 Auto-Probe + Auth Headers Injection)
 async function safeFetchGatewayApi(
   endpoint: string,
@@ -545,8 +565,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
   // Audience Targeting state
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'honorary' | 'verified'>('all');
   const [governorateFilter, setGovernorateFilter] = useState<string>('all');
+  const [cityFilter, setCityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [hadayekRadiusFilter, setHadayekRadiusFilter] = useState<boolean>(false);
+  const [spintaxSeed, setSpintaxSeed] = useState<number>(0);
 
   // Template state
   const [selectedTemplate, setSelectedTemplate] = useState<string>('hadayek_invitation');
@@ -796,16 +818,19 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
     landlineCount,
     dummyPhoneCount,
     governorateList,
+    cityList,
     categoryList,
     hadayekTotalCount,
   } = useMemo(() => {
     const govs = new Set<string>();
+    const cities = new Set<string>();
     const cats = new Set<string>();
     let hadayekTotal = 0;
 
     businesses.forEach((b) => {
       if ((b as any).isDeleted) return;
       if (b.governorate) govs.add(b.governorate);
+      if (b.city) cities.add(b.city);
       if (b.category) cats.add(b.category);
       if (isWithinHadayekAlAhramScope(b, 8).matches) {
         hadayekTotal++;
@@ -829,6 +854,10 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
         const check = isWithinHadayekAlAhramScope(b, 8);
         if (!check.matches) return false;
       } else if (governorateFilter !== 'all' && b.governorate !== governorateFilter) {
+        return false;
+      }
+
+      if (cityFilter !== 'all' && b.city !== cityFilter) {
         return false;
       }
 
@@ -859,10 +888,11 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       landlineCount: landlines,
       dummyPhoneCount: dummies,
       governorateList: Array.from(govs),
+      cityList: Array.from(cities),
       categoryList: Array.from(cats),
       hadayekTotalCount: hadayekTotal,
     };
-  }, [businesses, audienceFilter, governorateFilter, categoryFilter, hadayekRadiusFilter]);
+  }, [businesses, audienceFilter, governorateFilter, cityFilter, categoryFilter, hadayekRadiusFilter]);
 
   // Interpolator for a specific business
   const compileMessageForBiz = useCallback(
@@ -880,9 +910,9 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
       text = text.replace(/{owner}/g, owner);
       text = text.replace(/{location}/g, location);
       text = text.replace(/{url}/g, url);
-      return text;
+      return resolveSpintaxText(text);
     },
-    [customText]
+    [customText, spintaxSeed]
   );
 
   // Live Message Preview interpolator
@@ -2555,8 +2585,8 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                 </div>
               </div>
 
-              {/* Governorate & Category Dropdowns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Governorate, City & Category Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div>
                   <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-1 block">المحافظة / النطاق الجغرافي:</label>
                   <select
@@ -2578,6 +2608,25 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
                     {governorateList.map((gov) => (
                       <option key={gov} value={gov}>
                         {gov}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-1 block">المدينة / الحي / المركز:</label>
+                  <select
+                    value={cityFilter}
+                    onChange={(e) => {
+                      setCityFilter(e.target.value);
+                      setMobileQueueIndex(0);
+                    }}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
+                  >
+                    <option value="all">كافة المدن / الأحياء ({cityList.length})</option>
+                    {cityList.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
                       </option>
                     ))}
                   </select>
@@ -2798,15 +2847,25 @@ export const AdminWhatsAppCampaignTab: React.FC<AdminWhatsAppCampaignTabProps> =
               )}
             </div>
 
-            {/* Target Sample Biz Info */}
-            <div className="p-3 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between text-xs">
+            {/* Target Sample Biz Info & Spintax Rotator */}
+            <div className="p-3 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between text-xs gap-2">
               <div>
                 <p className="font-black text-white">{sampleBiz.nameAr || sampleBiz.name}</p>
                 <p className="text-[10px] text-[var(--text-secondary)]">{sampleBiz.city || sampleBiz.governorate}</p>
               </div>
-              <span className="font-mono text-[11px] text-emerald-400 font-bold" dir="ltr">
-                {sampleBiz.phone || sampleBiz.ownerPhone || 'لا يوجد هاتف'}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSpintaxSeed((s) => s + 1)}
+                  title="تدوير واختبار صياغة الـ Spintax عشوائياً"
+                  className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                >
+                  <span>🎲 تدوير الصياغة</span>
+                </button>
+                <span className="font-mono text-[11px] text-emerald-400 font-bold" dir="ltr">
+                  {sampleBiz.phone || sampleBiz.ownerPhone || 'لا يوجد هاتف'}
+                </span>
+              </div>
             </div>
 
             {/* WhatsApp Phone Mockup Container */}

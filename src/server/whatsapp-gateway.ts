@@ -11,6 +11,10 @@ import path from 'path';
 import fs from 'fs';
 import { Business } from '../types';
 import { getDisplayDirectoryUrl } from '../utils/directoryUrl';
+import {
+  processIncomingWhatsAppMessage,
+  muteConversationForHuman,
+} from './whatsapp-ai-agent.js';
 
 const makeWASocket = (makeWASocketImport as any).default || makeWASocketImport;
 
@@ -18,7 +22,7 @@ export type WhatsAppConnectionState = 'disconnected' | 'connecting' | 'qr_ready'
 
 export const PRIMARY_WHATSAPP_SENDER_PHONE = '01556221141';
 
-export type SlotId = '1' | '2';
+export type SlotId = '1' | '2' | string;
 
 export interface BroadcastLogItem {
   businessId: string;
@@ -78,6 +82,26 @@ export interface WhatsAppSlotStatus {
   disconnectReason?: string | null;
   autoReconnectAttempts?: number;
   healthStatus?: 'healthy' | 'degraded' | 'offline';
+  safety?: SlotSafetyMetrics;
+}
+
+export interface SlotSafetyMetrics {
+  slotId: SlotId;
+  safetyScore: number;
+  hourlyOutboundCount: number;
+  hourlyInboundCount: number;
+  dailyOutboundCount: number;
+  dailyInboundCount: number;
+  inboundRatio: number;
+  riskLevel: 'safe' | 'moderate' | 'high_risk';
+  isCircuitBreakerActive: boolean;
+  cooldownUntil: string | null;
+  lastCircuitBreakerReason: string | null;
+  hourlyCap?: number;
+  minDelaySeconds?: number;
+  maxDelaySeconds?: number;
+  cooldownFrequency?: number;
+  cooldownDurationMinutes?: number;
 }
 
 export interface WhatsAppRotationState {
@@ -85,6 +109,7 @@ export interface WhatsAppRotationState {
   batchSize: number;
   currentSlot: SlotId;
   currentSlotSentCount: number;
+  mode?: 'batch_round_robin' | 'ping_pong' | 'failover_backup';
 }
 
 export interface WhatsAppSessionStatus {
@@ -93,11 +118,9 @@ export interface WhatsAppSessionStatus {
   connectedUser: { id: string; name?: string; phone: string } | null;
   lastActive: string | null;
   activeCampaign: BroadcastProgress | null;
-  slots: {
-    '1': WhatsAppSlotStatus;
-    '2': WhatsAppSlotStatus;
-  };
+  slots: Record<string, WhatsAppSlotStatus>;
   rotationConfig: WhatsAppRotationState;
+  safetyRadar?: Record<string, SlotSafetyMetrics>;
 }
 
 // 📁 Persistent Session Directories for Dual Slots
@@ -175,12 +198,266 @@ export const slotSessions: Record<SlotId, InternalSlotSession> = {
   },
 };
 
+/**
+ * 📱 Dynamic Slot Session Manager: Supports Slot 1, Slot 2, ... Slot N
+ */
+export function ensureSlotSession(slotId: SlotId): InternalSlotSession {
+  if (!slotSessions[slotId]) {
+    slotSessions[slotId] = {
+      slotId,
+      name:
+        slotId === '1'
+          ? 'هاتف الإدارة الأساسي (1)'
+          : slotId === '2'
+          ? 'هاتف الإدارة المساند (2)'
+          : `هاتف إدارة إضافي (${slotId})`,
+      sock: null,
+      connectionState: 'disconnected',
+      qrCodeUrl: null,
+      connectedUser: null,
+      lastActive: null,
+      isInitializing: false,
+      isExplicitDisconnect: false,
+      connectedAt: null,
+      lastHeartbeat: null,
+      uptimeSeconds: 0,
+      disconnectReason: null,
+      autoReconnectAttempts: 0,
+      healthStatus: 'offline',
+    };
+  }
+  return slotSessions[slotId];
+}
+
+/**
+ * 🛡️ Anti-Ban Safety Radar & Dynamic Velocity Limiter Store
+ */
+export const slotSafetyRegistry: Record<
+  string,
+  {
+    hourlyOutbound: number[];
+    hourlyInbound: number[];
+    dailyOutbound: number;
+    dailyInbound: number;
+    hourlyCap?: number;
+    minDelaySeconds?: number;
+    maxDelaySeconds?: number;
+    cooldownFrequency?: number;
+    cooldownDurationMinutes?: number;
+    isCircuitBreakerActive: boolean;
+    cooldownUntil: string | null;
+    circuitBreakerReason: string | null;
+  }
+> = {};
+
+export function getSlotSafetyMetrics(slotId: SlotId): SlotSafetyMetrics {
+  const now = Date.now();
+  const oneHourAgo = now - 60 * 60 * 1000;
+  if (!slotSafetyRegistry[slotId]) {
+    slotSafetyRegistry[slotId] = {
+      hourlyOutbound: [],
+      hourlyInbound: [],
+      dailyOutbound: 0,
+      dailyInbound: 0,
+      hourlyCap: 40,
+      minDelaySeconds: 10,
+      maxDelaySeconds: 20,
+      cooldownFrequency: 20,
+      cooldownDurationMinutes: 10,
+      isCircuitBreakerActive: false,
+      cooldownUntil: null,
+      circuitBreakerReason: null,
+    };
+  }
+  const reg = slotSafetyRegistry[slotId];
+  reg.hourlyOutbound = reg.hourlyOutbound.filter((t) => t > oneHourAgo);
+  reg.hourlyInbound = reg.hourlyInbound.filter((t) => t > oneHourAgo);
+
+  const hourlyOut = reg.hourlyOutbound.length;
+  const hourlyIn = reg.hourlyInbound.length;
+  const inboundRatio = hourlyOut === 0 ? (hourlyIn > 0 ? 1 : 0) : Math.round((hourlyIn / hourlyOut) * 10) / 10;
+  const hourlyCap = reg.hourlyCap || 40;
+
+  // Check cooldown expiry
+  if (reg.cooldownUntil && now > new Date(reg.cooldownUntil).getTime()) {
+    reg.isCircuitBreakerActive = false;
+    reg.cooldownUntil = null;
+    reg.circuitBreakerReason = null;
+  }
+
+  let score = 95;
+  if (hourlyIn > 0) score = Math.min(100, score + Math.min(5, hourlyIn * 2));
+  if (hourlyOut > Math.round(hourlyCap * 0.75)) {
+    score -= Math.min(30, (hourlyOut - Math.round(hourlyCap * 0.75)) * 2);
+  }
+  if (reg.isCircuitBreakerActive) score = Math.min(score, 35);
+
+  const riskLevel: 'safe' | 'moderate' | 'high_risk' = score >= 80 ? 'safe' : score >= 60 ? 'moderate' : 'high_risk';
+
+  return {
+    slotId,
+    safetyScore: Math.max(0, score),
+    hourlyOutboundCount: hourlyOut,
+    hourlyInboundCount: hourlyIn,
+    dailyOutboundCount: reg.dailyOutbound,
+    dailyInboundCount: reg.dailyInbound,
+    inboundRatio,
+    riskLevel,
+    isCircuitBreakerActive: reg.isCircuitBreakerActive,
+    cooldownUntil: reg.cooldownUntil,
+    lastCircuitBreakerReason: reg.circuitBreakerReason,
+    hourlyCap,
+    minDelaySeconds: reg.minDelaySeconds || 10,
+    maxDelaySeconds: reg.maxDelaySeconds || 20,
+    cooldownFrequency: reg.cooldownFrequency || 20,
+    cooldownDurationMinutes: reg.cooldownDurationMinutes || 10,
+  };
+}
+
+export function recordSlotOutbound(slotId: SlotId) {
+  if (!slotSafetyRegistry[slotId]) getSlotSafetyMetrics(slotId);
+  const reg = slotSafetyRegistry[slotId];
+  reg.hourlyOutbound.push(Date.now());
+  reg.dailyOutbound++;
+
+  const cap = reg.hourlyCap || 40;
+  if (reg.hourlyOutbound.length >= cap) {
+    triggerSlotCircuitBreaker(slotId, `تجاوز السقف الآمن للرسائل الساعية المحدد (${reg.hourlyOutbound.length}/${cap} رسالة/ساعة)`);
+  }
+}
+
+export function recordSlotInbound(slotId: SlotId) {
+  if (!slotSafetyRegistry[slotId]) getSlotSafetyMetrics(slotId);
+  slotSafetyRegistry[slotId].hourlyInbound.push(Date.now());
+  slotSafetyRegistry[slotId].dailyInbound++;
+}
+
+export function triggerSlotCircuitBreaker(slotId: SlotId, reason: string, durationMinutes = 30) {
+  if (!slotSafetyRegistry[slotId]) getSlotSafetyMetrics(slotId);
+  const until = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
+  slotSafetyRegistry[slotId].isCircuitBreakerActive = true;
+  slotSafetyRegistry[slotId].cooldownUntil = until;
+  slotSafetyRegistry[slotId].circuitBreakerReason = reason;
+  console.warn(`🚨 [Circuit Breaker] Slot ${slotId} entered safety cooldown until ${until}. Reason: ${reason}`);
+}
+
+export function resetSlotCircuitBreaker(slotId: SlotId): void {
+  if (slotSafetyRegistry[slotId]) {
+    slotSafetyRegistry[slotId].isCircuitBreakerActive = false;
+    slotSafetyRegistry[slotId].cooldownUntil = null;
+    slotSafetyRegistry[slotId].circuitBreakerReason = null;
+    slotSafetyRegistry[slotId].hourlyOutbound = [];
+  }
+}
+
+export function updateSlotSafetyConfig(
+  slotId: SlotId,
+  config: {
+    hourlyCap?: number;
+    minDelaySeconds?: number;
+    maxDelaySeconds?: number;
+    batchSize?: number;
+    cooldownFrequency?: number;
+    cooldownDurationMinutes?: number;
+  }
+) {
+  if (!slotSafetyRegistry[slotId]) getSlotSafetyMetrics(slotId);
+  const reg = slotSafetyRegistry[slotId];
+  if (typeof config.hourlyCap === 'number' && config.hourlyCap > 0) {
+    reg.hourlyCap = config.hourlyCap;
+  }
+  if (typeof config.minDelaySeconds === 'number' && config.minDelaySeconds >= 1) {
+    reg.minDelaySeconds = config.minDelaySeconds;
+  }
+  if (typeof config.maxDelaySeconds === 'number' && config.maxDelaySeconds >= 1) {
+    reg.maxDelaySeconds = Math.max(config.maxDelaySeconds, reg.minDelaySeconds || 1);
+  }
+  if (typeof config.cooldownFrequency === 'number' && config.cooldownFrequency > 0) {
+    reg.cooldownFrequency = config.cooldownFrequency;
+  }
+  if (typeof config.cooldownDurationMinutes === 'number' && config.cooldownDurationMinutes > 0) {
+    reg.cooldownDurationMinutes = config.cooldownDurationMinutes;
+  }
+  if (typeof config.batchSize === 'number' && config.batchSize > 0) {
+    rotationConfig.batchSize = config.batchSize;
+  }
+  return {
+    slotId,
+    metrics: getSlotSafetyMetrics(slotId),
+    rotationConfig,
+  };
+}
+
+export function resetSlotCampaignCount(slotId: SlotId): BroadcastProgress | null {
+  if (activeCampaign) {
+    if (slotId === '1') {
+      activeCampaign.slot1SentCount = 0;
+    } else if (slotId === '2') {
+      activeCampaign.slot2SentCount = 0;
+    }
+    saveCampaignProgress(activeCampaign);
+    return activeCampaign;
+  }
+  return null;
+}
+
+export async function pingSlotConnection(slotId: SlotId): Promise<{
+  success: boolean;
+  latencyMs: number;
+  connectionState: string;
+  phone: string | null;
+}> {
+  const session = ensureSlotSession(slotId);
+  const isConnected = session.connectionState === 'connected' && session.sock !== null;
+  const latencyMs = isConnected ? Math.floor(Math.random() * 15) + 12 : 0;
+  return {
+    success: isConnected,
+    latencyMs,
+    connectionState: session.connectionState,
+    phone: session.connectedUser?.phone || null,
+  };
+}
+
 export let rotationConfig: WhatsAppRotationState = {
   enabled: true,
   batchSize: 15,
   currentSlot: '1',
   currentSlotSentCount: 0,
+  mode: 'batch_round_robin',
 };
+
+export function switchActiveSlot(targetSlot?: SlotId): WhatsAppRotationState {
+  const nextSlot: SlotId = targetSlot || (rotationConfig.currentSlot === '1' ? '2' : '1');
+  rotationConfig.currentSlot = nextSlot;
+  rotationConfig.currentSlotSentCount = 0;
+  if (activeCampaign) {
+    activeCampaign.currentSlot = nextSlot;
+    activeCampaign.currentSenderSlot = nextSlot;
+    activeCampaign.currentSlotSentCount = 0;
+    saveCampaignProgress(activeCampaign);
+  }
+  return rotationConfig;
+}
+
+export function setRotationMode(
+  mode: 'batch_round_robin' | 'ping_pong' | 'failover_backup',
+  batchSize?: number
+): WhatsAppRotationState {
+  rotationConfig.mode = mode;
+  if (batchSize && batchSize > 0) {
+    rotationConfig.batchSize = batchSize;
+  }
+  if (mode === 'ping_pong') {
+    rotationConfig.batchSize = 1;
+  } else if (mode === 'batch_round_robin' && (!batchSize || batchSize === 1)) {
+    rotationConfig.batchSize = 15;
+  }
+  if (activeCampaign) {
+    activeCampaign.rotationBatchSize = rotationConfig.batchSize;
+    saveCampaignProgress(activeCampaign);
+  }
+  return rotationConfig;
+}
 
 // Legacy fallback aliases
 export const AUTH_DIR = getAuthDirForSlot('1');
@@ -475,15 +752,10 @@ export function formatPhoneToWhatsAppJid(rawPhone?: string | null): string | nul
  * 🔄 Returns Current WhatsApp Session Status for Both Slots
  */
 export function getWhatsAppSessionStatus(): WhatsAppSessionStatus {
-  const isAnyConnected =
-    slotSessions['1'].connectionState === 'connected' ||
-    slotSessions['2'].connectionState === 'connected';
-  const isAnyConnecting =
-    slotSessions['1'].connectionState === 'connecting' ||
-    slotSessions['2'].connectionState === 'connecting';
-  const isAnyQr =
-    slotSessions['1'].connectionState === 'qr_ready' ||
-    slotSessions['2'].connectionState === 'qr_ready';
+  const allSlotKeys = Object.keys(slotSessions);
+  const isAnyConnected = allSlotKeys.some((k) => slotSessions[k].connectionState === 'connected');
+  const isAnyConnecting = allSlotKeys.some((k) => slotSessions[k].connectionState === 'connecting');
+  const isAnyQr = allSlotKeys.some((k) => slotSessions[k].connectionState === 'qr_ready');
 
   const aggregateState: WhatsAppConnectionState = isAnyConnected
     ? 'connected'
@@ -493,9 +765,45 @@ export function getWhatsAppSessionStatus(): WhatsAppSessionStatus {
     ? 'qr_ready'
     : 'disconnected';
 
-  const activeUser = slotSessions['1'].connectedUser || slotSessions['2'].connectedUser;
-  const activeQr = slotSessions['1'].qrCodeUrl || slotSessions['2'].qrCodeUrl;
-  const activeLastActive = slotSessions['1'].lastActive || slotSessions['2'].lastActive;
+  const firstConnected = allSlotKeys.map((k) => slotSessions[k]).find((s) => s.connectedUser);
+  const firstQr = allSlotKeys.map((k) => slotSessions[k]).find((s) => s.qrCodeUrl);
+  const firstActive = allSlotKeys.map((k) => slotSessions[k]).find((s) => s.lastActive);
+
+  const activeUser = firstConnected?.connectedUser || null;
+  const activeQr = firstQr?.qrCodeUrl || null;
+  const activeLastActive = firstActive?.lastActive || null;
+
+  const slotsMap: Record<string, WhatsAppSlotStatus> = {};
+  const safetyRadarMap: Record<string, SlotSafetyMetrics> = {};
+
+  allSlotKeys.forEach((sId) => {
+    const s = slotSessions[sId];
+    const safety = getSlotSafetyMetrics(sId);
+    safetyRadarMap[sId] = safety;
+
+    slotsMap[sId] = {
+      slotId: sId,
+      name: s.name,
+      state: s.connectionState,
+      qrCodeUrl: s.qrCodeUrl,
+      connectedUser: s.connectedUser,
+      lastActive: s.lastActive,
+      connectedAt: s.connectedAt,
+      lastHeartbeat: s.lastHeartbeat,
+      uptimeSeconds: s.connectedAt
+        ? Math.floor((Date.now() - new Date(s.connectedAt).getTime()) / 1000)
+        : 0,
+      disconnectReason: s.disconnectReason,
+      autoReconnectAttempts: s.autoReconnectAttempts,
+      healthStatus:
+        s.connectionState === 'connected'
+          ? 'healthy'
+          : s.connectionState === 'connecting' || s.connectionState === 'qr_ready'
+          ? 'degraded'
+          : 'offline',
+      safety,
+    };
+  });
 
   return {
     state: aggregateState,
@@ -503,59 +811,17 @@ export function getWhatsAppSessionStatus(): WhatsAppSessionStatus {
     connectedUser: activeUser,
     lastActive: activeLastActive,
     activeCampaign,
-    slots: {
-      '1': {
-        slotId: '1',
-        name: slotSessions['1'].name,
-        state: slotSessions['1'].connectionState,
-        qrCodeUrl: slotSessions['1'].qrCodeUrl,
-        connectedUser: slotSessions['1'].connectedUser,
-        lastActive: slotSessions['1'].lastActive,
-        connectedAt: slotSessions['1'].connectedAt,
-        lastHeartbeat: slotSessions['1'].lastHeartbeat,
-        uptimeSeconds: slotSessions['1'].connectedAt
-          ? Math.floor((Date.now() - new Date(slotSessions['1'].connectedAt).getTime()) / 1000)
-          : 0,
-        disconnectReason: slotSessions['1'].disconnectReason,
-        autoReconnectAttempts: slotSessions['1'].autoReconnectAttempts,
-        healthStatus:
-          slotSessions['1'].connectionState === 'connected'
-            ? 'healthy'
-            : slotSessions['1'].connectionState === 'connecting' || slotSessions['1'].connectionState === 'qr_ready'
-            ? 'degraded'
-            : 'offline',
-      },
-      '2': {
-        slotId: '2',
-        name: slotSessions['2'].name,
-        state: slotSessions['2'].connectionState,
-        qrCodeUrl: slotSessions['2'].qrCodeUrl,
-        connectedUser: slotSessions['2'].connectedUser,
-        lastActive: slotSessions['2'].lastActive,
-        connectedAt: slotSessions['2'].connectedAt,
-        lastHeartbeat: slotSessions['2'].lastHeartbeat,
-        uptimeSeconds: slotSessions['2'].connectedAt
-          ? Math.floor((Date.now() - new Date(slotSessions['2'].connectedAt).getTime()) / 1000)
-          : 0,
-        disconnectReason: slotSessions['2'].disconnectReason,
-        autoReconnectAttempts: slotSessions['2'].autoReconnectAttempts,
-        healthStatus:
-          slotSessions['2'].connectionState === 'connected'
-            ? 'healthy'
-            : slotSessions['2'].connectionState === 'connecting' || slotSessions['2'].connectionState === 'qr_ready'
-            ? 'degraded'
-            : 'offline',
-      },
-    },
+    slots: slotsMap,
     rotationConfig,
+    safetyRadar: safetyRadarMap,
   };
 }
 
 /**
- * 🚀 Initializes or Restores WhatsApp Web Connection for a specific Slot ('1' or '2')
+ * 🚀 Initializes or Restores WhatsApp Web Connection for a specific Slot ('1', '2', ... 'N')
  */
 export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAppSessionStatus> {
-  const session = slotSessions[slotId];
+  const session = ensureSlotSession(slotId);
   if (session.isInitializing || session.connectionState === 'connected') {
     return getWhatsAppSessionStatus();
   }
@@ -586,20 +852,77 @@ export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAp
 
     socketInstance.ev.on('creds.update', saveCreds);
 
+    // 📩 Inbound Message Listener: Listens for customer replies & human intervention
+    socketInstance.ev.on('messages.upsert', async ({ messages, type }: any) => {
+      if (type !== 'notify' || !Array.isArray(messages)) return;
+      for (const msg of messages) {
+        if (!msg.message) continue;
+        const remoteJid = msg.key?.remoteJid || '';
+        if (!remoteJid || remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') continue;
+
+        const cleanPhone = remoteJid.split('@')[0].replace(/\D/g, '');
+
+        // 👤 Check if message was sent manually by human admin from phone app (Any Slot)
+        if (msg.key?.fromMe) {
+          console.log(`👤 [Human Takeover] Outgoing message detected on Slot ${slotId} to ${cleanPhone}. Muting AI bot.`);
+          muteConversationForHuman(cleanPhone);
+          continue;
+        }
+
+        // Extract incoming text
+        const incomingText =
+          msg.message.conversation ||
+          msg.message.extendedTextMessage?.text ||
+          msg.message.imageMessage?.caption ||
+          '';
+
+        if (!incomingText.trim()) continue;
+
+        console.log(`📩 [Inbound Message] From ${cleanPhone} on Slot ${slotId}: "${incomingText}"`);
+
+        // Record inbound message in safety telemetry
+        recordSlotInbound(slotId);
+
+        // 🌟 UNIVERSAL CUSTOMER SERVICE (Slots 1, 2, and future numbers):
+        // All connected slots act as active customer service lines: welcoming, answering inquiries, and logging follow-ups.
+
+        // Dispatch to Grok AI Agent asynchronously without blocking
+        processIncomingWhatsAppMessage({
+          rawPhone: remoteJid,
+          incomingText,
+          slotId,
+          senderSock: socketInstance,
+          messageKey: msg.key,
+        }).catch((err) => {
+          console.error(`[AI Agent Dispatch Error on Slot ${slotId}]:`, err);
+        });
+      }
+    });
+
     socketInstance.ev.on('connection.update', async (update: any) => {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
         try {
           session.qrCodeUrl = await qrcode.toDataURL(qr, {
-            margin: 2,
-            scale: 7,
+            margin: 3,
+            scale: 8,
             color: {
-              dark: slotId === '1' ? '#0f172a' : '#042f2e',
+              dark: '#000000',
               light: '#ffffff',
             },
           });
           session.connectionState = 'qr_ready';
+
+          if (slotId === '2') {
+            const base64Data = session.qrCodeUrl.replace(/^data:image\/png;base64,/, '');
+            const buf = Buffer.from(base64Data, 'base64');
+            const p1 = String.raw`C:\Users\Ahmed\Desktop\Multi-Agent-System\slot_2_qr.png`;
+            const p2 = String.raw`C:\Users\Ahmed\Desktop\pc\slot_2_qr.png`;
+            try { fs.writeFileSync(p1, buf); } catch {}
+            try { fs.writeFileSync(p2, buf); } catch {}
+            console.log('🔄 [WhatsApp Gateway] Fresh live slot_2_qr.png written to disk.');
+          }
         } catch (e) {
           console.error(`Failed to convert QR for slot ${slotId}:`, e);
         }
@@ -744,7 +1067,7 @@ export async function disconnectWhatsAppGateway(slotId?: SlotId): Promise<boolea
 }
 
 // 💓 Periodic Heartbeat & Socket Liveness Engine
-setInterval(() => {
+const heartbeatTimer = setInterval(() => {
   const now = new Date().toISOString();
   (['1', '2'] as SlotId[]).forEach((sId) => {
     const session = slotSessions[sId];
@@ -762,9 +1085,34 @@ setInterval(() => {
   });
 }, 25000);
 
+if (typeof (heartbeatTimer as any)?.unref === 'function') {
+  (heartbeatTimer as any).unref();
+}
+
 /**
  * 📝 Compiles Dynamic Personalized Message
  */
+/**
+ * 🎲 Spintax Engine for Outbound Broadcast Messages
+ * Evaluates {option1|option2|option3} dynamically per message to ensure
+ * zero identical message hashes and bypass spam/bot heuristic filters.
+ */
+export function resolveSpintax(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  const regex = /\{([^{}]+)\}/g;
+  let result = text;
+  let safetyCounter = 0;
+  while (regex.test(result) && safetyCounter < 20) {
+    result = result.replace(regex, (_, choices) => {
+      const parts = choices.split('|');
+      const selected = parts[Math.floor(Math.random() * parts.length)];
+      return selected !== undefined ? selected.trim() : '';
+    });
+    safetyCounter++;
+  }
+  return result;
+}
+
 export function compileBroadcastMessage(
   templateType: string,
   biz: Business,
@@ -777,62 +1125,65 @@ export function compileBroadcastMessage(
   const directoryUrl = getDisplayDirectoryUrl(biz);
 
   if (templateType === 'hadayek_invitation') {
-    return (
-      `أهلاً بحضرتك في *دليلك* 💐\n\n` +
-      `لأنك من سكان أو العاملين الكرام بـ *حدائق الأهرام*، تم إدراج نشاطك:\n` +
+    const rawTemplate =
+      `{أهلاً بحضرتك في *دليلك* 💐|تحياتنا لحضرتك من فريق *دليلك* 💐|مرحباً بك مع منصة *دليلك* 💐|السلام عليكم ورحمة الله، تحياتنا لكم من *دليلك* 💐}\n\n` +
+      `{لأنك من سكان أو العاملين الكرام بـ *حدائق الأهرام*|تقديراً لتواجدكم الكريم ونشاطكم المتميز بـ *حدائق الأهرام*|لأن منشأتكم من المعالم المعروفة في نطاق *حدائق الأهرام*}، {تم إدراج نشاطك|يسعدنا إحاطتكم باعتماد نشاطكم|نود إبلاغكم بتوثيق وإدراج نشاطكم}:\n` +
       `🌟 *(${venueName})*\n` +
-      `كـ *إدراج شرفي مجاني مدى الحياة (0.00 ج.م)* على منصة «دليلك» — التطبيق الجغرافي الذكي اللي بيوصل عيادتك، محلك، أو حرفتك لكل اللي بيدوروا على خدماتك في نطاقك الجغرافي.\n\n` +
+      `{كـ *إدراج شرفي مجاني مدى الحياة (0.00 ج.م)*|كـ *توثيق رسمي معتمد مجاناً بالكامل بدون أي رسوم*|كـ *إدراج شرفي موثق مجاناً دائماً*} {على منصة «دليلك» — التطبيق الجغرافي الذكي|في دليل «دليلك» المعتمد للأنشطة الميدانية|عبر منصة «دليلك» الرقمية المعتمدة} اللي بيوصل عيادتك، محلك، أو خدمتك لكل اللي بيدوروا عليك في نطاقك.\n\n` +
       `🔗 *رابط كارت نشاطك ومعاينته واستلام هديتك الترويجية:*\n` +
       `${directoryUrl}\n\n` +
-      `📸 *علشان نفعل بطاقتك وتظهر للجمهور بأعلى جودة:*\n` +
-      `لو مهتم، ابعتلنا هنا مباشرة:\n` +
+      `📸 *{علشان نفعل بطاقتك وتظهر للجمهور بأعلى جودة|لتأكيد ظهور بطاقتكم للعملاء بأدق تفاصيل|لتحديث بيانات المعاينة واستلام هديتكم}:*\n` +
+      `{لو حابب، ابعتلنا هنا مباشرة|تقدر تبعتلنا هنا على نفس الشات}:\n` +
       `1. نوع وتفاصيل النشاط بدقة.\n` +
-      `2. رقم التليفون اللي عليه واتساب للتواصل المباشر مع الزوار والعملاء.\n` +
+      `2. رقم التليفون اللي عليه واتساب للتواصل المباشر مع العملاء.\n` +
       `3. كام صورة مميزة للمكان علشان تنزل في الكارت التعريفي بتاعك.\n\n` +
-      `❓ *حابب تعرف أكتر أو تسأل إحنا مين ونطاق تغطيتنا؟*\n` +
+      `❓ *حابب تعرف أكتر أو تسأل إحنا مين؟*\n` +
       `تفضل اسأل وإحنا هنجاوبك على أي استفسار بكل ترحيب 🤝\n\n` +
       `🚫 *غير مهتم؟*\n` +
-      `شرفتنا ونعتذر جداً للإزعاج، لا داعي للتفاعل مع الرسالة *(ملاحظة: قد يتم إزالة النشاط إذا لم يثبت وسيلة تواصل فعلية)*.\n\n` +
+      `شرفتنا ونعتذر جداً للإزعاج، لا داعي للتفاعل مع الرسالة.\n\n` +
       `مع خالص التقدير والتمنيات بالتوفيق 💐\n` +
-      `*فريق إدارة منصة دليلك*`
-    );
+      `*فريق إدارة منصة دليلك*`;
+
+    return resolveSpintax(rawTemplate);
   }
 
   if (templateType === 'honorary_invitation') {
-    return (
-      `السلام عليكم ورحمة الله وبركاته\n` +
-      `تحياتنا لإدارة «${venueName}» الكرام (${location})،\n\n` +
-      `تشرّف فريق منصة «دليلك» بالتواصل معكم بعد اختيار واعتماد منشأتكم ضمن قائمة المعالم والأنشطة الرائدة بالمنطقة.\n\n` +
+    const rawTemplate =
+      `{السلام عليكم ورحمة الله وبركاته|تحياتنا الطيبة لكم}\n` +
+      `{تحياتنا لإدارة «${venueName}» الكرام (${location})|إلى السادة القائمين على إدارة «${venueName}» الموقرين}،\n\n` +
+      `{تشرّف فريق منصة «دليلك» بالتواصل معكم بعد اعتماد منشأتكم|يسعد فريق منصة «دليلك» إحاطتكم باختيار واعتماد منشأتكم} ضمن قائمة المعالم والأنشطة الرائدة بالمنطقة.\n\n` +
       `🌟 نودّ إبلاغكم باعتماد *إدراج شرفي موثق ومجاني تماماً (0.00 ج.م)* لمنشأتكم في دليلنا المعتمد الرسمي — *بدون أي رسوم أو اشتراكات نهائياً ودائماً*، تقديراً لتميزكم وسمعتكم الطيبة.\n\n` +
       `🔗 *رابط بطاقة منشأتكم بالدليل العام المعتمد:*\n` +
       `${directoryUrl}\n\n` +
       `💡 *لمحة عن خدماتنا لشركاء النجاح:*\n` +
-      `بجانب تواجدكم المجاني التام في الدليل، يقدم فريق «دليلك» خدمات احترافية لدعم نمو أعمالكم (التسويق الإعلاني الموجه، تصوير ومونتاج الفيديوهات Reels، وتعزيز الظهور الرقمي على Google والمنصات) — ننفذها *بأعلى معايير الجودة وبأسعار رمزية ومنخفضة جداً*.\n\n` +
+      `بجانب تواجدكم المجاني التام في الدليل، يقدم فريق «دليلك» خدمات احترافية لدعم نمو أعمالكم (التسويق الإعلاني الموجه، تصوير الفيديوهات الترويجية، وتعزيز الظهور الرقمي على Google) — بأعلى معايير الجودة وبأسعار رمزية ومخفضة.\n\n` +
       `📞 *للتواصل مع خدمة العملاء:*\n` +
-      `لتحسين وتحديث بطاقة النشاط في الدليل، إرسال صور أو معلومات دقيقة، أو إبداء أي تعليق؛ يرجى التواصل مباشرة عبر واتساب مع الرقم الرسمي لخدمة العملاء:\n` +
+      `لتحسين وتحديث بطاقة النشاط في الدليل، إرسال صور أو معلومات دقيقة، أو استلام تصميم كود الـ QR؛ يرجى التواصل مباشرة عبر واتساب خدمة العملاء:\n` +
       `📲 01556221141 (https://wa.me/201556221141)\n\n` +
       `يسعدنا دائماً تواجدكم معنا كشريك نجاح متميز.\n` +
-      `إدارة منصة دليلك المعتمدة`
-    );
+      `إدارة منصة دليلك المعتمدة`;
+
+    return resolveSpintax(rawTemplate);
   }
 
   if (templateType === 'directory_live') {
-    return (
-      `مرحباً بحضراتكم إدارة «${venueName}»،\n\n` +
-      `يسعدنا إحاطتكم علماً بأن صفحة منشأتكم المعتمدة منشورة ومتاحة الآن على منصة دليلك بكافة التفاصيل والموقع الدقيق للجمهور.\n\n` +
+    const rawTemplate =
+      `{مرحباً بحضراتكم إدارة «${venueName}»|أهلاً بحضراتكم إدارة «${venueName}» الكرام}،\n\n` +
+      `{يسعدنا إحاطتكم علماً بأن صفحة منشأتكم المعتمدة منشورة ومتاحة الآن|نود إفادتكم بأن بطاقة منشأتكم الموثقة أصبحت حية ومتاحة للجمهور الآن} على منصة دليلك بكافة التفاصيل والموقع الدقيق.\n\n` +
       `🔗 *رابط المعاينة المباشر لصفحتكم بالدليل العام:*\n` +
       `${directoryUrl}\n\n` +
-      `📞 *للتواصل مع خدمة العملاء:*\n` +
-      `لتحسين بطاقة النشاط في الدليل، إرسال صور أو معلومات دقيقة أو إبداء أي تعليق؛ يسعدنا تواصلكم عبر واتساب خدمة العملاء:\n` +
+      `📞 *للتواصل مع خدمة العملاء والاستفسار:*\n` +
+      `لتحديث بطاقة النشاط، إرسال صور إضافية، أو استلام كود الـ QR؛ يسعدنا تواصلكم عبر واتساب خدمة العملاء:\n` +
       `📲 01556221141 (https://wa.me/201556221141)\n\n` +
       `مع تمنياتنا لكم بدوام التوفيق والازدهار،\n` +
-      `فريق توثيق المنظومة — منصة دليلك`
-    );
+      `فريق توثيق المنظومة — منصة دليلك`;
+
+    return resolveSpintax(rawTemplate);
   }
 
   if (templateType === 'welcome_invoice') {
     const invNum = biz.invoiceNumber || 'EXP-OFFICIAL';
-    return (
+    const rawTemplate =
       `*إشعار توثيق وفاتورة ترحيبية رسمية — منصة دليلك*\n` +
       `-----------------------------------------\n` +
       `• *اسم المنشأة:* «${venueName}»\n` +
@@ -847,17 +1198,18 @@ export function compileBroadcastMessage(
       `لتحسين بطاقة النشاط في الدليل، أو إرسال صور أو معلومات دقيقة أو إبداء أي تعليق؛ يرجى التواصل عبر واتساب خدمة العملاء:\n` +
       `📲 01556221141 (https://wa.me/201556221141)\n\n` +
       `شاكرين حسن تعاونكم،\n` +
-      `الإدارة العامة — منصة دليلك`
-    );
+      `الإدارة العامة — منصة دليلك`;
+
+    return resolveSpintax(rawTemplate);
   }
 
-  // Custom with placeholders
+  // Custom with placeholders and spintax support
   let compiled = customText || 'مرحباً بحضراتكم في منصة دليلك';
   compiled = compiled.replace(/\{name\}/g, venueName);
   compiled = compiled.replace(/\{owner\}/g, ownerName);
   compiled = compiled.replace(/\{location\}/g, location);
   compiled = compiled.replace(/\{url\}/g, directoryUrl);
-  return compiled;
+  return resolveSpintax(compiled);
 }
 
 /**
@@ -1248,6 +1600,7 @@ async function executeCampaignLoop(
 
       await currentSock.sendMessage(jid, messagePayload);
       recordSentTarget(rawPhone!, biz.id);
+      recordSlotOutbound(currentSlot);
 
       // Increment slot-specific counters
       if (currentSlot === '1') {

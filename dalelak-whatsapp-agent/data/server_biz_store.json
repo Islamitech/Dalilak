@@ -43,27 +43,14 @@
     "invoiceNumber": "INV-DIR-2026-881001",
     "invoiceDate": "2026-09-17",
     "notes": "[١٧/٩/٢٠٢٦] احمد عزالدين محمد: [تعديل بيانات]: تم تحديث بيانات المنشأة رسمياً بواسطة احمد عزالدين محمد.\n[١٧/٩/٢٠٢٦] احمد عزالدين محمد: [تعديل بيانات]: تم تحديث بيانات المنشأة رسمياً بواسطة احمد عزالدين محمد.",
-    "adminFollowUps": [
-      {
-        "id": "fu_wa_1789760271784_vdk0",
-        "authorId": "whatsapp_ai_agent",
-        "authorName": "المساعد الذكي (واتساب دليلك)",
-        "authorRole": "system",
-        "type": "general",
-        "status": "pending",
-        "category": "whatsapp",
-        "text": "E2E_AUTHENTICATED_ADMIN_PROBE_1789760271746",
-        "createdAt": "2026-09-18T19:37:51.784Z"
-      }
-    ],
+    "adminFollowUps": [],
     "additionalInvoices": [],
     "createdDate": "2026-09-17T10:11:21.001+00:00",
     "isFeeExempt": true,
     "feeExemptionReason": "مكان رائج بالمنطقة معفى من الرسوم (إدراج شرفي قيد الاعتماد)",
     "isAlreadyOnGoogle": true,
     "registrationType": "new_verification",
-    "isDeleted": false,
-    "updatedAt": "2026-09-18T19:37:51.785Z"
+    "isDeleted": false
   },
   {
     "id": "biz_gplaces_1789533924155_x80b0",
@@ -37425,7 +37412,19 @@
     "favoriteCount": 0,
     "invoiceNumber": "EXP-465591",
     "invoiceDate": "2026-09-11",
-    "adminFollowUps": [],
+    "adminFollowUps": [
+      {
+        "id": "fu_wa_1789694718_qr_delivered",
+        "authorId": "whatsapp_ai_agent",
+        "authorName": "المساعد الذكي (واتساب دليلك)",
+        "authorRole": "system",
+        "type": "general",
+        "status": "completed",
+        "category": "whatsapp",
+        "text": "تم تسليم باقة ملصقات الـ QR وتصاميم الهدية الفاخرة للعميل (البان الصالحين) عبر الواتساب بنجاح.",
+        "createdAt": "2026-09-18T01:45:18.090Z"
+      }
+    ],
     "additionalInvoices": [],
     "createdDate": "2026-09-11T01:34:25.591+00:00",
     "isFeeExempt": true,

@@ -299,10 +299,34 @@ async function syncBusinessesFromSupabase(force: boolean = false): Promise<Busin
       const mapped = allRows.map(mapDbToBusiness).filter(
         (b: any) => b && b.packageId !== 'pkg_interested_lead' && b.verificationStatus !== 'lead' && !String(b.id || '').startsWith('lead_')
       );
-      businesses = mapped;
+
+      // 🛡️ Concurrency Shield: Merge and preserve local adminFollowUps so Supabase sync never wipes out WhatsApp notes
+      const localBusinesses = loadStoredBusinesses();
+      const localFollowUpsMap = new Map<string, any[]>();
+      localBusinesses.forEach((lb) => {
+        if (lb.id && Array.isArray(lb.adminFollowUps) && lb.adminFollowUps.length > 0) {
+          localFollowUpsMap.set(lb.id, lb.adminFollowUps);
+        }
+      });
+
+      const merged = mapped.map((mb) => {
+        const localNotes = localFollowUpsMap.get(mb.id);
+        if (localNotes && localNotes.length > 0) {
+          const remoteNotes = Array.isArray(mb.adminFollowUps) ? mb.adminFollowUps : [];
+          const remoteNoteIds = new Set(remoteNotes.map((n: any) => n.id));
+          const missingLocals = localNotes.filter((n) => !remoteNoteIds.has(n.id));
+          return {
+            ...mb,
+            adminFollowUps: [...missingLocals, ...remoteNotes].slice(0, 50),
+          };
+        }
+        return mb;
+      });
+
+      businesses = merged;
       lastSupabaseSyncTimestamp = Date.now();
       persistStoredBusinesses(businesses);
-      console.log(`[server.ts] ✅ Synced ${businesses.length} businesses from Supabase (SSOT) to local cache.`);
+      console.log(`[server.ts] ✅ Synced ${businesses.length} businesses from Supabase (SSOT) to local cache (preserved local follow-ups).`);
     }
   } catch (err) {
     console.warn('[server.ts] ⚠️ Failed to sync businesses from Supabase, relying on local cache:', err);
@@ -2066,6 +2090,8 @@ app.post('/api/auth/logout', (req, res) => {
 
 // 3. Businesses API (Supabase as SSOT & Local JSON as Resilient Cache)
 app.get('/api/businesses', async (req, res) => {
+  // 🛡️ Always reload fresh businesses from disk cache so updates/notes from WhatsApp AI appear instantly
+  businesses = loadStoredBusinesses();
   if (businesses.length === 0) {
     await syncBusinessesFromSupabase(true);
   }
@@ -2079,6 +2105,8 @@ app.get('/api/businesses', async (req, res) => {
 });
 
 app.get('/api/businesses/:id', async (req, res) => {
+  // 🛡️ Always reload fresh state from disk
+  businesses = loadStoredBusinesses();
   if (businesses.length === 0) {
     await syncBusinessesFromSupabase(true);
   }
@@ -2193,6 +2221,8 @@ app.post('/api/businesses', async (req, res) => {
 
 app.put('/api/businesses/:id', async (req, res) => {
   const { id } = req.params;
+  // 🛡️ Concurrency Shield: Reload fresh businesses from disk cache
+  businesses = loadStoredBusinesses();
   const index = businesses.findIndex((b) => b.id === id);
 
   const reqUser = getRequestUser(req);
@@ -2209,10 +2239,22 @@ app.put('/api/businesses/:id', async (req, res) => {
   }
 
   const existingBiz = index >= 0 ? businesses[index] : ({} as Partial<Business>);
+
+  // 🛡️ Merge adminFollowUps safely: preserve WhatsApp AI notes if client body has partial list
+  let finalFollowUps = existingBiz.adminFollowUps || [];
+  if (Array.isArray(req.body.adminFollowUps)) {
+    const clientNoteIds = new Set(req.body.adminFollowUps.map((n: any) => n.id));
+    const existingUnincluded = (existingBiz.adminFollowUps || []).filter(
+      (n: any) => !clientNoteIds.has(n.id) && n.authorId === 'whatsapp_ai_agent'
+    );
+    finalFollowUps = [...existingUnincluded, ...req.body.adminFollowUps].slice(0, 50);
+  }
+
   const updatedBiz: Business = {
     ...existingBiz,
     ...req.body,
     id,
+    adminFollowUps: finalFollowUps,
     repId: req.body.repId || existingBiz.repId || reqUser.userId,
   } as Business;
 
