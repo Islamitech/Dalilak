@@ -233,7 +233,7 @@
     "commissionRate": 100,
     "status": "active",
     "password": "sha256:1bd455df4d1c614f4187e90c9c9c5920d86f6b8a2ae9bcd12a9174b62c90f432",
-    "lastActiveTimestamp": 1789759926087,
+    "lastActiveTimestamp": 1789767829082,
     "referralCode": "DALIL-8355",
     "referralUnlocked": false,
     "adminBypassReferral": false,

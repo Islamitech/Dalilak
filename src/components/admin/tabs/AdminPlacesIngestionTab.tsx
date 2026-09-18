@@ -36,6 +36,8 @@ import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { saveBusinessToDb } from '../../../services/db';
+import { classifyEntity, ClassifiedEntity, EntityBucket } from '../../../services/geo/entityClassifier';
+import { executeSpatialMeshScan, SpatialPlaceCandidate, generateSectorMicroGrid, GridCell } from '../../../services/geo/spatialMeshScanner';
 
 interface CandidatePlace {
   id: string;
@@ -57,12 +59,21 @@ interface CandidatePlace {
   isQualityApproved: boolean;
   qualityBadgeText: string;
   isCraft: boolean;
+  bucket: EntityBucket;
+  bucketLabelAr: string;
+  classification?: ClassifiedEntity;
 }
 
 interface BatchSearchMetrics {
   totalFound: number;
   duplicatesCount: number;
   qualifiedCount: number;
+  excludedCount: number;
+  commercialCount?: number;
+  residentialCount?: number;
+  infrastructureCount?: number;
+  civicCount?: number;
+  spatialNodesCount?: number;
   estimatedCost: string;
 }
 
@@ -676,9 +687,11 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     totalFoundSoFar: number;
     newFoundSoFar: number;
     duplicatesSoFar: number;
+    excludedSoFar?: number;
   } | null>(null);
 
   const [candidatePlaces, setCandidatePlaces] = useState<CandidatePlace[]>([]);
+  const [activeBucketTab, setActiveBucketTab] = useState<EntityBucket | 'ALL'>('COMMERCIAL');
   const [metrics, setMetrics] = useState<BatchSearchMetrics | null>(null);
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<Set<string>>(new Set());
   const [filterOnlyQualified, setFilterOnlyQualified] = useState<boolean>(true);
@@ -759,7 +772,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     }).length;
   }, [businesses, currentSector]);
 
-  // ⚡ DIRECT RESILIENT ATLAS CHUNK ENGINE
+  // ⚡ DIRECT RESILIENT ATLAS CHUNK ENGINE WITH SPATIAL GRID & ENTITY FILTERING
   const executeAtlasChunkSearch = async (
     targetSector: HadayekSector,
     catIndex: number,
@@ -768,19 +781,52 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     thresholdRating: number,
     thresholdReviews: number
   ): Promise<{ places: CandidatePlace[]; metrics: BatchSearchMetrics }> => {
-    // 1. تحديد استعلامات المسح للقطاع
-    let queriesToRun: string[] = [];
-    if (catIndex === 0) {
-      // 🌐 وضع أطلس الشامل: مسح متعدد المحاور لاستيعاب كافة المنشآت بدون تحديد نشاط
-      queriesToRun = [
-        targetSector.query,
-        `محلات وسوبرماركت وأسواق في ${targetSector.subZone} حدائق الأهرام`,
-        `مطاعم وكافيهات ومخابز في ${targetSector.subZone} حدائق الأهرام`,
-        `صيدليات وعيادات ومراكز طبية في ${targetSector.subZone} حدائق الأهرام`,
-        `خدمات وصيانة وورش وحرفيين في ${targetSector.subZone} حدائق الأهرام`,
-      ];
+    const isAtlasAllMode = catIndex === 0;
+
+    // 🗺️ توليد بؤر الشبكة المكانية الدقيقة (Spatial Micro-Grid) في وضع أطلس لتغطية كافة الأزقة والشوارع الداخلية
+    const gridNodes: GridCell[] = (!isCustomHub && !isExpansionHubActive && targetSector.southLat && targetSector.northLat)
+      ? generateSectorMicroGrid({
+          southLat: targetSector.southLat,
+          westLng: targetSector.westLng,
+          northLat: targetSector.northLat,
+          eastLng: targetSector.eastLng,
+        }, 2, 2)
+      : [];
+
+    // استعلامات ومحاور المسح
+    let searchPasses: Array<{
+      query: string;
+      center?: { latitude: number; longitude: number };
+      radius?: number;
+      label: string;
+    }> = [];
+
+    if (isAtlasAllMode) {
+      if (gridNodes.length > 0) {
+        // نمط الشبكة المكانية متعددة البؤر: استعلام لكل بؤرة لضمان اختراق الشوارع الداخلية بنسبة 100%
+        searchPasses = gridNodes.map((node: GridCell, nIdx: number) => ({
+          query: `محلات وأنشطة وخدمات في ${targetSector.subZone} حدائق الأهرام`,
+          center: { latitude: node.centerLat, longitude: node.centerLng },
+          radius: 300,
+          label: `بؤرة شبكية #${nIdx + 1}/${gridNodes.length}`,
+        }));
+
+        // إضافة محور رئيسي بالاسم الرسمي
+        searchPasses.unshift({
+          query: targetSector.query,
+          label: `المسح الشامل لقطاع ${targetSector.subZone}`,
+        });
+      } else {
+        searchPasses = [
+          { query: targetSector.query, label: 'الاستعلام العام للقطاع' },
+          { query: `محلات وسوبرماركت وأسواق في ${targetSector.subZone} حدائق الأهرام`, label: 'محور الأسواق والتجزئة' },
+          { query: `مطاعم وكافيهات ومخابز في ${targetSector.subZone} حدائق الأهرام`, label: 'محور الأغذية والمشروبات' },
+          { query: `صيدليات وعيادات ومراكز طبية في ${targetSector.subZone} حدائق الأهرام`, label: 'محور الصحة والعيادات' },
+          { query: `خدمات وصيانة وورش وحرفيين في ${targetSector.subZone} حدائق الأهرام`, label: 'محور الصيانة والورش' },
+        ];
+      }
     } else {
-      queriesToRun = [searchQuery.trim()];
+      searchPasses = [{ query: searchQuery.trim(), label: currentCat?.label || 'الفئة المحددة' }];
     }
 
     const fieldMask = [
@@ -788,6 +834,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       'places.displayName',
       'places.primaryType',
       'places.primaryTypeDisplayName',
+      'places.types',
       'places.formattedAddress',
       'places.location',
       'places.rating',
@@ -811,34 +858,111 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     });
     const existingNames = new Set(businesses.map((b) => (b.nameAr || b.name || '').trim().toLowerCase()));
 
+    // 🌐 النمط السيادي: التمشيط الشبكي الجغرافي الشامل (Spatial Micro-Grid Mesh) مع الفرز الرباعي التلقائي
+    if (isAtlasAllMode && !isCustomHub && !isExpansionHubActive && targetSector.southLat && targetSector.northLat) {
+      const meshResult = await executeSpatialMeshScan(
+        {
+          southLat: targetSector.southLat,
+          westLng: targetSector.westLng,
+          northLat: targetSector.northLat,
+          eastLng: targetSector.eastLng,
+        },
+        `${targetSector.subZone} حدائق الأهرام`,
+        GOOGLE_API_KEY,
+        existingIds,
+        existingNames,
+        {
+          gridRows: 2,
+          gridCols: 2,
+          onProgress: (stepText, currentFound) => {
+            setScanChunkStatus({
+              stepText,
+              chunkNumber: 1,
+              totalFoundSoFar: currentFound,
+              newFoundSoFar: currentFound,
+              duplicatesSoFar: 0,
+            });
+          },
+        }
+      );
+
+      const mappedPlaces: CandidatePlace[] = meshResult.allRaw.map((p) => ({
+        id: p.id,
+        displayName: p.displayName,
+        category: p.category,
+        primaryType: p.primaryType,
+        primaryTypeDisplayName: p.primaryTypeDisplayName,
+        formattedAddress: p.formattedAddress,
+        lat: p.lat,
+        lng: p.lng,
+        phone: p.phone,
+        rating: p.rating,
+        userRatingCount: p.userRatingCount,
+        workingHours: p.workingHours,
+        googleMapsUri: p.googleMapsUri,
+        coverPhoto: p.coverPhoto,
+        photosCount: p.photosCount,
+        isDuplicate: p.isDuplicate,
+        isQualityApproved: p.bucket === 'COMMERCIAL' && !p.isDuplicate,
+        qualityBadgeText: p.qualityBadgeText,
+        isCraft: p.isCraft,
+        bucket: p.bucket,
+        bucketLabelAr: p.bucketLabelAr,
+        classification: p.classification,
+      }));
+
+      return {
+        places: mappedPlaces,
+        metrics: {
+          totalFound: meshResult.metrics.totalRawFound,
+          duplicatesCount: meshResult.metrics.duplicatesCount,
+          qualifiedCount: meshResult.metrics.commercialCount,
+          excludedCount: meshResult.metrics.residentialCount + meshResult.metrics.infrastructureCount + meshResult.metrics.civicCount,
+          commercialCount: meshResult.metrics.commercialCount,
+          residentialCount: meshResult.metrics.residentialCount,
+          infrastructureCount: meshResult.metrics.infrastructureCount,
+          civicCount: meshResult.metrics.civicCount,
+          spatialNodesCount: meshResult.metrics.cellsScanned,
+          estimatedCost: meshResult.metrics.estimatedCost,
+        },
+      };
+    }
+
     const seenIdsInScan = new Set<string>();
     const seenNamesInScan = new Set<string>();
 
     const accumulatedPlaces: CandidatePlace[] = [];
     let duplicatesCount = 0;
     let qualifiedCount = 0;
+    let excludedEntitiesCount = 0;
+    let commercialCount = 0;
+    let residentialCount = 0;
+    let infrastructureCount = 0;
+    let civicCount = 0;
     let totalRawFound = 0;
     let totalApiCalls = 0;
     let chunkCounter = 0;
 
-    for (let qIdx = 0; qIdx < queriesToRun.length; qIdx++) {
-      const q = queriesToRun[qIdx];
+    for (let passIdx = 0; passIdx < searchPasses.length; passIdx++) {
+      const pass = searchPasses[passIdx];
       let nextPageToken: string | undefined = undefined;
       let pageNum = 1;
-      const maxPages = isExhaustive ? 3 : Math.ceil(limitCount / 20);
+      // في وضع الشبكة المكانية المتعددة البؤر تكفي صفحة إلى صفحتين لكل بؤرة لتفادي استهلاك الكوتا
+      const maxPages = isAtlasAllMode && gridNodes.length > 0 ? 1 : (isExhaustive ? 3 : Math.ceil(limitCount / 20));
 
       while (pageNum <= maxPages) {
         chunkCounter++;
         setScanChunkStatus({
-          stepText: `مسح المحور (${qIdx + 1}/${queriesToRun.length}): جلب الجزء ${chunkCounter}...`,
+          stepText: `مسح (${passIdx + 1}/${searchPasses.length}) - ${pass.label}: استدعاء الجزء ${chunkCounter}...`,
           chunkNumber: chunkCounter,
           totalFoundSoFar: totalRawFound,
           newFoundSoFar: accumulatedPlaces.length,
           duplicatesSoFar: duplicatesCount,
+          excludedSoFar: excludedEntitiesCount,
         });
 
         const searchBody: Record<string, unknown> = {
-          textQuery: q,
+          textQuery: pass.query,
           languageCode: 'ar',
           maxResultCount: 20,
         };
@@ -847,8 +971,15 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           searchBody.pageToken = nextPageToken;
         }
 
-        // 📍 قصر النطاق الجغرافي المستطيل على القطاع المحدد
-        if (!isCustomHub && !isExpansionHubActive) {
+        // 📍 توجيه النطاق الجغرافي: بؤرة دائرية شبكية أو مستطيل القطاع
+        if (pass.center && pass.radius) {
+          searchBody.locationBias = {
+            circle: {
+              center: pass.center,
+              radius: pass.radius,
+            },
+          };
+        } else if (!isCustomHub && !isExpansionHubActive) {
           searchBody.locationRestriction = {
             rectangle: {
               low: { latitude: targetSector.southLat, longitude: targetSector.westLng },
@@ -894,12 +1025,37 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             const name = (p.displayName?.text || '').trim();
             const lowerName = name.toLowerCase();
 
+            // 🎯 الفاحص والفرز الرباعي للكيانات
+            const classification = classifyEntity({
+              id: placeId,
+              displayName: name,
+              primaryType: p.primaryType,
+              primaryTypeDisplayName: p.primaryTypeDisplayName?.text,
+              types: Array.isArray(p.types) ? p.types : [],
+              formattedAddress: p.formattedAddress,
+              lat: p.location?.latitude,
+              lng: p.location?.longitude,
+            });
+
+            if (classification.bucket === 'COMMERCIAL') {
+              commercialCount++;
+            } else if (classification.bucket === 'RESIDENTIAL') {
+              residentialCount++;
+              excludedEntitiesCount++;
+            } else if (classification.bucket === 'INFRASTRUCTURE') {
+              infrastructureCount++;
+              excludedEntitiesCount++;
+            } else if (classification.bucket === 'CIVIC') {
+              civicCount++;
+              excludedEntitiesCount++;
+            }
+
             // فحص التكرار مع قاعدة البيانات ومع ما تم سحبه في هذا المسح
             const isDupInDb = existingIds.has(placeId) || (name.length > 3 && existingNames.has(lowerName));
             const isDupInScan = seenIdsInScan.has(placeId) || (name.length > 3 && seenNamesInScan.has(lowerName));
 
             if (isDupInScan) {
-              continue; // تخطي التكرار الداخلي بين المحاور
+              continue; // تخطي التكرار الداخلي بين المحاور والبؤر
             }
 
             seenIdsInScan.add(placeId);
@@ -920,26 +1076,31 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             const lng = p.location?.longitude;
             const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
 
-            // في وضع أطلس الشامل: كافة الأنشطة الموثقة مؤهلة ومقبولة
-            const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, name) || currentCat.type === 'craft';
-            const isQualityApproved = catIndex === 0 ? true : (rating >= thresholdRating && userRatingCount >= thresholdReviews);
+            // في وضع أطلس الشامل: كافة المنشآت التجارية المؤهلة مقبولة
+            const isCraft = isCraftActivity(primaryType, primaryTypeDisplayName, name) || currentCat.type === 'craft' || !!classification.metadata.isCraft;
+            const isQualityApproved = classification.bucket === 'COMMERCIAL'
+              ? (catIndex === 0 ? true : (rating >= thresholdRating && userRatingCount >= thresholdReviews))
+              : false;
 
             let qualityBadgeText = '';
-            if (catIndex === 0) {
-              qualityBadgeText = `منشأة موثقة في أطلس ${targetSector.subZone} ⭐ ${rating > 0 ? rating : 'جديد'}`;
-              if (!isDuplicate) qualifiedCount++;
-            } else if (isQualityApproved) {
-              qualityBadgeText = `${isCraft ? 'حرفي معتمد' : 'رائج معتمد'} ⭐ ${rating} (${userRatingCount} مقيّم)`;
-              if (!isDuplicate) qualifiedCount++;
+            if (classification.bucket === 'COMMERCIAL') {
+              if (catIndex === 0) {
+                qualityBadgeText = `منشأة موثقة في أطلس ${targetSector.subZone} ⭐ ${rating > 0 ? rating : 'جديد'}`;
+                if (!isDuplicate) qualifiedCount++;
+              } else if (isQualityApproved) {
+                qualityBadgeText = `${isCraft ? 'حرفي معتمد' : 'رائج معتمد'} ⭐ ${rating} (${userRatingCount} مقيّم)`;
+                if (!isDuplicate) qualifiedCount++;
+              } else {
+                qualityBadgeText = `دون المعايير الطبيعية (${rating}★ و ${userRatingCount} مقيّم)`;
+              }
             } else {
-              qualityBadgeText = `دون المعايير الطبيعية (${rating}★ و ${userRatingCount} مقيّم)`;
+              qualityBadgeText = `${classification.bucketLabelAr} (مستبعد من الدليل التجاري)`;
             }
 
             let coverPhoto: string | undefined = undefined;
             if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
               const photoName = p.photos[0].name;
               if (photoName) {
-                // حفظ مرجع الصورة المباشر لتوفير استهلاك الـ API اثناء المسح
                 coverPhoto = `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}`;
               }
             }
@@ -955,7 +1116,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             accumulatedPlaces.push({
               id: placeId,
               displayName: name,
-              category: primaryTypeDisplayName || (catIndex === 0 ? 'نشاط تجاري وخدمي' : currentCat.label),
+              category: classification.categoryLabelAr || primaryTypeDisplayName || (catIndex === 0 ? 'نشاط تجاري وخدمي' : currentCat.label),
               primaryType,
               primaryTypeDisplayName,
               formattedAddress,
@@ -972,6 +1133,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               isQualityApproved,
               qualityBadgeText,
               isCraft,
+              bucket: classification.bucket,
+              bucketLabelAr: classification.bucketLabelAr,
+              classification,
             });
 
             // إذا لم يكن الوضع شاملاً ووصلنا للعدد المحدد
@@ -990,7 +1154,6 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           }
 
           pageNum++;
-          // الانتظار نصف ثانية لتفعيل توكن الصفحة التالية في سيرفرات جوجل
           await new Promise((r) => setTimeout(r, 600));
         } catch (callErr) {
           console.warn('Chunk search error:', callErr);
@@ -1011,6 +1174,12 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         totalFound: totalRawFound,
         duplicatesCount,
         qualifiedCount,
+        excludedCount: excludedEntitiesCount,
+        commercialCount,
+        residentialCount,
+        infrastructureCount,
+        civicCount,
+        spatialNodesCount: gridNodes.length,
         estimatedCost: `$${estimatedCost}`,
       },
     };
@@ -1038,16 +1207,16 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         setCandidatePlaces(data.places);
         setMetrics(data.metrics);
 
-        // تحديد كافة المنشآت المؤهلة وغير المكررة افتراضياً
+        // تحديد كافة المنشآت التجارية المؤهلة وغير المكررة افتراضياً
         const qualifiedIds = new Set<string>();
         data.places.forEach((p) => {
-          if (p.isQualityApproved && !p.isDuplicate) {
+          if (p.bucket === 'COMMERCIAL' && p.isQualityApproved && !p.isDuplicate) {
             qualifiedIds.add(p.id);
           }
         });
         setSelectedPlaceIds(qualifiedIds);
 
-        const msg = `🏛️ تم بنجاح سحب وتدقيق ${data.places.length} منشأة في ${currentSector.subZone} (${data.metrics.qualifiedCount} جديدة جاهزة للحقن)`;
+        const msg = `🏛️ تم بنجاح سحب وتدقيق ${data.places.length} كياناً في ${currentSector.subZone} (${data.metrics.qualifiedCount} نشاط تجاري جاهز للحقن)`;
         if (onShowNotification) onShowNotification(msg, 'success');
       } else {
         throw new Error('لم يتم استلام أي نتائج من محرك خرائط Google');
@@ -1061,11 +1230,15 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     }
   };
 
-  // Filtered displayed places
+  // Filtered displayed places with Quad-Bucket segregation
   const displayedPlaces = useMemo(() => {
-    if (!filterOnlyQualified) return candidatePlaces;
-    return candidatePlaces.filter((p) => p.isQualityApproved && !p.isDuplicate);
-  }, [candidatePlaces, filterOnlyQualified]);
+    let list = candidatePlaces;
+    if (activeBucketTab !== 'ALL') {
+      list = list.filter((p) => p.bucket === activeBucketTab);
+    }
+    if (!filterOnlyQualified) return list;
+    return list.filter((p) => (p.bucket === 'COMMERCIAL' ? p.isQualityApproved : true) && !p.isDuplicate);
+  }, [candidatePlaces, activeBucketTab, filterOnlyQualified]);
 
   // Selection toggles
   const handleToggleSelectAll = () => {
@@ -1085,14 +1258,24 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     });
   };
 
-  // 🚀 استيراد وحقن المنشآت المختارة بنمط أطلس حدائق الأهرام
+  // 🚀 استيراد وحقن المنشآت التجارية المختارة بنمط أطلس حدائق الأهرام
   const handleIngestSelected = async () => {
     if (selectedPlaceIds.size === 0) {
-      if (onShowNotification) onShowNotification('يرجى تحديد منشأة واحدة على الأقل للاستيراد', 'warning');
+      if (onShowNotification) onShowNotification('يرجى تحديد منشأة تجارية واحدة على الأقل للاستيراد', 'warning');
       return;
     }
 
-    const placesToIngest = candidatePlaces.filter((p) => selectedPlaceIds.has(p.id));
+    // 🛡️ حارس النقاء: استيراد الأنشطة التجارية حصراً وحظر المجمعات السكنية والشوارع
+    const placesToIngest = candidatePlaces
+      .filter((p) => selectedPlaceIds.has(p.id))
+      .filter((p) => p.bucket === 'COMMERCIAL');
+
+    if (placesToIngest.length === 0) {
+      if (onShowNotification) {
+        onShowNotification('تنبيه أمان: تم حجب الاستيراد لأن العناصر المحددة ليست أنشطة تجارية (عقارات سكنية أو شوارع ومرافق)', 'warning');
+      }
+      return;
+    }
     setIsIngesting(true);
     setIngestProgress({ current: 0, total: placesToIngest.length });
 
@@ -1468,22 +1651,30 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
             <div className="p-3 bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)]">
-              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">المسجل مسبقاً بالدليل</div>
+              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">المسجل مسبقاً</div>
               <div className="text-lg font-black text-slate-200 font-mono">{existingSectorBusinessesCount}</div>
             </div>
             <div className="p-3 bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)]">
-              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">المكتشف عبر Google Maps</div>
-              <div className="text-lg font-black text-amber-400 font-mono">{metrics.totalFound}</div>
-            </div>
-            <div className="p-3 bg-[var(--input-bg)] rounded-2xl border border-[var(--border-color)]">
-              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">مكرر تم حجب استهلاكه</div>
-              <div className="text-lg font-black text-slate-400 font-mono">{metrics.duplicatesCount}</div>
+              <div className="text-[11px] text-[var(--text-muted)] font-bold mb-1">المكتشف الكلي</div>
+              <div className="text-lg font-black text-slate-300 font-mono">{metrics.totalFound}</div>
             </div>
             <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30">
-              <div className="text-[11px] text-emerald-400 font-bold mb-1">منشآت فريدة جاهزة للحقن</div>
-              <div className="text-lg font-black text-emerald-400 font-mono">{metrics.qualifiedCount}</div>
+              <div className="text-[11px] text-emerald-400 font-bold mb-1">🏪 أنشطة تجارية</div>
+              <div className="text-lg font-black text-emerald-400 font-mono">{metrics.commercialCount ?? metrics.qualifiedCount}</div>
+            </div>
+            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/30">
+              <div className="text-[11px] text-blue-400 font-bold mb-1">🏢 مجمعات سكنية</div>
+              <div className="text-lg font-black text-blue-400 font-mono">{metrics.residentialCount ?? 0}</div>
+            </div>
+            <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30">
+              <div className="text-[11px] text-amber-400 font-bold mb-1">🛣️ طرق وبوابات</div>
+              <div className="text-lg font-black text-amber-400 font-mono">{metrics.infrastructureCount ?? 0}</div>
+            </div>
+            <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/30">
+              <div className="text-[11px] text-purple-400 font-bold mb-1">🏛️ معالم مدنية</div>
+              <div className="text-lg font-black text-purple-400 font-mono">{metrics.civicCount ?? 0}</div>
             </div>
           </div>
 
@@ -1502,6 +1693,98 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       {/* ── BATCH INGESTION ACTION BAR & CANDIDATE LIST ── */}
       {candidatePlaces.length > 0 && (
         <div className="space-y-4">
+          {/* ── QUAD-BUCKET SEGREGATION TABS ── */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[var(--border-color)]">
+            <button
+              type="button"
+              onClick={() => setActiveBucketTab('COMMERCIAL')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                activeBucketTab === 'COMMERCIAL'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-emerald-400 border border-[var(--border-color)]'
+              }`}
+            >
+              <Store className="w-4 h-4" />
+              <span>🏪 الأنشطة التجارية والخدمية</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                activeBucketTab === 'COMMERCIAL' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-emerald-500/20 text-emerald-400'
+              }`}>
+                {candidatePlaces.filter((p) => p.bucket === 'COMMERCIAL').length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveBucketTab('RESIDENTIAL')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                activeBucketTab === 'RESIDENTIAL'
+                  ? 'bg-blue-500 text-slate-950 shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-blue-400 border border-[var(--border-color)]'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>🏢 المجمعات والعقارات السكنية</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                activeBucketTab === 'RESIDENTIAL' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-blue-500/20 text-blue-400'
+              }`}>
+                {candidatePlaces.filter((p) => p.bucket === 'RESIDENTIAL').length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveBucketTab('INFRASTRUCTURE')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                activeBucketTab === 'INFRASTRUCTURE'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-amber-400 border border-[var(--border-color)]'
+              }`}
+            >
+              <MapPin className="w-4 h-4" />
+              <span>🛣️ الشوارع والمحاور والبوابات</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                activeBucketTab === 'INFRASTRUCTURE' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-amber-500/20 text-amber-400'
+              }`}>
+                {candidatePlaces.filter((p) => p.bucket === 'INFRASTRUCTURE').length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveBucketTab('CIVIC')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                activeBucketTab === 'CIVIC'
+                  ? 'bg-purple-500 text-slate-950 shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-purple-400 border border-[var(--border-color)]'
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              <span>🏛️ المعالم والخدمات المدنية</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                activeBucketTab === 'CIVIC' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-purple-500/20 text-purple-400'
+              }`}>
+                {candidatePlaces.filter((p) => p.bucket === 'CIVIC').length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveBucketTab('ALL')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                activeBucketTab === 'ALL'
+                  ? 'bg-slate-200 text-slate-950 shadow-md'
+                  : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-slate-200 border border-[var(--border-color)]'
+              }`}
+            >
+              <span>🌐 الكل</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                activeBucketTab === 'ALL' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-slate-700 text-slate-300'
+              }`}>
+                {candidatePlaces.length}
+              </span>
+            </button>
+          </div>
+
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
               <button
@@ -1526,13 +1809,13 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                     : 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border-color)]'
                 }`}
               >
-                {filterOnlyQualified ? 'عرض الجاهز للاستيراد فقط' : 'عرض كافة النتائج'}
+                {filterOnlyQualified ? 'عرض المؤهل فقط' : 'عرض كافة النتائج'}
               </button>
             </div>
 
             <button
               type="button"
-              disabled={isIngesting || selectedPlaceIds.size === 0}
+              disabled={isIngesting || selectedPlaceIds.size === 0 || (activeBucketTab !== 'COMMERCIAL' && activeBucketTab !== 'ALL')}
               onClick={handleIngestSelected}
               className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs px-8 py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -1541,10 +1824,25 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>جارٍ حقن المنشآت ({ingestProgress?.current}/{ingestProgress?.total})...</span>
                 </>
+              ) : activeBucketTab === 'RESIDENTIAL' ? (
+                <>
+                  <Building2 className="w-4 h-4" />
+                  <span>عقارات سكنية ({displayedPlaces.length}) - لا تحقن بالدليل</span>
+                </>
+              ) : activeBucketTab === 'INFRASTRUCTURE' ? (
+                <>
+                  <MapPin className="w-4 h-4" />
+                  <span>شوارع ومحاور ({displayedPlaces.length}) - ملاحة</span>
+                </>
+              ) : activeBucketTab === 'CIVIC' ? (
+                <>
+                  <Globe className="w-4 h-4" />
+                  <span>معالم عامة ({displayedPlaces.length})</span>
+                </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>تأكيد استيراد وتوثيق ({selectedPlaceIds.size}) منشأة في الدليل</span>
+                  <span>تأكيد استيراد وتوثيق ({candidatePlaces.filter(p => selectedPlaceIds.has(p.id) && p.bucket === 'COMMERCIAL').length}) منشأة تجارية في الدليل</span>
                 </>
               )}
             </button>
@@ -1595,11 +1893,26 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                         </div>
                       </div>
 
-                      {p.isDuplicate && (
-                        <span className="text-[9.5px] font-black bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full shrink-0">
-                          مسجل مسبقاً
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[9.5px] font-black px-2 py-0.5 rounded-full ${
+                          p.bucket === 'COMMERCIAL'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : p.bucket === 'RESIDENTIAL'
+                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                            : p.bucket === 'INFRASTRUCTURE'
+                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                        }`}>
+                          {p.bucket === 'COMMERCIAL' ? '🏪 تجاري' :
+                           p.bucket === 'RESIDENTIAL' ? '🏢 سكني' :
+                           p.bucket === 'INFRASTRUCTURE' ? '🛣️ بنية تحتية' : '🏛️ مدني'}
                         </span>
-                      )}
+                        {p.isDuplicate && (
+                          <span className="text-[9.5px] font-black bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
+                            مسجل مسبقاً
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Address & Sector */}

@@ -32,3 +32,6 @@
 | `EV-0023` | A-09 | تبويب سحب الأنشطة وتصنيفها التلقائي (1718 سطراً) | `src/components/admin/tabs/AdminPlacesIngestionTab.tsx` | 1-1718 | E0 | V1 |
 | `EV-0024` | A-10 | تكرار مكون PackagesHub بين المشروع الرئيسي وبوابة الدليل | `src/` و `dalelak-directory-portal/` | 881 سطراً لكل منهما | E0 | V1 |
 | `EV-0025` | A-11 | بناء المشروع وتوجيه Vercel Serverless | `vercel.json` & `package.json` | 1-35 | E0 | V1 |
+| `EV-0026` | A-06 | ترقية سحب الأنشطة لمحرك أطلس حدائق الأهرام بنظام القطاعات المتقاطعة | `src/components/admin/tabs/AdminPlacesIngestionTab.tsx` | 1-200 | E0 | V2 |
+| `EV-0027` | A-06 | تحويل محدد النطاق الصارم إلى Viewport مستطيل متوافق مع Google Places API | `src/components/admin/tabs/AdminPlacesIngestionTab.tsx` | 210-260 | E0 | V2 |
+| `EV-0028` | A-03 | جناح اختبارات رادار الواتساب ومساعد Grok الذكي والتحويل البشري الفوري | `tests/whatsapp-ai-radar.test.ts` | 1-150 | E0 | V2 |
