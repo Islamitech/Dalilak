@@ -31,6 +31,8 @@ import {
   BarChart3,
   Building2,
   Check,
+  Crosshair,
+  Navigation,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
@@ -675,6 +677,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   // 🔢 نمط السحب: مسح شامل للقطاع (بدون حد أقصى) أو تحديد عدد معين
   const [isExhaustiveAtlasMode, setIsExhaustiveAtlasMode] = useState<boolean>(true);
   const [pullCount, setPullCount] = useState<number>(20);
+  const [customScanRadius, setCustomScanRadius] = useState<number>(450); // نصف قطر المسح الجغرافي بالأمتار
 
   // ⭐ معايير الجودة الطبيعية
   const [minRating, setMinRating] = useState<number>(0.0);
@@ -858,8 +861,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     });
     const existingNames = new Set(businesses.map((b) => (b.nameAr || b.name || '').trim().toLowerCase()));
 
-    // 🌐 النمط السيادي: التمشيط الشبكي الجغرافي الشامل (Spatial Micro-Grid Mesh) مع الفرز الرباعي التلقائي
-    if (isAtlasAllMode && !isCustomHub && !isExpansionHubActive && targetSector.southLat && targetSector.northLat) {
+    // 🌐 النمط السيادي: التمشيط الشبكي الجغرافي الخالص (Pure Spatial Micro-Grid Mesh) دون نصوص أو مسميات
+    if (!isCustomHub && !isExpansionHubActive && targetSector.southLat && targetSector.northLat) {
       const meshResult = await executeSpatialMeshScan(
         {
           southLat: targetSector.southLat,
@@ -874,6 +877,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         {
           gridRows: 2,
           gridCols: 2,
+          customRadiusMeters: customScanRadius,
           onProgress: (stepText, currentFound) => {
             setScanChunkStatus({
               stepText,
@@ -903,7 +907,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         coverPhoto: p.coverPhoto,
         photosCount: p.photosCount,
         isDuplicate: p.isDuplicate,
-        isQualityApproved: p.bucket === 'COMMERCIAL' && !p.isDuplicate,
+        isQualityApproved: false, // سحب خام لفرزه يدوياً
         qualityBadgeText: p.qualityBadgeText,
         isCraft: p.isCraft,
         bucket: p.bucket,
@@ -1571,43 +1575,93 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           </div>
         </div>
 
-        {/* Row 2: Search Query Input & Atlas Sweep Trigger */}
-        <div className="space-y-1.5 pt-2">
-          <label className="text-xs font-black text-[var(--text-muted)] flex items-center justify-between">
-            <span>استعلام مسح الخرائط التوجيهي</span>
-            <span className="text-[10px] text-amber-500 font-bold">
-              {selectedCategoryIndex === 0 ? '✨ وضع أطلس الشامل مفعل (مسح متعدد المحاور)' : 'مسح فئة محددة'}
-            </span>
-          </label>
-          <div className="flex flex-col sm:flex-row items-center gap-2">
-            <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="استعلام المسح..."
-                className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold p-3.5 pr-10 rounded-2xl focus:border-amber-500 focus:outline-hidden"
-              />
+        {/* Row 2: Pure Geographic Bounding Box & Coordinates Controller (Zero Name/Text Dependency) */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 to-indigo-950/80 border border-indigo-500/30 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-500/20 pb-2">
+            <div className="flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-black text-white">
+                النطاق الجغرافي الدقيق لخرائط Google (Pure Spatial Coordinates)
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                سحب فوري بالإحداثيات دون قيود مسميات
+              </span>
             </div>
-            <button
-              type="button"
-              disabled={isScanning}
-              onClick={handleExecuteScan}
-              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs px-6 py-3.5 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isScanning ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>جارٍ سحب الأجزاء...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 fill-current" />
-                  <span>بدء مسح أطلس للقطاع</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2 text-[11px] font-mono text-slate-300">
+              <span className="text-amber-400">مركز القطاع:</span>
+              <span>[{currentSector.lat?.toFixed(4)}, {currentSector.lng?.toFixed(4)}]</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            {/* 1. Latitude & Longitude */}
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[10px] text-slate-400 font-bold mb-1 flex items-center gap-1">
+                <Navigation className="w-3 h-3 text-indigo-400" />
+                <span>إحداثيات المركز (Center)</span>
+              </div>
+              <div className="font-mono font-bold text-slate-200 text-[11px]">
+                خط العرض: {currentSector.lat?.toFixed(4) || '29.9800'}
+                <br />
+                خط الطول: {currentSector.lng?.toFixed(4) || '31.1150'}
+              </div>
+            </div>
+
+            {/* 2. Bounding Box Viewport */}
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[10px] text-slate-400 font-bold mb-1 flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-amber-400" />
+                <span>مستطيل القطاع (Bounding Box)</span>
+              </div>
+              <div className="font-mono text-[10px] text-slate-300">
+                N: {currentSector.northLat?.toFixed(4)} | S: {currentSector.southLat?.toFixed(4)}
+                <br />
+                E: {currentSector.eastLng?.toFixed(4)} | W: {currentSector.westLng?.toFixed(4)}
+              </div>
+            </div>
+
+            {/* 3. Scan Radius Slider */}
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+              <div className="text-[10px] text-slate-400 font-bold flex items-center justify-between">
+                <span>نصف قطر بؤرة المسح:</span>
+                <span className="text-amber-400 font-mono font-bold">{customScanRadius} متر</span>
+              </div>
+              <input
+                type="range"
+                min={200}
+                max={1000}
+                step={50}
+                value={customScanRadius}
+                onChange={(e) => setCustomScanRadius(Number(e.target.value))}
+                className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+              />
+              <div className="flex justify-between text-[9px] text-slate-500 font-mono">
+                <span>200م (شوارع ضيقة)</span>
+                <span>1000م (قطاع كامل)</span>
+              </div>
+            </div>
+
+            {/* 4. Instant Spatial Sweep Trigger */}
+            <div className="flex items-center">
+              <button
+                type="button"
+                disabled={isScanning}
+                onClick={handleExecuteScan}
+                className="w-full h-full min-h-[44px] bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isScanning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>جارٍ المسح الجغرافي...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 fill-current text-slate-950" />
+                    <span>بدء السحب الجغرافي للمنطقة</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
