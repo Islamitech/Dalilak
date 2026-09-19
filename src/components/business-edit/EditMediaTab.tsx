@@ -1,27 +1,43 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Business, AdminFollowUpCategory } from '../../types';
-import { UploadCloud, Film, Star, Check, ImageIcon, Zap, Loader2, RotateCw } from 'lucide-react';
-import { VideoWatermarkBadge } from '../VideoWatermarkBadge';
-import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
-import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
-import { extractGooglePlaceData } from '../../utils/googlePlaceExtractor';
-import { getApiAuthHeaders } from '../../utils/storage';
+import {
+  UploadCloud,
+  Film,
+  Star,
+  Trash2,
+  RotateCw,
+  Zap,
+  Loader2,
+  ZoomIn,
+  Image as ImageIcon,
+} from 'lucide-react';
 
-interface EditMediaTabProps {
+export interface EditMediaTabProps {
   formData: Business;
-  totalMediaCount: number;
-  isUploading: boolean;
-  isUploadingVideo: boolean;
-  handlePhotoUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleVideoUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleRemovePhoto: (idx: number) => void;
-  handleRemoveVideo: (idx: number) => void;
-  setSelectedPhotoPreview: (photo: string | null) => void;
-  handleSetPrimaryPhoto?: (idx: number) => void;
+  handleChange?: (field: keyof Business, value: any) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<any>>;
+  isUploadingPhotos?: boolean;
+  isUploadingVideo?: boolean;
+  isPullingGooglePhotos?: boolean;
+  isRotatingGooglePhoto?: boolean;
+  coverFitMode?: 'cover' | 'contain';
+  setCoverFitMode?: (mode: 'cover' | 'contain') => void;
+  setPreviewLightbox?: (url: string | null) => void;
+  handlePhotoUpload?: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleVideoUpload?: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handlePullGooglePhotos?: () => Promise<void>;
+  handleRotateGooglePhoto?: () => Promise<void>;
+  handleSetCoverPhoto?: (photoUrl: string) => void;
+  handleRemovePhoto?: (indexToRemove: number) => void;
   handleReorderPhoto?: (fromIndex: number, toIndex: number) => void;
+  // Legacy optional props
+  totalMediaCount?: number;
+  isUploading?: boolean;
+  setSelectedPhotoPreview?: (photo: string | null) => void;
+  handleRemoveVideo?: (idx: number) => void;
+  handleSetPrimaryPhoto?: (idx: number) => void;
   canEdit?: boolean;
   onSave?: (biz: Business) => void;
-  setFormData?: React.Dispatch<React.SetStateAction<Business | null>>;
   currentUserName?: string;
   currentUserId?: string;
   userRole?: string;
@@ -31,475 +47,349 @@ interface EditMediaTabProps {
 
 export const EditMediaTab: React.FC<EditMediaTabProps> = ({
   formData,
-  totalMediaCount,
-  isUploading,
-  isUploadingVideo,
+  handleChange: customHandleChange,
+  setFormData,
+  isUploadingPhotos = false,
+  isUploadingVideo = false,
+  isPullingGooglePhotos = false,
+  isRotatingGooglePhoto = false,
+  coverFitMode = 'cover',
+  setCoverFitMode,
+  setPreviewLightbox,
   handlePhotoUpload,
   handleVideoUpload,
+  handlePullGooglePhotos,
+  handleRotateGooglePhoto,
+  handleSetCoverPhoto,
   handleRemovePhoto,
-  handleRemoveVideo,
-  setSelectedPhotoPreview,
-  handleSetPrimaryPhoto,
   handleReorderPhoto,
-  canEdit = true,
-  onSave,
-  setFormData,
-  currentUserName,
-  currentUserId,
-  userRole,
-  onOpenMasterDrawer,
-  onShowNotification,
+  setSelectedPhotoPreview,
 }) => {
-  const [isPullingGooglePhotos, setIsPullingGooglePhotos] = useState<boolean>(false);
-  const [isRotatingGooglePhoto, setIsRotatingGooglePhoto] = useState<boolean>(false);
-  const [pullGoogleNotice, setPullGoogleNotice] = useState<string | null>(null);
-
-  const handlePullGooglePhotos = async () => {
-    if (!formData.googleMapsUrl?.trim()) {
-      const msg = 'يرجى تزويد رابط خرائط Google في تبويب الموقع أولاً';
-      if (onShowNotification) onShowNotification(msg);
-      setPullGoogleNotice(msg);
-      setTimeout(() => setPullGoogleNotice(null), 4000);
-      return;
-    }
-    setIsPullingGooglePhotos(true);
-    setPullGoogleNotice('جاري سحب صورة الغلاف من خرائط Google...');
-
-    try {
-      const data = await extractGooglePlaceData(formData.googleMapsUrl);
-      const rawIncoming = (data && data.photos && data.photos.length > 0)
-        ? data.photos
-        : (data && data.photo ? [data.photo] : []);
-      // 🛡️ توحيد سحب الصور الصارم: سحب صورة غلاف واحدة فقط
-      const incomingPhotos = rawIncoming.slice(0, 1);
-
-      if (incomingPhotos.length > 0) {
-        const coverPhoto = incomingPhotos[0];
-        if (setFormData) {
-          setFormData((prev) => {
-            if (!prev) return prev;
-            const existingPhotos = prev.photos || [];
-            const merged = Array.from(new Set([...existingPhotos, coverPhoto])).slice(0, 10);
-            return {
-              ...prev,
-              coverPhoto: prev.coverPhoto || coverPhoto,
-              photos: merged,
-            };
-          });
-        }
-        const msg = '✅ تم سحب صورة الغلاف بنجاح من خرائط Google وحفظها بالمعرض!';
-        setPullGoogleNotice(msg);
-        if (onShowNotification) onShowNotification(msg);
-        setTimeout(() => setPullGoogleNotice(null), 6000);
-      } else {
-        const msg = '⚠️ لم يتم العثور على صور إضافية على رابط خرائط Google';
-        setPullGoogleNotice(msg);
-        if (onShowNotification) onShowNotification(msg);
-        setTimeout(() => setPullGoogleNotice(null), 4000);
-      }
-    } catch {
-      const msg = '⚠️ فشل الاتصال بمحرك استخراج الصور';
-      setPullGoogleNotice(msg);
-      if (onShowNotification) onShowNotification(msg);
-      setTimeout(() => setPullGoogleNotice(null), 4000);
-    } finally {
-      setIsPullingGooglePhotos(false);
+  const onChange = (field: keyof Business, value: any) => {
+    if (customHandleChange) {
+      customHandleChange(field, value);
+    } else if (setFormData) {
+      setFormData((prev: any) => ({
+        ...prev,
+        [field]: value,
+      }));
     }
   };
 
-  const handleRotateGooglePhoto = async () => {
-    if (!formData.googleMapsUrl?.trim() && !formData.googlePlaceId && !formData.nameAr) {
-      const msg = 'يرجى تزويد رابط أو اسم المنشأة لاستعراض وتدوير الصور من Google';
-      if (onShowNotification) onShowNotification(msg);
-      setPullGoogleNotice(msg);
-      setTimeout(() => setPullGoogleNotice(null), 4000);
-      return;
-    }
-
-    setIsRotatingGooglePhoto(true);
-    setPullGoogleNotice('جاري فحص صور Google وتدوير صورة جديدة غير مكررة...');
-
-    try {
-      let data: any = null;
-      try {
-        const res = await fetch('/api/admin/places-photo-rotate', {
-          method: 'POST',
-          headers: getApiAuthHeaders(),
-          body: JSON.stringify({
-            googlePlaceId: formData.googlePlaceId,
-            placeName: formData.nameAr || formData.name,
-            currentPhotos: formData.photos || [],
-            lat: formData.lat,
-            lng: formData.lng,
-          }),
-        });
-        if (res.ok) {
-          data = await res.json();
-        }
-      } catch {}
-
-      // Resilient Client Engine Fallback if server returns 405 (e.g. Vercel Static)
-      if (!data || !data.success) {
-        const apiKey =
-          (import.meta as any).env?.VITE_GOOGLE_PLACES_API_KEY ||
-          'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
-
-        let googlePhotos: Array<{ name: string }> = [];
-        if (formData.googlePlaceId) {
-          const pRes = await fetch(
-            `https://places.googleapis.com/v1/places/${encodeURIComponent(formData.googlePlaceId)}`,
-            {
-              headers: {
-                'X-Goog-Api-Key': apiKey,
-                'X-Goog-FieldMask': 'id,photos',
-              },
-            }
-          );
-          if (pRes.ok) {
-            const pData = await pRes.json();
-            if (Array.isArray(pData.photos)) googlePhotos = pData.photos;
-          }
-        }
-        if (googlePhotos.length === 0 && (formData.nameAr || formData.name)) {
-          const sRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Goog-Api-Key': apiKey,
-              'X-Goog-FieldMask': 'places.id,places.photos',
-            },
-            body: JSON.stringify({
-              textQuery: formData.nameAr || formData.name,
-              languageCode: 'ar',
-            }),
-          });
-          if (sRes.ok) {
-            const sData = await sRes.json();
-            if (sData.places && sData.places[0] && Array.isArray(sData.places[0].photos)) {
-              googlePhotos = sData.places[0].photos;
-            }
-          }
-        }
-
-        if (googlePhotos.length > 0) {
-          const seenSignatures = new Set(
-            (formData.photos || []).map((u) => u.split('=')[0].replace(/^https?:\/\//, ''))
-          );
-          for (let i = 0; i < googlePhotos.length; i++) {
-            const item = googlePhotos[i];
-            if (!item || !item.name) continue;
-            const mRes = await fetch(
-              `https://places.googleapis.com/v1/${item.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${apiKey}&skipHttpRedirect=true`
-            );
-            if (mRes.ok) {
-              const mData = await mRes.json();
-              if (mData?.photoUri) {
-                const baseUri = mData.photoUri.split('=')[0].replace(/^https?:\/\//, '');
-                if (!seenSignatures.has(baseUri)) {
-                  data = {
-                    success: true,
-                    photo: mData.photoUri,
-                    photoIndex: i + 1,
-                    totalAvailable: googlePhotos.length,
-                    message: `تم سحب وتدوير صورة جديدة بنجاح (${i + 1} من ${googlePhotos.length}) - تكلفة: 0.007$ فقط`,
-                  };
-                  break;
-                }
-              }
-            }
-          }
-          if (!data) {
-            data = {
-              success: true,
-              allPhotosRotated: true,
-              message: `تم سحب كافة الصور المتاحة لهذا المكان على خرائط Google بالفعل (${googlePhotos.length} صور)`,
-            };
-          }
-        }
-      }
-      if (data.success && data.photo) {
-        if (setFormData) {
-          setFormData((prev) => {
-            if (!prev) return prev;
-            const existing = prev.photos || [];
-            const merged = Array.from(new Set([...existing, data.photo])).slice(0, 10);
-            return {
-              ...prev,
-              photos: merged,
-            };
-          });
-        }
-        const msg = data.message || '✅ تم تدوير وسحب صورة مميزة جديدة من Google (0.007$ فقط)!';
-        setPullGoogleNotice(msg);
-        if (onShowNotification) onShowNotification(msg);
-        setTimeout(() => setPullGoogleNotice(null), 6000);
-      } else if (data.allPhotosRotated) {
-        const msg = data.message || 'ℹ️ تم سحب كافة الصور المتاحة لهذا المكان على خرائط Google بالفعل';
-        setPullGoogleNotice(msg);
-        if (onShowNotification) onShowNotification(msg);
-        setTimeout(() => setPullGoogleNotice(null), 5000);
-      } else {
-        const msg = data.message || '⚠️ لم يتم العثور على صور إضافية لتدويرها';
-        setPullGoogleNotice(msg);
-        if (onShowNotification) onShowNotification(msg);
-        setTimeout(() => setPullGoogleNotice(null), 4000);
-      }
-    } catch {
-      const msg = '⚠️ حدث خطأ أثناء تدوير وسحب الصورة من خرائط Google';
-      setPullGoogleNotice(msg);
-      if (onShowNotification) onShowNotification(msg);
-      setTimeout(() => setPullGoogleNotice(null), 4000);
-    } finally {
-      setIsRotatingGooglePhoto(false);
-    }
+  const openLightbox = (url: string | null) => {
+    if (setPreviewLightbox) setPreviewLightbox(url);
+    else if (setSelectedPhotoPreview) setSelectedPhotoPreview(url);
   };
 
   return (
-    <div className="space-y-3.5 text-right">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--input-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+    <div className="space-y-4 text-right">
+      {/* Media Action Toolbar */}
+      <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
         <div>
-          <h4 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">
-            معرض صور وفيديوهات المكان ({totalMediaCount})
+          <h4 className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+            <span>معرض صور وفيديوهات المنشأة</span>
+            <span className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-mono">
+              {formData.photos?.length || 0} صور
+            </span>
           </h4>
-          <p className="text-[10.5px] text-[var(--text-muted)] font-bold mt-0.5">
-            تخزين نقي متوافق مع معايير Google مع شارة توثيق دليلك في الدليل
+          <p className="text-[10.5px] text-slate-500 mt-0.5">
+            ارفع صور النشاط مباشرة من هاتفك، أو اختر الغلاف الذي يظهر على بطاقة المنشأة بالدليل
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* Pull Cover Photo from Google Maps (Strict 1 Photo) */}
-          {Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().length > 0) && (
+        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+          {/* Upload Photos Button */}
+          {handlePhotoUpload && (
+            <label className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 text-xs font-bold py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95">
+              {isUploadingPhotos ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <UploadCloud className="w-3.5 h-3.5" />
+              )}
+              <span>{isUploadingPhotos ? 'جاري الرفع...' : 'إضافة صور 📷'}</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoUpload}
+                className="hidden"
+                disabled={isUploadingPhotos}
+              />
+            </label>
+          )}
+
+          {/* Upload Video Button */}
+          {handleVideoUpload && (
+            <label className="flex-1 sm:flex-none bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold py-2 px-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95">
+              {isUploadingVideo ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+              ) : (
+                <Film className="w-3.5 h-3.5 text-amber-500" />
+              )}
+              <span>{isUploadingVideo ? 'جاري الرفع...' : 'فيديو قصير 🎥'}</span>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleVideoUpload}
+                className="hidden"
+                disabled={isUploadingVideo}
+              />
+            </label>
+          )}
+
+          {/* Pull Cover from Google Maps */}
+          {Boolean(formData.googleMapsUrl && formData.googleMapsUrl.trim().length > 0) && handlePullGooglePhotos && (
             <button
               type="button"
               disabled={isPullingGooglePhotos || isRotatingGooglePhoto}
               onClick={handlePullGooglePhotos}
-              className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-black py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
-              title="سحب صورة الغلاف الأولى الرسمية فقط (توحيد أحادي 0.007$)"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold py-2 px-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
+              title="سحب صورة الغلاف من خرائط Google"
             >
               {isPullingGooglePhotos ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Zap className="w-4 h-4" />
+                <Zap className="w-3.5 h-3.5" />
               )}
-              <span>{isPullingGooglePhotos ? 'جاري السحب...' : 'سحب غلاف Google ⚡'}</span>
+              <span>{isPullingGooglePhotos ? 'جاري السحب...' : 'سحب Google ⚡'}</span>
             </button>
           )}
 
-          {/* Smart Photo Rotation Engine Button */}
+          {/* Rotate Google Photos */}
           {Boolean(
             (formData.googleMapsUrl && formData.googleMapsUrl.trim().length > 0) ||
             formData.googlePlaceId
-          ) && (
+          ) && handleRotateGooglePhoto && (
             <button
               type="button"
               disabled={isRotatingGooglePhoto || isPullingGooglePhotos}
               onClick={handleRotateGooglePhoto}
-              className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-black py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
-              title="تدوير وسحب صورة أخرى غير مكررة بنظام التخطي الذكي (0.007$ فقط)"
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold py-2 px-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
+              title="تدوير وسحب صورة أخرى من خرائط Google"
             >
               {isRotatingGooglePhoto ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <RotateCw className="w-4 h-4" />
+                <RotateCw className="w-3.5 h-3.5" />
               )}
-              <span>{isRotatingGooglePhoto ? 'جاري التدوير...' : 'تدوير وسحب صورة أخرى 🔄'}</span>
+              <span>{isRotatingGooglePhoto ? 'جاري التدوير...' : 'تدوير صورة 🔄'}</span>
             </button>
           )}
-
-          <label className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-black py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-            <UploadCloud className="w-4 h-4" />
-            <span>{isUploading ? 'جاري الرفع...' : 'إضافة صور'}</span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handlePhotoUpload}
-              className="hidden"
-              disabled={isUploading}
-            />
-          </label>
-
-          <label className="flex-1 sm:flex-none bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold py-2 px-3 rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs hover:bg-amber-500/10">
-            <Film className="w-4 h-4 text-amber-500" />
-            <span>{isUploadingVideo ? 'جاري رفع الفيديو...' : 'فيديو قصير'}</span>
-            <input
-              type="file"
-              accept="video/*"
-              capture="environment"
-              onChange={handleVideoUpload}
-              className="hidden"
-              disabled={isUploadingVideo}
-            />
-          </label>
         </div>
       </div>
 
-      {pullGoogleNotice && (
-        <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-900 border border-blue-500/30 text-xs font-bold flex items-center gap-2 animate-fade-in">
-          {isPullingGooglePhotos && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />}
-          <span>{pullGoogleNotice}</span>
-        </div>
-      )}
+      {/* Cover Card Display & Framing Controls */}
+      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>صورة غلاف بطاقة النشاط بالدليل (Card Display & Framing)</span>
+          </span>
 
-      {/* Photos Grid */}
-      {formData.photos && formData.photos.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5 sm:gap-3">
-          {formData.photos.map((photo, idx) => {
-            const isCover = formData.coverPhoto ? photo === formData.coverPhoto : idx === 0;
-
-            return (
-              <div
-                key={idx}
-                className={`relative group rounded-2xl overflow-hidden bg-slate-950 h-32 sm:h-36 transition-all duration-200 ${
-                  isCover
-                    ? 'border-2 border-amber-400 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/30'
-                    : 'border border-[var(--border-color)] shadow-sm hover:border-amber-500/50'
+          {/* Display Mode Toggle */}
+          {setCoverFitMode && (
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 text-[11px] font-bold">
+              <span className="text-slate-500 px-1">طريقة العرض:</span>
+              <button
+                type="button"
+                onClick={() => setCoverFitMode('cover')}
+                className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
+                  coverFitMode === 'cover'
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                <img
-                  src={photo}
-                  alt={`صورة ${idx + 1}`}
-                  onClick={() => setSelectedPhotoPreview(photo)}
-                  className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
-                />
+                ملء الإطار (Cover)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCoverFitMode('contain')}
+                className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
+                  coverFitMode === 'contain'
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                احتواء كامل (Contain)
+              </button>
+            </div>
+          )}
+        </div>
 
-                <PhotoWatermarkBadge position="bottom-right" className="scale-75 origin-bottom-right" />
+        {formData.coverPhoto ? (
+          <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-300 h-44 sm:h-52 flex items-center justify-center group">
+            <img
+              src={formData.coverPhoto}
+              alt="غلاف بطاقة المنشأة"
+              className={`w-full h-full ${
+                coverFitMode === 'cover' ? 'object-cover' : 'object-contain'
+              } transition-transform group-hover:scale-[1.02] duration-300`}
+            />
+            <div className="absolute top-2 right-2 bg-amber-400 text-slate-950 font-black text-[10px] px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">
+              <Star className="w-3 h-3 fill-slate-950" />
+              <span>الغلاف المعروض ببطاقة الدليل</span>
+            </div>
 
-                {/* Cover Photo Badge (Top-Left) */}
-                {isCover ? (
-                  <div className="absolute top-1.5 left-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[9.5px] font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1 z-10 pointer-events-none">
-                    <Star className="w-3 h-3 fill-slate-950" />
-                    <span>غلاف الدليل</span>
-                  </div>
-                ) : (
-                  canEdit && handleReorderPhoto && formData.photos.length > 1 && (
-                    <div className="absolute top-1.5 left-1.5 flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {idx > 0 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReorderPhoto(idx, idx - 1);
-                          }}
-                          className="bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-white w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold border border-slate-700 cursor-pointer shadow-sm transition-transform active:scale-90"
-                          title="تحريك لليمين (للأمام)"
-                        >
-                          ▶
-                        </button>
-                      )}
-                      {idx < formData.photos.length - 1 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReorderPhoto(idx, idx + 1);
-                          }}
-                          className="bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-white w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold border border-slate-700 cursor-pointer shadow-sm transition-transform active:scale-90"
-                          title="تحريك لليسار (للخلف)"
-                        >
-                          ◀
-                        </button>
-                      )}
+            <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => openLightbox(formData.coverPhoto || null)}
+                className="bg-slate-900/80 hover:bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-sm backdrop-blur-xs cursor-pointer"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+                <span>معاينة مكبرة</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="h-32 rounded-2xl border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-slate-400 gap-1.5">
+            <ImageIcon className="w-6 h-6 opacity-40" />
+            <span className="text-xs font-bold">
+              لم يتم تعيين صورة غلاف للبطاقة بعد. اختر صورة من المعرض أدناه أو ارفع صورة جديدة.
+            </span>
+          </div>
+        )}
+
+        {/* Direct URLs for cover & video tour */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <div>
+            <label className="block text-slate-600 font-bold mb-1 text-[11px]">
+              رابط صورة الغلاف المباشر (اختياري)
+            </label>
+            <input
+              type="url"
+              value={formData.coverPhoto || ''}
+              onChange={(e) => onChange('coverPhoto', e.target.value)}
+              placeholder="https://..."
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-600 font-bold mb-1 text-[11px]">
+              رابط جولة الفيديو (YouTube / MP4)
+            </label>
+            <input
+              type="url"
+              placeholder="https://... أو رابط يوتيوب أو ملف فيديو"
+              value={formData.videoTourUrl || ''}
+              onChange={(e) => onChange('videoTourUrl', e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Photos Gallery: Reorder, Set Cover, Delete */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="font-bold text-slate-800 text-xs">
+            جميع صور النشاط المحفوظة ({formData.photos?.length || 0}) — اضغط على أي صورة لتحديدها كغلاف للبطاقة
+          </span>
+        </div>
+
+        {formData.photos && formData.photos.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+            {formData.photos.map((photo, idx) => {
+              const isCover = formData.coverPhoto ? photo === formData.coverPhoto : idx === 0;
+
+              return (
+                <div
+                  key={idx}
+                  className={`relative group rounded-2xl overflow-hidden bg-slate-900 h-32 transition-all duration-200 ${
+                    isCover
+                      ? 'ring-3 ring-amber-400 border-2 border-amber-400 shadow-md'
+                      : 'border border-slate-200 hover:border-amber-400'
+                  }`}
+                >
+                  <img
+                    src={photo}
+                    alt={`صورة ${idx + 1}`}
+                    onClick={() => openLightbox(photo)}
+                    className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-300"
+                  />
+
+                  {/* Cover Badge */}
+                  {isCover ? (
+                    <div className="absolute top-1.5 left-1.5 bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1 z-10 pointer-events-none">
+                      <Star className="w-2.5 h-2.5 fill-slate-950" />
+                      <span>غلاف البطاقة</span>
                     </div>
-                  )
-                )}
+                  ) : (
+                    /* Reorder controls */
+                    handleReorderPhoto && (
+                      <div className="absolute top-1.5 left-1.5 flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {idx > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReorderPhoto(idx, idx - 1);
+                            }}
+                            className="bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-white w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold cursor-pointer"
+                            title="تحريك للأمام"
+                          >
+                            ▶
+                          </button>
+                        )}
+                        {idx < formData.photos!.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReorderPhoto(idx, idx + 1);
+                            }}
+                            className="bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-white w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold cursor-pointer"
+                            title="تحريك للخلف"
+                          >
+                            ◀
+                          </button>
+                        )}
+                      </div>
+                    )
+                  )}
 
-                {/* Delete Photo Button (Top-Right) */}
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemovePhoto(idx);
-                    }}
-                    className="absolute top-1.5 right-1.5 bg-rose-600/90 hover:bg-rose-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow cursor-pointer transition-transform active:scale-90 z-10"
-                    title="حذف الصورة"
-                  >
-                    ✕
-                  </button>
-                )}
+                  {/* Delete Photo Button */}
+                  {handleRemovePhoto && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePhoto(idx);
+                      }}
+                      className="absolute top-1.5 right-1.5 bg-rose-600/90 hover:bg-rose-700 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow cursor-pointer active:scale-90 z-10"
+                      title="حذف الصورة"
+                    >
+                      ✕
+                    </button>
+                  )}
 
-                {/* Bottom Cover Action / Indicator */}
-                {isCover ? (
-                  <div className="absolute bottom-1.5 inset-x-1.5 bg-slate-950/90 border border-amber-500/50 text-amber-400 text-[9.5px] font-black py-1 px-1.5 rounded-lg flex items-center justify-center gap-1 shadow backdrop-blur-xs z-10 pointer-events-none">
-                    <Check className="w-3 h-3" />
-                    <span>الصورة المعروضة بالدليل</span>
-                  </div>
-                ) : (
-                  canEdit && handleSetPrimaryPhoto && (
-                    <div className="absolute bottom-1.5 inset-x-1.5 z-10">
+                  {/* Bottom Action: Set as Cover */}
+                  {!isCover && handleSetCoverPhoto && (
+                    <div className="absolute bottom-1.5 inset-x-1.5 z-10 opacity-90 group-hover:opacity-100">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleSetPrimaryPhoto(idx);
+                          handleSetCoverPhoto(photo);
                         }}
-                        className="w-full bg-slate-900/50 hover:bg-amber-500 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-400 text-[10px] font-black py-1 px-1.5 rounded-lg transition-all flex items-center justify-center gap-1 backdrop-blur-xs shadow-md cursor-pointer active:scale-95"
-                        title="تعيين هذه الصورة لتظهر كغلاف رئيسي للنشاط في الدليل"
+                        className="w-full bg-slate-900/80 hover:bg-amber-500 text-slate-100 hover:text-slate-950 border border-slate-700 hover:border-amber-400 text-[9.5px] font-black py-1 px-1 rounded-lg transition-all flex items-center justify-center gap-1 backdrop-blur-xs shadow cursor-pointer active:scale-95"
+                        title="تعيين كغلاف لبطاقة المنشأة"
                       >
-                        <Star className="w-3 h-3 text-amber-400" />
-                        <span>تعيين كغلاف للدليل</span>
+                        <Star className="w-2.5 h-2.5 text-amber-400" />
+                        <span>تعيين كغلاف</span>
                       </button>
                     </div>
-                  )
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="border border-dashed border-[var(--border-color)] rounded-2xl p-6 text-center text-xs text-[var(--text-muted)] font-bold">
-          لم يتم رفع صور لهذا المكان بعد.
-        </div>
-      )}
-
-      {/* Videos Grid */}
-      {formData.videos && formData.videos.length > 0 && (
-        <div className="space-y-2 pt-2 border-t border-[var(--border-color)]">
-          <h5 className="font-black text-xs text-[var(--text-primary)]">الفيديوهات الترويجية:</h5>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {formData.videos.map((vid, idx) => (
-              <div
-                key={idx}
-                className="relative rounded-2xl overflow-hidden border border-[var(--border-color)] bg-slate-950 shadow-md"
-              >
-                <video
-                  src={vid}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="w-full h-40 object-cover bg-black"
-                />
-                <VideoWatermarkBadge position="bottom-right" />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveVideo(idx)}
-                  className="absolute top-2 right-2 bg-rose-600 hover:bg-rose-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
-      )}
-
-      {/* ── CONTEXTUAL CRM FOLLOW-UP STRIP FOR MEDIA ── */}
-      {onSave && setFormData && (
-        <ContextualFollowUpStrip
-          category="media"
-          categoryLabel="الوسائط والصور والفيديو"
-          categoryIcon={<ImageIcon className="w-3.5 h-3.5 text-blue-500" />}
-          business={formData}
-          onSave={onSave}
-          setFormData={setFormData}
-          currentUserName={currentUserName}
-          currentUserId={currentUserId}
-          userRole={userRole}
-          onOpenMasterDrawer={onOpenMasterDrawer}
-          onShowNotification={onShowNotification}
-        />
-      )}
+        ) : (
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center text-slate-400 text-xs">
+            لا توجد صور مضافة للمنشأة حتى الآن. اضغط على زر "إضافة صور 📷" بالأعلى لرفع صور من هاتفك.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

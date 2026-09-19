@@ -1,0 +1,23 @@
+import { Business } from '../../types';
+import { LocationAddressData } from '../../utils/geocoding';
+
+export interface InteractiveMapProps {
+  mode?: 'picker' | 'view';
+  lat?: number;
+  lng?: number;
+  onLocationSelect?: (lat: number, lng: number, addressDetails?: LocationAddressData) => void;
+  businesses?: Business[];
+  onSelectBusiness?: (biz: Business) => void;
+  onEditBusiness?: (biz: Business) => void;
+  heightClass?: string;
+  targetBuilding?: {
+    zoneLetter?: string;
+    buildingNumber?: string;
+    lat?: number;
+    lng?: number;
+  } | null;
+  showHadayekGates?: boolean;
+  onSelectZone?: (zoneLetter: string) => void;
+  initialShowBusinesses?: boolean;
+  onToggleBusinessesVisibility?: (visible: boolean) => void;
+}

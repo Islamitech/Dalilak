@@ -1,29 +1,27 @@
 import React from 'react';
 import { Business, AdminFollowUpCategory } from '../../types';
-import { CATEGORY_GROUPS, getGroupFromCategory } from '../../data/mockData';
-import { ContextualFollowUpStrip } from './ContextualFollowUpStrip';
+import { BUSINESS_CATEGORIES } from '../../data/mockData';
 import {
-  Store,
-  Globe,
-  Tag,
-  Clock,
-  FileText,
-  User,
-  Phone,
-  Mail,
-  Copy,
-  Check,
-  MessageCircle,
-  AlertCircle,
+  UploadCloud,
+  Loader2,
+  ZoomIn,
+  Trash2,
 } from 'lucide-react';
 
-interface EditGeneralInfoTabProps {
+export interface EditGeneralInfoTabProps {
   formData: Business;
-  setFormData: React.Dispatch<React.SetStateAction<Business | null>>;
-  isEditMode: boolean;
-  copiedField: string | null;
-  handleCopyText: (text: string, fieldName: string) => void;
-  isAdminOrFinancial: boolean;
+  handleChange?: (field: keyof Business, value: any) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<any>>;
+  ownerIdCardPhoto?: string;
+  isUploadingOwnerId?: boolean;
+  handleOwnerIdPhotoUpload?: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  setPreviewLightbox?: (url: string | null) => void;
+  setOwnerIdCardPhoto?: (url: string) => void;
+  // Optional legacy props to maintain backward compatibility
+  isEditMode?: boolean;
+  copiedField?: string | null;
+  handleCopyText?: (text: string, fieldName: string) => void;
+  isAdminOrFinancial?: boolean;
   onNavigateToWhatsApp?: () => void;
   onSave?: (biz: Business) => void;
   currentUserName?: string;
@@ -35,315 +33,229 @@ interface EditGeneralInfoTabProps {
 
 export const EditGeneralInfoTab: React.FC<EditGeneralInfoTabProps> = ({
   formData,
+  handleChange: customHandleChange,
   setFormData,
-  isEditMode,
-  copiedField,
-  handleCopyText,
-  isAdminOrFinancial,
-  onNavigateToWhatsApp,
-  onSave,
-  currentUserName,
-  currentUserId,
-  userRole,
-  onOpenMasterDrawer,
-  onShowNotification,
+  ownerIdCardPhoto = '',
+  isUploadingOwnerId = false,
+  handleOwnerIdPhotoUpload,
+  setPreviewLightbox,
+  setOwnerIdCardPhoto,
 }) => {
+  const onChange = (field: keyof Business, value: any) => {
+    if (customHandleChange) {
+      customHandleChange(field, value);
+    } else if (setFormData) {
+      setFormData((prev: any) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
+  };
+
   return (
-    <div className="space-y-3 text-right">
+    <div className="space-y-4 text-right">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* اسم المكان عربي */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <Store className="w-3.5 h-3.5 text-amber-500" />
-            <span>اسم المكان / المنشأة (عربي) *</span>
-          </span>
-          {isEditMode ? (
-            <input
-              type="text"
-              value={formData.nameAr || ''}
-              onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border-2 border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1"
-              placeholder="أدخل اسم المحل بالعربي"
-            />
-          ) : (
-            <div className="flex items-center justify-between gap-2 pt-0.5">
-              <span className="font-black text-sm text-[var(--text-primary)]">{formData.nameAr || 'غير مسجل'}</span>
-              <button
-                type="button"
-                onClick={() => handleCopyText(formData.nameAr, 'nameAr')}
-                className="text-[var(--text-muted)] hover:text-amber-500 p-1 cursor-pointer"
-                title="نسخ الاسم"
-              >
-                {copiedField === 'nameAr' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-          )}
+        <div>
+          <label className="block text-slate-700 font-bold mb-1">
+            اسم المنشأة التجاري (بالعربية) *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.nameAr || ''}
+            onChange={(e) => onChange('nameAr', e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+          />
         </div>
-
-        {/* اسم النشاط إنجليزي */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-blue-500" />
-            <span>اسم النشاط (English)</span>
-          </span>
-          {isEditMode ? (
-            <input
-              type="text"
-              dir="ltr"
-              value={formData.nameEn || ''}
-              onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1"
-              placeholder="Business Name in English"
-            />
-          ) : (
-            <div className="pt-0.5 font-bold text-sm text-[var(--text-primary)]" dir="ltr">
-              {formData.nameEn || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
-            </div>
-          )}
-        </div>
-
-        {/* التصنيف والفئة */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-amber-500" />
-            <span>التصنيف والفئة التجارية</span>
-          </span>
-          {isEditMode ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-              {(() => {
-                const isKnownCategory = Boolean(getGroupFromCategory(formData.category));
-                const activeGroup = getGroupFromCategory(formData.category)?.group || CATEGORY_GROUPS[0].group;
-                const activeGroupItems = (getGroupFromCategory(formData.category) || CATEGORY_GROUPS[0]).items;
-                return (
-                  <>
-                    <select
-                      value={activeGroup}
-                      onChange={(e) => {
-                        const grp = CATEGORY_GROUPS.find((g) => g.group === e.target.value);
-                        if (grp && grp.items.length > 0) {
-                          setFormData({ ...formData, category: grp.items[0] });
-                        }
-                      }}
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold rounded-xl p-2 text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
-                    >
-                      {CATEGORY_GROUPS.map((g) => (
-                        <option key={g.group} value={g.group}>
-                          {g.icon} {g.group}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={formData.category || ''}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full bg-[var(--bg-card)] border-2 border-amber-500 text-amber-700 font-black rounded-xl p-2 text-xs focus:outline-none cursor-pointer"
-                    >
-                      {!isKnownCategory && formData.category && (
-                        <option value={formData.category} disabled className="text-rose-500 font-bold">
-                          ⚠️ {formData.category} (يرجى اختيار تصنيف معتمد)
-                        </option>
-                      )}
-                      {activeGroupItems.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                );
-              })()}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 pt-0.5 flex-wrap">
-              {!getGroupFromCategory(formData.category) ? (
-                <span className="bg-rose-500/15 text-rose-700 text-xs font-black px-3 py-1 rounded-xl border border-rose-500/30 flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-                  <span>{formData.category || 'غير مصنف'} (يرجى تعديل التصنيف)</span>
-                </span>
-              ) : (
-                <span className="bg-amber-500/15 text-amber-700 text-xs font-black px-3 py-1 rounded-xl border border-amber-500/30">
-                  🏷️ {formData.category}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* مواعيد العمل */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>مواعيد وساعات العمل</span>
-          </span>
-          {isEditMode ? (
-            <input
-              type="text"
-              value={formData.workingHours || ''}
-              onChange={(e) => setFormData({ ...formData, workingHours: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1"
-              placeholder="مثال: يومياً من 9:00 صباحاً حتى 11:00 مساءً"
-            />
-          ) : (
-            <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5">
-              {formData.workingHours || 'يومياً'}
-            </div>
-          )}
-        </div>
-
-        {/* وصف الخدمات */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1 sm:col-span-2">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-amber-500" />
-            <span>وصف الأنشطة والخدمات</span>
-          </span>
-          {isEditMode ? (
-            <textarea
-              rows={3}
-              value={formData.description || ''}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2.5 focus:outline-none shadow-inner mt-1"
-              placeholder="وصف تفصيلي للأنشطة والمنتجات والعروض"
-            />
-          ) : (
-            <p className="text-xs sm:text-sm font-bold text-[var(--text-secondary)] leading-relaxed pt-0.5 whitespace-pre-line">
-              {formData.description || 'لم يتم تسجيل وصف تفصيلي للنشاط.'}
-            </p>
-          )}
-        </div>
-
-        {/* ── فاصل وقسم بيانات المالك والتواصل ── */}
-        <div className="sm:col-span-2 pt-2 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center font-black text-xs">
-              <User className="w-3.5 h-3.5" />
-            </div>
-            <h5 className="font-black text-xs sm:text-sm text-[var(--text-primary)]">بيانات المالك والتواصل</h5>
-          </div>
-        </div>
-
-        {/* اسم صاحب المكان / المسؤول */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-amber-500" />
-            <span>اسم صاحب المكان / المسؤول</span>
-          </span>
-          {isEditMode ? (
-            <input
-              type="text"
-              value={formData.ownerName || ''}
-              onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1"
-              placeholder="اسم المسؤول"
-            />
-          ) : (
-            <div className="font-black text-sm text-[var(--text-primary)] pt-0.5">
-              {formData.ownerName || 'صاحب النشاط'}
-            </div>
-          )}
-        </div>
-
-        {/* رقم الهاتف الأساسي */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5 text-emerald-500" />
-            <span>رقم الهاتف الأساسي (واتساب)</span>
-          </span>
-          {isEditMode ? (
-            <input
-              type="tel"
-              dir="ltr"
-              value={formData.phone || ''}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-black text-sm rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
-              placeholder="01xxxxxxxxx"
-            />
-          ) : (
-            <div className="flex items-center justify-between gap-2 pt-0.5">
-              <span className="font-black text-sm text-[var(--text-primary)] font-mono" dir="ltr">
-                {formData.phone || 'غير مسجل'}
-              </span>
-              {formData.phone && (
-                <div className="flex items-center gap-1">
-                  <a href={`tel:${formData.phone}`} className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg" title="اتصال">
-                    <Phone className="w-3.5 h-3.5" />
-                  </a>
-                  {isAdminOrFinancial && onNavigateToWhatsApp && (
-                    <button
-                      type="button"
-                      onClick={onNavigateToWhatsApp}
-                      className="p-1 text-emerald-600 hover:bg-emerald-500/15 rounded-lg cursor-pointer"
-                      title="فتح رسائل الواتساب"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* هاتف إضافي */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5 text-blue-500" />
-            <span>هاتف إضافي / أرضي</span>
-          </span>
-          {isEditMode ? (
-            <input
-              type="tel"
-              dir="ltr"
-              value={formData.secondaryPhone || ''}
-              onChange={(e) => setFormData({ ...formData, secondaryPhone: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
-              placeholder="رقم آخر (اختياري)"
-            />
-          ) : (
-            <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5 font-mono" dir="ltr">
-              {formData.secondaryPhone || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
-            </div>
-          )}
-        </div>
-
-        {/* البريد الإلكتروني */}
-        <div className="bg-[var(--input-bg)] border border-[var(--border-color)] rounded-2xl p-3 space-y-1">
-          <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5 text-purple-500" />
-            <span>البريد الإلكتروني</span>
-          </span>
-          {isEditMode ? (
-            <input
-              type="email"
-              dir="ltr"
-              value={formData.ownerEmail || ''}
-              onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-amber-500 text-[var(--text-primary)] font-bold text-xs rounded-xl p-2 focus:outline-none shadow-inner mt-1 text-right"
-              placeholder="example@mail.com"
-            />
-          ) : (
-            <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] pt-0.5" dir="ltr">
-              {formData.ownerEmail || <span className="text-[var(--text-muted)] font-normal italic text-xs">غير مسجل</span>}
-            </div>
-          )}
+        <div>
+          <label className="block text-slate-700 font-bold mb-1">
+            الاسم بالإنجليزية (اختياري)
+          </label>
+          <input
+            type="text"
+            value={formData.nameEn || ''}
+            onChange={(e) => onChange('nameEn', e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+          />
         </div>
       </div>
 
-      {/* ── CONTEXTUAL CRM FOLLOW-UP STRIP FOR GENERAL INFO ── */}
-      {onSave && (
-        <ContextualFollowUpStrip
-          category="info"
-          categoryLabel="البيانات العامة"
-          categoryIcon={<FileText className="w-3.5 h-3.5 text-amber-500" />}
-          business={formData}
-          onSave={onSave}
-          setFormData={setFormData}
-          currentUserName={currentUserName}
-          currentUserId={currentUserId}
-          userRole={userRole}
-          onOpenMasterDrawer={onOpenMasterDrawer}
-          onShowNotification={onShowNotification}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-slate-700 font-bold mb-1">تصنيف النشاط الرئيسي *</label>
+          <select
+            value={formData.category || BUSINESS_CATEGORIES[0]}
+            onChange={(e) => onChange('category', e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+          >
+            {BUSINESS_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-slate-700 font-bold mb-1">مواعيد وساعات العمل</label>
+          <input
+            type="text"
+            placeholder="مثال: يومياً من 10 ص إلى 11 م"
+            value={formData.workingHours || ''}
+            onChange={(e) => onChange('workingHours', e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-slate-700 font-bold mb-1">
+            رقم هاتف المنشأة الأساسي (موبايل / واتساب) *
+          </label>
+          <input
+            type="tel"
+            required
+            value={formData.phone || ''}
+            onChange={(e) => onChange('phone', e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 font-bold mb-1">هاتف إضافي / أرضي</label>
+          <input
+            type="tel"
+            value={formData.secondaryPhone || ''}
+            onChange={(e) => onChange('secondaryPhone', e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-slate-700 font-bold mb-1">وصف المنشأة والخدمات المقدمة</label>
+        <textarea
+          rows={2}
+          value={formData.description || ''}
+          onChange={(e) => onChange('description', e.target.value)}
+          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
         />
-      )}
+      </div>
+
+      {/* Owner & KYC Data */}
+      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+        <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+          <span>👤</span>
+          <span>بيانات المسؤول وبطاقة الهوية الرسمية (سجلات الإدارة فقط)</span>
+        </span>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-slate-700 font-bold mb-1">اسم صاحب النشاط / المدير</label>
+            <input
+              type="text"
+              value={formData.ownerName || ''}
+              onChange={(e) => onChange('ownerName', e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-700 font-bold mb-1">هاتف المالك الشخصي</label>
+            <input
+              type="tel"
+              value={formData.ownerPhone || ''}
+              onChange={(e) => onChange('ownerPhone', e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-slate-700 font-bold mb-1">البريد الإلكتروني للمالك</label>
+            <input
+              type="email"
+              value={formData.ownerEmail || ''}
+              onChange={(e) => onChange('ownerEmail', e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-700 font-bold mb-1">الرقم القومي للمالك / السجل</label>
+            <input
+              type="text"
+              value={formData.nationalId || ''}
+              onChange={(e) => onChange('nationalId', e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-medium focus:ring-2 focus:ring-indigo-500 dir-ltr text-right"
+            />
+          </div>
+        </div>
+
+        {/* Owner ID Card / Document Attachment */}
+        <div className="pt-2 border-t border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+              <span>🪪</span>
+              <span>صورة بطاقة الرقم القومي أو السجل التجاري</span>
+            </span>
+            {handleOwnerIdPhotoUpload && (
+              <label className="cursor-pointer bg-white hover:bg-slate-100 text-indigo-600 border border-indigo-200 font-bold text-[10.5px] px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-2xs">
+                {isUploadingOwnerId ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <UploadCloud className="w-3 h-3" />
+                )}
+                <span>{ownerIdCardPhoto ? 'استبدال الصورة' : 'إرفاق صورة البطاقة'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleOwnerIdPhotoUpload}
+                  className="hidden"
+                  disabled={isUploadingOwnerId}
+                />
+              </label>
+            )}
+          </div>
+
+          {ownerIdCardPhoto ? (
+            <div className="relative aspect-[16/9] max-h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-300 group">
+              <img
+                src={ownerIdCardPhoto}
+                alt="بطاقة الهوية أو السجل"
+                className="w-full h-full object-contain"
+              />
+              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                {setPreviewLightbox && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewLightbox(ownerIdCardPhoto)}
+                    className="bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer"
+                  >
+                    <ZoomIn className="w-3 h-3" />
+                    <span>تكبير</span>
+                  </button>
+                )}
+                {setOwnerIdCardPhoto && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOwnerIdCardPhoto('');
+                      onChange('ownerIdCardPhoto' as any, '');
+                    }}
+                    className="bg-rose-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>حذف</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[10.5px] text-slate-400 font-medium">
+              لم يتم إرفاق صورة بطاقة الرقم القومي حتى الآن.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

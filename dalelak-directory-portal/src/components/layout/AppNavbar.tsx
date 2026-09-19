@@ -25,10 +25,11 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const cleanRoute = currentPath.toLowerCase().split('?')[0];
+
   const navLinks = [
-    { path: '/', label: 'أطلس الحدائق', icon: Compass },
+    { path: '/', label: 'الخريطة والملاحة', icon: MapIcon },
     { path: '/search', label: 'استكشف الأنشطة', icon: Search },
-    { path: '/map', label: 'الخريطة والملاحة', icon: MapIcon },
     { path: '/favorites', label: 'المفضلة', icon: Heart, badge: favoritesCount > 0 ? favoritesCount : undefined },
   ];
 
@@ -46,7 +47,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
             type="button"
             onClick={() => handleLinkClick('/')}
             className="flex items-center gap-2 cursor-pointer focus:outline-none"
-            aria-label="الصفحة الرئيسية لمنصة دليلك وأطلس حدائق الأهرام"
+            aria-label="الصفحة الرئيسية لمنصة دليلك"
           >
             <Logo size="md" showSubtitle={false} />
           </button>
@@ -55,7 +56,10 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
         {/* Center: Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 text-xs font-black text-[var(--text-secondary)]">
           {navLinks.map((link) => {
-            const isActive = currentPath === link.path || (link.path !== '/' && currentPath.startsWith(link.path));
+            const isActive =
+              link.path === '/'
+                ? cleanRoute === '/' || cleanRoute === '/map'
+                : cleanRoute === link.path || cleanRoute.startsWith(link.path);
             const Icon = link.icon;
             return (
               <button
@@ -119,7 +123,10 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-[var(--border-color)] bg-[var(--bg-card)] px-4 pt-3 pb-5 space-y-2 animate-fade-in shadow-xl">
           {navLinks.map((link) => {
-            const isActive = currentPath === link.path || (link.path !== '/' && currentPath.startsWith(link.path));
+            const isActive =
+              link.path === '/'
+                ? cleanRoute === '/' || cleanRoute === '/map'
+                : cleanRoute === link.path || cleanRoute.startsWith(link.path);
             const Icon = link.icon;
             return (
               <button

@@ -17,21 +17,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const items = [
     {
       path: '/',
-      label: 'أطلس الحدائق',
-      icon: Compass,
-      isActive: cleanRoute === '/',
+      label: 'الخريطة',
+      icon: MapIcon,
+      isActive: cleanRoute === '/' || cleanRoute === '/map',
     },
     {
       path: '/search',
       label: 'استكشف',
       icon: Search,
       isActive: cleanRoute === '/search',
-    },
-    {
-      path: '/map',
-      label: 'الخريطة',
-      icon: MapIcon,
-      isActive: cleanRoute === '/map',
     },
     {
       path: '/favorites',
@@ -57,7 +51,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         direction: 'rtl',
       }}
     >
-      <div className="grid grid-cols-5 h-15 max-w-md mx-auto items-center px-1">
+      <div className="grid grid-cols-4 h-15 max-w-md mx-auto items-center px-2">
         {items.map((item) => {
           const Icon = item.icon;
           const active = item.isActive;

@@ -592,3 +592,12 @@ img, picture, video {
   }
 }
 
+@keyframes dalelakPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes dalelakSpin {
+  to { transform: rotate(360deg); }
+}
+

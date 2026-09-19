@@ -175,13 +175,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   };
 
   const handleCloseBusiness = () => {
-    // 💡 The background view is already pre-configured upfront on load,
-    // so closing the modal simply unmounts it cleanly without triggering background recalculations or layout shift.
     isDirectLinkOpenRef.current = false;
     setSelectedBiz(null);
-    setCurrentPath('/search');
+    setCurrentPath('/');
     try {
-      window.history.replaceState(null, '', '/search');
+      window.history.replaceState(null, '', '/');
     } catch {}
   };
 
@@ -446,6 +444,26 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
 
     switch (cleanRoute) {
       case '/':
+      case '/map':
+        return (
+          <MapView
+            businesses={publicBusinesses}
+            filteredBusinesses={filteredBusinesses}
+            categoryFilter={categoryFilter}
+            onCategoryChange={setCategoryFilter}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            openNowOnly={openNowOnly}
+            onToggleOpenNow={() => setOpenNowOnly(!openNowOnly)}
+            onOpenBusiness={handleOpenBusiness}
+            onToggleFavorite={toggleFavorite}
+            favorites={favorites}
+            userCoords={userCoords}
+            onNavigate={handleNavigate}
+          />
+        );
+
+      case '/atlas-home':
         return (
           <HomeView
             businesses={publicBusinesses}
@@ -503,25 +521,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             onOpenVideoModal={(b) => setSelectedVideoBiz(b)}
             onNavigate={handleNavigate}
             onReshuffle={handleReshuffle}
-          />
-        );
-
-      case '/map':
-        return (
-          <MapView
-            businesses={publicBusinesses}
-            filteredBusinesses={filteredBusinesses}
-            categoryFilter={categoryFilter}
-            onCategoryChange={setCategoryFilter}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            openNowOnly={openNowOnly}
-            onToggleOpenNow={() => setOpenNowOnly(!openNowOnly)}
-            onOpenBusiness={handleOpenBusiness}
-            onToggleFavorite={toggleFavorite}
-            favorites={favorites}
-            userCoords={userCoords}
-            onNavigate={handleNavigate}
           />
         );
 
