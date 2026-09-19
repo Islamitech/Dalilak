@@ -1369,20 +1369,85 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         let enrichedRatingCount = p.userRatingCount || 0;
         let enrichedHours = p.workingHours;
 
+        // 🔄 خطوة الإثراء: جلب الصور والتفاصيل المتقدمة من Google (سيرفر محلي / Vercel Serverless / Google Direct Fallback)
         try {
-          const enrichRes = await fetch('/api/admin/places-enrich', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ googlePlaceId: p.id, placeName: p.displayName }),
-          });
-          if (enrichRes.ok) {
-            const enrichData = await enrichRes.json();
-            if (enrichData.success) {
-              enrichedPhoto = enrichData.photo || enrichedPhoto;
-              enrichedPhone = enrichData.phone || enrichedPhone;
-              enrichedRating = enrichData.rating || enrichedRating;
-              enrichedRatingCount = enrichData.ratingCount || enrichedRatingCount;
-              enrichedHours = enrichData.workingHours || enrichedHours;
+          // محاولة 1: نقطة نهاية السيرفر المحلي Express
+          let enrichData: any = null;
+          try {
+            const enrichRes = await fetch('/api/admin/places-enrich', {
+              method: 'POST',
+              headers: { ...getApiAuthHeaders(), 'Content-Type': 'application/json' },
+              body: JSON.stringify({ googlePlaceId: p.id, placeName: p.displayName }),
+            });
+            if (enrichRes.ok) {
+              const resJson = await enrichRes.json();
+              if (resJson && resJson.success) enrichData = resJson;
+            }
+          } catch {}
+
+          // محاولة 2: نقطة نهاية Vercel Serverless (/api/places-enrich)
+          if (!enrichData || !enrichData.photo) {
+            try {
+              const vRes = await fetch('/api/places-enrich', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ googlePlaceId: p.id, placeName: p.displayName }),
+              });
+              if (vRes.ok) {
+                const vJson = await vRes.json();
+                if (vJson && vJson.success) enrichData = vJson;
+              }
+            } catch {}
+          }
+
+          if (enrichData && enrichData.success) {
+            enrichedPhoto = enrichData.photo || enrichedPhoto;
+            enrichedPhone = enrichData.phone || enrichedPhone;
+            enrichedRating = enrichData.rating || enrichedRating;
+            enrichedRatingCount = enrichData.ratingCount || enrichedRatingCount;
+            enrichedHours = enrichData.workingHours || enrichedHours;
+          }
+
+          // محاولة 3 (حارس الأمان النهائي): جلب مباشر من Google Places في بيئة الويب المستقلة / Vercel SPA
+          if (!enrichedPhoto && p.id) {
+            try {
+              const directRes = await fetch(
+                `https://places.googleapis.com/v1/places/${encodeURIComponent(p.id)}`,
+                {
+                  headers: {
+                    'X-Goog-Api-Key': GOOGLE_API_KEY,
+                    'X-Goog-FieldMask': 'id,photos,internationalPhoneNumber,nationalPhoneNumber,rating,userRatingCount,regularOpeningHours',
+                  },
+                }
+              );
+              if (directRes.ok) {
+                const dData = await directRes.json();
+                if (dData.photos && Array.isArray(dData.photos) && dData.photos.length > 0) {
+                  const firstPhotoName = dData.photos[0].name;
+                  if (firstPhotoName) {
+                    try {
+                      const mRes = await fetch(
+                        `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`
+                      );
+                      if (mRes.ok) {
+                        const mData = await mRes.json();
+                        if (mData?.photoUri) enrichedPhoto = mData.photoUri;
+                      }
+                    } catch {}
+                    if (!enrichedPhoto) {
+                      enrichedPhoto = `https://places.googleapis.com/v1/${firstPhotoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}`;
+                    }
+                  }
+                }
+                enrichedPhone = dData.internationalPhoneNumber || dData.nationalPhoneNumber || enrichedPhone;
+                enrichedRating = dData.rating || enrichedRating;
+                enrichedRatingCount = dData.userRatingCount || enrichedRatingCount;
+                if (dData.regularOpeningHours?.weekdayDescriptions?.[0]) {
+                  enrichedHours = dData.regularOpeningHours.weekdayDescriptions[0].replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
+                }
+              }
+            } catch (directErr) {
+              console.warn('⚠️ Direct Places Details fallback warning:', directErr);
             }
           }
         } catch (enrichErr) {
