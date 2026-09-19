@@ -33,6 +33,7 @@ import {
   Check,
   Crosshair,
   Navigation,
+  Trash2,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
@@ -644,6 +645,47 @@ export const detectEgyptianGovernorate = (address?: string, customText?: string)
   return 'القاهرة';
 };
 
+// 🏛️ مفاتيح الذاكرة الدائمة للمنشآت المستخرجة والمفحوصة مسبقاً لمنع التكرار نهائياً
+const INGESTION_SEEN_IDS_KEY = 'dalilak_ingestion_seen_place_ids';
+const INGESTION_SEEN_NAMES_KEY = 'dalilak_ingestion_seen_place_names';
+
+const getIngestionSeenRecords = (): { seenIds: Set<string>; seenNames: Set<string> } => {
+  try {
+    const rawIds = localStorage.getItem(INGESTION_SEEN_IDS_KEY);
+    const rawNames = localStorage.getItem(INGESTION_SEEN_NAMES_KEY);
+    const idsArr: string[] = rawIds ? JSON.parse(rawIds) : [];
+    const namesArr: string[] = rawNames ? JSON.parse(rawNames) : [];
+    return {
+      seenIds: new Set(idsArr),
+      seenNames: new Set(namesArr.map((n) => n.trim().toLowerCase())),
+    };
+  } catch (e) {
+    return { seenIds: new Set(), seenNames: new Set() };
+  }
+};
+
+const saveIngestionSeenRecords = (newPlaces: Array<{ id?: string; displayName?: string }>) => {
+  try {
+    const { seenIds, seenNames } = getIngestionSeenRecords();
+    newPlaces.forEach((p) => {
+      if (p.id) seenIds.add(p.id);
+      const name = (p.displayName || '').trim().toLowerCase();
+      if (name.length > 3) seenNames.add(name);
+    });
+    localStorage.setItem(INGESTION_SEEN_IDS_KEY, JSON.stringify(Array.from(seenIds)));
+    localStorage.setItem(INGESTION_SEEN_NAMES_KEY, JSON.stringify(Array.from(seenNames)));
+  } catch (e) {
+    console.warn('Failed to persist seen records to localStorage:', e);
+  }
+};
+
+const clearIngestionSeenRecords = () => {
+  try {
+    localStorage.removeItem(INGESTION_SEEN_IDS_KEY);
+    localStorage.removeItem(INGESTION_SEEN_NAMES_KEY);
+  } catch (e) {}
+};
+
 export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = ({
   currentUser,
   businesses,
@@ -678,6 +720,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   const [isExhaustiveAtlasMode, setIsExhaustiveAtlasMode] = useState<boolean>(true);
   const [pullCount, setPullCount] = useState<number>(20);
   const [customScanRadius, setCustomScanRadius] = useState<number>(450); // نصف قطر المسح الجغرافي بالأمتار
+  const [autoExcludePreviousScans, setAutoExcludePreviousScans] = useState<boolean>(true); // حظر سحب ما تم سحبه سابقاً
+  const [enableDeepStratumScan, setEnableDeepStratumScan] = useState<boolean>(true); // مسح طبقي مزدوج (شهرة + مسافة)
+  const [seenHistoryCount, setSeenHistoryCount] = useState<number>(() => getIngestionSeenRecords().seenIds.size);
 
   // ⭐ معايير الجودة الطبيعية
   const [minRating, setMinRating] = useState<number>(0.0);
@@ -850,7 +895,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       'nextPageToken',
     ].join(',');
 
-    // قاعدة بيانات المنشآت المكررة
+    // قاعدة بيانات المنشآت المكررة (المسجلة في المنظومة + الأرشيف التراكمي لعمليات السحب السابقة)
     const existingIds = new Set<string>();
     businesses.forEach((b) => {
       if (b.googlePlaceId) existingIds.add(b.googlePlaceId);
@@ -860,6 +905,13 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       }
     });
     const existingNames = new Set(businesses.map((b) => (b.nameAr || b.name || '').trim().toLowerCase()));
+
+    // دمج ذاكرة السحوبات السابقة إذا كان خيار منع التكرار مفعلاً
+    if (autoExcludePreviousScans) {
+      const history = getIngestionSeenRecords();
+      history.seenIds.forEach((id) => existingIds.add(id));
+      history.seenNames.forEach((n) => existingNames.add(n));
+    }
 
     // 🌐 النمط السيادي: التمشيط الشبكي الجغرافي الخالص (Pure Spatial Micro-Grid Mesh) دون نصوص أو مسميات
     if (!isCustomHub && !isExpansionHubActive && targetSector.southLat && targetSector.northLat) {
@@ -878,6 +930,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           gridRows: 2,
           gridCols: 2,
           customRadiusMeters: customScanRadius,
+          enableDeepStratumScan: enableDeepStratumScan,
           onProgress: (stepText, currentFound) => {
             setScanChunkStatus({
               stepText,
@@ -1211,10 +1264,16 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         setCandidatePlaces(data.places);
         setMetrics(data.metrics);
 
+        // حفظ الكيانات في الذاكرة التراكمية الدائمة لضمان عدم تكرار ظهورها في السحبات القادمة
+        saveIngestionSeenRecords(data.places);
+        setSeenHistoryCount(getIngestionSeenRecords().seenIds.size);
+
         // لا نقوم بالتحديد التلقائي؛ لتمكين المستخدم من الفرز اليدوي المخصص وتحديد ما يُعتمد
         setSelectedPlaceIds(new Set());
 
-        const msg = `🏛️ تم بنجاح سحب ${data.places.length} كياناً في ${currentSector.subZone} بنمط الاستيعاب الميداني. يمكنك الآن مراجعتها وفرزها يدوياً.`;
+        const newCount = data.places.filter((p) => !p.isDuplicate).length;
+        const dupCount = data.places.filter((p) => p.isDuplicate).length;
+        const msg = `🏛️ تم استخراج ${data.places.length} كياناً في ${currentSector.subZone} (${newCount} منشأة جديدة بالكامل، و ${dupCount} مكرر تم استبعاده وحمايته من الهدر).`;
         if (onShowNotification) onShowNotification(msg, 'success');
       } else {
         throw new Error('لم يتم استلام أي نتائج من محرك خرائط Google');
@@ -1661,6 +1720,62 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                   </>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Sub-row: Memory Dedup & Deep Stratum Scan Controls */}
+          <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Option 1: Auto-exclude previous scans */}
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-bold text-slate-300 hover:text-white transition-colors">
+                <input
+                  type="checkbox"
+                  checked={autoExcludePreviousScans}
+                  onChange={(e) => setAutoExcludePreviousScans(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500 rounded-sm cursor-pointer"
+                />
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>حظر تكرار المنشآت المسحوبة سابقاً (توفير الرصيد 100%)</span>
+                </span>
+              </label>
+
+              {/* Option 2: Deep Stratum Scan */}
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-bold text-slate-300 hover:text-white transition-colors">
+                <input
+                  type="checkbox"
+                  checked={enableDeepStratumScan}
+                  onChange={(e) => setEnableDeepStratumScan(e.target.checked)}
+                  className="w-4 h-4 accent-amber-500 rounded-sm cursor-pointer"
+                />
+                <span className="flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <span>تمشيط طبقي مزدوج (شهرة + مسافة لكشف الأنشطة الدفينة)</span>
+                </span>
+              </label>
+            </div>
+
+            {/* Memory stats and reset button */}
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <span className="text-[10.5px] font-mono text-slate-400">
+                المسحوب والمحمي بالذاكرة: <strong className="text-amber-400">{seenHistoryCount}</strong> منشأة
+              </span>
+              {seenHistoryCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('هل تريد تصفير ذاكرة التكرار المؤقتة وإعادة إتاحة سحب كافة الأماكن من البداية؟')) {
+                      clearIngestionSeenRecords();
+                      setSeenHistoryCount(0);
+                      if (onShowNotification) onShowNotification('تم تصفير ذاكرة السحوبات السابقة بنجاح', 'info');
+                    }
+                  }}
+                  className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                  title="تصفير ذاكرة الاستبعاد وإعادة السحب من الصفر"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
