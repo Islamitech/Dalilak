@@ -1,18 +1,11 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "api/*.ts",
-      "use": "@vercel/node"
+  "functions": {
+    "api/*.ts": {
+      "memory": 1024,
+      "maxDuration": 15
     }
-  ],
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -39,7 +32,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://*.ggpht.com https://places.googleapis.com https://images.unsplash.com https://*.tile.openstreetmap.org https://unpkg.com https://dalilaak.com https://www.dalilaak.com; media-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://places.googleapis.com https://unpkg.com; frame-src 'self' https://www.openstreetmap.org https://*.openstreetmap.org https://www.google.com https://*.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://*.ggpht.com https://places.googleapis.com https://images.unsplash.com https://*.tile.openstreetmap.org https://unpkg.com https://dalilaak.com https://www.dalilaak.com; media-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://places.googleapis.com https://unpkg.com https://www.google-analytics.com; frame-src 'self' https://www.openstreetmap.org https://*.openstreetmap.org https://www.google.com https://*.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
         }
       ]
     },
@@ -62,21 +55,18 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/sitemap.xml",
-      "dest": "/api/sitemap"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
