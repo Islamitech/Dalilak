@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Maximize2 } from 'lucide-react';
 import { Business } from '../types';
 import { fetchLocationAddress } from '../utils/geocoding';
 import { triggerHaptic } from '../utils/haptics';
@@ -66,9 +68,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const pickerMarkerRef = useRef<any>(null);
   const accuracyCircleRef = useRef<any>(null);
 
+  // Live geographic viewport tracker (locks view 100% during expand/collapse/resize)
+  const liveCenterRef = useRef<{ lat: number; lng: number; zoom: number }>({
+    lat,
+    lng,
+    zoom: zoomLevel,
+  });
+
   useEffect(() => {
     setCurrentLat(lat);
     setCurrentLng(lng);
+    liveCenterRef.current.lat = lat;
+    liveCenterRef.current.lng = lng;
   }, [lat, lng]);
 
   // Switch Tile Layer
@@ -135,9 +146,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         }
       } catch {}
 
+      const centerToUse = liveCenterRef.current || { lat: currentLat, lng: currentLng, zoom: zoomLevel };
       const map = window.L.map(containerRef.current, {
-        center: [currentLat, currentLng],
-        zoom: zoomLevel,
+        center: [centerToUse.lat, centerToUse.lng],
+        zoom: centerToUse.zoom || zoomLevel,
         zoomControl: false,
         attributionControl: false,
       });
@@ -157,6 +169,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       tileLayerRef.current = layer;
       markersGroupRef.current = window.L.layerGroup().addTo(map);
       leafletMapRef.current = map;
+      if (containerRef.current) {
+        (containerRef.current as any)._leaflet_map = map;
+      }
 
       // On mobile touch devices, disable dragging initially so page scroll isn't trapped
       if (isTouchDevice && !isExpanded && !isTouchDraggingEnabled) {
@@ -169,6 +184,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       let viewDebounceTimer: any = null;
       const handleViewChange = () => {
         if (!isSubscribed) return;
+        try {
+          const c = map.getCenter();
+          const z = map.getZoom();
+          if (c && typeof c.lat === 'number' && !isNaN(c.lat)) {
+            liveCenterRef.current = { lat: c.lat, lng: c.lng, zoom: z };
+          }
+        } catch {}
         clearTimeout(viewDebounceTimer);
         viewDebounceTimer = setTimeout(() => {
           if (!isSubscribed) return;
@@ -188,12 +210,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       // Ensure canvas bounds are fully calculated and tiles fetched immediately
       setTimeout(() => {
         if (map && isSubscribed) {
-          map.invalidateSize({ pan: false });
+          map.invalidateSize({ pan: true });
         }
       }, 100);
       setTimeout(() => {
         if (map && isSubscribed) {
-          map.invalidateSize({ pan: false });
+          map.invalidateSize({ pan: true });
         }
       }, 300);
     };
@@ -221,8 +243,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
       }
+      if (containerRef.current) {
+        try { (containerRef.current as any)._leaflet_map = null; } catch {}
+      }
     };
-  }, [mode]);
+  }, [mode, isExpanded]);
 
   // Dynamically sync touch dragging with state
   useEffect(() => {
@@ -412,9 +437,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         if (containerRef.current && !containerRef.current.classList.contains('leaflet-container')) {
           containerRef.current.classList.add('leaflet-container');
         }
+        const targetCenter = liveCenterRef.current;
         requestAnimationFrame(() => {
           if (leafletMapRef.current) {
-            leafletMapRef.current.invalidateSize({ pan: false });
+            leafletMapRef.current.invalidateSize({ pan: true });
+            if (targetCenter && typeof targetCenter.lat === 'number' && !isNaN(targetCenter.lat)) {
+              leafletMapRef.current.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom, { animate: false });
+            }
           }
         });
       }
@@ -562,10 +591,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   };
 
-  const containerClasses = isExpanded
-    ? 'fixed top-2 bottom-2 left-2 right-2 sm:top-4 sm:bottom-4 sm:left-4 sm:right-4 w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] max-w-none max-h-none z-[99999] bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in'
-    : 'relative bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
-
   const canvasWrapperClasses = isExpanded
     ? 'relative w-full flex-1 h-full min-h-[400px] overflow-hidden min-h-0'
     : `relative w-full ${heightClass} overflow-hidden`;
@@ -578,93 +603,133 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     return true;
   }).length;
 
-  return (
+  const mapInnerContent = (
     <>
-      {/* Fullscreen Backdrop overlay */}
-      {isExpanded && (
-        <div
-          onClick={() => setIsExpanded(false)}
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[99998]"
+      {/* Floating in-map notice */}
+      {mapNotice && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-slate-950/90 text-white text-xs font-bold py-2 px-4 rounded-2xl shadow-xl border border-amber-500/40 backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-150">
+          <span>{mapNotice.message}</span>
+        </div>
+      )}
+
+      {/* Map Header Bar */}
+      <MapHeaderBar
+        mode={mode}
+        filteredBusinessesCount={filteredBusinessesCount}
+        tileLayer={tileLayer}
+        onSwitchTileLayer={switchTileLayer}
+        selectedGovFilter={selectedGovFilter}
+        onGovChange={handleGovChange}
+        isLocating={isLocating}
+        onGetLocation={handleGetLocation}
+        isExpanded={isExpanded}
+        onToggleExpand={() => setIsExpanded(!isExpanded)}
+      />
+
+      {/* 🔍 Search & Quick Jump / Paste Box */}
+      {mode === 'picker' && (
+        <MapSearchBox
+          onSelectPosition={(sLat, sLng, fly, zoom) =>
+            updateSelectedPosition(sLat, sLng, fly, zoom)
+          }
         />
       )}
 
-      <div className={containerClasses}>
-        {/* Floating in-map notice */}
-        {mapNotice && (
-          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-slate-950/90 text-white text-xs font-bold py-2 px-4 rounded-2xl shadow-xl border border-amber-500/40 backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-150">
-            <span>{mapNotice.message}</span>
-          </div>
-        )}
+      {/* High-Performance Canvas Container */}
+      <div className={canvasWrapperClasses}>
+        <div
+          ref={containerRef}
+          className="w-full h-full cursor-crosshair leaflet-map-canvas"
+        />
 
-        {/* Map Header Bar */}
-        <MapHeaderBar
+        {/* Floating Controls Overlay */}
+        <MapFloatingControls
           mode={mode}
-          filteredBusinessesCount={filteredBusinessesCount}
-          tileLayer={tileLayer}
-          onSwitchTileLayer={switchTileLayer}
-          selectedGovFilter={selectedGovFilter}
-          onGovChange={handleGovChange}
-          isLocating={isLocating}
-          onGetLocation={handleGetLocation}
+          isTouchDevice={isTouchDevice}
           isExpanded={isExpanded}
-          onToggleExpand={() => setIsExpanded(!isExpanded)}
+          isTouchDraggingEnabled={isTouchDraggingEnabled}
+          onToggleTouchDragging={() => {
+            const next = !isTouchDraggingEnabled;
+            setIsTouchDraggingEnabled(next);
+            triggerHaptic('selection');
+          }}
+          centerReticleActive={centerReticleActive}
+          onToggleCenterReticle={() => setCenterReticleActive(!centerReticleActive)}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onPinCenterOfMap={handlePinCenterOfMap}
+          onResetPosition={handleResetPosition}
+          onPan={handlePan}
         />
 
-        {/* 🔍 Search & Quick Jump / Paste Box */}
-        {mode === 'picker' && (
-          <MapSearchBox
-            onSelectPosition={(sLat, sLng, fly, zoom) =>
-              updateSelectedPosition(sLat, sLng, fly, zoom)
-            }
+        {/* Selected Business Card Drawer on Map View */}
+        {mode === 'view' && selectedBiz && (
+          <MapSelectedBusinessDrawer
+            business={selectedBiz}
+            onClose={() => setSelectedBiz(null)}
+            onSelectBusiness={onSelectBusiness}
+            onEditBusiness={onEditBusiness}
           />
         )}
-
-        {/* High-Performance Canvas Container */}
-        <div className={canvasWrapperClasses}>
-          <div
-            ref={containerRef}
-            className="w-full h-full cursor-crosshair leaflet-map-canvas"
-          />
-
-          {/* Floating Controls Overlay */}
-          <MapFloatingControls
-            mode={mode}
-            isTouchDevice={isTouchDevice}
-            isExpanded={isExpanded}
-            isTouchDraggingEnabled={isTouchDraggingEnabled}
-            onToggleTouchDragging={() => {
-              const next = !isTouchDraggingEnabled;
-              setIsTouchDraggingEnabled(next);
-              triggerHaptic('selection');
-            }}
-            centerReticleActive={centerReticleActive}
-            onToggleCenterReticle={() => setCenterReticleActive(!centerReticleActive)}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onPinCenterOfMap={handlePinCenterOfMap}
-            onResetPosition={handleResetPosition}
-            onPan={handlePan}
-          />
-
-          {/* Selected Business Card Drawer on Map View */}
-          {mode === 'view' && selectedBiz && (
-            <MapSelectedBusinessDrawer
-              business={selectedBiz}
-              onClose={() => setSelectedBiz(null)}
-              onSelectBusiness={onSelectBusiness}
-              onEditBusiness={onEditBusiness}
-            />
-          )}
-        </div>
-
-        {/* GPS Coordinates & Footer Toolbar */}
-        <MapFooterBar
-          currentLat={currentLat}
-          currentLng={currentLng}
-          zoomLevel={zoomLevel}
-          gpsAccuracy={gpsAccuracy}
-        />
       </div>
+
+      {/* GPS Coordinates & Footer Toolbar */}
+      <MapFooterBar
+        currentLat={currentLat}
+        currentLng={currentLng}
+        zoomLevel={zoomLevel}
+        gpsAccuracy={gpsAccuracy}
+      />
+    </>
+  );
+
+  return (
+    <>
+      {/* 1. Inline Placeholder when Expanded (maintains page flow & prevents layout jitter) */}
+      {isExpanded && (
+        <div
+          className={`relative w-full ${heightClass} rounded-2xl border-2 border-dashed border-amber-500/35 bg-[var(--bg-card)]/40 flex flex-col items-center justify-center gap-2.5 text-slate-400 select-none transition-all duration-300`}
+        >
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center shadow-inner">
+            <Maximize2 className="w-5 h-5 animate-pulse" />
+          </div>
+          <span className="text-xs font-bold text-[var(--text-muted)]">
+            الخريطة معروضة الآن في وضع ملء الشاشة الشامل
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsExpanded(false)}
+            className="mt-1 px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-xs font-bold transition-all cursor-pointer"
+          >
+            إنهاء وضع التوسيع
+          </button>
+        </div>
+      )}
+
+      {/* 2. Expanded Mode: True Viewport Portal into document.body (Zero containing-block traps) */}
+      {isExpanded ? (
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex flex-col font-['Cairo',sans-serif]">
+            {/* Backdrop Overlay */}
+            <div
+              onClick={() => setIsExpanded(false)}
+              className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99998]"
+            />
+
+            {/* Viewport Fullscreen Dialog: Symmetric margins and 100% viewport coverage */}
+            <div className="relative z-[99999] m-2 sm:m-4 flex-1 bg-[var(--bg-card)] border-2 border-amber-500/60 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+              {mapInnerContent}
+            </div>
+          </div>,
+          document.body
+        )
+      ) : (
+        /* 3. Normal Inline Mode: Rendered inside the card container */
+        <div className="relative bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300">
+          {mapInnerContent}
+        </div>
+      )}
     </>
   );
 };

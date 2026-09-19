@@ -1,6 +1,7 @@
 import { HADAYEK_GATES, HADAYEK_ZONES, HadayekGate, HadayekZone } from '../data/hadayekAtlasData';
 import { HADAYEK_OFFICIAL_DISTRICTS, HADAYEK_OFFICIAL_GATES } from '../data/hadayekDistrictsGeoData';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Business } from '../types';
 import {
   fetchLocationAddress,
@@ -178,9 +179,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const accuracyCircleRef = useRef<any>(null);
   const searchTimeoutRef = useRef<any>(null);
 
+  // Live geographic viewport tracker (locks view 100% during expand/collapse/resize)
+  const liveCenterRef = useRef<{ lat: number; lng: number; zoom: number }>({
+    lat,
+    lng,
+    zoom: zoomLevel,
+  });
+
   useEffect(() => {
     setCurrentLat(lat);
     setCurrentLng(lng);
+    liveCenterRef.current.lat = lat;
+    liveCenterRef.current.lng = lng;
   }, [lat, lng]);
 
   // Tile layer URL resolver with high-performance tile caching options
@@ -288,9 +298,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         }
       } catch {}
 
+      const centerToUse = liveCenterRef.current || { lat: currentLat, lng: currentLng, zoom: zoomLevel };
       const map = window.L.map(containerRef.current, {
-        center: [currentLat, currentLng],
-        zoom: zoomLevel,
+        center: [centerToUse.lat, centerToUse.lng],
+        zoom: centerToUse.zoom || zoomLevel,
         zoomControl: false,
         attributionControl: false,
       });
@@ -310,11 +321,32 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       tileLayerRef.current = layer;
       markersGroupRef.current = window.L.layerGroup().addTo(map);
       leafletMapRef.current = map;
+      if (containerRef.current) {
+        (containerRef.current as any)._leaflet_map = map;
+      }
 
-      // Update zoom state on user zoom
+      // Update zoom and center state on user navigation
       map.on('zoomend', () => {
         if (!isSubscribed) return;
         setZoomLevel(map.getZoom());
+        try {
+          const c = map.getCenter();
+          const z = map.getZoom();
+          if (c && typeof c.lat === 'number' && !isNaN(c.lat)) {
+            liveCenterRef.current = { lat: c.lat, lng: c.lng, zoom: z };
+          }
+        } catch {}
+      });
+
+      map.on('moveend', () => {
+        if (!isSubscribed) return;
+        try {
+          const c = map.getCenter();
+          const z = map.getZoom();
+          if (c && typeof c.lat === 'number' && !isNaN(c.lat)) {
+            liveCenterRef.current = { lat: c.lat, lng: c.lng, zoom: z };
+          }
+        } catch {}
       });
 
       // Handle map click in picker mode (places pin directly on clicked pixel)
@@ -357,8 +389,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
       }
+      if (containerRef.current) {
+        try { (containerRef.current as any)._leaflet_map = null; } catch {}
+      }
     };
-  }, [mode]);
+  }, [mode, isExpanded]);
 
   // Update Markers dynamically when business list, mode, or position changes
   useEffect(() => {
@@ -762,9 +797,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         if (containerRef.current && !containerRef.current.classList.contains('leaflet-container')) {
           containerRef.current.classList.add('leaflet-container');
         }
+        const targetCenter = liveCenterRef.current;
         requestAnimationFrame(() => {
           if (leafletMapRef.current) {
-            leafletMapRef.current.invalidateSize({ animate: false });
+            leafletMapRef.current.invalidateSize({ animate: false, pan: true });
+            if (targetCenter && typeof targetCenter.lat === 'number' && !isNaN(targetCenter.lat)) {
+              leafletMapRef.current.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom, { animate: false });
+            }
           }
         });
       }
@@ -955,10 +994,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
 
-  const containerClasses = isExpanded
-    ? 'fixed top-2 bottom-2 left-2 right-2 sm:top-4 sm:bottom-4 sm:left-4 sm:right-4 w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] max-w-none max-h-none z-[99999] bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
-    : 'relative bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
-
   const canvasWrapperClasses = isExpanded
     ? 'relative w-full flex-1 h-full min-h-[480px] overflow-hidden min-h-0'
     : `relative w-full ${heightClass} overflow-hidden`;
@@ -970,17 +1005,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     return true;
   }).length;
 
-  return (
+  const mapInnerContent = (
     <>
-      {/* Fullscreen Backdrop overlay */}
-      {isExpanded && (
-        <div
-          onClick={() => setIsExpanded(false)}
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[99998]"
-        />
-      )}
-
-      <div className={containerClasses}>
         {/* Map Header Bar */}
         <div className="bg-[var(--map-header-bg)] p-2.5 sm:p-3 border-b border-[var(--map-header-border)] flex flex-wrap items-center justify-between gap-2 z-20">
           <div className="flex items-center gap-2">
@@ -1636,7 +1662,56 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             </a>
           </div>
         </div>
-      </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* 1. Inline Placeholder when Expanded (maintains page flow & prevents layout jitter) */}
+      {isExpanded && (
+        <div
+          className={`relative w-full ${heightClass} rounded-2xl border-2 border-dashed border-amber-500/35 bg-[var(--bg-card)]/40 flex flex-col items-center justify-center gap-2.5 text-slate-400 select-none transition-all duration-300`}
+        >
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center shadow-inner">
+            <Maximize2 className="w-5 h-5 animate-pulse" />
+          </div>
+          <span className="text-xs font-bold text-[var(--text-muted)]">
+            الخريطة معروضة الآن في وضع ملء الشاشة الشامل
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsExpanded(false)}
+            className="mt-1 px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-xs font-bold transition-all cursor-pointer"
+          >
+            إنهاء وضع التوسيع
+          </button>
+        </div>
+      )}
+
+      {/* 2. Expanded Mode: True Viewport Portal into document.body (Zero containing-block traps) */}
+      {isExpanded ? (
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex flex-col font-['Cairo',sans-serif]">
+            {/* Backdrop Overlay */}
+            <div
+              onClick={() => setIsExpanded(false)}
+              className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99998]"
+            />
+
+            {/* Viewport Fullscreen Dialog: Symmetric margins and 100% viewport coverage */}
+            <div className="relative z-[99999] m-2 sm:m-4 flex-1 bg-[var(--bg-card)] border-2 border-amber-500/60 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale">
+              {mapInnerContent}
+            </div>
+          </div>,
+          document.body
+        )
+      ) : (
+        /* 3. Normal Inline Mode: Rendered inside the card container */
+        <div className="relative bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300">
+          {mapInnerContent}
+        </div>
+      )}
     </>
   );
 };

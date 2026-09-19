@@ -44,12 +44,16 @@ export function calculateReferralCommissionRate(referredRepBizCount: number): nu
 /**
  * Generates or formats a clean referral code for a representative.
  */
-export function getRepReferralCode(rep: Representative): string {
-  if (rep.referralCode && rep.referralCode.trim()) {
+export function getRepReferralCode(rep?: Partial<Representative> | null): string {
+  if (!rep) return 'DALIL-2026';
+  if (rep.referralCode && typeof rep.referralCode === 'string' && rep.referralCode.trim()) {
     return rep.referralCode.trim().toUpperCase();
   }
   // Deterministic fallback based on ID / phone
-  const cleanId = rep.id.replace(/\D/g, '').slice(-4) || rep.phone.slice(-4) || '2026';
+  const cleanId =
+    (rep.id ? String(rep.id).replace(/\D/g, '').slice(-4) : '') ||
+    (rep.phone ? String(rep.phone).replace(/\D/g, '').slice(-4) : '') ||
+    '2026';
   return `DALIL-${cleanId}`;
 }
 
