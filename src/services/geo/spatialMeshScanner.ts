@@ -158,10 +158,133 @@ export const PLACES_API_FIELD_MASK = [
   'places.googleMapsUri',
 ].join(',');
 
+// 🏛️ ربط فئات دليلك مع وسوم Google Places API v1 الرسمية (Google Place Types Ontology)
+// يجبر محرك Google searchNearby على استخراج الأنشطة الدفينة المتخصصة بدلاً من الاقتصار على المشاهير
+export const CATEGORY_GOOGLE_PRIMARY_TYPES: Record<string, string[]> = {
+  restaurants: [
+    'restaurant',
+    'bakery',
+    'cafe',
+    'fast_food_restaurant',
+    'meal_takeaway',
+    'meal_delivery',
+    'pizza_restaurant',
+    'seafood_restaurant',
+    'ice_cream_shop',
+    'sandwich_shop',
+  ],
+  cafes: [
+    'cafe',
+    'coffee_shop',
+    'tea_house',
+    'ice_cream_shop',
+    'bakery',
+  ],
+  craft: [
+    'car_repair',
+    'auto_repair_shop',
+    'car_wash',
+    'oil_change_service',
+    'electrician',
+    'plumber',
+    'locksmith',
+    'carpenter',
+    'roofing_contractor',
+    'painter',
+    'handyman',
+  ],
+  medical: [
+    'pharmacy',
+    'doctor',
+    'hospital',
+    'dental_clinic',
+    'dentist',
+    'medical_lab',
+    'physiotherapist',
+  ],
+  retail: [
+    'supermarket',
+    'grocery_store',
+    'convenience_store',
+    'shopping_mall',
+    'department_store',
+    'discount_store',
+    'butcher_shop',
+    'fruit_and_vegetable_store',
+  ],
+  beauty: [
+    'hair_salon',
+    'barber_shop',
+    'beauty_salon',
+    'nail_salon',
+    'spa',
+  ],
+  gym: [
+    'gym',
+    'fitness_center',
+    'sports_complex',
+    'swimming_pool',
+    'yoga_studio',
+  ],
+  corporate: [
+    'real_estate_agency',
+    'lawyer',
+    'law_firm',
+    'accounting',
+    'consultant',
+    'insurance_agency',
+    'travel_agency',
+  ],
+  fashion: [
+    'clothing_store',
+    'shoe_store',
+    'jewelry_store',
+    'boutique',
+  ],
+  electronics: [
+    'electronics_store',
+    'cell_phone_store',
+    'computer_store',
+    'appliance_store',
+  ],
+  furniture: [
+    'furniture_store',
+    'home_goods_store',
+    'hardware_store',
+    'lighting_store',
+  ],
+  education: [
+    'school',
+    'primary_school',
+    'secondary_school',
+    'preschool',
+    'child_care_agency',
+    'language_school',
+    'training_centre',
+  ],
+  stationery: [
+    'book_store',
+    'stationery_store',
+    'print_shop',
+  ],
+  hospitality: [
+    'hotel',
+    'motel',
+    'lodging',
+    'banquet_hall',
+    'wedding_venue',
+  ],
+  general: [
+    'store',
+    'establishment',
+    'point_of_interest',
+  ],
+};
+
 /**
  * 🛰️ محرك السحب المكاني الخالص المتعدد الطبقات (Multi-Stratum Pure Spatial Nearby Mesh Engine)
  * يعتمد على إحداثيات الخريطة بدقة 100% بدون أي استعلام نصي أو مسميات (Zero Text Bias)
- * يدعم التمشيط المتعدد (Popularity + Distance) لكشف كافة الأنشطة الدفينة مع استبعاد ما تم سحبه سابقاً.
+ * يدعم التمشيط المتعدد (Popularity + Distance) وتوجيه الفئات التخصصية لكشف كافة الأنشطة الدفينة مع استبعاد ما تم سحبه سابقاً.
  */
 export async function executeSpatialMeshScan(
   sectorBox: BoundingBox,
@@ -173,6 +296,8 @@ export async function executeSpatialMeshScan(
     gridRows?: number;
     gridCols?: number;
     customRadiusMeters?: number;
+    categoryType?: string; // نوع الفئة لتوجيه Google places بدقة
+    includedPrimaryTypes?: string[]; // أنواع Google المحددة
     enableDeepStratumScan?: boolean; // تفعيل السحب المزدوج (شهرة + مسافة)
     onProgress?: (progressText: string, currentFound: number) => void;
   }
@@ -180,6 +305,12 @@ export async function executeSpatialMeshScan(
   const rows = options?.gridRows || 2;
   const cols = options?.gridCols || 2;
   const cells = generateSectorMicroGrid(sectorBox, rows, cols);
+
+  // استخراج أنواع Google المرتبطة بالفئة إن وجدت
+  let targetPrimaryTypes = options?.includedPrimaryTypes;
+  if (!targetPrimaryTypes && options?.categoryType && options.categoryType !== 'all') {
+    targetPrimaryTypes = CATEGORY_GOOGLE_PRIMARY_TYPES[options.categoryType];
+  }
 
   const seenIds = new Set<string>();
   const seenNames = new Set<string>();
@@ -212,7 +343,7 @@ export async function executeSpatialMeshScan(
         );
       }
 
-      // استدعاء places:searchNearby بنمط الإحداثيات الصرفة دون أي نصوص
+      // استدعاء places:searchNearby بنمط الإحداثيات الصرفة مع دعم الفلترة التخصصية
       const nearbyBody: Record<string, unknown> = {
         maxResultCount: 20,
         languageCode: 'ar',
@@ -226,6 +357,10 @@ export async function executeSpatialMeshScan(
           },
         },
       };
+
+      if (targetPrimaryTypes && targetPrimaryTypes.length > 0) {
+        nearbyBody.includedPrimaryTypes = targetPrimaryTypes;
+      }
 
       if (rankPref) {
         nearbyBody.rankPreference = rankPref;

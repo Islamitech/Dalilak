@@ -722,7 +722,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   // 🔢 نمط السحب: مسح شامل للقطاع (بدون حد أقصى) أو تحديد عدد معين
   const [isExhaustiveAtlasMode, setIsExhaustiveAtlasMode] = useState<boolean>(true);
   const [pullCount, setPullCount] = useState<number>(20);
-  const [customScanRadius, setCustomScanRadius] = useState<number>(450); // نصف قطر المسح الجغرافي بالأمتار
+  const [customScanRadius, setCustomScanRadius] = useState<number>(300); // نصف قطر المسح الجغرافي بالأمتار (افتراضي مركز 300م)
+  const [gridDensity, setGridDensity] = useState<'standard' | 'deep'>('deep'); // 2x2 standard (4 خلايا) أو 3x3 deep (9 خلايا مكثفة للأزقة)
   const [autoExcludePreviousScans, setAutoExcludePreviousScans] = useState<boolean>(true); // حظر سحب ما تم سحبه سابقاً
   const [enableDeepStratumScan, setEnableDeepStratumScan] = useState<boolean>(true); // مسح طبقي مزدوج (شهرة + مسافة)
   const [seenHistoryCount, setSeenHistoryCount] = useState<number>(() => getIngestionSeenRecords().seenIds.size);
@@ -931,9 +932,10 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         existingIds,
         existingNames,
         {
-          gridRows: 2,
-          gridCols: 2,
+          gridRows: gridDensity === 'deep' ? 3 : 2,
+          gridCols: gridDensity === 'deep' ? 3 : 2,
           customRadiusMeters: customScanRadius,
+          categoryType: currentCat.type,
           enableDeepStratumScan: enableDeepStratumScan,
           onProgress: (stepText, currentFound) => {
             setScanChunkStatus({
@@ -1758,9 +1760,43 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 />
                 <span className="flex items-center gap-1">
                   <Layers className="w-3.5 h-3.5 text-amber-400" />
-                  <span>تمشيط طبقي مزدوج (شهرة + مسافة لكشف الأنشطة الدفينة)</span>
+                  <span>تمشيط طبقي مزدوج (شهرة + مسافة)</span>
                 </span>
               </label>
+
+              {/* Option 3: Dynamic Micro-Grid Matrix Density (3x3 vs 2x2) */}
+              <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGridDensity('deep');
+                    setCustomScanRadius(200);
+                  }}
+                  className={`px-2 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                    gridDensity === 'deep'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="شبكة مجهرية 9 خلايا بنطاق 200م للغوص في الأزقة والشوارع الداخلية"
+                >
+                  🎯 أزقة وشوارع داخلية (3x3)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGridDensity('standard');
+                    setCustomScanRadius(450);
+                  }}
+                  className={`px-2 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                    gridDensity === 'standard'
+                      ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="شبكة قياسية 4 خلايا بنطاق 450م للمحاور الرئيسية"
+                >
+                  🌐 محاور عامة (2x2)
+                </button>
+              </div>
             </div>
 
             {/* Memory stats and reset button */}

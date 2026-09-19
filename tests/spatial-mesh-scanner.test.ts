@@ -42,4 +42,15 @@ describe('Spatial Micro-Grid Mesh Generator Suite', () => {
     const cells = generateSectorMicroGrid(box, 3, 3);
     expect(cells).toHaveLength(9);
   });
+
+  it('provides comprehensive Google Places primary types for deep specialized scanning', async () => {
+    const { CATEGORY_GOOGLE_PRIMARY_TYPES } = await import('../src/services/geo/spatialMeshScanner');
+    expect(CATEGORY_GOOGLE_PRIMARY_TYPES.restaurants).toContain('restaurant');
+    expect(CATEGORY_GOOGLE_PRIMARY_TYPES.restaurants).toContain('bakery');
+    expect(CATEGORY_GOOGLE_PRIMARY_TYPES.craft).toContain('car_repair');
+    expect(CATEGORY_GOOGLE_PRIMARY_TYPES.craft).toContain('plumber');
+    expect(CATEGORY_GOOGLE_PRIMARY_TYPES.medical).toContain('pharmacy');
+    expect(CATEGORY_GOOGLE_PRIMARY_TYPES.medical).toContain('doctor');
+    expect(CATEGORY_GOOGLE_PRIMARY_TYPES.retail).toContain('supermarket');
+  });
 });
