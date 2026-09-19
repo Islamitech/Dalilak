@@ -4,9 +4,13 @@ import { GOVERNORATE_COORDS } from '../constants/mapConstants';
 
 export interface UseMapStateProps {
   initialShowBusinesses?: boolean;
+  defaultExpanded?: boolean;
 }
 
-export const useMapState = ({ initialShowBusinesses = false }: UseMapStateProps = {}) => {
+export const useMapState = ({
+  initialShowBusinesses = false,
+  defaultExpanded = false,
+}: UseMapStateProps = {}) => {
   const [showBusinesses, setShowBusinesses] = useState<boolean>(initialShowBusinesses);
   const [mapCategoryFilter, setMapCategoryFilter] = useState<string>('all');
   const [onlyVerifiedFilter, setOnlyVerifiedFilter] = useState<boolean>(false);
@@ -14,7 +18,7 @@ export const useMapState = ({ initialShowBusinesses = false }: UseMapStateProps 
   const [showGatesLayer, setShowGatesLayer] = useState<boolean>(true);
   const [showDistrictsOverlay, setShowDistrictsOverlay] = useState<boolean>(true);
   const [showTargetPin] = useState<boolean>(true);
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
   const [copied, setCopied] = useState<boolean>(false);
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);

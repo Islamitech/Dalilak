@@ -22,8 +22,8 @@ export { MAP_QUICK_CATEGORIES };
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   mode = 'view',
-  lat = 29.968,
-  lng = 31.098,
+  lat = 29.9683,
+  lng = 31.1002,
   onLocationSelect,
   businesses = [],
   onSelectBusiness,
@@ -34,16 +34,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   onSelectZone,
   initialShowBusinesses = false,
   onToggleBusinessesVisibility,
+  defaultExpanded = false,
+  onExploreDirectory,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const state = useMapState({ initialShowBusinesses });
+  const state = useMapState({ initialShowBusinesses, defaultExpanded });
 
   const mapInstance = useMapInstance({
     containerRef,
     mode,
     lat,
     lng,
-    zoomLevel: 16,
+    zoomLevel: 14,
     isExpanded: state.isExpanded,
     onLocationSelect,
   });
@@ -73,7 +75,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   ).length;
 
   const canvasWrapperClasses = state.isExpanded
-    ? 'relative w-full flex-1 h-full min-h-[480px] overflow-hidden min-h-0'
+    ? 'relative w-full flex-1 h-full min-h-[400px] overflow-hidden min-h-0'
     : `relative w-full ${heightClass} overflow-hidden`;
 
   const mapInnerContent = (
@@ -89,6 +91,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         handleGetLocation={geolocation.handleGetLocation}
         showHadayekGates={showHadayekGates}
         onToggleBusinessesVisibility={onToggleBusinessesVisibility}
+        onSelectZone={onSelectZone}
+        mapInstance={mapInstance}
+        onExploreDirectory={onExploreDirectory}
       />
 
       {mode === 'picker' && (
@@ -163,7 +168,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               onClick={() => state.setIsExpanded(false)}
               className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99998]"
             />
-            <div className="relative z-[99999] m-2 sm:m-4 flex-1 bg-[var(--bg-card)] border-2 border-amber-500/60 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale">
+            <div className="relative z-[99999] m-0 sm:m-3 flex-1 bg-slate-900 border-0 sm:border-2 border-amber-500/60 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale">
               {mapInnerContent}
             </div>
           </div>,

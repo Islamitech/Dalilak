@@ -15,9 +15,9 @@ export interface UseMapInstanceProps {
 export const useMapInstance = ({
   containerRef,
   mode = 'view',
-  lat = 29.968,
-  lng = 31.098,
-  zoomLevel: initialZoom = 16,
+  lat = 29.9683,
+  lng = 31.1002,
+  zoomLevel: initialZoom = 14,
   isExpanded = false,
   onLocationSelect,
 }: UseMapInstanceProps) => {
@@ -176,6 +176,13 @@ export const useMapInstance = ({
       leafletMapRef.current = map;
       if (containerRef.current) {
         (containerRef.current as any)._leaflet_map = map;
+      }
+
+      // Automatically calibrate Hadayek Al-Ahram bounds on initial load (Gate 1 to Gate Horus, أ to ص)
+      if (mode === 'view' && !liveCenterRef.current) {
+        try {
+          map.fitBounds([[29.9477, 31.0881], [29.9888, 31.1122]], { padding: [16, 16], maxZoom: 14 });
+        } catch {}
       }
 
       // Update zoom and center state on user navigation

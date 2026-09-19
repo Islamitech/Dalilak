@@ -106,8 +106,9 @@ export const MapFloatingControls: React.FC<MapFloatingControlsProps> = ({
         </button>
       </div>
 
-      {/* 2. D-PAD Directional Pan Movement Controls (Top Left Overlay) */}
-      <div className="absolute top-3 left-3 bg-[var(--map-control-bg)] border border-[var(--map-control-border)] p-1.5 rounded-2xl shadow-2xl backdrop-blur-md z-20 flex flex-col items-center gap-1">
+      {/* 2. D-PAD Directional Pan Movement Controls (Top Left Overlay - Only for Picker Mode) */}
+      {mode === 'picker' && (
+        <div className="absolute top-3 left-3 bg-[var(--map-control-bg)] border border-[var(--map-control-border)] p-1.5 rounded-2xl shadow-2xl backdrop-blur-md z-20 flex flex-col items-center gap-1">
         <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">تحريك دقيق</span>
 
         <button
@@ -152,6 +153,7 @@ export const MapFloatingControls: React.FC<MapFloatingControlsProps> = ({
           <ChevronDown className="w-4 h-4 stroke-[3]" />
         </button>
       </div>
+      )}
     </>
   );
 };

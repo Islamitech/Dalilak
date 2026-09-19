@@ -235,6 +235,8 @@ export const MapView: React.FC<MapViewProps> = ({
             setSelectedMapBiz(biz);
           }}
           heightClass="h-[550px] sm:h-[680px]"
+          defaultExpanded={true}
+          onExploreDirectory={() => onNavigate('/search')}
         />
 
         {/* Selected Business Floating Card Overlay on Pin Click */}

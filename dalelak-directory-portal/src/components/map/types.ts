@@ -20,4 +20,6 @@ export interface InteractiveMapProps {
   onSelectZone?: (zoneLetter: string) => void;
   initialShowBusinesses?: boolean;
   onToggleBusinessesVisibility?: (visible: boolean) => void;
+  defaultExpanded?: boolean;
+  onExploreDirectory?: () => void;
 }
