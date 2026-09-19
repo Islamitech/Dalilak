@@ -83,8 +83,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     const cfg = getTileLayerConfig(newType);
     const newLayer = window.L.tileLayer(cfg.url, {
       maxZoom: cfg.maxZoom,
+      maxNativeZoom: cfg.maxNativeZoom,
       subdomains: cfg.subdomains,
       attribution: cfg.attribution,
+      keepBuffer: cfg.keepBuffer,
+      updateWhenIdle: cfg.updateWhenIdle,
+      updateWhenZooming: cfg.updateWhenZooming,
+      crossOrigin: cfg.crossOrigin,
     });
 
     newLayer.addTo(leafletMapRef.current);
@@ -140,7 +145,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       const cfg = getTileLayerConfig(tileLayer);
       const layer = window.L.tileLayer(cfg.url, {
         maxZoom: cfg.maxZoom,
+        maxNativeZoom: cfg.maxNativeZoom,
         subdomains: cfg.subdomains,
+        attribution: cfg.attribution,
+        keepBuffer: cfg.keepBuffer,
+        updateWhenIdle: cfg.updateWhenIdle,
+        updateWhenZooming: cfg.updateWhenZooming,
+        crossOrigin: cfg.crossOrigin,
       }).addTo(map);
 
       tileLayerRef.current = layer;
@@ -154,11 +165,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         } catch {}
       }
 
-      // Update zoom and bounds state on user zoom and pan
+      // Debounced view change to prevent rapid React re-render thrashing during drag
+      let viewDebounceTimer: any = null;
       const handleViewChange = () => {
         if (!isSubscribed) return;
-        setZoomLevel(map.getZoom());
-        setViewBoundsVersion((v) => v + 1);
+        clearTimeout(viewDebounceTimer);
+        viewDebounceTimer = setTimeout(() => {
+          if (!isSubscribed) return;
+          setZoomLevel(map.getZoom());
+          setViewBoundsVersion((v) => v + 1);
+        }, 80);
       };
       map.on('zoomend', handleViewChange);
       map.on('moveend', handleViewChange);
@@ -393,7 +409,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   useEffect(() => {
     const handleResize = () => {
       if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize({ pan: false });
+        if (containerRef.current && !containerRef.current.classList.contains('leaflet-container')) {
+          containerRef.current.classList.add('leaflet-container');
+        }
+        requestAnimationFrame(() => {
+          if (leafletMapRef.current) {
+            leafletMapRef.current.invalidateSize({ pan: false });
+          }
+        });
       }
     };
 
@@ -409,10 +432,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
 
     // Sequence invalidations to guarantee tile coverage after modal transitions
-    const t1 = setTimeout(handleResize, 50);
-    const t2 = setTimeout(handleResize, 150);
-    const t3 = setTimeout(handleResize, 300);
-    const t4 = setTimeout(handleResize, 500);
+    const t1 = setTimeout(handleResize, 30);
+    const t2 = setTimeout(handleResize, 100);
+    const t3 = setTimeout(handleResize, 250);
+    const t4 = setTimeout(handleResize, 450);
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -540,10 +563,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   };
 
   const containerClasses = isExpanded
-    ? 'fixed inset-2 sm:inset-5 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in'
-    : 'bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
+    ? 'fixed top-2 bottom-2 left-2 right-2 sm:top-4 sm:bottom-4 sm:left-4 sm:right-4 w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] max-w-none max-h-none z-[99999] bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in'
+    : 'relative bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
 
-  const mapHeight = isExpanded ? 'flex-1 h-full min-h-[400px]' : heightClass;
+  const canvasWrapperClasses = isExpanded
+    ? 'relative w-full flex-1 h-full min-h-[400px] overflow-hidden min-h-0'
+    : `relative w-full ${heightClass} overflow-hidden`;
 
   const filteredBusinessesCount = businesses.filter((b) => {
     if (typeof b.lat !== 'number' || typeof b.lng !== 'number' || isNaN(b.lat) || isNaN(b.lng)) return false;
@@ -559,11 +584,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {isExpanded && (
         <div
           onClick={() => setIsExpanded(false)}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[99998]"
         />
       )}
 
-      <div className={`${containerClasses} relative`}>
+      <div className={containerClasses}>
         {/* Floating in-map notice */}
         {mapNotice && (
           <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-slate-950/90 text-white text-xs font-bold py-2 px-4 rounded-2xl shadow-xl border border-amber-500/40 backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-150">
@@ -595,10 +620,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         )}
 
         {/* High-Performance Canvas Container */}
-        <div className="relative w-full flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className={canvasWrapperClasses}>
           <div
             ref={containerRef}
-            className={`w-full ${mapHeight} z-10 cursor-crosshair`}
+            className="w-full h-full cursor-crosshair leaflet-map-canvas"
           />
 
           {/* Floating Controls Overlay */}

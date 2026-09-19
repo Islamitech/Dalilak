@@ -183,30 +183,43 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     setCurrentLng(lng);
   }, [lat, lng]);
 
-  // Tile layer URL resolver
+  // Tile layer URL resolver with high-performance tile caching options
   const getTileLayerConfig = (type: MapTileLayerType) => {
+    const commonOptions = {
+      keepBuffer: 8,
+      updateWhenIdle: false,
+      updateWhenZooming: false,
+      crossOrigin: true,
+    };
+
     switch (type) {
       case 'google-hybrid':
         return {
-          url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+          url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
           maxZoom: 20,
-          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          maxNativeZoom: 20,
+          subdomains: ['0', '1', '2', '3'],
           attribution: 'Imagery © Google',
+          ...commonOptions,
         };
       case 'google-streets':
         return {
-          url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+          url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
           maxZoom: 20,
-          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          maxNativeZoom: 20,
+          subdomains: ['0', '1', '2', '3'],
           attribution: 'Map data © Google',
+          ...commonOptions,
         };
       case 'dalelak-clean':
       default:
         return {
           url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
           maxZoom: 19,
+          maxNativeZoom: 19,
           subdomains: ['a', 'b', 'c'],
           attribution: '© خريطة دليلك الميدانية / OpenStreetMap contributors',
+          ...commonOptions,
         };
     }
   };
@@ -223,8 +236,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     const cfg = getTileLayerConfig(newType);
     const newLayer = window.L.tileLayer(cfg.url, {
       maxZoom: cfg.maxZoom,
+      maxNativeZoom: cfg.maxNativeZoom,
       subdomains: cfg.subdomains,
       attribution: cfg.attribution,
+      keepBuffer: cfg.keepBuffer,
+      updateWhenIdle: cfg.updateWhenIdle,
+      updateWhenZooming: cfg.updateWhenZooming,
+      crossOrigin: cfg.crossOrigin,
     });
 
     newLayer.addTo(leafletMapRef.current);
@@ -280,7 +298,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       const cfg = getTileLayerConfig(tileLayer);
       const layer = window.L.tileLayer(cfg.url, {
         maxZoom: cfg.maxZoom,
+        maxNativeZoom: cfg.maxNativeZoom,
         subdomains: cfg.subdomains,
+        attribution: cfg.attribution,
+        keepBuffer: cfg.keepBuffer,
+        updateWhenIdle: cfg.updateWhenIdle,
+        updateWhenZooming: cfg.updateWhenZooming,
+        crossOrigin: cfg.crossOrigin,
       }).addTo(map);
 
       tileLayerRef.current = layer;
@@ -735,7 +759,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   useEffect(() => {
     const handleResize = () => {
       if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize({ animate: false });
+        if (containerRef.current && !containerRef.current.classList.contains('leaflet-container')) {
+          containerRef.current.classList.add('leaflet-container');
+        }
+        requestAnimationFrame(() => {
+          if (leafletMapRef.current) {
+            leafletMapRef.current.invalidateSize({ animate: false });
+          }
+        });
       }
     };
 
@@ -751,10 +782,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
 
     // Multi-interval refresh during modal/drawer CSS animations to ensure zero blank tiles
-    const t1 = setTimeout(handleResize, 50);
-    const t2 = setTimeout(handleResize, 150);
-    const t3 = setTimeout(handleResize, 350);
-    const t4 = setTimeout(handleResize, 600);
+    const t1 = setTimeout(handleResize, 30);
+    const t2 = setTimeout(handleResize, 100);
+    const t3 = setTimeout(handleResize, 250);
+    const t4 = setTimeout(handleResize, 450);
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -925,10 +956,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
 
   const containerClasses = isExpanded
-    ? 'fixed inset-2 sm:inset-5 z-50 bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
-    : 'bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
+    ? 'fixed top-2 bottom-2 left-2 right-2 sm:top-4 sm:bottom-4 sm:left-4 sm:right-4 w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] max-w-none max-h-none z-[99999] bg-[var(--bg-card)] border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale'
+    : 'relative bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden shadow-xl flex flex-col transition-colors duration-300';
 
-  const mapHeight = isExpanded ? 'flex-1 h-full min-h-[480px]' : heightClass;
+  const canvasWrapperClasses = isExpanded
+    ? 'relative w-full flex-1 h-full min-h-[480px] overflow-hidden min-h-0'
+    : `relative w-full ${heightClass} overflow-hidden`;
 
   const filteredBusinessesCount = businesses.filter((b) => {
     if (selectedGovFilter !== 'all' && !b.governorate.includes(selectedGovFilter)) {
@@ -943,7 +976,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       {isExpanded && (
         <div
           onClick={() => setIsExpanded(false)}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[99998]"
         />
       )}
 
@@ -1292,10 +1325,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         )}
 
         {/* High-Performance Canvas Container */}
-        <div className="relative w-full overflow-hidden flex-1">
+        <div className={canvasWrapperClasses}>
           <div
             ref={containerRef}
-            className={`w-full ${mapHeight} z-10 cursor-crosshair`}
+            className="w-full h-full cursor-crosshair leaflet-map-canvas"
           />
 
           {/* 🎯 Precision Center Reticle Crosshair (Overlay in center of screen) */}

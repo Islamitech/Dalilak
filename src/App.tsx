@@ -541,7 +541,7 @@ export default function App() {
 
         {/* TAB 2: INTERACTIVE MAP OVERVIEW */}
         {activeTab === 'map' && (
-          <div className="space-y-4 pb-20 tab-content-enter">
+          <div className="space-y-4 pb-20">
             <InteractiveMap
               mode="view"
               businesses={scopedBusinesses}

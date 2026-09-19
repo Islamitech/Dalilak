@@ -53,31 +53,44 @@ export const GOVERNORATE_COORDS: Record<string, { lat: number; lng: number }> = 
   'جنوب سيناء (شرم الشيخ)': { lat: 27.9158, lng: 34.3299 },
 };
 
-// Tile layer URL resolver
+// Tile layer URL resolver with high-performance tile caching options
 export const getTileLayerConfig = (type: MapTileLayerType) => {
+  const commonOptions = {
+    keepBuffer: 8,
+    updateWhenIdle: false,
+    updateWhenZooming: false,
+    crossOrigin: true,
+  };
+
   switch (type) {
     case 'google-hybrid':
       return {
-        url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
         maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxNativeZoom: 20,
+        subdomains: ['0', '1', '2', '3'],
         attribution: 'Imagery © Google',
+        ...commonOptions,
       };
     case 'dalelak-clean':
       return {
         // CARTO Voyager: vibrant, modern, colorful streets, parks, water, and terrain with zero ad clutter
         url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        maxZoom: 19,
+        maxZoom: 20,
+        maxNativeZoom: 19,
         subdomains: 'abcd',
         attribution: '© خريطة دليلك الميدانية / CARTO / OpenStreetMap',
+        ...commonOptions,
       };
     case 'google-streets':
     default:
       return {
-        url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
         maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxNativeZoom: 20,
+        subdomains: ['0', '1', '2', '3'],
         attribution: 'Map data © Google',
+        ...commonOptions,
       };
   }
 };
