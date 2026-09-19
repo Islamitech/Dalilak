@@ -34,11 +34,14 @@ import {
   Crosshair,
   Navigation,
   Trash2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
 import { getApiAuthHeaders } from '../../../utils/storage';
 import { saveBusinessToDb } from '../../../services/db';
+import { normalizeArabicText } from '../../../utils/arabicSearch';
 import { classifyEntity, ClassifiedEntity, EntityBucket } from '../../../services/geo/entityClassifier';
 import { executeSpatialMeshScan, SpatialPlaceCandidate, generateSectorMicroGrid, GridCell } from '../../../services/geo/spatialMeshScanner';
 
@@ -657,7 +660,7 @@ const getIngestionSeenRecords = (): { seenIds: Set<string>; seenNames: Set<strin
     const namesArr: string[] = rawNames ? JSON.parse(rawNames) : [];
     return {
       seenIds: new Set(idsArr),
-      seenNames: new Set(namesArr.map((n) => n.trim().toLowerCase())),
+      seenNames: new Set(namesArr.map((n) => normalizeArabicText(n))),
     };
   } catch (e) {
     return { seenIds: new Set(), seenNames: new Set() };
@@ -669,8 +672,8 @@ const saveIngestionSeenRecords = (newPlaces: Array<{ id?: string; displayName?: 
     const { seenIds, seenNames } = getIngestionSeenRecords();
     newPlaces.forEach((p) => {
       if (p.id) seenIds.add(p.id);
-      const name = (p.displayName || '').trim().toLowerCase();
-      if (name.length > 3) seenNames.add(name);
+      const norm = normalizeArabicText(p.displayName || '');
+      if (norm.length > 2) seenNames.add(norm);
     });
     localStorage.setItem(INGESTION_SEEN_IDS_KEY, JSON.stringify(Array.from(seenIds)));
     localStorage.setItem(INGESTION_SEEN_NAMES_KEY, JSON.stringify(Array.from(seenNames)));
@@ -743,6 +746,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   const [metrics, setMetrics] = useState<BatchSearchMetrics | null>(null);
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<Set<string>>(new Set());
   const [filterOnlyQualified, setFilterOnlyQualified] = useState<boolean>(false);
+  const [showDuplicates, setShowDuplicates] = useState<boolean>(false);
   const [isIngesting, setIsIngesting] = useState<boolean>(false);
   const [ingestProgress, setIngestProgress] = useState<{ current: number; total: number } | null>(null);
   const [ingestionMessage, setIngestionMessage] = useState<string | null>(null);
@@ -904,13 +908,13 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         if (m) existingIds.add(m[1]);
       }
     });
-    const existingNames = new Set(businesses.map((b) => (b.nameAr || b.name || '').trim().toLowerCase()));
+    const existingNames = new Set(businesses.map((b) => normalizeArabicText(b.nameAr || b.name || '')));
 
     // دمج ذاكرة السحوبات السابقة إذا كان خيار منع التكرار مفعلاً
     if (autoExcludePreviousScans) {
       const history = getIngestionSeenRecords();
       history.seenIds.forEach((id) => existingIds.add(id));
-      history.seenNames.forEach((n) => existingNames.add(n));
+      history.seenNames.forEach((n) => existingNames.add(normalizeArabicText(n)));
     }
 
     // 🌐 النمط السيادي: التمشيط الشبكي الجغرافي الخالص (Pure Spatial Micro-Grid Mesh) دون نصوص أو مسميات
@@ -1080,7 +1084,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           for (const p of rawPlaces) {
             const placeId = p.id || '';
             const name = (p.displayName?.text || '').trim();
-            const lowerName = name.toLowerCase();
+            const normName = normalizeArabicText(name);
 
             // 🎯 الفاحص والفرز الرباعي للكيانات
             const classification = classifyEntity({
@@ -1108,15 +1112,15 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             }
 
             // فحص التكرار مع قاعدة البيانات ومع ما تم سحبه في هذا المسح
-            const isDupInDb = existingIds.has(placeId) || (name.length > 3 && existingNames.has(lowerName));
-            const isDupInScan = seenIdsInScan.has(placeId) || (name.length > 3 && seenNamesInScan.has(lowerName));
+            const isDupInDb = existingIds.has(placeId) || (normName.length > 2 && existingNames.has(normName));
+            const isDupInScan = seenIdsInScan.has(placeId) || (normName.length > 2 && seenNamesInScan.has(normName));
 
             if (isDupInScan) {
               continue; // تخطي التكرار الداخلي بين المحاور والبؤر
             }
 
             seenIdsInScan.add(placeId);
-            if (name.length > 3) seenNamesInScan.add(lowerName);
+            if (normName.length > 2) seenNamesInScan.add(normName);
 
             const isDuplicate = isDupInDb;
             if (isDuplicate) {
@@ -1287,15 +1291,19 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     }
   };
 
-  // Filtered displayed places with Quad-Bucket segregation
+  // Filtered displayed places with Quad-Bucket segregation and strict duplicate suppression
   const displayedPlaces = useMemo(() => {
     let list = candidatePlaces;
     if (activeBucketTab !== 'ALL') {
       list = list.filter((p) => p.bucket === activeBucketTab);
     }
+    // 🛡️ حجب واستبعاد المكرر المسجل مسبقاً افتراضياً لحماية الشاشة والمستخدم من التكرار
+    if (!showDuplicates) {
+      list = list.filter((p) => !p.isDuplicate);
+    }
     if (!filterOnlyQualified) return list;
-    return list.filter((p) => (p.bucket === 'COMMERCIAL' ? p.isQualityApproved : true) && !p.isDuplicate);
-  }, [candidatePlaces, activeBucketTab, filterOnlyQualified]);
+    return list.filter((p) => (p.bucket === 'COMMERCIAL' ? p.isQualityApproved : true));
+  }, [candidatePlaces, activeBucketTab, filterOnlyQualified, showDuplicates]);
 
   // Selection toggles
   const handleToggleSelectAll = () => {
@@ -1872,7 +1880,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
                 activeBucketTab === 'COMMERCIAL' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-emerald-500/20 text-emerald-400'
               }`}>
-                {candidatePlaces.filter((p) => p.bucket === 'COMMERCIAL').length}
+                {showDuplicates
+                  ? candidatePlaces.filter((p) => p.bucket === 'COMMERCIAL').length
+                  : candidatePlaces.filter((p) => p.bucket === 'COMMERCIAL' && !p.isDuplicate).length}
               </span>
             </button>
 
@@ -1890,7 +1900,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
                 activeBucketTab === 'RESIDENTIAL' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-blue-500/20 text-blue-400'
               }`}>
-                {candidatePlaces.filter((p) => p.bucket === 'RESIDENTIAL').length}
+                {showDuplicates
+                  ? candidatePlaces.filter((p) => p.bucket === 'RESIDENTIAL').length
+                  : candidatePlaces.filter((p) => p.bucket === 'RESIDENTIAL' && !p.isDuplicate).length}
               </span>
             </button>
 
@@ -1908,7 +1920,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
                 activeBucketTab === 'INFRASTRUCTURE' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-amber-500/20 text-amber-400'
               }`}>
-                {candidatePlaces.filter((p) => p.bucket === 'INFRASTRUCTURE').length}
+                {showDuplicates
+                  ? candidatePlaces.filter((p) => p.bucket === 'INFRASTRUCTURE').length
+                  : candidatePlaces.filter((p) => p.bucket === 'INFRASTRUCTURE' && !p.isDuplicate).length}
               </span>
             </button>
 
@@ -1926,7 +1940,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
                 activeBucketTab === 'CIVIC' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-purple-500/20 text-purple-400'
               }`}>
-                {candidatePlaces.filter((p) => p.bucket === 'CIVIC').length}
+                {showDuplicates
+                  ? candidatePlaces.filter((p) => p.bucket === 'CIVIC').length
+                  : candidatePlaces.filter((p) => p.bucket === 'CIVIC' && !p.isDuplicate).length}
               </span>
             </button>
 
@@ -1943,19 +1959,21 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
                 activeBucketTab === 'ALL' ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-slate-700 text-slate-300'
               }`}>
-                {candidatePlaces.length}
+                {showDuplicates
+                  ? candidatePlaces.length
+                  : candidatePlaces.filter((p) => !p.isDuplicate).length}
               </span>
             </button>
           </div>
 
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
               <button
                 type="button"
                 onClick={handleToggleSelectAll}
                 className="flex items-center gap-2 text-xs font-black text-[var(--text-primary)] hover:text-amber-500 transition-colors cursor-pointer"
               >
-                {selectedPlaceIds.size === displayedPlaces.length ? (
+                {selectedPlaceIds.size === displayedPlaces.length && displayedPlaces.length > 0 ? (
                   <CheckSquare className="w-4 h-4 text-amber-500" />
                 ) : (
                   <Square className="w-4 h-4 text-slate-400" />
@@ -1973,6 +1991,30 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 }`}
               >
                 {filterOnlyQualified ? 'عرض المؤهل فقط' : 'عرض كافة النتائج'}
+              </button>
+
+              {/* 🛡️ خيار عرض أو حجب المنشآت المكررة المحمية */}
+              <button
+                type="button"
+                onClick={() => setShowDuplicates(!showDuplicates)}
+                className={`text-xs font-black px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
+                  showDuplicates
+                    ? 'bg-rose-500/15 text-rose-300 border-rose-500/40 shadow-sm'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                }`}
+                title={showDuplicates ? 'إخفاء المنشآت المسجلة مسبقاً' : 'عرض المنشآت المسجلة مسبقاً لمراجعتها'}
+              >
+                {showDuplicates ? (
+                  <>
+                    <Eye className="w-3.5 h-3.5 text-rose-400" />
+                    <span>عرض المكرر مفعّل ({candidatePlaces.filter(p => p.isDuplicate).length})</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>المكرر محجوب ({candidatePlaces.filter(p => p.isDuplicate).length} مستبعد)</span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -2017,7 +2059,32 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             </div>
           )}
 
-          {/* Places Grid */}
+          {/* Places Grid or All-Duplicates Clean Slate Banner */}
+          {displayedPlaces.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center bg-slate-900/60 border border-emerald-500/30 rounded-3xl space-y-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-black text-white">
+                  القطاع مكتمل ونظيف 100% (لا توجد أي منشآت جديدة غير مسجلة)
+                </h4>
+                <p className="text-xs text-slate-300 max-w-lg mx-auto leading-relaxed">
+                  كافة المنشآت المستخرجة ({candidatePlaces.length} منشأة) مسجلة مسبقاً في المنظومة أو تم سحبها وحمايتها بالذاكرة. تم استبعادها تلقائياً لمنع أي تكرار وتوفير الكوتا 100%.
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicates(true)}
+                  className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>معاينة المنشآت المستبعدة المسجلة مسبقاً ({candidatePlaces.filter(p => p.isDuplicate).length})</span>
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayedPlaces.map((p) => {
               const isSelected = selectedPlaceIds.has(p.id);
@@ -2106,6 +2173,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               );
             })}
           </div>
+          )}
         </div>
       )}
     </div>

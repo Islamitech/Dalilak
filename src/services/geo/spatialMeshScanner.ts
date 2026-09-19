@@ -9,6 +9,7 @@
  */
 
 import { classifyEntity, ClassifiedEntity, EntityBucket } from './entityClassifier';
+import { normalizeArabicText } from '../../utils/arabicSearch';
 
 export interface BoundingBox {
   southLat: number;
@@ -251,18 +252,18 @@ export async function executeSpatialMeshScan(
           for (const p of rawPlaces) {
             const placeId = p.id || '';
             const name = (p.displayName?.text || '').trim();
-            const lowerName = name.toLowerCase();
+            const normName = normalizeArabicText(name);
 
             // فحص التكرار الداخلي بين خلايا وطبقات الشبكة المكانية
-            if (seenIds.has(placeId) || (name.length > 3 && seenNames.has(lowerName))) {
+            if (seenIds.has(placeId) || (normName.length > 2 && seenNames.has(normName))) {
               continue;
             }
 
             seenIds.add(placeId);
-            if (name.length > 3) seenNames.add(lowerName);
+            if (normName.length > 2) seenNames.add(normName);
 
             // فحص التكرار مع قاعدة البيانات المسبقة ومع أرشيف ما تم سحبه
-            const isDuplicate = existingPlaceIds.has(placeId) || (name.length > 3 && existingNames.has(lowerName));
+            const isDuplicate = existingPlaceIds.has(placeId) || (normName.length > 2 && existingNames.has(normName));
             if (isDuplicate) {
               duplicatesCount++;
             }
