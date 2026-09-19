@@ -721,7 +721,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   
   // 🔢 نمط السحب: مسح شامل للقطاع (بدون حد أقصى) أو تحديد عدد معين
   const [isExhaustiveAtlasMode, setIsExhaustiveAtlasMode] = useState<boolean>(true);
-  const [pullCount, setPullCount] = useState<number>(20);
+  const [pullCount, setPullCount] = useState<number>(100); // 100 منشأة كحد أقصى لكل دفعة استيراد
   const [customScanRadius, setCustomScanRadius] = useState<number>(300); // نصف قطر المسح الجغرافي بالأمتار (افتراضي مركز 300م)
   const [gridDensity, setGridDensity] = useState<'standard' | 'deep'>('deep'); // 2x2 standard (4 خلايا) أو 3x3 deep (9 خلايا مكثفة للأزقة)
   const [autoExcludePreviousScans, setAutoExcludePreviousScans] = useState<boolean>(true); // حظر سحب ما تم سحبه سابقاً
@@ -1628,17 +1628,23 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={5}
-                  max={200}
-                  step={5}
-                  value={pullCount}
-                  onChange={(e) => setPullCount(Math.max(5, Number(e.target.value) || 20))}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden font-mono text-center"
-                />
-                <span className="text-xs font-bold text-[var(--text-muted)] shrink-0">مكان كحد أقصى</span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={10}
+                    max={500}
+                    step={10}
+                    value={pullCount}
+                    onChange={(e) => setPullCount(Math.max(10, Math.min(500, Number(e.target.value) || 100)))}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden font-mono text-center"
+                  />
+                  <span className="text-xs font-bold text-[var(--text-muted)] shrink-0">منشأة في الدفعة</span>
+                </div>
+                <div className="text-[9.5px] text-emerald-400 font-bold flex items-center justify-between px-1">
+                  <span>💡 رصد كافة المنشآت بدون تعليق</span>
+                  <span>(100 منشأة لكل استيراد)</span>
+                </div>
               </div>
             )}
           </div>
@@ -2016,6 +2022,21 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 )}
                 <span>تحديد الكل ({displayedPlaces.length})</span>
               </button>
+
+              {displayedPlaces.length > 100 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const top100 = displayedPlaces.slice(0, 100).map((p) => p.id);
+                    setSelectedPlaceIds(new Set(top100));
+                    if (onShowNotification) onShowNotification('تم تحديد دفعة الـ 100 منشأة الأولى للاستيراد الآمن', 'info');
+                  }}
+                  className="text-xs font-black px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                  title="تحديد دفعة آمنة ومدروسة تقتصر على أول 100 منشأة لمنع الضغط والتعليق"
+                >
+                  ⚡ تحديد أول 100 منشأة
+                </button>
+              )}
 
               <button
                 type="button"
