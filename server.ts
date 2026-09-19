@@ -1662,6 +1662,86 @@ app.post('/api/admin/places-photo-rotate', async (req, res) => {
 });
 
 // =============================================================================
+// إثراء تفاصيل الأعمال (Enrichment Step) - صورة، هاتف، تقييم، ساعات عمل
+// =============================================================================
+app.post('/api/admin/places-enrich', async (req, res) => {
+  try {
+    const reqUser = getRequestUser(req);
+    const isSuper = isRequestSuperAdmin(req);
+    if (!isSuper && (!reqUser || reqUser.role !== 'admin')) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مصرح: عملية الإثراء مخصصة للإدارة حصراً',
+      });
+    }
+
+    const { googlePlaceId, placeName } = req.body;
+    if (!googlePlaceId) {
+      return res.status(400).json({ success: false, error: 'يرجى تقديم معرف المكان googlePlaceId' });
+    }
+
+    // جلب التفاصيل من Google Places API v1
+    const detailsUrl = `https://places.googleapis.com/v1/places/${encodeURIComponent(googlePlaceId)}`;
+    const dRes = await fetch(detailsUrl, {
+      headers: {
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': 'id,photos,internationalPhoneNumber,nationalPhoneNumber,rating,userRatingCount,regularOpeningHours',
+      },
+    });
+
+    if (!dRes.ok) {
+      throw new Error(`Google API responded with status ${dRes.status}`);
+    }
+
+    const pData = await dRes.json();
+
+    // 1. استخراج الصورة الأولى (إن وجدت) باستخدام skipHttpRedirect
+    let photo = '';
+    if (pData.photos && Array.isArray(pData.photos) && pData.photos.length > 0) {
+      const photoItem = pData.photos[0];
+      if (photoItem && photoItem.name) {
+        const mediaUrl = `https://places.googleapis.com/v1/${photoItem.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_PLACES_API_KEY}&skipHttpRedirect=true`;
+        const mRes = await fetch(mediaUrl);
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          if (mData?.photoUri && typeof mData.photoUri === 'string') {
+            photo = mData.photoUri;
+          }
+        }
+      }
+    }
+
+    // 2. استخراج رقم الهاتف
+    const phone = pData.internationalPhoneNumber || pData.nationalPhoneNumber || '';
+
+    // 3. التقييم وعدد التقييمات
+    const rating = pData.rating || 0;
+    const ratingCount = pData.userRatingCount || 0;
+
+    // 4. استخراج أوقات العمل
+    let workingHours = '';
+    if (pData.regularOpeningHours?.weekdayDescriptions && Array.isArray(pData.regularOpeningHours.weekdayDescriptions)) {
+      workingHours = pData.regularOpeningHours.weekdayDescriptions.join('\n');
+    }
+
+    return res.json({
+      success: true,
+      photo,
+      phone,
+      rating,
+      ratingCount,
+      workingHours,
+    });
+  } catch (err: any) {
+    console.error('Places enrich server error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'حدث خطأ أثناء عملية إثراء المكان',
+    });
+  }
+});
+
+// =============================================================================
 // 📢 WHATSAPP GATEWAY PROXY TO STANDALONE LOCAL SERVICE (Port 3005)
 // (خدمة الواتساب تعمل بشكل مستقل ومحلي تماماً على المنفذ 3005 عبر تشغيل_سيرفر_الواتساب.bat)
 // =============================================================================

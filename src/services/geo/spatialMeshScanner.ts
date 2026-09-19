@@ -351,172 +351,189 @@ export async function executeSpatialMeshScan(
   // نمطا الترتيب لجوجل لتغطية 100% من المنشآت: الافتراضي (الشهرة) + المسافة الجغرافية
   const rankingPasses = options?.enableDeepStratumScan ? [undefined, 'DISTANCE'] : [undefined];
 
-  for (let cIdx = 0; cIdx < cells.length; cIdx++) {
-    const cell = cells[cIdx];
-    const scanRadius = options?.customRadiusMeters || cell.radiusMeters;
+  // 🔍 حلقة التنويع الفئوي: عند اختيار "الكل"، نمشّط كل فئة على حدة لتفادي حد 20 نتيجة العام
+  const categoryPasses: Array<{ key: string | null; types: string[] | undefined }> = [];
+  if (!targetPrimaryTypes && options?.categoryType === 'all') {
+    // تمشيط شامل: كل فئة من الفئات الـ15 بشكل مستقل
+    for (const [catKey, catTypes] of Object.entries(CATEGORY_GOOGLE_PRIMARY_TYPES)) {
+      categoryPasses.push({ key: catKey, types: catTypes });
+    }
+  } else {
+    // فئة محددة أو بدون تصنيف: تمريرة واحدة
+    categoryPasses.push({ key: null, types: targetPrimaryTypes });
+  }
 
-    for (let rIdx = 0; rIdx < rankingPasses.length; rIdx++) {
-      const rankPref = rankingPasses[rIdx];
-      const passName = rankPref === 'DISTANCE' ? 'المسافة الجغرافية' : 'المعيار القياسي';
+  for (let catPassIdx = 0; catPassIdx < categoryPasses.length; catPassIdx++) {
+    const currentCatPass = categoryPasses[catPassIdx];
 
-      if (options?.onProgress) {
-        options.onProgress(
-          `مسح الخلية (${cIdx + 1}/${cells.length}) - طبقة ${passName} [${cell.centerLat.toFixed(4)}, ${cell.centerLng.toFixed(4)}] بنطاق ${scanRadius}م...`,
-          allRaw.length
-        );
-      }
+    for (let cIdx = 0; cIdx < cells.length; cIdx++) {
+      const cell = cells[cIdx];
+      const scanRadius = options?.customRadiusMeters || cell.radiusMeters;
 
-      // استدعاء places:searchNearby بنمط الإحداثيات الصرفة مع دعم الفلترة التخصصية
-      const nearbyBody: Record<string, unknown> = {
-        maxResultCount: 20,
-        languageCode: 'ar',
-        locationRestriction: {
-          circle: {
-            center: {
-              latitude: cell.centerLat,
-              longitude: cell.centerLng,
+      for (let rIdx = 0; rIdx < rankingPasses.length; rIdx++) {
+        const rankPref = rankingPasses[rIdx];
+        const passName = rankPref === 'DISTANCE' ? 'المسافة الجغرافية' : 'المعيار القياسي';
+
+        if (options?.onProgress) {
+          const catLabel = currentCatPass.key || 'عام';
+          options.onProgress(
+            `مسح الخلية (${cIdx + 1}/${cells.length}) - فئة: ${catLabel} - طبقة ${passName} [${cell.centerLat.toFixed(4)}, ${cell.centerLng.toFixed(4)}] بنطاق ${scanRadius}م — إجمالي المرصود: ${allRaw.length}...`,
+            allRaw.length
+          );
+        }
+
+        // استدعاء places:searchNearby بنمط الإحداثيات الصرفة مع دعم الفلترة التخصصية
+        const nearbyBody: Record<string, unknown> = {
+          maxResultCount: 20,
+          languageCode: 'ar',
+          locationRestriction: {
+            circle: {
+              center: {
+                latitude: cell.centerLat,
+                longitude: cell.centerLng,
+              },
+              radius: scanRadius,
             },
-            radius: scanRadius,
           },
-        },
-      };
+        };
 
-      if (targetPrimaryTypes && targetPrimaryTypes.length > 0) {
-        nearbyBody.includedPrimaryTypes = targetPrimaryTypes;
-      }
+        if (currentCatPass.types && currentCatPass.types.length > 0) {
+          nearbyBody.includedPrimaryTypes = currentCatPass.types;
+        }
 
-      if (rankPref) {
-        nearbyBody.rankPreference = rankPref;
-      }
+        if (rankPref) {
+          nearbyBody.rankPreference = rankPref;
+        }
 
-      try {
-        const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': apiKey,
-            'X-Goog-FieldMask': activeFieldMask,
-          },
-          body: JSON.stringify(nearbyBody),
-        });
+        try {
+          const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': apiKey,
+              'X-Goog-FieldMask': activeFieldMask,
+            },
+            body: JSON.stringify(nearbyBody),
+          });
 
-        apiCallsCount++;
+          apiCallsCount++;
 
-        if (res.ok) {
-          const data = await res.json();
-          const rawPlaces = Array.isArray(data.places) ? data.places : [];
-          totalRawFound += rawPlaces.length;
+          if (res.ok) {
+            const data = await res.json();
+            const rawPlaces = Array.isArray(data.places) ? data.places : [];
+            totalRawFound += rawPlaces.length;
 
-          for (const p of rawPlaces) {
-            const placeId = p.id || '';
-            const name = (p.displayName?.text || '').trim();
-            const normName = normalizeArabicText(name);
+            for (const p of rawPlaces) {
+              const placeId = p.id || '';
+              const name = (p.displayName?.text || '').trim();
+              const normName = normalizeArabicText(name);
 
-            // فحص التكرار الداخلي بين خلايا وطبقات الشبكة المكانية
-            if (seenIds.has(placeId) || (normName.length > 2 && seenNames.has(normName))) {
-              continue;
-            }
-
-            seenIds.add(placeId);
-            if (normName.length > 2) seenNames.add(normName);
-
-            // فحص التكرار مع قاعدة البيانات المسبقة ومع أرشيف ما تم سحبه
-            const isDuplicate = existingPlaceIds.has(placeId) || (normName.length > 2 && existingNames.has(normName));
-            if (isDuplicate) {
-              duplicatesCount++;
-            }
-
-            const primaryType = p.primaryType || '';
-            const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
-            const rating = typeof p.rating === 'number' ? p.rating : 0;
-            const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
-            const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
-            const formattedAddress = p.formattedAddress || '';
-            const lat = p.location?.latitude || cell.centerLat;
-            const lng = p.location?.longitude || cell.centerLng;
-            const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
-
-            // 🎯 التصنيف والفرز الرباعي التلقائي
-            const classification = classifyEntity({
-              id: placeId,
-              displayName: name,
-              formattedAddress,
-              primaryType,
-              primaryTypeDisplayName,
-              types: Array.isArray(p.types) ? p.types : [],
-              lat,
-              lng,
-            });
-
-            let coverPhoto: string | undefined = undefined;
-            if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
-              const photoName = p.photos[0].name;
-              if (photoName) {
-                coverPhoto = `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${apiKey}`;
+              // فحص التكرار الداخلي بين خلايا وطبقات الشبكة المكانية
+              if (seenIds.has(placeId) || (normName.length > 2 && seenNames.has(normName))) {
+                continue;
               }
-            }
 
-            let workingHours: string | undefined = undefined;
-            if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
-              const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
-              if (todayDesc) {
-                workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
+              seenIds.add(placeId);
+              if (normName.length > 2) seenNames.add(normName);
+
+              // فحص التكرار مع قاعدة البيانات المسبقة ومع أرشيف ما تم سحبه
+              const isDuplicate = existingPlaceIds.has(placeId) || (normName.length > 2 && existingNames.has(normName));
+              if (isDuplicate) {
+                duplicatesCount++;
               }
-            }
 
-            // الكيانات تسحب كبيانات خام غير معتمدة تلقائياً لفرزها يدوياً
-            const candidate: SpatialPlaceCandidate = {
-              id: placeId,
-              displayName: name,
-              category: classification.categoryLabelAr,
-              primaryType,
-              primaryTypeDisplayName,
-              formattedAddress,
-              lat,
-              lng,
-              phone,
-              rating,
-              userRatingCount,
-              workingHours,
-              googleMapsUri,
-              coverPhoto,
-              photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
-              isDuplicate,
-              isQualityApproved: false, // سحب خام لفرزه يدوياً
-              qualityBadgeText: isDuplicate 
-                ? 'مسجل مسبقاً (مكرر محفوظ)' 
-                : `${classification.bucketLabelAr} ⭐ ${rating > 0 ? rating : 'جديد'}`,
-              isCraft: !!classification.metadata.isCraft,
-              bucket: classification.bucket,
-              bucketLabelAr: classification.bucketLabelAr,
-              classification,
-            };
+              const primaryType = p.primaryType || '';
+              const primaryTypeDisplayName = p.primaryTypeDisplayName?.text || '';
+              const rating = typeof p.rating === 'number' ? p.rating : 0;
+              const userRatingCount = typeof p.userRatingCount === 'number' ? p.userRatingCount : 0;
+              const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
+              const formattedAddress = p.formattedAddress || '';
+              const lat = p.location?.latitude || cell.centerLat;
+              const lng = p.location?.longitude || cell.centerLng;
+              const googleMapsUri = p.googleMapsUri || (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : '');
 
-            allRaw.push(candidate);
+              // 🎯 التصنيف والفرز الرباعي التلقائي
+              const classification = classifyEntity({
+                id: placeId,
+                displayName: name,
+                formattedAddress,
+                primaryType,
+                primaryTypeDisplayName,
+                types: Array.isArray(p.types) ? p.types : [],
+                lat,
+                lng,
+              });
 
-            // الفرز إلى الأوعية الأربعة
-            switch (classification.bucket) {
-              case 'COMMERCIAL':
-                commercial.push(candidate);
-                break;
-              case 'RESIDENTIAL':
-                residential.push(candidate);
-                break;
-              case 'INFRASTRUCTURE':
-                infrastructure.push(candidate);
-                break;
-              case 'CIVIC':
-                civic.push(candidate);
-                break;
+              let coverPhoto: string | undefined = undefined;
+              if (p.photos && Array.isArray(p.photos) && p.photos.length > 0) {
+                const photoName = p.photos[0].name;
+                if (photoName) {
+                  coverPhoto = `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=1600&maxWidthPx=1600&key=${apiKey}`;
+                }
+              }
+
+              let workingHours: string | undefined = undefined;
+              if (p.regularOpeningHours?.weekdayDescriptions && Array.isArray(p.regularOpeningHours.weekdayDescriptions)) {
+                const todayDesc = p.regularOpeningHours.weekdayDescriptions[0];
+                if (todayDesc) {
+                  workingHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '').replace(/^[^\s:]+:\s*/, '');
+                }
+              }
+
+              // الكيانات تسحب كبيانات خام غير معتمدة تلقائياً لفرزها يدوياً
+              const candidate: SpatialPlaceCandidate = {
+                id: placeId,
+                displayName: name,
+                category: classification.categoryLabelAr,
+                primaryType,
+                primaryTypeDisplayName,
+                formattedAddress,
+                lat,
+                lng,
+                phone,
+                rating,
+                userRatingCount,
+                workingHours,
+                googleMapsUri,
+                coverPhoto,
+                photosCount: Array.isArray(p.photos) ? p.photos.length : 0,
+                isDuplicate,
+                isQualityApproved: false, // سحب خام لفرزه يدوياً
+                qualityBadgeText: isDuplicate 
+                  ? 'مسجل مسبقاً (مكرر محفوظ)' 
+                  : `${classification.bucketLabelAr} ⭐ ${rating > 0 ? rating : 'جديد'}`,
+                isCraft: !!classification.metadata.isCraft,
+                bucket: classification.bucket,
+                bucketLabelAr: classification.bucketLabelAr,
+                classification,
+              };
+
+              allRaw.push(candidate);
+
+              // الفرز إلى الأوعية الأربعة
+              switch (classification.bucket) {
+                case 'COMMERCIAL':
+                  commercial.push(candidate);
+                  break;
+                case 'RESIDENTIAL':
+                  residential.push(candidate);
+                  break;
+                case 'INFRASTRUCTURE':
+                  infrastructure.push(candidate);
+                  break;
+                case 'CIVIC':
+                  civic.push(candidate);
+                  break;
+              }
             }
           }
+        } catch (err) {
+          console.warn('Pure spatial cell scan error:', err);
         }
-      } catch (err) {
-        console.warn('Pure spatial cell scan error:', err);
-      }
 
-      // مهلة قصيرة بين استدعاءات الخلايا لضمان استقرار الشبكة
-      await new Promise((r) => setTimeout(r, 150));
+        // مهلة قصيرة بين استدعاءات الخلايا لضمان استقرار الشبكة
+        await new Promise((r) => setTimeout(r, 150));
+      }
     }
   }
 

@@ -748,6 +748,10 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<Set<string>>(new Set());
   const [filterOnlyQualified, setFilterOnlyQualified] = useState<boolean>(false);
   const [showDuplicates, setShowDuplicates] = useState<boolean>(false);
+   // 🎯 آلة الحالة المرحلية: تتبع واضح لمراحل عمل المحرك
+  type EnginePhase = 'IDLE' | 'SCANNING' | 'DISCOVERED' | 'INGESTING' | 'DONE';
+  const [enginePhase, setEnginePhase] = useState<EnginePhase>('IDLE');
+
   const [isIngesting, setIsIngesting] = useState<boolean>(false);
   const [ingestProgress, setIngestProgress] = useState<{ current: number; total: number } | null>(null);
   const [ingestionMessage, setIngestionMessage] = useState<string | null>(null);
@@ -1251,6 +1255,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   // 🚀 تشغيل المسح المباشر بنمط أطلس حدائق الأهرام
   const handleExecuteScan = async () => {
     setIsScanning(true);
+    setEnginePhase('SCANNING');
     setMetrics(null);
     setCandidatePlaces([]);
     setSelectedPlaceIds(new Set());
@@ -1270,16 +1275,18 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         setCandidatePlaces(data.places);
         setMetrics(data.metrics);
 
-        // حفظ الكيانات في الذاكرة التراكمية الدائمة لضمان عدم تكرار ظهورها في السحبات القادمة
-        saveIngestionSeenRecords(data.places);
+        // 🛡️ لا نحفظ في الذاكرة هنا — فقط عند الحقن الفعلي لمنع حرق المنشآت غير المستوردة
         setSeenHistoryCount(getIngestionSeenRecords().seenIds.size);
 
         // لا نقوم بالتحديد التلقائي؛ لتمكين المستخدم من الفرز اليدوي المخصص وتحديد ما يُعتمد
         setSelectedPlaceIds(new Set());
 
+        // ✅ الانتقال لمرحلة الاستكشاف المكتمل — البانر الثابت سيظهر تلقائياً
+        setEnginePhase('DISCOVERED');
+
         const newCount = data.places.filter((p) => !p.isDuplicate).length;
         const dupCount = data.places.filter((p) => p.isDuplicate).length;
-        const msg = `🏛️ تم استخراج ${data.places.length} كياناً في ${currentSector.subZone} (${newCount} منشأة جديدة بالكامل، و ${dupCount} مكرر تم استبعاده وحمايته من الهدر).`;
+        const msg = `🏛️ تم استكشاف ${data.places.length} كياناً في ${currentSector.subZone} (${newCount} منشأة جديدة بالكامل، و ${dupCount} مكرر تم استبعاده وحمايته من الهدر).`;
         if (onShowNotification) onShowNotification(msg, 'success');
       } else {
         throw new Error('لم يتم استلام أي نتائج من محرك خرائط Google');
@@ -1287,6 +1294,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     } catch (err: any) {
       const errMsg = err?.message || 'فشل الاتصال بمحرك البحث لخرائط Google';
       if (onShowNotification) onShowNotification(errMsg, 'error');
+      setEnginePhase('IDLE');
     } finally {
       setIsScanning(false);
       setScanChunkStatus(null);
@@ -1344,13 +1352,42 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       return;
     }
     setIsIngesting(true);
+    setEnginePhase('INGESTING');
     setIngestProgress({ current: 0, total: placesToIngest.length });
 
     let successCount = 0;
+    const ingestedPlaces: typeof placesToIngest = [];
     try {
       for (let i = 0; i < placesToIngest.length; i++) {
         const p = placesToIngest[i];
         setIngestProgress({ current: i + 1, total: placesToIngest.length });
+
+        // 🔄 خطوة الإثراء: جلب الصور والتفاصيل المتقدمة من Google عبر السيرفر الآمن
+        let enrichedPhoto = p.coverPhoto;
+        let enrichedPhone = p.phone || '';
+        let enrichedRating = p.rating || 0;
+        let enrichedRatingCount = p.userRatingCount || 0;
+        let enrichedHours = p.workingHours;
+
+        try {
+          const enrichRes = await fetch('/api/admin/places-enrich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ googlePlaceId: p.id, placeName: p.displayName }),
+          });
+          if (enrichRes.ok) {
+            const enrichData = await enrichRes.json();
+            if (enrichData.success) {
+              enrichedPhoto = enrichData.photo || enrichedPhoto;
+              enrichedPhone = enrichData.phone || enrichedPhone;
+              enrichedRating = enrichData.rating || enrichedRating;
+              enrichedRatingCount = enrichData.ratingCount || enrichedRatingCount;
+              enrichedHours = enrichData.workingHours || enrichedHours;
+            }
+          }
+        } catch (enrichErr) {
+          console.warn('⚠️ فشل إثراء بيانات المنشأة (سيتم الحفظ بالبيانات المتاحة):', p.id, enrichErr);
+        }
 
         const resolvedGov = isExpansionHubActive ? FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex]?.gov || 'الجيزة' : 'الجيزة';
         const resolvedCity = isExpansionHubActive ? FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex]?.city || 'حدائق الأهرام' : 'حدائق الأهرام';
@@ -1369,15 +1406,15 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           city: resolvedCity,
           street: resolvedStreet,
           landmark: resolvedLandmark,
-          phone: p.phone || '',
-          workingHours: p.workingHours || 'يومياً: 09:00 ص - 11:00 م',
+          phone: enrichedPhone,
+          workingHours: enrichedHours || 'يومياً: 09:00 ص - 11:00 م',
           description: `${p.displayName} - منشأة موثقة في دليل وأطلس حدائق الأهرام (${currentSector.subZone})`,
           lat: p.lat || currentSector.lat,
           lng: p.lng || currentSector.lng,
           ownerName: `إدارة ${p.displayName}`,
-          ownerPhone: p.phone || '',
-          photos: p.coverPhoto ? [p.coverPhoto] : [],
-          coverPhoto: p.coverPhoto,
+          ownerPhone: enrichedPhone,
+          photos: enrichedPhoto ? [enrichedPhoto] : [],
+          coverPhoto: enrichedPhoto,
           repId: currentUser.id || 'admin_platform',
           repName: 'إدارة أطلس دليلك',
           packageId: 'pkg_exempt',
@@ -1392,9 +1429,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           isAlreadyOnGoogle: true,
           googlePlaceId: p.id,
           googleMapsUrl: p.googleMapsUri || (p.id ? `https://www.google.com/maps/place/?q=place_id:${p.id}` : ''),
-          googleRatingEnabled: true,
-          googleRating: p.rating,
-          googleReviewsCount: p.userRatingCount,
+          googleRatingEnabled: enrichedRating > 0,
+          googleRating: enrichedRating,
+          googleReviewsCount: enrichedRatingCount,
           invoiceNumber: `ATL-${Date.now().toString().slice(-6)}`,
           invoiceDate: new Date().toISOString().split('T')[0],
           createdDate: new Date().toISOString(),
@@ -1410,20 +1447,29 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           await saveBusinessToDb(newBiz);
         }
         successCount++;
+        ingestedPlaces.push(p);
       }
 
       const finishMsg = `🎉 تم بنجاح توثيق وحقن ${successCount} منشأة شرفية جديدة في أطلس ${currentSector.subZone}!`;
       setIngestionMessage(finishMsg);
       if (onShowNotification) onShowNotification(finishMsg, 'success');
 
+      // 🛡️ حفظ المنشآت المحقونة فعلاً فقط في ذاكرة منع التكرار (وليس كل المكتشفة)
+      if (ingestedPlaces.length > 0) {
+        saveIngestionSeenRecords(ingestedPlaces);
+        setSeenHistoryCount(getIngestionSeenRecords().seenIds.size);
+      }
+
       // Update candidates to mark ingested
       setCandidatePlaces((prev) =>
         prev.map((c) => (selectedPlaceIds.has(c.id) ? { ...c, isDuplicate: true } : c))
       );
       setSelectedPlaceIds(new Set());
+      setEnginePhase('DONE');
     } catch (err: any) {
       const errMsg = `حدث خطأ أثناء الاستيراد: ${err?.message || 'تعذر استكمال حفظ المنشآت'}`;
       if (onShowNotification) onShowNotification(errMsg, 'error');
+      setEnginePhase('DISCOVERED');
     } finally {
       setIsIngesting(false);
       setIngestProgress(null);
@@ -1722,16 +1768,16 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 type="button"
                 disabled={isScanning}
                 onClick={handleExecuteScan}
-                className="w-full h-full min-h-[44px] bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-full min-h-[44px] bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-600 hover:from-indigo-600 hover:to-blue-600 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isScanning ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>جارٍ المسح الجغرافي...</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جارٍ الاستكشاف والمسح الجغرافي...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 fill-current text-slate-950" />
+                    <Sparkles className="w-4 h-4 fill-current" />
                     <span>بدء الاستكشاف والرصد المكاني (مجاني 100%)</span>
                   </>
                 )}
@@ -1906,6 +1952,74 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
       {/* ── BATCH INGESTION ACTION BAR & CANDIDATE LIST ── */}
       {candidatePlaces.length > 0 && (
         <div className="space-y-4">
+          {/* ── WORKFLOW STEPPER & MILESTONE COMPLETION BANNER ── */}
+          <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-slate-900/70 to-slate-900/90 p-5 sm:p-6 shadow-xl space-y-4">
+            {/* Stepper indicator */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-indigo-500/20 pb-4">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-black border border-indigo-500/40">
+                  1
+                </span>
+                <span className="text-xs font-black text-indigo-300">
+                  المرحلة الأولى: الاستكشاف والرصد المكاني (مجاني 100%)
+                </span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
+                  ✅ تم الاستكشاف
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-black border border-emerald-500/40">
+                  2
+                </span>
+                <span className="text-xs font-black text-emerald-300">
+                  المرحلة الثانية: تحديد وسحب البيانات (100 ثم 100) بالصور الكاملة
+                </span>
+              </div>
+            </div>
+
+            {/* Main Discovery Announcement */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎉</span>
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    اكتمل الاستكشاف: تم رصد{' '}
+                    <span className="text-indigo-400 font-mono text-xl sm:text-2xl underline decoration-indigo-500/50">
+                      {candidatePlaces.length.toLocaleString('ar-EG')}
+                    </span>{' '}
+                    منشأة وكيان في {currentSector.subZone}!
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                  الاستكشاف مجاني 100% (لم يتم خصم أي تكلفة). يتوفر{' '}
+                  <strong className="text-emerald-400 font-mono">
+                    {candidatePlaces.filter(p => p.bucket === 'COMMERCIAL' && (!showDuplicates ? !p.isDuplicate : true)).length}
+                  </strong>{' '}
+                  نشاط تجاري مؤهل للسحب. سيتم سحب الصور الكاملة، الهاتف، والتقييمات تلقائياً عبر السيرفر لكل دفعة تسحبها.
+                </p>
+              </div>
+
+              {/* Quick action button */}
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const commercialOnly = candidatePlaces.filter(p => p.bucket === 'COMMERCIAL' && (!showDuplicates ? !p.isDuplicate : true));
+                    const top100 = commercialOnly.slice(0, 100).map((p) => p.id);
+                    setSelectedPlaceIds(new Set(top100));
+                    setActiveBucketTab('COMMERCIAL');
+                    if (onShowNotification) {
+                      onShowNotification(`تم تحديد دفعة الـ ${top100.length} منشأة الأولى — اضغط زر السحب بالأسفل لحقنها بالصور!`, 'info');
+                    }
+                  }}
+                  className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs px-5 py-3 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>⚡ تحديد أول 100 منشأة للبدء بالسحب</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* ── QUAD-BUCKET SEGREGATION TABS ── */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[var(--border-color)]">
             <button
@@ -2023,18 +2137,18 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 <span>تحديد الكل ({displayedPlaces.length})</span>
               </button>
 
-              {displayedPlaces.length > 100 && (
+              {displayedPlaces.length > 0 && (
                 <button
                   type="button"
                   onClick={() => {
-                    const top100 = displayedPlaces.slice(0, 100).map((p) => p.id);
-                    setSelectedPlaceIds(new Set(top100));
-                    if (onShowNotification) onShowNotification('تم تحديد دفعة الـ 100 منشأة الأولى للاستيراد الآمن', 'info');
+                    const topBatch = displayedPlaces.slice(0, 100).map((p) => p.id);
+                    setSelectedPlaceIds(new Set(topBatch));
+                    if (onShowNotification) onShowNotification(`تم تحديد دفعة الـ ${topBatch.length} منشأة الأولى للاستيراد الآمن بالصور`, 'info');
                   }}
                   className="text-xs font-black px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer"
                   title="تحديد دفعة آمنة ومدروسة تقتصر على أول 100 منشأة لمنع الضغط والتعليق"
                 >
-                  ⚡ تحديد أول 100 منشأة
+                  ⚡ {displayedPlaces.length > 100 ? 'تحديد أول 100 منشأة' : `تحديد المنشآت (${displayedPlaces.length})`}
                 </button>
               )}
 
@@ -2084,7 +2198,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
               {isIngesting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>جارٍ حقن المنشآت ({ingestProgress?.current}/{ingestProgress?.total})...</span>
+                  <span>جارٍ سحب وتوثيق المنشآت بالصور ({ingestProgress?.current}/{ingestProgress?.total})...</span>
                 </>
               ) : activeBucketTab === 'RESIDENTIAL' ? (
                 <>
@@ -2101,10 +2215,15 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                   <Globe className="w-4 h-4" />
                   <span>معالم عامة ({displayedPlaces.length})</span>
                 </>
+              ) : selectedPlaceIds.size === 0 ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>يرجى تحديد المنشآت (اضغط تحديد أول 100 أعلاه لبدء السحب)</span>
+                </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>تأكيد استيراد وتوثيق ({candidatePlaces.filter(p => selectedPlaceIds.has(p.id) && p.bucket === 'COMMERCIAL').length}) منشأة تجارية في الدليل</span>
+                  <span>🚀 بدء سحب وتوثيق ({candidatePlaces.filter(p => selectedPlaceIds.has(p.id) && p.bucket === 'COMMERCIAL').length}) منشأة تجارية بالصور الكاملة</span>
                 </>
               )}
             </button>
