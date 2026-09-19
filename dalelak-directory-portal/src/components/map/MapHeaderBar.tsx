@@ -74,9 +74,9 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
     if (district && mapInstance?.leafletMapRef?.current && window.L) {
       if (district.polygons && district.polygons[0]) {
         const bounds = window.L.latLngBounds(district.polygons[0]);
-        mapInstance.leafletMapRef.current.fitBounds(bounds, { padding: [35, 35], maxZoom: 18 });
+        mapInstance.leafletMapRef.current.flyToBounds(bounds, { padding: [40, 40], maxZoom: 17, duration: 1.0 });
       } else {
-        mapInstance.leafletMapRef.current.flyTo([district.centerLat, district.centerLng], 17.5, { duration: 0.8 });
+        mapInstance.leafletMapRef.current.flyTo([district.centerLat, district.centerLng], 17, { duration: 1.0 });
       }
     }
   };

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Business } from '../../../types';
 import { HADAYEK_OFFICIAL_DISTRICTS, HADAYEK_OFFICIAL_GATES } from '../../../data/hadayekDistrictsGeoData';
 import { escapeHtml } from '../constants/mapConstants';
@@ -56,6 +56,8 @@ export const useMapPinsClustering = ({
     showGatesLayer,
     showTargetPin,
   } = state;
+
+  const districtPolygonsRef = useRef<Array<{ letterAr: string; polygon: any; color: string }>>([]);
 
   useEffect(() => {
     const map = leafletMapRef.current;
@@ -228,17 +230,18 @@ export const useMapPinsClustering = ({
 
       // 🗺️ Render Hadayek Official District Polygons
       if (showDistrictsOverlay && window.L) {
+        districtPolygonsRef.current = [];
         HADAYEK_OFFICIAL_DISTRICTS.forEach((district) => {
           const isSelected = selectedZone === district.letterAr;
 
           district.polygons.forEach((polyCoords) => {
             const polygon = window.L.polygon(polyCoords, {
-              color: isSelected ? '#0f172a' : district.color,
-              weight: isSelected ? 4 : (selectedZone ? 1 : 1.5),
-              opacity: isSelected ? 1.0 : (selectedZone ? 0.35 : 0.75),
-              fill: !isSelected && !selectedZone,
+              color: district.color,
+              weight: isSelected ? 3.5 : 1.5,
+              opacity: isSelected ? 1.0 : 0.85,
+              fill: !isSelected,
               fillColor: district.color,
-              fillOpacity: isSelected ? 0 : (selectedZone ? 0 : 0.05),
+              fillOpacity: isSelected ? 0 : 0.10,
               className: isSelected ? 'hadayek-district-polygon-selected' : 'hadayek-district-polygon',
             });
 
@@ -248,12 +251,13 @@ export const useMapPinsClustering = ({
               }
               state.setSelectedZone(district.letterAr);
               if (onSelectZone) onSelectZone(district.letterAr);
-              if (district.polygons && district.polygons[0]) {
+              if (map && district.polygons && district.polygons[0]) {
                 const bounds = window.L.latLngBounds(district.polygons[0]);
-                map.fitBounds(bounds, { padding: [35, 35], maxZoom: 18 });
+                map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 17, duration: 1.0 });
               }
             });
 
+            districtPolygonsRef.current.push({ letterAr: district.letterAr, polygon, color: district.color });
             markersGroup.addLayer(polygon);
           });
 
@@ -433,7 +437,6 @@ export const useMapPinsClustering = ({
     showDistrictsOverlay,
     showTargetPin,
     selectedGovFilter,
-    selectedZone,
     currentLat,
     currentLng,
     gpsAccuracy,
@@ -450,4 +453,23 @@ export const useMapPinsClustering = ({
     onSelectZone,
     setSelectedBiz,
   ]);
+
+  // ⚡ Silky-smooth instantaneous style updater when selectedZone changes (zero DOM rebuild / zero lag)
+  useEffect(() => {
+    if (!districtPolygonsRef.current || !districtPolygonsRef.current.length) return;
+    districtPolygonsRef.current.forEach(({ letterAr, polygon, color }) => {
+      const isSelected = selectedZone === letterAr;
+      polygon.setStyle({
+        color: color,
+        weight: isSelected ? 3.5 : 1.5,
+        opacity: isSelected ? 1.0 : 0.85,
+        fill: !isSelected,
+        fillColor: color,
+        fillOpacity: isSelected ? 0 : 0.10,
+      });
+      if (isSelected) {
+        polygon.bringToFront();
+      }
+    });
+  }, [selectedZone]);
 };
