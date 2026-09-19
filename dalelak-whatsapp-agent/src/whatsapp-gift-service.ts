@@ -2,8 +2,8 @@ import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
-import { Business } from '../types.js';
-import { getDisplayDirectoryUrl } from '../utils/directoryUrl.js';
+import { Business } from './types.js';
+import { getDisplayDirectoryUrl } from './directoryUrl.js';
 
 export interface BusinessGiftItem {
   type: 'classic_a4' | 'dark_vip' | 'counter_landscape' | 'quad_tables' | 'custom';

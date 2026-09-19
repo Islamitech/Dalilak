@@ -489,8 +489,35 @@ export function skipCurrentWaitDelay(): { success: boolean; message: string } {
     return { success: false, message: 'لا توجد حملة نشطة أو في فترة انتظار حالياً لتخطيها.' };
   }
   skipWaitRequested = true;
+  if (activeCampaign) {
+    activeCampaign.nextDispatchInSeconds = 0;
+  }
   console.log('⚡ [WhatsApp Gateway] Skip delay requested by administrator.');
   return { success: true, message: 'تم إرسال أمر تخطي فترة الانتظار بنجاح! سيتم إرسال الرسالة القادمة فوراً ⚡' };
+}
+
+/**
+ * ⚡ Removes long stealth minutes waiting and restores fast safe seconds pacing (10-20s)
+ */
+export function fixActiveCampaignPacing(newMinDelay = 10, newMaxDelay = 20): { success: boolean; message: string } {
+  if (cachedCampaignOptions) {
+    cachedCampaignOptions.enableStealthRandomMode = false;
+    cachedCampaignOptions.stealthMinMinutes = 0;
+    cachedCampaignOptions.stealthMaxMinutes = 0;
+    cachedCampaignOptions.minDelaySeconds = newMinDelay;
+    cachedCampaignOptions.maxDelaySeconds = newMaxDelay;
+  }
+  if (activeCampaign) {
+    activeCampaign.enableStealthRandomMode = false;
+    activeCampaign.stealthModeActive = false;
+    activeCampaign.stealthMinMinutes = 0;
+    activeCampaign.stealthMaxMinutes = 0;
+    activeCampaign.nextDispatchInSeconds = 0;
+    saveCampaignProgress(activeCampaign);
+  }
+  skipWaitRequested = true;
+  console.log(`⚡ [WhatsApp Gateway] Fixed pacing to fast safe seconds (${newMinDelay}-${newMaxDelay}s) and skipped current wait.`);
+  return { success: true, message: `تم تفعيل وتيرة الإرسال السريعة (${newMinDelay}-${newMaxDelay} ثانية) وإلغاء التعطل بنجاح!` };
 }
 
 // Campaign In-Memory & File Persistence for Pause, Resume & Crash Recovery
@@ -540,6 +567,7 @@ export function isRecentlyContacted(rawPhone?: string | null, bizId?: string | n
     }
 
     if (rawPhone) {
+      if (isOptedOut(rawPhone)) return true;
       const cleanPhone = rawPhone.replace(/\D/g, '');
       if (cleanPhone && reg[cleanPhone]) {
         const entryTime = new Date(reg[cleanPhone].timestamp).getTime();
@@ -548,6 +576,43 @@ export function isRecentlyContacted(rawPhone?: string | null, bizId?: string | n
     }
   } catch {}
   return false;
+}
+
+// 🛑 Permanent Anti-Ban Opt-Out / Do-Not-Contact Registry
+const OPT_OUT_REGISTRY_PATH = path.resolve(process.cwd(), 'data/whatsapp_opt_out_registry.json');
+
+export function loadOptOutRegistry(): Record<string, { phone: string; reason?: string; optedOutAt: string }> {
+  try {
+    if (fs.existsSync(OPT_OUT_REGISTRY_PATH)) {
+      return JSON.parse(fs.readFileSync(OPT_OUT_REGISTRY_PATH, 'utf-8'));
+    }
+  } catch {}
+  return {};
+}
+
+export function recordOptOut(phone: string, reason = 'طلب العميل إلغاء الاشتراك / عدم الإزعاج'): void {
+  try {
+    const reg = loadOptOutRegistry();
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone) {
+      reg[cleanPhone] = { phone: cleanPhone, reason, optedOutAt: new Date().toISOString() };
+      fs.writeFileSync(OPT_OUT_REGISTRY_PATH, JSON.stringify(reg, null, 2), 'utf-8');
+      console.log(`🛑 [Opt-Out Registry] Phone ${cleanPhone} added to permanent do-not-contact list to protect accounts against bans.`);
+    }
+  } catch (err) {
+    console.warn('Error recording opt-out:', err);
+  }
+}
+
+export function isOptedOut(phone?: string | null): boolean {
+  if (!phone) return false;
+  try {
+    const reg = loadOptOutRegistry();
+    const cleanPhone = phone.replace(/\D/g, '');
+    return Boolean(reg[cleanPhone]);
+  } catch {
+    return false;
+  }
 }
 
 // Persistent Campaign Progress and History Files
@@ -841,7 +906,7 @@ export async function initWhatsAppGateway(slotId: SlotId = '1'): Promise<WhatsAp
       auth: state,
       logger,
       printQRInTerminal: false,
-      browser: Browsers.windows(`Dalelak-${slotId}`),
+      browser: Browsers.windows('Desktop'),
       syncFullHistory: false,
       markOnlineOnConnect: true,
       connectTimeoutMs: 60000,
@@ -1124,34 +1189,50 @@ export function compileBroadcastMessage(
   // 🛡️ STRICT PRIVACY: Official public directory venue URL (e.g. https://www.dalilaak.com/biz/...)
   const directoryUrl = getDisplayDirectoryUrl(biz);
 
-  if (templateType === 'hadayek_invitation') {
+  // 🎲 SMART MULTI-ANGLE SELECTOR:
+  // Randomly cycles through 5 distinct psychological angles per recipient to guarantee
+  // that no two consecutive recipients receive messages with the same structure or fingerprint.
+  let effectiveTemplate = templateType;
+  if (templateType === 'smart_multi_angle') {
+    const candidateAngles = [
+      'hadayek_invitation',
+      'honorary_invitation',
+      'qr_gift_invitation',
+      'community_showcase',
+      'concise_direct',
+    ];
+    effectiveTemplate = candidateAngles[Math.floor(Math.random() * candidateAngles.length)];
+  }
+
+  // ANGLE 1: Hadayek Al-Ahram & Local Landmark Invitation
+  if (effectiveTemplate === 'hadayek_invitation') {
     const rawTemplate =
-      `{أهلاً بحضرتك في *دليلك* 💐|تحياتنا لحضرتك من فريق *دليلك* 💐|مرحباً بك مع منصة *دليلك* 💐|السلام عليكم ورحمة الله، تحياتنا لكم من *دليلك* 💐}\n\n` +
-      `{لأنك من سكان أو العاملين الكرام بـ *حدائق الأهرام*|تقديراً لتواجدكم الكريم ونشاطكم المتميز بـ *حدائق الأهرام*|لأن منشأتكم من المعالم المعروفة في نطاق *حدائق الأهرام*}، {تم إدراج نشاطك|يسعدنا إحاطتكم باعتماد نشاطكم|نود إبلاغكم بتوثيق وإدراج نشاطكم}:\n` +
+      `{أهلاً بحضرتك في *دليلك* 💐|تحياتنا لحضرتك من فريق *دليلك* 💐|مرحباً بك مع منصة *دليلك* 💐|السلام عليكم ورحمة الله، تحياتنا لكم من *دليلك* 💐|صباح الخير والبركة من أسرة *دليلك* 💐}\n\n` +
+      `{لأنك من سكان أو العاملين الكرام بـ *حدائق الأهرام*|تقديراً لتواجدكم الكريم ونشاطكم المتميز بـ *حدائق الأهرام*|لأن منشأتكم من المعالم المعروفة في نطاق *حدائق الأهرام*|حرصاً منا على إبراز الأنشطة الراقية في *حدائق الأهرام*}، {تم إدراج نشاطك|يسعدنا إحاطتكم باعتماد نشاطكم|نود إبلاغكم بتوثيق وإدراج نشاطكم|تشرفنا باعتماد بطاقة منشأتكم}:\n` +
       `🌟 *(${venueName})*\n` +
-      `{كـ *إدراج شرفي مجاني مدى الحياة (0.00 ج.م)*|كـ *توثيق رسمي معتمد مجاناً بالكامل بدون أي رسوم*|كـ *إدراج شرفي موثق مجاناً دائماً*} {على منصة «دليلك» — التطبيق الجغرافي الذكي|في دليل «دليلك» المعتمد للأنشطة الميدانية|عبر منصة «دليلك» الرقمية المعتمدة} اللي بيوصل عيادتك، محلك، أو خدمتك لكل اللي بيدوروا عليك في نطاقك.\n\n` +
+      `{كـ *إدراج شرفي مجاني مدى الحياة (0.00 ج.م)*|كـ *توثيق رسمي معتمد مجاناً بالكامل بدون أي رسوم*|كـ *إدراج شرفي موثق مجاناً دائماً*|ضمن دليل الأنشطة المعتمد مجاناً وبدون أي اشتراك} {على منصة «دليلك» — التطبيق الجغرافي الذكي|في دليل «دليلك» المعتمد للأنشطة الميدانية|عبر منصة «دليلك» الرقمية المعتمدة} {اللي بيوصل عيادتك، محلك، أو خدمتك لكل اللي بيدوروا عليك في نطاقك|لتسهيل وصول زبائن وسكان المنطقة إليكم مباشرة|لدعم حضوركم الرقمي وربط نشاطكم بأهالي النطاق الجغرافي}.\n\n` +
       `🔗 *رابط كارت نشاطك ومعاينته واستلام هديتك الترويجية:*\n` +
       `${directoryUrl}\n\n` +
-      `📸 *{علشان نفعل بطاقتك وتظهر للجمهور بأعلى جودة|لتأكيد ظهور بطاقتكم للعملاء بأدق تفاصيل|لتحديث بيانات المعاينة واستلام هديتكم}:*\n` +
-      `{لو حابب، ابعتلنا هنا مباشرة|تقدر تبعتلنا هنا على نفس الشات}:\n` +
+      `📸 *{علشان نفعل بطاقتك وتظهر للجمهور بأعلى جودة|لتأكيد ظهور بطاقتكم للعملاء بأدق تفاصيل|لتحديث بيانات المعاينة واستلام هديتكم|لتحديث أرقامكم ومواعيد عملكم}:*\n` +
+      `{لو حابب، ابعتلنا هنا مباشرة|تقدر تبعتلنا هنا على نفس الشات|يسعدنا استقبال تفاصيلكم هنا}:\n` +
       `1. نوع وتفاصيل النشاط بدقة.\n` +
-      `2. رقم التليفون اللي عليه واتساب للتواصل المباشر مع العملاء.\n` +
+      `2. رقم التليفون أو الواتساب المعتمد للتواصل مع العملاء.\n` +
       `3. كام صورة مميزة للمكان علشان تنزل في الكارت التعريفي بتاعك.\n\n` +
-      `❓ *حابب تعرف أكتر أو تسأل إحنا مين؟*\n` +
-      `تفضل اسأل وإحنا هنجاوبك على أي استفسار بكل ترحيب 🤝\n\n` +
+      `❓ *{حابب تعرف أكتر أو تسأل إحنا مين؟|عندك أي استفسار أو حابب توضح أي تفاصيل؟}*\n` +
+      `{تفضل اسأل وإحنا هنجاوبك على أي استفسار بكل ترحيب 🤝|شرفنا بسؤالك وفريق خدمة العملاء جاهز لخدمتكم دائماً 🤝}\n\n` +
       `🚫 *غير مهتم؟*\n` +
-      `شرفتنا ونعتذر جداً للإزعاج، لا داعي للتفاعل مع الرسالة.\n\n` +
-      `مع خالص التقدير والتمنيات بالتوفيق 💐\n` +
-      `*فريق إدارة منصة دليلك*`;
+      `{شرفتنا ونعتذر جداً للإزعاج، لا داعي للتفاعل مع الرسالة 💐|نعتذر عن أي إزعاج ونتمنى لكم كل التوفيق والنجاح 💐}\n\n` +
+      `{مع خالص التقدير والتمنيات بالتوفيق 💐\n*فريق إدارة منصة دليلك*|دمتم في رعاية الله وتوفيقه 💐\n*منصة دليلك المعتمدة*}`;
 
     return resolveSpintax(rawTemplate);
   }
 
-  if (templateType === 'honorary_invitation') {
+  // ANGLE 2: Formal Honorary Landmark Notice
+  if (effectiveTemplate === 'honorary_invitation') {
     const rawTemplate =
-      `{السلام عليكم ورحمة الله وبركاته|تحياتنا الطيبة لكم}\n` +
-      `{تحياتنا لإدارة «${venueName}» الكرام (${location})|إلى السادة القائمين على إدارة «${venueName}» الموقرين}،\n\n` +
-      `{تشرّف فريق منصة «دليلك» بالتواصل معكم بعد اعتماد منشأتكم|يسعد فريق منصة «دليلك» إحاطتكم باختيار واعتماد منشأتكم} ضمن قائمة المعالم والأنشطة الرائدة بالمنطقة.\n\n` +
+      `{السلام عليكم ورحمة الله وبركاته|تحياتنا الطيبة والتقدير لكم|أهلاً بكم ومرحباً}\n` +
+      `{تحياتنا لإدارة «${venueName}» الكرام (${location})|إلى السادة القائمين على إدارة «${venueName}» الموقرين|عناية السادة إدارة «${venueName}» المحترمين}،\n\n` +
+      `{تشرّف فريق منصة «دليلك» بالتواصل معكم بعد اعتماد منشأتكم|يسعد فريق منصة «دليلك» إحاطتكم باختيار واعتماد منشأتكم|نحيط سيادتكم علماً باختيار منشأتكم الكريمة} ضمن قائمة المعالم والأنشطة الرائدة بالمنطقة.\n\n` +
       `🌟 نودّ إبلاغكم باعتماد *إدراج شرفي موثق ومجاني تماماً (0.00 ج.م)* لمنشأتكم في دليلنا المعتمد الرسمي — *بدون أي رسوم أو اشتراكات نهائياً ودائماً*، تقديراً لتميزكم وسمعتكم الطيبة.\n\n` +
       `🔗 *رابط بطاقة منشأتكم بالدليل العام المعتمد:*\n` +
       `${directoryUrl}\n\n` +
@@ -1166,22 +1247,51 @@ export function compileBroadcastMessage(
     return resolveSpintax(rawTemplate);
   }
 
-  if (templateType === 'directory_live') {
+  // ANGLE 3: Digital QR Gift Package Notice
+  if (effectiveTemplate === 'qr_gift_invitation') {
     const rawTemplate =
-      `{مرحباً بحضراتكم إدارة «${venueName}»|أهلاً بحضراتكم إدارة «${venueName}» الكرام}،\n\n` +
-      `{يسعدنا إحاطتكم علماً بأن صفحة منشأتكم المعتمدة منشورة ومتاحة الآن|نود إفادتكم بأن بطاقة منشأتكم الموثقة أصبحت حية ومتاحة للجمهور الآن} على منصة دليلك بكافة التفاصيل والموقع الدقيق.\n\n` +
-      `🔗 *رابط المعاينة المباشر لصفحتكم بالدليل العام:*\n` +
+      `{السلام عليكم ورحمة الله وبركاته 💐|أهلاً وسهلاً بحضراتكم 💐|تحياتنا الطيبة لإدارة «${venueName}» 💐}\n\n` +
+      `{يسعد فريق منصة «دليلك» إهداء منشأتكم الكريمة|تتشرف منصة «دليلك» بتقديم هدية رقمية خاصة لنشاطكم المتميز|تقديراً لخدماتكم المتميزة في ${location}، يسرنا تقديم}:\n` +
+      `🎁 *تصميم كود الـ QR الرقمي المعتمد للمحل (هدية مجانية 100%)*\n\n` +
+      `{تم تجهيز 4 تصميمات فاخرة لكود الـ QR بدقة طباعية عالية (300 DPI) لتعليقها على واجهة المحل أو الكاونتر، لتمكين العملاء من الوصول لصفحتكم وتقييمكم بضغطة واحدة|يساعد كود الـ QR زبائنكم في فتح بطاقة نشاطكم والاتصال المباشر بكم ومعرفة مواعيد العمل بمجرد توجيه كاميرا الهاتف}.\n\n` +
+      `🔗 *رابط معاينة بطاقة النشاط وكود الـ QR المعتمد:*\n` +
       `${directoryUrl}\n\n` +
-      `📞 *للتواصل مع خدمة العملاء والاستفسار:*\n` +
-      `لتحديث بطاقة النشاط، إرسال صور إضافية، أو استلام كود الـ QR؛ يسعدنا تواصلكم عبر واتساب خدمة العملاء:\n` +
-      `📲 01556221141 (https://wa.me/201556221141)\n\n` +
-      `مع تمنياتنا لكم بدوام التوفيق والازدهار،\n` +
-      `فريق توثيق المنظومة — منصة دليلك`;
+      `{لاستلام ملفات التصاميم الرقمية الأربعة عالية الجودة أو تعديل بيانات المحل، فقط شرفنا بالرد على هذه المحادثة 🤝|لو حابب تستلم قوالب الـ QR المجهزة للطباعة أو تبعتلنا صور المكان، رد علينا هنا في أي وقت ويسعدنا خدمتك}.\n\n` +
+      `{غير مهتم بالخدمة؟ نعتذر عن الإزعاج ونتمنى لكم كامل التوفيق 💐|في حال عدم الرغبة بالمراسلة لا داعي للرد ونعتذر عن أي إزعاج}.`;
 
     return resolveSpintax(rawTemplate);
   }
 
-  if (templateType === 'welcome_invoice') {
+  // ANGLE 4: Local Community Discovery & Map Visibility
+  if (effectiveTemplate === 'community_showcase') {
+    const rawTemplate =
+      `{أهلاً بحضراتكم 🌟|تحياتنا الطيبة لكم 🌟|مرحباً بإدارة «${venueName}» 🌟}\n\n` +
+      `{في إطار مبادرة منصة «دليلك» لتوثيق ودعم أنشطة أهالي ${location}|حرصاً منا على مساعدة سكان ورواد ${location} في الوصول السريع لأفضل الخدمات|تقديراً لثقة زبائن ${location} في جودة خدماتكم}:\n\n` +
+      `📍 {تم اعتماد نشر بطاقة نشاطكم رسمياً|يسرنا إحاطتكم بنشر صفحة منشأتكم المعتمدة|تم تفعيل ملفكم الرقمي التفاعلي} {على الخريطة الذكية ودليل «دليلك» العام|بدليل دليلك لخدمة سكان المنطقة}، {حتى يسهل على كل من يبحث عن خدماتكم الوصول إليكم والتواصل المباشر معكم|لتسهيل الاتصال بكم وزيادة ظهوركم بين أهالي الحي}.\n\n` +
+      `🔗 *رابط بطاقتكم الرسمية المعتمدة بالدليل:*\n` +
+      `${directoryUrl}\n\n` +
+      `{علشان نتأكد إن كل تفاصيل المحل والمواعيد والصور مظبوطة 100%، تقدر تراجع الرابط وتبعتبلنا أي تعديل تحبه هنا مباشرة 🤝|يسعدنا استقبال أي ملاحظات أو إضافة أرقام تواصل وصور للمقر لتحسين ظهوركم}.\n\n` +
+      `تمنياتنا لكم بمزيد من النجاح والتألق 💐\n` +
+      `*فريق عمل منصة دليلك*`;
+
+    return resolveSpintax(rawTemplate);
+  }
+
+  // ANGLE 5: Casual, Light & Ultra-Concise Notice
+  if (effectiveTemplate === 'concise_direct') {
+    const rawTemplate =
+      `{السلام عليكم ورحمة الله 💐|أهلاً بحضرتك يا فندم 💐|تحياتنا لإدارة «${venueName}»}\n\n` +
+      `{حبينا نبلغكم إنه تم توثيق ونشر بطاقة منشأتكم|تم اعتماد بطاقة منشأتكم مجاناً|يسعدنا إبلاغكم بإتاحة بطاقة منشأتكم الآن} في دليل «دليلك» المعتمد لخدمة أهالي ${location}.\n\n` +
+      `🔗 {تقدر تعاين صفحتك بالدليل من هنا|رابط صفحة المنشأة المعتمدة|رابط بطاقة المكان بالدليل}:\n` +
+      `${directoryUrl}\n\n` +
+      `{لو محتاج تضيف صور، تعدل أرقام، أو تستلم كود الـ QR الخاص بالمكان، ابعتلنا هنا في أي وقت وتحت أمرك 🤝|تفضل بمراجعة بياناتك وإرسال أي تحديث ترغب به ويسعدنا دائماً مساعدتك}.\n\n` +
+      `{شكراً لوقتكم وبالتوفيق دائماً|مع خالص تمنياتنا لكم بالتوفيق والازدهار}.`;
+
+    return resolveSpintax(rawTemplate);
+  }
+
+  // ANGLE 6: Official Verification Certificate / Welcome Invoice
+  if (effectiveTemplate === 'welcome_invoice') {
     const invNum = biz.invoiceNumber || 'EXP-OFFICIAL';
     const rawTemplate =
       `*إشعار توثيق وفاتورة ترحيبية رسمية — منصة دليلك*\n` +
@@ -1203,12 +1313,13 @@ export function compileBroadcastMessage(
     return resolveSpintax(rawTemplate);
   }
 
-  // Custom with placeholders and spintax support
+  // Custom with placeholders and Spintax support
   let compiled = customText || 'مرحباً بحضراتكم في منصة دليلك';
-  compiled = compiled.replace(/\{name\}/g, venueName);
-  compiled = compiled.replace(/\{owner\}/g, ownerName);
-  compiled = compiled.replace(/\{location\}/g, location);
-  compiled = compiled.replace(/\{url\}/g, directoryUrl);
+  compiled = compiled.replace(/\{businessName\}|\{venueName\}|\{name\}/gi, venueName);
+  compiled = compiled.replace(/\{ownerName\}|\{owner\}/gi, ownerName);
+  compiled = compiled.replace(/\{location\}|\{city\}/gi, location);
+  compiled = compiled.replace(/\{directoryUrl\}|\{url\}/gi, directoryUrl);
+  compiled = compiled.replace(/\{phone\}/gi, biz.phone || '');
   return resolveSpintax(compiled);
 }
 
@@ -1477,6 +1588,45 @@ async function executeCampaignLoop(
       }
     }
 
+    // 🛡️ 1.1 CIRCUIT BREAKER GUARD: Protect active line against hourly velocity cap or ban risk
+    const currentSafety = getSlotSafetyMetrics(currentSlot);
+    if (currentSafety.isCircuitBreakerActive) {
+      const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+      const otherSession = slotSessions[otherSlot];
+      const otherSafety = getSlotSafetyMetrics(otherSlot);
+      const isOtherHealthy =
+        otherSession.sock !== null &&
+        otherSession.connectionState === 'connected' &&
+        !otherSafety.isCircuitBreakerActive;
+
+      if (isOtherHealthy) {
+        console.warn(
+          `🚨 [Circuit Breaker Active on Slot ${currentSlot}] Switching to safe Slot ${otherSlot} (${currentSafety.lastCircuitBreakerReason})`
+        );
+        currentSlot = otherSlot;
+        activeSession = otherSession;
+        currentSlotSentCount = 0;
+      } else {
+        console.warn(
+          `🚨 [Circuit Breaker Tripped] Halting broadcast campaign to protect phone numbers from ban (${currentSafety.lastCircuitBreakerReason}).`
+        );
+        if (activeCampaign) {
+          activeCampaign.status = 'paused';
+          activeCampaign.lastIndex = i;
+          activeCampaign.logs.unshift({
+            businessId: 'sys_circuit_breaker',
+            businessName: 'قاطع أمان الحظر التلقائي (Circuit Breaker)',
+            phone: currentSlot === '1' ? PRIMARY_WHATSAPP_SENDER_PHONE : 'هاتف 2',
+            status: 'skipped',
+            reason: `🚨 تم تفعيل قاطع الحظر التلقائي لحماية الحساب من الحظر: ${currentSafety.lastCircuitBreakerReason}. توقفت الحملة مؤقتاً بأمان لحين انتهاء فترة التهدئة.`,
+            timestamp: new Date().toISOString(),
+          });
+          saveCampaignProgress(activeCampaign);
+        }
+        break;
+      }
+    }
+
     const currentSock = activeSession.sock!;
     rotationConfig.currentSlot = currentSlot;
     rotationConfig.currentSlotSentCount = currentSlotSentCount;
@@ -1598,7 +1748,12 @@ async function executeCampaignLoop(
         messagePayload.linkPreview = nativeLinkPreview;
       }
 
-      await currentSock.sendMessage(jid, messagePayload);
+      // Add a 15-second timeout to prevent infinite hang if Baileys socket is zombie/dead
+      await Promise.race([
+        currentSock.sendMessage(jid, messagePayload),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout: Message send hanging (Socket dead)')), 15000))
+      ]);
+
       recordSentTarget(rawPhone!, biz.id);
       recordSlotOutbound(currentSlot);
 
@@ -1676,6 +1831,22 @@ async function executeCampaignLoop(
       }
     } catch (sendErr: any) {
       console.error(`[Campaign ${i + 1}/${businesses.length}] Failed to send to ${biz.nameAr}:`, sendErr?.message);
+      
+      if (sendErr?.message === 'Timeout: Message send hanging (Socket dead)') {
+        console.warn(`🚨 [Zombie Socket] Slot ${currentSlot} timed out! Disconnecting slot to force auto-reconnect.`);
+        try {
+          // Setting healthStatus will help the UI see it's broken, disconnect will clear the zombie socket.
+          slotSessions[currentSlot].healthStatus = 'degraded';
+          disconnectWhatsAppGateway(currentSlot).catch(() => {});
+        } catch(e) {}
+        
+        // Immediately try to switch to the other slot so the campaign doesn't halt on the next iteration
+        const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
+        if (slotSessions[otherSlot].sock !== null && slotSessions[otherSlot].connectionState === 'connected') {
+          currentSlot = otherSlot;
+        }
+      }
+
       if (activeCampaign) {
         activeCampaign.failed++;
         activeCampaign.logs.unshift({
@@ -1692,20 +1863,18 @@ async function executeCampaignLoop(
       }
     }
 
-    // 🛡️ 5. PRECAUTIONARY 10-MINUTE BATCH COOLDOWN (In Phase 1, every 20 successful messages)
-    // Note: In Stealth Mode, each message already has a 20-60 minute delay, so batch cooldown is skipped!
+    // 🛡️ 5. PERIODIC ANTI-BAN REST (Short 2-minute rest every 25 successful messages)
     if (
-      !stealthModeActive &&
       activeCampaign &&
       activeCampaign.successful > 0 &&
-      activeCampaign.successful % 20 === 0 &&
+      activeCampaign.successful % 25 === 0 &&
       i < businesses.length - 1 &&
       !abortRequested
     ) {
-      const cooldownSeconds = 10 * 60; // 10 minutes = 600 seconds
-      const batchNum = Math.floor(activeCampaign.successful / 20);
+      const cooldownSeconds = 120; // 2 minutes (120 seconds)
+      const batchNum = Math.floor(activeCampaign.successful / 25);
       console.log(
-        `🧊 [Anti-Ban Cooldown] Successfully dispatched 20 messages (Total: ${activeCampaign.successful}, Batch #${batchNum}). Resting for 10 minutes to protect number against algorithmic bans...`
+        `🧊 [Anti-Ban Cooldown] Dispatched 25 messages (Total: ${activeCampaign.successful}, Batch #${batchNum}). Resting for 2 minutes to protect line against spam filters...`
       );
 
       activeCampaign.status = 'cooldown';
@@ -1713,20 +1882,17 @@ async function executeCampaignLoop(
       activeCampaign.cooldownRemainingSeconds = cooldownSeconds;
       activeCampaign.logs.unshift({
         businessId: 'cooldown',
-        businessName: 'صمام الأمان والتهدئة التلقائية',
+        businessName: 'استراحة أمان دورية للخطوط',
         phone: PRIMARY_WHATSAPP_SENDER_PHONE,
         status: 'skipped',
-        reason: `🧊 استراحة أمان احترازية لمدة 10 دقائق (بعد إرسال ${activeCampaign.successful} رسالة بنجاح - الدفعة #${batchNum}) لحماية الرقم من فلاتر الروبوتات`,
+        reason: `🧊 استراحة أمان وتبريد دورية لمدة دقيقتين فقط (بعد إرسال ${activeCampaign.successful} رسالة بنجاح - الدفعة #${batchNum}) لحماية الأرقام`,
         timestamp: new Date().toISOString(),
       });
       saveCampaignProgress(activeCampaign);
 
       const cooldownStart = Date.now();
       while (Date.now() - cooldownStart < cooldownSeconds * 1000) {
-        if (abortRequested) {
-          console.log(`🛑 Cooldown interrupted by administrator.`);
-          break;
-        }
+        if (abortRequested) break;
         if (skipWaitRequested) {
           skipWaitRequested = false;
           console.log(`⚡ Cooldown skipped by administrator.`);
@@ -1748,105 +1914,72 @@ async function executeCampaignLoop(
       }
 
       if (!abortRequested) {
-        console.log(`🔥 [Anti-Ban Cooldown] Finished 10-minute rest. Resuming campaign seamlessly...`);
         activeCampaign.status = 'running';
         activeCampaign.cooldownRemainingSeconds = undefined;
         saveCampaignProgress(activeCampaign);
       }
     }
 
-    // ⏳ 6. DELAY PACING: ORGANIC ALTERNATING (1-5m) OR STANDARD JITTER (10-20s)
+    // ⏳ 6. SAFE HUMAN PACING BETWEEN MESSAGES (10-20 seconds with random jitter)
     if (i < businesses.length - 1 && !abortRequested) {
-      if (enableStealthRandomMode) {
-        // 🌿 Organic Alternating Mode: Random delay between stealthMinMinutes and stealthMaxMinutes (granular seconds)
-        const minSec = stealthMinMinutes * 60;
-        const maxSec = stealthMaxMinutes * 60;
-        const delayTotalSeconds = Math.floor(Math.random() * (maxSec - minSec + 1)) + minSec;
+      // Dynamic options reading allows real-time update if options changed
+      const currentMin = Math.max(5, cachedCampaignOptions?.minDelaySeconds || options.minDelaySeconds || 10);
+      const currentMax = Math.max(currentMin + 2, cachedCampaignOptions?.maxDelaySeconds || options.maxDelaySeconds || 20);
+      const delayTotalSeconds = Math.floor(Math.random() * (currentMax - currentMin + 1)) + currentMin;
 
-        const is1Ok = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
-        const is2Ok = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
+      // Handle Slot Alternating & Handover
+      const is1Ok = slotSessions['1'].sock !== null && slotSessions['1'].connectionState === 'connected';
+      const is2Ok = slotSessions['2'].sock !== null && slotSessions['2'].connectionState === 'connected';
+
+      if (enableRotation && is1Ok && is2Ok) {
         const otherSlot: SlotId = currentSlot === '1' ? '2' : '1';
-        const nextSlot: SlotId =
-          (otherSlot === '1' && is1Ok) || (otherSlot === '2' && is2Ok)
-            ? otherSlot
-            : (currentSlot === '1' && is1Ok) || (currentSlot === '2' && is2Ok)
-            ? currentSlot
-            : otherSlot;
-
-        // Explicitly switch currentSlot to the other phone for the upcoming message
-        currentSlot = nextSlot;
-
-        if (activeCampaign) {
-          activeCampaign.nextSlotTarget = nextSlot;
-          activeCampaign.currentSlot = nextSlot;
-          activeCampaign.currentSenderSlot = nextSlot;
-          activeCampaign.nextDispatchInSeconds = delayTotalSeconds;
-          saveCampaignProgress(activeCampaign);
+        if (rotationConfig.mode === 'ping_pong' || currentSlotSentCount >= rotationBatchSize) {
+          currentSlot = otherSlot;
+          currentSlotSentCount = 0;
+          rotationConfig.currentSlot = otherSlot;
+          rotationConfig.currentSlotSentCount = 0;
         }
+      }
 
-        console.log(
-          `🌿 [Organic Alternating Mode] Transitioned to Slot ${nextSlot}. Waiting ${delayTotalSeconds}s (~${(delayTotalSeconds / 60).toFixed(1)}m) before sending next message...`
-        );
-        const delayStart = Date.now();
-        const targetMs = delayTotalSeconds * 1000;
-        let lastSave = Date.now();
+      if (activeCampaign) {
+        activeCampaign.nextSlotTarget = currentSlot;
+        activeCampaign.currentSlot = currentSlot;
+        activeCampaign.currentSenderSlot = currentSlot;
+        activeCampaign.nextDispatchInSeconds = delayTotalSeconds;
+        saveCampaignProgress(activeCampaign);
+      }
 
-        while (Date.now() - delayStart < targetMs) {
-          if (abortRequested) break;
-          if (skipWaitRequested) {
-            skipWaitRequested = false;
-            console.log('⚡ [Stealth Mode] Delay skipped by administrator! Sending next message immediately.');
-            if (activeCampaign) {
-              activeCampaign.logs.unshift({
-                businessId: 'sys_skip',
-                businessName: 'تخطي يدوي للانتظار',
-                phone: 'ADMIN',
-                status: 'skipped',
-                reason: '⚡ تم تخطي فترة الانتظار يدوياً، وبدء إرسال الرسالة القادمة فوراً.',
-                timestamp: new Date().toISOString(),
-              });
-            }
-            break;
-          }
+      console.log(`⏱️ [Human Pacing] Waiting ${delayTotalSeconds}s before next business (via Slot ${currentSlot})...`);
+      const delayStart = Date.now();
+      const targetMs = delayTotalSeconds * 1000;
 
-          const remaining = Math.max(0, Math.ceil((targetMs - (Date.now() - delayStart)) / 1000));
+      while (Date.now() - delayStart < targetMs) {
+        if (abortRequested) break;
+        if (skipWaitRequested) {
+          skipWaitRequested = false;
+          console.log('⚡ Delay skipped by administrator! Sending next message immediately.');
           if (activeCampaign) {
-            activeCampaign.nextDispatchInSeconds = remaining;
-            if (Date.now() - lastSave > 15000) {
-              saveCampaignProgress(activeCampaign);
-              lastSave = Date.now();
-            }
+            activeCampaign.logs.unshift({
+              businessId: 'sys_skip',
+              businessName: 'تخطي يدوي للانتظار',
+              phone: 'ADMIN',
+              status: 'skipped',
+              reason: '⚡ تم تخطي فترة الانتظار يدوياً، وبدء إرسال الرسالة القادمة فوراً.',
+              timestamp: new Date().toISOString(),
+            });
           }
-          await new Promise((r) => setTimeout(r, 1000));
+          break;
         }
 
+        const remaining = Math.max(0, Math.ceil((targetMs - (Date.now() - delayStart)) / 1000));
         if (activeCampaign) {
-          activeCampaign.nextDispatchInSeconds = 0;
-          saveCampaignProgress(activeCampaign);
+          activeCampaign.nextDispatchInSeconds = remaining;
         }
-      } else {
-        // Standard / Phase 1 delay (10-20 seconds)
-        const randomSeconds = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
-        if (activeCampaign) {
-          activeCampaign.nextDispatchInSeconds = randomSeconds;
-        }
-        console.log(`⏱️ Anti-Ban Delay: waiting ${randomSeconds}s before next business...`);
-        const delayStart = Date.now();
-        while (Date.now() - delayStart < randomSeconds * 1000) {
-          if (abortRequested) break;
-          if (skipWaitRequested) {
-            skipWaitRequested = false;
-            break;
-          }
-          const remaining = Math.max(0, Math.ceil((randomSeconds * 1000 - (Date.now() - delayStart)) / 1000));
-          if (activeCampaign) {
-            activeCampaign.nextDispatchInSeconds = remaining;
-          }
-          await new Promise((r) => setTimeout(r, 500));
-        }
-        if (activeCampaign) {
-          activeCampaign.nextDispatchInSeconds = 0;
-        }
+        await new Promise((r) => setTimeout(r, 500));
+      }
+
+      if (activeCampaign) {
+        activeCampaign.nextDispatchInSeconds = 0;
       }
     }
   }

@@ -469,6 +469,83 @@ export function estimateBuildingCoordinates(
   return { lat: 29.9675, lng: 31.1015 };
 }
 
+import buildingsDB from './hadayekBuildingsCoords.json';
+
+// Helper: Ray-casting algorithm to check if a point is inside a polygon
+function pointInPolygon(point: [number, number], vs: [number, number][]) {
+  let x = point[0], y = point[1];
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    let xi = vs[i][0], yi = vs[i][1];
+    let xj = vs[j][0], yj = vs[j][1];
+    let intersect = ((yi > y) !== (yj > y))
+        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+export async function searchBuildingCoordinatesExact(
+  zoneLetter: string,
+  buildingNumber: string
+): Promise<{ lat: number; lng: number } | null> {
+  const district = getDistrictByLetter(zoneLetter);
+  
+  // Clean building number
+  const numMatch = buildingNumber.match(/\d+/);
+  if (!numMatch) return null;
+  const cleanNum = numMatch[0];
+
+  // 1. FAST LOCAL DATABASE LOOKUP (O(1) Offline Background DB)
+  if (buildingsDB && (buildingsDB as any)[cleanNum]) {
+    const records = (buildingsDB as any)[cleanNum];
+    // Check which record actually falls inside this zone's polygon
+    if (district && district.polygons && district.polygons[0]) {
+      for (const rec of records) {
+        if (pointInPolygon([rec.lat, rec.lng], district.polygons[0])) {
+          return { lat: rec.lat, lng: rec.lng };
+        }
+      }
+    }
+  }
+
+  // 2. FALLBACK TO OVERPASS API (Network)
+  let filterStr = `29.93,31.05,30.01,31.14`; // Default bbox fallback
+  if (district && district.polygons && district.polygons[0]) {
+    const polyCoords = district.polygons[0].map(p => `${p[0]} ${p[1]}`).join(' ');
+    filterStr = `poly:"${polyCoords}"`;
+  }
+
+  const query = `[out:json][timeout:10];
+(
+  way["addr:housenumber"~"^${cleanNum}$"](${filterStr});
+  node["addr:housenumber"~"^${cleanNum}$"](${filterStr});
+  way["name"~"^${cleanNum}( |$)"](${filterStr});
+  node["name"~"^${cleanNum}( |$)"](${filterStr});
+);
+out center;`;
+
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: query
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.elements && data.elements.length > 0) {
+        const el = data.elements[0];
+        return {
+          lat: el.lat || el.center.lat,
+          lng: el.lon || el.center.lon
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Overpass network search fallback failed:', err);
+  }
+  return null;
+}
+
 export function calculateDirectDistanceMeters(
   lat1: number,
   lng1: number,

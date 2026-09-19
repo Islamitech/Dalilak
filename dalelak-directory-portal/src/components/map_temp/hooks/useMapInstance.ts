@@ -39,6 +39,7 @@ export const useMapInstance = ({
     lng,
     zoom: zoomLevel,
   });
+  const initialFitDoneRef = useRef<boolean>(false);
 
   useEffect(() => {
     setCurrentLat(lat);
@@ -144,7 +145,13 @@ export const useMapInstance = ({
         }
       } catch {}
 
-      const centerToUse = liveCenterRef.current || { lat: currentLat, lng: currentLng, zoom: zoomLevel };
+      const HADAYEK_BOUNDS: [[number, number], [number, number]] = [
+        [29.9477, 31.0881],
+        [29.9888, 31.1122],
+      ];
+      const HADAYEK_CENTER: [number, number] = [29.967, 31.101];
+      const centerToUse = liveCenterRef.current || { lat: HADAYEK_CENTER[0], lng: HADAYEK_CENTER[1], zoom: 14 };
+
       const map = window.L.map(containerRef.current, {
         center: [centerToUse.lat, centerToUse.lng],
         zoom: centerToUse.zoom || zoomLevel,
@@ -154,7 +161,11 @@ export const useMapInstance = ({
         zoomDelta: 1,
         wheelPxPerZoomLevel: 60,
         bounceAtZoomLimits: false,
-        maxBoundsViscosity: 1.0
+        maxBounds: [
+          [29.930, 31.060],
+          [30.010, 31.140],
+        ],
+        maxBoundsViscosity: 1.0,
       });
 
       const cfg = getTileLayerConfig(tileLayer);
@@ -177,9 +188,10 @@ export const useMapInstance = ({
       }
 
       // Automatically calibrate Hadayek Al-Ahram bounds on initial load (Gate 1 to Gate Horus, أ to ص)
-      if (mode === 'view' && !liveCenterRef.current) {
+      if (mode === 'view' && !initialFitDoneRef.current) {
+        initialFitDoneRef.current = true;
         try {
-          map.fitBounds([[29.9477, 31.0881], [29.9888, 31.1122]], { padding: [16, 16], maxZoom: 14 });
+          map.fitBounds(HADAYEK_BOUNDS, { padding: [16, 16], maxZoom: 14, animate: false });
         } catch {}
       }
 
@@ -264,10 +276,12 @@ export const useMapInstance = ({
         }
         const targetCenter = liveCenterRef.current;
         requestAnimationFrame(() => {
-          if (leafletMapRef.current) {
-            leafletMapRef.current.invalidateSize({ animate: false, pan: true });
-            if (targetCenter && typeof targetCenter.lat === 'number' && !isNaN(targetCenter.lat)) {
-              leafletMapRef.current.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom, { animate: false });
+          if (leafletMapRef.current && containerRef.current) {
+            if (containerRef.current.clientWidth > 0 && containerRef.current.clientHeight > 0) {
+              leafletMapRef.current.invalidateSize({ animate: false, pan: false });
+              if (targetCenter && typeof targetCenter.lat === 'number' && !isNaN(targetCenter.lat)) {
+                leafletMapRef.current.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom, { animate: false });
+              }
             }
           }
         });

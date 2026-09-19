@@ -314,55 +314,52 @@ export const useMapPinsClustering = ({
       if (showHadayekGates && showGatesLayer && window.L) {
         HADAYEK_OFFICIAL_GATES.forEach((gate) => {
           const gateHtml = `
-            <div style="position: relative; transform: translate(-50%, -100%); cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center;">
+            <div style="
+              display: flex; 
+              flex-direction: column; 
+              align-items: center; 
+              justify-content: center; 
+              gap: 2px;
+              cursor: pointer;
+              user-select: none;
+            ">
               <div style="
-                background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-                border: 1.5px solid #818cf8;
+                background: #4f46e5;
                 color: #ffffff;
-                padding: 3.5px 9px 3.5px 6px;
-                border-radius: 9999px;
-                font-family: 'Cairo', system-ui, -apple-system, sans-serif;
-                font-weight: 800;
-                font-size: 11px;
-                line-height: 1;
-                box-shadow: 0 4px 16px rgba(15, 23, 42, 0.6), 0 0 12px rgba(129, 140, 248, 0.35);
-                display: inline-flex;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                border: 2px solid #ffffff;
+                display: flex;
                 align-items: center;
-                gap: 5px;
-                white-space: nowrap;
-              ">
-                <span style="
-                  background: #4f46e5;
-                  color: #ffffff;
-                  border: 1px solid #a5b4fc;
-                  width: 17px;
-                  height: 17px;
-                  border-radius: 50%;
-                  display: inline-flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 10px;
-                  font-weight: 900;
-                  flex-shrink: 0;
-                ">${gate.number || '🚪'}</span>
-                <span style="color: #f8fafc; font-weight: 800; letter-spacing: -0.2px;">${escapeHtml(gate.popularNameAr || gate.shortNameAr)}</span>
-              </div>
+                justify-content: center;
+                font-size: 11px;
+                font-weight: 900;
+                box-shadow: 0 1.5px 4px rgba(0,0,0,0.4);
+                font-family: 'Arial', sans-serif;
+              ">${gate.number || '🚪'}</div>
               <div style="
-                width: 0;
-                height: 0;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 5px solid #818cf8;
-                margin-top: -1px;
-              "></div>
+                color: #312e81;
+                font-family: 'Cairo', system-ui, sans-serif;
+                font-weight: 800;
+                font-size: 12px;
+                text-shadow: 
+                  -1.5px -1.5px 0 #ffffff, 
+                   1.5px -1.5px 0 #ffffff, 
+                  -1.5px  1.5px 0 #ffffff, 
+                   1.5px  1.5px 0 #ffffff,
+                   0 2px 4px rgba(0,0,0,0.3);
+                white-space: nowrap;
+                letter-spacing: -0.2px;
+              ">${escapeHtml(gate.popularNameAr || gate.shortNameAr)}</div>
             </div>
           `;
 
           const gateIcon = window.L.divIcon({
-            className: 'custom-gate-pin',
+            className: 'custom-gate-pin-native',
             html: gateHtml,
-            iconSize: [110, 32],
-            iconAnchor: [55, 32],
+            iconSize: [100, 40],
+            iconAnchor: [50, 10], // Anchors perfectly to the center of the circle (20px / 2)
           });
 
           const gateMarker = window.L.marker([gate.lat, gate.lng], { icon: gateIcon, zIndexOffset: 400 });

@@ -1,10 +1,10 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title Dalelak - Independent WhatsApp AI Agent & Radar (Port 3005)
+title Dalelak - WhatsApp AI Gateway & Radar (Port 3005)
 
 echo ====================================================================
-echo      Dalelak Platform - Standalone WhatsApp & Grok AI Agent
+echo      Dalelak Platform - Dedicated WhatsApp Gateway & AI Radar
 echo ====================================================================
 echo.
 
@@ -24,22 +24,23 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3005 ^| findstr LISTENING') 
 )
 
 :: 3. Check / install dependencies if node_modules is missing
-if not exist node_modules (
-    echo [2] First time setup: Installing microservice dependencies...
+if not exist "node_modules" (
+    echo [2] Installing agent dependencies...
     call npm install
 )
 
-:: 4. Start the standalone service
-echo [3] Starting Independent WhatsApp AI Agent...
+:: 4. Start the connected WhatsApp server from the core backend
+echo [3] Starting WhatsApp Gateway with Live Project Linking...
 echo.
 echo Dashboard URL: http://localhost:3005
 echo ====================================================================
 echo.
 
-call npx tsx ../src/server/whatsapp-server.ts
+cd /d "%~dp0.."
+call npx tsx src/server/whatsapp-server.ts
 
 if %errorlevel% neq 0 (
     echo.
-    echo Standalone WhatsApp Agent process stopped with code %errorlevel%.
+    echo WhatsApp Gateway process stopped with code %errorlevel%.
     pause
 )

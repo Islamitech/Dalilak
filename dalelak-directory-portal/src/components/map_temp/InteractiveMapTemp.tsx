@@ -1,10 +1,8 @@
 import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Maximize2 } from 'lucide-react';
+import { InteractiveMapProps } from './types';
 import {
-  InteractiveMapProps,
-  MapTileLayerType,
-  MAP_QUICK_CATEGORIES,
   useMapInstance,
   useMapPinsClustering,
   useMapGeolocation,
@@ -14,20 +12,23 @@ import {
   MapSearchBox,
   MapFloatingControls,
   MapSelectedBusinessDrawer,
-  MapFooterBar,
-} from './map';
+} from './index';
+import { MOCK_SANDBOX_BUSINESSES } from './mockData';
 
-export type { InteractiveMapProps, MapTileLayerType };
-export { MAP_QUICK_CATEGORIES };
-
-export const InteractiveMap: React.FC<InteractiveMapProps> = ({
+/**
+ * 🧪 InteractiveMapTemp
+ * Isolated Sandbox Map Engine using map_temp components.
+ * Defaults to isolated mock data to prevent touching Supabase or production DB.
+ */
+export const InteractiveMapTemp: React.FC<InteractiveMapProps> = ({
   mode = 'view',
   lat = 29.9683,
   lng = 31.1002,
   onLocationSelect,
-  businesses = [],
+  businesses = MOCK_SANDBOX_BUSINESSES,
   onSelectBusiness,
   onEditBusiness,
+  selectedBusiness,
   heightClass = 'h-[380px]',
   targetBuilding = null,
   showHadayekGates = true,
@@ -58,24 +59,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     onLocationSelect,
   });
 
-  React.useEffect(() => {
-    if (!mapInstance.leafletMapRef.current || !window.L) return;
-    const map = mapInstance.leafletMapRef.current;
-    
-    // Restrict bounds heavily when Hadayek Al Ahram is selected
-    if (state.selectedGovFilter === 'حدائق الأهرام') {
-      const bounds = window.L.latLngBounds(
-        window.L.latLng(29.930, 31.050),
-        window.L.latLng(30.010, 31.140)
-      );
-      map.setMaxBounds(bounds);
-      map.options.minZoom = 13;
-    } else {
-      map.setMaxBounds(null);
-      map.options.minZoom = 5;
-    }
-  }, [state.selectedGovFilter, mapInstance.leafletMapRef.current]);
-
   useMapPinsClustering({
     mapInstance,
     state,
@@ -85,6 +68,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     targetBuilding,
     onSelectBusiness,
     onSelectZone,
+    selectedBusiness,
   });
 
   const geolocation = useMapGeolocation({
@@ -93,19 +77,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   });
 
   const search = useMapSearch({
-    updateSelectedPosition: async (lat, lng, flyTo, zoom) => {
-      // Check if location is outside the roughly bounded Hadayek area
-      const isOutside = lat < 29.930 || lat > 30.010 || lng < 31.050 || lng > 31.140;
-      if (isOutside && state.selectedGovFilter === 'حدائق الأهرام') {
-        state.setSelectedGovFilter('all');
-        // Let the state and map bounds update first, then fly
-        setTimeout(() => {
-          mapInstance.updateSelectedPosition(lat, lng, flyTo, zoom);
-        }, 100);
-      } else {
-        await mapInstance.updateSelectedPosition(lat, lng, flyTo, zoom);
-      }
-    },
+    updateSelectedPosition: mapInstance.updateSelectedPosition,
   });
 
   const filteredBusinessesCount = businesses.filter(
@@ -113,8 +85,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   ).length;
 
   const canvasWrapperClasses = state.isExpanded
-    ? 'relative w-full flex-1 h-full min-h-[400px] overflow-hidden min-h-0 z-0'
-    : `relative w-full ${heightClass} overflow-hidden z-0`;
+    ? 'relative w-full flex-1 h-full min-h-[400px] overflow-hidden min-h-0'
+    : `relative w-full ${heightClass} overflow-hidden`;
 
   const mapInnerContent = (
     <>
@@ -148,18 +120,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       )}
 
       <div className={canvasWrapperClasses}>
-        <div ref={containerRef} className="w-full h-full cursor-crosshair leaflet-map-canvas touch-none" />
-
-        {/* Hero Title Overlay */}
-        {state.selectedGovFilter === 'حدائق الأهرام' && mode === 'view' && (
-          <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none drop-shadow-2xl text-center select-none animate-fade-in-scale w-max max-w-[90vw]">
-            <h2 className="text-[11px] sm:text-xl font-black text-white px-3 sm:px-6 py-1 sm:py-1.5 bg-slate-900/80 backdrop-blur-md border border-amber-500/40 rounded-full shadow-2xl tracking-wide flex items-center gap-1.5 sm:gap-2">
-              <span>خريطة</span>
-              <span className="text-amber-400">حدائق الأهرام</span>
-              <span className="hidden sm:inline">التفاعلية</span>
-            </h2>
-          </div>
-        )}
+        <div ref={containerRef} className="w-full h-full cursor-crosshair leaflet-map-canvas bg-[#f5f3e9]" />
 
         <MapFloatingControls
           mode={mode}
@@ -170,8 +131,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           handlePinCenterOfMap={mapInstance.handlePinCenterOfMap}
           handleResetPosition={mapInstance.handleResetPosition}
           handlePan={mapInstance.handlePan}
-          tileLayer={mapInstance.tileLayer}
-          switchTileLayer={mapInstance.switchTileLayer}
         />
 
         {mode === 'view' && (
@@ -187,7 +146,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
   return (
     <>
-      {/* Inline Placeholder when Expanded (maintains page flow & prevents layout jitter - commit 3471e21) */}
+      {/* Inline Placeholder when Expanded */}
       {state.isExpanded && (
         <div
           className={`relative w-full ${heightClass} rounded-2xl border-2 border-dashed border-amber-500/35 bg-[var(--bg-card)]/40 flex flex-col items-center justify-center gap-2.5 text-slate-400 select-none transition-all duration-300`}
@@ -196,7 +155,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <Maximize2 className="w-5 h-5 animate-pulse" />
           </div>
           <span className="text-xs font-bold text-[var(--text-muted)]">
-            الخريطة معروضة الآن في وضع ملء الشاشة الشامل
+            الخريطة معروضة الآن في وضع ملء الشاشة الشامل (نسخة الاختبار)
           </span>
           <button
             type="button"
@@ -208,7 +167,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
       )}
 
-      {/* Expanded Mode: True Viewport Portal into document.body */}
+      {/* Expanded Mode */}
       {state.isExpanded ? (
         typeof document !== 'undefined' &&
         createPortal(
@@ -217,7 +176,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               onClick={() => state.setIsExpanded(false)}
               className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99998]"
             />
-            <div className="relative z-[99999] m-0 sm:m-3 flex-1 bg-slate-900 border-0 sm:border-2 border-amber-500/60 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-scale">
+            <div className="relative z-[99999] m-0 sm:m-3 flex-1 bg-slate-900 border-0 sm:border-2 border-amber-500/60 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in">
               {mapInnerContent}
             </div>
           </div>,
@@ -231,3 +190,5 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     </>
   );
 };
+
+export default InteractiveMapTemp;

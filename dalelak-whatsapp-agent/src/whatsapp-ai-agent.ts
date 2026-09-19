@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { Business, AdminFollowUpNote, AdminFollowUpCategory } from '../types.js';
-import { getDisplayDirectoryUrl } from '../utils/directoryUrl.js';
+import { Business, AdminFollowUpNote } from './types.js';
+import { getDisplayDirectoryUrl } from './directoryUrl.js';
 import { prepareBusinessGiftPackage, recordDeliveredGift, getDeliveredGifts, DeliveredGiftRecord } from './whatsapp-gift-service.js';
 
 export interface WhatsAppAiConfig {
@@ -639,6 +639,34 @@ function buildSystemPrompt(biz: Business | null, tone: WhatsAppAiConfig['tone'])
   const location = biz ? [biz.governorate, biz.city].filter(Boolean).join(' - ') : '';
   const directoryUrl = biz ? getDisplayDirectoryUrl(biz) : 'https://www.dalilaak.com';
   const venueType = getSemanticVenueLabel(category);
+
+  // 🔄 Dynamic check for trained system prompt (synced from Dalelak AI Agent Trainer)
+  const config = getWhatsAppAiConfig();
+  const trainedPromptCandidates = [
+    path.resolve(process.cwd(), 'data/trained_system_prompt.txt'),
+    path.resolve(process.cwd(), '../data/trained_system_prompt.txt'),
+    'C:\\Users\\Ahmed\\Desktop\\Dalelak_AI_Agent_Trainer\\data\\dalelak_master_system_prompt.txt',
+  ];
+
+  let trainedPrompt = (config as any).customSystemPrompt || '';
+  for (const tp of trainedPromptCandidates) {
+    if (fs.existsSync(tp)) {
+      try {
+        const content = fs.readFileSync(tp, 'utf-8');
+        if (content && content.trim()) {
+          trainedPrompt = content.trim();
+          break;
+        }
+      } catch {}
+    }
+  }
+
+  if (trainedPrompt) {
+    const venueContext = isRegisteredBiz
+      ? `\n\n═══════════════════════════════════════════════════════\n📌 سياق وبيانات المنشأة الحالية للتواصل:\n- الاسم: «${venueName}» (${venueType})\n- التصنيف: ${category}\n- النطاق الجغرافي: ${location}\n- الرابط بالدليل: ${directoryUrl}\n═══════════════════════════════════════════════════════`
+      : `\n\n═══════════════════════════════════════════════════════\n📌 سياق الطرف المتواصل حالياً:\n- متواصل جديد / غير مسجل مسبقاً بقاعدة البيانات.\n═══════════════════════════════════════════════════════`;
+    return `${trainedPrompt}${venueContext}`;
+  }
 
   let toneStyleGuide = '';
   if (tone === 'formal_official') {

@@ -35,6 +35,25 @@ export interface WhatsAppSlotStatus {
   safety: SlotSafetyMetrics;
 }
 
+export type AdminFollowUpType = 'call' | 'visit' | 'payment' | 'verification' | 'general';
+export type AdminFollowUpStatus = 'completed' | 'pending' | 'urgent';
+export type AdminFollowUpCategory = 'info' | 'directory' | 'maps' | 'finance' | 'media' | 'whatsapp' | 'general';
+
+export interface AdminFollowUpNote {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole?: string;
+  author?: string;
+  date?: string;
+  type: AdminFollowUpType;
+  status?: AdminFollowUpStatus;
+  category?: AdminFollowUpCategory;
+  text: string;
+  createdAt: string;
+  nextFollowUpDate?: string;
+}
+
 export interface Business {
   id: string;
   nameAr: string;
@@ -57,6 +76,10 @@ export interface Business {
   repName?: string;
   packageName?: string;
   notes?: string;
+  adminFollowUps?: AdminFollowUpNote[];
+  adminFollowUpNotes?: AdminFollowUpNote[];
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 export interface WhatsAppAiConfig {

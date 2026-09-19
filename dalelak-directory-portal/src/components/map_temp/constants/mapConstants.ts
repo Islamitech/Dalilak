@@ -18,7 +18,6 @@ export function escapeHtml(str?: string | null): string {
 
 // Egyptian governorate approximate coordinates map
 export const GOVERNORATE_COORDS: Record<string, { lat: number; lng: number }> = {
-  'حدائق الأهرام': { lat: 29.9683, lng: 31.1002 },
   'القاهرة': { lat: 30.0444, lng: 31.2357 },
   'الجيزة': { lat: 30.0131, lng: 31.2089 },
   'الإسكندرية': { lat: 31.2001, lng: 29.9187 },

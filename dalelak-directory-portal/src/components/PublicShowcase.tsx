@@ -17,11 +17,12 @@ import { MessageCircle } from 'lucide-react';
 
 // Code-splitting via React.lazy to reduce initial JS payload for mobile Lighthouse performance
 const SearchView = React.lazy(() => import('./views/SearchView').then(m => ({ default: m.SearchView })));
-const MapView = React.lazy(() => import('./views/MapView').then(m => ({ default: m.MapView })));
+import { MapView } from './views/MapView';
 const FavoritesView = React.lazy(() => import('./views/FavoritesView').then(m => ({ default: m.FavoritesView })));
 const ForBusinessView = React.lazy(() => import('./views/ForBusinessView').then(m => ({ default: m.ForBusinessView })));
 const BusinessPricingView = React.lazy(() => import('./views/BusinessPricingView').then(m => ({ default: m.BusinessPricingView })));
 const AboutView = React.lazy(() => import('./views/AboutView').then(m => ({ default: m.AboutView })));
+const MapSandboxView = React.lazy(() => import('./views/MapSandboxView').then(m => ({ default: m.MapSandboxView })));
 import { ActivityDetailModal } from './activity/ActivityDetailModal';
 const VideoPlayerModal = React.lazy(() => import('./VideoPlayerModal').then(m => ({ default: m.VideoPlayerModal })));
 
@@ -44,7 +45,6 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window === 'undefined') return '/';
     const path = window.location.pathname;
-    if (path.startsWith('/biz/') || initialBizId) return '/search';
     return path || '/';
   });
 
@@ -211,7 +211,9 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
       if (match.category) {
         setCategoryFilter(match.category);
       }
-      setCurrentPath('/search');
+      if (currentPath !== '/' && currentPath !== '/map') {
+        setCurrentPath('/search');
+      }
     }
   }, [initialBizId, businesses]);
 
@@ -462,6 +464,11 @@ export const PublicShowcase: React.FC<PublicShowcaseProps> = ({
             onNavigate={handleNavigate}
           />
         );
+
+      case '/sandbox':
+      case '/map-sandbox':
+      case '/temp':
+        return <MapSandboxView onNavigate={handleNavigate} />;
 
       case '/atlas-home':
         return (

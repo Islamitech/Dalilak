@@ -43,7 +43,7 @@ export const MapFloatingControls: React.FC<MapFloatingControlsProps> = ({
     <>
       {/* 🎯 Precision Center Reticle Crosshair (Overlay in center of screen) */}
       {centerReticleActive && mode === 'picker' && (
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-[1000]">
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
           <div className="relative flex items-center justify-center">
             {/* Outer Crosshair Ring */}
             <div className="w-16 h-16 rounded-full border-2 border-amber-400/80 border-dashed animate-spin-slow flex items-center justify-center shadow-2xl bg-amber-500/10" />

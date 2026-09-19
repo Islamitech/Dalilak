@@ -61,6 +61,24 @@ const LEADS_STORE_PATH = path.resolve(process.cwd(), 'data/server_leads_store.js
 const TRAINING_CONFIG_PATH_1 = path.resolve(process.cwd(), 'data/dalelak_packages_and_rules.json');
 const TRAINING_CONFIG_PATH_2 = 'C:\\Users\\Ahmed\\Desktop\\ملف_تدريب_وباقات_دليلك.json';
 const TRAINING_CONFIG_PATH_3 = 'C:\\Users\\Ahmed\\Desktop\\pc\\dalelak_ai_training_inputs.json';
+const OPT_OUT_REGISTRY_PATH = path.resolve(process.cwd(), 'data/whatsapp_opt_out_registry.json');
+
+function saveOptOut(phone: string, reason: string): void {
+  try {
+    const cleanPhone = phone.replace(/\D/g, '');
+    let reg: Record<string, any> = {};
+    if (fs.existsSync(OPT_OUT_REGISTRY_PATH)) {
+      try {
+        reg = JSON.parse(fs.readFileSync(OPT_OUT_REGISTRY_PATH, 'utf-8'));
+      } catch {}
+    }
+    reg[cleanPhone] = { phone: cleanPhone, reason, optedOutAt: new Date().toISOString() };
+    fs.writeFileSync(OPT_OUT_REGISTRY_PATH, JSON.stringify(reg, null, 2), 'utf-8');
+    console.log(`🛑 [Opt-Out Registry] Added ${cleanPhone} to permanent do-not-contact list.`);
+  } catch (err) {
+    console.warn('Error saving opt-out:', err);
+  }
+}
 
 export interface DalelakPackageItem {
   id: string;
@@ -1099,6 +1117,35 @@ function buildSystemPrompt(biz: Business | null, tone: WhatsAppAiConfig['tone'])
   const location = biz ? [biz.governorate, biz.city].filter(Boolean).join(' - ') : '';
   const directoryUrl = biz ? getDisplayDirectoryUrl(biz) : 'https://www.dalilaak.com';
   const venueType = getSemanticVenueLabel(category);
+
+  // 🔄 Dynamic check for trained system prompt (synced from Dalelak AI Agent Trainer)
+  const config = getWhatsAppAiConfig();
+  const trainedPromptCandidates = [
+    path.resolve(process.cwd(), 'data/trained_system_prompt.txt'),
+    path.resolve(process.cwd(), '../data/trained_system_prompt.txt'),
+    'C:\\Users\\Ahmed\\Desktop\\Dalelak_AI_Agent_Trainer\\data\\dalelak_master_system_prompt.txt',
+  ];
+
+  let trainedPrompt = (config as any).customSystemPrompt || '';
+  for (const tp of trainedPromptCandidates) {
+    if (fs.existsSync(tp)) {
+      try {
+        const content = fs.readFileSync(tp, 'utf-8');
+        if (content && content.trim()) {
+          trainedPrompt = content.trim();
+          break;
+        }
+      } catch {}
+    }
+  }
+
+  if (trainedPrompt) {
+    const venueContext = isRegisteredBiz
+      ? `\n\n═══════════════════════════════════════════════════════\n📌 سياق وبيانات المنشأة الحالية للتواصل:\n- الاسم: «${venueName}» (${venueType})\n- التصنيف: ${category}\n- النطاق الجغرافي: ${location}\n- الرابط بالدليل: ${directoryUrl}\n═══════════════════════════════════════════════════════`
+      : `\n\n═══════════════════════════════════════════════════════\n📌 سياق الطرف المتواصل حالياً:\n- متواصل جديد / غير مسجل مسبقاً بقاعدة البيانات.\n═══════════════════════════════════════════════════════`;
+    return `${trainedPrompt}${venueContext}`;
+  }
+
   const trainingConfig = getDalelakTrainingConfig();
 
   const activePackages = (trainingConfig.packages || []).filter(p => p.is_active !== false);
@@ -1368,19 +1415,21 @@ export async function processIncomingWhatsAppMessage(params: {
   slotId: string;
   senderSock: any;
   messageKey?: any;
+  isSimulation?: boolean;
 }): Promise<{
   handled: boolean;
   replyText?: string;
   actionExecuted?: string;
   reason?: string;
+  detectedIntent?: string;
 }> {
   // 🌟 UNIVERSAL SLOT CAPABILITY: Slot 1, Slot 2, and any future slots act as active AI Customer Service Agents.
 
   const cleanPhone = params.rawPhone.replace(/\D/g, '');
 
-  // 🛡️ INBOUND MESSAGE DEDUPLICATION (60s Sliding Window):
+  // 🛡️ INBOUND MESSAGE DEDUPLICATION (60s Sliding Window - skipped in simulation):
   // Eliminates race conditions and duplicate webhook events
-  if (isDuplicateIncomingMessage(params.messageKey?.id, cleanPhone, params.incomingText)) {
+  if (!params.isSimulation && isDuplicateIncomingMessage(params.messageKey?.id, cleanPhone, params.incomingText)) {
     console.log(`🛡️ [Deduplication] Inbound message from ${cleanPhone} (${params.messageKey?.id || 'text-hash'}) received again within 60s. Skipping duplicate.`);
     return { handled: true, reason: 'Duplicate message filtered by deduplication cache' };
   }
@@ -1407,6 +1456,7 @@ async function executeProcessIncomingWhatsAppMessage(
     slotId: string;
     senderSock: any;
     messageKey?: any;
+    isSimulation?: boolean;
   },
   cleanPhone: string
 ): Promise<{
@@ -1414,6 +1464,7 @@ async function executeProcessIncomingWhatsAppMessage(
   replyText?: string;
   actionExecuted?: string;
   reason?: string;
+  detectedIntent?: string;
 }> {
   const { rawPhone, incomingText, slotId, senderSock, messageKey } = params;
   const config = getWhatsAppAiConfig();
@@ -1486,6 +1537,28 @@ async function executeProcessIncomingWhatsAppMessage(
 
   const incomingLower = (incomingText || '').toLowerCase();
   const hasNegativeIntent = /مش\s*عاوز|مش\s*عايز|مش\s*بتاعي|مش\s*بتاعتي|الرقم\s*غلط|رقم\s*غلط|شيل\s*الرقم|امسح\s*الرقم|الغي|إلغي|غير\s*التصميم|بدل\s*التصميم|تصميم\s*قديم|مش\s*عاجبني|سيء|سئ|وحش/i.test(incomingLower);
+
+  // 🛑 ANTI-BAN CRITICAL: Instant Opt-Out / Do-Not-Contact Handshake
+  const isOptOutRequest =
+    /^(توقف|stop|إلغاء|الغي|الغي\s*رقمي|احذف\s*رقمي|مش\s*عاوز\s*رسائل|مش\s*عايز\s*رسائل|مش\s*عاوز\s*رسايل|مش\s*عايز\s*رسايل|unsubscribe)$/i.test(incomingLower.trim()) ||
+    /(شيل\s*رقمي\s*من\s*عندكم|بلاش\s*رسائل|ماتبعتوش\s*تاني|ما\s*تبعتوش|عدم\s*الإزعاج)/i.test(incomingLower);
+
+  if (isOptOutRequest) {
+    console.log(`🛑 [Opt-Out Detected] Customer ${cleanPhone} requested to unsubscribe. Honoring request immediately.`);
+    saveOptOut(cleanPhone, `طلب العميل: "${incomingText}"`);
+    muteConversationForHuman(cleanPhone, 43200); // 30 days mute
+
+    const optOutAck = 'تم إلغاء رقمكم من قائمة الإرسال بالكامل يا فندم ولن تصلكم أي رسائل تسويقية مرة أخرى. نعتذر لحضرتك تماماً وشكراً لتفهمك! 🙏💐';
+    const targetJid = rawPhone.includes('@') ? rawPhone : `${cleanPhone}@s.whatsapp.net`;
+    if (senderSock?.sendMessage) {
+      await senderSock.sendMessage(targetJid, { text: optOutAck }).catch(() => {});
+    }
+    return {
+      handled: true,
+      replyText: optOutAck,
+      actionExecuted: 'opt_out_unsubscribed',
+    };
+  }
 
   // 🖨️ Detect Print Order Request ("اطبعلي" / "خدمة الطباعة") - ONLY if not negative
   if (biz && (/اطبع|طباعة|طبعلي|توصيل/i.test(incomingText)) && !hasNegativeIntent) {
@@ -1609,8 +1682,10 @@ async function executeProcessIncomingWhatsAppMessage(
     ? Math.floor(14 + Math.random() * 7)
     : Math.floor(18 + Math.random() * 9);
 
-  console.log(`⏳ [AI Agent] Stealth Reaction (${isOngoingActiveChat ? 'Active Thread' : 'New Inbound'}): Waiting ${reactionDelaySec}s silently before reading for ${cleanPhone}...`);
-  await new Promise((r) => setTimeout(r, reactionDelaySec * 1000));
+  if (!params.isSimulation) {
+    console.log(`⏳ [AI Agent] Stealth Reaction (${isOngoingActiveChat ? 'Active Thread' : 'New Inbound'}): Waiting ${reactionDelaySec}s silently before reading for ${cleanPhone}...`);
+    await new Promise((r) => setTimeout(r, reactionDelaySec * 1000));
+  }
 
   // 5. Mark Message as Read (Blue Ticks) ONLY AFTER the stealth delay finishes
   if (senderSock?.readMessages && messageKey) {
@@ -1629,7 +1704,9 @@ async function executeProcessIncomingWhatsAppMessage(
   }
 
   // 6. Brief natural pause after opening chat (1.2s - 2.2s)
-  await new Promise((r) => setTimeout(r, Math.floor(1200 + Math.random() * 1000)));
+  if (!params.isSimulation) {
+    await new Promise((r) => setTimeout(r, Math.floor(1200 + Math.random() * 1000)));
+  }
 
   // 7. Await the pre-generated API message
   const responseMessage = await generateReplyPromise;
@@ -1985,7 +2062,7 @@ async function executeProcessIncomingWhatsAppMessage(
   }
 
   // 9. 🛡️ Dynamic Typing Duration & Zero Dangling Presence Guarantee (try...finally)
-  if (config.typingSimulationEnabled && senderSock?.sendPresenceUpdate && replyText) {
+  if (!params.isSimulation && config.typingSimulationEnabled && senderSock?.sendPresenceUpdate && replyText) {
     const charCount = replyText.length;
     // 60ms per character, clamped safely between 4.5s and 9s per user directive
     const dynamicTypingMs = Math.min(9000, Math.max(4500, Math.floor(charCount * 60)));
@@ -2044,5 +2121,6 @@ async function executeProcessIncomingWhatsAppMessage(
     handled: true,
     replyText,
     actionExecuted,
+    detectedIntent,
   };
 }

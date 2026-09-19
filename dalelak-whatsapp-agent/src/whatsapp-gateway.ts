@@ -10,7 +10,7 @@ import path from 'path';
 import QRCode from 'qrcode';
 import { Boom } from '@hapi/boom';
 import { WhatsAppSlotStatus, WhatsAppConnectionState, SlotSafetyMetrics } from './types.js';
-import { processIncomingWhatsAppMessage } from './whatsapp-ai-agent.js';
+import { processIncomingWhatsAppMessage, muteConversationForHuman } from './whatsapp-ai-agent.js';
 import { formatWhatsAppPhone } from './phoneFormatter.js';
 
 export type SlotId = '1' | '2' | string;
@@ -136,7 +136,7 @@ export async function connectSlot(slotId: SlotId, onQrReady?: (qrDataUrl: string
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     generateHighQualityLinkPreview: true,
-    browser: ['Dalelak AI Assistant', 'Chrome', '120.0.0'],
+    browser: ['Windows', 'Chrome', '124.0.0.0'],
     syncFullHistory: false,
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
@@ -203,16 +203,13 @@ export async function connectSlot(slotId: SlotId, onQrReady?: (qrDataUrl: string
     if (m.type !== 'notify' || !m.messages || m.messages.length === 0) return;
 
     for (const msg of m.messages) {
-      if (!msg.message || msg.key.fromMe) continue;
+      if (!msg.message) continue;
 
-      const remoteJid = msg.key.remoteJid;
+      const remoteJid = msg.key?.remoteJid || '';
       if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') continue;
 
-      const incomingText =
-        msg.message.conversation ||
-        msg.message.extendedTextMessage?.text ||
-        msg.message.imageMessage?.caption ||
-        '';
+      const senderPhone = remoteJid.split('@')[0].replace(/\D/g, '');
+      const cleanPhone = formatWhatsAppPhone(senderPhone);
 
       // 👤 Check if message was sent manually by human admin from phone app (Slot 1 only)
       if (msg.key?.fromMe) {
@@ -223,9 +220,15 @@ export async function connectSlot(slotId: SlotId, onQrReady?: (qrDataUrl: string
         continue;
       }
 
+      const incomingText =
+        msg.message.conversation ||
+        msg.message.extendedTextMessage?.text ||
+        msg.message.imageMessage?.caption ||
+        '';
+
       if (!incomingText.trim()) continue;
 
-      console.log(`📩 [Slot ${slotId}] Inbound message from ${senderPhone}: "${incomingText}"`);
+      console.log(`📩 [Slot ${slotId}] Inbound message from ${cleanPhone}: "${incomingText}"`);
 
       session.lastHeartbeat = new Date();
 
@@ -238,7 +241,7 @@ export async function connectSlot(slotId: SlotId, onQrReady?: (qrDataUrl: string
 
       // Trigger Grok AI Agent asynchronously (Slot 1 only)
       processIncomingWhatsAppMessage({
-        rawPhone: senderPhone,
+        rawPhone: cleanPhone,
         incomingText,
         senderSock: sock,
         slotId,

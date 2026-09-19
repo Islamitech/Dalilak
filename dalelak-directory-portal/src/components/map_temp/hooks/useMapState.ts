@@ -23,7 +23,7 @@ export const useMapState = ({
   const [showTargetPin] = useState<boolean>(true);
   const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
   const [copied, setCopied] = useState<boolean>(false);
-  const [selectedGovFilter, setSelectedGovFilter] = useState<string>('حدائق الأهرام');
+  const [selectedGovFilter, setSelectedGovFilter] = useState<string>('all');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
 
