@@ -33,5 +33,9 @@ dalelak-whatsapp-agent.zip
 **/.env*
 !**/.env.example
 New folder*/
-
 tools/
+project-analyzer.js
+QUICK-START.md
+USAGE-GUIDE.md
+setup-and-run.*
+*README.md
