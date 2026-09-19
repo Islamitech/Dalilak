@@ -47,6 +47,7 @@ export const useMapPinsClustering = ({
   const {
     showBusinesses,
     selectedGovFilter,
+    selectedZone,
     mapCategoryFilter,
     onlyVerifiedFilter,
     selectedBiz,
@@ -228,25 +229,30 @@ export const useMapPinsClustering = ({
       // 🗺️ Render Hadayek Official District Polygons
       if (showDistrictsOverlay && window.L) {
         HADAYEK_OFFICIAL_DISTRICTS.forEach((district) => {
+          const isSelected = selectedZone === district.letterAr;
+
           district.polygons.forEach((polyCoords) => {
             const polygon = window.L.polygon(polyCoords, {
-              color: district.color,
-              weight: 1.5,
-              opacity: 0.85,
+              color: isSelected ? '#0f172a' : district.color,
+              weight: isSelected ? 4 : (selectedZone ? 1 : 1.5),
+              opacity: isSelected ? 1.0 : (selectedZone ? 0.35 : 0.75),
+              fill: !isSelected && !selectedZone,
               fillColor: district.color,
-              fillOpacity: 0.10,
-              className: 'hadayek-district-polygon',
+              fillOpacity: isSelected ? 0 : (selectedZone ? 0 : 0.05),
+              className: isSelected ? 'hadayek-district-polygon-selected' : 'hadayek-district-polygon',
             });
 
-            polygon.on('click', () => {
+            polygon.on('click', (e: any) => {
+              if (e.originalEvent?.target?.blur) {
+                e.originalEvent.target.blur();
+              }
+              state.setSelectedZone(district.letterAr);
               if (onSelectZone) onSelectZone(district.letterAr);
+              if (district.polygons && district.polygons[0]) {
+                const bounds = window.L.latLngBounds(district.polygons[0]);
+                map.fitBounds(bounds, { padding: [35, 35], maxZoom: 18 });
+              }
             });
-
-            polygon.bindTooltip(`
-              <div dir="rtl" style="font-family: 'Cairo', system-ui, sans-serif; font-weight: 800; font-size: 12px; color: ${district.color}; padding: 3px 6px;">
-                ${escapeHtml(district.nameAr)} (${escapeHtml(district.nameEn)})
-              </div>
-            `, { sticky: true, direction: 'top' });
 
             markersGroup.addLayer(polygon);
           });
@@ -427,6 +433,7 @@ export const useMapPinsClustering = ({
     showDistrictsOverlay,
     showTargetPin,
     selectedGovFilter,
+    selectedZone,
     currentLat,
     currentLng,
     gpsAccuracy,

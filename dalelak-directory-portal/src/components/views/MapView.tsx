@@ -230,6 +230,7 @@ export const MapView: React.FC<MapViewProps> = ({
           mode="view"
           targetBuilding={targetBuilding}
           showHadayekGates={true}
+          selectedZone={activeZoneLetter}
           onSelectZone={handleSelectZoneJump}
           onSelectBusiness={(biz) => {
             setSelectedMapBiz(biz);

@@ -17,6 +17,7 @@ export interface InteractiveMapProps {
     lng?: number;
   } | null;
   showHadayekGates?: boolean;
+  selectedZone?: string;
   onSelectZone?: (zoneLetter: string) => void;
   initialShowBusinesses?: boolean;
   onToggleBusinessesVisibility?: (visible: boolean) => void;

@@ -48,6 +48,8 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
 }) => {
   const {
     selectedGovFilter,
+    selectedZone,
+    setSelectedZone,
     showDistrictsOverlay,
     setShowDistrictsOverlay,
     showGatesLayer,
@@ -64,162 +66,85 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
     setIsExpanded,
   } = state;
 
+  const handleDistrictChange = (letter: string) => {
+    setSelectedZone(letter);
+    if (onSelectZone) onSelectZone(letter);
+    if (!letter) return;
+    const district = HADAYEK_OFFICIAL_DISTRICTS.find((d) => d.letterAr === letter);
+    if (district && mapInstance?.leafletMapRef?.current && window.L) {
+      if (district.polygons && district.polygons[0]) {
+        const bounds = window.L.latLngBounds(district.polygons[0]);
+        mapInstance.leafletMapRef.current.fitBounds(bounds, { padding: [35, 35], maxZoom: 18 });
+      } else {
+        mapInstance.leafletMapRef.current.flyTo([district.centerLat, district.centerLng], 17.5, { duration: 0.8 });
+      }
+    }
+  };
+
   return (
-    <div className="bg-slate-900/95 backdrop-blur-md px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-b border-slate-800/80 z-20 text-white select-none transition-all">
-      {/* 🌟 1. Primary Compact Row */}
-      <div className="flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap">
-        {/* Right Section: Title + Unified Location Dropdown */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow-xs">
-            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs sm:text-sm font-black text-white whitespace-nowrap">
-              {mode === 'picker' ? 'تحديد الموقع' : 'خريطة الدليل'}
-            </span>
-
-            {/* Compact Governorates Selector (Default: Hadayek Al-Ahram) */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={selectedGovFilter}
-                onChange={(e) => onGovChange(e.target.value)}
-                className="bg-slate-800/90 hover:bg-slate-700/90 border border-amber-500/30 text-amber-400 font-bold text-[10px] sm:text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-amber-400 cursor-pointer appearance-none pl-5 pr-2 transition-colors"
-                title="المحافظة والمنطقة (افتراضياً: حدائق الأهرام)"
-              >
-                <option value="الجيزة">📍 حدائق الأهرام (الجيزة)</option>
-                <option value="all">كل المحافظات</option>
-                {Object.keys(GOVERNORATE_COORDS)
-                  .filter((g) => g !== 'الجيزة')
-                  .map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-              </select>
-              <ChevronDown className="w-3 h-3 text-amber-400/80 absolute left-1.5 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Center Section: Hadayek District Quick-Jump + Map Tile Select */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {/* 🧭 Quick District Selector (أ إلى ن) */}
+    <div className="bg-slate-900/95 backdrop-blur-md px-2 py-1 sm:py-1.5 border-b border-slate-800/80 z-20 text-white select-none transition-all">
+      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+        {/* Quick Selectors & Micro Toggles */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          {/* 🧭 District Quick-Jump */}
           <div className="relative inline-flex items-center">
             <select
-              defaultValue=""
-              onChange={(e) => {
-                const letter = e.target.value;
-                if (!letter) return;
-                if (onSelectZone) onSelectZone(letter);
-                const district = HADAYEK_OFFICIAL_DISTRICTS.find((d) => d.letterAr === letter);
-                if (district && mapInstance?.leafletMapRef?.current) {
-                  mapInstance.leafletMapRef.current.flyTo([district.centerLat, district.centerLng], 16, { duration: 0.8 });
-                }
-              }}
-              className="bg-slate-800/90 hover:bg-slate-700/90 border border-indigo-500/30 text-indigo-300 font-bold text-[10px] sm:text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-400 cursor-pointer appearance-none pl-5 pr-2 transition-colors"
-              title="انتقال سريع لمناطق حدائق الأهرام (أ إلى ن)"
+              value={selectedZone || ''}
+              onChange={(e) => handleDistrictChange(e.target.value)}
+              className="bg-slate-800/90 hover:bg-slate-700/90 border border-indigo-500/40 text-indigo-300 font-bold text-[10px] sm:text-xs rounded-md px-1.5 py-0.5 focus:outline-none focus:border-indigo-400 cursor-pointer appearance-none pl-4 pr-1.5 transition-colors"
+              title="انتقال للمنطقة"
             >
-              <option value="" disabled>🧭 انتقال لمنطقة...</option>
+              <option value="">🧭 المنطقة...</option>
               {HADAYEK_OFFICIAL_DISTRICTS.map((d) => (
                 <option key={d.id} value={d.letterAr}>
                   {d.nameAr}
                 </option>
               ))}
             </select>
-            <ChevronDown className="w-3 h-3 text-indigo-400/80 absolute left-1.5 pointer-events-none" />
+            <ChevronDown className="w-2.5 h-2.5 text-indigo-400/80 absolute left-1 pointer-events-none" />
           </div>
 
-          {/* 🗺️ Tile Layer Dropdown (خريطة دليلك المساحية المرقمة وشوارع جوجل) */}
+          {/* 🗺️ Tile Layer Dropdown */}
           <div className="relative inline-flex items-center">
             <select
               value={tileLayer}
               onChange={(e) => switchTileLayer(e.target.value as MapTileLayerType)}
-              className="bg-slate-800/90 hover:bg-slate-700/90 border border-amber-500/30 text-amber-300 font-bold text-[10px] sm:text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-amber-400 cursor-pointer appearance-none pl-5 pr-2 transition-colors"
-              title="نوع الخريطة (خريطة دليلك المساحية بأرقام المباني / شوارع جوجل)"
+              className="bg-slate-800/90 hover:bg-slate-700/90 border border-amber-500/40 text-amber-300 font-bold text-[10px] sm:text-xs rounded-md px-1.5 py-0.5 focus:outline-none focus:border-amber-400 cursor-pointer appearance-none pl-4 pr-1.5 transition-colors"
+              title="نوع الخريطة"
             >
-              <option value="dalelak-clean">🗺️ خريطة دليلك المساحية (أرقام المباني)</option>
-              <option value="google-streets">📍 شوارع جوجل (Google Streets)</option>
+              <option value="dalelak-clean">🗺️ مساحية (أرقام المباني)</option>
+              <option value="google-streets">📍 جوجل</option>
             </select>
-            <ChevronDown className="w-3 h-3 text-amber-400/80 absolute left-1.5 pointer-events-none" />
+            <ChevronDown className="w-2.5 h-2.5 text-amber-400/80 absolute left-1 pointer-events-none" />
           </div>
-        </div>
 
-        {/* Left Section: Explore Directory + GPS + Fullscreen Toggle */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Explore Directory Button (زر التوجيه لاستكشاف الأنشطة / الدليل) */}
-          {onExploreDirectory && (
-            <button
-              type="button"
-              onClick={onExploreDirectory}
-              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-lg shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95 whitespace-nowrap"
-              title="استعراض والبحث في أنشطة ومحلات الدليل"
-            >
-              <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>استكشف الدليل</span>
-            </button>
-          )}
-
-          {/* GPS Locator Button in Picker */}
-          {mode === 'picker' && handleGetLocation && (
-            <button
-              type="button"
-              onClick={handleGetLocation}
-              disabled={isLocating}
-              className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2 py-1 rounded-lg shadow-xs transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
-              title="تحديد موقعي الفعلي GPS"
-            >
-              {isLocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3 fill-slate-950" />}
-              <span>{isLocating ? '...' : 'موقعي'}</span>
-            </button>
-          )}
-
-          {/* Fullscreen Expand / Minimize */}
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`p-1 sm:p-1.5 rounded-lg border text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
-              isExpanded
-                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs'
-                : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-slate-700'
-            }`}
-            title={isExpanded ? 'إنهاء وضع الشاشة الكاملة' : 'توسيع الخريطة ملء الشاشة'}
-          >
-            {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* 🌟 2. Micro Toggles Strip with Checkboxes (خيارات مصغرة مع مربعات تحكم) */}
-      <div className="flex items-center justify-between gap-2 flex-wrap pt-1.5 mt-1 border-t border-slate-800/60 text-[10px] sm:text-[11px]">
-        <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap">
-          {/* 🚪 Checkbox: بوابات الحدائق */}
+          {/* 🚪 Gates Toggle */}
           {showHadayekGates && (
-            <label className="inline-flex items-center gap-1 text-purple-300 hover:text-purple-200 font-bold cursor-pointer select-none transition-colors">
+            <label className="inline-flex items-center gap-1 text-purple-300 hover:text-purple-200 font-bold cursor-pointer text-[10px] sm:text-xs transition-colors">
               <input
                 type="checkbox"
                 checked={showGatesLayer}
                 onChange={(e) => setShowGatesLayer(e.target.checked)}
-                className="rounded accent-purple-500 w-3.5 h-3.5 cursor-pointer"
+                className="rounded accent-purple-500 w-3 h-3 cursor-pointer"
               />
-              <span>🚪 بوابات الحدائق</span>
+              <span>بوابات</span>
             </label>
           )}
 
-          {/* 🗺️ Checkbox: تقسيمات المناطق */}
-          <label className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200 font-bold cursor-pointer select-none transition-colors">
+          {/* 🗺️ Districts Toggle */}
+          <label className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200 font-bold cursor-pointer text-[10px] sm:text-xs transition-colors">
             <input
               type="checkbox"
               checked={showDistrictsOverlay}
               onChange={(e) => setShowDistrictsOverlay(e.target.checked)}
-              className="rounded accent-indigo-500 w-3.5 h-3.5 cursor-pointer"
+              className="rounded accent-indigo-500 w-3 h-3 cursor-pointer"
             />
-            <span>🗺️ تقسيمات المناطق</span>
+            <span>مناطق</span>
           </label>
 
-          {/* 📍 Checkbox: إظهار الأنشطة */}
+          {/* 📍 Businesses Toggle */}
           {mode === 'view' && (
-            <label className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-bold cursor-pointer select-none transition-colors">
+            <label className="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200 font-bold cursor-pointer text-[10px] sm:text-xs transition-colors">
               <input
                 type="checkbox"
                 checked={showBusinesses}
@@ -228,27 +153,30 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
                   setShowBusinesses(nextVal);
                   if (onToggleBusinessesVisibility) onToggleBusinessesVisibility(nextVal);
                 }}
-                className="rounded accent-amber-500 w-3.5 h-3.5 cursor-pointer"
+                className="rounded accent-amber-500 w-3 h-3 cursor-pointer"
               />
-              <span>📍 إظهار الأنشطة ({filteredBusinessesCount})</span>
+              <span>أنشطة</span>
             </label>
           )}
+        </div>
 
-          {/* 🎯 Filters Dropdown Button */}
+        {/* Action Buttons: Filters + Explore + Fullscreen */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Filters Toggle Button */}
           {mode === 'view' && (
             <div className="relative inline-flex items-center">
               <button
                 type="button"
                 onClick={() => setIsMapFilterOpen(!isMapFilterOpen)}
-                className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                className={`px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
                   mapCategoryFilter !== 'all' || onlyVerifiedFilter
                     ? 'bg-emerald-500 text-slate-950 font-black'
                     : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
                 }`}
-                title="تصفية وفلترة أنشطة الخريطة"
+                title="فلاتر وتصنيفات الأنشطة"
               >
                 <SlidersHorizontal className="w-2.5 h-2.5" />
-                <span>فلاتر التصنيفات</span>
+                <span>فلاتر</span>
                 {(mapCategoryFilter !== 'all' || onlyVerifiedFilter) && (
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping" />
                 )}
@@ -338,18 +266,47 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
               )}
             </div>
           )}
-        </div>
 
-        {/* Direct Link to Explore */}
-        {onExploreDirectory && (
+          {/* Explore Directory Button */}
+          {onExploreDirectory && (
+            <button
+              type="button"
+              onClick={onExploreDirectory}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] sm:text-xs px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-all active:scale-95 whitespace-nowrap"
+              title="استكشف الدليل"
+            >
+              <Compass className="w-3 h-3" />
+              <span>استكشف</span>
+            </button>
+          )}
+
+          {/* GPS Locator Button in Picker */}
+          {mode === 'picker' && handleGetLocation && (
+            <button
+              type="button"
+              onClick={handleGetLocation}
+              disabled={isLocating}
+              className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded shadow-xs transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+              title="تحديد موقعي"
+            >
+              {isLocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3 fill-slate-950" />}
+            </button>
+          )}
+
+          {/* Fullscreen Expand / Minimize */}
           <button
             type="button"
-            onClick={onExploreDirectory}
-            className="text-[10px] text-amber-400 hover:underline font-bold hidden sm:inline cursor-pointer"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`p-1 rounded border text-[10px] font-bold flex items-center justify-center transition-all cursor-pointer ${
+              isExpanded
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs'
+                : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-slate-700'
+            }`}
+            title={isExpanded ? 'إنهاء وضع الشاشة الكاملة' : 'توسيع الخريطة'}
           >
-            تصفح كروت الأنشطة بالتفصيل ←
+            {isExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

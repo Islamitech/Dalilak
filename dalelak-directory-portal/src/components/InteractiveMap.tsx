@@ -31,6 +31,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   heightClass = 'h-[380px]',
   targetBuilding = null,
   showHadayekGates = true,
+  selectedZone,
   onSelectZone,
   initialShowBusinesses = false,
   onToggleBusinessesVisibility,
@@ -38,7 +39,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   onExploreDirectory,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const state = useMapState({ initialShowBusinesses, defaultExpanded });
+  const state = useMapState({ initialShowBusinesses, defaultExpanded, initialSelectedZone: selectedZone });
+
+  // Sync state if selectedZone prop changes from parent
+  React.useEffect(() => {
+    if (selectedZone !== undefined) {
+      state.setSelectedZone(selectedZone);
+    }
+  }, [selectedZone]);
 
   const mapInstance = useMapInstance({
     containerRef,
@@ -131,8 +139,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           />
         )}
       </div>
-
-      <MapFooterBar mapInstance={mapInstance} state={state} />
     </>
   );
 

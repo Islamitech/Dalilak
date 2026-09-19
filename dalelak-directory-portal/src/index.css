@@ -575,3 +575,33 @@ img, picture, video {
   }
 }
 
+/* ============================================
+   🗺️ Leaflet Vector & District Polygon Clean Styles
+   Prevent any browser focus outlines or black bounding boxes
+   ============================================ */
+.leaflet-container path,
+.leaflet-container svg,
+.leaflet-interactive,
+.hadayek-district-polygon,
+.hadayek-district-polygon-selected {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+}
+
+.leaflet-container path:focus,
+.leaflet-container path:focus-visible,
+.leaflet-interactive:focus,
+.leaflet-interactive:focus-visible,
+.hadayek-district-polygon:focus,
+.hadayek-district-polygon:focus-visible,
+.hadayek-district-polygon-selected:focus,
+.hadayek-district-polygon-selected:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+

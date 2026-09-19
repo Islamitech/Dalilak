@@ -5,13 +5,16 @@ import { GOVERNORATE_COORDS } from '../constants/mapConstants';
 export interface UseMapStateProps {
   initialShowBusinesses?: boolean;
   defaultExpanded?: boolean;
+  initialSelectedZone?: string;
 }
 
 export const useMapState = ({
   initialShowBusinesses = false,
   defaultExpanded = false,
+  initialSelectedZone = '',
 }: UseMapStateProps = {}) => {
   const [showBusinesses, setShowBusinesses] = useState<boolean>(initialShowBusinesses);
+  const [selectedZone, setSelectedZone] = useState<string>(initialSelectedZone);
   const [mapCategoryFilter, setMapCategoryFilter] = useState<string>('all');
   const [onlyVerifiedFilter, setOnlyVerifiedFilter] = useState<boolean>(false);
   const [isMapFilterOpen, setIsMapFilterOpen] = useState<boolean>(false);
@@ -61,6 +64,8 @@ export const useMapState = ({
     copied,
     selectedGovFilter,
     setSelectedGovFilter,
+    selectedZone,
+    setSelectedZone,
     selectedBiz,
     setSelectedBiz,
     centerReticleActive,
