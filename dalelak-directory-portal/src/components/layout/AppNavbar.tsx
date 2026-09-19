@@ -7,9 +7,9 @@ import {
   Store,
   Menu,
   X,
-  Sparkles,
+  Compass,
+  BadgeDollarSign,
   Info,
-  BadgeDollarSign
 } from 'lucide-react';
 
 export interface AppNavbarProps {
@@ -26,9 +26,9 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { path: '/', label: 'الرئيسية' },
+    { path: '/', label: 'أطلس الحدائق', icon: Compass },
     { path: '/search', label: 'استكشف الأنشطة', icon: Search },
-    { path: '/map', label: 'الخريطة الحية', icon: MapIcon },
+    { path: '/map', label: 'الخريطة والملاحة', icon: MapIcon },
     { path: '/favorites', label: 'المفضلة', icon: Heart, badge: favoritesCount > 0 ? favoritesCount : undefined },
   ];
 
@@ -38,7 +38,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--bg-card)]/95 backdrop-blur-md border-b border-[var(--border-color)] transition-colors duration-200 shadow-xs">
+    <header className="sticky top-0 z-40 bg-[var(--bg-card)]/95 backdrop-blur-md border-b border-[var(--border-color)] transition-colors duration-200 shadow-xs" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Right (RTL Start): Brand Logo */}
         <div className="flex items-center gap-3">
@@ -46,13 +46,13 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
             type="button"
             onClick={() => handleLinkClick('/')}
             className="flex items-center gap-2 cursor-pointer focus:outline-none"
-            aria-label="الصفحة الرئيسية لمنصة دليلك"
+            aria-label="الصفحة الرئيسية لمنصة دليلك وأطلس حدائق الأهرام"
           >
             <Logo size="md" showSubtitle={false} />
           </button>
         </div>
 
-        {/* Center: Desktop Clean Navigation */}
+        {/* Center: Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 text-xs font-black text-[var(--text-secondary)]">
           {navLinks.map((link) => {
             const isActive = currentPath === link.path || (link.path !== '/' && currentPath.startsWith(link.path));
@@ -64,11 +64,11 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
                 onClick={() => handleLinkClick(link.path)}
                 className={`px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-amber-500/15 text-amber-800 font-black'
-                    : 'hover:bg-slate-100 hover:text-[var(--text-primary)] text-[var(--text-secondary)]'
+                    ? 'bg-amber-500/15 text-amber-800 dark:text-amber-400 font-black'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--text-primary)] text-[var(--text-secondary)]'
                 }`}
               >
-                {Icon && <Icon className={`w-4 h-4 ${isActive ? 'text-amber-600' : 'text-slate-400'}`} />}
+                {Icon && <Icon className={`w-4 h-4 ${isActive ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`} />}
                 <span>{link.label}</span>
                 {link.badge !== undefined && (
                   <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center font-mono">
@@ -86,13 +86,13 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
           <button
             type="button"
             onClick={() => handleLinkClick('/pricing')}
-            className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black text-slate-600 hover:text-amber-700 hover:bg-amber-50/60 transition-all cursor-pointer"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black text-slate-600 dark:text-slate-400 hover:text-amber-700 hover:bg-amber-50/60 dark:hover:bg-amber-950/40 transition-all cursor-pointer"
           >
             <BadgeDollarSign className="w-4 h-4 text-amber-600" />
             <span>باقات النمو</span>
           </button>
 
-          {/* Primary Business Owner CTA: Dedicated distinct action */}
+          {/* Primary Business Owner CTA */}
           <button
             type="button"
             onClick={() => handleLinkClick('/for-business')}
@@ -107,7 +107,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden w-10 h-10 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition-colors"
+            className="md:hidden w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition-colors"
             aria-label="القائمة الرئيسية"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -128,8 +128,8 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
                 onClick={() => handleLinkClick(link.path)}
                 className={`w-full px-4 py-3 rounded-xl flex items-center justify-between text-xs font-black transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-amber-500/15 text-amber-700'
-                    : 'text-slate-700 hover:bg-slate-100'
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -145,7 +145,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
             );
           })}
 
-          <div className="pt-2 border-t border-slate-100 space-y-2">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <button
               type="button"
               onClick={() => handleLinkClick('/for-business')}
@@ -161,7 +161,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
             <button
               type="button"
               onClick={() => handleLinkClick('/pricing')}
-              className="w-full px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
               <BadgeDollarSign className="w-4 h-4 text-amber-600" />
               <span>باقات وحلول النمو التسويقي</span>
@@ -170,7 +170,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
             <button
               type="button"
               onClick={() => handleLinkClick('/about')}
-              className="w-full px-4 py-2.5 rounded-xl text-slate-500 hover:bg-slate-100 text-xs font-medium flex items-center gap-2 transition-all cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium flex items-center gap-2 transition-all cursor-pointer"
             >
               <Info className="w-4 h-4 text-slate-400" />
               <span>عن منصة دليلك</span>

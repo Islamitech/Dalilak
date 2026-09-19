@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Map as MapIcon, Heart, PlusCircle } from 'lucide-react';
+import { Compass, Search, Map as MapIcon, Heart, PlusCircle } from 'lucide-react';
 
 export interface MobileBottomNavProps {
   currentPath: string;
@@ -17,8 +17,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const items = [
     {
       path: '/',
-      label: 'الرئيسية',
-      icon: Home,
+      label: 'أطلس الحدائق',
+      icon: Compass,
       isActive: cleanRoute === '/',
     },
     {
@@ -68,8 +68,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               onClick={() => onNavigate(item.path)}
               className={`relative flex flex-col items-center justify-center py-1 px-0.5 transition-all cursor-pointer select-none rounded-xl active:scale-90 ${
                 active
-                  ? 'text-amber-600 font-black'
-                  : 'text-slate-500 hover:text-slate-800 font-bold'
+                  ? 'text-amber-600 dark:text-amber-400 font-black'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-bold'
               }`}
             >
               {/* Active Indicator Top Pill */}
@@ -81,10 +81,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 <Icon
                   className={`w-5 h-5 transition-transform ${
                     active
-                      ? 'stroke-[2.5] scale-110 text-amber-600'
+                      ? 'stroke-[2.5] scale-110 text-amber-600 dark:text-amber-400'
                       : item.isHighlight
                       ? 'text-amber-500'
-                      : 'text-slate-500'
+                      : 'text-slate-500 dark:text-slate-400'
                   }`}
                 />
                 {item.badge !== undefined && (
@@ -95,7 +95,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               </div>
 
               <span className={`text-[10px] mt-0.5 tracking-tight truncate max-w-full ${
-                active ? 'font-black text-amber-700' : 'font-medium'
+                active ? 'font-black text-amber-700 dark:text-amber-400' : 'font-medium'
               }`}>
                 {item.label}
               </span>

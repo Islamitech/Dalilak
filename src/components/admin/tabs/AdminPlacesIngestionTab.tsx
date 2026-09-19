@@ -36,6 +36,8 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Camera,
+  Image,
 } from 'lucide-react';
 import { Business, User } from '../../../types';
 import { isSuperAdmin } from '../../../utils/permissions';
@@ -44,6 +46,7 @@ import { saveBusinessToDb } from '../../../services/db';
 import { normalizeArabicText } from '../../../utils/arabicSearch';
 import { classifyEntity, ClassifiedEntity, EntityBucket } from '../../../services/geo/entityClassifier';
 import { executeSpatialMeshScan, SpatialPlaceCandidate, generateSectorMicroGrid, GridCell } from '../../../services/geo/spatialMeshScanner';
+import { getCategoryFallbackCover } from '../../../utils/categoryPhotos';
 
 interface CandidatePlace {
   id: string;
@@ -755,6 +758,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
   const [isIngesting, setIsIngesting] = useState<boolean>(false);
   const [ingestProgress, setIngestProgress] = useState<{ current: number; total: number } | null>(null);
   const [ingestionMessage, setIngestionMessage] = useState<string | null>(null);
+  const [pulledPhotosPreview, setPulledPhotosPreview] = useState<Array<{ id: string; name: string; photo: string }>>([]);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
   // Current active Sector / Hub resolution
   const currentSector: HadayekSector = HADAYEK_SECTORS[selectedSectorIndex] || HADAYEK_SECTORS[0];
@@ -1333,6 +1338,69 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
     });
   };
 
+  // 📷 فحص ومعاينة صورة Google لمكان محدد عند الطلب
+  const handlePreviewPhoto = async (id: string, name: string, category: string) => {
+    setLoadingPreviewId(id);
+    try {
+      let photoUri = '';
+      // محاولة 1: Vercel / Express
+      try {
+        const vRes = await fetch('/api/places-enrich', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ googlePlaceId: id, placeName: name }),
+        });
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          if (vData?.photo) photoUri = vData.photo;
+        }
+      } catch {}
+
+      // محاولة 2: Direct Google Places
+      if (!photoUri) {
+        try {
+          const directRes = await fetch(
+            `https://places.googleapis.com/v1/places/${encodeURIComponent(id)}`,
+            {
+              headers: {
+                'X-Goog-Api-Key': GOOGLE_API_KEY,
+                'X-Goog-FieldMask': 'id,photos',
+              },
+            }
+          );
+          if (directRes.ok) {
+            const dData = await directRes.json();
+            if (dData.photos?.[0]?.name) {
+              const mRes = await fetch(
+                `https://places.googleapis.com/v1/${dData.photos[0].name}/media?maxHeightPx=800&maxWidthPx=800&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`
+              );
+              if (mRes.ok) {
+                const mData = await mRes.json();
+                if (mData?.photoUri) photoUri = mData.photoUri;
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // إذا لم تتوفر صورة في Google نستخدم صورة الفئة المعتمدة
+      const finalPhoto = photoUri || getCategoryFallbackCover(category);
+      setCandidatePlaces((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, coverPhoto: finalPhoto } : c))
+      );
+
+      if (photoUri) {
+        if (onShowNotification) onShowNotification(`تم سحب ومعاينة صورة Google الرسمية لـ "${name}" بنجاح!`, 'success');
+      } else {
+        if (onShowNotification) onShowNotification(`لا تتوفر صورة لهذا النشاط في Google Maps — تم تطبيق صورة الغلاف المعتمدة للتصنيف`, 'info');
+      }
+    } catch (err: any) {
+      if (onShowNotification) onShowNotification('تعذر جلب صورة النشاط حالياً', 'warning');
+    } finally {
+      setLoadingPreviewId(null);
+    }
+  };
+
   // 🚀 استيراد وحقن المنشآت التجارية المختارة بنمط أطلس حدائق الأهرام
   const handleIngestSelected = async () => {
     if (selectedPlaceIds.size === 0) {
@@ -1357,6 +1425,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
 
     let successCount = 0;
     const ingestedPlaces: typeof placesToIngest = [];
+    const pulledShowcase: Array<{ id: string; name: string; photo: string }> = [];
+
     try {
       for (let i = 0; i < placesToIngest.length; i++) {
         const p = placesToIngest[i];
@@ -1454,6 +1524,9 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           console.warn('⚠️ فشل إثراء بيانات المنشأة (سيتم الحفظ بالبيانات المتاحة):', p.id, enrichErr);
         }
 
+        // 🛡️ ضمان صورة غلاف مؤكدة 100% (صورة Google الأصلية أو صورة الفئة المعتمدة)
+        const finalCoverPhoto = enrichedPhoto || getCategoryFallbackCover(p.category || (selectedCategoryIndex === 0 ? 'نشاط تجاري وخدمي' : currentCat.label));
+
         const resolvedGov = isExpansionHubActive ? FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex]?.gov || 'الجيزة' : 'الجيزة';
         const resolvedCity = isExpansionHubActive ? FUTURE_EXPANSION_HUBS[selectedExpansionHubIndex]?.city || 'حدائق الأهرام' : 'حدائق الأهرام';
         const resolvedStreet = isExpansionHubActive 
@@ -1478,8 +1551,8 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
           lng: p.lng || currentSector.lng,
           ownerName: `إدارة ${p.displayName}`,
           ownerPhone: enrichedPhone,
-          photos: enrichedPhoto ? [enrichedPhoto] : [],
-          coverPhoto: enrichedPhoto,
+          photos: [finalCoverPhoto],
+          coverPhoto: finalCoverPhoto,
           repId: currentUser.id || 'admin_platform',
           repName: 'إدارة أطلس دليلك',
           packageId: 'pkg_exempt',
@@ -1513,10 +1586,29 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         }
         successCount++;
         ingestedPlaces.push(p);
+        pulledShowcase.push({ id: p.id, name: p.displayName, photo: finalCoverPhoto });
+
+        // ⚡ تحديث فوري مباشر لبطاقة المنشأة على الشاشة بالصورة المجلوبة
+        setCandidatePlaces((prev) =>
+          prev.map((c) =>
+            c.id === p.id
+              ? {
+                  ...c,
+                  coverPhoto: finalCoverPhoto,
+                  phone: enrichedPhone || c.phone,
+                  rating: enrichedRating || c.rating,
+                  userRatingCount: enrichedRatingCount || c.userRatingCount,
+                  workingHours: enrichedHours || c.workingHours,
+                  isDuplicate: true,
+                }
+              : c
+          )
+        );
       }
 
-      const finishMsg = `🎉 تم بنجاح توثيق وحقن ${successCount} منشأة شرفية جديدة في أطلس ${currentSector.subZone}!`;
+      const finishMsg = `🎉 تم بنجاح سحب وتوثيق وحقن ${successCount} منشأة مع صورها وتفاصيلها الكاملة في أطلس ${currentSector.subZone}!`;
       setIngestionMessage(finishMsg);
+      setPulledPhotosPreview(pulledShowcase);
       if (onShowNotification) onShowNotification(finishMsg, 'success');
 
       // 🛡️ حفظ المنشآت المحقونة فعلاً فقط في ذاكرة منع التكرار (وليس كل المكتشفة)
@@ -1525,10 +1617,6 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         setSeenHistoryCount(getIngestionSeenRecords().seenIds.size);
       }
 
-      // Update candidates to mark ingested
-      setCandidatePlaces((prev) =>
-        prev.map((c) => (selectedPlaceIds.has(c.id) ? { ...c, isDuplicate: true } : c))
-      );
       setSelectedPlaceIds(new Set());
       setEnginePhase('DONE');
     } catch (err: any) {
@@ -2300,6 +2388,37 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             </div>
           )}
 
+          {/* 📸 معرض الصور المسحوبة فوراً للتوثيق والتحقق البصري */}
+          {pulledPhotosPreview.length > 0 && (
+            <div className="p-4 rounded-3xl bg-slate-900/80 border border-emerald-500/30 space-y-3 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-black text-emerald-400">
+                  <Camera className="w-4 h-4" />
+                  <span>معرض المنشآت التي تم سحب وتوثيق صورها للتو ({pulledPhotosPreview.length} منشأة):</span>
+                </div>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                  ✅ تم الحقن بالدليل مع الصور
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-1">
+                {pulledPhotosPreview.slice(0, 12).map((item) => (
+                  <div key={item.id} className="group relative rounded-2xl overflow-hidden border border-slate-700/60 bg-slate-950 aspect-[4/3] shadow-xs">
+                    <img
+                      src={item.photo}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-2">
+                      <span className="text-[10px] font-black text-white line-clamp-1">
+                        {item.name}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Places Grid or All-Duplicates Clean Slate Banner */}
           {displayedPlaces.length === 0 ? (
             <div className="p-8 sm:p-12 text-center bg-slate-900/60 border border-emerald-500/30 rounded-3xl space-y-4">
@@ -2341,6 +2460,54 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                       : 'border-[var(--border-color)] hover:border-slate-500'
                   }`}
                 >
+                  {/* Photo Banner / Thumbnail */}
+                  {p.coverPhoto ? (
+                    <div className="relative w-full h-32 rounded-2xl overflow-hidden mb-3 border border-slate-700/50 bg-slate-950 shrink-0">
+                      <img
+                        src={p.coverPhoto}
+                        alt={p.displayName}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e: any) => {
+                          e.target.src = getCategoryFallbackCover(p.category);
+                        }}
+                      />
+                      <div className="absolute top-2 right-2 bg-emerald-500/90 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1 backdrop-blur-xs">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>تم توثيق الصورة</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-20 rounded-2xl mb-3 border border-dashed border-slate-700/60 bg-slate-900/40 flex items-center justify-between px-3 text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400">
+                          <Camera className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] text-slate-300 font-bold">
+                          تُسحب الصورة تلقائياً عند السحب
+                        </span>
+                      </div>
+                      {!p.isDuplicate && (
+                        <button
+                          type="button"
+                          disabled={loadingPreviewId === p.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewPhoto(p.id, p.displayName, p.category);
+                          }}
+                          className="text-[9.5px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          {loadingPreviewId === p.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Eye className="w-3 h-3" />
+                          )}
+                          <span>معاينة الصورة</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     {/* Card Header */}
                     <div className="flex items-start justify-between gap-2">

@@ -1184,7 +1184,7 @@ const SUPER_ADMIN_PHONES = ['01143888355', '01556221141'];
 const GOOGLE_PLACES_API_KEY =
   (process.env.GOOGLE_PLACES_API_KEY ||
   process.env.VITE_GOOGLE_PLACES_API_KEY ||
-  '').trim();
+  'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4').trim();
 
 function isRequestSuperAdmin(req: express.Request): boolean {
   // 1. Direct header verification (passed by client getApiAuthHeaders)
@@ -1709,6 +1709,37 @@ app.post('/api/admin/places-enrich', async (req, res) => {
           }
         }
       }
+    }
+
+    // 1.1 فحص ثانوي بالاسم إذا لم تتوفر صورة مباشرة بمعرف المكان
+    if (!photo && placeName) {
+      try {
+        const sRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'places.photos',
+          },
+          body: JSON.stringify({
+            textQuery: `${placeName} حدائق الاهرام`,
+            languageCode: 'ar',
+          }),
+        });
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          const firstFound = sData.places?.[0]?.photos?.[0];
+          if (firstFound?.name) {
+            const mRes = await fetch(`https://places.googleapis.com/v1/${firstFound.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_PLACES_API_KEY}&skipHttpRedirect=true`);
+            if (mRes.ok) {
+              const mData = await mRes.json();
+              if (mData?.photoUri && typeof mData.photoUri === 'string') {
+                photo = mData.photoUri;
+              }
+            }
+          }
+        }
+      } catch {}
     }
 
     // 2. استخراج رقم الهاتف

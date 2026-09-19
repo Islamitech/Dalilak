@@ -1,10 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Business } from '../../types';
 import { InteractiveMap } from '../InteractiveMap';
 import { BusinessCard } from '../cards/BusinessCard';
 import { FilterBar } from '../search/FilterBar';
 import { getBusinessMapDetails } from '../../utils/directoryEnhancements';
-import { Layers, MapPin, X, Navigation, Phone, MessageCircle } from 'lucide-react';
+import {
+  HadayekZone,
+  HADAYEK_ZONES,
+  getHadayekZone,
+  getRecommendedGateForZone,
+  estimateBuildingCoordinates,
+} from '../../data/hadayekAtlasData';
+import { ProximityRadarDrawer } from '../atlas/ProximityRadarDrawer';
+import { HadayekGatesModal } from '../atlas/HadayekGatesModal';
+import {
+  Compass,
+  MapPin,
+  X,
+  Navigation,
+  Phone,
+  Building2,
+  ExternalLink,
+  Layers,
+  HelpCircle,
+} from 'lucide-react';
 
 export interface MapViewProps {
   businesses: Business[];
@@ -38,9 +57,155 @@ export const MapView: React.FC<MapViewProps> = ({
   onNavigate,
 }) => {
   const [selectedMapBiz, setSelectedMapBiz] = useState<Business | null>(null);
+  const [isGatesModalOpen, setIsGatesModalOpen] = useState<boolean>(false);
+
+  // 1. Read URL params (?zone=...&bldg=...)
+  const [activeZoneLetter, setActiveZoneLetter] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams(window.location.search);
+    return params.get('zone') || '';
+  });
+
+  const [activeBuildingNumber, setActiveBuildingNumber] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams(window.location.search);
+    return params.get('bldg') || '';
+  });
+
+  // Keep state synced if URL changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const z = params.get('zone') || '';
+    const b = params.get('bldg') || '';
+    if (z !== activeZoneLetter) setActiveZoneLetter(z);
+    if (b !== activeBuildingNumber) setActiveBuildingNumber(b);
+  }, []);
+
+  // 2. Compute Target Building / Zone
+  const targetBuilding = useMemo(() => {
+    if (!activeZoneLetter) return null;
+    const zone = getHadayekZone(activeZoneLetter);
+    if (!zone) return null;
+    const coords = estimateBuildingCoordinates(zone.letterAr, activeBuildingNumber || '1');
+    return {
+      zone,
+      zoneLetter: zone.letterAr,
+      buildingNumber: activeBuildingNumber,
+      lat: coords.lat,
+      lng: coords.lng,
+      coords: { lat: coords.lat, lng: coords.lng },
+    };
+  }, [activeZoneLetter, activeBuildingNumber]);
+
+  // Recommended gate for current target
+  const gateInfo = useMemo(() => {
+    if (!activeZoneLetter) return null;
+    return getRecommendedGateForZone(activeZoneLetter);
+  }, [activeZoneLetter]);
+
+  const handleSelectZoneJump = (zoneLetter: string) => {
+    setActiveZoneLetter(zoneLetter);
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('zone', zoneLetter);
+    if (!activeBuildingNumber) newUrl.searchParams.delete('bldg');
+    window.history.replaceState({}, '', newUrl.toString());
+  };
+
+  const handleClearTarget = () => {
+    setActiveZoneLetter('');
+    setActiveBuildingNumber('');
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('zone');
+    newUrl.searchParams.delete('bldg');
+    window.history.replaceState({}, '', newUrl.toString());
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4 pb-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4 pb-20" dir="rtl">
+      {/* Hadayek Atlas Quick Zone Bar */}
+      <div className="bg-[var(--bg-card)] border border-amber-500/25 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-black">
+            <Compass className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <div>
+            <span className="text-xs font-black text-[var(--text-primary)] block">
+              أطلس مناطق حدائق الأهرام
+            </span>
+            <span className="text-[10px] text-[var(--text-secondary)]">
+              انتقل فورياً لأي منطقة (أ إلى ن) أو اعرض بواباتها
+            </span>
+          </div>
+        </div>
+
+        {/* 16 Zones Horizontal Scroll */}
+        <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
+          {HADAYEK_ZONES.map((z) => {
+            const isSelected = activeZoneLetter === z.letterAr;
+            return (
+              <button
+                key={z.id}
+                type="button"
+                onClick={() => handleSelectZoneJump(z.letterAr)}
+                className={`text-[11px] font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap border ${
+                  isSelected
+                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-transparent hover:border-slate-300'
+                }`}
+              >
+                {z.letterAr}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsGatesModalOpen(true)}
+          className="text-xs font-black text-amber-700 dark:text-amber-400 hover:underline shrink-0 flex items-center gap-1"
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+          <span>دليل البوابات</span>
+        </button>
+      </div>
+
+      {/* Target Building Highlight Banner (if active) */}
+      {targetBuilding && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 rounded-2xl p-3 sm:p-4 flex items-center justify-between gap-3 animate-fade-in shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+              <Building2 className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm font-black text-[var(--text-primary)]">
+                  {targetBuilding.buildingNumber
+                    ? `عمارة ${targetBuilding.buildingNumber} - ${targetBuilding.zone.nameAr}`
+                    : targetBuilding.zone.nameAr}
+                </span>
+                {gateInfo && (
+                  <span className="text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full">
+                    🚪 البوابة الموصى بها: {gateInfo.primaryGate.nameAr} ({gateInfo.primaryGate.popularNameAr})
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                موضحة بالدبوس الذهبي المتوهج ودائرة نطاق القرب (200 متر) على الخريطة
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClearTarget}
+            className="text-xs font-black text-slate-500 hover:text-slate-800 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+          >
+            إلغاء التحديد
+          </button>
+        </div>
+      )}
+
       {/* Top Filter Bar with Mode Switcher */}
       <FilterBar
         categoryFilter={categoryFilter}
@@ -63,6 +228,8 @@ export const MapView: React.FC<MapViewProps> = ({
         <InteractiveMap
           businesses={filteredBusinesses}
           mode="view"
+          targetBuilding={targetBuilding}
+          showHadayekGates={true}
           onSelectBusiness={(biz) => {
             setSelectedMapBiz(biz);
           }}
@@ -147,17 +314,26 @@ export const MapView: React.FC<MapViewProps> = ({
         })()}
       </div>
 
+      {/* Proximity Radar for Selected Target Building */}
+      {targetBuilding && (
+        <ProximityRadarDrawer
+          target={targetBuilding}
+          businesses={businesses}
+          onOpenBusiness={onOpenBusiness}
+        />
+      )}
+
       {/* Synchronized Compact Places List below map */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-black text-sm text-slate-900 flex items-center gap-1.5">
+          <h3 className="font-black text-sm text-[var(--text-primary)] flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-amber-600" />
             <span>أنشطة معروضة على الخريطة ({filteredBusinesses.length})</span>
           </h3>
           <button
             type="button"
             onClick={() => onNavigate('/search')}
-            className="text-xs font-bold text-amber-700 hover:underline cursor-pointer"
+            className="text-xs font-bold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
           >
             عرض القائمة الكاملة
           </button>
@@ -176,6 +352,13 @@ export const MapView: React.FC<MapViewProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Gates Modal */}
+      <HadayekGatesModal
+        isOpen={isGatesModalOpen}
+        onClose={() => setIsGatesModalOpen(false)}
+        onSelectZone={(z) => handleSelectZoneJump(z)}
+      />
     </div>
   );
 };

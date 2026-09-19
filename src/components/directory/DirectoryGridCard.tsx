@@ -1,6 +1,7 @@
 import React from 'react';
 import { Business, User } from '../../types';
 import { isTrendingFreeActivity } from '../../utils/categoryMatcher';
+import { getCategoryFallbackCover } from '../../utils/categoryPhotos';
 import { formatActivityDateTime } from '../../utils/dateFormatters';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import { getRepDisplayInfo } from '../../utils/repDisplay';
@@ -45,7 +46,8 @@ export const DirectoryGridCard: React.FC<DirectoryGridCardProps> = ({
   const vBadge = getVerificationBadge(biz.verificationStatus);
   const hasPhotos = biz.photos && biz.photos.length > 0;
   const hasVideos = Boolean(biz.videos && biz.videos.length > 0);
-  const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
+  const fallbackCover = getCategoryFallbackCover(biz.category);
+  const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null) || fallbackCover;
 
   return (
     <div
@@ -59,25 +61,23 @@ export const DirectoryGridCard: React.FC<DirectoryGridCardProps> = ({
         className="relative aspect-[16/8.5] bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-slate-900/10 overflow-hidden select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
-        {coverPhoto ? (
-          <img
-            src={coverPhoto}
-            alt=""
-            role="presentation"
-            aria-hidden="true"
-            data-reader-skip="true"
-            data-readability-ignore="true"
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-amber-500/60 bg-[var(--bg-surface)]">
-            <Store className="w-8 h-8 opacity-40 group-hover:scale-110 transition-transform" />
-            <span className="text-[10px] font-bold text-[var(--text-muted)] opacity-70">منظومة دليلك الميدانية</span>
-          </div>
-        )}
+        <img
+          src={coverPhoto}
+          alt={biz.nameAr || 'صورة المنشأة'}
+          role="presentation"
+          aria-hidden="true"
+          data-reader-skip="true"
+          data-readability-ignore="true"
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={(e: any) => {
+            if (e.currentTarget.src !== fallbackCover) {
+              e.currentTarget.src = fallbackCover;
+            }
+          }}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
+        />
 
         {/* Anti-Extraction Transparent Protection Shield */}
         <div

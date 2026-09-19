@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Building2 } from 'lucide-react';
 import { Business } from '../../types';
+import { getCategoryFallbackCover } from '../../utils/categoryPhotos';
 
 interface DrawerHeroHeaderProps {
   business: Business;
@@ -13,7 +14,8 @@ export const DrawerHeroHeader: React.FC<DrawerHeroHeaderProps> = ({
   isGuest = false,
   onOpenLightbox
 }) => {
-  const coverUrl = business.coverPhoto || (business.photos && business.photos[0]) || '';
+  const fallbackCover = getCategoryFallbackCover(business.category);
+  const coverUrl = business.coverPhoto || (business.photos && business.photos[0]) || fallbackCover;
   const isVerified = business.verificationStatus === 'verified';
   const isPending = business.verificationStatus === 'pending';
   const subCat = (business as any).subCategory;
@@ -25,17 +27,16 @@ export const DrawerHeroHeader: React.FC<DrawerHeroHeaderProps> = ({
         onOpenLightbox ? 'cursor-pointer group' : ''
       }`}
     >
-      {coverUrl ? (
-        <img
-          src={coverUrl}
-          alt={business.nameAr}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-      ) : (
-        <div className="w-full h-full bg-gradient-to-br from-slate-800 to-indigo-950 flex items-center justify-center text-slate-500">
-          <Building2 className="w-16 h-16 opacity-30" />
-        </div>
-      )}
+      <img
+        src={coverUrl}
+        alt={business.nameAr}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        onError={(e: any) => {
+          if (e.target.src !== fallbackCover) {
+            e.target.src = fallbackCover;
+          }
+        }}
+      />
 
       {/* Subtle bottom dark gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />

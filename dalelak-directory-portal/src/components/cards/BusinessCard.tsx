@@ -9,6 +9,7 @@ import {
 } from '../../utils/directoryEnhancements';
 import { getDirectoryPath } from '../../utils/directoryUrl';
 import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
+import { getCategoryFallbackCover } from '../../utils/categoryPhotos';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   ShieldCheck,
@@ -40,11 +41,12 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
   userCoords,
   onOpenVideoModal,
 }) => {
+  const fallbackCover = getCategoryFallbackCover(business.category);
   const mainPhoto =
     business.coverPhoto ||
     (business.photos && business.photos.length > 0
       ? business.photos[0]
-      : `/api/biz-og?biz=${business.id}&v=${encodeURIComponent(business.createdDate || business.createdAt || '')}`);
+      : fallbackCover);
 
   const openStatus = getBusinessOpenStatus(business.workingHours);
   const distanceKm = userCoords ? calculateDistanceKm(userCoords.lat, userCoords.lng, business.lat, business.lng) : null;
@@ -76,6 +78,11 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           loading="lazy"
           decoding="async"
           draggable={false}
+          onError={(e: any) => {
+            if (e.currentTarget.src !== fallbackCover) {
+              e.currentTarget.src = fallbackCover;
+            }
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
         />
         {/* Anti-Extraction Transparent Protection Shield */}

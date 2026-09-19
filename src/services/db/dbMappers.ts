@@ -1,6 +1,7 @@
 import { Business, Representative, PaymentGatewayConfig, PayoutRequest, InterestedLead, PaymentStatus, UserRole, AdminFollowUpNote, AdditionalServiceInvoice } from '../../types';
 import { safeParseJson } from '../../utils/storage';
 import { sanitizeRepName } from '../../utils/repDisplay';
+import { getCategoryFallbackCover } from '../../utils/categoryPhotos';
 
 // 🛡️ Comprehensive BiDi Control Characters Regex (strips \u202E, \u202B, \u200E, etc. preventing backwards scrambled text)
 export const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
@@ -305,8 +306,8 @@ export function mapDbToBusiness(item: any): Business {
     ownerPhone: item.owner_phone || item.ownerPhone || '',
     ownerEmail: item.owner_email || item.ownerEmail,
     nationalId: item.national_id || item.nationalId,
-    photos: parsePhotosArray(item),
-    coverPhoto: metaCoverPhoto || (parsePhotosArray(item).length > 0 ? parsePhotosArray(item)[0] : undefined),
+    photos: parsePhotosArray(item).length > 0 ? parsePhotosArray(item) : [metaCoverPhoto || getCategoryFallbackCover(cleanCategory)],
+    coverPhoto: metaCoverPhoto || (parsePhotosArray(item).length > 0 ? parsePhotosArray(item)[0] : getCategoryFallbackCover(cleanCategory)),
     videos: finalVideos,
     repId: item.rep_id || item.repId || 'rep_1',
     repName: sanitizeRepName(item.rep_name || item.repName),

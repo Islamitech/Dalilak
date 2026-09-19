@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, MapPin, Clock, Film } from 'lucide-react';
 import { Business } from '../../types';
 import { isTrendingFreeActivity } from '../../utils/categoryMatcher';
+import { getCategoryFallbackCover } from '../../utils/categoryPhotos';
 import { VerificationPill, PaymentPill } from './StatusPill';
 import { QuickActionBar } from './QuickActionBar';
 
@@ -19,10 +20,11 @@ export const UniversalListingCard: React.FC<UniversalListingCardProps> = ({
   showAdminMetrics = false,
 }) => {
   const isExempt = isTrendingFreeActivity(business);
+  const fallbackCover = getCategoryFallbackCover(business.category);
   const cover =
     business.coverPhoto ||
     (business.photos && business.photos.length > 0 ? business.photos[0] : null) ||
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80';
+    fallbackCover;
 
   if (variant === 'row') {
     return (
@@ -36,7 +38,9 @@ export const UniversalListingCard: React.FC<UniversalListingCardProps> = ({
             alt={business.nameAr}
             className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover border border-[var(--border-color)] shrink-0"
             onError={(e: any) => {
-              e.target.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&q=80';
+              if (e.target.src !== fallbackCover) {
+                e.target.src = fallbackCover;
+              }
             }}
           />
           <div className="flex-1 min-w-0">
@@ -93,7 +97,9 @@ export const UniversalListingCard: React.FC<UniversalListingCardProps> = ({
           alt={business.nameAr}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e: any) => {
-            e.target.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80';
+            if (e.target.src !== fallbackCover) {
+              e.target.src = fallbackCover;
+            }
           }}
         />
 

@@ -1,3 +1,4 @@
+import { HADAYEK_GATES, HADAYEK_ZONES, HadayekGate, HadayekZone } from '../data/hadayekAtlasData';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Business } from '../types';
 import {
@@ -60,7 +61,7 @@ function escapeHtml(str?: string | null): string {
     .replace(/'/g, '&#039;');
 }
 
-interface InteractiveMapProps {
+export interface InteractiveMapProps {
   mode?: 'picker' | 'view';
   lat?: number;
   lng?: number;
@@ -69,6 +70,14 @@ interface InteractiveMapProps {
   onSelectBusiness?: (biz: Business) => void;
   onEditBusiness?: (biz: Business) => void;
   heightClass?: string;
+  targetBuilding?: {
+    zoneLetter?: string;
+    buildingNumber?: string;
+    lat?: number;
+    lng?: number;
+  } | null;
+  showHadayekGates?: boolean;
+  onSelectZone?: (zoneLetter: string) => void;
 }
 
 // Egyptian governorate approximate coordinates map
@@ -102,13 +111,16 @@ const GOVERNORATE_COORDS: Record<string, { lat: number; lng: number }> = {
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   mode = 'view',
-  lat = 30.0444,
-  lng = 31.2357,
+  lat = 29.9753,
+  lng = 31.1120,
   onLocationSelect,
   businesses = [],
   onSelectBusiness,
   onEditBusiness,
   heightClass = 'h-[380px]',
+  targetBuilding = null,
+  showHadayekGates = true,
+  onSelectZone,
 }) => {
   const [currentLat, setCurrentLat] = useState<number>(lat);
   const [currentLng, setCurrentLng] = useState<number>(lng);
@@ -477,8 +489,83 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           markersGroup.addLayer(clusterMarker);
         }
       });
+
+      // ?? Render Hadayek Gates as Landmark Pins
+      if (showHadayekGates && window.L) {
+        HADAYEK_GATES.forEach((gate) => {
+          const gateHtml = `
+            <div style="position: relative; transform: translate(-50%, -100%); cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center;">
+              <div style="background: linear-gradient(135deg, #312e81, #1e1b4b); border: 2px solid #818cf8; color: #ffffff; padding: 4px 10px; border-radius: 9999px; font-family: Cairo, sans-serif; font-weight: 800; font-size: 11px; box-shadow: 0 4px 14px rgba(49, 46, 129, 0.6); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
+                <span style="font-size: 13px;">??</span>
+                <span>${escapeHtml(gate.nameAr)} (${escapeHtml(gate.popularNameAr)})</span>
+              </div>
+              <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #818cf8;"></div>
+            </div>
+          `;
+
+          const gateIcon = window.L.divIcon({
+            className: 'custom-gate-pin',
+            html: gateHtml,
+            iconSize: [160, 36],
+            iconAnchor: [80, 36],
+          });
+
+          const gateMarker = window.L.marker([gate.lat, gate.lng], { icon: gateIcon, zIndexOffset: 400 });
+          gateMarker.bindPopup(`
+            <div dir="rtl" style="font-family: Cairo, sans-serif; text-align: right; min-width: 190px;">
+              <b style="color: #4338ca; font-size: 13px;">?? ${escapeHtml(gate.nameAr)} (${escapeHtml(gate.popularNameAr)})</b>
+              <p style="margin: 4px 0; font-size: 11px; color: #475569;"><b>?? ??????:</b> ${escapeHtml(gate.accessRoadAr)}</p>
+              <p style="margin: 4px 0; font-size: 11px; color: #047857;"><b>?? ???? ?????:</b> ${escapeHtml(gate.servedZones.join('? '))}</p>
+              <small style="color: #64748b; font-size: 10px;">?? ${escapeHtml(gate.tipsAr)}</small>
+            </div>
+          `);
+          markersGroup.addLayer(gateMarker);
+        });
+      }
+
+      // ?? Render Target Building Glowing Pin
+      if (targetBuilding && typeof targetBuilding.lat === 'number' && typeof targetBuilding.lng === 'number' && window.L) {
+        const bldgLabel = targetBuilding.buildingNumber
+          ? `????? ${targetBuilding.buildingNumber} ????? ${targetBuilding.zoneLetter || ''}`
+          : `????? ${targetBuilding.zoneLetter || '???????'}`;
+
+        const bldgHtml = `
+          <div style="position: relative; transform: translate(-50%, -100%); cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); border: 2.5px solid #ffffff; color: #020617; padding: 6px 14px; border-radius: 9999px; font-family: Cairo, sans-serif; font-weight: 900; font-size: 12px; box-shadow: 0 0 25px rgba(245, 158, 11, 0.9), 0 4px 16px rgba(0,0,0,0.4); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
+              <span style="font-size: 15px;">??</span>
+              <span>${escapeHtml(bldgLabel)}</span>
+            </div>
+            <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #f59e0b; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));"></div>
+          </div>
+        `;
+
+        const bldgIcon = window.L.divIcon({
+          className: 'custom-target-building-pin',
+          html: bldgHtml,
+          iconSize: [200, 42],
+          iconAnchor: [100, 42],
+        });
+
+        const bldgMarker = window.L.marker([targetBuilding.lat, targetBuilding.lng], { icon: bldgIcon, zIndexOffset: 1000 });
+        markersGroup.addLayer(bldgMarker);
+
+        // Soft Golden Radius Circle (200m)
+        const bldgCircle = window.L.circle([targetBuilding.lat, targetBuilding.lng], {
+          radius: 200,
+          color: '#f59e0b',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#f59e0b',
+          fillOpacity: 0.12,
+          dashArray: '5, 5',
+        });
+        markersGroup.addLayer(bldgCircle);
+
+        // Fly smoothly to target
+        map.flyTo([targetBuilding.lat, targetBuilding.lng], 17, { duration: 1.2 });
+      }
     }
-  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy, zoomLevel, selectedBiz]);
+  }, [mode, businesses, selectedGovFilter, currentLat, currentLng, gpsAccuracy, zoomLevel, selectedBiz, targetBuilding, showHadayekGates]);
 
   // Handle Resize & Fullscreen Invalidation
   useEffect(() => {

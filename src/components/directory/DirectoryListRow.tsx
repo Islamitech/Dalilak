@@ -1,6 +1,7 @@
 import React from 'react';
 import { Business, User } from '../../types';
 import { isTrendingFreeActivity } from '../../utils/categoryMatcher';
+import { getCategoryFallbackCover } from '../../utils/categoryPhotos';
 import { formatActivityDateTime } from '../../utils/dateFormatters';
 import { sanitizeExternalUrl } from '../../utils/urlSanitizer';
 import { getRepDisplayInfo } from '../../utils/repDisplay';
@@ -46,7 +47,8 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
   const ownerPhone = biz.ownerPhone || biz.phone || '';
 
   const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
-  const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
+  const fallbackCover = getCategoryFallbackCover(biz.category);
+  const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null) || fallbackCover;
   const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
 
   return (
@@ -59,19 +61,18 @@ export const DirectoryListMobileCard: React.FC<DirectoryListRowProps> = ({
             onClick={() => onEditBusiness(biz)}
             className="relative w-12 h-12 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
           >
-            {coverPhoto ? (
-              <img
-                src={coverPhoto}
-                alt={biz.nameAr}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-amber-500/60">
-                <Store className="w-5 h-5" />
-              </div>
-            )}
+            <img
+              src={coverPhoto}
+              alt={biz.nameAr || 'صورة المنشأة'}
+              loading="lazy"
+              decoding="async"
+              onError={(e: any) => {
+                if (e.currentTarget.src !== fallbackCover) {
+                  e.currentTarget.src = fallbackCover;
+                }
+              }}
+              className="w-full h-full object-cover"
+            />
             {hasVideos && (
               <div
                 onClick={(e) => {
@@ -270,7 +271,8 @@ export const DirectoryListTableRow: React.FC<DirectoryListRowProps> = ({
   const ownerPhone = biz.ownerPhone || biz.phone || '';
 
   const hasPhotos = Array.isArray(biz.photos) && biz.photos.length > 0;
-  const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null);
+  const fallbackCover = getCategoryFallbackCover(biz.category);
+  const coverPhoto = biz.coverPhoto || (hasPhotos ? biz.photos[0] : null) || fallbackCover;
   const hasVideos = Boolean(Array.isArray(biz.videos) && biz.videos.length > 0);
 
   return (
@@ -282,19 +284,18 @@ export const DirectoryListTableRow: React.FC<DirectoryListRowProps> = ({
             onClick={() => onEditBusiness(biz)}
             className="relative w-10 h-10 rounded-xl overflow-hidden bg-[var(--input-bg)] border border-[var(--border-color)] shrink-0 cursor-pointer group shadow-2xs"
           >
-            {coverPhoto ? (
-              <img
-                src={coverPhoto}
-                alt={biz.nameAr}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-amber-500/50">
-                <Store className="w-4 h-4" />
-              </div>
-            )}
+            <img
+              src={coverPhoto}
+              alt={biz.nameAr || 'صورة المنشأة'}
+              loading="lazy"
+              decoding="async"
+              onError={(e: any) => {
+                if (e.currentTarget.src !== fallbackCover) {
+                  e.currentTarget.src = fallbackCover;
+                }
+              }}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+            />
             {hasVideos && (
               <div
                 onClick={(e) => {
